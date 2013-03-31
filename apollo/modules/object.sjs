@@ -36,6 +36,7 @@
 */
 
 var { each, map, Stream } = require('./sequence');
+var { extendObject, mergeObjects, flatten } = require('builtin:apollo-sys');
 
 /**
    @function keys
@@ -136,33 +137,77 @@ exports.pairsToObject = pairsToObject;
 
 /**
    @function extend
-   @altsyntax dest .. extend(source*)
+   @altsyntax dest .. extend(source)
    @param {Object} [dest] Destination Object
-   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @param {Object|Array} [source] Source Object(s)
    @return {Object} `dest` object
-   @summary Extend `dest` with properties from the given source object(s)
+   @summary Extend `dest` with properties from the given source object
    @desc
-      * Properties from the source objects will be applied in the order that they
-        appear in the argument list. I.e. properties appearing later will override
-        properties appearing in objects to the left.
-      * `source` parameters can be arbitrarily nested arrays of objects. These will be 
-        flattend before the objects contained in them will be applied to `dest`.
+      * Only "own" properties will be added to *dest* - i.e no
+        properties inherited via prototypes will be copied.
 */
-exports.extend = require('builtin:apollo-sys').extendObject;
+exports.extend = extendObject;
 
 /**
    @function merge
-   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @param {Object|Array} [source*] Source Object(s) or Array of Objects
    @return {Object} New object with merged properties
    @summary Merge properties from the given source objects into a new object
    @desc
       * Properties from the source objects will be merged in the order that they
         appear in the argument list. I.e. properties appearing later will override
         properties appearing in objects to the left.
+      * `source` can be a multiple object arguments, or a single Array argument.
+*/
+exports.merge = mergeObjects;
+
+/**
+  @function clone
+  @summary Shallow-clone an object or array
+  @param {Object|Array} [source] Source Object or Array
+  @return {Object} A new Object or Array with the same keys/values as the input.
+  @desc
+    The return type is a simple Object with the same keys and values - no
+    prototype or class information is cloned.
+    The return type when given either an Array or an `arguments` object will
+    be a new Array with the same elements as `source`.
+*/
+exports.clone = function(obj) {
+  if (require('builtin:apollo-sys').isArrayLike(obj)) {
+    return Array.prototype.slice.call(obj);
+  }
+  return exports.extend({}, obj);
+};
+
+/**
+   @function override
+   @altsyntax dest .. override(source*)
+   @param {Object} [dest] Destination Object
+   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @return {Object} `dest` object
+   @summary Override properties of `dest` with properties from the given source object(s)
+   @desc
+      * In contrast to [::extend], only enumerable properties on `dest` (those e.g. 
+        accessible by a for-in loop) will be overridden.  No other properties from 
+        `source` parameters will be be copied to `dest`.
+      * Properties from the source objects will be applied in the order that they
+        appear in the argument list. I.e. properties appearing later will override
+        properties appearing in objects to the left.
       * `source` parameters can be arbitrarily nested arrays of objects. These will be 
         flattend before the objects contained in them will be applied to `dest`.
 */
-exports.merge = function(/*source*/) {
-  return exports.extend({}, arguments);
+exports.override = function(/*dest, source...*/) {
+  var dest = arguments[0];
+  var sources = flatten(Array.prototype.slice.call(arguments, 1));
+  var hl = sources.length;
+  for (var o in dest) {
+    for (var h=hl-1; h>=0; --h) {
+      var source = sources[h];
+      if (o in source) {
+        dest[o] = source[o];
+        break;
+      }
+    }
+  }
+  return dest;
 };
-

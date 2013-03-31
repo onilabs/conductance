@@ -271,6 +271,8 @@ function iterate(/* sequence, [opt]eos, loop */) {
   or {
     sequence .. each {
       |x|
+      // for a parallel stream this function will be called reentrantly!
+
       waitfor() {
         if (!wants.length)
           runLoop(resume, x);
@@ -435,7 +437,7 @@ exports.toStream = toStream;
 function take(sequence, count) {
   return Stream(function(r) {
     var n = count;
-      sequence .. each { |x| if (--n < 0) return; r(x) }
+      sequence .. each { |x| r(x); if (--n <= 0) return }
   });
 }
 exports.take = take;
@@ -788,6 +790,13 @@ function parallelize(sequence, max_strata) {
           if (count-- == max_strata) dispatch();
         }
         and {
+          if (count < max_strata) dispatch();
+        }
+        and {
+          // by adding another dispatch() call clause here, we ensure
+          // that we don't build a long linear chain of dispatch
+          // calls, but a tree. this greatly aids scaling with large
+          // parallelism
           if (count < max_strata) dispatch();
         }
       }

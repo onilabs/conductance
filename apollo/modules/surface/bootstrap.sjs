@@ -423,6 +423,11 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   headingsFontWeight:  -> 'bold',    // instead of browser default, bold
   headingsColor:       -> 'inherit', // empty to use BS default, @textColor
 
+  // Component sizing
+  // -------------------------
+  // Based on 14px font-size and 20px line-height
+
+  baseBorderRadius:    -> '4px',
 
   // Tables
   // -------------------------
@@ -547,6 +552,19 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   infoText:                -> '#3a87ad',
   infoBackground:          -> '#d9edf7',
   infoBorder:              -> darken(spin(this.infoBackground(), -10), .07),
+
+  // Tooltips and popovers
+  // -----------------------
+
+  popoverBackground:       -> '#fff',
+  popoverArrowWidth:       -> '10px',
+  popoverArrowColor:       -> '#fff',
+  popoverTitleBackground:  -> darken(this.popoverBackground(), .03),
+
+  // Special enhancement for popovers
+  popoverArrowOuterWidth:  -> add(this.popoverArrowWidth(), 1),
+  popoverArrowOuterColor:  -> 'rgba(0,0,0,.25)',
+
 
 
   // GRID
@@ -2089,6 +2107,10 @@ table {
     border-top: 2px solid #{vars.tableBorder()};
 }
 
+ /* Nesting */
+.table .table {
+  background-color: #{vars.bodyBackground()};
+}
 
 /* CONDENSED TABLE W/ HALF PADDING */
 
@@ -2105,7 +2127,7 @@ table {
   border-collapse: separate; /* Done so we can round those corners! */
   *border-collapse: collapsed; /* IE7 can't round corners anyway */
   border-left: 0;
-  #{mixins.border_radius('4px')}
+  #{mixins.border_radius(vars.baseBorderRadius())}
 }
 
 .table-bordered th,
@@ -2129,32 +2151,32 @@ table {
   /* For first th or td in the first row in the first thead or tbody */
 .table-bordered thead:first-child tr:first-child th:first-child,
 .table-bordered tbody:first-child tr:first-child td:first-child {
-    -webkit-border-top-left-radius: 4px;
-            border-top-left-radius: 4px;
-        -moz-border-radius-topleft: 4px;
+    -webkit-border-top-left-radius: #{vars.baseBorderRadius()};
+            border-top-left-radius: #{vars.baseBorderRadius()};
+        -moz-border-radius-topleft: #{vars.baseBorderRadius()};
 }
 
 .table-bordered thead:first-child tr:first-child th:last-child,
 .table-bordered tbody:first-child tr:first-child td:last-child {
-    -webkit-border-top-right-radius: 4px;
-            border-top-right-radius: 4px;
-        -moz-border-radius-topright: 4px;
+    -webkit-border-top-right-radius: #{vars.baseBorderRadius()};
+            border-top-right-radius: #{vars.baseBorderRadius()};
+        -moz-border-radius-topright: #{vars.baseBorderRadius()};
 }
 
   /* For first th or td in the first row in the first thead or tbody */
 .table-bordered thead:last-child tr:last-child th:first-child,
 .table-bordered tbody:last-child tr:last-child td:first-child {
-    #{mixins.border_radius('0 0 0 4px')}
-    -webkit-border-bottom-left-radius: 4px;
-            border-bottom-left-radius: 4px;
-        -moz-border-radius-bottomleft: 4px;
+    #{mixins.border_radius('0 0 0 '+vars.baseBorderRadius())}
+    -webkit-border-bottom-left-radius: #{vars.baseBorderRadius()};
+            border-bottom-left-radius: #{vars.baseBorderRadius()};
+        -moz-border-radius-bottomleft: #{vars.baseBorderRadius()};
 }
 
 .table-bordered thead:last-child tr:last-child th:last-child,
 .table-bordered tbody:last-child tr:last-child td:last-child {
-    -webkit-border-bottom-right-radius: 4px;
-            border-bottom-right-radius: 4px;
-        -moz-border-radius-bottomright: 4px;
+    -webkit-border-bottom-right-radius: #{vars.baseBorderRadius()};
+            border-bottom-right-radius: #{vars.baseBorderRadius()};
+        -moz-border-radius-bottomright: #{vars.baseBorderRadius()};
 }
 
 
@@ -2169,8 +2191,8 @@ table {
 
 /* HOVER EFFECT */
 /* Placed here since it has to come after the potential zebra striping */
-.table tbody tr:hover td,
-.table tbody tr:hover th {
+.table-hover tbody tr:hover td,
+.table-hover tbody tr:hover th {
     background-color: #{vars.tableBackgroundHover()};
 }
 
@@ -2178,10 +2200,41 @@ table {
 /* TABLE CELL SIZING */
 
 /* Change the columns */
- #{ integers(1,24) .. 
+ #{ integers(1,12) .. 
     map(i => "table .span#{i} { #{ mixins.tableColumns(i) } }") .. 
     join(' ')
   }
+
+/* TABLE BACKGROUNDS */
+/* Exact selectors below required to override .table-striped */
+
+.table tbody tr.success td {
+  background-color: #{vars.successBackground()};
+}
+.table tbody tr.error td {
+  background-color: #{vars.errorBackground()};
+}
+.table tbody tr.warning td {
+  background-color: #{vars.warningBackground()};
+}
+.table tbody tr.info td {
+  background-color: #{vars.infoBackground()};
+}
+
+/* Hover states for .table-hover */
+.table-hover tbody tr.success:hover td {
+  background-color: #{darken(vars.successBackground(), 0.05)};
+}
+.table-hover tbody tr.error:hover td {
+  background-color: #{darken(vars.errorBackground(), 0.05)};
+
+}
+.table-hover tbody tr.warning:hover td {
+  background-color: #{darken(vars.warningBackground(), 0.05)};
+}
+.table-hover tbody tr.info:hover td {
+  background-color: #{darken(vars.infoBackground(), 0.05)};
+}
 "); 
 };
 
@@ -4646,7 +4699,7 @@ __js var CSSModals = exports.CSSModals = function(lookAndFeel) {
 };
 
 //----------------------------------------------------------------------
-// port of Font Awesome's font-awesome.less (in lieu of Bootstrap's
+// port of Font Awesome's font-awesome.css v3.0.2 (in lieu of Bootstrap's
 // sprites.less)
 
 __js var CSSFontAwesome = exports.CSSFontAwesome = function(lookAndFeel) {
@@ -4659,77 +4712,253 @@ __js var CSSFontAwesome = exports.CSSFontAwesome = function(lookAndFeel) {
   return base.CSS("
 @font-face {
   font-family: 'FontAwesome';
-  src: url('#{fontPath}fontawesome-webfont.eot');
-  src: url('#{fontPath}fontawesome-webfont.eot?#iefix') format('embedded-opentype'),
-    url('#{fontPath}fontawesome-webfont.woff') format('woff'),
-    url('#{fontPath}fontawesome-webfont.ttf') format('truetype'),
-    url('#{fontPath}fontawesome-webfont.svg#FontAwesome') format('svg');
+  src: url('#{fontPath}fontawesome-webfont.eot?v=3.0.1');
+  src: url('#{fontPath}fontawesome-webfont.eot?#iefix&v=3.0.1') format('embedded-opentype'),
+    url('#{fontPath}fontawesome-webfont.woff?v=3.0.1') format('woff'),
+    url('#{fontPath}fontawesome-webfont.ttf?v=3.0.1') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
 
 /*  Font Awesome styles
     ------------------------------------------------------- */
-[class^='icon-']:before,
-[class*=' icon-']:before {
+[class^='icon-'],
+[class*=' icon-'] {
   font-family: FontAwesome;
   font-weight: normal;
   font-style: normal;
-  display: inline-block;
   text-decoration: inherit;
-}
+  -webkit-font-smoothing: antialiased;
 
+  /* sprites.less reset */
+  display: inline;
+  width: auto;
+  height: auto;
+  line-height: normal;
+  vertical-align: baseline;
+  background-image: none;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  margin-top: 0;
+}
+/* more sprites.less reset */
+.icon-white,
+.nav-pills > .active > a > [class^='icon-'],
+.nav-pills > .active > a > [class*=' icon-'],
+.nav-list > .active > a > [class^='icon-'],
+.nav-list > .active > a > [class*=' icon-'],
+.navbar-inverse .nav > .active > a > [class^='icon-'],
+.navbar-inverse .nav > .active > a > [class*=' icon-'],
+.dropdown-menu > li > a:hover > [class^='icon-'],
+.dropdown-menu > li > a:hover > [class*=' icon-'],
+.dropdown-menu > .active > a > [class^='icon-'],
+.dropdown-menu > .active > a > [class*=' icon-'],
+.dropdown-submenu:hover > a > [class^='icon-'],
+.dropdown-submenu:hover > a > [class*=' icon-'] {
+  background-image: none;
+}
+[class^='icon-']:before,
+[class*=' icon-']:before {
+  text-decoration: inherit;
+  display: inline-block;
+  speak: none;
+}
+/* makes sure icons active on rollover in links */
 a [class^='icon-'],
 a [class*=' icon-'] {
   display: inline-block;
-  text-decoration: inherit;
 }
-
 /* makes the font 33% larger relative to the icon container */
 .icon-large:before {
-  vertical-align: middle;
-  font-size: 4/3em;
+  vertical-align: -10%;
+  font-size: 1.3333333333333333em;
 }
-
 .btn [class^='icon-'],
+.nav [class^='icon-'],
 .btn [class*=' icon-'],
-.nav-tabs [class^='icon-'],
-.nav-tabs [class*=' icon-'] {
+.nav [class*=' icon-'] {
+  display: inline;
   /* keeps button heights with and without icons the same */
-    line-height: .9em;
 }
+.btn [class^='icon-'].icon-large,
+.nav [class^='icon-'].icon-large,
+.btn [class*=' icon-'].icon-large,
+.nav [class*=' icon-'].icon-large {
+  line-height: .9em;
+}
+.btn [class^='icon-'].icon-spin,
+.nav [class^='icon-'].icon-spin,
+.btn [class*=' icon-'].icon-spin,
+.nav [class*=' icon-'].icon-spin {
+  display: inline-block;
+}
+.nav-tabs [class^='icon-'],
+.nav-pills [class^='icon-'],
+.nav-tabs [class*=' icon-'],
+.nav-pills [class*=' icon-'] {
+  /* keeps button heights with and without icons the same */
 
+}
+.nav-tabs [class^='icon-'],
+.nav-pills [class^='icon-'],
+.nav-tabs [class*=' icon-'],
+.nav-pills [class*=' icon-'],
+.nav-tabs [class^='icon-'].icon-large,
+.nav-pills [class^='icon-'].icon-large,
+.nav-tabs [class*=' icon-'].icon-large,
+.nav-pills [class*=' icon-'].icon-large {
+  line-height: .9em;
+}
 li [class^='icon-'],
-li [class*=' icon-'] {
-    display: inline-block;
-    width: 1.25em;
-    text-align: center;
+.nav li [class^='icon-'],
+li [class*=' icon-'],
+.nav li [class*=' icon-'] {
+  display: inline-block;
+  width: 1.25em;
+  text-align: center;
 }
-li .icon-large:before,
-li .icon-large:before {
-    /* 1.5 increased font size for icon-large * 1.25 width */
-    width: 1.5*1.25em;
+li [class^='icon-'].icon-large,
+.nav li [class^='icon-'].icon-large,
+li [class*=' icon-'].icon-large,
+.nav li [class*=' icon-'].icon-large {
+  /* increased font size for icon-large */
+
+  width: 1.5625em;
 }
-
-
 ul.icons {
   list-style-type: none;
-  margin-left: 2em;
-  text-indent: -.8em;
+  text-indent: -0.75em;
 }
-
 ul.icons li [class^='icon-'],
 ul.icons li [class*=' icon-'] {
-      width: .8em;
+  width: .75em;
 }
-ul.icons li .icon-large:before,
-ul.icons li .icon-large:before {
-      /* 1.5 increased font size for icon-large * 1.25 width */
-      vertical-align: initial;
-/*     width: 1.5*1.25em; */
+.icon-muted {
+  color: #eeeeee;
 }
-
-
+.icon-border {
+  border: solid 1px #eeeeee;
+  padding: .2em .25em .15em;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+}
+.icon-2x {
+  font-size: 2em;
+}
+.icon-2x.icon-border {
+  border-width: 2px;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+}
+.icon-3x {
+  font-size: 3em;
+}
+.icon-3x.icon-border {
+  border-width: 3px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.icon-4x {
+  font-size: 4em;
+}
+.icon-4x.icon-border {
+  border-width: 4px;
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
+}
+.pull-right {
+  float: right;
+}
+.pull-left {
+  float: left;
+}
+[class^='icon-'].pull-left,
+[class*=' icon-'].pull-left {
+  margin-right: .3em;
+}
+[class^='icon-'].pull-right,
+[class*=' icon-'].pull-right {
+  margin-left: .3em;
+}
+.btn [class^='icon-'].pull-left.icon-2x,
+.btn [class*=' icon-'].pull-left.icon-2x,
+.btn [class^='icon-'].pull-right.icon-2x,
+.btn [class*=' icon-'].pull-right.icon-2x {
+  margin-top: .18em;
+}
+.btn [class^='icon-'].icon-spin.icon-large,
+.btn [class*=' icon-'].icon-spin.icon-large {
+  line-height: .8em;
+}
+.btn.btn-small [class^='icon-'].pull-left.icon-2x,
+.btn.btn-small [class*=' icon-'].pull-left.icon-2x,
+.btn.btn-small [class^='icon-'].pull-right.icon-2x,
+.btn.btn-small [class*=' icon-'].pull-right.icon-2x {
+  margin-top: .25em;
+}
+.btn.btn-large [class^='icon-'],
+.btn.btn-large [class*=' icon-'] {
+  margin-top: 0;
+}
+.btn.btn-large [class^='icon-'].pull-left.icon-2x,
+.btn.btn-large [class*=' icon-'].pull-left.icon-2x,
+.btn.btn-large [class^='icon-'].pull-right.icon-2x,
+.btn.btn-large [class*=' icon-'].pull-right.icon-2x {
+  margin-top: .05em;
+}
+.btn.btn-large [class^='icon-'].pull-left.icon-2x,
+.btn.btn-large [class*=' icon-'].pull-left.icon-2x {
+  margin-right: .2em;
+}
+.btn.btn-large [class^='icon-'].pull-right.icon-2x,
+.btn.btn-large [class*=' icon-'].pull-right.icon-2x {
+  margin-left: .2em;
+}
+.icon-spin {
+  display: inline-block;
+  -moz-animation: spin 2s infinite linear;
+  -o-animation: spin 2s infinite linear;
+  -webkit-animation: spin 2s infinite linear;
+  animation: spin 2s infinite linear;
+}
+@-moz-keyframes spin {
+  0% { -moz-transform: rotate(0deg); }
+  100% { -moz-transform: rotate(359deg); }
+}
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(359deg); }
+}
+@-o-keyframes spin {
+  0% { -o-transform: rotate(0deg); }
+  100% { -o-transform: rotate(359deg); }
+}
+@-ms-keyframes spin {
+  0% { -ms-transform: rotate(0deg); }
+  100% { -ms-transform: rotate(359deg); }
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(359deg); }
+}
+@-moz-document url-prefix() {
+  .icon-spin {
+    height: .9em;
+  }
+  .btn .icon-spin {
+    height: auto;
+  }
+  .icon-spin.icon-large {
+    height: 1.25em;
+  }
+  .btn .icon-spin.icon-large {
+    height: .75em;
+  }
+}
 /*  Font Awesome uses the Unicode Private Use Area (PUA) to ensure screen
     readers do not read off random characters that represent icons */
 .icon-glass:before                { content: '\\f000'; }
@@ -4956,9 +5185,49 @@ ul.icons li .icon-large:before {
 .icon-sitemap:before              { content: '\\f0e8'; }
 .icon-umbrella:before             { content: '\\f0e9'; }
 .icon-paste:before                { content: '\\f0ea'; }
+.icon-lightbulb:before            { content: '\\f0eb'; }
+.icon-exchange:before             { content: '\\f0ec'; }
+.icon-cloud-download:before       { content: '\\f0ed'; }
+.icon-cloud-upload:before         { content: '\\f0ee'; }
 
-.icon-user-md:before              { content: '\\f200'; }
+.icon-user-md:before              { content: '\\f0f0'; }
+.icon-stethoscope:before          { content: '\\f0f1'; }
+.icon-suitcase:before             { content: '\\f0f2'; }
+.icon-bell-alt:before             { content: '\\f0f3'; }
+.icon-coffee:before               { content: '\\f0f4'; }
+.icon-food:before                 { content: '\\f0f5'; }
+.icon-file-alt:before             { content: '\\f0f6'; }
+.icon-building:before             { content: '\\f0f7'; }
+.icon-hospital:before             { content: '\\f0f8'; }
+.icon-ambulance:before            { content: '\\f0f9'; }
+.icon-medkit:before               { content: '\\f0fa'; }
+.icon-fighter-jet:before          { content: '\\f0fb'; }
+.icon-beer:before                 { content: '\\f0fc'; }
+.icon-h-sign:before               { content: '\\f0fd'; }
+.icon-plus-sign-alt:before        { content: '\\f0fe'; }
 
+.icon-double-angle-left:before    { content: '\\f100'; }
+.icon-double-angle-right:before   { content: '\\f101'; }
+.icon-double-angle-up:before      { content: '\\f102'; }
+.icon-double-angle-down:before    { content: '\\f103'; }
+.icon-angle-left:before           { content: '\\f104'; }
+.icon-angle-right:before          { content: '\\f105'; }
+.icon-angle-up:before             { content: '\\f106'; }
+.icon-angle-down:before           { content: '\\f107'; }
+.icon-desktop:before              { content: '\\f108'; }
+.icon-laptop:before               { content: '\\f109'; }
+.icon-tablet:before               { content: '\\f10a'; }
+.icon-mobile-phone:before         { content: '\\f10b'; }
+.icon-circle-blank:before         { content: '\\f10c'; }
+.icon-quote-left:before           { content: '\\f10d'; }
+.icon-quote-right:before          { content: '\\f10e'; }
+
+.icon-spinner:before              { content: '\\f110'; }
+.icon-circle:before               { content: '\\f111'; }
+.icon-reply:before                { content: '\\f112'; }
+.icon-github-alt:before           { content: '\\f113'; }
+.icon-folder-close-alt:before     { content: '\\f114'; }
+.icon-folder-open-alt:before      { content: '\\f115'; }
 
 ");
 };

@@ -36,15 +36,16 @@
 */
 
 var { Stream } = require('./sequence');
+var { isArrayLike, flatten } = require('builtin:apollo-sys');
 
 /**
    @function isArrayLike
    @summary  Tests if an object is an array, `arguments` object or, in an xbrowser 
-             hostenv of Apollo, NodeList.
+             hostenv of Apollo, a NodeList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
-exports.isArrayLike = require('builtin:apollo-sys').isArrayLike;
+exports.isArrayLike = isArrayLike;
 
 /**
    @function remove
@@ -74,6 +75,20 @@ function indexValuePairs(arr) {
 exports.indexValuePairs = indexValuePairs;
 
 /**
+   @function cycle
+   @param {Array} [arr]
+   @return {sequence:Stream}
+   @summary Returns an infinite [sequence:Stream] of values `arr[0], arr[1], ..., arr[arr.length-1], arr[0], arr[1], ...`
+   @desc
+     * Throws an exception is the array is empty
+*/
+function cycle(arr) {
+  if (arr.length == 0) throw new Error('Cannot cycle an empty array');
+  return Stream(function(r) { var idx = 0; while (1) { r(arr[idx]); ++idx; idx%=arr.length; } });
+}
+exports.cycle = cycle;
+
+/**
   @function flatten
   @summary Create a recursively flattened version of an array.
   @param   {Array} [arr] The array to flatten.
@@ -87,7 +102,27 @@ exports.indexValuePairs = indexValuePairs;
          var b = flatten(a);
          // b is now [1,2,3,4,5,6,7,8,9,10]
 */
-exports.flatten = require('builtin:apollo-sys').flatten;
+exports.flatten = flatten;
+
+/**
+  @function concat
+  @summary Concatenate an array of arrays into a single array.
+  @param   {Array} [arr] The array to flatten.
+  @return  {Array} A concatenated array of all sub-arrays in *arr*.
+                   This method is similar to [array::flatten], except that
+                   all elements of *arr* must be array-like, and the
+                   concatenation is only applied once - it is not recursive.
+*/
+exports.concat = function(arr) {
+  rv = [];
+  for (var i=0; i<arr.length; i++) {
+    var sub = arr[i];
+    for(var j=0; j<sub.length; j++) {
+      rv.push(sub[j]);
+    }
+  }
+  return rv;
+};
 
 /**
   @function union
@@ -131,6 +166,23 @@ __js function union(a, b) {
   return rv;
 }
 exports.union = union;
+
+/**
+  @function difference
+  @param    {Array} [a] 
+  @param    {Array} [b] 
+  @return   {Array} New array containing all elements of `a` that are not in `b` (under `===`)
+  @summary  Create an array of elements in `a` that are not in `b` (under `===`).
+*/
+__js function difference(a, b) {
+  var rv = [];
+  for (var i=0; i<a.length; ++i) {
+    if (b.indexOf(a[i]) == -1)
+      rv.push(a[i]);
+  }
+  return rv;
+}
+exports.difference = difference;
 
 /** 
     @function haveCommonElements

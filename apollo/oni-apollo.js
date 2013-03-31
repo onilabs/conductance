@@ -50,27 +50,72 @@ var __oni_rt={};(function(exports){var UNDEF;
 
 
 
-function augmented_message(e){return e.message+" (in "+e.file+(e.line?":"+e.line:"")+")";
 
+
+function CFException_toString(){var rv=this.name+": "+this.message;
+
+if(this.__oni_stack){
+for(var i=0;i<this.__oni_stack.length;++i){
+var line=this.__oni_stack[i];
+if(line.length==1)line=line[0];else line='    at '+line.slice(0,2).join(':');
+
+
+
+rv+='\n'+line;
+}
+}
+return rv;
 }
 
-function CFException_toString(){return this.name+": "+augmented_message(this);
+function adopt_native_stack(e,caller_module){if(!e.stack)return;
 
+
+if(exports.hostenv!=='nodejs'){
+
+
+e.stack='';
+return;
+}
+var stack=String(e.stack);
+e.stack="";
+var lines=stack.split("\n");
+var i;
+
+for(i=1;i<lines.length;i++ ){
+
+if((caller_module&&lines[i].indexOf(caller_module)!=-1)||lines[i].indexOf("oni-apollo-node.js")!=-1||lines[i].indexOf("oni-apollo.js")!=-1){
+
+
+
+break;
+}
+e.__oni_stack.push([lines[i]]);
+}
 }
 
 var token_oniE={};
 function CFException(type,value,line,file){this.type=type;
 
+this.val=value;
 
-if(type=="t"&&(value instanceof Error||(typeof value=="object"&&value.message))&&value._oniE!==token_oniE){
+if(type=="t"&&(value instanceof Error||(typeof value=='object'&&value.message))){
+
+if(value._oniE!==token_oniE){
+
 value._oniE=token_oniE;
+value.__oni_stack=[];
 value.line=line;
 value.file=file||"unknown SJS source";
-value.stack="";
+
+adopt_native_stack(value,file);
+
 if(!value.hasOwnProperty('toString'))value.toString=CFException_toString;
+}
+
+
+if(line)value.__oni_stack.push([file||'unknown SJS source',line]);
 
 }
-this.val=value;
 
 }
 
@@ -82,10 +127,13 @@ if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";e
 
 
 
-},mapToJS:function(augment_mes){
+},mapToJS:function(augment){
 if(this.type=="t"){
 
-throw (augment_mes&&this.val.file)?new Error(augmented_message(this.val)):this.val;
+
+
+
+throw (augment&&this.val.__oni_stack)?new Error(this.val.toString()):this.val;
 }else if(!this.ef)throw new Error(this.toString());else throw this;
 
 
@@ -107,12 +155,35 @@ function setEFProto(t){for(var p in EF_Proto)t[p]=EF_Proto[p]}
 
 
 
+function mergeCallstacks(target_ef,src_ef){if(target_ef.callstack){
+
+
+
+
+
+target_ef.callstack=target_ef.callstack.concat(src_ef.callstack);
+if(target_ef.callstack.length>20)target_ef.callstack.splice(20/2,target_ef.callstack.length-20+1,['    ...(frames omitted)']);
+
+
+
+}else{
+
+
+target_ef.callstack=src_ef.callstack;
+}
+}
+
+
 var EF_Proto={toString:function(){
 return "<suspended SJS>"},__oni_ef:true,setChildFrame:function(ef,idx){
 
 
-this.async=true;
+if(this.child_frame&&this.child_frame.callstack){
 
+
+mergeCallstacks(ef,this.child_frame);
+}
+this.async=true;
 this.child_frame=ef;
 ef.parent=this;
 ef.parent_idx=idx;
@@ -133,8 +204,11 @@ return this.child_frame.abort();
 
 },returnToParent:function(val){
 
-if(this.swallow_r){
+if((val instanceof CFException)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
 
+val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
+}
+if(this.swallow_r){
 if((val instanceof CFException)){
 if(val.type=="r"){
 if(!val.ef||val.ef==this)val=val.val;
@@ -153,7 +227,8 @@ if(!val.ef||val.ef==this)val=val.val;
 this.unreturnable=true;
 
 
-this.env=UNDEF;
+
+
 
 if(this.async){
 if(this.parent){
@@ -197,6 +272,8 @@ exports.ex=execIN;
 
 
 
+
+
 exports.exseq=function(aobj,tobj,file,args){var rv=I_seq(args,new Env(aobj,tobj,file));
 
 
@@ -232,16 +309,48 @@ return {exec:exec,ndata:arguments,__oni_dis:token_dis};
 
 
 
-function Env(aobj,tobj,file,ref){this.aobj=aobj;
+function Env(aobj,tobj,file,blref,blscope){this.aobj=aobj;
 
 this.tobj=tobj;
 this.file=file;
-this.ref=ref;
+this.blref=blref;
+this.blscope=blscope;
 }
 
-function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.ref);
+function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blref,e.blscope);
 
 }
+
+
+
+
+
+
+function I_call(ndata,env){try{
+
+var rv=(ndata[0]).call(env);
+if(is_ef(rv)){
+
+if(!rv.callstack)rv.callstack=[];
+rv.callstack.push([env.file,ndata[1]]);
+}
+return rv;
+}catch(e){
+
+if((e instanceof CFException)){
+if(e.type=='blb'&&e.ef==env.blscope){
+
+
+
+return UNDEF;
+}
+}else{
+e=new CFException("t",e,ndata[1],env.file);
+}
+return e;
+}
+}
+exports.C=makeINCtor(I_call);
 
 
 
@@ -253,18 +362,10 @@ function I_nblock(ndata,env){try{
 return (ndata[0]).call(env);
 }catch(e){
 
-if((e instanceof CFException)){
-
-if(e.type=='blb'&&e.ef==env.ref){
-
-
-
-return UNDEF;
-}else return e;
-
-
+if(!(e instanceof CFException)){
+e=new CFException("t",e,ndata[1],env.file);
 }
-return new CFException("t",e,ndata[1],env.file);
+return e;
 }
 }
 exports.Nb=makeINCtor(I_nblock);
@@ -292,8 +393,14 @@ function EF_Seq(ndata,env){this.ndata=ndata;
 
 this.env=env;
 
-if(ndata[0]&8)env.ref=this;
+if(ndata[0]&8){
+env.blref=this;
+env.blscope=this;
+}else if(ndata[0]&1){
 
+this.env=copyEnv(env);
+this.env.blscope=null;
+}
 
 this.tailcall=!(ndata[0]&8);
 
@@ -320,13 +427,20 @@ setEFProto(EF_Seq.prototype={});
 EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
 
 
+
 this.setChildFrame(val,idx);
-}else if((val instanceof CFException)){
+}else{
+
+if((val instanceof CFException)){
+
+if(val.type=='blb'&&val.ef==this.env.blscope){
+val=UNDEF;
+}else{
 
 
 return this.returnToParent(val);
-}else{
-
+}
+}
 while(idx<this.ndata.length){
 if(this.sc&&idx>1){
 
@@ -408,6 +522,7 @@ this.setChildFrame(val,idx);
 return this.returnToParent(val);
 }else{
 
+this.child_frame=null;
 if(idx==1){
 
 this.pars.push(val);
@@ -500,6 +615,7 @@ rv=execIN(this.ndata[this.i],this.env);
 ++this.i;
 if((rv instanceof CFException))return this.returnToParent(rv);
 if(is_ef(rv)){
+this.child_frame=null;
 this.setChildFrame(rv,1);
 return this;
 }
@@ -515,8 +631,9 @@ switch(this.ndata[0]){case 0:
 
 
 
-if(typeof this.l=="function"&&this.l.apply)rv=this.l.apply(null,this.pars);else if(!testIsFunction(this.l)){
-
+if(typeof this.l=="function"){
+rv=this.l.apply(null,this.pars);
+}else if(!testIsFunction(this.l)){
 
 rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
 
@@ -584,12 +701,14 @@ if(ctor&&(ctor==Array||ctor==Boolean||ctor==Date||ctor==Error||ctor==EvalError||
 
 
 
+var pars=this.pars;
 var command="new ctor(";
-for(var i=0;i<this.pars.length;++i){
+for(var i=0;i<pars.length;++i){
 if(i)command+=",";
-command+="this.pars["+i+"]";
+command+="pars["+i+"]";
 }
 command+=")";
+
 rv=eval(command);
 }else if(!testIsFunction(ctor)){
 
@@ -631,7 +750,7 @@ rv=new CFException("i","Invalid Fcall mode");
 
 if((e instanceof CFException)){
 
-if(e.type=='blb'&&e.ef==this.env.ref){
+if(e.type=='blb'&&e.ef==this.env.blscope){
 rv=UNDEF;
 }else rv=e;
 
@@ -641,6 +760,11 @@ rv=UNDEF;
 
 
 
+}
+if(is_ef(rv)){
+
+if(!rv.callstack)rv.callstack=[];
+rv.callstack.push([this.env.file,this.ndata[1]]);
 }
 return this.returnToParent(rv);
 }
@@ -741,6 +865,7 @@ return this;
 if(++idx>=this.ndata[1].length)return this.returnToParent(null);
 
 
+this.child_frame=null;
 val=execIN(this.ndata[1][idx][0],this.env);
 }
 this.phase=2;
@@ -760,6 +885,7 @@ return this.returnToParent(val);
 if(idx>=this.ndata[1].length){
 return this.returnToParent(val);
 }
+this.child_frame=null;
 val=execIN(this.ndata[1][idx][1],this.env);
 ++idx;
 }
@@ -811,7 +937,6 @@ if(!this.aborted&&this.ndata[2]&&(((val instanceof CFException)&&val.type=="t")|
 
 
 
-try{
 var v;
 if(this.ndata[0]&1){
 
@@ -821,12 +946,14 @@ v=(val instanceof CFException)?[val.val,true]:[val,false];
 
 
 val=this.ndata[2](this.env,v);
-}catch(e){
 
 
-val=new CFException("t",e);
-}
+if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3])return this.returnToParent(val);
+
+
+
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val);
 return this;
 }
@@ -839,7 +966,15 @@ this.state=3;
 this.rv=val;
 if(this.aborted&&this.ndata[4]){
 val=execIN(this.ndata[4],this.env);
+
+
+
+
+
+
+
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val);
 return this;
 }
@@ -852,6 +987,7 @@ val=execIN(this.ndata[3],this.env);
 
 
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val);
 return this;
 }
@@ -934,6 +1070,7 @@ return this.returnToParent(val);
 
 val=execIN(this.ndata[1],this.env);
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
 }
@@ -951,6 +1088,11 @@ return this.returnToParent(val);
 while(1){
 if(idx>2){
 if((val instanceof CFException)){
+if(val.type=='blb'&&val.ef==this.env.blscope){
+
+val=UNDEF;
+}else{
+
 if(val.type=="b"){
 
 val=UNDEF;
@@ -963,6 +1105,7 @@ break;
 }
 return this.returnToParent(val);
 }
+}
 if(idx>=this.ndata.length)break;
 
 }
@@ -971,6 +1114,7 @@ if(idx>=this.ndata.length)break;
 val=execIN(this.ndata[idx+1],this.env);
 ++idx;
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,idx);
 return this;
 }
@@ -982,6 +1126,7 @@ if(this.ndata[2]){
 
 val=execIN(this.ndata[2],this.env);
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,0);
 return this;
 }
@@ -1018,6 +1163,7 @@ this.setChildFrame(val,idx);
 if(idx==0){
 val=execIN(this.ndata[0],this.env);
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,1);
 return this;
 }
@@ -1050,6 +1196,7 @@ if(is_ef(val))this.remainingX=[];
 }
 if(is_ef(val)){
 if(!this.remainingX)this.remainingX=[];
+this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
 }
@@ -1073,6 +1220,7 @@ if(this.remainingX.length)continue;
 return this.returnToParent(val);
 }
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
 }
@@ -1217,8 +1365,12 @@ this.async=true;
 return this;
 };
 
-EF_Par.prototype.setChildFrame=function(ef,idx){this.children[idx]=ef;
+EF_Par.prototype.setChildFrame=function(ef,idx){if(this.children[idx]&&this.children[idx].callstack){
 
+
+mergeCallstacks(ef,this.children[idx]);
+}
+this.children[idx]=ef;
 ef.parent=this;
 ef.parent_idx=idx;
 };
@@ -1373,8 +1525,12 @@ this.async=true;
 return this;
 };
 
-EF_Alt.prototype.setChildFrame=function(ef,idx){this.children[idx]=ef;
+EF_Alt.prototype.setChildFrame=function(ef,idx){if(this.children[idx]&&this.children[idx].callstack){
 
+
+mergeCallstacks(ef,this.children[idx]);
+}
+this.children[idx]=ef;
 ef.parent=this;
 ef.parent_idx=idx;
 };
@@ -1761,10 +1917,10 @@ for(var i=0;i<arguments[0].length;++i)obj[arguments[0][i]]=arguments[i+1];
 return obj;
 };
 
-function QuasiTemplateProto(parts){this.parts=parts}
-exports.QuasiTemplateProto=QuasiTemplateProto;
+function QuasiProto(parts){this.parts=parts}
+exports.QuasiProto=QuasiProto;
 
-exports.QuasiTemplate=function(){return new QuasiTemplateProto(Array.prototype.slice.call(arguments,0));
+exports.Quasi=function(){return new QuasiProto(Array.prototype.slice.call(arguments,0));
 
 };
 
@@ -1782,25 +1938,25 @@ exports.Cont=function(lbl){return new CFException("c",lbl);
 
 exports.BlBreak=function(env,lbl){var e=new CFException('blb',lbl);
 
-if(!env.ref)throw "Internal runtime error; no reference frame in BlBreak";
-if(env.ref.unreturnable&&!env.ref.toplevel)throw new Error("Blocklambda break to inactive scope");
+if(!env.blref)throw "Internal runtime error; no reference frame in BlBreak";
+if(env.blref.unreturnable&&!env.blref.toplevel)throw new Error("Blocklambda break to inactive scope");
 
-e.ef=env.ref;
+e.ef=env.blref;
 return e;
 };
 
 exports.BlReturn=function(exp){var e=new CFException('r',exp);
 
-if(!this.ref)throw "Internal runtime error; no reference frame in BlReturn";
-if(this.ref.unreturnable){
-if(this.ref.toplevel)throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");else{
+if(!this.blref)throw "Internal runtime error; no reference frame in BlReturn";
+if(this.blref.unreturnable){
+if(this.blref.toplevel)throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");else{
 
 
 
 throw new Error("Blocklambda return to inactive function");
 }
 }
-e.ef=this.ref;
+e.ef=this.blref;
 return e;
 };
 
@@ -2714,7 +2870,7 @@ this.is_nblock=false;
 }
 ph_quasi_template.prototype=new ph();
 ph_quasi_template.prototype.is_value=true;
-ph_quasi_template.prototype.val=function(){var rv="__oni_rt.Sc("+this.line+",__oni_rt.QuasiTemplate";
+ph_quasi_template.prototype.val=function(){var rv="__oni_rt.Sc("+this.line+",__oni_rt.Quasi";
 
 for(var i=0;i<this.parts.length;++i){
 if(i%2)rv+=","+this.parts[i].v();else rv+=',"'+this.parts[i].replace(/\"/g,'\\"')+'"';
@@ -3017,7 +3173,7 @@ for(var i=0;i<this.args.length;++i){
 if(i)rv+=",";
 rv+=this.args[i].nb();
 }
-return nblock_val_to_val(rv+")",true,this.line);
+return "__oni_rt.C(function(){return "+rv+")},"+this.line+")";
 }else if(this.l.is_ref){
 
 rv="__oni_rt.Fcall(1,"+this.line+","+this.l.ref();
@@ -4723,7 +4879,7 @@ return pctx.token;
 }
 
 
-})(__oni_rt.c1={});__oni_rt.modsrc['builtin:apollo-sys-common.sjs']="__oni_rt.sys=exports;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar UNDEF;\n\n\n\n\n\n\n\n\n\nexports.hostenv=__oni_rt.hostenv;\n\n\n\n\n\nexports.getGlobal=function(){return __oni_rt.G};\n\n\n\n\n\n\n\nexports.isArrayLike=function(obj){return Array.isArray(obj)||!!(obj&&Object.prototype.hasOwnProperty.call(obj,\'callee\'))||!!(typeof NodeList==\'function\'&&obj instanceof NodeList);\n\n\n\n};\n\n\n\n\n\n\n\nexports.isTemplate=function(obj){return (obj instanceof __oni_rt.QuasiTemplateProto);\n\n};\n\n\n\n\n\n\n\n\n\n\n\nexports.flatten=function(arr,rv){var rv=rv||[];\n\nvar l=arr.length;\nfor(var i=0;i<l;++i){\nvar elem=arr[i];\nif(exports.isArrayLike(elem))exports.flatten(elem,rv);else rv.push(elem);\n\n\n\n}\nreturn rv;\n};\n\n\n\n\n\n\nexports.extendObject=function(){var dest=arguments[0];\n\nvar sources=exports.flatten(Array.prototype.slice.call(arguments,1));\nvar hl=sources.length;\nfor(var h=0;h<hl;++h){\nvar source=sources[h];\nfor(var o in source)dest[o]=source[o];\n\n}\nreturn dest;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.parseURL=function(str){var o=exports.parseURL.options,m=o.parser.exec(str),uri={},i=14;\n\n\n\n\n\nwhile(i-- )uri[o.key[i]]=m[i]||\"\";\n\nuri[o.q.name]={};\nuri[o.key[12]].replace(o.q.parser,function($0,$1,$2){if($1)uri[o.q.name][$1]=$2;\n\n});\n\nreturn uri;\n};\nexports.parseURL.options={key:[\"source\",\"protocol\",\"authority\",\"userInfo\",\"user\",\"password\",\"host\",\"port\",\"relative\",\"path\",\"directory\",\"file\",\"query\",\"anchor\"],q:{name:\"queryKey\",parser:/(?:^|&)([^&=]*)=?([^&]*)/g},parser:/^(?:([^:\\/?#]+):)?(?:\\/\\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\\/?#]*)(?::(\\d*))?))?((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)/};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.constructQueryString=function(){var hashes=exports.flatten(arguments);\n\nvar hl=hashes.length;\nvar parts=[];\nfor(var h=0;h<hl;++h){\nvar hash=hashes[h];\nfor(var q in hash){\nvar l=encodeURIComponent(q)+\"=\";\nvar val=hash[q];\nif(!exports.isArrayLike(val))parts.push(l+encodeURIComponent(val));else{\n\n\nfor(var i=0;i<val.length;++i)parts.push(l+encodeURIComponent(val[i]));\n\n}\n}\n}\nreturn parts.join(\"&\");\n};\n\n\n\n\n\n\n\n\nexports.constructURL=function(){var url_spec=exports.flatten(arguments);\n\nvar l=url_spec.length;\nvar rv=url_spec[0];\n\n\nfor(var i=1;i<l;++i){\nvar comp=url_spec[i];\nif(typeof comp!=\"string\")break;\nif(rv.charAt(rv.length-1)!=\"/\")rv+=\"/\";\nrv+=comp.charAt(0)==\"/\"?comp.substr(1):comp;\n}\n\n\nvar qparts=[];\nfor(;i<l;++i){\nvar part=exports.constructQueryString(url_spec[i]);\nif(part.length)qparts.push(part);\n\n}\nvar query=qparts.join(\"&\");\nif(query.length){\nif(rv.indexOf(\"?\")!=-1)rv+=\"&\";else rv+=\"?\";\n\n\n\nrv+=query;\n}\nreturn rv;\n};\n\n\n\n\n\n\n\nexports.isSameOrigin=function(url1,url2){var a1=exports.parseURL(url1).authority;\n\nif(!a1)return true;\nvar a2=exports.parseURL(url2).authority;\nreturn !a2||(a1==a2);\n};\n\n\n\n\n\n\n\n\n\n\nexports.canonicalizeURL=function(url,base){if(__oni_rt.hostenv==\"nodejs\"&&__oni_rt.G.process.platform==\'win32\'){\n\n\n\nurl=url.replace(/\\\\/g,\"/\");\nbase=base.replace(/\\\\/g,\"/\");\n}\n\nvar a=exports.parseURL(url);\n\n\nif(base&&(base=exports.parseURL(base))&&(!a.protocol||a.protocol==base.protocol)){\n\nif(!a.directory&&!a.protocol)a.directory=base.directory;else if(a.directory&&a.directory.charAt(0)!=\'/\'){\n\n\n\na.directory=(base.directory||\"/\")+a.directory;\n}\nif(!a.protocol){\na.protocol=base.protocol;\nif(!a.authority)a.authority=base.authority;\n\n}\n}\n\n\nvar pin=a.directory.split(\"/\");\nvar l=pin.length;\nvar pout=[];\nfor(var i=0;i<l;++i){\nvar c=pin[i];\nif(c==\".\")continue;\nif(c==\"..\"&&pout.length>1)pout.pop();else pout.push(c);\n\n\n\n}\na.directory=pout.join(\"/\");\n\n\nvar rv=\"\";\nif(a.protocol)rv+=a.protocol+\":\";\nif(a.authority)rv+=\"//\"+a.authority;else if(a.protocol==\"file\")rv+=\"//\";\n\n\n\nrv+=a.directory+a.file;\nif(a.query)rv+=\"?\"+a.query;\nif(a.anchor)rv+=\"#\"+a.anchor;\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\nexports.jsonp=jsonp_hostenv;\n\n\n\n\n\n\n\nexports.getXDomainCaps=getXDomainCaps_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.request=request_hostenv;\n\n\n\n\n\n\nexports.makeMemoizedFunction=function(f,keyfn){var lookups_in_progress={};\n\n\nvar memoizer=function(){var key=keyfn?keyfn.apply(this,arguments):arguments[0];\n\nvar rv=memoizer.db[key];\nif(typeof rv!==\'undefined\')return rv;\nif(!lookups_in_progress[key])lookups_in_progress[key]=spawn (function(args){\nreturn memoizer.db[key]=f.apply(this,args);\n\n})(arguments);\ntry{\nreturn lookups_in_progress[key].waitforValue();\n}finally{\n\nif(lookups_in_progress[key].waiting()==0){\nlookups_in_progress[key].abort();\ndelete lookups_in_progress[key];\n}\n}\n};\n\nmemoizer.db={};\nreturn memoizer;\n};\n\n\n\n\nexports.eval=eval_hostenv;\n\n\n\n\nvar pendingLoads={};\n\n\n\n\nfunction makeRequire(parent){var rf=function(module,settings){\n\nvar opts=exports.extendObject({},[settings]);\n\n\nif(opts.callback){\n(spawn (function(){try{\n\nvar rv=requireInner(module,rf,parent,opts);\n}catch(e){\n\nopts.callback(e);return 1;\n}\nopts.callback(UNDEF,rv);\n})());\n}else return requireInner(module,rf,parent,opts);\n\n\n};\n\nrf.resolve=function(module,settings){var opts=exports.extendObject({},[settings]);\n\nreturn resolve(module,rf,parent,opts);\n};\n\nrf.path=\"\";\nrf.alias={};\n\n\nif(exports.require){\nrf.hubs=exports.require.hubs;\nrf.modules=exports.require.modules;\nrf.extensions=exports.require.extensions;\n}else{\n\n\nrf.hubs=getHubs_hostenv();\nrf.modules={};\n\nrf.extensions=getExtensions_hostenv();\n}\nreturn rf;\n}\n\n\nfunction resolveAliases(module,aliases){var ALIAS_REST=/^([^:]+):(.*)$/;\n\nvar alias_rest,alias;\nvar rv=module;\nvar level=10;\nwhile((alias_rest=ALIAS_REST.exec(rv))&&(alias=aliases[alias_rest[1]])){\n\nif(--level==0)throw \"Too much aliasing in modulename \'\"+module+\"\'\";\n\nrv=alias+alias_rest[2];\n}\nreturn rv;\n}\n\n\nfunction resolveHubs(module,hubs,opts){var path=module;\n\nvar loader=opts.loader||default_loader;\nvar src=opts.src||default_src_loader;\nvar level=10;\nfor(var i=0,hub;hub=hubs[i++ ];){\nif(path.indexOf(hub[0])==0){\n\nif(typeof hub[1]==\"string\"){\npath=hub[1]+path.substring(hub[0].length);\ni=0;\nif(--level==0)throw \"Too much indirection in hub resolution for module \'\"+module+\"\'\";\n\n}else if(typeof hub[1]==\"object\"){\n\nif(hub[1].src)src=hub[1].src;\nif(hub[1].loader)loader=hub[1].loader;\n\nbreak;\n}else throw \"Unexpected value for require.hubs element \'\"+hub[0]+\"\'\";\n\n\n}\n}\n\nreturn {path:path,loader:loader,src:src};\n}\n\n\nfunction default_src_loader(path){throw new Error(\"Don\'t know how to load module at \"+path);\n\n}\n\n\nvar compiled_src_tag=/^\\/\\*\\__oni_compiled_sjs_1\\*\\//;\nfunction default_compiler(src,descriptor){var f;\n\n\nif(compiled_src_tag.exec(src)){\n\n\n\n\nf=new Function(\"module\",\"exports\",\"require\",\"__onimodulename\",src);\nf(descriptor,descriptor.exports,descriptor.require,\"module #{descriptor.id}\");\n}else{\n\nf=exports.eval(\"(function(module,exports,require, __onimodulename){\"+src+\"\\n})\",{filename:\"module #{descriptor.id}\"});\n\nf(descriptor,descriptor.exports,descriptor.require);\n}\n\n}\n\nfunction default_loader(path,parent,src_loader,opts){var extension=/.+\\.([^\\.\\/]+)$/.exec(path)[1];\n\n\n\nvar compile=exports.require.extensions[extension];\nif(!compile)throw \"Unknown type \'\"+extension+\"\'\";\n\n\nvar descriptor;\nif(!(descriptor=exports.require.modules[path])){\n\nvar pendingHook=pendingLoads[path];\nif(!pendingHook){\npendingHook=pendingLoads[path]=spawn (function(){var src,loaded_from;\n\nif(typeof src_loader===\"string\"){\nsrc=src_loader;\nloaded_from=\"[src string]\";\n}else if(path in __oni_rt.modsrc){\n\n\nloaded_from=\"[builtin]\";\nsrc=__oni_rt.modsrc[path];\ndelete __oni_rt.modsrc[path];\n\n}else{\n\n({src,loaded_from})=src_loader(path);\n}\nvar descriptor={id:path,exports:{},loaded_from:loaded_from,loaded_by:parent,required_by:{},require:makeRequire(path)};\n\n\n\n\n\n\n\ncompile(src,descriptor);\n\n\n\n\n\nexports.require.modules[path]=descriptor;\n\nreturn descriptor;\n})();\n}\ntry{\nvar descriptor=pendingHook.waitforValue();\n}finally{\n\n\nif(pendingHook.waiting()==0)delete pendingLoads[path];\n\n}\n}\n\nif(!descriptor.required_by[parent])descriptor.required_by[parent]=1;else ++descriptor.required_by[parent];\n\n\n\n\nreturn descriptor.exports;\n}\n\nfunction http_src_loader(path){var src;\n\nif(getXDomainCaps_hostenv()!=\'none\'||exports.isSameOrigin(path,document.location))src=request_hostenv([path,{format:\'compiled\'}],{mime:\'text/plain\'});else{\n\n\n\n\npath+=\"!modp\";\nsrc=jsonp_hostenv(path,{forcecb:\"module\",cbfield:null});\n\n\n}\nreturn {src:src,loaded_from:path};\n}\n\n\n\n\n\n\nvar github_api=\"https://api.github.com/\";\nvar github_opts={cbfield:\"callback\"};\nfunction github_src_loader(path){var user,repo,tag;\n\ntry{\n[ ,user,repo,tag,path]=/github:([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/.exec(path);\n}catch(e){throw \"Malformed module id \'\"+path+\"\'\"}\n\nvar url=exports.constructURL(github_api,\'repos\',user,repo,\"contents\",path,{ref:tag});\n\nwaitfor{\nvar data=jsonp_hostenv(url,github_opts).data;\n}or{\n\nhold(10000);\nthrow new Error(\"Github timeout\");\n}\nif(data.message&&!data.content)throw new Error(data.message);\n\n\n\nvar str=exports.require(\'sjs:string\');\n\nreturn {src:str.utf8ToUtf16(str.base64ToOctets(data.content)),loaded_from:url};\n\n\n\n}\n\n\nfunction resolve(module,require_obj,parent,opts){var path=resolveAliases(module,require_obj.alias);\n\n\n\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\n\n\nvar resolveSpec=resolveHubs(path,exports.require.hubs,opts);\n\n\nresolveSpec.path=exports.canonicalizeURL(resolveSpec.path,parent);\n\n\nif(resolveSpec.loader==default_loader&&resolveSpec.path.charAt(resolveSpec.path.length-1)!=\'/\'){\n\n\nvar matches=/.+\\.([^\\.\\/]+)$/.exec(resolveSpec.path);\nif(!matches||!exports.require.extensions[matches[1]])resolveSpec.path+=\".sjs\";\n\n}\n\nif(parent==getTopReqParent_hostenv())parent=\"[toplevel]\";\n\n\nreturn resolveSpec;\n}\n\n\n\n\n\nexports.resolve=function(url,require_obj,parent,opts){require_obj=require_obj||exports.require;\n\nparent=parent||getTopReqParent_hostenv();\nopts=opts||{};\nreturn resolve(url,require_obj,parent,opts);\n};\n\n\nfunction requireInner(module,require_obj,parent,opts){try{\n\n\nvar resolveSpec=resolve(module,require_obj,parent,opts);\n\n\nmodule=resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts);\nif(opts.copyTo){\nexports.extendObject(opts.copyTo,[module]);\n}\n\nreturn module;\n}catch(e){\n\nvar mes=\"Cannot load module \'\"+module+\"\'. \"+\"(Underlying exception: \"+e+\")\";\n\nthrow new Error(mes);\n}\n}\n\n\nexports.require=makeRequire(getTopReqParent_hostenv());\n\nexports.require.modules[\'builtin:apollo-sys.sjs\']={id:\'builtin:apollo-sys.sjs\',exports:exports,loaded_from:\"[builtin]\",loaded_by:\"[toplevel]\",required_by:{\"[toplevel]\":1}};\n\n\n\n\n\n\n\nexports.init=function(cb){init_hostenv();\n\ncb();\n};\n\n";__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']="var location;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction determineLocation(){if(!location){\n\nlocation={};\nvar scripts=document.getElementsByTagName(\"script\"),matches;\nfor(var i=0;i<scripts.length;++i){\nif((matches=/(.*)oni-apollo(.*).js(\\?.*)?$/.exec(scripts[i].src))){\nlocation.location=exports.canonicalizeURL(matches[1]+\"modules/\",document.location.href);\nlocation.requirePrefix=scripts[i].getAttribute(\"require-prefix\");\nbreak;\n}\n}\n}\nreturn location;\n}\n\n\n\n\nif(determineLocation().requirePrefix){\n__oni_rt.G[determineLocation().requirePrefix]={require:__oni_rt.sys.require};\n}else __oni_rt.G.require=__oni_rt.sys.require;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction jsonp_hostenv(url,settings){var opts=exports.extendObject({},[{iframe:false,cbfield:\"callback\"},settings]);\n\n\n\n\n\n\n\n\n\n\nurl=exports.constructURL(url,opts.query);\nif(opts.iframe||opts.forcecb)return jsonp_iframe(url,opts);else return jsonp_indoc(url,opts);\n\n\n\n};\n\nvar jsonp_req_count=0;\nvar jsonp_cb_obj=\"_oni_jsonpcb\";\nfunction jsonp_indoc(url,opts){if(!window[jsonp_cb_obj])window[jsonp_cb_obj]={};\n\n\nvar cb=\"cb\"+(jsonp_req_count++ );\nvar cb_query={};\ncb_query[opts.cbfield]=jsonp_cb_obj+\".\"+cb;\nurl=exports.constructURL(url,cb_query);\nvar elem=document.createElement(\"script\");\nelem.setAttribute(\"src\",url);\nelem.setAttribute(\"async\",\"async\");\nelem.setAttribute(\"type\",\"text/javascript\");\nwaitfor(var rv){\nwindow[jsonp_cb_obj][cb]=resume;\ndocument.getElementsByTagName(\"head\")[0].appendChild(elem);\n\nwaitfor(){\nif(elem.addEventListener)elem.addEventListener(\"error\",resume,false);else elem.attachEvent(\"onerror\",resume);\n\n\n\n}finally{\n\nif(elem.removeEventListener)elem.removeEventListener(\"error\",resume,false);else elem.detachEvent(\"onerror\",resume);\n\n\n\n}\n\nthrow new Error(\"Could not complete JSONP request to \'\"+url+\"\'\");\n}finally{\n\nelem.parentNode.removeChild(elem);\ndelete window[jsonp_cb_obj][cb];\n}\nreturn rv;\n}\n\nfunction jsonp_iframe(url,opts){var cb=opts.forcecb||\"R\";\n\nvar cb_query={};\nif(opts.cbfield)cb_query[opts.cbfield]=cb;\n\nurl=exports.constructURL(url,cb_query);\nvar iframe=document.createElement(\"iframe\");\ndocument.getElementsByTagName(\"head\")[0].appendChild(iframe);\nvar doc=iframe.contentWindow.document;\nwaitfor(var rv){\ndoc.open();\niframe.contentWindow[cb]=resume;\n\n\nhold(0);\ndoc.write(\"\\x3Cscript type=\'text/javascript\' src=\\\"\"+url+\"\\\">\\x3C/script>\");\ndoc.close();\n}finally{\n\niframe.parentNode.removeChild(iframe);\n}\n\n\nhold(0);\nreturn rv;\n};\n\n\nvar XHR_caps;\nvar activex_xhr_ver;\n\nfunction getXHRCaps(){if(!XHR_caps){\n\nXHR_caps={};\n\nif(__oni_rt.G.XMLHttpRequest)XHR_caps.XHR_ctor=function(){\nreturn new XMLHttpRequest()};else XHR_caps.XHR_ctor=function(){\n\nif(typeof activex_xhr_ver!==\'undefined\')return new ActiveXObject(activex_xhr_ver);\n\n\nfor(var v in {\"MSXML2.XMLHTTP.6.0\":1,\"MSXML2.XMLHTTP.3.0\":1,\"MSXML2.XMLHTTP\":1}){\n\n\n\n\ntry{\nvar req=new ActiveXObject(v);\nactivex_xhr_ver=v;\nreturn req;\n}catch(e){\n}\n}\nthrow new Error(\"Browser does not support XMLHttpRequest\");\n};\n\n\nXHR_caps.XHR_CORS=(\"withCredentials\" in XHR_caps.XHR_ctor());\nif(!XHR_caps.XHR_CORS)XHR_caps.XDR=(typeof __oni_rt.G.XDomainRequest!==\'undefined\');\n\nXHR_caps.CORS=(XHR_caps.XHR_CORS||XHR_caps.XDR)?\"CORS\":\"none\";\n}\nreturn XHR_caps;\n}\n\n\n\n\n\n\nfunction getXDomainCaps_hostenv(){return getXHRCaps().CORS;\n\n}\n\n\n\n\n\nvar req_base;\nfunction getTopReqParent_hostenv(){if(!req_base)req_base=document.location.href;\n\nreturn req_base;\n}\n\n\n\n\n\n\n\n\n\nfunction resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(req_obj.path&&req_obj.path.length)url_string=exports.constructURL(req_obj.path,url_string);\n\n\nreturn exports.canonicalizeURL(url_string,parent);\n}\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction request_hostenv(url,settings){var opts=exports.extendObject({},[{method:\"GET\",body:null,response:\'string\',throwing:true},settings]);\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nurl=exports.constructURL(url,opts.query);\n\nvar caps=getXHRCaps();\nif(!caps.XDR||exports.isSameOrigin(url,document.location)){\nvar req=caps.XHR_ctor();\nreq.open(opts.method,url,true,opts.username||\"\",opts.password||\"\");\n}else{\n\n\nreq=new XDomainRequest();\nreq.open(opts.method,url);\n}\n\nwaitfor(var error){\nif(typeof req.onerror!==\'undefined\'){\nreq.onload=function(){resume()};\nreq.onerror=function(){resume(true)};\n}else{\n\nreq.onreadystatechange=function(evt){if(req.readyState!=4)return;else resume();\n\n\n\n\n};\n}\n\nif(opts.headers)for(var h in opts.headers)req.setRequestHeader(h,opts.headers[h]);\n\n\nif(opts.mime&&req.overrideMimeType)req.overrideMimeType(opts.mime);\n\nreq.send(opts.body);\n}retract{\n\nreq.abort();\n}\n\n\nif(error||(typeof req.status!==\'undefined\'&&!(req.status.toString().charAt(0) in {\'0\':1,\'2\':1}))){\n\n\nif(opts.throwing){\nvar txt=\"Failed \"+opts.method+\" request to \'\"+url+\"\'\";\nif(req.statusText)txt+=\": \"+req.statusText;\nif(req.status)txt+=\" (\"+req.status+\")\";\nvar err=new Error(txt);\nerr.status=req.status;\nerr.data=req.responseText;\nthrow err;\n}else if(opts.response==\'string\'){\n\nreturn \"\";\n}\n\n}\nif(opts.response==\'string\')return req.responseText;else{\n\n\n\nreturn {content:req.responseText,getHeader:name->req.getResponseHeader(name)};\n\n\n\n}\n}\n\n\n\n\nfunction getHubs_hostenv(){return [[\"sjs:\",determineLocation().location?determineLocation().location:{src:function(path){\n\n\n\nthrow new Error(\"Can\'t load module \'\"+path+\"\': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load oni-apollo.js in the normal way through a <script> element.\");\n\n}}],[\"github:\",{src:github_src_loader}],[\"http:\",{src:http_src_loader}],[\"https:\",{src:http_src_loader}],[\"file:\",{src:http_src_loader}],[\"x-wmapp1:\",{src:http_src_loader}],[\"local:\",{src:http_src_loader}]];\n\n\n\n\n\n\n\n\n\n\n\n\n}\n\nfunction getExtensions_hostenv(){return {\'sjs\':default_compiler,\'app!sjs\':default_compiler,\'js\':function(src,descriptor){\n\n\n\n\n\n\n\n\nvar f=new Function(\"module\",\"exports\",src);\n\nf.apply(descriptor.exports,[descriptor,descriptor.exports]);\n}};\n\n}\n\n\n\n\nfunction eval_hostenv(code,settings){if(__oni_rt.UA==\"msie\"&&__oni_rt.G.execScript)return eval_msie(code,settings);\n\n\n\nvar filename=(settings&&settings.filename)||\"sjs_eval_code\";\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\nvar js=__oni_rt.c1.compile(code,{filename:filename,mode:mode});\nreturn __oni_rt.G.eval(js);\n}\n\n\n\n\n\n\n\nvar IE_resume_counter=0;\n__oni_rt.IE_resume={};\nfunction eval_msie(code,settings){var filename=(settings&&settings.filename)||\"sjs_eval_code\";\n\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\ntry{\nwaitfor(var rv,isexception){\nvar rc=++IE_resume_counter;\n__oni_rt.IE_resume[rc]=resume;\nvar js=__oni_rt.c1.compile(\"try{\"+code+\"\\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume[\"+rc+\"](rv[0],rv[1])) }\",{filename:filename,mode:mode});\n\n\n__oni_rt.G.execScript(js);\n}\nif(isexception)throw rv;\n}finally{\n\ndelete __oni_rt.IE_resume[rc];\n}\nreturn rv;\n}\n\n\n\n\nfunction init_hostenv(){}\n\n\n\n\nif(!__oni_rt.G.__oni_rt_no_script_load){\nfunction runScripts(){var scripts=document.getElementsByTagName(\"script\");\n\n\n\n\n\n\n\n\n\nvar ss=[];\nfor(var i=0;i<scripts.length;++i){\nif(scripts[i].getAttribute(\"type\")==\"text/sjs\"){\nvar s=scripts[i];\nss.push(s);\n}\n}\n\nfor(var i=0;i<ss.length;++i){\nvar s=ss[i];\nvar m=s.getAttribute(\"module\");\n\nvar content=s.textContent||s.innerHTML;\nif(__oni_rt.UA==\"msie\"){\n\ncontent=content.replace(/\\r\\n/,\"\");\n}\nif(m)__oni_rt.modsrc[m]=content;else exports.eval(content,{filename:\"inline_script\"+(i+1)});\n\n\n\n}\n};\n\nif(document.readyState===\"complete\"){\nrunScripts();\n}else{\n\n\nif(__oni_rt.G.addEventListener)__oni_rt.G.addEventListener(\"load\",runScripts,true);else __oni_rt.G.attachEvent(\"onload\",runScripts);\n\n\n\n}\n}\n\n\n";if(!Array.isArray){
+})(__oni_rt.c1={});__oni_rt.modsrc['builtin:apollo-sys-common.sjs']="__oni_rt.sys=exports;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar UNDEF;\n\n\n\n\n\n\n\n\n\nexports.hostenv=__oni_rt.hostenv;\n\n\n\n\n\nexports.getGlobal=function(){return __oni_rt.G};\n\n\n\n\n\n\n\n\n\nexports.isArrayLike=function(obj){return Array.isArray(obj)||!!(obj&&Object.prototype.hasOwnProperty.call(obj,\'callee\'))||!!(typeof NodeList==\'function\'&&obj instanceof NodeList);\n\n\n\n};\n\n\n\n\n\n\n\n\n\n\n\nexports.flatten=function(arr,rv){var rv=rv||[];\n\nvar l=arr.length;\nfor(var i=0;i<l;++i){\nvar elem=arr[i];\nif(exports.isArrayLike(elem))exports.flatten(elem,rv);else rv.push(elem);\n\n\n\n}\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.expandSingleArgument=function(args){if(args.length==1&&exports.isArrayLike(args[0]))args=args[0];\n\n\nreturn args;\n};\n\n\n\n\n\n\n\n\n\nexports.isQuasi=function(obj){return (obj instanceof __oni_rt.QuasiProto);\n\n};\n\n\n\n\n\n\nexports.Quasi=function(arr){return __oni_rt.Quasi.apply(__oni_rt,arr)};\n\n\n\n\n\n\nexports.mergeObjects=function(){var rv={};\n\nvar sources=exports.expandSingleArgument(arguments);\nfor(var i=0;i<sources.length;i++ ){\nexports.extendObject(rv,sources[i]);\n}\nreturn rv;\n};\n\n\n\n\n\nexports.extendObject=function(dest,source){for(var o in source){\n\nif(Object.hasOwnProperty.call(source,o))dest[o]=source[o];\n}\nreturn dest;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction URI(){}\nURI.prototype={toString:function(){\nreturn \"#{this.protocol}://#{this.authority}#{this.relative}\";\n\n}};\n\n\nexports.parseURL=function(str){var o=exports.parseURL.options,m=o.parser.exec(str),uri=new URI(),i=14;\n\n\n\n\n\nwhile(i-- )uri[o.key[i]]=m[i]||\"\";\n\nuri[o.q.name]={};\nuri[o.key[12]].replace(o.q.parser,function($0,$1,$2){if($1)uri[o.q.name][$1]=$2;\n\n});\n\nreturn uri;\n};\nexports.parseURL.options={key:[\"source\",\"protocol\",\"authority\",\"userInfo\",\"user\",\"password\",\"host\",\"port\",\"relative\",\"path\",\"directory\",\"file\",\"query\",\"anchor\"],q:{name:\"queryKey\",parser:/(?:^|&)([^&=]*)=?([^&]*)/g},parser:/^(?:([^:\\/?#]+):)?(?:\\/\\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\\/?#]*)(?::(\\d*))?))?((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)/};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.constructQueryString=function(){var hashes=exports.flatten(arguments);\n\nvar hl=hashes.length;\nvar parts=[];\nfor(var h=0;h<hl;++h){\nvar hash=hashes[h];\nfor(var q in hash){\nvar l=encodeURIComponent(q)+\"=\";\nvar val=hash[q];\nif(!exports.isArrayLike(val))parts.push(l+encodeURIComponent(val));else{\n\n\nfor(var i=0;i<val.length;++i)parts.push(l+encodeURIComponent(val[i]));\n\n}\n}\n}\nreturn parts.join(\"&\");\n};\n\n\n\n\n\n\n\n\nexports.constructURL=function(){var url_spec=exports.flatten(arguments);\n\nvar l=url_spec.length;\nvar rv=url_spec[0];\n\n\nfor(var i=1;i<l;++i){\nvar comp=url_spec[i];\nif(typeof comp!=\"string\")break;\nif(rv.charAt(rv.length-1)!=\"/\")rv+=\"/\";\nrv+=comp.charAt(0)==\"/\"?comp.substr(1):comp;\n}\n\n\nvar qparts=[];\nfor(;i<l;++i){\nvar part=exports.constructQueryString(url_spec[i]);\nif(part.length)qparts.push(part);\n\n}\nvar query=qparts.join(\"&\");\nif(query.length){\nif(rv.indexOf(\"?\")!=-1)rv+=\"&\";else rv+=\"?\";\n\n\n\nrv+=query;\n}\nreturn rv;\n};\n\n\n\n\n\n\n\nexports.isSameOrigin=function(url1,url2){var a1=exports.parseURL(url1).authority;\n\nif(!a1)return true;\nvar a2=exports.parseURL(url2).authority;\nreturn !a2||(a1==a2);\n};\n\n\n\n\n\n\n\n\n\n\nexports.canonicalizeURL=function(url,base){if(__oni_rt.hostenv==\"nodejs\"&&__oni_rt.G.process.platform==\'win32\'){\n\n\n\nurl=url.replace(/\\\\/g,\"/\");\nbase=base.replace(/\\\\/g,\"/\");\n}\n\nvar a=exports.parseURL(url);\n\n\nif(base&&(base=exports.parseURL(base))&&(!a.protocol||a.protocol==base.protocol)){\n\nif(!a.directory&&!a.protocol)a.directory=base.directory;else if(a.directory&&a.directory.charAt(0)!=\'/\'){\n\n\n\na.directory=(base.directory||\"/\")+a.directory;\n}\nif(!a.protocol){\na.protocol=base.protocol;\nif(!a.authority)a.authority=base.authority;\n\n}\n}\n\n\nvar pin=a.directory.split(\"/\");\nvar l=pin.length;\nvar pout=[];\nfor(var i=0;i<l;++i){\nvar c=pin[i];\nif(c==\".\")continue;\nif(c==\"..\"&&pout.length>1)pout.pop();else pout.push(c);\n\n\n\n}\na.directory=pout.join(\"/\");\n\n\nvar rv=\"\";\nif(a.protocol)rv+=a.protocol+\":\";\nif(a.authority)rv+=\"//\"+a.authority;else if(a.protocol==\"file\")rv+=\"//\";\n\n\n\nrv+=a.directory+a.file;\nif(a.query)rv+=\"?\"+a.query;\nif(a.anchor)rv+=\"#\"+a.anchor;\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\nexports.jsonp=jsonp_hostenv;\n\n\n\n\n\n\n\nexports.getXDomainCaps=getXDomainCaps_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.request=request_hostenv;\n\n\n\n\n\n\nexports.makeMemoizedFunction=function(f,keyfn){var lookups_in_progress={};\n\n\nvar memoizer=function(){var key=keyfn?keyfn.apply(this,arguments):arguments[0];\n\nvar rv=memoizer.db[key];\nif(typeof rv!==\'undefined\')return rv;\nif(!lookups_in_progress[key])lookups_in_progress[key]=spawn (function(args){\nreturn memoizer.db[key]=f.apply(this,args);\n\n})(arguments);\ntry{\nreturn lookups_in_progress[key].waitforValue();\n}finally{\n\nif(lookups_in_progress[key].waiting()==0){\nlookups_in_progress[key].abort();\ndelete lookups_in_progress[key];\n}\n}\n};\n\nmemoizer.db={};\nreturn memoizer;\n};\n\n\n\n\nexports.eval=eval_hostenv;\n\n\n\n\nvar pendingLoads={};\n\n\n\n\nfunction makeRequire(parent){var rf=function(module,settings){\n\nvar opts=exports.extendObject({},settings);\n\nif(opts.callback){\n(spawn (function(){try{\n\nvar rv=requireInner(module,rf,parent,opts);\n}catch(e){\n\nopts.callback(e);return 1;\n}\nopts.callback(UNDEF,rv);\n})());\n}else return requireInner(module,rf,parent,opts);\n\n\n};\n\nrf.resolve=function(module,settings){var opts=exports.extendObject({},settings);\n\nreturn resolve(module,rf,parent,opts);\n};\n\nrf.path=\"\";\nrf.alias={};\n\n\nif(exports.require){\nrf.hubs=exports.require.hubs;\nrf.modules=exports.require.modules;\nrf.extensions=exports.require.extensions;\n}else{\n\n\nrf.hubs=getHubs_hostenv();\nrf.modules={};\n\nrf.extensions=getExtensions_hostenv();\n}\nreturn rf;\n}\n\n\nfunction resolveAliases(module,aliases){var ALIAS_REST=/^([^:]+):(.*)$/;\n\nvar alias_rest,alias;\nvar rv=module;\nvar level=10;\nwhile((alias_rest=ALIAS_REST.exec(rv))&&(alias=aliases[alias_rest[1]])){\n\nif(--level==0)throw \"Too much aliasing in modulename \'\"+module+\"\'\";\n\nrv=alias+alias_rest[2];\n}\nreturn rv;\n}\n\n\nfunction resolveHubs(module,hubs,opts){var path=module;\n\nvar loader=opts.loader||default_loader;\nvar src=opts.src||default_src_loader;\nvar level=10;\nfor(var i=0,hub;hub=hubs[i++ ];){\nif(path.indexOf(hub[0])==0){\n\nif(typeof hub[1]==\"string\"){\npath=hub[1]+path.substring(hub[0].length);\ni=0;\nif(--level==0)throw \"Too much indirection in hub resolution for module \'\"+module+\"\'\";\n\n}else if(typeof hub[1]==\"object\"){\n\nif(hub[1].src)src=hub[1].src;\nif(hub[1].loader)loader=hub[1].loader;\n\nbreak;\n}else throw \"Unexpected value for require.hubs element \'\"+hub[0]+\"\'\";\n\n\n}\n}\n\nreturn {path:path,loader:loader,src:src};\n}\n\n\nfunction default_src_loader(path){throw new Error(\"Don\'t know how to load module at \"+path);\n\n}\n\n\nvar compiled_src_tag=/^\\/\\*\\__oni_compiled_sjs_1\\*\\//;\nfunction default_compiler(src,descriptor){var f;\n\n\nif(compiled_src_tag.exec(src)){\n\n\n\n\nf=new Function(\"module\",\"exports\",\"require\",\"__onimodulename\",src);\nf(descriptor,descriptor.exports,descriptor.require,\"module #{descriptor.id}\");\n}else{\n\nf=exports.eval(\"(function(module,exports,require, __onimodulename){\"+src+\"\\n})\",{filename:\"module #{descriptor.id}\"});\n\nf(descriptor,descriptor.exports,descriptor.require);\n}\n\n}\n\nfunction default_loader(path,parent,src_loader,opts){var extension=/.+\\.([^\\.\\/]+)$/.exec(path)[1];\n\n\n\nvar compile=exports.require.extensions[extension];\nif(!compile)throw \"Unknown type \'\"+extension+\"\'\";\n\n\nvar descriptor;\nif(!(descriptor=exports.require.modules[path])){\n\nvar pendingHook=pendingLoads[path];\nif(!pendingHook){\npendingHook=pendingLoads[path]=spawn (function(){var src,loaded_from;\n\nif(typeof src_loader===\"string\"){\nsrc=src_loader;\nloaded_from=\"[src string]\";\n}else if(path in __oni_rt.modsrc){\n\n\nloaded_from=\"[builtin]\";\nsrc=__oni_rt.modsrc[path];\ndelete __oni_rt.modsrc[path];\n\n}else{\n\n({src,loaded_from})=src_loader(path);\n}\nvar descriptor={id:path,exports:{},loaded_from:loaded_from,loaded_by:parent,required_by:{},require:makeRequire(path)};\n\n\n\n\n\n\n\ncompile(src,descriptor);\n\n\n\n\n\nexports.require.modules[path]=descriptor;\n\nreturn descriptor;\n})();\n}\ntry{\nvar descriptor=pendingHook.waitforValue();\n}finally{\n\n\nif(pendingHook.waiting()==0)delete pendingLoads[path];\n\n}\n}\n\nif(!descriptor.required_by[parent])descriptor.required_by[parent]=1;else ++descriptor.required_by[parent];\n\n\n\n\nreturn descriptor.exports;\n}\n\nfunction http_src_loader(path){var src;\n\nif(getXDomainCaps_hostenv()!=\'none\'||exports.isSameOrigin(path,document.location))src=request_hostenv([path,{format:\'compiled\'}],{mime:\'text/plain\'});else{\n\n\n\n\npath+=\"!modp\";\nsrc=jsonp_hostenv(path,{forcecb:\"module\",cbfield:null});\n\n\n}\nreturn {src:src,loaded_from:path};\n}\n\n\n\n\n\n\nvar github_api=\"https://api.github.com/\";\nvar github_opts={cbfield:\"callback\"};\nfunction github_src_loader(path){var user,repo,tag;\n\ntry{\n[ ,user,repo,tag,path]=/github:([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/.exec(path);\n}catch(e){throw \"Malformed module id \'\"+path+\"\'\"}\n\nvar url=exports.constructURL(github_api,\'repos\',user,repo,\"contents\",path,{ref:tag});\n\nwaitfor{\nvar data=jsonp_hostenv(url,github_opts).data;\n}or{\n\nhold(10000);\nthrow new Error(\"Github timeout\");\n}\nif(data.message&&!data.content)throw new Error(data.message);\n\n\n\nvar str=exports.require(\'sjs:string\');\n\nreturn {src:str.utf8ToUtf16(str.base64ToOctets(data.content)),loaded_from:url};\n\n\n\n}\n\n\nfunction resolve(module,require_obj,parent,opts){var path=resolveAliases(module,require_obj.alias);\n\n\n\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\n\n\nvar resolveSpec=resolveHubs(path,exports.require.hubs,opts);\n\n\nresolveSpec.path=exports.canonicalizeURL(resolveSpec.path,parent);\n\n\nif(resolveSpec.loader==default_loader&&resolveSpec.path.charAt(resolveSpec.path.length-1)!=\'/\'){\n\n\nvar matches=/.+\\.([^\\.\\/]+)$/.exec(resolveSpec.path);\nif(!matches||!exports.require.extensions[matches[1]])resolveSpec.path+=\".sjs\";\n\n}\n\nif(parent==getTopReqParent_hostenv())parent=\"[toplevel]\";\n\n\nreturn resolveSpec;\n}\n\n\n\n\n\nexports.resolve=function(url,require_obj,parent,opts){require_obj=require_obj||exports.require;\n\nparent=parent||getTopReqParent_hostenv();\nopts=opts||{};\nreturn resolve(url,require_obj,parent,opts);\n};\n\n\nfunction requireInner(module,require_obj,parent,opts){var resolveSpec=resolve(module,require_obj,parent,opts);\n\n\n\n\nmodule=resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts);\nif(opts.copyTo){\nexports.extendObject(opts.copyTo,module);\n}\n\nreturn module;\n}\n\n\nexports.require=makeRequire(getTopReqParent_hostenv());\n\nexports.require.modules[\'builtin:apollo-sys.sjs\']={id:\'builtin:apollo-sys.sjs\',exports:exports,loaded_from:\"[builtin]\",loaded_by:\"[toplevel]\",required_by:{\"[toplevel]\":1}};\n\n\n\n\n\n\n\nexports.init=function(cb){init_hostenv();\n\ncb();\n};\n\n";__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']="var location;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction determineLocation(){if(!location){\n\nlocation={};\nvar scripts=document.getElementsByTagName(\"script\"),matches;\nfor(var i=0;i<scripts.length;++i){\nif((matches=/(.*)oni-apollo(.*).js(\\?.*)?$/.exec(scripts[i].src))){\nlocation.location=exports.canonicalizeURL(matches[1]+\"modules/\",document.location.href);\nlocation.requirePrefix=scripts[i].getAttribute(\"require-prefix\");\nbreak;\n}\n}\n}\nreturn location;\n}\n\n\n\n\nif(determineLocation().requirePrefix){\n__oni_rt.G[determineLocation().requirePrefix]={require:__oni_rt.sys.require};\n}else __oni_rt.G.require=__oni_rt.sys.require;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction jsonp_hostenv(url,settings){var opts=exports.mergeObjects({iframe:false,cbfield:\"callback\"},settings);\n\n\n\n\n\n\n\n\n\n\nurl=exports.constructURL(url,opts.query);\nif(opts.iframe||opts.forcecb)return jsonp_iframe(url,opts);else return jsonp_indoc(url,opts);\n\n\n\n};\n\nvar jsonp_req_count=0;\nvar jsonp_cb_obj=\"_oni_jsonpcb\";\nfunction jsonp_indoc(url,opts){if(!window[jsonp_cb_obj])window[jsonp_cb_obj]={};\n\n\nvar cb=\"cb\"+(jsonp_req_count++ );\nvar cb_query={};\ncb_query[opts.cbfield]=jsonp_cb_obj+\".\"+cb;\nurl=exports.constructURL(url,cb_query);\nvar elem=document.createElement(\"script\");\nelem.setAttribute(\"src\",url);\nelem.setAttribute(\"async\",\"async\");\nelem.setAttribute(\"type\",\"text/javascript\");\nwaitfor(var rv){\nwindow[jsonp_cb_obj][cb]=resume;\ndocument.getElementsByTagName(\"head\")[0].appendChild(elem);\n\nwaitfor(){\nif(elem.addEventListener)elem.addEventListener(\"error\",resume,false);else elem.attachEvent(\"onerror\",resume);\n\n\n\n}finally{\n\nif(elem.removeEventListener)elem.removeEventListener(\"error\",resume,false);else elem.detachEvent(\"onerror\",resume);\n\n\n\n}\n\nthrow new Error(\"Could not complete JSONP request to \'\"+url+\"\'\");\n}finally{\n\nelem.parentNode.removeChild(elem);\ndelete window[jsonp_cb_obj][cb];\n}\nreturn rv;\n}\n\nfunction jsonp_iframe(url,opts){var cb=opts.forcecb||\"R\";\n\nvar cb_query={};\nif(opts.cbfield)cb_query[opts.cbfield]=cb;\n\nurl=exports.constructURL(url,cb_query);\nvar iframe=document.createElement(\"iframe\");\ndocument.getElementsByTagName(\"head\")[0].appendChild(iframe);\nvar doc=iframe.contentWindow.document;\nwaitfor(var rv){\ndoc.open();\niframe.contentWindow[cb]=resume;\n\n\nhold(0);\ndoc.write(\"\\x3Cscript type=\'text/javascript\' src=\\\"\"+url+\"\\\">\\x3C/script>\");\ndoc.close();\n}finally{\n\niframe.parentNode.removeChild(iframe);\n}\n\n\nhold(0);\nreturn rv;\n};\n\n\nvar XHR_caps;\nvar activex_xhr_ver;\n\nfunction getXHRCaps(){if(!XHR_caps){\n\nXHR_caps={};\n\nif(__oni_rt.G.XMLHttpRequest)XHR_caps.XHR_ctor=function(){\nreturn new XMLHttpRequest()};else XHR_caps.XHR_ctor=function(){\n\nif(typeof activex_xhr_ver!==\'undefined\')return new ActiveXObject(activex_xhr_ver);\n\n\nfor(var v in {\"MSXML2.XMLHTTP.6.0\":1,\"MSXML2.XMLHTTP.3.0\":1,\"MSXML2.XMLHTTP\":1}){\n\n\n\n\ntry{\nvar req=new ActiveXObject(v);\nactivex_xhr_ver=v;\nreturn req;\n}catch(e){\n}\n}\nthrow new Error(\"Browser does not support XMLHttpRequest\");\n};\n\n\nXHR_caps.XHR_CORS=(\"withCredentials\" in XHR_caps.XHR_ctor());\nif(!XHR_caps.XHR_CORS)XHR_caps.XDR=(typeof __oni_rt.G.XDomainRequest!==\'undefined\');\n\nXHR_caps.CORS=(XHR_caps.XHR_CORS||XHR_caps.XDR)?\"CORS\":\"none\";\n}\nreturn XHR_caps;\n}\n\n\n\n\n\n\nfunction getXDomainCaps_hostenv(){return getXHRCaps().CORS;\n\n}\n\n\n\n\n\nvar req_base;\nfunction getTopReqParent_hostenv(){if(!req_base)req_base=document.location.href;\n\nreturn req_base;\n}\n\n\n\n\n\n\n\n\n\nfunction resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(req_obj.path&&req_obj.path.length)url_string=exports.constructURL(req_obj.path,url_string);\n\n\nreturn exports.canonicalizeURL(url_string,parent);\n}\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction request_hostenv(url,settings){var opts=exports.mergeObjects({method:\"GET\",body:null,response:\'string\',throwing:true},settings);\n\n\n\n\n\n\n\n\n\n\n\nurl=exports.constructURL(url,opts.query);\n\nvar caps=getXHRCaps();\nif(!caps.XDR||exports.isSameOrigin(url,document.location)){\nvar req=caps.XHR_ctor();\nreq.open(opts.method,url,true,opts.username||\"\",opts.password||\"\");\n}else{\n\n\nreq=new XDomainRequest();\nreq.open(opts.method,url);\n}\n\nwaitfor(var error){\nif(typeof req.onerror!==\'undefined\'){\nreq.onload=function(){resume()};\nreq.onerror=function(){resume(true)};\n}else{\n\nreq.onreadystatechange=function(evt){if(req.readyState!=4)return;else resume();\n\n\n\n\n};\n}\n\nif(opts.headers)for(var h in opts.headers)req.setRequestHeader(h,opts.headers[h]);\n\n\nif(opts.mime&&req.overrideMimeType)req.overrideMimeType(opts.mime);\n\nreq.send(opts.body);\n}retract{\n\nreq.abort();\n}\n\n\nif(error||(typeof req.status!==\'undefined\'&&!(req.status.toString().charAt(0) in {\'0\':1,\'2\':1}))){\n\n\nif(opts.throwing){\nvar txt=\"Failed \"+opts.method+\" request to \'\"+url+\"\'\";\nif(req.statusText)txt+=\": \"+req.statusText;\nif(req.status)txt+=\" (\"+req.status+\")\";\nvar err=new Error(txt);\nerr.status=req.status;\nerr.data=req.responseText;\nthrow err;\n}else if(opts.response==\'string\'){\n\nreturn \"\";\n}\n\n}\nif(opts.response==\'string\')return req.responseText;else{\n\n\n\nreturn {content:req.responseText,getHeader:name->req.getResponseHeader(name)};\n\n\n\n}\n}\n\n\n\n\nfunction getHubs_hostenv(){return [[\"sjs:\",determineLocation().location?determineLocation().location:{src:function(path){\n\n\n\nthrow new Error(\"Can\'t load module \'\"+path+\"\': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load oni-apollo.js in the normal way through a <script> element.\");\n\n}}],[\"github:\",{src:github_src_loader}],[\"http:\",{src:http_src_loader}],[\"https:\",{src:http_src_loader}],[\"file:\",{src:http_src_loader}],[\"x-wmapp1:\",{src:http_src_loader}],[\"local:\",{src:http_src_loader}]];\n\n\n\n\n\n\n\n\n\n\n\n\n}\n\nfunction getExtensions_hostenv(){return {\'sjs\':default_compiler,\'app!sjs\':default_compiler,\'js\':function(src,descriptor){\n\n\n\n\n\n\n\n\nvar f=new Function(\"module\",\"exports\",src);\n\nf.apply(descriptor.exports,[descriptor,descriptor.exports]);\n}};\n\n}\n\n\n\n\nfunction eval_hostenv(code,settings){if(__oni_rt.UA==\"msie\"&&__oni_rt.G.execScript)return eval_msie(code,settings);\n\n\n\nvar filename=(settings&&settings.filename)||\"sjs_eval_code\";\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\nvar js=__oni_rt.c1.compile(code,{filename:filename,mode:mode});\nreturn __oni_rt.G.eval(js);\n}\n\n\n\n\n\n\n\nvar IE_resume_counter=0;\n__oni_rt.IE_resume={};\nfunction eval_msie(code,settings){var filename=(settings&&settings.filename)||\"sjs_eval_code\";\n\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\ntry{\nwaitfor(var rv,isexception){\nvar rc=++IE_resume_counter;\n__oni_rt.IE_resume[rc]=resume;\nvar js=__oni_rt.c1.compile(\"try{\"+code+\"\\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume[\"+rc+\"](rv[0],rv[1])) }\",{filename:filename,mode:mode});\n\n\n__oni_rt.G.execScript(js);\n}\nif(isexception)throw rv;\n}finally{\n\ndelete __oni_rt.IE_resume[rc];\n}\nreturn rv;\n}\n\n\n\n\nfunction init_hostenv(){}\n\n\n\n\nif(!__oni_rt.G.__oni_rt_no_script_load){\nfunction runScripts(){var scripts=document.getElementsByTagName(\"script\");\n\n\n\n\n\n\n\n\n\nvar ss=[];\nfor(var i=0;i<scripts.length;++i){\nif(scripts[i].getAttribute(\"type\")==\"text/sjs\"){\nvar s=scripts[i];\nss.push(s);\n}\n}\n\nfor(var i=0;i<ss.length;++i){\nvar s=ss[i];\nvar m=s.getAttribute(\"module\");\n\nvar content=s.textContent||s.innerHTML;\nif(__oni_rt.UA==\"msie\"){\n\ncontent=content.replace(/\\r\\n/,\"\");\n}\nif(m)__oni_rt.modsrc[m]=content;else exports.eval(content,{filename:\"inline_script\"+(i+1)});\n\n\n\n}\n};\n\nif(document.readyState===\"complete\"){\nrunScripts();\n}else{\n\n\nif(__oni_rt.G.addEventListener)__oni_rt.G.addEventListener(\"load\",runScripts,true);else __oni_rt.G.attachEvent(\"onload\",runScripts);\n\n\n\n}\n}\n\n\n";if(!Array.isArray){
 
 
 

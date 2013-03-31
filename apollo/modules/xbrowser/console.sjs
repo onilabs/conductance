@@ -76,7 +76,7 @@ function uninstallLogger(logger) {
   @function log
   @summary Log the given object to all Stratfied JS consoles created with *receivelog* = *true*.
   @param {Object} [obj] Object to log.
-  @deprecated since 0.13 - use the functions in the [logging::] module instead.
+  @deprecated since 0.13 - use the functions in the [../logging::] module instead.
 */
 var printToLoggers = exports.log = function() {
   var logArgs = arguments;
@@ -467,7 +467,8 @@ Console.prototype = {
           // *sigh* IE6's Error.toString just prints '[object Error]'. hack:
           var message = ex ? ex.toString() : "<Error>";
           if (message == "[object Error]") message = ex.message || "<Error>";
-          result.innerHTML = str.sanitize(message);
+          var lines = message.split("\n");
+          result.innerHTML = collection.map(lines, str.sanitize).join("<br/>");
         }
       }
       or {
