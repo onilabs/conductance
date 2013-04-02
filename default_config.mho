@@ -1,0 +1,64 @@
+// Default conductance configuration
+
+//----------------------------------------------------------------------
+// Array of ports that conductance will listen on:
+
+exports.ports = [
+  { 
+    name: 'admin',  // name by which port will be referenced
+    address:'7071', // address of form 'port' or 'host:port'. If no 'host' is given,
+                    // conductance will listen on all interfaces
+  },
+  { name: 'secondary', address:'localhost:6060' },
+//  { name: 'public_http', address: '80' },
+// { name: 'public_https', address: '4430', ssl: true, keyfile: '...', certfile: '...', passphrase: '...' }
+];
+
+//----------------------------------------------------------------------
+// "Virtual" host configuration
+/* 
+   Array of hostnames and the ports they listen on.
+
+   When a request is received on a given port, conductance will go through this
+   array in order and dispatch the request to the first host with matching hostname
+   that is configured to listen on the given port.
+*/
+exports.hosts = [
+  { 
+    // hostname regexp:
+    hostname: /^localhost$/, 
+
+    // ports this host is listening on:
+    ports: ['admin', 
+            'secondary', 
+            'public_http', 
+            'public_https' ], 
+    
+    // array of routes that determine how requests to given urls get handled:
+    /*
+      The array will be traversed in order and the request url matched against 'path'.
+      When the first matching route is found, the 'handle_METHOD' function will 
+      be invoked.
+      If there is no function for the given request method, a 405 is returned to the 
+      client.
+     */
+    routes: [
+      { 
+        // regex which will be matched against request url:
+        path: /\/foo$/,
+        // handler for 'GET' requests: 
+        // (the 'matches' argument will receive the result of exec'ing the
+        // 'path' regex on the URL)
+        handle_GET: function(matches, req) { console.log('hello request'); req.response.end("YAY!"); }
+      }
+    ]
+  },
+  {
+    hostname: /^zap$/,
+    routes: [
+      { path: /^\/foo$/,
+        handle_GET: function(matches, req) { req.response.end("HAR HAR"); }
+      }
+    ]
+  } 
+];

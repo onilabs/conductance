@@ -1,0 +1,36 @@
+#!/usr/bin/env apollo
+
+var { dirname } = require('path');
+var { exec    } = require('sjs:nodejs/child-process');
+var { read    } = require('sjs:nodejs/stream');
+var fs = require('sjs:nodejs/fs');
+
+// make sure we're in the right directory
+process.chdir("#{dirname(process.argv[0])}/..");
+
+if (fs.exists('apollo/.git')) {
+  console.log('apollo directory already contains a git repository -> exiting');
+  process.exit(1);
+}
+
+if (exec('git status --porcelain apollo').stdout.length) {
+  console.log('apollo directory not clean -> exiting');
+  process.exit(1);
+}
+
+console.log("\
+Replacing directory '#{fs.realpath('apollo')}' with github repository at git://github.com/onilabs/apollo.git.
+Sure you want to proceed? [y/N]");
+if (read(process.stdin).toString().toLowerCase() != 'y\n') {
+  console.log('-> exiting');
+  process.exit(1);
+}
+
+exec('rm -rf apollo/');
+console.log('Cloning external repo');
+exec('git clone git://github.com/onilabs/apollo.git apollo');
+console.log("Checking out branch 'mho'");
+exec('cd apollo/; git checkout mho');
+console.log('Reapplying out patches');
+exec('git checkout -- apollo/');
+console.log('ALL DONE');
