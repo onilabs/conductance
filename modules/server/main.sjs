@@ -2,11 +2,20 @@ var { canonicalizeURL } = require('sjs:http');
 var { withServer } = require('sjs:nodejs/http');
 var { each, map, filter, parallelize, find, toArray } = require('sjs:sequence');
 var { override } = require('sjs:object');
+var { stat } = require('sjs:nodejs/fs');
 
-var conductance_root = canonicalizeURL('../', module.id);
-require.hubs.push(['mho:', canonicalizeURL('../modules', module.id)]);
+require.hubs.push(['mho:', canonicalizeURL('../', module.id)]);
 require.hubs.push(['\u2127:', 'mho:']); // mho sign '℧'
 
+var env = require('./env');
+env.init({
+  conductanceRoot    : canonicalizeURL('../../', module.id).substr(7),
+  conductanceVersion : "1-#{
+                             (new Date(
+                                stat(canonicalizeURL('../../apollo/oni-apollo-node.js', 
+                                     module.id).substr(7)).mtime)).getTime()
+                           }",
+});
 
 //----------------------------------------------------------------------
 // helpers
@@ -43,7 +52,7 @@ Default configfile: #{configfile}
 
 console.log(banner);
 
-var configfile = "#{conductance_root}default_config.mho";
+var configfile = "#{env.conductanceRoot()}default_config.mho";
 
 for (var i=1; i<process.argv.length; ++i) {
   var flag = process.argv[i]; 
@@ -105,15 +114,9 @@ function runPort(port_desc) {
         continue;
       }
       
-      // we've got the route; get the handler:
-      var handler = route["handle_#{req.request.method}"];
-      if (!handler) {
-        req.response.writeHead(405, 'Method not support for given path');
-        continue;
-      }
-      // execute handler:
+      // we've got the route; execute handler:
       try {
-        handler(matches, req);
+        route.handler(matches, req);
       }
       catch(e) {
         console.log("Error handling request: #{e}");

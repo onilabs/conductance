@@ -1,5 +1,5 @@
 #!/bin/bash
 
 APOLLO_BIN=`dirname $0`/apollo
-CONDUCTANCE_LIB=`dirname $0`/lib
+CONDUCTANCE_LIB=`dirname $0`/modules/server
 exec $APOLLO_BIN/apollo "$CONDUCTANCE_LIB/main.sjs" "$@"

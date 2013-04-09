@@ -55,7 +55,9 @@
 
 var { merge } = require('./object');
 var { supplant } = require('./string');
+var quasi = require('./quasi');
 var sys = require('builtin:apollo-sys');
+var debug = require('./debug');
 
 /**
   @variable DEBUG
@@ -167,7 +169,7 @@ exports.setFormat = function(fmt) {
 
         >>> INFO: here goes!!!
 */
-customFormatFields = null;
+var customFormatFields = null;
 exports.defineField = function(key, val) {
   customFormatFields = customFormatFields || {};
   customFormatFields[key] = val;
@@ -181,6 +183,10 @@ exports.defineField = function(key, val) {
 exports.isEnabled = function(lvl) { return currentLevel >= lvl; };
 
 exports.formatMessage = function(lvl, message) {
+  if (quasi.isQuasi(message)) {
+    message = quasi.mapQuasi(message, debug.inspect).join("");
+  }
+
   var fields = {
     level: exports.levelNames[lvl],
     message: message

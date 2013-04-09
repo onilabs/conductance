@@ -1,5 +1,8 @@
 // Default conductance configuration
 
+var { MappedDirectoryHandler } = require('mho:server/file-server');
+var { conductanceRoot } = require('mho:server/env');
+
 //----------------------------------------------------------------------
 // Array of ports that conductance will listen on:
 
@@ -37,19 +40,21 @@ exports.hosts = [
     // array of routes that determine how requests to given urls get handled:
     /*
       The array will be traversed in order and the request url matched against 'path'.
-      When the first matching route is found, the 'handle_METHOD' function will 
+      When the first matching route is found, its 'handler' function will 
       be invoked.
-      If there is no function for the given request method, a 405 is returned to the 
-      client.
      */
     routes: [
+      {
+        path: /^(\/.*)$/,
+        handler: MappedDirectoryHandler(conductanceRoot())
+      },
       { 
         // regex which will be matched against request url:
         path: /\/foo$/,
         // handler for 'GET' requests: 
         // (the 'matches' argument will receive the result of exec'ing the
-        // 'path' regex on the URL)
-        handle_GET: function(matches, req) { console.log('hello request'); req.response.end("YAY!"); }
+        // 'path' regex on the URL; req is an [sjs:nodejs/ServerRequest] object )
+        handler: function(matches, req) { console.log('hello request'); req.response.end("YAY!"); }
       }
     ]
   },
@@ -57,7 +62,7 @@ exports.hosts = [
     hostname: /^zap$/,
     routes: [
       { path: /^\/foo$/,
-        handle_GET: function(matches, req) { req.response.end("HAR HAR"); }
+        handler: function(matches, req) { req.response.end("HAR HAR"); }
       }
     ]
   } 

@@ -40,10 +40,10 @@ var tt = new Date();
 var sys = require('builtin:apollo-sys');
 
 waitfor {
-  var { each, isStream, toArray, join, map } = require('../sequence');
+  var { each, isStream, toArray, join, map, indexed } = require('../sequence');
 }
 and {
-  var { indexValuePairs, remove } = require('../array');
+  var { remove } = require('../array');
 } 
 and {
   var dom    = require('../xbrowser/dom');
@@ -188,14 +188,19 @@ __js StyleElement.init = function(content, global) {
   }
   var elem = this.dompeer = document.createElement('style');
   elem.setAttribute('type', 'text/css');
-  elem.innerHTML = content;
+  if (elem.styleSheet) {
+    // IE
+    elem.styleSheet.cssText = content;
+  } else {
+    elem.appendChild(document.createTextNode(content));
+  }
 
   this.refCount = 0;
 };
 
 __js StyleElement.use = function() {
   if (this.refCount++ == 0)
-    document.head.appendChild(this.dompeer);
+    (document.head || document.getElementsByTagName("head")[0] /* IE<9 */).appendChild(this.dompeer);
 };
 __js StyleElement.unuse = function() {
   if (--this.refCount == 0)
@@ -293,7 +298,7 @@ UIElement.init = function(attribs) {
   this.mechanism = attribs.mechanism || func.nop;
   this.style = attribs.style || [];
   if (!Array.isArray(this.style)) this.style = [this.style];
-  indexValuePairs(this.style) .. each { 
+  indexed(this.style) .. each { 
     |style| 
     var [i,s] = style;
     if (typeof s == 'string') this.style[i] = CSS(s);
@@ -521,11 +526,17 @@ var ChildManagement = {
   },
 
   remove: function(ui) {
-    remove(this.children, ui);
+    if (! remove(this.children, ui)) return false;
     ui.dompeer.parentNode.removeChild(ui.dompeer);
     if (ui.isActivated)
       ui.deactivated();
     ui.detached();
+    return true;
+  },
+
+  replaceAll: function(new_children) {
+    this.children .. each { |c| this.remove(c) };
+    new_children .. each { |c| this.append(c); };
   },
 
   activate: function() {
@@ -543,6 +554,7 @@ var ChildManagement = {
   mixinto: function(target) {
     target.init = func.seq(target.init, this.init);
     target.remove = this.remove;
+    target.replaceAll = this.replaceAll;
     target.activate = func.seq(target.activate, this.activate);
     target.activated = func.seq(target.activated, this.activated);
     target.deactivated = func.seq(target.deactivated, this.deactivated);
@@ -564,6 +576,71 @@ __js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UICon
 
 ChildManagement.mixinto(HtmlFragmentElement);
 
+var makeDomNode = (function() {
+  /* convert HTML string -> dom node (used in HtmlFragmentElement).
+   * This function adapted from JQuery code (src/manipulation.js),
+   * which is distributed under the MIT licence, and is
+   * Copyright 2013 jQuery Foundation and other contributors
+   * http://jquery.com/
+   */
+  var rtagName = /<([\w:]+)/;
+  var wrapMap = {
+    // Support: IE 9
+    option: [ 1, "<select multiple='multiple'>", "</select>" ],
+
+    thead: [ 1, "<table>", "</table>" ],
+    tr: [ 2, "<table><tbody>", "</tbody></table>" ],
+    td: [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ],
+  };
+
+  // Support: IE 9
+  wrapMap.optgroup = wrapMap.option;
+
+  wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.col = wrapMap.thead;
+  wrapMap.th = wrapMap.td;
+
+  return function(html, substitutePlaceholders) {
+    var elem = document.createElement('surface-ui');
+    if(html === undefined) return elem;
+    html = html.trim();
+
+    var tag = ( rtagName.exec( html ) || ["", ""] )[ 1 ].toLowerCase();
+    var wrap = wrapMap[ tag ];
+    if (wrap) {
+      elem.innerHTML = wrap[ 1 ] + html + wrap[ 2 ];
+      if (substitutePlaceholders) substitutePlaceholders(elem);
+      var initial_elem = elem;
+      var j = wrap[ 0 ];
+      while ( j-- ) {
+        elem = elem.firstChild;
+      }
+      if (elem.childNodes.length == 1) {
+        elem = elem.firstChild;
+      } else {
+        // html generated multiple tags, append them to initial_elem and remove wrapper
+        while (elem.firstChild) {
+          initial_elem.appendChild(elem.firstChild);
+        }
+        elem = initial_elem;
+        elem.removeChild(elem.firstChild);
+      }
+    } else {
+      // no wrapping required:
+      elem.innerHTML = html;
+      if (substitutePlaceholders) substitutePlaceholders(elem);
+
+      // remove the surrogate if there is only one child.
+      // We do this, so that CSS rules work more predictably (so that there are no
+      // intermediate 'surface-ui' tags that have to be worked into CSS rules).
+      if (elem.childNodes.length == 1 && elem.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
+        elem = elem.firstChild;
+      }
+    }
+    return elem;
+  };
+})();
+
+
 // HtmlFragmentElement.init needs to come *after* mixing in ChildManagement, so that
 // this.children is initialized
 
@@ -578,7 +655,7 @@ HtmlFragmentElement.init = func.seq(
   HtmlFragmentElement.init, 
   function(attribs) {
     
-    if (attribs.content instanceof HTMLElement) {
+    if (attribs.content instanceof Element) {
       // content is a DOM object. This is e.g. used by the
       // to create the RootElement, where attribs.content is set to 'document.body'
       this.dompeer = attribs.content;
@@ -610,7 +687,8 @@ HtmlFragmentElement.init = func.seq(
             var part = arr[i];
             if (!quasi || i%2) {
               if (UIElement.isPrototypeOf(part)) {
-                html += "<span id='__oni_placeholder#{placeholders.length}'></span>";
+                var tag = part.dompeer.tagName;
+                html += "<#{tag} id='__oni_placeholder#{placeholders.length}'></#{tag}>";
                 placeholders.push(part);
               }
               else if (Array.isArray(part) || isStream(part)) {
@@ -633,41 +711,29 @@ HtmlFragmentElement.init = func.seq(
         else
           parseArray(toArray(attribs.content), false);
         
-        // create a surrogate dompeer:
-        this.dompeer = document.createElement('surface-ui');
-        this.dompeer.innerHTML = html.replace(/^\s+/,'');
-        
-        // replace UIElement placeholders with UIElements:
-        indexValuePairs(placeholders) .. each  {
-          |placeholder|
-          var [idx, part] = placeholder;
-          var old = this.select1("#__oni_placeholder#{idx}");
-          if (!old) {
-            // placeholder not found in the dom... probably caused by
-            // user-provided html not being valid
-            throw new Error("Invalid HTML (#{sanitize(html)})");
+        this.dompeer = makeDomNode(html) { |rootNode|
+          // replace UIElement placeholders with UIElements:
+          indexed(placeholders) .. each  {
+            |placeholder|
+            var [idx, part] = placeholder;
+            var old = rootNode.querySelector("#__oni_placeholder#{idx}");
+            if (!old) {
+              // placeholder not found in the dom... probably caused by
+              // user-provided html not being valid
+              throw new Error("Invalid HTML: #{html}");
+            }
+            old.parentNode.replaceChild(part.dompeer, old);
+            this.children.push(part);
           }
-          old.parentNode.replaceChild(part.dompeer, old);
-          this.children.push(part);
-        }        
+        }
+
       }
       else {
         // content is a string (or will be coerced to one); 
         //XXX sanitize it!! - This might break existing surface code
 
         // create a surrogate dompeer: 
-        this.dompeer = document.createElement('surface-ui');
-        if (typeof attribs.content !== 'undefined') {
-          this.dompeer.innerHTML = attribs.content.replace(/^\s+/, '');
-        }
-      }
-
-      // Flattening:
-      // remove the surrogate again if there is only one child.
-      // We do this, so that CSS rules work more predictably (so that there are no 
-      // intermediate 'surface-ui' tags that have to be worked into CSS rules).
-      if (this.dompeer.childElementCount == 1 && this.dompeer.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
-        this.dompeer = this.dompeer.firstChild;
+        this.dompeer = makeDomNode(attribs.content);
       }
     }
 
