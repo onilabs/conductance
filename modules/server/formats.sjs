@@ -45,7 +45,7 @@ function gen_app_html(src, dest, req) {
        <head>
          <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
          <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-         <script src='/__oni/apollo/oni-apollo.js'></script>
+         <script src='/__apollo/oni-apollo.js'></script>
          <script type='text/sjs'>
            require('#{app_name}!sjs');
          </script>

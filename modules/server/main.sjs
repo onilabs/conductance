@@ -1,6 +1,7 @@
 var { canonicalizeURL } = require('sjs:http');
 var { withServer } = require('sjs:nodejs/http');
 var { each, map, filter, parallelize, find, toArray } = require('sjs:sequence');
+var { flatten } = require('sjs:array');
 var { override } = require('sjs:object');
 var { stat } = require('sjs:nodejs/fs');
 
@@ -108,7 +109,7 @@ function runPort(port_desc) {
 
       // we've got a host; find the route now:
       var matches;
-      var route = host.routes .. find({path} -> !!(matches = req.url.path.match(path)));
+      var route = host.routes .. flatten .. find({path} -> !!(matches = req.url.path.match(path)));
       if (!route) {
         req.response.writeHead(400, 'Path not found');
         continue;

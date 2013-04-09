@@ -1,6 +1,6 @@
 // Default conductance configuration
 
-var { MappedDirectoryHandler } = require('mho:server/file-server');
+var { StandardSystemRoutes, MappedDirectoryRoute } = require('mho:server/routes');
 var { conductanceRoot } = require('mho:server/env');
 
 //----------------------------------------------------------------------
@@ -37,17 +37,16 @@ exports.hosts = [
             'public_http', 
             'public_https' ], 
     
-    // array of routes that determine how requests to given urls get handled:
+    // potentially nested array of routes that determine how requests
+    // to given urls get handled:
     /*
       The array will be traversed in order and the request url matched against 'path'.
       When the first matching route is found, its 'handler' function will 
       be invoked.
      */
     routes: [
-      {
-        path: /^(\/.*)$/,
-        handler: MappedDirectoryHandler(conductanceRoot())
-      },
+      StandardSystemRoutes(),
+      MappedDirectoryRoute(/^(\/.*)$/, conductanceRoot()),
       { 
         // regex which will be matched against request url:
         path: /\/foo$/,
