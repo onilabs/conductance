@@ -1,6 +1,9 @@
 // Default conductance configuration
 
-var { StandardSystemRoutes, MappedDirectoryRoute } = require('mho:server/routes');
+var { StandardSystemRoutes, 
+      MappedDirectoryRoute,
+      SimpleRedirectRoute
+    } = require('mho:server/routes');
 var { conductanceRoot } = require('mho:server/env');
 
 //----------------------------------------------------------------------
@@ -46,7 +49,6 @@ exports.hosts = [
      */
     routes: [
       StandardSystemRoutes(),
-      MappedDirectoryRoute(/^(\/.*)$/, conductanceRoot()),
       { 
         // regex which will be matched against request url:
         path: /\/foo$/,
@@ -54,7 +56,8 @@ exports.hosts = [
         // (the 'matches' argument will receive the result of exec'ing the
         // 'path' regex on the URL; req is an [sjs:nodejs/ServerRequest] object )
         handler: function(matches, req) { console.log('hello request'); req.response.end("YAY!"); }
-      }
+      },
+      MappedDirectoryRoute(/^(\/.*)$/, conductanceRoot()),
     ]
   },
   {
@@ -62,7 +65,8 @@ exports.hosts = [
     routes: [
       { path: /^\/foo$/,
         handler: function(matches, req) { req.response.end("HAR HAR"); }
-      }
+      },
+      SimpleRedirectRoute(/^(.*)$/, 'http://localhost:7071', 301)
     ]
   } 
 ];
