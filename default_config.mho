@@ -5,19 +5,23 @@ var { StandardSystemRoutes,
       SimpleRedirectRoute
     } = require('mho:server/routes');
 var { conductanceRoot } = require('mho:server/env');
+var { readFile } = require('sjs:nodejs/fs');
 
 //----------------------------------------------------------------------
 // Array of ports that conductance will listen on:
 
 exports.ports = [
   { 
-    name: 'admin',  // name by which port will be referenced
+    name: 'insecure',  // name by which port will be referenced
     address:'7071', // address of form 'port' or 'host:port'. If no 'host' is given,
                     // conductance will listen on all interfaces
   },
-  { name: 'secondary', address:'localhost:6060' },
-//  { name: 'public_http', address: '80' },
-// { name: 'public_https', address: '4430', ssl: true, keyfile: '...', certfile: '...', passphrase: '...' }
+  { name: 'secure', 
+    address:'localhost:6060',
+    ssl: true,
+    key: readFile("#{conductanceRoot()}ssl/insecure-localhost.key"),
+    cert: readFile("#{conductanceRoot()}ssl/insecure-localhost.crt")
+  }
 ];
 
 //----------------------------------------------------------------------
@@ -25,48 +29,58 @@ exports.ports = [
 /* 
    Array of hostnames and the ports they listen on.
 
-   When a request is received on a given port, conductance will go through this
-   array in order and dispatch the request to the first host with matching hostname
-   that is configured to listen on the given port.
+   When a request is received on a given port, conductance will go
+   through this array in order and dispatch the request to the first
+   host with matching hostname that is configured to listen on the
+   given port (if no ports are givenm the host will listen on all
+   ports in the exports.ports array)
 */
 exports.hosts = [
-  { 
+  {
     // hostname regexp:
-    hostname: /^localhost$/, 
+    hostname: /^mypublicserver$/,
 
-    // ports this host is listening on:
-    ports: ['admin', 
-            'secondary', 
-            'public_http', 
-            'public_https' ], 
-    
+    // no ports array given, so this host is listening on all ports
+
     // potentially nested array of routes that determine how requests
     // to given urls get handled:
     /*
-      The array will be traversed in order and the request url matched against 'path'.
-      When the first matching route is found, its 'handler' function will 
-      be invoked.
+      The array will be traversed in order and the request url matched
+      against 'path'.  When the first matching route is found, its
+      'handler' function will be invoked.
      */
     routes: [
-      StandardSystemRoutes(),
-      { 
-        // regex which will be matched against request url:
-        path: /\/foo$/,
-        // handler for 'GET' requests: 
-        // (the 'matches' argument will receive the result of exec'ing the
-        // 'path' regex on the URL; req is an [sjs:nodejs/ServerRequest] object )
-        handler: function(matches, req) { console.log('hello request'); req.response.end("YAY!"); }
+      { path: /^\/foo$/,
+        handler: function(matches, req) { req.response.end("Testing, 1, 2"); }
       },
+      // module 'mho:server/routes' defines some convenient functions for mapping
+      // directories on the local file system, redirects, etc:
       MappedDirectoryRoute(/^(\/.*)$/, conductanceRoot()),
     ]
-  },
+  }, 
   {
-    hostname: /^zap$/,
+    // Redirect all requests to port 7071 to https server:
+    hostname: /^(127\.0\.0\.1)|(localhost)$/,
+    ports: ['insecure'],    
     routes: [
-      { path: /^\/foo$/,
-        handler: function(matches, req) { req.response.end("HAR HAR"); }
-      },
-      SimpleRedirectRoute(/^(.*)$/, 'http://localhost:7071', 301)
+      // redirect all traffic to https server:
+      SimpleRedirectRoute(/^(.*)$/, 'https://localhost:6060', 301)
     ]
-  } 
+  },
+  { 
+    // Redirect 127.0.0.1 traffic to localhost:
+    hostname: /^(127\.0\.0\.1)$/,
+    routes: [
+      SimpleRedirectRoute(/^(.*)$/, 'https://localhost:6060', 301)
+    ]
+  },
+  { 
+    hostname: /^localhost$/, 
+    ports: ['secure'],
+    routes: [
+      // StandardSystemRoutes maps apollo to __apollo
+      StandardSystemRoutes(),
+      MappedDirectoryRoute(/^(\/.*)$/, conductanceRoot()),
+    ]
+  }
 ];

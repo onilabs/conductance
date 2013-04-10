@@ -81,7 +81,11 @@ function runPort(port_desc) {
   var port_config = 
     { address:  '0',
       capacity: 100,
-      max_connections: 1000
+      max_connections: 1000,
+      ssl: false,
+      key: undefined,
+      cert: undefined,
+      passphrase: undefined
     } .. 
     override(port_desc);
 
