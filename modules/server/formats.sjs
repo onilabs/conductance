@@ -45,8 +45,10 @@ function gen_app_html(src, dest, req) {
        <head>
          <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
          <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-         <script src='/__apollo/oni-apollo.js'></script>
+         <script src='/__sjs/oni-apollo.js'></script>
          <script type='text/sjs'>
+           require.hubs.push(['mho:', '/__mho/']);
+           require.hubs.push(['\u2127:', 'mho:']);
            require('#{app_name}!sjs');
          </script>
        </head>
@@ -68,18 +70,22 @@ function gen_dir_html(src, dest, req) {
 
   var fileList = dir.files ..
     map(function(f) {
-      var size = f.size;
-      var sizeDesc = null;
-      if (size < 1024)
-        sizeDesc = size + " B";
-      else if (size < 1024 * 1024)
-        sizeDesc = Math.round(size/1024*10)/10+ " kB";
+      var desc;
+      if (f.generated) {
+        desc = 'generated';
+      }
+      else if (f.size < 1024)
+        desc = f.size + " B";
+      else if (f.size < 1024 * 1024)
+        desc = Math.round(f.size/1024*10)/10+ " kB";
       else
-        sizeDesc = Math.round(size/1024/1024*10)/10+ " MB";
-      return "<li><a href=\"" + f.name + "\">" + f.name + "</a>(" + sizeDesc + ")</li>";
+        desc = Math.round(f.size/1024/1024*10)/10+ " MB";
+      
+      return "<li><a href='#{f.name}'>#{f.name}</a> (#{desc})</li>";
     }) ..
     toArray;
-  dest.write(header + "<ul>" + folderList.join("\n") + fileList.join("\n") + "</ul>");
+
+  dest.write("#{header}<ul>#{folderList.join("\n")}#{fileList.join("\n")}</ul>");
 }
 
 //----------------------------------------------------------------------

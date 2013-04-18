@@ -28,7 +28,8 @@ exports.MappedDirectoryRoute = MappedDirectoryRoute;
 
 function StandardSystemRoutes() {
   return [
-    MappedDirectoryRoute(/^\/__apollo(\/.*)$/, "#{conductanceRoot()}/apollo/")
+    MappedDirectoryRoute(/^\/__sjs(\/.*)$/, "#{conductanceRoot()}apollo/"),
+    MappedDirectoryRoute(/^\/__mho(\/.*)$/, "#{conductanceRoot()}modules/")
   ];
 }
 exports.StandardSystemRoutes = StandardSystemRoutes;

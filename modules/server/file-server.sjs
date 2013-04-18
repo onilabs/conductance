@@ -162,6 +162,8 @@ function listDirectory(req, root, branch, format, settings) {
     else if (fs.isFile(filepath)) {
       var size = fs.stat(filepath).size;
       listing.files.push({name: filename, size: size});
+      if (settings.allowGenerators && path.extname(filename) === '.gen')
+        listing.files.push({name: filename.substr(0, filename.length-4), generated: true });
     }
   }
   var listingJson = JSON.stringify(listing);
@@ -185,11 +187,10 @@ function serveFile(req, filePath, format, settings) {
     var stat = fs.stat(filePath);
   }
   catch (e) {
-    return false;
+    return settings.allowGenerators ? generateFile(req, filePath, format, settings) : false;
   }
   if (!stat.isFile()) return false;
   
-  var etag = "#{stat.mtime.getTime()}";
   return formatResponse(
     req,
     { input: opts ->
@@ -203,6 +204,39 @@ function serveFile(req, filePath, format, settings) {
     settings);
 }
 
+function generateFile(req, filePath, format, settings) {
+  try {
+    var stat = fs.stat("#{filePath}.gen");
+  }
+  catch (e) {
+    return false;
+  }
+  if (!stat.isFile()) return false;
+  
+  var generator_file_mtime = stat.mtime.getTime();
+
+  var resolved_path = require.resolve("#{filePath}.gen").path;
+
+  // purge module if it is loaded already, but the mtime doesn't match:
+  var module_desc = require.modules[resolved_path];
+  if (module_desc && module_desc.etag !== generator_file_mtime) {
+    console.log("reloading generator file #{resolved_path}; mtime doesn't match");
+    delete require.modules[resolved_path];
+  }
+
+  var generator = require(resolved_path);
+  require.modules[resolved_path].etag = generator_file_mtime;
+
+  return formatResponse(
+    req,
+    { input: -> new stream.ReadableStringStream(generator.content()),
+      extension: path.extname(filePath).slice(1),
+      format: format,
+      length: generator.content().length,
+      etag: "#{generator_file_mtime}-#{generator.etag ? generator.etag() : Date.now()}",
+    },
+    settings);
+}
 
 //----------------------------------------------------------------------
 
@@ -216,9 +250,11 @@ exports.MappedDirectoryHandler = function(root, settings) {
 
   settings = { mapIndexToDir:   true,
                allowDirListing: true,
+               allowGenerators: true,
                formats: BaseFileFormatMap, 
              } .. 
     override(settings || {});
+
   function handler(matches, req) {
     var [relativePath, format]  = (matches[1] || '/').split('!');
     if (format !== undefined) 
