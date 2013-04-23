@@ -663,3 +663,24 @@ exports.removeCookie = function(name) {
 	exports.setCookie(name,"",-1);
 };
 
+/**
+ * @function isHtmlElement
+ * @summary  test whether an object is a HTMLElement
+ * @param    {Object}  the object to test
+ * @return   {Boolean} whether the argument is a HTMLElement
+ * @desc
+ *    Uses `instanceof HTMLElement` where possible, falling back to `Element`.
+ *    On older versions of IE, resorts to checking well-known property names
+ *    (which may give false positives).
+ */
+var elementType = typeof(HTMLElement) == 'undefined' ? (typeof(Element) == 'undefined' ? null : Element) : HTMLElement;
+if (elementType) {
+  exports.isHtmlElement = function(obj) {
+    return obj instanceof elementType;
+  }
+} else {
+  // Used in IE<8
+  exports.isHtmlElement = function(obj) {
+    return obj && obj.nodeType;
+  }
+}

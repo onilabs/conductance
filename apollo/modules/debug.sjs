@@ -252,12 +252,13 @@ function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
       output.push('');
     }
   }
-  keys.forEach(function(key) {
+  for (var i=0; i<keys.length; i++) {
+    var key = keys[i];
     if (!key.match(/^\d+$/)) {
       output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
           key, true));
     }
-  });
+  };
   return output;
 }
 
@@ -292,14 +293,13 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
         str = formatValue(ctx, desc.value, recurseTimes - 1);
       }
       if (str.indexOf('\n') > -1) {
+        str = str.split('\n')..map(function(line) {
+          return '  ' + line;
+        })..join('\n');
         if (array) {
-          str = str.split('\n')..map(function(line) {
-            return '  ' + line;
-          })..join('\n').substr(2);
+          str = str.substr(2);
         } else {
-          str = '\n' + str.split('\n')..map(function(line) {
-            return '   ' + line;
-          })..join('\n');
+          str = '\n' + str;
         }
       }
     } else {

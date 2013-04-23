@@ -44,8 +44,9 @@ var logging = require('../logging');
 var debug = require('../debug');
 var object = require('../object');
 var func = require('../function');
+var dom;
 
-var UsageError = exports.UsageError = function UsageError(m) {
+var UsageError = exports.UsageError = function(m) {
   this.message = m;
 }
 UsageError.prototype = new Error();
@@ -104,8 +105,8 @@ ReporterMixins = {
             var context = results.contextStart.wait();
             this.fmt.contextStart(context);
           } or {
-            results.contextEnd.wait();
-            this.fmt.contextEnd();
+            var ctx = results.contextEnd.wait();
+            this.fmt.contextEnd(ctx);
           }
         }
       } or {
@@ -141,12 +142,14 @@ Formatter.prototype.contextStart = function(context) {
   if (this.indentLevels == 0) {
     this.print();
   }
-  this.print(this.color({attribute: 'bright'}, "#{this.prefix}- #{context.description}:"));
+  var skipping = context.shouldSkip();
+  this.print(this.color({attribute: 'bright'}, "#{this.prefix}- #{context.description}: "), !skipping);
+  if (skipping) this.printSkip(context.skipReason);
   this.indentLevels++;
   this.prefix = repeatStr(this.indent, this.indentLevels);
 }
 
-Formatter.prototype.contextEnd = function() {
+Formatter.prototype.contextEnd = function(context) {
   this.indentLevels--;
   this.prefix = repeatStr(this.indent, this.indentLevels);
 }
@@ -155,11 +158,15 @@ Formatter.prototype.beginTest = function(result) {
     this.print(this.prefix + result.test.description + ' ... ', false);
 }
 
+Formatter.prototype.printSkip = function(reason) {
+  var msg = "SKIP";
+  if (reason) msg = "#{msg} (#{reason})"
+  this.print(this.color('blue', msg));
+}
+
 Formatter.prototype.endTest = function(result, capturedLogs) {
   if (result.skipped) {
-    var msg = "SKIP";
-    if (result.reason) msg = "#{msg} (#{result.reason})"
-    this.print(this.color('blue', msg));
+    this.printSkip(result.reason);
   } else if (result.ok) {
     this.print(this.color('green', "OK"));
   } else {
@@ -186,12 +193,6 @@ var HtmlOutput = exports.HtmlOutput = function() {
 HtmlOutput.instance = null;
 HtmlOutput.elementId = 'console-output';
 
-var addCss = function(css) {
-  var elem = document.createElement("style");
-  elem.appendChild(document.createTextNode(css));
-  document.head.appendChild(elem);
-}
-
 HtmlOutput.prototype.prepareStyles = function() {
   var css = "
   body {
@@ -213,7 +214,7 @@ HtmlOutput.prototype.prepareStyles = function() {
   .yellow { color: #ed6; }
   .dim { color: #888; }
   ";
-  addCss(css);
+  dom.addCSS(css);
 };
 
 HtmlOutput.prototype._log = function(level, args) {
@@ -225,21 +226,21 @@ HtmlOutput.prototype._log = function(level, args) {
   this.print(elem);
 }
 
-var getScrollBottom = -> window.scrollY + window.innerHeight;
-var getDocumentHeight = -> document.documentElement.offsetHeight;
+var getScrollBottom = -> (window.pageYOffset || document.documentElement.scrollTop) + window.innerHeight;
+var getDocumentHeight = -> Math.max(document.documentElement.offsetHeight, document.body.offsetHeight);
 
 HtmlOutput.prototype.print = function(msg, endl) {
   var scrollBottom = getScrollBottom();
   var followOutput = getDocumentHeight() <= scrollBottom;
   if (msg === undefined) msg = '';
-  if (!(msg instanceof HTMLElement)) {
+  if (!dom.isHtmlElement(msg)) {
     msg = document.createTextNode(msg);
   }
   this.output.appendChild(msg);
   if (endl !== false) this.output.appendChild(document.createElement('br'));
   if (followOutput) {
     var documentHeight = getDocumentHeight();
-    if (documentHeight > scrollBottom) window.scrollTo(window.scrollX, documentHeight);
+    if (documentHeight > scrollBottom) window.scrollTo(window.pageXOffset, documentHeight);
   }
 }
 
@@ -274,6 +275,7 @@ HtmlReporter.prototype.color = function(col, text, endl) {
   }
     
   e.setAttribute('class', col);
+  if ('className' in e) e.className = col; // IE<8
   e.appendChild(document.createTextNode(text));
   return e;
 }
@@ -357,6 +359,7 @@ var INITIALIZED = false;
  */
 switch(sys.hostenv) {
   case "xbrowser":
+    dom = require('../xbrowser/dom');
     exports.DefaultReporter = HtmlReporter;
 
     exports.die = function(e) {
@@ -367,7 +370,7 @@ switch(sys.hostenv) {
     exports.init = function() {
       if (INITIALIZED) return;
       INITIALIZED = true;
-      window.addEventListener("hashchange", -> window.location.reload(), false);
+      window .. dom.addListener("hashchange", -> window.location.reload(), false);
       var cls = exports.HtmlOutput;
       if (!document.getElementById(cls.elementId)) {
         var instance = cls.instance = new cls();

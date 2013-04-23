@@ -43,7 +43,7 @@ var sys=require('builtin:apollo-sys');
 var object=require('../object');
 var isBrowser = exports.isBrowser = sys.hostenv == "xbrowser";
 var logging = require("sjs:logging");
-var { each } = require('../sequence');
+var { each, filter } = require('../sequence');
 
 var getRunner = function() {
   if (_runner == null) throw new Error("no active runner");
@@ -67,16 +67,14 @@ exports._withRunner = function(runner, fn) {
 
 var context = exports.context = function(desc, fn) {
   var ctx = new Context(desc, fn);
-  getRunner().withContext(ctx) {||
-    ctx.collect();
-  }
+  currentContext().addChild(ctx);
   return ctx;
 }
 
 var test = exports.test = function(desc, fn) {
   var ctx = currentContext();
   var test = new Test(desc, fn, ctx);
-  ctx.children.push(test);
+  ctx.addTest(test);
   return test;
 }
 // extend `test` with context-related methods
@@ -99,14 +97,14 @@ SkipMixins.skip = function(reason) {
   this._skip = true;
   this.skipReason = reason || null;
 }
-SkipMixins.skipIf = function(cond_fn, reason) {
-  if (cond_fn()) this.skip(reason);
+SkipMixins.skipIf = function(cond, reason) {
+  if (cond) this.skip(reason);
 }
 SkipMixins.browserOnly = function(reason) {
-  this.skipIf(-> !isBrowser, reason);
+  this.skipIf(!isBrowser, reason);
 }
 SkipMixins.serverOnly = function(reason) {
-  this.skipIf(-> isBrowser, reason);
+  this.skipIf(isBrowser, reason);
 }
 
 var addSkipFunctions = function(cls) {
@@ -146,9 +144,24 @@ Context.prototype.withHooks = function(fn) {
   runAllHooks('afterAll', this.hooks.after.all, this.state, first_error);
 }
 
-Context.prototype.collect = function() {
-  this.body.call(this.state, this.state);
+Context.prototype.addTest = function(child) {
+  this.children.push(child);
 }
+
+Context.prototype.addChild = function(child) {
+  child.parent = this;
+  this.children.push(child);
+}
+
+Context.prototype.collect = function() {
+  if (this._collected) {
+    logging.verbose("Ignoring double-collection: #{this.fullDescription()}");
+    return;
+  }
+  this.body.call(this.state, this.state);
+  this._collected = true;
+}
+
 Context.prototype.fullDescription = function() {
   if (this.parent == null) return this.description;
   return this.parent.fullDescription() + ":" + this.description;
@@ -161,7 +174,7 @@ Context.prototype.module = function() {
 }
 
 Context.prototype.toString = function() {
-  return "<#Context: #{this.description} (#{this._module}>";
+  return "<#Context: #{this.description} (#{this._module})>";
 }
 
 Context.prototype.shouldSkip = function() {
@@ -192,7 +205,7 @@ var runAllHooks = function(hook_type, hooks, state, first_error) {
       if(first_error != null) {
         first_error = e;
       } else {
-        logging.ERROR("Additional error in #{hook_type} hook:\n#{e}");
+        logging.error("Additional error in #{hook_type} hook:\n#{e}");
       }
     }
   }
@@ -235,3 +248,9 @@ Test.prototype.shouldSkip = function() {
 }
 
 exports.assert = require('../assert');
+
+var isIE = exports.isIE = function() { return isBrowser && __oni_rt.UA == 'msie'; }
+var ieVersion = exports.ieVersion = function() {
+  if (!exports.isIE()) return null;
+  return parseInt(navigator.appVersion.match(/MSIE ([0-9]+)/)[1]);
+}
