@@ -8,23 +8,25 @@ var SJSCache = require('sjs:lru-cache').makeCache(10*1000*1000); // 10MB
 //----------------------------------------------------------------------
 // filters XXX these should maybe go in their own module
 
+//----------------------------------------------------------------------
 // helper filter to wrap a file in a jsonp response:
-function json2jsonp(src, dest, req) {
-  var callback = req.url.queryKey['callback'];
+function json2jsonp(src, dest, aux) {
+  var callback = aux.request.url.queryKey['callback'];
   if (!callback) callback = "callback";
   dest.write(callback + "(");
   pump(src, dest);
   dest.write(")");
 }
 
+//----------------------------------------------------------------------
 // filter that compiles sjs into '__oni_compiled_sjs_1' format:
-function sjscompile(src, dest, req) {
+function sjscompile(src, dest, aux) {
   src = readAll(src);
   try {
     src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
   }
   catch (e) {
-    logger.error("sjscompiler: #{req.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
+    logger.error("sjscompiler: #{aux.request.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
     // communicate the compilation error to the caller in a little bit
     // of a round-about way: We create a compiled SJS file that throws
     // our compile error as an exception on execution
@@ -36,9 +38,10 @@ function sjscompile(src, dest, req) {
   dest.write("/*__oni_compiled_sjs_1*/"+src);
 }
 
+//----------------------------------------------------------------------
 // filter that generates the html boilerplate for *.app files:
-function gen_app_html(src, dest, req) {
-  var app_name = req.url.file || "index.app";
+function gen_app_html(src, dest, aux) {
+  var app_name = aux.request.url.file || "index.app";
   dest.write(
     "<!DOCTYPE html>
      <html>
@@ -56,8 +59,9 @@ function gen_app_html(src, dest, req) {
      </html>");
 }
 
+//----------------------------------------------------------------------
 // filter that generates html for a directory listing:
-function gen_dir_html(src, dest, req) {
+function gen_dir_html(src, dest, aux) {
   // src is json:
   var dir = JSON.parse(readAll(src));
   // XXX shoud this preserve !format fragment when linking to other directories?
@@ -86,6 +90,18 @@ function gen_dir_html(src, dest, req) {
     toArray;
 
   dest.write("#{header}<ul>#{folderList.join("\n")}#{fileList.join("\n")}</ul>");
+}
+
+//----------------------------------------------------------------------
+// filter that generates import sjs for an api:
+function apiimport(src, dest, aux) {
+  if (!aux.apiid) 
+    throw new Error("API access not enabled");
+  dest.write("\
+var bridge = require('mho:rpc/bridge');
+var api    = bridge.connect('#{aux.apiid}').api;
+exports.api = api;
+");
 }
 
 //----------------------------------------------------------------------
@@ -138,6 +154,11 @@ var BaseFileFormatMap = {
                         filter: sjscompile,
                         filterETag: -> conductanceVersion(),
                         cache: SJSCache
+                      },
+           src      : { mime: "text/plain" }
+         },
+  api  : { none     : { mime: "text/plain",
+                        filter: apiimport
                       },
            src      : { mime: "text/plain" }
          }

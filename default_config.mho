@@ -78,7 +78,9 @@ exports.hosts = [
     hostname: /^localhost$/, 
     ports: ['secure', 'insecure'],
     routes: [
-      // StandardSystemRoutes maps apollo/ to __apollo, modules to __mho
+      // StandardSystemRoutes maps apollo/ to __apollo & modules to __mho,
+      // installs a bridge-over-aat handler at __aat_bridge, and a 
+      // keyhole server at __keyhole
       StandardSystemRoutes(),
       MappedDirectoryRoute(/^(\/.*)$/, conductanceRoot()),
     ]

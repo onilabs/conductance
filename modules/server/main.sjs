@@ -8,16 +8,6 @@ var { stat } = require('sjs:nodejs/fs');
 require.hubs.push(['mho:', canonicalizeURL('../', module.id)]);
 require.hubs.push(['\u2127:', 'mho:']); // mho sign '℧'
 
-var env = require('./env');
-env.init({
-  conductanceRoot    : canonicalizeURL('../../', module.id).substr(7),
-  conductanceVersion : "1-#{
-                             (new Date(
-                                stat(canonicalizeURL('../../apollo/oni-apollo-node.js', 
-                                     module.id).substr(7)).mtime)).getTime()
-                           }",
-});
-
 //----------------------------------------------------------------------
 // helpers
 
@@ -48,12 +38,14 @@ Default configfile: #{configfile}
 ");
 }
 
+var conductanceRoot = canonicalizeURL('../../', module.id).substr(7);
+
 //----------------------------------------------------------------------
 // parse parameters
 
 console.log(banner);
 
-var configfile = "#{env.conductanceRoot()}default_config.mho";
+var configfile = "#{conductanceRoot}default_config.mho";
 
 for (var i=1; i<process.argv.length; ++i) {
   var flag = process.argv[i]; 
@@ -66,6 +58,21 @@ for (var i=1; i<process.argv.length; ++i) {
     configfile = flag;
   }
 }
+
+//----------------------------------------------------------------------
+// init environment
+
+var env = require('./env');
+env.init({
+  conductanceRoot    : conductanceRoot,
+  configRoot         : canonicalizeURL('./', configfile),
+  conductanceVersion : "1-#{
+                             (new Date(
+                                stat(canonicalizeURL('../../apollo/oni-apollo-node.js', 
+                                     module.id).substr(7)).mtime)).getTime()
+                           }",
+});
+
 
 //----------------------------------------------------------------------
 // load config file

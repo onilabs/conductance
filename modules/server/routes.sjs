@@ -29,7 +29,20 @@ exports.MappedDirectoryRoute = MappedDirectoryRoute;
 function StandardSystemRoutes() {
   return [
     MappedDirectoryRoute(/^\/__sjs(\/.*)$/, "#{conductanceRoot()}apollo/"),
-    MappedDirectoryRoute(/^\/__mho(\/.*)$/, "#{conductanceRoot()}modules/")
+    MappedDirectoryRoute(/^\/__mho(\/.*)$/, "#{conductanceRoot()}modules/"),
+    {
+      path: /__aat_bridge\/(2)$/,
+      handler: require('mho:rpc/aat-server').createTransportHandler(
+        function(transport) {
+          require('mho:rpc/bridge').accept(
+            require('./api-registry').getAPIbyAPIID,
+            transport);
+        })
+    },
+    {
+      path: /__keyhole\/([^\/]+)\/(.*)$/,
+      handler: require('./keyhole').createKeyholeHandler()
+    }
   ];
 }
 exports.StandardSystemRoutes = StandardSystemRoutes;

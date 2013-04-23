@@ -19,9 +19,10 @@ var { setStatus, writeRedirectResponse, writeErrorResponse } = require('./respon
 //  - input (a stream of data)
 //  - format
 // Optionally:
-//  - etag: etag of the input stream
+//  - etag:  etag of the input stream
+//  - apiid: (for api files; only if settings.allowApis == true)
 function formatResponse(req, item, settings) {
-  var { input, extension, format, etag } = item;
+  var { input, extension, format, apiid } = item;
 
   var filedesc = settings.formats[extension] || settings.formats["*"];
   if (!filedesc) {
@@ -40,7 +41,8 @@ function formatResponse(req, item, settings) {
   }
 
   // try to construct an etag, based on the file's & (potential) filter's etag:
-  if (etag) {
+  var etag;
+  if (item.etag) {
     if (formatdesc.filter && formatdesc.filterETag)
       etag = "\"#{formatdesc.filterETag()}-#{item.etag}\"";
     else if (!formatdesc.filter)
@@ -87,7 +89,7 @@ function formatResponse(req, item, settings) {
         var cache_entry = formatdesc.cache.get(req.request.url);
         if (!cache_entry || cache_entry.etag != etag) {
           var data_stream = new (stream.WritableStringStream);
-          formatdesc.filter(input(), data_stream, req);
+          formatdesc.filter(input(), data_stream, { request: req, apiid: apiid });
           cache_entry = { etag: etag, data: data_stream.data };
           info("populating cache #{req.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(req.request.url, cache_entry, cache_entry.data.length);
@@ -97,7 +99,7 @@ function formatResponse(req, item, settings) {
         stream.pump(new (stream.ReadableStringStream)(cache_entry.data), req.response);
       }
       else // no cache or no etag -> filter straight to response
-        formatdesc.filter(input(), req.response, req);
+        formatdesc.filter(input(), req.response, { request: req, apiid: apiid });
     }
   } 
   else {
@@ -191,18 +193,27 @@ function serveFile(req, filePath, format, settings) {
   }
   if (!stat.isFile()) return false;
   
+  var apiid;
+  var extension = path.extname(filePath).slice(1);
+  if (settings.allowApis && extension == 'api') {
+    apiid = require('./api-registry').registerAPI(filePath);
+    console.log("registered API #{filePath} -> #{apiid}");
+  }
+
   return formatResponse(
     req,
     { input: opts ->
               // XXX hmm, might need to destroy this somewhere
               nodefs.createReadStream(filePath, opts),
       length: stat.size,
+      apiid: apiid,
       extension: path.extname(filePath).slice(1),
       format: format,
       etag: stat.mtime.getTime()
     },
     settings);
 }
+exports.serveFile = serveFile;
 
 function generateFile(req, filePath, format, settings) {
   try {
@@ -251,6 +262,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
   settings = { mapIndexToDir:   true,
                allowDirListing: true,
                allowGenerators: true,
+               allowApis:       true,
                formats: BaseFileFormatMap, 
              } .. 
     override(settings || {});
