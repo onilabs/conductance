@@ -1,9 +1,10 @@
 var { canonicalizeURL } = require('sjs:http');
 var { withServer } = require('sjs:nodejs/http');
-var { each, map, filter, parallelize, find, toArray } = require('sjs:sequence');
+var { each, map, filter, parallelize, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
-var { override } = require('sjs:object');
+var { override, propertyPairs, keys } = require('sjs:object');
 var { stat } = require('sjs:nodejs/fs');
+var { writeErrorResponse } = require('./response');
 
 require.hubs.push(['mho:', canonicalizeURL('../', module.id)]);
 require.hubs.push(['\u2127:', 'mho:']); // mho sign '℧'
@@ -114,7 +115,7 @@ function runPort(port_desc) {
       // find host to dispatch to:
       var host = hosts .. find({hostname} -> hostname.test(req.url.host));
       if (!host) {
-        req.response.writeHead(400, 'Unknown host');
+        req .. writeErrorResponse(400, 'Unknown host');
         continue;
       }
 
@@ -122,13 +123,31 @@ function runPort(port_desc) {
       var matches;
       var route = host.routes .. flatten .. find({path} -> !!(matches = req.url.path.match(path)));
       if (!route) {
-        req.response.writeHead(400, 'Path not found');
+        req .. writeErrorResponse(400, 'Path not found');
         continue;
       }
       
-      // we've got the route; execute handler:
+      // we've got the route
+
+      // check if there's a handler function for the given method:
+      handler_func = route.handler[req.request.method];
+      if (!handler_func) {
+        req.response.setHeader('Allow', keys(route.handler) .. join(', '));
+        req .. writeErrorResponse(405, 'Method not allowed');
+        continue;
+      }
+
+      // set headers; 
+      if (route.headers) {
+        route.headers .. propertyPairs .. each { 
+          |nv|
+          req.response.setHeader(nv[0], nv[1]);
+        }
+      }
+
+      // execute handler function:
       try {
-        route.handler(matches, req);
+        handler_func(matches, req);
       }
       catch(e) {
         console.log("Error handling request: #{e}");

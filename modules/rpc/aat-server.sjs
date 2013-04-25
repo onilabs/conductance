@@ -217,8 +217,8 @@ function createTransport() {
 function createTransportHandler(transportSink) {
   if (!transportSink) transportSink = defaultTransportSink;
 
-  return function(matches, req) {
-//      console.log("AAT request #{require('sjs:debug').inspect(req)}");
+  function handler_func(matches, req) {
+    //      console.log("AAT request #{require('sjs:debug').inspect(req)}");
 
     var out_messages = [];
     
@@ -293,6 +293,11 @@ function createTransportHandler(transportSink) {
       out_messages.push("error_unknown_message");
     
     req.response.end(JSON.stringify(out_messages));
+  }
+
+  return {
+    "GET": handler_func,
+    "POST": handler_func
   }
 }
 exports.createTransportHandler = createTransportHandler;

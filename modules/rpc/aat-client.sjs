@@ -85,7 +85,7 @@ var SERVER_PATH   = '__aat_bridge';
    @return {::Transport}
 */
 function openTransport(server) {
-  server = server || "/";
+  server = server || http.canonicalizeURL('/', module.id);
   
   var transport_id_suffix = '';
 
@@ -104,6 +104,7 @@ function openTransport(server) {
            }
           ],
           { method: 'POST',
+            headers: {'Content-Type': 'text/plain; charset=utf-8'}
           });
         messages = JSON.parse(messages);
         
@@ -145,6 +146,7 @@ function openTransport(server) {
            }
           ],
           { method: 'POST', 
+            headers: {'Content-Type': 'text/plain; charset=utf-8'},
             body: JSON.stringify([message])
           });
         
@@ -198,6 +200,7 @@ function openTransport(server) {
           ],
           {
             method: 'POST',
+            headers: {'Content-Type': 'text/plain; charset=utf-8'},
             body: data
           });
         

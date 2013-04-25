@@ -51,7 +51,9 @@ exports.hosts = [
      */
     routes: [
       { path: /^\/foo$/,
-        handler: function(matches, req) { req.response.end("Testing, 1, 2"); }
+        handler: {
+          "GET": function(matches, req) { req.response.end("Testing, 1, 2"); }
+        }
       },
       // module 'mho:server/routes' defines some convenient functions for mapping
       // directories on the local file system, redirects, etc:

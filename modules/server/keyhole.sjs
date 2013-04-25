@@ -24,8 +24,8 @@ exports.createKeyhole = createKeyhole;
 //----------------------------------------------------------------------
 
 function createKeyholeHandler() {
-  return function(matches, req) {
-
+  function handler_func(matches, req) {
+    
     // find the keyhole descriptor:
     var descriptor;
     var keyhole_id, keyhole_path;
@@ -45,9 +45,17 @@ function createKeyholeHandler() {
       // XXX this format stuff is a bit of a song and dance
       var formats = { '*': { custom : { mime: descriptor.mime } } };
       if (!serveFile(req, descriptor.file, {name:'custom'}, {formats:formats})) {
-        throw "Cannot serve file";
+        if (!req.response._header) {
+          writeErrorResponse(req, 404, "Not Found");
+        }
+        throw new Error("Cannot serve file");
       }
     }
+  }
+
+  return {
+    "GET":  handler_func,
+    "HEAD": handler_func
   }
 }
 

@@ -257,6 +257,7 @@ function generateFile(req, filePath, format, settings) {
 //   e.g.:  pattern: /^/virtual_root(\/.*)?$/
 // - 'root' is the absolute on-disk path prefix.
 // - XXX settings
+// - Can handle 'GET' or 'HEAD' requests
 exports.MappedDirectoryHandler = function(root, settings) {
 
   settings = { mapIndexToDir:   true,
@@ -267,7 +268,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
              } .. 
     override(settings || {});
 
-  function handler(matches, req) {
+  function handler_func(matches, req) {
     var [relativePath, format]  = (matches[1] || '/').split('!');
     if (format !== undefined) 
       format = { name: format, mandatory: true };
@@ -310,9 +311,11 @@ exports.MappedDirectoryHandler = function(root, settings) {
         req .. writeErrorResponse(404, 'Not Found', "File '#{relativePath}' not found");
       }
     }
-
   }
 
-  return handler;
+  return { 
+    "GET":  handler_func, 
+    "HEAD": handler_func
+  };
 }
 

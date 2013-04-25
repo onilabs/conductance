@@ -1,5 +1,48 @@
 var { conductanceRoot } = require('./env');
-var { writeRedirectResponse } = require('./response');
+var { setStatus, writeRedirectResponse } = require('./response');
+var { flatten } = require('sjs:array');
+var { each, join } = require('sjs:sequence');
+var { keys } = require('sjs:object');
+
+//----------------------------------------------------------------------
+
+function AddHeader(route, name, value) {
+  flatten([route]) .. each {
+    |r|
+    if (!r.headers) 
+      r.headers = {};
+    r.headers[name] = value;
+  }
+  return route;
+}
+exports.AddHeader = AddHeader;
+
+//----------------------------------------------------------------------
+
+function AllowCORS(route) {
+  AddHeader(route, "Access-Control-Allow-Origin", "*");
+
+  flatten([route]) .. each {
+    |r|
+    // install a handler for preflight OPTIONS request:
+    // xxx we should check if there is already an OPTIONS handler func defined
+    // in r
+    r.handler['OPTIONS'] = function(matches, req) {
+      // preflight requests should be preventable by giving POST
+      // requests a text/plain mime type
+      console.log('Performance warning: preflight OPTIONS request.');
+      req .. setStatus(200, 
+                       {
+                         "Access-Control-Allow-Origin": "*",
+                         "Access-Control-Allow-Methods": keys(r.handler) .. join(', '),
+                         "Access-Control-Allow-Headers": "origin, content-type"
+                       });
+      req.response.end();
+    }
+  }
+  return route;
+}
+exports.AllowCORS = AllowCORS;
 
 //----------------------------------------------------------------------
 
@@ -7,8 +50,10 @@ function SimpleRedirectRoute(path, new_base, status) {
   status = status || 302;
   return {
     path: path,
-    handler: function(matches, req) {
-      req .. writeRedirectResponse("#{new_base}#{matches[0]}", status);
+    handler: {
+      '*': function(matches, req) {
+        req .. writeRedirectResponse("#{new_base}#{matches[0]}", status);
+      }
     }
   }
 }
