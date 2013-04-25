@@ -262,7 +262,7 @@ Runner.prototype.run = function(reporter) {
       logging.verbose("Skipping context: #{ctx}");
       return;
     }
-    results.contextStart.emit(ctx);
+    if (!ctx.hide) results.contextStart.emit(ctx);
 
     if (!ctx.shouldSkip()) {
       ctx.withHooks() {||
@@ -279,7 +279,7 @@ Runner.prototype.run = function(reporter) {
         }
       }
     }
-    results.contextEnd.emit(ctx);
+    if (!ctx.hide) results.contextEnd.emit(ctx);
   }
   
   // ----------------------------
@@ -319,15 +319,15 @@ TestResult.prototype._complete = function(state) {
 }
 
 TestResult.prototype.pass = function() {
-  this._complete({ok: true, skipped: false});
+  this._complete({ok: true, passed: true, skipped: false});
 }
 
 TestResult.prototype.fail = function(e) {
-  this._complete({ok: false, skipped: false, error: e});
+  this._complete({ok: false, passed: false, skipped: false, error: e});
 }
 
 TestResult.prototype.skip = function(reason) {
-  this._complete({ok: true, skipped: true, reason: reason});
+  this._complete({ok: true, passed: false, skipped: true, reason: reason});
 }
 
 var Results = exports.Results = function(total) {
@@ -391,6 +391,9 @@ CompiledOptions.prototype = {
   logCapture: true,
   allowedGlobals: [],
   checkLeaks: true,
+  showAll: true,
+  skippedOnly: false,
+  baseModule: null,
 }
 
 exports.getRunOpts = function(opts, args) {
@@ -408,6 +411,10 @@ exports.getRunOpts = function(opts, args) {
     opts.defaults .. object.ownPropertyPairs .. each {|prop|
       setOpt.apply(null, prop);
     }
+  }
+
+  if (opts.base) {
+    result.baseModule = opts.base;
   }
   
   if (args == undefined) {
@@ -442,9 +449,21 @@ exports.getRunOpts = function(opts, args) {
         type: 'string',
         help: "set the log level (#{logging.levelNames .. object.ownValues .. sort .. join("|")})"
       },
+      { name: 'skipped',
+        type: 'bool',
+        help: 'Just report skipped tests (don\'t run anything)'
+      },
       { name: 'ignore-leaks',
         type: 'bool',
         help: 'skip checking for leaked global variables'
+      },
+      { names: ['show-failed','f'],
+        type: 'bool',
+        help: 'print only failed (or skipped) tests'
+      },
+      { names: ['show-all','a'],
+        type: 'bool',
+        help: 'print all tests'
       },
       { names: ['debug'],
         type: 'bool',
@@ -504,6 +523,22 @@ Options:
             val = false;
             break;
 
+          case 'skipped':
+            key = 'skippedOnly';
+            break;
+
+          case 'f':
+          case 'show_failed':
+            key = 'showAll';
+            val = false;
+            break;
+
+          case 'a':
+          case 'show_all':
+            key = 'showAll';
+            val = true;
+            break;
+          
           case 'color':
             if (['on','off', 'auto'].indexOf(val) == -1) {
               throw new Error("unknown color mode: #{val}");
@@ -537,7 +572,7 @@ Options:
       throw new UsageError(e.message);
     }
   }
-  result.testFilter = buildTestFilter(result.testSpecs || [], opts.base);
+  result.testFilter = buildTestFilter(result.testSpecs || [], opts.base, result.skippedOnly);
   return result;
 };
 
@@ -598,9 +633,10 @@ SuiteFilter.prototype._shouldLoadModule = function(module_path) {
   return this.absolutePaths .. any(p -> absolutePath .. startsWith(p + '/'));
 }
 
-var buildTestFilter = exports._buildTestFilter = function(specs, base) {
+var buildTestFilter = exports._buildTestFilter = function(specs, base, skippedOnly) {
   var always = () -> true;
   var emptyList = () -> [];
+  var defaultAction = (mod, test) -> skippedOnly ? test.shouldSkip() : true;
 
   if (specs.length > 0 && !base) throw new Error("opts.base not defined");
   var filters = specs .. map(s -> new SuiteFilter(s, base)) .. toArray;
@@ -608,7 +644,7 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base) {
   if (specs.length == 0) {
     return {
       shouldLoadModule: always,
-      shouldRun: always,
+      shouldRun: defaultAction,
       unusedFilters: emptyList,
     }
   }
@@ -631,7 +667,7 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base) {
         result = true;
       }
     }
-    return result;
+    return result && defaultAction(mod, test);
   }
 
   return {
