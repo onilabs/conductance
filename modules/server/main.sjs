@@ -132,6 +132,10 @@ function runPort(port_desc) {
       // check if there's a handler function for the given method:
       handler_func = route.handler[req.request.method];
       if (!handler_func) {
+        // try the generic "*" handler
+        handler_func = route.handler['*'];
+      }
+      if (!handler_func) {
         req.response.setHeader('Allow', keys(route.handler) .. join(', '));
         req .. writeErrorResponse(405, 'Method not allowed');
         continue;
