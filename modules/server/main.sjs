@@ -63,6 +63,8 @@ for (var i=1; i<process.argv.length; ++i) {
 //----------------------------------------------------------------------
 // init environment
 
+configfile = canonicalizeURL(configfile, process.cwd() + '/');
+
 var env = require('./env');
 env.init({
   conductanceRoot    : conductanceRoot,
