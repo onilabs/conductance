@@ -45,11 +45,13 @@ waitfor {
   var reporterModule = require('./reporter');
   var {UsageError} = reporterModule;
 } and {
-  var { Event } = require("../cutil.sjs");
+  var { Condition, Event } = require("../cutil.sjs");
 } and {
-  var { isArrayLike } = require('../array');
+  var array = require('../array');
+  var { isArrayLike } = array;
 } and {
-  var { each, reduce, toArray, any, filter, map, join, sort, concat } = require('../sequence');
+  var seq = require('../sequence');
+  var { each, reduce, toArray, any, filter, map, join, sort, concat } = seq;
 } and {
   var { rstrip, startsWith, strip } = require('../string');
 } and {
@@ -163,9 +165,7 @@ Runner.prototype.loadModule = function(module_name, base) {
 Runner.prototype.run = function(reporter) {
   var opts = this.opts;
   // use `reporter.run` if no reporter func given explicitly
-  if (!reporter && this.reporter.run) {
-    reporter = this.reporter.run.bind(this.reporter);
-  }
+  if (reporter == undefined) reporter = this.reporter;
 
   // count the number of tests, while marking them (and their parent contexts)
   // as _enabled while disabling all other contexts
@@ -210,7 +210,20 @@ Runner.prototype.run = function(reporter) {
     this.root_contexts .. each(ctx -> preprocess_context(ctx.module(), ctx));
   }
 
-  var results = new Results(total_tests);
+  // ----------------------------
+  // Call a given `reporter` method, if it exists
+  var report = function(key /*, ... */) {
+    var reporterFn = reporter[key];
+    if (reporterFn) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      reporterFn.apply(reporter, args);
+    }
+  }
+
+  // ----------------------------
+  // Create the results object
+  var results = new Results(report, total_tests);
+  var startTime = new Date();
 
   // ----------------------------
   // Checking for unexpected global variables
@@ -218,40 +231,68 @@ Runner.prototype.run = function(reporter) {
   var getGlobals = function(existing) {
     // if `existing` is defined, get only the globals that are not in `existing`.
     // Otherwise return the names of all globals
-    var keys = object.ownKeys(global);
+    var keys = object.ownKeys(global) .. toArray();
     if (existing) {
-      keys = keys .. filter(k -> existing.indexOf(k) == -1);
+      keys = keys .. array.difference(existing);
     } else {
       if (opts.allowedGlobals) {
-        keys = keys .. concat(opts.allowedGlobals)
+        keys = keys.concat(opts.allowedGlobals)
       }
     }
-    return keys .. toArray;
+    return keys;
+  }
+  var deleteGlobals = function(globals) {
+    globals .. each {|g|
+      try {
+        delete global[g];
+      } catch(e) {
+        global[g] = undefined; //IE
+      }
+    }
+  }
+  var checkGlobals = function(test, extraGlobals) {
+    var ignoreGlobals = test._getIgnoreGlobals();
+    if (ignoreGlobals === true) return true; // ignore all globals
+
+    extraGlobals = extraGlobals .. array.difference(ignoreGlobals);
+    if (extraGlobals.length > 0) {
+      throw new Error("Test introduced additional global variable(s): #{extraGlobals..sort..join(", ")}");
+    }
   }
   if (!opts.checkLeaks) { getGlobals = -> [] }
-
+  var defaultTimeout = opts.timeout;
 
   // ----------------------------
   // run a single test
   var runTest = function(test) {
     var initGlobals = getGlobals();
+    var extraGlobals = null;
     var result = new TestResult(test);
-    results.testStart.emit(result);
+    report('testBegin', result);
     try {
       if (test.shouldSkip()) {
         results._skip(result, test.skipReason);
       } else {
-        test.run();
-        var extraGlobals = getGlobals(initGlobals);
-        if (extraGlobals.length > 0) {
-          throw new Error("Test introduced additional global variable(s): #{extraGlobals..sort..join(", ")}");
+        var testTimeout = test._getTimeout();
+        if (testTimeout == null) testTimeout = defaultTimeout;
+        waitfor {
+          test.run();
+        } or {
+          hold(testTimeout * 1000);
+          throw new Error("Test exceeded #{testTimeout}s timeout");
         }
+
+        extraGlobals = getGlobals(initGlobals);
+        checkGlobals(test, extraGlobals);
         results._pass(result);
       }
     } catch (e) {
       results._fail(result, e);
+    } finally {
+      if (extraGlobals == null) extraGlobals = getGlobals(initGlobals);
+      deleteGlobals(extraGlobals);
     }
-    results.testFinished.emit(result);
+    report('testEnd', result);
     if (suite.isBrowser) hold(0); // don't lock up the browser's UI thread
   };
 
@@ -262,7 +303,7 @@ Runner.prototype.run = function(reporter) {
       logging.verbose("Skipping context: #{ctx}");
       return;
     }
-    if (!ctx.hide) results.contextStart.emit(ctx);
+    if (!ctx.hide) report('contextBegin', ctx);
 
     if (!ctx.shouldSkip()) {
       ctx.withHooks() {||
@@ -279,28 +320,27 @@ Runner.prototype.run = function(reporter) {
         }
       }
     }
-    if (!ctx.hide) results.contextEnd.emit(ctx);
+    if (!ctx.hide) report('contextEnd', ctx);
   }
   
   // ----------------------------
   // run the tests
+  report('suiteBegin', results);
   with(logging.logContext({level: this.opts.logLevel})) {
-    try {
-      var unusedFilters = this.opts.testFilter.unusedFilters();
-      if (unusedFilters.length > 0) {
-        throw new UsageError("Some filters didn't match anything: #{unusedFilters .. join(", ")}");
-      }
+    var unusedFilters = this.opts.testFilter.unusedFilters();
+    if (unusedFilters.length > 0) {
+      throw new UsageError("Some filters didn't match anything: #{unusedFilters .. join(", ")}");
+    }
 
-      waitfor {
-        if (reporter) reporter(results);
-      } and {
-        this.root_contexts .. each(traverse);
-        results.end.emit();
-      }
+    try {
+      this.root_contexts .. each(traverse);
     } catch (e) {
       results._error(e);
     }
   }
+  results.duration = new Date().getTime() - startTime.getTime();
+  results.end.set();
+  report('suiteEnd', results);
   return results;
 }
 
@@ -330,26 +370,34 @@ TestResult.prototype.skip = function(reason) {
   this._complete({ok: true, passed: false, skipped: true, reason: reason});
 }
 
-var Results = exports.Results = function(total) {
+var Results = exports.Results = function(report, total) {
   this.succeeded = 0;
   this.failed = 0;
   this.skipped = 0;
   this.total = total;
+  this.duration = 0;
 
-  this.testResults = [];
-  this.end = Event();
-  this.contextStart = Event();
-  this.contextEnd = Event();
-  this.testStart = Event();
-  this.testFinished = Event();
-  this.testSucceeded = Event();
-  this.testFailed = Event();
-  this.testSkipped = Event();
+  this.end = Condition();
+  this._currentError = null;
+  this._report = report;
+  Results.INSTANCES.push(this);
+}
+
+Results.INSTANCES = [];
+
+Results.prototype.durationSeconds = function(precision) {
+  if (precision === undefined) precision = 2;
+  return (this.duration / 1000).toFixed(precision);
 }
 
 Results.prototype._error = function(err) {
   logging.error(err);
-  this.ok = () -> false;
+  this.ok = -> false;
+}
+
+Results.prototype._uncaughtError = function(err) {
+  this._currentError = err; // attach this error to the current / next test, if any
+  this.ok = -> false;
 }
 
 Results.prototype.ok = function() {
@@ -359,25 +407,27 @@ Results.prototype.ok = function() {
 Results.prototype._fail = function(result, err) {
   result.fail(err);
   this.failed += 1;
-  this.testResults.push(result);
-  this.testFailed.emit(result);
+  this._report('testFailed', result);
 }
 
 Results.prototype._pass = function(result) {
+  if (this._currentError != null) {
+    this._currentError = null;
+    return this._fail(result, this._currentError)
+  }
   result.pass(result);
   this.succeeded += 1;
-  this.testResults.push(result);
-  this.testSucceeded.emit(result);
+  this._report('testPassed', result);
 }
+
 Results.prototype._skip = function(result, reason) {
   result.skip(reason);
   this.skipped += 1;
-  this.testResults.push(result);
-  this.testSkipped.emit(result);
+  this._report('testSkipped', result);
 }
 
 Results.prototype.count = function() {
-  return this.testResults.length;
+  return this.succeeded + this.skipped + this.failed;
 }
 
 var CompiledOptions = function(opts) {
@@ -394,6 +444,7 @@ CompiledOptions.prototype = {
   showAll: true,
   skippedOnly: false,
   baseModule: null,
+  timeout: 10,
 }
 
 exports.getRunOpts = function(opts, args) {
@@ -452,6 +503,10 @@ exports.getRunOpts = function(opts, args) {
       { name: 'skipped',
         type: 'bool',
         help: 'Just report skipped tests (don\'t run anything)'
+      },
+      { name: 'timeout',
+        type: 'number',
+        help: 'Set the default test timeout (in seconds). Set to 0 to disable.'
       },
       { name: 'ignore-leaks',
         type: 'bool',
@@ -521,6 +576,10 @@ Options:
           case 'ignore_leaks':
             key = 'checkLeaks';
             val = false;
+            break;
+
+          case 'timeout':
+            if (val == 0) val = undefined;
             break;
 
           case 'skipped':
@@ -691,21 +750,46 @@ exports.run = Runner.run = function(opts, args) {
   } catch(e) {
     var msg = (e instanceof UsageError) ? e.message : String(e);
     console.error(msg);
-    reporterModule.die(e);
+    throw new Error();
   }
   logging.debug(`run_opts: ${run_opts}`);
   var reporter = opts.reporter || new reporterModule.DefaultReporter(run_opts);
   var runner = new Runner(run_opts, reporter);
+  if (opts.init) { opts.init(runner); }
   runner.loadAll(opts);
   return runner.run();
-}
+};
 
+(function() {
+  //module-time one-off setup tasks
+  if (suite.isBrowser) {
+    exports.exit = -> null;
+    // preload modules that may be needed at runtime
+    spawn(function() {
+      require('../shell-quote');
+      require('../dashdash');
+    }());
+  } else {
+    exports.exit = (code) -> process.exit(code);
+  }
+  var onUncaught = function(handler) {
+    if (suite.isBrowser) {
+      window.onerror = handler;
+    } else {
+      process.on('uncaughtException', handler);
+    }
+  }
 
-if (suite.isBrowser) {
-  // preload modules that may be needed at runtime
-  spawn(function() {
-    require('../shell-quote');
-    require('../dashdash');
-  }());
-}
-
+  // Any uncaught exception fails the most recently created Result instance
+  // that has not yet ended.
+  // If all results instances have ended, it kills the process with an error status.
+  onUncaught(function(e) {
+    logging.error("Uncaught error: #{e}");
+    var instance = Results.INSTANCES .. seq.reverse .. seq.find(r -> !r.end.isSet);
+    if (instance == null) {
+      exports.exit(1);
+    } else {
+      instance._uncaughtError(e);
+    }
+  });
+})();
