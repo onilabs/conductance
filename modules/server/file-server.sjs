@@ -11,8 +11,8 @@ var { setStatus, writeRedirectResponse, writeErrorResponse } = require('./respon
 //----------------------------------------------------------------------
 // formatResponse:
 // takes a `ServerRequest`, an `item` and a `settings` object
-// formats item, and may write the item to the
-// response. Returns whether the item was written.
+// formats item, and writes the item to the
+// response, or, if no suitable representation is found, writes an error response
 //
 // An item must contain the following keys:
 //  - extension
@@ -27,8 +27,9 @@ function formatResponse(req, item, settings) {
   var filedesc = settings.formats[extension] || settings.formats["*"];
   if (!filedesc) {
     verbose("Don't know how to serve item with extension '#{extension}'");
-    // XXX should we generate an error?
-    return false;
+    req .. writeErrorResponse(406, 'Not Acceptable', 
+                              'Could not find an appropriate representation');
+    return;
   }
 
   var formatdesc = filedesc[format.name];
@@ -36,8 +37,9 @@ function formatResponse(req, item, settings) {
     formatdesc = filedesc["none"];
   if (!formatdesc) {
     verbose("Can't serve item with extension '#{extension}' in format '#{format.name}'");
-    // XXX should we generate an error?
-    return false;
+    req .. writeErrorResponse(406, 'Not Acceptable', 
+                              'Could not find an appropriate representation');
+    return;
   }
 
   // try to construct an etag, based on the file's & (potential) filter's etag:
@@ -59,7 +61,7 @@ function formatResponse(req, item, settings) {
       if (req.request.headers["if-none-match"].replace(/-gzip$/,'') == etag) {
         req .. setStatus(304);
         req.response.end();
-        return true;
+        return;
       }
       else {
         debug("#{req.url} outdated");
@@ -135,7 +137,6 @@ function formatResponse(req, item, settings) {
     }
   }
   req.response.end();
-  return true;
 };
 
 //----------------------------------------------------------------------
@@ -169,7 +170,7 @@ function listDirectory(req, root, branch, format, settings) {
     }
   }
   var listingJson = JSON.stringify(listing);
-  return formatResponse(
+  formatResponse(
     req,
     { input: -> new stream.ReadableStringStream(listingJson),
       extension: "/",
@@ -182,8 +183,7 @@ function listDirectory(req, root, branch, format, settings) {
 //----------------------------------------------------------------------
 // file serving
 
-// attempt to serve the given file; return 'false' if not found or
-// can't be served in the requested format
+// attempt to serve the given file; return 'false' if not found
 function serveFile(req, filePath, format, settings) {
   try {
     var stat = fs.stat(filePath);
@@ -200,7 +200,7 @@ function serveFile(req, filePath, format, settings) {
     console.log("registered API #{filePath} -> #{apiid}");
   }
 
-  return formatResponse(
+  formatResponse(
     req,
     { input: opts ->
               // XXX hmm, might need to destroy this somewhere
@@ -212,6 +212,7 @@ function serveFile(req, filePath, format, settings) {
       etag: stat.mtime.getTime()
     },
     settings);
+  return true;
 }
 exports.serveFile = serveFile;
 
@@ -238,7 +239,7 @@ function generateFile(req, filePath, format, settings) {
   var generator = require(resolved_path);
   require.modules[resolved_path].etag = generator_file_mtime;
 
-  return formatResponse(
+  formatResponse(
     req,
     { input: -> new stream.ReadableStringStream(generator.content(req.url.queryKey)),
       extension: path.extname(filePath).slice(1),
@@ -247,6 +248,7 @@ function generateFile(req, filePath, format, settings) {
       etag: "#{generator_file_mtime}-#{generator.etag ? generator.etag(req.url.queryKey) : Date.now()}",
     },
     settings);
+  return true;
 }
 
 //----------------------------------------------------------------------
@@ -296,12 +298,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
       }
       if (!served) {
         if (settings.allowDirListing)
-          served = listDirectory(req, root, relativePath, format, settings);
-        if (!served) {
-          info("Could not render '#{file}' in the requested format");
-          req .. writeErrorResponse(406, 'Not Acceptable', 
-                                    'Could not find an appropriate representation');
-        }
+          listDirectory(req, root, relativePath, format, settings);
       }
     }
     else {
