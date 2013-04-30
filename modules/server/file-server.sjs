@@ -240,11 +240,11 @@ function generateFile(req, filePath, format, settings) {
 
   return formatResponse(
     req,
-    { input: -> new stream.ReadableStringStream(generator.content()),
+    { input: -> new stream.ReadableStringStream(generator.content(req.url.queryKey)),
       extension: path.extname(filePath).slice(1),
       format: format,
-      length: generator.content().length,
-      etag: "#{generator_file_mtime}-#{generator.etag ? generator.etag() : Date.now()}",
+//      length: generator.content().length,
+      etag: "#{generator_file_mtime}-#{generator.etag ? generator.etag(req.url.queryKey) : Date.now()}",
     },
     settings);
 }
