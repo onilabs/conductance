@@ -37,6 +37,7 @@
 */
 
 var http = require('sjs:http');
+var url  = require('sjs:url');
 var { each } = require('sjs:sequence');
 var func = require('sjs:function');
 
@@ -85,7 +86,7 @@ var SERVER_PATH   = '__aat_bridge';
    @return {::Transport}
 */
 function openTransport(server) {
-  server = server || http.canonicalizeURL('/', module.id);
+  server = server || url.normalize('/', module.id);
   
   var transport_id_suffix = '';
 

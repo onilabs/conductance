@@ -1,4 +1,4 @@
-var { canonicalizeURL } = require('sjs:http');
+var url = require('sjs:url');
 var { withServer } = require('sjs:nodejs/http');
 var { each, map, filter, parallelize, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
@@ -6,7 +6,7 @@ var { override, propertyPairs, keys } = require('sjs:object');
 var { stat } = require('sjs:nodejs/fs');
 var { writeErrorResponse } = require('./response');
 
-require.hubs.push(['mho:', canonicalizeURL('../', module.id)]);
+require.hubs.push(['mho:', url.normalize('../', module.id)]);
 require.hubs.push(['\u2127:', 'mho:']); // mho sign '℧'
 
 //----------------------------------------------------------------------
@@ -39,7 +39,7 @@ Default configfile: #{configfile}
 ");
 }
 
-var conductanceRoot = canonicalizeURL('../../', module.id).substr(7);
+var conductanceRoot = url.normalize('../../', module.id).substr(7);
 
 //----------------------------------------------------------------------
 // parse parameters
@@ -63,15 +63,15 @@ for (var i=1; i<process.argv.length; ++i) {
 //----------------------------------------------------------------------
 // init environment
 
-configfile = canonicalizeURL(configfile, process.cwd() + '/');
+configfile = url.normalize(configfile, process.cwd() + '/');
 
 var env = require('./env');
 env.init({
   conductanceRoot    : conductanceRoot,
-  configRoot         : canonicalizeURL('./', configfile),
+  configRoot         : url.normalize('./', configfile),
   conductanceVersion : "1-#{
                              (new Date(
-                                stat(canonicalizeURL('../../apollo/oni-apollo-node.js', 
+                                stat(url.normalize('../../apollo/oni-apollo-node.js', 
                                      module.id).substr(7)).mtime)).getTime()
                            }",
 });

@@ -66,7 +66,7 @@ ConsoleBuffer.prototype.drain = function() {
   this.reset();
 }
 
-var formatLogArgs = function(args) {
+var formatLogArgs = exports._formatLogArgs = function(args) {
   if (args.length == 0 ) return '';
   var msg = args[0];
   if (args.length > 1) {
@@ -93,13 +93,49 @@ var repeatStr = function(str, levels) {
   return new Array(levels+1).join(str);
 }
   
-LogReporterMixins = {
+var ReporterMixins = {
   init: function(opts) {
     this.opts = opts;
     if (opts.logCapture) {
       this.logCapture = new ConsoleBuffer();
     }
+    this.failures = [];
+  },
 
+  listTest: function(test) {
+    console.log(test.fullDescription());
+  },
+
+  formatSkip: function(reason) {
+    var msg = "SKIP";
+    if (reason) msg = "#{msg} (#{reason})"
+    return msg;
+  },
+
+  suiteBegin: function(results) {
+    if (this.logCapture) {
+      this.originalConsole = logging.getConsole();
+      logging.setConsole(this.logCapture);
+    }
+  },
+
+  suiteEnd: function(results) {
+    if (this.logCapture) {
+      logging.setConsole(this.originalConsole);
+      this.logCapture.drain();
+    }
+  },
+
+  mixInto: function (cls) {
+    this .. object.ownKeys .. each { |k|
+      if (k == 'mixInto') continue;
+      cls.prototype[k] = fnseq(this[k], cls.prototype[k]);
+    }
+  },
+}
+
+var LogReporterMixins = {
+  init: function(opts) {
     this.activeContexts = [];
     this.printedContexts = [];
     
@@ -110,25 +146,27 @@ LogReporterMixins = {
   },
 
   loading: function(module) {
+    if (this.opts.listOnly) return;
     this.print(this.color({attribute: 'dim'}, " [ loading #{module} ]"));
   },
 
   suiteBegin: function(results) {
-    if (this.logCapture) {
-      this.originalConsole = logging.getConsole();
-      logging.setConsole(this.logCapture);
-    }
     this.updateIndent(0);
   },
 
   suiteEnd: function(results) {
-    if (this.logCapture) {
-      this.logCapture.drain();
-      logging.setConsole(this.originalConsole);
-    }
+    this.updateIndent(0);
     this.print();
+    var ok = results.ok();
+    this.print(this.color({attribute: 'dim'}, '--------------------------------------------------------'));
+    if (!ok) {
+      this.print(this.color({attribute: 'dim'}, '# Failed tests:'));
+      this.failures .. each {|result| this.linkToTest(result.test.fullDescription(), false) };
+      this.print();
+    }
     this.report(results);
-    if (!results.ok()) {
+
+    if (!ok) {
       this.print(this.color('red', 'FAILED'));
       throw new Error();
     }
@@ -158,7 +196,7 @@ LogReporterMixins = {
   },
 
   testBegin: function(result, force) {
-    if (this.logCapture) this.logCapture.drain();
+    if (this.logCapture && !force) this.logCapture.drain();
     if (this.quiet && !force) return;
     this.print(this.prefix + result.test.description + ' ... ', false);
   },
@@ -175,8 +213,9 @@ LogReporterMixins = {
     } else if (result.ok) {
       if (!this.quiet) this.print(this.color('green', "OK"));
     } else {
+      this.failures.push(result);
       this.print(this.color('red', "FAILED"), false);
-      this.linkToTest(result.test.fullDescription());
+      this.linkToTest(result.test.fullDescription(), true);
       var prefix = this.prefix;
       this.print(this.color('yellow', String(result.error).split("\n") .. map((line) -> prefix + "| " + line) .. join("\n")));
       if (this.logCapture && this.logCapture.messages.length > 0) {
@@ -193,9 +232,7 @@ LogReporterMixins = {
   },
 
   printSkip: function(reason) {
-    var msg = "SKIP";
-    if (reason) msg = "#{msg} (#{reason})"
-    this.print(this.color('blue', msg));
+    this.print(this.color('blue', this.formatSkip(reason)));
   },
 
   printPendingContexts: function() {
@@ -228,8 +265,9 @@ LogReporterMixins = {
   mixInto: function (cls) {
     this .. object.ownKeys .. each { |k|
       if (k == 'mixInto') continue;
-      cls.prototype[k] = fnseq(cls.prototype[k], this[k]);
+      cls.prototype[k] = fnseq(this[k], cls.prototype[k]);
     }
+    ReporterMixins.mixInto(cls);
   },
 };
 
@@ -242,6 +280,15 @@ var HtmlOutput = exports.HtmlOutput = function() {
 }
 HtmlOutput.instance = null;
 HtmlOutput.elementId = 'console-output';
+
+// Static init method, sets global `console` variable
+HtmlOutput.init = function() {
+  if (!document.getElementById(this.elementId)) {
+    var instance = this.instance = new this();
+    // TODO: should we make this configurable?
+    sys.getGlobal().console = instance;
+  }
+}
 
 HtmlOutput.prototype.prepareStyles = function() {
   var css = "
@@ -302,7 +349,7 @@ HtmlOutput.prototype.info = makeLogger('info');
 HtmlOutput.prototype.error = makeLogger('error');
 HtmlOutput.prototype.warning = makeLogger('warning');
 
-var HtmlReporter = function() {
+var HtmlReporter = exports.HtmlReporter = function() {
   this.init.apply(this, arguments);
 }
 
@@ -330,9 +377,9 @@ LogReporterMixins.mixInto(HtmlReporter);
 
 HtmlReporter.prototype.report = function(results) {
   var parts = [];
-  if (results.failed > 0)    parts.push(this.color('red',   "#{results.failed} failed"));
-  if (results.skipped > 0)   parts.push(this.color('cyan',  "#{results.skipped} skipped"));
-  if (results.succeeded > 0) parts.push(this.color('green', "#{results.succeeded} passed"));
+  if (results.failed > 0)  parts.push(this.color('red',   "#{results.failed} failed"));
+  if (results.skipped > 0) parts.push(this.color('cyan',  "#{results.skipped} skipped"));
+  if (results.passed > 0)  parts.push(this.color('green', "#{results.passed} passed"));
   this.print(this.color({attribute: 'bright'}, "Ran #{results.count()} tests. "), false);
   var first = true;
   parts .. each {|part|
@@ -354,18 +401,83 @@ HtmlReporter.prototype.report = function(results) {
   this.print();
 }
 
-HtmlReporter.prototype.linkToTest = function(testId) {
+HtmlReporter.prototype.linkToTest = function(testId, inline) {
   this.print(" ",false);
   var elem = document.createElement("a");
   testId = shell_quote.quote([testId]);
   elem.setAttribute("href", "#" + encodeURIComponent(testId));
-  elem.innerHTML = "&para;";
+  if (inline) {
+    elem.innerHTML = "&para;";
+  } else {
+    elem.appendChild(document.createTextNode(testId));
+  }
   elem.setAttribute("class", "dim");
   this.print(elem);
 }
 
+/** Karma Reporter **/
+var KarmaReporter = exports.KarmaReporter = function() {
+  this.init.apply(this, arguments);
+}
 
-var NodejsReporter = function() {
+KarmaReporter.prototype.init = function(opts) {
+  this.ctx = window.__karma__;
+}
+
+KarmaReporter.prototype.suiteBegin = function(results) {
+  this.ctx.info({total:results.total});
+};
+
+KarmaReporter.prototype.suiteEnd = function(results) {
+  if (!results.ok()) {
+    throw new Error();
+  }
+};
+
+KarmaReporter.prototype.testBegin = function(result) {
+  if (this.logCapture) this.logCapture.drain();
+  this.testStartTime = new Date();
+}
+
+KarmaReporter.prototype.testEnd = function(result) {
+  var fullDescription = result.test.fullDescription();
+  var report = {
+    description: fullDescription,
+    suite: [],
+    success: result.ok,
+    time: new Date().getTime() - this.testStartTime.getTime(),
+    log: []
+  };
+  if (result.skipped) {
+    report.log = this.formatSkip(result.test.skipReason).split("\n");
+  } else if (result.ok) {
+    // noop
+  } else {
+    this.failures.push(result);
+    var log = ["# " + this.linkToTest(fullDescription)];
+    log = log.concat(String(result.error).split("\n"));
+    if (this.logCapture && this.logCapture.messages.length > 0) {
+      log.push('-- Captured logging ---');
+      log = log.concat(this.logCapture.messages);
+    }
+    report.log = log;
+  }
+  this.ctx.result(report);
+
+  if (this.logCapture) this.logCapture.reset();
+};
+
+KarmaReporter.prototype.linkToTest = function(testId) {
+  return shell_quote.quote([testId]);
+}
+
+
+ReporterMixins.mixInto(KarmaReporter);
+
+
+/** NodeJS Reporter **/
+
+var NodejsReporter = exports.NodejsReporter = function() {
   this.init.apply(this, arguments);
 };
 
@@ -392,13 +504,14 @@ NodejsReporter.prototype.init = function(opts) {
 
 LogReporterMixins.mixInto(NodejsReporter);
 
-NodejsReporter.prototype.linkToTest = function(testId) {
-  var url = require('sjs:nodejs/url');
-  this.print();
-  var base = this.opts.baseModule;
+NodejsReporter.prototype.linkToTest = function(testId, inline) {
+  var base = this.opts.base;
   if (base == null) return; // can't formulate a command line without knowing the base module
+  if (inline) this.print(); // we can't print inline on the console, make a new line
+
+  var url = require('sjs:url');
   base = base..url.toPath();
-  base = require('nodejs:path').relative(process.cwd(), base); // realitivize
+  base = require('nodejs:path').relative(process.cwd(), base);
   var args = ['apollo', base, testId];
   this.print(this.color({attribute:'dim'}, this.prefix + "# " + shell_quote.quote(args)));
 }
@@ -411,9 +524,9 @@ NodejsReporter.prototype.print = function(msg, endl) {
 
 NodejsReporter.prototype.report = function(results) {
   var parts = [];
-  if (results.failed > 0)    parts.push(this.color('red',   "#{results.failed} failed"));
-  if (results.skipped > 0)   parts.push(this.color('cyan',  "#{results.skipped} skipped"));
-  if (results.succeeded > 0) parts.push(this.color('green', "#{results.succeeded} passed"));
+  if (results.failed > 0)  parts.push(this.color('red',   "#{results.failed} failed"));
+  if (results.skipped > 0) parts.push(this.color('cyan',  "#{results.skipped} skipped"));
+  if (results.passed > 0)  parts.push(this.color('green', "#{results.passed} passed"));
   var durationDesc = this.color({attribute: 'dim'}, "(in #{results.durationSeconds()}s)");
   console.log("Ran #{results.count()} tests. #{parts.join(", ")} #{durationDesc}");
 }
@@ -428,18 +541,21 @@ var INITIALIZED = false;
 switch(sys.hostenv) {
   case "xbrowser":
     dom = require('../xbrowser/dom');
-    exports.DefaultReporter = HtmlReporter;
 
+    var consoleCls = null;
+    if (Object.prototype.hasOwnProperty.call(window, '__karma__')) {
+      exports.DefaultReporter = KarmaReporter;
+    } else {
+      exports.DefaultReporter = HtmlReporter;
+      consoleCls = HtmlOutput;
+    }
+
+    var onHashChange = -> window.location.reload();
     exports.init = function() {
       if (INITIALIZED) return;
       INITIALIZED = true;
-      window .. dom.addListener("hashchange", -> window.location.reload(), false);
-      var cls = exports.HtmlOutput;
-      if (!document.getElementById(cls.elementId)) {
-        var instance = cls.instance = new cls();
-        // TODO: should we make this configurable?
-        sys.getGlobal().console = instance;
-      }
+      window .. dom.addListener("hashchange", onHashChange, false);
+      consoleCls && consoleCls.init();
     }
 
     break;

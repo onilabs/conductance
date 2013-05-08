@@ -36,6 +36,8 @@
    @hostenv xbrowser
    @desc    Work-in-progress
 */
+//TODO: document
+
 var tt = new Date();
 var sys = require('builtin:apollo-sys');
 
@@ -349,30 +351,19 @@ UIElement.select = function(selector) {
    @summary Waits for an event on the element's dompeer or one of its children
    @param {String} [event] String containing one or more space-separated DOM event names. E.g.: "click mouseover". 
    @param {optional String} [selector=null] CSS selector to match children of this element's dompeer.
-   @param {optional Function} [filter=null] Filter function
    @return {DOMEvent}
    @desc
       * Blocks until the given `event` occurs on a DOM child mached by `selector`, or, if `selector is `null`, on the [::UIElement::dompeer] of this UIElement.
       * Stops further propagation of the event
       * To listen for an event during the capturing phase, prefix the event name with a '!'
 */
-UIElement.waitforEvent = function(event, selector, filter) {
-  if (typeof selector == 'function') {
-    filter = selector;
-    selector = undefined;
-  }
-
+UIElement.waitforEvent = function(event, selector) {
   var ev;
-    
   if (!selector) 
-    ev = dom.waitforEvent(this.dompeer, event, filter);
+    ev = dom.waitforEvent(this.dompeer, event);
   else
     ev = dom.waitforEvent(this.dompeer, event,
-                          function(ev) {
-                            if (!dom.findNode(selector, ev.target, this.dompeer))
-                              return false;
-                            return !filter || filter(ev);
-                          })
+                          ev => dom.findNode(selector, ev.target, this.dompeer));
   dom.stopEvent(ev);
   return ev;
 };

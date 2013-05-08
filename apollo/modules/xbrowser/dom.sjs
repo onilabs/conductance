@@ -31,8 +31,8 @@
  */
 /**
   @module    xbrowser/dom
-  @summary   Utilities for interacting with the DOM
-  @home      sjs:/xbrowser/dom
+  @summary   Basic DOM functionality
+  @home      sjs:xbrowser/dom
   @hostenv   xbrowser
   @desc
      Note: This module will automatically load the [dom-shim::] module on 
@@ -404,7 +404,7 @@ var _loadedScripts = {};
 /**
   @function  script
   @summary   Load and execute a plain JavaScript file.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http::constructURL])
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
   @desc
     It is safe to call this function simultaneously from several strata,
     even for the same URL: The given URL will only be loaded **once**, and
@@ -517,13 +517,13 @@ exports.addCSS = function(cssCode) {
 /**
   at function css
   at summary Load a CSS file into the current document.
-  at param {URLSPEC} [url] Request URL (in the same format as accepted by [http::constructURL])
+  at param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
   at desc
 */
 // XXX should be more robust: http://yui.yahooapis.com/2.8.1/build/get/get.js
 /*
 exports.css = function (url) {
-  var url = constructURL(arguments);
+  var url = sys.constructURL(arguments);
   var elem = document.createElement("link");
   elem.setAttribute("rel", "stylesheet");
   elem.setAttribute("type", "text/css");
@@ -590,7 +590,7 @@ function findNode(selector, from, to, inclusive) {
       if (!Array.isArray(to)) to = [to];
       to = to .. map(elem -> elem ? null : elem.parentNode) .. toArray;
     }
-    traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
+    traverseDOM(from, to) { |c| if (exports.matchesSelector(c, selector)) return c }
     return null;
   }
   catch(e) {
@@ -664,14 +664,14 @@ exports.removeCookie = function(name) {
 };
 
 /**
- * @function isHtmlElement
- * @summary  test whether an object is a HTMLElement
- * @param    {Object}  the object to test
- * @return   {Boolean} whether the argument is a HTMLElement
- * @desc
- *    Uses `instanceof HTMLElement` where possible, falling back to `Element`.
- *    On older versions of IE, resorts to checking well-known property names
- *    (which may give false positives).
+  @function isHtmlElement
+  @summary  test whether an object is a HTMLElement
+  @param    {Object} [obj] the object to test
+  @return   {Boolean} whether the argument is a HTMLElement
+  @desc
+     Uses `instanceof HTMLElement` where possible, falling back to `Element`.
+     On older versions of IE, resorts to checking well-known property names
+     (which may give false positives).
  */
 var elementType = typeof(HTMLElement) == 'undefined' ? (typeof(Element) == 'undefined' ? null : Element) : HTMLElement;
 if (elementType) {
