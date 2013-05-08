@@ -144,7 +144,9 @@ var BaseFileFormatMap = {
   wav  : { none : { mime: "audio/wav" } },
   svg  : { none : { mime: "image/svg+xml" } },
   txt  : { none : { mime: "text/plain" } },
-  css  : { none : { mime: "text/css" }},
+  css  : { none : { mime: "text/css" },
+           src  : { mime: "text/plain" },
+         },
   "*"  : { none : { /* serve without mimetype */ }
          },
   app  : { none     : { mime: "text/html",
