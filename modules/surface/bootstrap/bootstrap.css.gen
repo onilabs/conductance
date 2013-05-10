@@ -1,0 +1,31 @@
+var { sanitize } = require('sjs:string');
+
+//exports.etag = pars -> "1";
+ 
+exports.content = function(pars) {
+  
+  var vars  = require('./variables').defaultLookAndFeel;
+  var scope = sanitize(pars.scope || '');
+
+  var rv = "\
+/* CSS Reset */
+  #{ require('./reset').css(vars, scope) }
+
+/* Grid system and page structure */
+  #{ require('./scaffolding').css(vars, scope) }
+  #{ require('./grid').css(vars, scope) } 
+  #{ require('./layouts').css(vars, scope) }
+
+
+/* Base CSS */
+  #{ require('./type').css(vars, scope) }
+  #{ require('./code').css(vars, scope) }
+  #{ require('./forms').css(vars, scope) }
+  #{ require('./buttons').css(vars, scope) }
+
+/* Utility classes */
+  #{ require('./utilities').css(vars, scope) } /* Has to be last to override when necessary */
+";
+  return rv;
+};
+
