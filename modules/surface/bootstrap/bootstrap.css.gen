@@ -21,6 +21,9 @@ exports.content = function(pars) {
   #{ require('./type').css(vars, scope) }
   #{ require('./code').css(vars, scope) }
   #{ require('./forms').css(vars, scope) }
+  #{ require('./tables').css(vars, scope) }
+
+/* Components: Buttons & Alerts */
   #{ require('./buttons').css(vars, scope) }
 
 /* Utility classes */

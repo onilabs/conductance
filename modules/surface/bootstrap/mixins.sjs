@@ -203,50 +203,50 @@ __js var Mixins = exports.Mixins = function(vars) {
     // Border Radius
     border_radius: radius ->
       "-webkit-border-radius: #{radius};
-       -moz-border-radius: #{radius};
-       border-radius: #{radius};"
+          -moz-border-radius: #{radius};
+               border-radius: #{radius};"
     ,
-/* XXX
-// Single Corner Border Radius
-.border-top-left-radius(@radius) {
-  -webkit-border-top-left-radius: @radius;
-      -moz-border-radius-topleft: @radius;
-          border-top-left-radius: @radius;
-}
-.border-top-right-radius(@radius) {
-  -webkit-border-top-right-radius: @radius;
-      -moz-border-radius-topright: @radius;
-          border-top-right-radius: @radius;
-}
-.border-bottom-right-radius(@radius) {
-  -webkit-border-bottom-right-radius: @radius;
-      -moz-border-radius-bottomright: @radius;
-          border-bottom-right-radius: @radius;
-}
-.border-bottom-left-radius(@radius) {
-  -webkit-border-bottom-left-radius: @radius;
-      -moz-border-radius-bottomleft: @radius;
-          border-bottom-left-radius: @radius;
-}
+    // Single Corner Border Radius
+    border_top_left_radius: radius -> 
+      "-webkit-border-top-left-radius: #{radius};
+           -moz-border-radius-topleft: #{radius};
+               border-top-left-radius: #{radius};"
+    ,
 
-// Single Side Border Radius
-.border-top-radius(@radius) {
-  .border-top-right-radius(@radius);
-  .border-top-left-radius(@radius);
-}
-.border-right-radius(@radius) {
-  .border-top-right-radius(@radius);
-  .border-bottom-right-radius(@radius);
-}
-.border-bottom-radius(@radius) {
-  .border-bottom-right-radius(@radius);
-  .border-bottom-left-radius(@radius);
-}
-.border-left-radius(@radius) {
-  .border-top-left-radius(@radius);
-  .border-bottom-left-radius(@radius);
-}
-*/
+    border_top_right_radius: radius ->
+      "-webkit-border-top-right-radius: #{radius};
+           -moz-border-radius-topright: #{radius};
+               border-top-right-radius: #{radius};"
+    ,
+
+    border_bottom_right_radius: radius -> 
+      "-webkit-border-bottom-right-radius: #{radius};
+           -moz-border-radius-bottomright: #{radius};
+               border-bottom-right-radius: #{radius};"
+    ,
+    border_bottom_left_radius: radius ->
+      "-webkit-border-bottom-left-radius: #{radius};
+           -moz-border-radius-bottomleft: #{radius};
+               border-bottom-left-radius: #{radius};"
+    ,
+
+    // Single Side Border Radius
+    border_top_radius: radius ->
+      "#{border_top_right_radius(radius)}
+       #{border_top_left_radius(radius)}"
+    ,
+    border_right_radius: radius ->
+      "#{border_top_right_radius(radius)}
+       #{border_bottom_right_radius(radius)}"
+    ,
+    border_bottom_radius: radius ->
+      "#{border_bottom_right_radius(radius)}
+       #{border_bottom_left_radius(radius)}"
+    ,
+    border_left_radius: radius ->
+      "#{border_top_left_radius(radius)}
+       #{border_bottom_left_radius(radius)}"
+    ,
 
     // Drop shadows
     box_shadow: shadow ->
