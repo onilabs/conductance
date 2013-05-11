@@ -175,7 +175,7 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
 
   // Wells
   // -------------------------
-  //XXX @wellBackground:                  #f5f5f5;
+  wellBackground:          -> '#f5f5f5',
 
 
   // Navbar

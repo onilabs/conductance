@@ -25,9 +25,12 @@ exports.content = function(pars) {
 
 /* Components: common */
   #{ require('./sprites').css(vars, scope) }
+  #{ require('./wells').css(vars, scope) }
+  #{ require('./close').css(vars, scope) }
 
 /* Components: Buttons & Alerts */
   #{ require('./buttons').css(vars, scope) }
+  #{ require('./button-groups').css(vars, scope) }
 
 /* Components: Misc */
   #{ require('./labels-badges').css(vars, scope) }
