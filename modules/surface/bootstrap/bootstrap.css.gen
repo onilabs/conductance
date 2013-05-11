@@ -29,6 +29,9 @@ exports.content = function(pars) {
 /* Components: Buttons & Alerts */
   #{ require('./buttons').css(vars, scope) }
 
+/* Components: Misc */
+  #{ require('./labels-badges').css(vars, scope) }
+
 /* Utility classes */
   #{ require('./utilities').css(vars, scope) } /* Has to be last to override when necessary */
 ";
