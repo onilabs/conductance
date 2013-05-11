@@ -158,7 +158,7 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   //@iconSpritePath:          "../img/glyphicons-halflings.png";
   //@iconWhiteSpritePath:     "../img/glyphicons-halflings-white.png";
   // in lieu of the sprite icons we use Font Awesome:  
-  fontAwesomePath:         -> require.url('./resources/'),
+  fontAwesomePath:         -> './fontawesome/',
 
   // Input placeholder text color
   // -------------------------

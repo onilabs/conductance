@@ -23,6 +23,9 @@ exports.content = function(pars) {
   #{ require('./forms').css(vars, scope) }
   #{ require('./tables').css(vars, scope) }
 
+/* Components: common */
+  #{ require('./sprites').css(vars, scope) }
+
 /* Components: Buttons & Alerts */
   #{ require('./buttons').css(vars, scope) }
 
