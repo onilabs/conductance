@@ -134,10 +134,10 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
 
   dropdownLinkColor:             -> this.grayDark(),
   dropdownLinkColorHover:        -> this.white(),
-  // XXX dropdownLinkColorActive
+  dropdownLinkColorActive:       -> this.white(),
 
-  // XXX dropdownLinkBackgroundActive
-  dropdownLinkBackgroundHover:   -> this.linkColor(),
+  dropdownLinkBackgroundActive:  -> this.linkColor(),
+  dropdownLinkBackgroundHover:   -> this.dropdownLinkBackgroundActive(),
 
   // COMPONENT VARIABLES
   // --------------------------------------------------
