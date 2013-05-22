@@ -1,8 +1,8 @@
-var { scope, scale, darken, add } = require('../css');
+var { scope, scale, darken, add } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 /* Base styles */
@@ -214,7 +214,7 @@ input[type='submit'].btn.btn-mini {
   color: #{vars.grayDark()};
   text-decoration: none;
 }
-" .. scope(parent_class);
+";
 
   return rv;
 };

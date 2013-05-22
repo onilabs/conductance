@@ -13,11 +13,11 @@ var { readFile } = require('sjs:nodejs/fs');
 exports.ports = [
   { 
     name: 'insecure',  // name by which port will be referenced
-    address:'7071', // address of form 'port' or 'host:port'. If no 'host' is given,
+    address:'7075', // address of form 'port' or 'host:port'. If no 'host' is given,
                     // conductance will listen on all interfaces
   },
   { name: 'secure', 
-    address:'localhost:6060',
+    address:'localhost:7076',
     ssl: true,
     key: readFile("#{conductanceRoot()}ssl/insecure-localhost.key"),
     cert: readFile("#{conductanceRoot()}ssl/insecure-localhost.crt")
@@ -32,7 +32,7 @@ exports.ports = [
    When a request is received on a given port, conductance will go
    through this array in order and dispatch the request to the first
    host with matching hostname that is configured to listen on the
-   given port (if no ports are givenm the host will listen on all
+   given port (if no ports are given the host will listen on all
    ports in the exports.ports array)
 */
 exports.hosts = [
@@ -66,18 +66,18 @@ exports.hosts = [
     ports: ['insecure'],    
     routes: [
       // redirect all traffic to https server:
-      SimpleRedirectRoute(/^(.*)$/, 'https://localhost:6060', 301)
+      SimpleRedirectRoute(/^(.*)$/, 'https://localhost:7076', 301)
     ]
   }, */
-  { 
+/*  { 
     // Redirect 127.0.0.1 traffic to localhost:
     hostname: /^(127\.0\.0\.1)$/,
     routes: [
-      SimpleRedirectRoute(/^(.*)$/, 'https://localhost:6060', 301)
+      SimpleRedirectRoute(/^(.*)$/, 'https://localhost:7076', 301)
     ]
-  },
+  }, */
   { 
-    hostname: /^localhost$/, 
+    hostname: /^.*$/, 
     ports: ['secure', 'insecure'],
     routes: [
       // StandardSystemRoutes maps apollo/ to __apollo & modules to __mho,

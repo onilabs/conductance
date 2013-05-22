@@ -1,9 +1,9 @@
-var { scope, scale, darken, add } = require('../css');
+var { scope, scale, darken, add } = require('../../css');
 var { integers, map, join } = require('sjs:sequence');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 /* BASE TABLES */
@@ -214,7 +214,7 @@ table th[class*='span'],
 .table-hover tbody tr.info:hover td {
   background-color: #{darken(vars.infoBackground(), 0.05)};
 }
-" .. scope(parent_class);
+";
 
   return rv;
 };

@@ -157,8 +157,10 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   // -------------------------
   //@iconSpritePath:          "../img/glyphicons-halflings.png";
   //@iconWhiteSpritePath:     "../img/glyphicons-halflings-white.png";
-  // in lieu of the sprite icons we use Font Awesome:  
-  fontAwesomePath:         -> './fontawesome/',
+  // in lieu of the sprite icons we use Font Awesome:
+
+  // XXX hack note: this is relative to the bootstrap.css.gen atm, which is ugly!
+  fontAwesomePath:         -> './bootstrap/fontawesome/',
 
   // Input placeholder text color
   // -------------------------
@@ -186,7 +188,7 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   navbarHeight:                    -> '40px',
   navbarBackgroundHighlight:       -> '#ffffff',
   navbarBackground:                -> this.navbarBackgroundHighlight() .. darken(.05),
-  //XXX @navbarBorder:                    darken(@navbarBackground, 12%);
+  navbarBorder:                    -> darken(this.navbarBackground(), .12),
   
   navbarText:                      -> '#777',
   navbarLinkColor:                 -> '#777',
@@ -198,29 +200,23 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   navbarBrandColor:                -> this.navbarLinkColor(),
 
   // Inverted navbar
-  //XXX @navbarInverseBackground:                #111111;
-  //XXX @navbarInverseBackgroundHighlight:       #222222;
-  //XXX @navbarInverseBorder:                    #252525;
+  navbarInverseBackground:         -> '#111111',
+  navbarInverseBackgroundHighlight:-> '#222222',
+  navbarInverseBorder:             -> '#252525',
   
-  //XXX @navbarInverseText:                      @grayLight;
-  //XXX @navbarInverseLinkColor:                 @grayLight;
-  //XXX @navbarInverseLinkColorHover:            @white;
-  //XXX @navbarInverseLinkColorActive:           @navbarInverseLinkColorHover;
-  //XXX @navbarInverseLinkBackgroundHover:       transparent;
-  //XXX @navbarInverseLinkBackgroundActive:      @navbarInverseBackground;
-
-  // XXX these need to go
-  navbarSearchBackground:          -> this.navbarBackground() .. lighten(.25),
-  navbarSearchBackgroundFocus:     -> this.white(),
-  navbarSearchBorder:              -> this.navbarSearchBackground() .. darken(.30),
-  navbarSearchPlaceholderColor:    -> '#ccc',
+  navbarInverseText:               -> this.grayLight(),
+  navbarInverseLinkColor:          -> this.grayLight(),
+  navbarInverseLinkColorHover:     -> this.white(),
+  navbarInverseLinkColorActive:    -> this.navbarInverseLinkColorHover(),
+  navbarInverseLinkBackgroundHover:-> 'transparent',
+  navbarInverseLinkBackgroundActive:->this.navbarInverseBackground(),
   
-  // XXX @navbarInverseSearchBackground:          lighten(@navbarInverseBackground, 25%);
-  // XXX @navbarInverseSearchBackgroundFocus:     @white;
-  // XXX @navbarInverseSearchBorder:              @navbarInverseBackground;
-  // XXX @navbarInverseSearchPlaceholderColor:    #ccc;
+  navbarInverseSearchBackground:   -> lighten(this.navbarInverseBackground, .25),
+  navbarInverseSearchBackgroundFocus:->this.white(),
+  navbarInverseSearchBorder:       -> this.navbarInverseBackground(),
+  navbarInverseSearchPlaceholderColor:->'#ccc',
 
-  // XXX @navbarInverseBrandColor:                @navbarInverseLinkColor;
+  navbarInverseBrandColor:         -> this.navbarInverseLinkColor(),
 
   // Pagination
   // -------------------------

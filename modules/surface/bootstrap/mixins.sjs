@@ -232,20 +232,20 @@ __js var Mixins = exports.Mixins = function(vars) {
 
     // Single Side Border Radius
     border_top_radius: radius ->
-      "#{border_top_right_radius(radius)}
-       #{border_top_left_radius(radius)}"
+      "#{this.border_top_right_radius(radius)}
+       #{this.border_top_left_radius(radius)}"
     ,
     border_right_radius: radius ->
-      "#{border_top_right_radius(radius)}
-       #{border_bottom_right_radius(radius)}"
+      "#{this.border_top_right_radius(radius)}
+       #{this.border_bottom_right_radius(radius)}"
     ,
     border_bottom_radius: radius ->
-      "#{border_bottom_right_radius(radius)}
-       #{border_bottom_left_radius(radius)}"
+      "#{this.border_bottom_right_radius(radius)}
+       #{this.border_bottom_left_radius(radius)}"
     ,
     border_left_radius: radius ->
-      "#{border_top_left_radius(radius)}
-       #{border_bottom_left_radius(radius)}"
+      "#{this.border_top_left_radius(radius)}
+       #{this.border_bottom_left_radius(radius)}"
     ,
 
     // Drop shadows
@@ -256,12 +256,12 @@ __js var Mixins = exports.Mixins = function(vars) {
     ,
 
     // Transitions
-    transition: transition ->
-      "-webkit-transition: #{transition};
-       -moz-transition: #{transition};
-       -ms-transition: #{transition};
-       -o-transition: #{transition};
-       transition: #{transition};"
+    transition: t ->
+      "-webkit-transition: #{t};
+       -moz-transition: #{t};
+       -ms-transition: #{t};
+       -o-transition: #{t};
+       transition: #{t};"
     ,
 
 /* XXX

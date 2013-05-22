@@ -1,8 +1,8 @@
-var { scope, darken } = require('../css');
+var { scope, darken } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 /* Use the .menu class on any <li> element within the topbar or ul.tabs and you'll get some superfancy dropdowns */
@@ -239,7 +239,7 @@ exports.css = function(vars, parent_class) {
   margin-top: 2px; /* give it some space to breathe */
   #{mixins.border_radius(vars.baseBorderRadius())}
 }
-" .. scope(parent_class);
+";
 
   return rv;
 };

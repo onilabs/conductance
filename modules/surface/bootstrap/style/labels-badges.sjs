@@ -1,8 +1,8 @@
-var { scope, scale, darken } = require('../css');
+var { scope, scale, darken } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 /* LABELS & BADGES */
@@ -82,7 +82,7 @@ a.badge:focus {
     top: 0;
 }
 
-" .. scope(parent_class);
+";
 
   return rv;
 };

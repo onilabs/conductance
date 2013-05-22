@@ -1,8 +1,8 @@
-var { scope } = require('../css');
+var { scope } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   __js var rv = "\
 /* Display in IE6-9 and FF3  */
@@ -216,7 +216,7 @@ textarea {
     }
   }
 }
-" .. scope(parent_class);
+";
 
   return rv;
 };

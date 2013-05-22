@@ -63,3 +63,41 @@ exports.dismissAlerts = function(parent) {
     }
   }
 };
+
+exports.tabbing = function(parent) {
+  using (var Q = dom.eventQueue(parent, 'click', function(e) {
+    if (domFindData('toggle', ['tab','pill'], e.target, parent)) {
+      dom.stopEvent(e);
+      return true;
+    }
+    else
+      return false;
+  })) {
+    while (1) {
+      var ev = Q.get();
+      // ev.target is the <a> we want to activate
+      var newTab = dom.findNode('li', ev.target);
+      if (newTab.classList.contains('active')) continue;
+      var tabContainer = dom.findNode('ul:not(.dropdown-menu)', ev.target);
+      // deactivate current tab...
+      var currentTab = tabContainer.querySelector('li.active');
+      currentTab.classList.remove('active');
+      // ... and activate  the new one
+      newTab.classList.add('active');
+      
+      // special case for dropdowns within tabs:
+      var olddropdown = currentTab.querySelector('.dropdown-menu > .active');
+      if (olddropdown) 
+        olddropdown.classList.remove('active');
+      if (newTab.parentNode.classList.contains('dropdown-menu'))
+        dom.findNode('li.dropdown', newTab).classList.add('active');
+      
+      // now switch to new content:
+      var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('data-target') || ev.target.getAttribute('href'));
+      
+      var oldContent = newContent.parentNode.querySelector('.active');
+      oldContent.classList.remove('active');
+      newContent.classList.add('active');
+    }
+  }
+};

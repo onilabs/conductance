@@ -1,8 +1,8 @@
-var { scope, scale, darken, add } = require('../css');
+var { scope, scale, darken, add } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 /* Base styles */
@@ -75,7 +75,6 @@ exports.css = function(vars, parent_class) {
 .alert-block p + p {
   margin-top: 5px;
 }
-" .. scope(parent_class);
-
+";
   return rv;
 };

@@ -1,8 +1,8 @@
-var { scope,  scale } = require('../css');
+var { scope,  scale } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 /* Make the div behave like a button */
@@ -222,7 +222,7 @@ exports.css = function(vars, parent_class) {
   #{mixins.border_radius("0 0 #{vars.borderRadiusLarge()} #{vars.borderRadiusLarge()}")}
 }
 
-" .. scope(parent_class);
+";
 
   return rv;
 };

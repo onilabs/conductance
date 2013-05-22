@@ -2,11 +2,11 @@
 // port of Font Awesome's font-awesome.css v3.0.2 (in lieu of Bootstrap's
 // sprites.less)
 
-var { scope } = require('../css');
+var { scope } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
   
   var fontPath = vars.fontAwesomePath();
 
@@ -529,7 +529,7 @@ ul.icons li [class*=' icon-'] {
 .icon-github-alt:before           { content: '\\f113'; }
 .icon-folder-close-alt:before     { content: '\\f114'; }
 .icon-folder-open-alt:before      { content: '\\f115'; }
-" .. scope(parent_class);
+";
 
   return rv;
 };

@@ -1,8 +1,8 @@
-var { scope, darken } = require('../css');
+var { scope, darken } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 .well {
@@ -29,7 +29,7 @@ exports.css = function(vars, parent_class) {
   padding: 9px;
   #{mixins.border_radius(vars.borderRadiusSmall())}
 }
-" .. scope(parent_class);
+";
 
   return rv;
 };

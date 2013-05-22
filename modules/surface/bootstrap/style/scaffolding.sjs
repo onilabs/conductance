@@ -1,8 +1,8 @@
-var { scope } = require('../css');
+var { scope } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 /* Body reset */
@@ -53,7 +53,7 @@ a:focus {
 .img-circle {
   #{mixins.border_radius('500px')} /* crank the border-radius so it works with most reasonably sized images */
 }
-" .. scope(parent_class);
+";
 
   return rv;
 };

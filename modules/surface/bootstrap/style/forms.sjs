@@ -1,8 +1,8 @@
-var { scope, scale, darken, add, lighten } = require('../css');
+var { scope, scale, darken, add, lighten } = require('../../css');
 
-exports.css = function(vars, parent_class) {
-  vars = vars || require('./variables').defaultLookAndFeel;
-  var mixins = require('./mixins').Mixins(vars);
+exports.css = function(vars, mixins) {
+  vars = vars || require('../variables').defaultLookAndFeel;
+  mixins = mixins || require('../mixins').Mixins(vars);
 
   var rv = "\
 /* GENERAL STYLES */
@@ -731,7 +731,7 @@ legend + .control-group {
 .form-horizontal .form-actions {
     padding-left: #{vars.horizontalComponentOffset()};
 }
-" .. scope(parent_class);
+";
 
   return rv;
 };

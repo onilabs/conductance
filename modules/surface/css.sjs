@@ -350,8 +350,16 @@ function add(css_val1, css_val2) {
   return encodeCssValue(val1);
 }
 
+function subtract(css_val1, css_val2) {
+  var val1 = parseCssValue(css_val1), val2 = parseCssValue(css_val2);
+  if (val1[1] != val2[1]) 
+    throw new Error("cannot subtract mismatching css values (#{css_val1},#{css_val2})");
+  val1[0] -= val2[0];
+  return encodeCssValue(val1);
+}
+
 exports.scale = scale;
 exports.add = add;
-
+exports.subtract = subtract;
 } // __js
 

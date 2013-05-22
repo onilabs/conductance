@@ -1,0 +1,17 @@
+var { sanitize } = require('sjs:string');
+var { CSSDocument } = require('../surface');
+var bootstrap_style = require('./bootstrap/style');
+
+// Take a date when bootstrap.css.gen gets loaded and use that as
+// etag. That ensures that each time we restart conductance, we'll get a
+// new etag
+var date = Date.now(); 
+exports.etag = pars -> date;
+ 
+exports.content = function(pars) {  
+  var vars  = require('./bootstrap/variables').defaultLookAndFeel; // XXX implement different l&f's
+  var scope = sanitize(pars.scope || '');
+  
+  return CSSDocument(bootstrap_style.css(vars), scope);
+};
+
