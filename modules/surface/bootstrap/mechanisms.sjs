@@ -1,4 +1,5 @@
-var dom = require('sjs:xbrowser/dom');
+var dom    = require('sjs:xbrowser/dom');
+var events = require('sjs:events');
 
 // dom module backfill:
 
@@ -11,7 +12,7 @@ function domFindData(name, value, from, to) {
 
 exports.dropdowns = function(parent) {
   var ignore = false;
-  using (var Q = dom.eventQueue(parent, 'click', function (e){
+  using (var Q = events.Queue(events.HostEmitter(parent, 'click', function (e){
     if ((e.node = domFindData('toggle', 'dropdown', e.target, parent))) {
       dom.stopEvent(e);
       if (ignore) { // see explanation below
@@ -22,13 +23,13 @@ exports.dropdowns = function(parent) {
     }
     else
       return false;
-  })) {
+  }))) {
     while (1) {
       var ev = Q.get();
       var current = ev.node;
       current.parentNode.classList.add('open');
       try {
-        ev = dom.waitforEvent(window, '!click');
+        ev = events.wait(window, '!click');
         if (domFindData('toggle', 'dropdown', ev.target, parent) == current) {
           // we could stop the event here, to prevent the dropdown from reappearing, 
           // but that is bad form: there might be other capturing listenern that 
@@ -47,14 +48,14 @@ exports.dropdowns = function(parent) {
 };
 
 exports.dismissAlerts = function(parent) {
-  using (var Q = dom.eventQueue(parent, 'click', function(e) {
+  using (var Q = events.Queue(events.HostEmitter(parent, 'click', function(e) {
     if (e.node = domFindData('dismiss', 'alert', e.target, parent)) {
       dom.stopEvent(e);
       return true;
     }
     else 
       return false;
-  })) {
+  }))) {
     while (1) {
       var ev = Q.get();
       var target = dom.findNode('.alert', ev.node);
@@ -65,14 +66,14 @@ exports.dismissAlerts = function(parent) {
 };
 
 exports.tabbing = function(parent) {
-  using (var Q = dom.eventQueue(parent, 'click', function(e) {
+  using (var Q = events.Queue(events.HostEmitter(parent, 'click', function(e) {
     if (domFindData('toggle', ['tab','pill'], e.target, parent)) {
       dom.stopEvent(e);
       return true;
     }
     else
       return false;
-  })) {
+  }))) {
     while (1) {
       var ev = Q.get();
       // ev.target is the <a> we want to activate
