@@ -6,6 +6,23 @@ var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
 
 //----------------------------------------------------------------------
+// counters which will be used to generate style & mechanism ids
+
+// To keep the static & dynamic worlds from colliding, we initialize
+// these from the global variable __oni_surface_init if present (it is
+// added for static documents - see static.sjs::Document)
+
+var gStyleCounter = 0;
+var gMechanismCounter = 0;
+
+if (typeof __oni_surface_init !== 'undefined') {
+  [gStyleCounter, gMechanismCounter] = __oni_surface_init;
+}
+
+exports._getDynOniSurfaceInit = -> 
+  "__oni_surface_init = [#{gStyleCounter+1}, #{gMechanismCounter+1}];";
+
+//----------------------------------------------------------------------
 /**
    @class FragmentTree
    @summary A tree structure representing a piece of Html along with meta information 
@@ -213,14 +230,13 @@ function InternalStyleDef(content, parent_class) {
 
 /**
    @function Style
-   @summary Add style to a fragment XXX
+   @summary Add style to a fragment 
 */
 
 
-var style_counter = 0;
 
 function Style(/* [opt] ft, style */) {
-  var id = ++style_counter, styledef;
+  var id = ++gStyleCounter, styledef;
   var class_name = "_oni_style#{id}_";
 
   function setStyle(ft) {
@@ -276,7 +292,7 @@ function ExternalStyleDef(url, parent_class) {
 
 
 function RequireStyle(/* [opt] ft, url */) {
-  var id = ++style_counter, styledef;
+  var id = ++gStyleCounter, styledef;
   var class_name = "_oni_style#{id}_";
 
   function setStyle(ft) {
@@ -315,9 +331,8 @@ exports.RequireStyle = RequireStyle;
    @function Mechanism
    @summary Add a mechanism to a html fragment 
 */
-var mechanism_counter = 0;
 function Mechanism(/* [opt] ft, code */) {
-  var id = ++mechanism_counter, code;
+  var id = ++gMechanismCounter, code;
 
   function setMechanism(ft) {
     ft = cloneWidget(ft);
