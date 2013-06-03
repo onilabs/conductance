@@ -151,7 +151,7 @@ __js var Mixins = exports.Mixins = function(vars) {
         "display: block;
          width: 100%;
          min-height: #{vars.inputHeight()};        /* Make inputs at least the height of their button counterpart (base line-height + padding + border) */
-         #{this.box_sizing('border-box')}; /* Makes inputs behave like true block-level elements */
+         #{this.box_sizing('border-box')} /* Makes inputs behave like true block-level elements */
         "
     ,
 

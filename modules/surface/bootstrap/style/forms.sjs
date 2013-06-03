@@ -96,7 +96,7 @@ input[type='color'],
 input,
 textarea,
 .uneditable-input {
-  width: 206px; // plus 12px padding and 2px border
+  width: 206px; /* plus 12px padding and 2px border */
 }
 /* Reset height since textareas have rows */
 textarea {
