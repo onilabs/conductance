@@ -1,7 +1,7 @@
 var { isQuasi, Quasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
 var { each, indexed, reduce, map, join, isStream } = require('sjs:sequence');
-var { extend, propertyPairs } = require('sjs:object');
+var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
 
@@ -27,9 +27,8 @@ var { build: buildUrl } = require('sjs:url');
 var FragmentProto = {
   toString:        -> "html::Fragment [#{this.getHtml()}]",
   getHtml:         -> this.content,        // string
-  getStyleDefs:    -> this.style,          // { style_id : def, ... }
+  getStyleDefs:    -> this.style,          // { style_id : [ref_count, def], ... }
   getMechanisms:   -> this.mechanisms,     // { mechanism_id : code, ... }
-  getMechanismUses:-> this.mechanism_uses, // [ [mechanism_id, use_id], ... ]
 };
 
 //helpers:
@@ -37,7 +36,6 @@ function initFragment(f) {
   f.content = '';
   f.style = {};
   f.mechanisms = {};
-  f.mechanism_uses = [];
 }
 
 function Fragment() {
@@ -56,9 +54,14 @@ exports.isFragment = isFragment;
 // helper
 function joinFragment(target, src) {
   target.content += src.getHtml();
-  target.style .. extend(src.getStyleDefs());
+  propertyPairs(src.getStyleDefs()) .. each { 
+    |[id,def]|
+    if (target.style[id])
+      target.style[id] = [target.style[id][0]+def[0], def[1]];
+    else
+      target.style[id] = def;
+  }
   target.mechanisms .. extend(src.getMechanisms());
-  target.mechanism_uses = src.getMechanismUses().concat(target.mechanism_uses);
 }
 
 /**
@@ -71,10 +74,6 @@ function collapseFragmentTree(ft) {
 
   if (isFragment(ft)) {
     rv = ft;
-  }
-  else if (isString(ft)) {
-    rv = Fragment();
-    rv.content += sanitize(ft);
   }
   else if (Array.isArray(ft) || isStream(ft)) {
     rv = ft .. 
@@ -95,8 +94,10 @@ function collapseFragmentTree(ft) {
         return c;
       }); 
   }
-  else 
-    throw new Error("Unsupported object '#{ft}' of type '#{typeof(ft)}' in fragment tree");
+  else {
+    rv = Fragment();
+    rv.content += sanitize(String(ft));
+  }
   
   return rv;
 }
@@ -135,7 +136,8 @@ WidgetProto.createElement = function() {
 function initWidget(w, tag, attribs) {
   initFragment(w);
   w.tag = tag || 'surface-ui';
-  w.attribs = attribs || {};
+  w.attribs = {};
+  if (attribs) w.attribs .. extend(attribs);
 }
 
 /**
@@ -168,6 +170,19 @@ function ensureWidget(ft) {
 }
 exports.ensureWidget = ensureWidget;
 
+/**
+  @function cloneWidget
+*/
+function cloneWidget(ft) {
+  if (!isWidget(ft)) return ensureWidget(ft);
+  var rv = Object.create(WidgetProto);
+  initWidget(rv, ft.tag, ft.attribs);
+  rv.content = ft.content;
+  rv.style = clone(ft.getStyleDefs());
+  rv.mechanisms = clone(ft.getMechanisms());
+  return rv;
+}
+exports.cloneWidget = cloneWidget;
 
 //----------------------------------------------------------------------
 
@@ -206,13 +221,19 @@ var style_counter = 0;
 
 function Style(/* [opt] ft, style */) {
   var id = ++style_counter, styledef;
-  // XXX should distinguish between client-side/server-side style here:
   var class_name = "_oni_style#{id}_";
 
   function setStyle(ft) {
-    ft = ensureWidget(ft);
-    ft.style[id] = styledef;
+    ft = cloneWidget(ft);
+
+    if (!ft.style[id])
+      ft.style[id] = [1,styledef];
+    else
+      ft.style[id] = [ft.style[id][0]+1, styledef];
+
     var classes = ft.attribs['class'] || '';
+    if (classes.indexOf('_oni_style_') == -1)
+      classes += ' _oni_style_';
     if (classes.indexOf(class_name) == -1) 
       classes += " "+class_name;
     ft.attribs['class'] = classes;
@@ -250,19 +271,25 @@ function ExternalStyleDef(url, parent_class) {
 
 /**
    @function RequireStyle
-   @summary Add an external stylesheet to a fragment XXX
+   @summary Add an external stylesheet to a fragment
 */
 
 
 function RequireStyle(/* [opt] ft, url */) {
   var id = ++style_counter, styledef;
-  // XXX should distinguish between client-side/server-side style here:
   var class_name = "_oni_style#{id}_";
 
   function setStyle(ft) {
-    ft = ensureWidget(ft);
-    ft.style[id] = styledef;
+    ft = cloneWidget(ft);
+
+    if (!ft.style[id])
+      ft.style[id] = [1,styledef];
+    else
+      ft.style[id] = [ft.style[id][0]+1, styledef];
+
     var classes = ft.attribs['class'] || '';
+    if (classes.indexOf('_oni_style_') == -1)
+      classes += ' _oni_style_';
     if (classes.indexOf(class_name) == -1) 
       classes += " "+class_name;
     ft.attribs['class'] = classes;
@@ -286,23 +313,26 @@ exports.RequireStyle = RequireStyle;
 
 /**
    @function Mechanism
-   @summary Destructively add a mechanism to a html fragment 
+   @summary Add a mechanism to a html fragment 
 */
 var mechanism_counter = 0;
-var mechanism_use_counter = 0;
-function Mechanism(/* [opt} ft, code */) {
+function Mechanism(/* [opt] ft, code */) {
   var id = ++mechanism_counter, code;
 
   function setMechanism(ft) {
-    ft = ensureWidget(ft);
-    ft.mechanisms[id] = code;
-    var use_id = ++mechanism_use_counter;
-    ft.mechanism_uses.unshift([id, use_id]);
+    ft = cloneWidget(ft);
 
-    if(!ft.attribs['data-oni-mechanism'])
-      ft.attribs['data-oni-mechanism'] = String(use_id);
+    ft.mechanisms[id] = code;
+
+    if(!ft.attribs['data-oni-mechanisms'])
+      ft.attribs['data-oni-mechanisms'] = String(id);
     else 
-      ft.attribs['data-oni-mechanism'] += ' '+use_id;
+      ft.attribs['data-oni-mechanisms'] += ' '+id;
+
+    var classes = ft.attribs['class'] || '';
+    if (classes.indexOf('_oni_mech_') == -1)
+      classes += ' _oni_mech_';
+    ft.attribs['class'] = classes;
 
     return ft;
   }
