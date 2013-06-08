@@ -92,18 +92,33 @@ exports.Stream = Stream;
   @function toStream
   @param {::Sequence} [sequence]
   @return {::Stream}
-  @summary return a Stream
+  @summary Return a Stream
   @desc
     If `sequence` is a [::Stream], it is returned unmodified.
-    Otherwise, a new [::Stream] is created that iterates over the
-    given sequence.
+    Otherwise, it returns a new [::Stream] that iterates over the
+    given sequence, like so:
 
-    This function can be useful for example to create an
-    immutable stream fron a mutable array. Note that any
-    mutation to `sequence` after passing it in will be
-    reflected in the resulting stream (i.e it merely
-    references the original array, it does not duplicate it).
-*/
+        return Stream(function (emit) {
+          seq .. each(emit);
+        });
+
+    This function is not often necessary, but can help in tests or
+    other cases where you have an array but want to ensure that your
+    code works when given a [::Stream].
+
+    You can also use this function to give some code access to an
+    array's elements but not the ability to modify the array,
+    without the overhead of copying the array.
+
+    ### Example
+        
+        var arr = [1,2,3,4];
+        someFn(arr .. toStream());
+
+        // someFn can iterate over the elements in `arr`,
+        // but it cannot modify `arr` directly.
+
+    */
 var toStream = function(arr) {
   if (isStream(arr)) return arr;
   return Stream({|r| each(arr, r)});
@@ -186,37 +201,25 @@ function each(sequence, r) {
 }
 exports.each = each;
 
-/**
-  @function exhaust
-  @param {::Sequence} [seq]
-  @summary Force the sequence to be fully evaluated.
-  @desc
-    A shorthand for `seq .. each { || }`
-
-    Blocks until the sequence has finished.
-*/
 var noop = function() {};
-function exhaust(seq) {
-  each(seq, noop);
-}
-exports.exhaust = exhaust;
+function exhaust(seq) { each(seq, noop); }
 
 /**
-   @function iterate
-   @altsyntax sequence .. iterate([eos]) { |next| ... }
+   @function consume
+   @altsyntax sequence .. consume([eos]) { |next| ... }
    @param {::Sequence} [sequence] Input sequence
    @param {optional Object} [eos=undefined] End of sequence marker
    @param {Function} [loop] Iteration loop
    @summary Execute an iteration loop for the given sequence
    @desc
      Calls function `loop` with one parameter, a `next` function which,
-     when called within the scope of `loop`, will return successive 
-     elements from `sequence`. If there are no more elements in `sequence`, 
+     when called within the scope of `loop`, will return successive
+     elements from `sequence`. If there are no more elements in `sequence`,
      calls to `next()` will yield `eos`.
 
      ### Example:
 
-         iterate([1,2,3,4], function(next) { 
+         consume([1,2,3,4], function(next) {
            var x;
            while ((x = next()) !== undefined)
              console.log(x);
@@ -224,7 +227,7 @@ exports.exhaust = exhaust;
 
          // same as above, using double dot & blocklambda call syntax:
          
-         [1,2,3,4] .. iterate { 
+         [1,2,3,4] .. consume {
            |next|
            var x;
            while ((x = next()) !== undefined)
@@ -233,8 +236,8 @@ exports.exhaust = exhaust;
      
 */
 
-/* 
-   Support for parallel streams makes the 'iterate' implementation quite complicated.
+/*
+   Support for parallel streams makes the 'consume' implementation quite complicated.
    Here's what it would looks like if we disallowed parallel streams, i.e. 'each(stream,f)'
    would guarantee to never call 'f' reentrantly when 'f' blocks:
 
@@ -277,7 +280,7 @@ exports.exhaust = exhaust;
      }
   }
 */
-function iterate(/* sequence, [opt]eos, loop */) {
+function consume(/* sequence, [opt]eos, loop */) {
   var sequence, eos, loop;
   if (arguments.length > 2)
     [sequence, eos, loop] = arguments;
@@ -342,7 +345,7 @@ function iterate(/* sequence, [opt]eos, loop */) {
   }
 
 }
-exports.iterate = iterate;
+exports.consume = consume;
 
 
 /**
@@ -869,7 +872,6 @@ function partition(sequence, predicate) {
   var buffers = [[], []];
   var emitters = [null, null]
   var drainer = null;
-  var noop = -> null;
   var _resume = noop;
 
   var streams = [0,1] .. map((idx) -> Stream(function(r) {
@@ -975,7 +977,7 @@ function pack(sequence, p, pad) {
   return Stream(function(r) {
     var eos = {}, next_item;
 
-    sequence .. iterate(eos) { 
+    sequence .. consume(eos) { 
       |next_upstream| 
 
       function next() {
@@ -1366,7 +1368,7 @@ function parallelize(sequence, max_strata) {
   max_strata = max_strata || 10;
   return Stream(function(r) {
     var eos = {}, count = 0;
-    sequence .. iterate(eos) {
+    sequence .. consume(eos) {
       |next|
       function dispatch() {
         var x = next();
@@ -1402,7 +1404,7 @@ function makeIterator(sequence) {
   var eos = {};
   var next_upstream = -> eos;
   var stratum = spawn (function() {
-    sequence .. iterate(eos) {
+    sequence .. consume(eos) {
       |next|
       next_upstream = next;
       hold();

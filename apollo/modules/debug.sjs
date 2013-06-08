@@ -263,7 +263,7 @@ __js function formatValue(ctx, value, recurseTimes) {
 
 function formatPrimitive(ctx, value) {
   if (isHtmlElement(value)) {
-    return value.outerHTML;
+    return '[HTML: ' + (value.outerHTML || value.data) + ']';
   }
   switch (typeof value) {
     case 'undefined':
@@ -321,7 +321,14 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
       desc = Object.getOwnPropertyDescriptor(value, key);
     } catch(e) { /* IE8 only supports getOwnPropertyDescriptor on HTML elements */ }
   }
-  if (!desc) desc = { value: value[key] };
+  if (!desc) {
+    try {
+      desc = { value: value[key] };
+    } catch(e) {
+      desc = { };
+      str = '[Error accessing property]';
+    }
+  }
   if (desc.get) {
     if (desc.set) {
       str = ctx.stylize('[Getter/Setter]', 'special');
