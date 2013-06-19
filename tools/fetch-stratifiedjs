@@ -31,6 +31,6 @@ console.log('Cloning external repo');
 exec('git clone git://github.com/onilabs/stratifiedjs.git stratifiedjs');
 console.log("Checking out branch 'mho'");
 exec('cd stratifiedjs/; git checkout mho');
-console.log('Reapplying out patches');
+console.log('Reapplying our patches');
 exec('git checkout -- stratifiedjs/');
 console.log('ALL DONE');
