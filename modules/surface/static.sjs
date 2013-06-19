@@ -12,7 +12,7 @@ exports.CSSDocument = function(content, parent_class) {
 
 exports.Document = function(content) {
 
-  content = html.collapseFragmentTree(content);
+  content = html.collapseHtmlFragment(content);
 
   return "\
 <!DOCTYPE html>
@@ -40,7 +40,11 @@ exports.Document = function(content) {
         #{
           // XXX need to escape </script> -> <\/script> in #{code} below!!!
           propertyPairs(content.getMechanisms()) .. 
-          map([id, code] -> "mechs[#{id}] = function(){ #{code} };") ..
+          map(function([id, code]) {
+            if (typeof code !== 'string')
+              throw new Error('Static surface code cannot contain mechanisms with function objects');
+            return "mechs[#{id}] = function(){ #{code} };"
+          }) ..
           join('\n')
         }
 
@@ -54,7 +58,7 @@ exports.Document = function(content) {
             filter .. // only truthy elements
             each { 
               |mech|
-              elem.__oni_mechs.push(spawn mechs[mech].apply(elem));
+              elem.__oni_mechs.push(spawn mechs[mech].call(elem, elem));
             }
           }
         })();

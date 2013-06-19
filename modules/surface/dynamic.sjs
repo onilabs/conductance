@@ -6,6 +6,7 @@ var { ensureWidget } = require('./html');
 var { propertyPairs } = require('sjs:object');
 var { toArray, map, filter, each, reverse, combine } = require('sjs:sequence');
 var { split } = require('sjs:string');
+var { wait } = require('sjs:events');
 
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
@@ -21,6 +22,16 @@ var resourceRegistry = {
       if (!(desc = stylesInstalled[id])) {
         desc = stylesInstalled[id] = { ref_count: cnt, elem: def.createElement() };
         (document.head || document.getElementsByTagName("head")[0] /* IE<9 */).appendChild(desc.elem);
+        // wait for stylesheet to load for an arbitrary maximum of 2s; 
+        // display warning in console if it hasn't loaded by then.
+        // XXX we should refactor the code to allow loading of stylesheets in parallel!
+        waitfor {
+          desc.elem .. wait('load');
+        }
+        or {
+          hold(2000);
+          console.log("Warning: Stylesheet #{def} taking long to load");
+        }
       }
       else {
         desc.ref_count += cnt;
@@ -38,6 +49,8 @@ var resourceRegistry = {
     }
   },
 
+  // XXX no real need to go through the whole use/unuse machinery for
+  // typeof code == function
   useMechanisms: function(mechs) {
     propertyPairs(mechs) .. each {
       |[id, code]|
@@ -45,7 +58,9 @@ var resourceRegistry = {
       if (!(desc = mechanismsInstalled[id])) {
         desc = mechanismsInstalled[id] = {
           ref_count: 1,
-          func: require('builtin:apollo-sys').eval("(function(){#{code}})")
+          func: (typeof code === 'function') ? 
+            code :
+            require('builtin:apollo-sys').eval("(function(){#{code}})")
         };
       }
       else {
@@ -78,6 +93,34 @@ exports.resourceRegistry = resourceRegistry;
 //----------------------------------------------------------------------
 // main dynamic api
 
+// helpers
+
+function stopMechanisms(elems) {
+  elems .. each {
+    |elem|
+    (elem.__oni_mechs || []) .. each {
+      |stratum|
+      stratum.abort();
+    }
+    delete elem.__oni_mechs;
+  }
+}
+
+function unuseStyles(elems) {
+  elems .. each {
+    |elem|
+    elem.getAttribute('class') .. split(' ') .. each {
+      |cls|
+      var matches = /_oni_style(\d+)_/.exec(cls);
+      if (!matches) continue;
+      resourceRegistry.unuseStyle(matches[1]);
+    }
+  }
+}
+
+/**
+   @function appendHtml
+*/
 function appendHtml(parent_node, ft) {
   ft = ensureWidget(ft);
   
@@ -106,7 +149,7 @@ function appendHtml(parent_node, ft) {
             filter .. // only truthy elements
             each {
               |mech|
-              elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.apply(elem));
+              elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
             }
         }
     }
@@ -124,36 +167,50 @@ function appendHtml(parent_node, ft) {
 }
 exports.appendHtml = appendHtml;
 
-function removeElement(elem) {
+/**
+   @function removeHtml
+*/
+function removeHtml(parent_node) {
   // stop all mechanisms below us:
-  combine([elem], elem.querySelectorAll('._oni_mech_') || []) ..
-    each {
-      |elem|
-      (elem.__oni_mechs || []) .. each {
-        |stratum|
-        stratum.abort();
-      }
-      delete elem.__oni_mechs;
-    }
+  parent_node.querySelectorAll('._oni_mech_') .. stopMechanisms();
+
+  // unuse all styles below us
+  parent_node.querySelectorAll('._oni_style_') .. unuseStyles();
+
+  parent_node.innerHTML = '';
+
+}
+exports.removeHtml = removeHtml;
+
+/**
+   @function replaceHtml
+*/
+function replaceHtml(parent_node, ft) {
+  parent_node .. removeHtml();
+  parent_node .. appendHtml(ft);
+}
+exports.replaceHtml = replaceHtml;
+
+/**
+   @function removeElement
+*/
+function removeElement(elem) {
+  // stop our mechanism and all mechanisms below us:
+  combine([elem], elem.querySelectorAll('._oni_mech_')) ..
+    stopMechanisms();
 
   if (elem.parentNode)
     elem.parentNode.removeChild(elem);
   
-  // unuse all styles below us
-  combine([elem], elem.querySelectorAll('._oni_style_') || []) ..
-    each {
-      |elem|
-      elem.getAttribute('class') .. split(' ') .. each {
-        |cls|
-        var matches = /_oni_style(\d+)_/.exec(cls);
-        if (!matches) continue;
-        resourceRegistry.unuseStyle(matches[1]);
-      }
-    }
+  // unuse our styles and all styles below us
+  combine([elem], elem.querySelectorAll('._oni_style_')) ..
+    unuseStyles();
 }
 exports.removeElement = removeElement;
 
-
+/**
+   @function withHtml
+*/
 function withHtml(parent_node, ft, block) {
   var elem = parent_node .. appendHtml(ft);
   try {

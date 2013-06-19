@@ -9,37 +9,73 @@ var BootstrapMechanism = html.Mechanism("
   and     { mechanisms.tabbing(this);       }
 ");
 
+/**
+   @function Bootstrap
+*/
 function Bootstrap(content) {
-  return html.Widget(content) .. BootstrapStyle .. BootstrapMechanism;
+  return html.Widget('div', content) .. BootstrapStyle .. BootstrapMechanism;
 }
 exports.Bootstrap = Bootstrap;
 
-function H1(content) {
-  return html.Widget(content, 'h1');
-}
-exports.H1 = H1;
+/**
+   @function Container
+*/
+exports.Container = content -> html.Widget('div', content, {'class':'container'});
 
-exports.Icon = name -> html.Widget('', 'i', {'class':"icon-#{name}"});
+/**
+   @function H1
+*/
+exports.H1 = content -> html.Widget('h1', content);
+/**
+   @function H2
+*/
+exports.H2 = content -> html.Widget('h2', content);
+/**
+   @function H3
+*/
+exports.H3 = content -> html.Widget('h3', content);
 
-function Btn(content) {
-  content = content || 'Btn';
-  return html.Widget(content, 'button', {'class':'btn'});
-}
+/**
+   @function Span
+*/
+exports.Span = content -> html.Widget('span', content);
+
+/**
+   @function Icon
+*/
+exports.Icon = name -> html.Widget('i', undefined, {'class':"icon-#{name}"});
+
+/**
+   @function Btn
+*/
+var Btn = content -> html.Widget('button', content || 'Btn', {'class':'btn'});
 exports.Btn = Btn;
 
-exports.Container = content -> html.Widget(content, 'div', {'class':'container'});
+
+/**
+   @function Select
+*/
+exports.Select = options ->
+  html.Widget('select',
+              options .. map({title,value} -> `<option value='$value'>$title</option>`));
 
 var DropdownMenu = items -> 
-  `${
-      items .. map(({name, url}) -> `<li><a tabindex='-1' href='${url||'#'}'>$name</a></li>`)
-    }` .. html.Widget('ul', {'class':'dropdown-menu'});
+  html.Widget('ul',
+              items .. 
+              map(({name, url}) -> 
+                  `<li><a tabindex='-1' href='${url||'#'}'>$name</a></li>`),
+              {'class':'dropdown-menu'});
 
 
+/**
+   @function BtnDropdown
+*/
 exports.BtnDropdown = (title, items) ->
-  `<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'>
-     ${title}
-     <span class='caret'></span>
-   </a>
-   $DropdownMenu(items)
-  ` .. 
-  html.Widget('div', {'class':'btn-group'});
+  html.Widget('div',
+              `<a class='btn dropdown-toggle' data-toggle='dropdown' href='#'>
+               ${title}
+              <span class='caret'></span>
+              </a>
+              $DropdownMenu(items)
+              `,
+              {'class':'btn-group'});

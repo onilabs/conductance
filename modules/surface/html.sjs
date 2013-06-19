@@ -24,52 +24,53 @@ exports._getDynOniSurfaceInit = ->
 
 //----------------------------------------------------------------------
 /**
-   @class FragmentTree
+   @class HtmlFragment
    @summary A tree structure representing a piece of Html along with meta information 
    @desc
-     FRAGMENT_TREE      : QUASI | FRAGMENT | ARRAY | UNSAFE_TXT
+     HTML_FRAGMENT      : QUASI | CFRAGMENT | ARRAY | UNSAFE_TXT
      QUASI              : "`" QUASI_COMPONENT* "`"
-     QUASI_COMPONENT    : LITERAL_TXT | "${" FRAGMENT_TREE "}"
+     QUASI_COMPONENT    : LITERAL_TXT | "${" HTML_FRAGMENT "}"
      ARRAY              : "[" FRAGMENT_TREE_LIST? "]"
-     FRAGMENT_TREE_LIST : FRAGMENT | FRAGMENT_TREE_LIST "," FRAGMENT  
+     FRAGMENT_TREE_LIST : HTML_FRAGMENT | FRAGMENT_TREE_LIST "," HTML_FRAGMENT  
      UNSAFE_TXT         : '"' STRING '"'
      LITERAL_TXT        : STRING
-     FRAGMENT           : an instance of class [::Fragment]
+     CFRAGMENT          : an instance of class [::CollapsedFragment]
 */
 
 //----------------------------------------------------------------------
 /**
-   @class Fragment
+   @class CollapsedFragment
+   @summary Internal class representing a collapsed [::HtmlFragment] 
 */
-var FragmentProto = {
-  toString:        -> "html::Fragment [#{this.getHtml()}]",
+var CollapsedFragmentProto = {
+  toString:        -> "html::CollapsedFragment [#{this.getHtml()}]",
   getHtml:         -> this.content,        // string
   getStyleDefs:    -> this.style,          // { style_id : [ref_count, def], ... }
   getMechanisms:   -> this.mechanisms,     // { mechanism_id : code, ... }
 };
 
 //helpers:
-function initFragment(f) {
+function initCollapsedFragment(f) {
   f.content = '';
   f.style = {};
   f.mechanisms = {};
 }
 
-function Fragment() {
-  var rv = Object.create(FragmentProto);
-  initFragment(rv);
+function CollapsedFragment() {
+  var rv = Object.create(CollapsedFragmentProto);
+  initCollapsedFragment(rv);
   return rv;
 }
 
 /**
-   @function isFragment
+   @function isCollapsedFragment
 */
-function isFragment(obj) { return FragmentProto.isPrototypeOf(obj); }
-exports.isFragment = isFragment;
+function isCollapsedFragment(obj) { return CollapsedFragmentProto.isPrototypeOf(obj); }
+exports.isCollapsedFragment = isCollapsedFragment;
 
 
 // helper
-function joinFragment(target, src) {
+function joinCollapsedFragment(target, src) {
   target.content += src.getHtml();
   propertyPairs(src.getStyleDefs()) .. each { 
     |[id,def]|
@@ -82,29 +83,29 @@ function joinFragment(target, src) {
 }
 
 /**
-  @function collapseFragmentTree
-  @param {::FragmentTree} [ft]
-  @return {::Fragment}
+  @function collapseHtmlFragment
+  @param {::HtmlFragment} [ft]
+  @return {::CollapsedFragment}
 */
-function collapseFragmentTree(ft) {
+function collapseHtmlFragment(ft) {
   var rv;
 
-  if (isFragment(ft)) {
+  if (isCollapsedFragment(ft)) {
     rv = ft;
   }
   else if (Array.isArray(ft) || isStream(ft)) {
     rv = ft .. 
-      map(collapseFragmentTree) ..
-      reduce(Fragment(), function(c, p) {
-        c .. joinFragment(p);
+      map(collapseHtmlFragment) ..
+      reduce(CollapsedFragment(), function(c, p) {
+        c .. joinCollapsedFragment(p);
         return c;
       });
   }
   else if (isQuasi(ft)) {
     rv = indexed(ft.parts) .. 
-      reduce(Fragment(), function(c, [idx, val]) {
+      reduce(CollapsedFragment(), function(c, [idx, val]) {
         if (idx % 2) {
-          c .. joinFragment(collapseFragmentTree(val));
+          c .. joinCollapsedFragment(collapseHtmlFragment(val));
         }
         else // a literal value
           c.content += val;
@@ -112,23 +113,24 @@ function collapseFragmentTree(ft) {
       }); 
   }
   else {
-    rv = Fragment();
+    rv = CollapsedFragment();
     rv.content += sanitize(String(ft));
   }
   
   return rv;
 }
-exports.collapseFragmentTree = collapseFragmentTree;
+exports.collapseHtmlFragment = collapseHtmlFragment;
 
 //----------------------------------------------------------------------
 /**
    @class Widget
-   @inherit ::Fragment
+   @inherit ::CollapsedFragment
+   @summary A [::HtmlFragment] rooted in a single HTML element
 */
-var WidgetProto = Object.create(FragmentProto);
+var WidgetProto = Object.create(CollapsedFragmentProto);
 
 WidgetProto.toString = function() {
-  return "html::Fragment [#{this.getHtml()}]";
+  return "html::Widget [#{this.getHtml()}]";
 };
 
 WidgetProto.getHtml = function() {
@@ -151,21 +153,23 @@ WidgetProto.createElement = function() {
 };
 
 function initWidget(w, tag, attribs) {
-  initFragment(w);
-  w.tag = tag || 'surface-ui';
+  initCollapsedFragment(w);
+  w.tag = tag;
   w.attribs = {};
   if (attribs) w.attribs .. extend(attribs);
 }
 
 /**
    @function Widget
-   @param {::FragmentTree} [content]
+   @param {String} [tag]
+   @param {::HtmlFragment} [content]
    @return {::Widget}
 */
-function Widget(content, tag, attribs) {
+function Widget(tag, content, attribs) {
   var rv = Object.create(WidgetProto);
   initWidget(rv, tag, attribs);
-  rv .. joinFragment(collapseFragmentTree(content));
+  if (content !== undefined)
+    rv .. joinCollapsedFragment(collapseHtmlFragment(content));
 
   return rv;
 }
@@ -182,7 +186,7 @@ exports.isWidget = isWidget;
 */
 function ensureWidget(ft) {
   if (!isWidget(ft))
-    ft = Widget(ft);
+    ft = Widget('surface-ui', ft);
   return ft;
 }
 exports.ensureWidget = ensureWidget;
@@ -230,10 +234,8 @@ function InternalStyleDef(content, parent_class) {
 
 /**
    @function Style
-   @summary Add style to a fragment 
+   @summary Add style to a widget 
 */
-
-
 
 function Style(/* [opt] ft, style */) {
   var id = ++gStyleCounter, styledef;
@@ -287,7 +289,7 @@ function ExternalStyleDef(url, parent_class) {
 
 /**
    @function RequireStyle
-   @summary Add an external stylesheet to a fragment
+   @summary Add an external stylesheet to a widget
 */
 
 
@@ -329,7 +331,7 @@ exports.RequireStyle = RequireStyle;
 
 /**
    @function Mechanism
-   @summary Add a mechanism to a html fragment 
+   @summary Add a mechanism to a widget 
 */
 function Mechanism(/* [opt] ft, code */) {
   var id = ++gMechanismCounter, code;
@@ -362,3 +364,29 @@ function Mechanism(/* [opt] ft, code */) {
   }
 }
 exports.Mechanism = Mechanism;
+
+//----------------------------------------------------------------------
+
+function Class(widget, clsname) {
+  var widget = cloneWidget(widget);
+  if (!widget.attribs['class'])
+    widget.attribs['class'] = clsname;
+  else
+    widget.attribs['class'] += " #{clsname}";
+  return widget;
+}
+exports.Class = Class;
+
+function Attrib(widget, name, value) {
+  var widget = cloneWidget(widget);
+  widget.attribs[name] = value;
+  return widget;
+}
+exports.Attrib = Attrib;
+
+exports.Id = (widget, id) -> Attrib(widget, 'id', id);
+
+//----------------------------------------------------------------------
+
+exports.Div = content -> Widget('div', content);
+ 

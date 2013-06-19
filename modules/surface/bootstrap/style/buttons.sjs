@@ -19,6 +19,10 @@ exports.css = function(vars, mixins) {
   text-align: center;
   vertical-align: middle;
   cursor: pointer;
+}
+/* the order matters; we need to splice in this mixin, and then continue with .btn: */
+#{mixins.buttonBackground('.btn', vars.btnBackground(), vars.btnBackgroundHighlight(), vars.grayDark(), '0 1px 1px rgba(255,255,255,.75)')}
+.btn {
   border: 1px solid #{vars.btnBorder()};
   *border: 0; /* Remove the border to prevent IE7's black border on input:focus */
   border-bottom-color: #{darken(vars.btnBorder(), .1)};
@@ -26,7 +30,6 @@ exports.css = function(vars, mixins) {
   #{mixins.box_shadow('inset 0 1px 0 rgba(255,255,255,.2), 0 1px 2px rgba(0,0,0,.05)')}
 }
 #{mixins.ie7_restore_left_whitespace('.btn')} /* Give IE7 some love */
-#{mixins.buttonBackground('.btn', vars.btnBackground(), vars.btnBackgroundHighlight(), vars.grayDark(), '0 1px 1px rgba(255,255,255,.75)')}
 
 /* Hover state */
 .btn:hover,
