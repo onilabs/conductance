@@ -1,6 +1,6 @@
 var url = require('sjs:url');
 var { withServer } = require('sjs:nodejs/http');
-var { each, map, filter, parallelize, find, toArray, join } = require('sjs:sequence');
+var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
 var { override, propertyPairs, keys } = require('sjs:object');
 var { stat } = require('sjs:nodejs/fs');
@@ -71,7 +71,7 @@ env.init({
   configRoot         : url.normalize('./', configfile),
   conductanceVersion : "1-#{
                              (new Date(
-                                stat(url.normalize('../../stratifiedjs/oni-apollo-node.js', 
+                                stat(url.normalize('../../stratifiedjs/stratified-node.js', 
                                      module.id).substr(7)).mtime)).getTime()
                            }",
 });
@@ -166,7 +166,7 @@ function runPort(port_desc) {
 // main program:
 
 try {
-  config.ports .. parallelize(100) .. each(runPort);
+  config.ports .. each.par(100, runPort);
   process.stdout.write("
 Oni Conductance finished
 ");

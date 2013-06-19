@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'docutil' module
+ * StratifiedJS 'docutil' module
  * Utility functions for extracting JS-style comments from source code 
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *
@@ -265,6 +265,10 @@ exports.parseModuleDocs = function(src, module) {
         valtype: matches[paramType],
         summary: matches[paramDescription]
       };
+      break;
+    case "altsyntax":
+      if (!curr.altsyntax) curr.altsyntax = [];
+      curr.altsyntax.push(value);
       break;
     default:
       curr[prop] = value;

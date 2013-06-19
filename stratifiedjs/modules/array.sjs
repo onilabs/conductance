@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'array' module
+ * StratifiedJS 'array' module
  * Functions for working with arrays
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *
@@ -41,7 +41,7 @@ var { isArrayLike, flatten } = require('builtin:apollo-sys');
 /**
    @function isArrayLike
    @summary  Tests if an object is an array, `arguments` object or, in an xbrowser 
-             hostenv of Apollo, a NodeList.
+             hostenv of StratifiedJS, a NodeList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
@@ -80,7 +80,7 @@ exports.contains = contains;
    @function cycle
    @param {Array} [arr]
    @return {sequence:Stream}
-   @summary Returns an infinite [sequence:Stream] of values `arr[0], arr[1], ..., arr[arr.length-1], arr[0], arr[1], ...`
+   @summary Returns an infinite [sequence::Stream] of values `arr[0], arr[1], ..., arr[arr.length-1], arr[0], arr[1], ...`
    @desc
      * Throws an exception is the array is empty
 */

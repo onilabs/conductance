@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'test/runner' module
+ * StratifiedJS 'test/runner' module
  * Functions for collecting and running test suites
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *
@@ -50,7 +50,7 @@
             <!--[if lt IE 8]>
               <script src="//cdnjs.cloudflare.com/ajax/libs/json2/20121008/json2.js"></script>
             <![endif]-->
-            <script src="../oni-apollo.js"></script>
+            <script src="../stratified.js"></script>
             <script type="text/sjs">
               require("sjs:test/runner").run({
                 moduleList: "./index.txt",
@@ -65,11 +65,11 @@
     can serve files should do - apache, WEBrick, SimpleHTTPServer, etc).
 
     In addition, the nodejs runner has rudimentary support for .html files. If you pass a .html
-    file to the `apollo` command-line tool, it'll strip out anything inside a
+    file to the `sjs` command-line tool, it'll strip out anything inside a
     `<script type="text/sjs">` block and run that as if it were a plain `.sjs` file. So you
     can run your tests in nodejs with this same file, using e.g:
     
-        `apollo ./test/run.html`
+        sjs ./test/run.html
 
     ## Command-line arguments
 
@@ -79,7 +79,7 @@
     The format should be the same in both cases, e.g:
 
         # command line
-        apollo test/run.html --no-logcapture 'foo-tests:My first test'
+        sjs test/run.html --no-logcapture 'foo-tests:My first test'
 
         # browser address
         http://localhost:7070/test/run.html#--no-logcapture 'foo-tests:My first test'

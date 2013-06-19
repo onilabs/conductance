@@ -1,18 +1,18 @@
 /*
- * Oni Apollo 'dashdash' module
+ * StratifiedJS 'dashdash' module
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *
  *
- *   **************************************************************
- *   *    DO NOT EDIT dashdash.sjs - IT IS A GENERATED FILE!      *
- *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN      *
- *   *    apollo/src/build/make-apollo                            *
- *   **************************************************************
+ *   ***************************************************************
+ *   *    DO NOT EDIT dashdash.sjs - IT IS A GENERATED FILE!       *
+ *   *    EDIT THE SOURCE CODE UNDER stratifiedjs/src/deps AND RUN *
+ *   *    stratifiedjs/src/build/make-sjs                          *
+ *   ***************************************************************
  *
  *
  * This file is derived from the "dashdash" project
@@ -48,7 +48,7 @@
 
 /**
   @module    dashdash
-  @summary   Options parser (tracking [node-dashdash library](https://github.com/trentm/node-dashdash))
+  @summary   Options parser (tracking the [node-dashdash library](https://github.com/trentm/node-dashdash))
   @home      sjs:dashdash
   @desc
 This module tracks the [dashdash](https://github.com/trentm/node-dashdash) library by Trent Mick.
@@ -332,8 +332,7 @@ The `parser.help(...)` function is configurable as follows:
 
 /**
   @class Parser
-  @constructor Parser
-
+  @summary Use [::createParser] to create a Parser.
   @function createParser
   @param {Object} [config]
   @param {Boolean} [interspersed] Default true.
@@ -374,7 +373,7 @@ var sys = require('builtin:apollo-sys');
 var global = sys.getGlobal();
 var process = sys.hostenv == 'xbrowser' ? {argv: [], env: {}} : global.process;
 var assert = require('./assert');
-var { each, map, join, indexed, toArray } = require('./sequence');
+var { each, map, join, indexed } = require('./sequence');
 var { ownKeys, clone } = require('./object');
 
 var format = function(str /*, replacements ... */) {

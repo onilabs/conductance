@@ -48,7 +48,7 @@ function gen_app_html(src, dest, aux) {
        <head>
          <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
          <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-         <script src='/__sjs/oni-apollo.js'></script>
+         <script src='/__sjs/stratified.js'></script>
          <script type='text/sjs'>
            require.hubs.push(['mho:', '/__mho/']);
            require.hubs.push(['\u2127:', 'mho:']);

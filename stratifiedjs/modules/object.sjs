@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'object' module
+ * StratifiedJS 'object' module
  * Functions for working with objects
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *
@@ -156,7 +156,7 @@ exports.keys = keys;
              i.e. excluding those defined on `obj`'s prototype chain.
    @desc     
        Note that you can also use the ECMA-263/5 function `Object.keys` - 
-       on older JS engines Apollo adds a shim to emulate this function. 
+       on older JS engines StratifiedJS adds a shim to emulate this function. 
 
        See also [::keys].
 */

@@ -25,7 +25,7 @@ exports.Document = function(content) {
         map([ref_count,def] -> def.getHtml()) .. 
         join('\n')
     }
-    <script src='/__sjs/oni-apollo.js'></script>
+    <script src='/__sjs/stratified.js'></script>
     <script type='text/sjs'>
       require.hubs.push(['mho:', '/__mho/']);
       require.hubs.push(['\u2127:', 'mho:']);

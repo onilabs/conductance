@@ -1,19 +1,19 @@
 /*
- * Oni Apollo 'numeric' module
+ * StratifiedJS 'numeric' module
  * Functions for numeric linear algebra computations 
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2012 Oni Labs, http://onilabs.com
  *
  *
- *   ***********************************************************
- *   *    DO NOT EDIT numeric.sjs - IT IS A GENERATED FILE!    *
- *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN   * 
- *   *    apollo/src/build/make-apollo                         *
- *   ***********************************************************
+ *   ***************************************************************
+ *   *    DO NOT EDIT numeric.sjs - IT IS A GENERATED FILE!        *
+ *   *    EDIT THE SOURCE CODE UNDER stratifiedjs/src/deps AND RUN *
+ *   *    stratifiedjs/src/build/make-sjs                          *
+ *   ***************************************************************
  *
  *
  * This file is derived from the "Numeric Javascript" project (http://www.numericjs.com), 
@@ -762,7 +762,7 @@ __js {
 var numeric = exports;
 
 // numeric generates many functions dynamically, and this leads to
-// scope problems.  As a quick-and-dirty workaround for Apollo, we
+// scope problems.  As a quick-and-dirty workaround for StratifiedJS, we
 // reflect the numeric object into the global scope as '__numeric':
 require('builtin:apollo-sys').getGlobal().__numeric = numeric;
 

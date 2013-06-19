@@ -2,4 +2,4 @@
 
 SJS_BIN=`dirname $0`/stratifiedjs
 CONDUCTANCE_LIB=`dirname $0`/modules/server
-exec $SJS_BIN/apollo "$CONDUCTANCE_LIB/main.sjs" "$@"
+exec $SJS_BIN/sjs "$CONDUCTANCE_LIB/main.sjs" "$@"

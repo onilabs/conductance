@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'test/reporter' module
+ * StratifiedJS 'test/reporter' module
  * Reporter objects for outputting test suite results
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *
@@ -522,7 +522,7 @@ NodejsReporter.prototype.linkToTest = function(testId, inline) {
   var url = require('sjs:url');
   base = base..url.toPath();
   base = require('nodejs:path').relative(process.cwd(), base);
-  var args = ['apollo', base, testId];
+  var args = ['sjs', base, testId];
   this.print(this.color({attribute:'dim'}, this.prefix + "# " + shell_quote.quote(args)));
 }
 

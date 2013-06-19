@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'debug' module
+ * StratifiedJS 'debug' module
  * Helpers for debugging
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2012 Oni Labs, http://onilabs.com
  *
@@ -34,7 +34,6 @@
    @module  debug
    @summary Helpers for debugging
    @home    sjs:debug
-   @desc    Work-in-progress; pretty much a straight copy of nodejs's [util.inspect, etc](http://nodejs.org/api/util.html#util_util_inspect_object_showhidden_depth_colors) atm.
 */
 
 var { map, reduce, join } = require('./sequence');

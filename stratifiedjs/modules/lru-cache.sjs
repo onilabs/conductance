@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'lru-cache' module
+ * StratifiedJS 'lru-cache' module
  * Least Recently Used Cache
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2012 Oni Labs, http://onilabs.com
  *
@@ -48,7 +48,7 @@ var CacheProto = Cache.prototype = {};
 /**
    @function makeCache
    @summary  Construct an initialized [::Cache] object
-   @param {Number} [maxsize] Maximum size to which the cache is allowed to grow before items
+   @param {Number} [maxsize] Maximum size (in number of items) to which the cache is allowed to grow before items
                              will be disposed
 */
 exports.makeCache = function(maxsize) {

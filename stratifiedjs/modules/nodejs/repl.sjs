@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'nodejs/repl' module
- * Read-eval-print loop for nodejs-based apollo
+ * StratifiedJS 'nodejs/repl' module
+ * Read-eval-print loop
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *
@@ -31,7 +31,7 @@
  */
 /**
   @module  nodejs/repl
-  @summary Stratified read-eval-print loop for nodejs-based apollo
+  @summary Stratified read-eval-print loop
   @home    sjs:nodejs/repl
   @hostenv nodejs
 */
@@ -118,7 +118,7 @@ function evalCommandLine(cl, interrupt) {
 // prompt
 
 var promptType;
-var inputPrompt = 'apollo> ';
+var inputPrompt = 'sjs> ';
 
 function switchPrompt(type) {
   if (type == promptType) return;
@@ -137,7 +137,7 @@ function switchPrompt(type) {
 
 function updatePrompts() {
   // we show the numbe of background strata in our input prompt:
-  inputPrompt = 'apollo'+(bgStrata.length ? '['+bgStrata.length+']> ' : '> ');
+  inputPrompt = 'sjs'+(bgStrata.length ? '['+bgStrata.length+']> ' : '> ');
 
   // if we currently show the input prompt, update it:
   if (promptType == 'input') {

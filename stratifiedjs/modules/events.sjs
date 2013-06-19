@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'events' module
+ * StratifiedJS 'events' module
  * Stratified utilities for native events
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *
@@ -115,7 +115,7 @@ var EmitterProto = Object.create(BaseEmitterProto);
   @inherit   ::Emitter
   @summary   An [::Emitter] subclass that wraps a "host" event emitter.
   @function  HostEmitter
-  @param     {ArrayElement|EventEmitter} [emitters] Object or objects to watch.
+  @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Function} [filter] Function through which received
              events will be passed. An event will only be emitted if this
@@ -253,15 +253,15 @@ if (sys.hostenv == 'nodejs') {
 
 /**
   @function wait
-  @summary Wait for a single event only.
-  @param     {ArrayElement|EventEmitter} [emitters] Object or objects to watch.
+  @summary Wait for a single firing of a DOM or nodejs event.
+  @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Function} [filter] Function through which received
              events will be passed. An event will only be emitted if this
              function returns a value == true.
   @param     {optional Function} [eventTransformer] Function through which an
              event will be passed before passing the return value on to
-             *filter* and/or emitting it.
+             `filter` and/or emitting it.
   @desc
     This function waits for a single event and then stops
     listening for further events. It takes exactly the same arguments
