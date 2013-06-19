@@ -413,15 +413,7 @@ Runner.prototype.run = function(reporter) {
       if (test.shouldSkip()) {
         results._skip(result, test.skipReason);
       } else {
-        var testTimeout = test._getTimeout();
-        if (testTimeout === undefined) testTimeout = defaultTimeout;
-        waitfor {
-          test.run();
-        } or {
-          if(testTimeout == null) hold();
-          hold(testTimeout * 1000);
-          throw new Error("Test exceeded #{testTimeout}s timeout");
-        }
+        test.run(defaultTimeout);
 
         extraGlobals = getGlobals(initGlobals);
         checkGlobals(test, extraGlobals);
@@ -688,7 +680,7 @@ CompiledOptions.prototype = {
   checkLeaks     : true,
   color          : null,
   logCapture     : true,
-  logLevel       : null,
+  logLevel       : logging.INFO,
   reporter       : null,
   showAll        : true,
   skippedOnly    : false,
@@ -916,7 +908,7 @@ Options:
             spec.test = parts.slice(1) .. join(':');
           }
           return spec;
-        }) .. toArray;
+        });
       }
     } catch(e) {
       printHelp();
@@ -1001,7 +993,7 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base, skippedOn
   var defaultAction = (mod, test) -> skippedOnly ? test.shouldSkip() : true;
 
   if (specs.length > 0 && !base) throw new Error("opts.base not defined");
-  var filters = specs .. map(s -> new SuiteFilter(s, base)) .. toArray;
+  var filters = specs .. map(s -> new SuiteFilter(s, base));
 
   if (specs.length == 0) {
     return {

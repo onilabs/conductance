@@ -33,7 +33,7 @@ exports.ports = [
    through this array in order and dispatch the request to the first
    host with matching hostname that is configured to listen on the
    given port (if no ports are given the host will listen on all
-   ports in the exports.ports array)
+   ports listed in the exports.ports array)
 */
 exports.hosts = [
   {
