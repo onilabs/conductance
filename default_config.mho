@@ -80,7 +80,7 @@ exports.hosts = [
     hostname: /^.*$/, 
     ports: ['secure', 'insecure'],
     routes: [
-      // StandardSystemRoutes maps apollo/ to __apollo & modules to __mho,
+      // StandardSystemRoutes maps stratifiedjs/ to __sjs & modules to __mho,
       // installs a bridge-over-aat handler at __aat_bridge, and a 
       // keyhole server at __keyhole
       StandardSystemRoutes(),

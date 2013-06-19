@@ -1,10 +1,9 @@
 /*
- * Oni Apollo 'rpc/aat-client' module
+ * 'rpc/aat-client' module
  * Asymmetric AJAX Transport Client
  *
- * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
- * http://onilabs.com/apollo
+ * http://onilabs.com
  *
  * (c) 2012-2013 Oni Labs, http://onilabs.com
  *

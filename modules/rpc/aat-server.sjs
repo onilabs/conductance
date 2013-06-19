@@ -1,10 +1,9 @@
 /*
- * Oni Apollo 'rpc/aat-server' module
+ * 'rpc/aat-server' module
  * Asymmetric AJAX Transport Server
  *
- * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
- * http://onilabs.com/apollo
+ * http://onilabs.com
  *
  * (c) 2012 Oni Labs, http://onilabs.com
  *

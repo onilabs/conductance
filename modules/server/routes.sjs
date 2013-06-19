@@ -73,7 +73,7 @@ exports.MappedDirectoryRoute = MappedDirectoryRoute;
 
 function StandardSystemRoutes() {
   return [
-    MappedDirectoryRoute(/^\/__sjs(\/.*)$/, "#{conductanceRoot()}apollo/"),
+    MappedDirectoryRoute(/^\/__sjs(\/.*)$/, "#{conductanceRoot()}stratifiedjs/"),
     MappedDirectoryRoute(/^\/__mho(\/.*)$/, "#{conductanceRoot()}modules/"),
     {
       path: /__aat_bridge\/(2)$/,

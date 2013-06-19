@@ -1,10 +1,9 @@
 /*
- * Oni Apollo 'rpc/bridge' module
+ * 'rpc/bridge' module
  * API bridge
  *
- * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
- * http://onilabs.com/apollo
+ * http://onilabs.com
  *
  * (c) 2012-2013 Oni Labs, http://onilabs.com
  *

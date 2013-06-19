@@ -71,7 +71,7 @@ env.init({
   configRoot         : url.normalize('./', configfile),
   conductanceVersion : "1-#{
                              (new Date(
-                                stat(url.normalize('../../apollo/oni-apollo-node.js', 
+                                stat(url.normalize('../../stratifiedjs/oni-apollo-node.js', 
                                      module.id).substr(7)).mtime)).getTime()
                            }",
 });

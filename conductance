@@ -1,5 +1,5 @@
 #!/bin/bash
 
-APOLLO_BIN=`dirname $0`/apollo
+SJS_BIN=`dirname $0`/stratifiedjs
 CONDUCTANCE_LIB=`dirname $0`/modules/server
-exec $APOLLO_BIN/apollo "$CONDUCTANCE_LIB/main.sjs" "$@"
+exec $SJS_BIN/apollo "$CONDUCTANCE_LIB/main.sjs" "$@"
