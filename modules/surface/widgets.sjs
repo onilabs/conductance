@@ -9,6 +9,11 @@ exports.Div = Div;
 
 //----------------------------------------------------------------------
 
+var Button = title -> Widget('button', title || 'A button');
+exports.Button = Button;
+
+//----------------------------------------------------------------------
+
 var TextInput = value ->
   Widget('input') ..
   Mechanism(function(node) {

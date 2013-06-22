@@ -2,11 +2,12 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
-var { ensureWidget } = require('./html');
+var { ensureWidget, Mechanism } = require('./html');
 var { propertyPairs } = require('sjs:object');
 var { toArray, map, filter, each, reverse, combine } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait } = require('sjs:events');
+var { isObservable } = require('../observable');
 
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
@@ -221,4 +222,40 @@ function withHtml(parent_node, ft, block) {
   }
 }
 exports.withHtml = withHtml;
+
+//----------------------------------------------------------------------
+
+// set a property on a widget
+function Prop(ft, name, value) {
+  return ft .. Mechanism(function(node) {
+    if (!isObservable(value)) 
+      node[name] = value;
+    else {
+      node[name] = value.get();
+      value.observer {
+        |val, change|
+        node[name] = val;
+      }
+    }
+  });
+}
+exports.Prop = Prop;
+
+//----------------------------------------------------------------------
+
+// set an event handler:
+
+var OnEvent = (ft, event, f) -> ft .. Mechanism(function(node) {
+  // xxx should use queue
+  while (1) {
+    var ev = node .. wait(event);
+    f(ev);
+  }
+});
+exports.OnEvent = OnEvent;
+
+var OnClick = (ft, f) -> ft .. OnEvent('click', f);
+exports.OnClick = OnClick;
+
+
 

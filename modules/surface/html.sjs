@@ -4,7 +4,7 @@ var { each, indexed, reduce, map, join, isStream } = require('sjs:sequence');
 var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
-var { Observable, isObservable } = require('../observable');
+var { isObservable } = require('../observable');
 
 //----------------------------------------------------------------------
 // counters which will be used to generate style & mechanism ids
@@ -107,6 +107,9 @@ function collapseHtmlFragment(ft) {
     rv = ft;
   }
   else if (isObservable(ft)) {
+    // observables are only allowed in the dynamic world; if the user
+    // tries to use the generated content with e.g. static::Document,
+    // an error will be thrown.
     rv = collapseHtmlFragment(ft.get() .. ObservableContentMechanism(ft));
   }
   else if (Array.isArray(ft) || isStream(ft)) {
@@ -423,6 +426,9 @@ function ObservableAttribMechanism(ft, name, obs) {
   });
 }
 
+// XXX 'value' can be an observable, but only in the dynamic world; if
+// the user tries to use the generated content with
+// e.g. static::Document, an error will be thrown.
 function Attrib(widget, name, value) {
   var widget = cloneWidget(widget);
   if (isObservable(value)) {
@@ -440,19 +446,3 @@ exports.Attrib = Attrib;
 
 exports.Id = (widget, id) -> Attrib(widget, 'id', id);
 
-//----------------------------------------------------------------------
-
-function Prop(ft, name, value) {
-  return ft .. Mechanism(function(node) {
-    if (!isObservable(value)) 
-      node[name] = value;
-    else {
-      node[name] = value.get();
-      value.observer {
-        |val, change|
-        node[name] = val;
-      }
-    }
-  });
-}
-exports.Prop = Prop;
