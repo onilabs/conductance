@@ -4,6 +4,7 @@ var { each, indexed, reduce, map, join, isStream } = require('sjs:sequence');
 var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
+var { Observable, isObservable } = require('../observable');
 
 //----------------------------------------------------------------------
 // counters which will be used to generate style & mechanism ids
@@ -21,6 +22,7 @@ if (typeof __oni_surface_init !== 'undefined') {
 
 exports._getDynOniSurfaceInit = -> 
   "__oni_surface_init = [#{gStyleCounter+1}, #{gMechanismCounter+1}];";
+
 
 //----------------------------------------------------------------------
 /**
@@ -87,11 +89,25 @@ function joinCollapsedFragment(target, src) {
   @param {::HtmlFragment} [ft]
   @return {::CollapsedFragment}
 */
+
+// helper mechanism for making observable content dynamic:
+function ObservableContentMechanism(ft, obs) {
+  return ft .. Mechanism(function(node) {
+    obs.observe {
+      |val, change|
+      node .. require('./dynamic').replaceHtml(val);
+    }
+  });
+}
+
 function collapseHtmlFragment(ft) {
   var rv;
 
   if (isCollapsedFragment(ft)) {
     rv = ft;
+  }
+  else if (isObservable(ft)) {
+    rv = collapseHtmlFragment(ft.get() .. ObservableContentMechanism(ft));
   }
   else if (Array.isArray(ft) || isStream(ft)) {
     rv = ft .. 
@@ -369,6 +385,7 @@ exports.Mechanism = Mechanism;
 
 function Class(widget, clsname) {
   var widget = cloneWidget(widget);
+
   if (!widget.attribs['class'])
     widget.attribs['class'] = clsname;
   else
@@ -377,16 +394,65 @@ function Class(widget, clsname) {
 }
 exports.Class = Class;
 
+//----------------------------------------------------------------------
+
+function setAttribValue(widget, name, v) {
+  if (typeof v === 'boolean') {
+    if (v) widget.attribs[name] = 'true';
+    // else leave out attribute
+  }
+  else {
+    widget.attribs[name] = String(v);
+  }
+}
+
+function ObservableAttribMechanism(ft, name, obs) {
+  return ft .. Mechanism(function(node) {
+    obs.observe {
+      |val, change|
+      if (typeof val == 'boolean') {
+        if (val) 
+          node.setAttribute(name, 'true');
+        else
+          node.removeAttribute(name);
+      }
+      else {
+        node.setAttribute(name, val);
+      }
+    }
+  });
+}
+
 function Attrib(widget, name, value) {
   var widget = cloneWidget(widget);
-  widget.attribs[name] = value;
-  return widget;
+  if (isObservable(value)) {
+    setAttribValue(widget, name, value.get());
+    return widget .. ObservableAttribMechanism(name, value);
+  }
+  else {
+    setAttribValue(widget, name, value);
+    return widget;
+  }
 }
 exports.Attrib = Attrib;
+
+//----------------------------------------------------------------------
 
 exports.Id = (widget, id) -> Attrib(widget, 'id', id);
 
 //----------------------------------------------------------------------
 
-exports.Div = content -> Widget('div', content);
- 
+function Prop(ft, name, value) {
+  return ft .. Mechanism(function(node) {
+    if (!isObservable(value)) 
+      node[name] = value;
+    else {
+      node[name] = value.get();
+      value.observer {
+        |val, change|
+        node[name] = val;
+      }
+    }
+  });
+}
+exports.Prop = Prop;
