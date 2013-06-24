@@ -16,7 +16,9 @@ exports.Id = html.Id;
 
 exports.Div = widgets.Div;
 exports.Button = widgets.Button;
+exports.Form = widgets.Form;
 exports.TextInput = widgets.TextInput;
+exports.Select = widgets.Select;
 
 //----------------------------------------------------------------------
 // primitives for the 'static' world:

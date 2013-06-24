@@ -4,7 +4,7 @@ var { each, indexed, reduce, map, join, isStream } = require('sjs:sequence');
 var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
-var { isObservable } = require('../observable');
+var { isObservable, Value } = require('../observable');
 
 //----------------------------------------------------------------------
 // counters which will be used to generate style & mechanism ids
@@ -29,20 +29,28 @@ exports._getDynOniSurfaceInit = ->
    @class HtmlFragment
    @summary A tree structure representing a piece of Html along with meta information 
    @desc
-     HTML_FRAGMENT      : QUASI | CFRAGMENT | ARRAY | UNSAFE_TXT
+     HTML_FRAGMENT      : QUASI | CFRAGMENT | ARRAY | UNSAFE_TXT | 
+                          OBSERVABLE
      QUASI              : "`" QUASI_COMPONENT* "`"
      QUASI_COMPONENT    : LITERAL_TXT | "${" HTML_FRAGMENT "}"
      ARRAY              : "[" FRAGMENT_TREE_LIST? "]"
      FRAGMENT_TREE_LIST : HTML_FRAGMENT | FRAGMENT_TREE_LIST "," HTML_FRAGMENT  
      UNSAFE_TXT         : '"' STRING '"'
+     OBSERVABLE         : an instance of [../observable::Observable] whose
+                          value is a HtmlFragment
      LITERAL_TXT        : STRING
      CFRAGMENT          : an instance of class [::CollapsedFragment]
+
+
+     Note: Observables are only allowed for content that will be used in 
+     the 'dynamic world' (i.e. client-side).
 */
 
 //----------------------------------------------------------------------
 /**
    @class CollapsedFragment
    @summary Internal class representing a collapsed [::HtmlFragment] 
+   @inherit ::HtmlFragment
 */
 var CollapsedFragmentProto = {
   toString:        -> "html::CollapsedFragment [#{this.getHtml()}]",
@@ -94,8 +102,9 @@ function joinCollapsedFragment(target, src) {
 function ObservableContentMechanism(ft, obs) {
   return ft .. Mechanism(function(node) {
     obs.observe {
-      |val, change|
-      node .. require('./dynamic').replaceHtml(val);
+      |change|
+      if (node.parentNode)
+        (node .. require('./dynamic').replaceElement(obs));
     }
   });
 }
@@ -110,7 +119,8 @@ function collapseHtmlFragment(ft) {
     // observables are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
-    rv = collapseHtmlFragment(ft.get() .. ObservableContentMechanism(ft));
+    rv = collapseHtmlFragment(ensureWidget(ft.get()) .. 
+                              ObservableContentMechanism(ft));
   }
   else if (Array.isArray(ft) || isStream(ft)) {
     rv = ft .. 
@@ -155,7 +165,7 @@ WidgetProto.toString = function() {
 WidgetProto.getHtml = function() {
   return "<#{this.tag} #{ 
             propertyPairs(this.attribs) ..
-            map([key,val] -> "#{key}=\"#{val.replace(/\"/g, '&quot;')}\"") ..
+            map([key,val] -> "#{key}=\"#{String(val).replace(/\"/g, '&quot;')}\"") ..
             join(' ')                     
           }>#{this.content}</#{this.tag}>";
 };
@@ -412,15 +422,15 @@ function setAttribValue(widget, name, v) {
 function ObservableAttribMechanism(ft, name, obs) {
   return ft .. Mechanism(function(node) {
     obs.observe {
-      |val, change|
-      if (typeof val == 'boolean') {
-        if (val) 
+      |change|
+      if (typeof Value(obs) == 'boolean') {
+        if (Value(obs)) 
           node.setAttribute(name, 'true');
         else
           node.removeAttribute(name);
       }
       else {
-        node.setAttribute(name, val);
+        node.setAttribute(name, Value(val));
       }
     }
   });

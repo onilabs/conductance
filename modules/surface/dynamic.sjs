@@ -2,12 +2,12 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
-var { ensureWidget, Mechanism } = require('./html');
+var { ensureWidget, Mechanism, collapseHtmlFragment } = require('./html');
 var { propertyPairs } = require('sjs:object');
 var { toArray, map, filter, each, reverse, combine } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait } = require('sjs:events');
-var { isObservable } = require('../observable');
+var { isObservable, Value } = require('../observable');
 
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
@@ -120,6 +120,109 @@ function unuseStyles(elems) {
 }
 
 /**
+   @function replaceContent
+*/
+function replaceContent(parent_node, ft) {
+  ft = collapseHtmlFragment(ft);
+  
+  // install styles:
+  var styles = ft.getStyleDefs();
+  resourceRegistry.useStyleDefs(styles);
+
+  // install mechanisms:
+  var mechs = ft.getMechanisms();
+  resourceRegistry.useMechanisms(mechs);
+
+  // stop all mechanisms below us:
+  parent_node.querySelectorAll('._oni_mech_') .. stopMechanisms();
+
+  // unuse all styles below us
+  parent_node.querySelectorAll('._oni_style_') .. unuseStyles();
+  
+  try {
+    parent_node.innerHTML = ft.content;
+    // run mechanisms:
+    try {
+      (parent_node.querySelectorAll('[data-oni-mechanisms]') || []) ..
+        reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
+        each {
+          |elem|
+          elem.__oni_mechs = [];
+          elem.getAttribute('data-oni-mechanisms').split(' ') ..
+            filter .. // only truthy elements
+            each {
+              |mech|
+              elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
+            }
+        }
+    }
+    finally {
+      // now they have been run, we can tell the resource registry to
+      // remove the mechanisms again
+      resourceRegistry.unuseMechanisms(propertyPairs(mechs) .. map([id, code] -> id) .. toArray);
+    }
+  }
+  catch(e) {
+    parent_node.innerHTML = "";
+    throw e;
+  }
+    
+}
+exports.replaceContent = replaceContent;
+
+/**
+   @function replaceElement
+*/
+function replaceElement(old_elem, ft) {
+  ft = ensureWidget(ft);
+  
+  var elem = ft.createElement();
+
+  // install styles:
+  var styles = ft.getStyleDefs();
+  resourceRegistry.useStyleDefs(styles);
+
+  // install mechanisms:
+  var mechs = ft.getMechanisms();
+  resourceRegistry.useMechanisms(mechs);
+
+  // stop our mechanism and all mechanisms below us:
+  combine([old_elem], old_elem.querySelectorAll('._oni_mech_')) ..
+    stopMechanisms();
+
+  // unuse our styles and all styles below us
+  combine([old_elem], old_elem.querySelectorAll('._oni_style_')) ..
+    unuseStyles();
+  
+  old_elem.parentNode.replaceChild(elem, old_elem);
+  
+  // run mechanisms:
+  try {
+    (elem.querySelectorAll('[data-oni-mechanisms]') || []) ..
+      combine(elem.hasAttribute('data-oni-mechanisms') ? [elem] : []) ..
+      reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
+      each {
+        |elem|
+        elem.__oni_mechs = [];
+        elem.getAttribute('data-oni-mechanisms').split(' ') ..
+          filter .. // only truthy elements
+          each {
+            |mech|
+            elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
+          }
+      }
+  }
+  finally {
+    // now they have been run, we can tell the resource registry to
+    // remove the mechanisms again
+    resourceRegistry.unuseMechanisms(propertyPairs(mechs) .. map([id, code] -> id) .. toArray);
+  }
+ 
+}
+exports.replaceElement = replaceElement;
+
+
+/**
    @function appendHtml
 */
 function appendHtml(parent_node, ft) {
@@ -169,30 +272,6 @@ function appendHtml(parent_node, ft) {
 exports.appendHtml = appendHtml;
 
 /**
-   @function removeHtml
-*/
-function removeHtml(parent_node) {
-  // stop all mechanisms below us:
-  parent_node.querySelectorAll('._oni_mech_') .. stopMechanisms();
-
-  // unuse all styles below us
-  parent_node.querySelectorAll('._oni_style_') .. unuseStyles();
-
-  parent_node.innerHTML = '';
-
-}
-exports.removeHtml = removeHtml;
-
-/**
-   @function replaceHtml
-*/
-function replaceHtml(parent_node, ft) {
-  parent_node .. removeHtml();
-  parent_node .. appendHtml(ft);
-}
-exports.replaceHtml = replaceHtml;
-
-/**
    @function removeElement
 */
 function removeElement(elem) {
@@ -232,9 +311,9 @@ function Prop(ft, name, value) {
       node[name] = value;
     else {
       node[name] = value.get();
-      value.observer {
-        |val, change|
-        node[name] = val;
+      value.observe {
+        |change|
+        node[name] = Value(value);
       }
     }
   });
