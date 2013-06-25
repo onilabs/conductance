@@ -42,11 +42,6 @@ function isMutatable(obj) {
 }
 exports.isMutatable = isMutatable;
 
-function Value(obj) {
-  return isObservable(obj) ? obj.get() : obj;
-}
-exports.Value = Value;
-
 //----------------------------------------------------------------------
 
 // it's important to inherit from ObservableProto, not
@@ -55,8 +50,12 @@ var ObservableArrayProto = Object.create(ObservableProto);
 
 ObservableArrayProto.push = function(v) {
   this.val.push(v);
-  this.emitter.emit({type:'push'});
+  this.emitter.emit({type:'push', index:this.val.length-1});
 };
+
+ObservableArrayProto.at = index -> this.val[index];
+
+ObservableArrayProto.length = -> this.val.length;
 
 
 function ObservableArray(initial_val) {
@@ -110,6 +109,38 @@ function Computed(/* var1, ..., f */) {
 exports.Computed = Computed;
 
 //----------------------------------------------------------------------
+// polymorphic accessors
+
+function Value(obj) {
+  return isObservable(obj) ? obj.get() : obj;
+}
+exports.Value = Value;
+
+function At(arr, index) {
+  return isObservable(arr) ? arr.at(index) : arr[index];
+}
+exports.At = At;
+
+function Length(arr) {
+  return isObservable(arr) ? arr.length() : arr.length;
+}
+exports.Length = Length;
+
+//----------------------------------------------------------------------
 
 var MapProto = Object.create(ObservableProtoBase);
-//...XXX
+
+function Map(arr, f) {
+  var rv = Object.create(MapProto);
+
+  rv.get    = -> Value(arr) .. map(f);
+  rv.set    = function() { throw new Error("Cannot set a computed map"); };
+  rv.at     = index -> f(arr .. At(index));
+  rv.length = -> arr .. Length;
+
+  rv.observe = function(o) { arr.observe(o) };
+
+  return rv;
+}
+exports.Map = Map;
+

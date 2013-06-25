@@ -1,5 +1,5 @@
 var { Observable, ObservableArray, Computed } = require('mho:observable');
-var { appendHtml, Mechanism, Attrib, Prop, Button, Form, TextInput, Select, Style } = require('mho:surface');
+var { appendContent, Mechanism, Attrib, Prop, Button, Form, TextInput, Select, Style } = require('mho:surface');
 
 
 //----------------------------------------------------------------------
@@ -9,11 +9,12 @@ var itemToAdd = Observable('');
 
 function addItem(ev) {
   ev.preventDefault();
-  items.push(itemToAdd.get());
+  if (itemToAdd.get().length)
+    items.push(itemToAdd.get());
   itemToAdd.set('');
 }
 
-document.body .. appendHtml(
+document.body .. appendContent(
     `
       ${ 
         Form(`

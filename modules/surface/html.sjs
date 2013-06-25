@@ -115,7 +115,7 @@ function collapseHtmlFragment(ft) {
   if (isCollapsedFragment(ft)) {
     rv = ft;
   }
-  else if (isObservable(ft)) {
+  else if (isObservable(ft)) { 
     // observables are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.

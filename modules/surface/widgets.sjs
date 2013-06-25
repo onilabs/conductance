@@ -1,9 +1,9 @@
 var { Widget, Mechanism } = require('./html');
-var { replaceContent } = require('./dynamic');
+var { replaceContent, appendContent, prependContent } = require('./dynamic');
 var { HostEmitter, Stream } = require('sjs:events');
 var { each, map } = require('sjs:sequence');
 var { override } = require('sjs:object');
-var { isObservable, isMutatable, Computed, Value } = require('../observable');
+var { isObservable, isMutatable, Computed, Value, Map, At } = require('../observable');
 
 //----------------------------------------------------------------------
 /**
@@ -80,9 +80,18 @@ function SelectObserverMechanism(ft, items) {
   return ft .. Mechanism(function(node) {
     items.observe {
       |change|
-      node .. replaceContent(
-        Computed(items, 
-                 items -> items .. map(c -> `<option>$c</option>`)))
+      console.log(change);
+      switch (change.type) {
+      case 'push':
+        node .. appendContent(items .. 
+                              At(change.index) .. 
+                              Computed(item -> `<option>$item</option>`));
+        break;
+      default:
+        node .. 
+          replaceContent(items .. 
+                         Map(item -> `<option>$item</option>`))
+      }
     }
   });
 }
@@ -98,9 +107,8 @@ function Select(settings) {
     dom_attribs.multiple = true;
 
   var rv = Widget('select',
-                  // XXX use a computed 'Map' here
-                  Computed(settings.items, 
-                           items -> items .. map(c -> `<option>$c</option>`)),
+                  settings.items .. 
+                  Map(item -> `<option>$item</option>`),
                   dom_attribs);
   if (isObservable(settings.items)) 
     rv = rv .. SelectObserverMechanism(settings.items);

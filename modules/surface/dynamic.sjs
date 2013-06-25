@@ -3,8 +3,8 @@
 // if hostenv == xbrowser
 
 var { ensureWidget, Mechanism, collapseHtmlFragment } = require('./html');
-var { propertyPairs } = require('sjs:object');
-var { toArray, map, filter, each, reverse, combine } = require('sjs:sequence');
+var { propertyPairs, keys } = require('sjs:object');
+var { Stream, toArray, map, filter, each, reverse, combine } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait } = require('sjs:events');
 var { isObservable, Value } = require('../observable');
@@ -39,6 +39,12 @@ var resourceRegistry = {
       }
     }   
   },
+  unuseStyleDefs: function(defs) {
+    keys(defs) .. each { 
+      |id|
+      this.unuseStyle(id);
+    }
+  },
   unuseStyle: function(id) {
     console.log("Unusing style #{id}");
     var desc = stylesInstalled[id];
@@ -49,7 +55,6 @@ var resourceRegistry = {
       delete stylesInstalled[id];
     }
   },
-
   // XXX no real need to go through the whole use/unuse machinery for
   // typeof code == function
   useMechanisms: function(mechs) {
@@ -119,163 +124,149 @@ function unuseStyles(elems) {
   }
 }
 
+function runMechanisms(elem, content_only) {
+  elem.querySelectorAll('[data-oni-mechanisms]') ..
+    combine((!content_only && elem.hasAttribute('data-oni-mechanisms')) ? [elem] : []) ..
+    reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
+    each {
+      |elem|
+      elem.__oni_mechs = [];
+      elem.getAttribute('data-oni-mechanisms').split(' ') ..
+        filter .. // only truthy elements
+        each {
+          |mech|
+          elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
+        }
+    }
+}
+
+function insertHtml(html, doInsertHtml) {
+  html = collapseHtmlFragment(html);
+  
+  // install styles and mechanisms
+  var styles = html.getStyleDefs();
+  resourceRegistry.useStyleDefs(styles);
+  var mechs = html.getMechanisms();
+  resourceRegistry.useMechanisms(mechs);
+
+  try {
+    doInsertHtml(html);
+  }
+  catch (e) {
+    resourceRegistry.unuseStyleDefs(styles);
+    throw e;
+  }
+  finally {
+    // now they have been run (or not), we can tell the resource registry to
+    // remove the mechanisms again
+    resourceRegistry.unuseMechanisms(propertyPairs(mechs) .. map([id, code] -> id) .. toArray);
+  }
+}
+
+// generate a stream of nodes between the two boundary points
+function nodes(parent, before_node, after_node) {
+
+  // make sure we have stable reference points; text nodes get
+  // collected together when we insert something
+  while (before_node && before_node.nodeType != 1) before_node = before_node.previousSibling;
+  while (after_node && after_node.nodeType != 1) after_node = after_node.nextSibling;
+
+  return Stream(function(r) {
+    var node = before_node ? before_node.nextSibling :
+      parent.firstChild;
+    while (node != after_node) {
+      if (node.nodeType == 1) r(node);
+      node = node.nextSibling;
+    }
+  });
+}
+
+
 /**
    @function replaceContent
 */
-function replaceContent(parent_node, ft) {
-  ft = collapseHtmlFragment(ft);
-  
-  // install styles:
-  var styles = ft.getStyleDefs();
-  resourceRegistry.useStyleDefs(styles);
+function replaceContent(parent_node, html) {
+  insertHtml(html, function(html) {
+    parent_node.querySelectorAll('._oni_mech_') .. stopMechanisms();
+    parent_node.querySelectorAll('._oni_style_') .. unuseStyles();
 
-  // install mechanisms:
-  var mechs = ft.getMechanisms();
-  resourceRegistry.useMechanisms(mechs);
+    parent_node.innerHTML = html.getHtml();
 
-  // stop all mechanisms below us:
-  parent_node.querySelectorAll('._oni_mech_') .. stopMechanisms();
-
-  // unuse all styles below us
-  parent_node.querySelectorAll('._oni_style_') .. unuseStyles();
-  
-  try {
-    parent_node.innerHTML = ft.content;
-    // run mechanisms:
-    try {
-      (parent_node.querySelectorAll('[data-oni-mechanisms]') || []) ..
-        reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
-        each {
-          |elem|
-          elem.__oni_mechs = [];
-          elem.getAttribute('data-oni-mechanisms').split(' ') ..
-            filter .. // only truthy elements
-            each {
-              |mech|
-              elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
-            }
-        }
-    }
-    finally {
-      // now they have been run, we can tell the resource registry to
-      // remove the mechanisms again
-      resourceRegistry.unuseMechanisms(propertyPairs(mechs) .. map([id, code] -> id) .. toArray);
-    }
-  }
-  catch(e) {
-    parent_node.innerHTML = "";
-    throw e;
-  }
-    
+    parent_node .. runMechanisms(true);
+  });
 }
 exports.replaceContent = replaceContent;
 
 /**
    @function replaceElement
 */
-function replaceElement(old_elem, ft) {
-  ft = ensureWidget(ft);
-  
-  var elem = ft.createElement();
-
-  // install styles:
-  var styles = ft.getStyleDefs();
-  resourceRegistry.useStyleDefs(styles);
-
-  // install mechanisms:
-  var mechs = ft.getMechanisms();
-  resourceRegistry.useMechanisms(mechs);
-
-  // stop our mechanism and all mechanisms below us:
-  combine([old_elem], old_elem.querySelectorAll('._oni_mech_')) ..
-    stopMechanisms();
-
-  // unuse our styles and all styles below us
-  combine([old_elem], old_elem.querySelectorAll('._oni_style_')) ..
-    unuseStyles();
-  
-  old_elem.parentNode.replaceChild(elem, old_elem);
-  
-  // run mechanisms:
-  try {
-    (elem.querySelectorAll('[data-oni-mechanisms]') || []) ..
-      combine(elem.hasAttribute('data-oni-mechanisms') ? [elem] : []) ..
-      reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
-      each {
-        |elem|
-        elem.__oni_mechs = [];
-        elem.getAttribute('data-oni-mechanisms').split(' ') ..
-          filter .. // only truthy elements
-          each {
-            |mech|
-            elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
-          }
-      }
-  }
-  finally {
-    // now they have been run, we can tell the resource registry to
-    // remove the mechanisms again
-    resourceRegistry.unuseMechanisms(propertyPairs(mechs) .. map([id, code] -> id) .. toArray);
-  }
- 
+function replaceElement(old_elem, html) {
+  var inserted_nodes = nodes(old_elem.parentNode, old_elem.previousSibling, old_elem.nextSibling);
+  insertHtml(html, function(html) {
+    combine([old_elem], old_elem.querySelectorAll('._oni_mech_')) .. stopMechanisms();
+    combine([old_elem], old_elem.querySelectorAll('._oni_style_')) .. unuseStyles();
+    
+    old_elem.outerHTML = html.getHtml();
+    
+    inserted_nodes .. each(runMechanisms);
+  });
 }
 exports.replaceElement = replaceElement;
 
+/**
+   @function appendContent
+*/
+function appendContent(parent_node, html) {
+  insertHtml(html, function(html) {
+    var inserted_nodes = nodes(parent_node, parent_node.lastChild, null);
+    parent_node.insertAdjacentHTML('beforeend', html.getHtml());
+    inserted_nodes .. each(runMechanisms);
+  });
+}
+exports.appendContent = appendContent;
 
 /**
-   @function appendHtml
+   @function prependContent
 */
-function appendHtml(parent_node, ft) {
-  ft = ensureWidget(ft);
-  
-  var elem = ft.createElement();
-
-  // install styles:
-  var styles = ft.getStyleDefs();
-  resourceRegistry.useStyleDefs(styles);
-
-  // install mechanisms:
-  var mechs = ft.getMechanisms();
-  resourceRegistry.useMechanisms(mechs);
-
-  try {
-    parent_node.appendChild(elem);
-
-    // run mechanisms:
-    try {
-      (elem.querySelectorAll('[data-oni-mechanisms]') || []) ..
-        combine(elem.hasAttribute('data-oni-mechanisms') ? [elem] : []) ..
-        reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
-        each {
-          |elem|
-          elem.__oni_mechs = [];
-          elem.getAttribute('data-oni-mechanisms').split(' ') ..
-            filter .. // only truthy elements
-            each {
-              |mech|
-              elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
-            }
-        }
-    }
-    finally {
-      // now they have been run, we can tell the resource registry to
-      // remove the mechanisms again
-      resourceRegistry.unuseMechanisms(propertyPairs(mechs) .. map([id, code] -> id) .. toArray);
-    }
-  }
-  catch(e) {
-    removeElement(elem);
-    throw e;
-  }
-  return elem;
+function prependContent(parent_node, html) {
+  var inserted_nodes = nodes(parent_node, null, parent_node.firstChild);
+  insertHtml(html, function(html) {
+    parent_node.insertAdjacentHTML('afterbegin', html.getHtml());
+    inserted_nodes .. each(runMechanisms);
+  });
 }
-exports.appendHtml = appendHtml;
+exports.prependContent = prependContent;
+
+/**
+   @function insertBefore
+*/
+function insertBefore(sibling, html) {
+  var inserted_nodes = nodes(sibling.parentNode, sibling.previousSibling, sibling);
+  insertHtml(html, function(html) {
+    sibling.insertAdjacentHTML('beforebegin', html.getHtml());
+    inserted_nodes .. each(runMechanisms);
+  });
+}
+exports.insertBefore = insertBefore;
+
+/**
+   @function insertAfter
+*/
+function insertAfter(sibling, html) {
+  var inserted_nodes = nodes(sibling.parentNode, sibling, sibling.nextSibling);
+  insertHtml(html, function(html) {
+    sibling.insertAdjacentHTML('afterend', html.getHtml());
+    inserted_nodes .. each(runMechanisms);
+  });
+}
+exports.insertAfter = insertAfter;
+
 
 /**
    @function removeElement
 */
 function removeElement(elem) {
-  // stop our mechanism and all mechanisms below us:
+  // stop our mechanism and all mechanisms below us
   combine([elem], elem.querySelectorAll('._oni_mech_')) ..
     stopMechanisms();
 
@@ -288,11 +279,32 @@ function removeElement(elem) {
 }
 exports.removeElement = removeElement;
 
+
 /**
-   @function withHtml
+   @function appendWidget
 */
-function withHtml(parent_node, ft, block) {
-  var elem = parent_node .. appendHtml(ft);
+function appendWidget(parent_node, html) {
+  html= ensureWidget(html);
+  
+  var elem = html.createElement();
+
+  insertHtml(html, function(html) {
+    parent_node.appendChild(elem);
+
+    // run mechanisms:
+    elem .. runMechanisms();
+  });
+
+  return elem;
+}
+exports.appendWidget = appendWidget;
+
+
+/**
+   @function withWidget
+*/
+function withWidget(parent_node, html, block) {
+  var elem = parent_node .. appendWidget(html);
   try {
     block(elem);
   }
@@ -300,13 +312,13 @@ function withHtml(parent_node, ft, block) {
     removeElement(elem);
   }
 }
-exports.withHtml = withHtml;
+exports.withWidget = withWidget;
 
 //----------------------------------------------------------------------
 
 // set a property on a widget
-function Prop(ft, name, value) {
-  return ft .. Mechanism(function(node) {
+function Prop(html, name, value) {
+  return html .. Mechanism(function(node) {
     if (!isObservable(value)) 
       node[name] = value;
     else {
@@ -324,7 +336,7 @@ exports.Prop = Prop;
 
 // set an event handler:
 
-var OnEvent = (ft, event, f) -> ft .. Mechanism(function(node) {
+var OnEvent = (html, event, f) -> html .. Mechanism(function(node) {
   // xxx should use queue
   while (1) {
     var ev = node .. wait(event);
@@ -333,7 +345,7 @@ var OnEvent = (ft, event, f) -> ft .. Mechanism(function(node) {
 });
 exports.OnEvent = OnEvent;
 
-var OnClick = (ft, f) -> ft .. OnEvent('click', f);
+var OnClick = (html, f) -> html .. OnEvent('click', f);
 exports.OnClick = OnClick;
 
 

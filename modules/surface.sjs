@@ -29,11 +29,15 @@ exports.Document = stat.Document;
 //----------------------------------------------------------------------
 // primitives for the 'dynamic' world:
 
-exports.appendHtml = dyn.appendHtml;
-exports.replaceHtml = dyn.replaceHtml;
-exports.removeContent = dyn.removeHtml;
+exports.replaceContent = dyn.replaceContent;
+exports.replaceElement = dyn.replaceElement;
+exports.appendContent = dyn.appendContent;
+exports.prependContent = dyn.prependContent;
+exports.insertBefore = dyn.insertBefore;
+exports.insertAfter = dyn.insertAfter;
 exports.removeElement = dyn.removeElement;
-exports.withHtml = dyn.withHtml;
+exports.appendWidget = dyn.appendWidget;
+exports.withWidget = dyn.withWidget;
 exports.Prop = dyn.Prop;
 exports.OnEvent = dyn.OnEvent;
 exports.OnClick = dyn.OnClick;
