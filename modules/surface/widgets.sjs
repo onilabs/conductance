@@ -106,9 +106,14 @@ function Select(settings) {
   if (settings.multiple)
     dom_attribs.multiple = true;
 
+  // <option> doesn't take arbitrary html content. we need to treat
+  // observables a bit specially below
   var rv = Widget('select',
                   settings.items .. 
-                  Map(item -> `<option>$item</option>`),
+                  Map(item -> isObservable(item) ? 
+                      Computed(item, item -> Widget('option', item)) :
+                      `<option>$item</option>`
+                     ),
                   dom_attribs);
   if (isObservable(settings.items)) 
     rv = rv .. SelectObserverMechanism(settings.items);
