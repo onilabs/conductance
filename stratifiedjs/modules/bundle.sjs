@@ -1,4 +1,4 @@
-#!/usr/bin/env apollo
+#!/usr/bin/env sjs
 /*
  * StratifiedJS 'bundle' module
  *
@@ -255,7 +255,19 @@ var relax = function(fn) {
     Most code should not need to use this function directly - see [::create].
 */
 function writeBundle(deps, path, settings) {
-  var stringifier = require('./compile/stringify');
+  var compile;
+  if (settings.compile) {
+    var compiler = require('./compile/sjs');
+    compile = function(src) {
+      var js = compiler.compile(src, {globalReturn:true, filename:"__onimodulename"});
+      return "function(#{require.extensions['sjs'].module_args.join(',')}) {
+        #{js}
+      }"
+    }
+  } else {
+    var stringifier = require('./compile/stringify');
+    compile = (src) -> stringifier.compile(src, {keeplines: true});
+  }
 
   var strict = settings.strict !== false; // true by default
   var excludes = (settings.exclude || []);
@@ -284,7 +296,7 @@ function writeBundle(deps, path, settings) {
 
       var initialSize = contents.length;
       logging.verbose("Compiling: #{dep.path}");
-      contents = stringifier.compile(contents, {keeplines: true});
+      contents = compile(contents);
       var minifiedSize = contents.length;
       var percentage = ((minifiedSize/initialSize) * 100).toFixed(2);
       logging.info("Bundled #{id} [#{percentage}%]");
@@ -313,6 +325,7 @@ exports.writeBundle = writeBundle;
   @setting {Array} [alias] Array of alias strings
   @setting {Array} [hub] Array of hub strings
   @setting {String} [bundle] File path of bundle file to write
+  @setting {Bool} [compile] Precompile to JS (larger file size but quicker startup)
   @setting {Bool} [skip_failed] Skip modules that can't be resolved / loaded
   @setting {Array} [ignore] Array of ignored paths (to skip entirely)
   @setting {Array} [exclude] Array of excluded paths (will be processed, but omitted from bundle)
@@ -349,6 +362,16 @@ exports.create = function(opts) {
       logging.debug("normalizing path: #{path}");
       path = url.fileURL(path);
       logging.debug("-> #{path}");
+    } else {
+      // resolve up to one alias
+      // (this will mainly be used for 'sjs:')
+      require.hubs .. each {|[prefix, dest]|
+        if (!str.isString(dest)) continue;
+        if (path .. str.startsWith(prefix)) {
+          path = dest + path.slice(prefix.length);
+          break;
+        }
+      }
     }
     return path;
   }
@@ -370,6 +393,7 @@ exports.create = function(opts) {
 
   var commonSettings = {
     strict: !opts.skip_failed,
+    compile: opts.compile,
   };
 
   var deps = findDependencies(opts.sources, commonSettings .. object.merge({
@@ -427,6 +451,11 @@ if (require.main === module) {
         help: "Extend command line options with JSON object from FILE",
       },
       {
+        name: 'compile',
+        type: 'bool',
+        help: "Precompile to JS (larger filesize, quicker execution)",
+      },
+      {
         name: 'dump',
         type: 'bool',
         help: "Print dpeendency info (JSON)",
@@ -460,6 +489,7 @@ if (require.main === module) {
   var opts = parser.parse({argv:process.argv});
 
   if (opts.help) {
+    process.stderr.write("Usage: sjs sjs:bundle [OPTIONS] [SOURCE [...]]\n\n");
     process.stderr.write(parser.help());
     process.exit(0);
   }
@@ -471,11 +501,12 @@ if (require.main === module) {
   opts.sources = opts._args;
 
   if (opts.config) {
-    opts .. object.extend(fs.readFile(opts.config).toString() .. JSON.parse());
+    var config = fs.readFile(opts.config).toString() .. JSON.parse();
+    opts = object.merge(config, opts);
   }
 
   if (!(opts.dump || opts.bundle)) {
-    process.stderr.write("Error: One of --bundle or --dump options are required");
+    console.error("Error: One of --bundle or --dump options are required");
     process.exit(1);
   }
 
