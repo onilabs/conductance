@@ -1,3 +1,5 @@
+// Conductance version of http://knockoutjs.com/examples/simpleList.html
+
 var { Observable, ObservableArray, Computed } = require('mho:observable');
 var { appendContent, Mechanism, Attrib, Prop, Button, Form, TextInput, Select, Style } = require('mho:surface');
 

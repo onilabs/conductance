@@ -4,7 +4,7 @@ var { each, indexed, reduce, map, join, isStream } = require('sjs:sequence');
 var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
-var { isObservable, Value } = require('../observable');
+var { isObservable, get } = require('../observable');
 
 //----------------------------------------------------------------------
 // counters which will be used to generate style & mechanism ids
@@ -423,14 +423,14 @@ function ObservableAttribMechanism(ft, name, obs) {
   return ft .. Mechanism(function(node) {
     obs.observe {
       |change|
-      if (typeof Value(obs) == 'boolean') {
-        if (Value(obs)) 
+      if (typeof get(obs) == 'boolean') {
+        if (get(obs)) 
           node.setAttribute(name, 'true');
         else
           node.removeAttribute(name);
       }
       else {
-        node.setAttribute(name, Value(val));
+        node.setAttribute(name, get(val));
       }
     }
   });

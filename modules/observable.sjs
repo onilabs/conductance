@@ -48,9 +48,58 @@ exports.isMutatable = isMutatable;
 // ObservableProtoBase, so that isMutatable() is true for ObservableArrays
 var ObservableArrayProto = Object.create(ObservableProto);
 
+function isObservableArray(obj) {
+  return (ObservableArrayProto.isPrototypeOf(obj));
+}
+exports.isObservableArray = isObservableArray;
+
+ObservableArrayProto.splice = function(index, removed /*,element1, ...*/) {
+
+  // make sure we have canonical forms of index, removed, for the change notification:
+  if (index < 0) index = index.length + index;
+  if (index < 0) index = 0;
+  if (index > this.val.length) index = this.val.length;
+  removed = Math.min(this.val.length - index, removed);
+  var added = arguments.length - 2;
+  var appending = added && index+removed == this.val.length;
+
+  this.val.splice.apply(this.val, arguments);
+  this.emitter.emit({type:'splice', 
+                     index: index, removed: removed, added: added, appending: appending});
+};
+
+ObservableArrayProto.pop = function() {
+  var rv = this.val.pop();
+  this.emitter.emit({type:'splice', index:this.val.length, removed: 1, added: 0, appending: false});
+  return rv;
+};
+
 ObservableArrayProto.push = function(v) {
-  this.val.push(v);
-  this.emitter.emit({type:'push', index:this.val.length-1});
+  var l = this.val.push(v);
+  this.emitter.emit({type:'splice', index:l-1, removed: 0, added: 1, appending:true});
+  return l;
+};
+
+ObservableArrayProto.shift = function() {
+  var rv = this.val.shift();
+  this.emitter.emit({type:'splice', index:0, removed: 1, added: 0, appending:false});
+  return rv;
+};
+
+ObservableArrayProto.unshift = function(v) {
+  var l = this.val.unshift(v);
+  this.emitter.emit({type:'splice', index:0, removed: 0, added: 1, appending:false});
+  return l;
+};
+
+ObservableArrayProto.reverse = function() {
+  this.val.reverse.apply(this.val, arguments);
+  this.emitter.emit({type:'reverse'});
+};
+
+ObservableArrayProto.sort = function(/*args*/) {
+  this.val.sort.apply(this.val, arguments);
+  this.emitter.emit({type:'sort'});
 };
 
 ObservableArrayProto.at = index -> this.val[index];
@@ -83,7 +132,7 @@ function Computed(/* var1, ..., f */) {
     var emitter = Emitter();
     var observers = 0;  
     var observeStratum;
-    rv.get = function() { return f.apply(null, deps .. map(d -> d.get())) };
+    rv.get = function() { return f.apply(deps, deps .. map(d -> d.get())) };
     rv.set = function() { throw new Error("Cannot set a computed observable"); };
     
     rv.observe = function(o) {
@@ -109,22 +158,22 @@ function Computed(/* var1, ..., f */) {
 exports.Computed = Computed;
 
 //----------------------------------------------------------------------
-// polymorphic accessors
+// polymorphic accessors: these work for 'base' objects or observables
 
-function Value(obj) {
+function get(obj) {
   return isObservable(obj) ? obj.get() : obj;
 }
-exports.Value = Value;
+exports.get = get;
 
-function At(arr, index) {
+function at(arr, index) {
   return isObservable(arr) ? arr.at(index) : arr[index];
 }
-exports.At = At;
+exports.at = at;
 
-function Length(arr) {
+function length(arr) {
   return isObservable(arr) ? arr.length() : arr.length;
 }
-exports.Length = Length;
+exports.length = length;
 
 //----------------------------------------------------------------------
 
@@ -133,10 +182,10 @@ var MapProto = Object.create(ObservableProtoBase);
 function Map(arr, f) {
   var rv = Object.create(MapProto);
 
-  rv.get    = -> Value(arr) .. map(f);
+  rv.get    = -> get(arr) .. map(f);
   rv.set    = function() { throw new Error("Cannot set a computed map"); };
-  rv.at     = index -> f(arr .. At(index));
-  rv.length = -> arr .. Length;
+  rv.at     = index -> f(arr .. at(index));
+  rv.length = -> arr .. length;
 
   rv.observe = function(o) { arr.observe(o) };
 

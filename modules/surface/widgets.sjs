@@ -1,9 +1,10 @@
 var { Widget, Mechanism } = require('./html');
-var { replaceContent, appendContent, prependContent } = require('./dynamic');
+var { replaceContent, appendContent, prependContent, Prop, removeElement, insertBefore } = require('./dynamic');
 var { HostEmitter, Stream } = require('sjs:events');
-var { each, map } = require('sjs:sequence');
+var { integers, each, map, indexed, filter, sort, slice } = require('sjs:sequence');
+var { areEquivalentArrays, isArrayLike } = require('sjs:array');
 var { override } = require('sjs:object');
-var { isObservable, isMutatable, Computed, Value, Map, At } = require('../observable');
+var { isObservable, isObservableArray, isMutatable, Computed, get, Map, at } = require('../observable');
 
 //----------------------------------------------------------------------
 /**
@@ -45,13 +46,13 @@ exports.Form = Form;
 var TextInput = value ->
   Widget('input') ..
   Mechanism(function(node) {
-    node.value = Value(value);
+    node.value = get(value);
     if (isObservable(value)) {
       waitfor {
         value.observe {
           |change|
-          if (node.value !== Value(value))
-            node.value = Value(value);
+          if (node.value !== get(value))
+            node.value = get(value);
         }
       }
       and {
@@ -76,31 +77,102 @@ exports.TextInput = TextInput;
  @return {html::Widget}
 */
 
-function SelectObserverMechanism(ft, items) {
+
+function selectedIndices(items, selection) {
+  items = get(items);
+  var rv = {};
+  var selection_arr = get(selection);
+  if (!isArrayLike(selection_arr)) 
+    selection_arr = [selection_arr];
+  selection_arr .. 
+    map(selected_item -> items.indexOf(selected_item)) .. each {
+      |index|
+      rv[index] = true;
+    }
+  return rv;
+}
+
+function updateSelectionHtml(node, items, selection) {
+  var select_map = selectedIndices(items, selection);
+  node.querySelectorAll('option') ..
+  indexed .. each {
+    |[index, elem]|
+    elem.selected = select_map[index];
+  }
+}
+
+function SelectOptionsObserverMechanism(ft, items, selection) {
   return ft .. Mechanism(function(node) {
     items.observe {
       |change|
-      console.log(change);
       switch (change.type) {
-      case 'push':
-        node .. appendContent(items .. 
-                              At(change.index) .. 
-                              Computed(item -> `<option>$item</option>`));
+      case 'splice':
+        if (change.removed) {
+          node.querySelectorAll('option') .. 
+            slice(change.index, change.index + change.removed) .. 
+            each { |elem| elem .. removeElement }
+        }
+        if (change.added) {
+          var new_html = integers(change.index, change.index + change.added - 1) ..
+            map(i -> items.at(i) .. Computed(item -> `<option>$item</option>`));
+          if (change.appending)
+            node .. appendContent(new_html);
+          else {
+            var anchor = node.querySelectorAll('option')[change.index];
+            anchor .. insertBefore(new_html);
+          }
+        }
         break;
       default:
         node .. 
           replaceContent(items .. 
-                         Map(item -> `<option>$item</option>`))
+                         Map(item -> `<option>$item</option>`));
+        updateSelectionHtml(node, items, selection);
       }
     }
   });
 }
 
+function SelectSelectionMechanism(ft, items, selection) {
+  return ft .. Mechanism(function(node) {
+    updateSelectionHtml(node, items, selection);
+    waitfor {
+     if (isObservable(selection)) {
+       selection.observe {
+         |change|
+         updateSelectionHtml(node, items, selection);
+       }
+     }
+    }
+    and {
+      if (isMutatable(selection)) {
+        HostEmitter(node, 'change') .. Stream .. each {
+          |ev|
+          var new_selection = node.querySelectorAll('option') .. 
+            indexed .. 
+            filter(([idx,elem]) -> elem.selected) ..
+            map(([idx,]) -> items.at(idx));
+          if (isObservableArray(selection)) {
+            if (!areEquivalentArrays(selection, new_selection))
+              selection.set(new_selection);
+          }
+          else if (selection.get() !== new_selection[0])
+            selection.set(new_selection[0]);
+        }
+      }
+    }
+  })
+}
+
 function Select(settings) {
   settings = {
     multiple: false,
-    items: []
+    items: [],
+    selected: undefined
   } .. override(settings);
+
+  if (settings.multiple && !settings.selected)
+    settings.selected = [];
 
   var dom_attribs = {};
   if (settings.multiple)
@@ -111,12 +183,23 @@ function Select(settings) {
   var rv = Widget('select',
                   settings.items .. 
                   Map(item -> isObservable(item) ? 
-                      Computed(item, item -> Widget('option', item)) :
+                      Computed(item, function(item_content) {
+                        var rv = Widget('option', item_content);
+                        var selection_arr = get(settings.selected);
+                        if (!isArrayLike(selection_arr))
+                          selection_arr = [selection_arr];
+                        if (selection_arr.indexOf(this[0]) !== -1)
+                          rv = rv .. Prop('selected', true);
+                        return rv;
+                      }) :
                       `<option>$item</option>`
                      ),
                   dom_attribs);
+
   if (isObservable(settings.items)) 
-    rv = rv .. SelectObserverMechanism(settings.items);
+    rv = rv .. SelectOptionsObserverMechanism(settings.items, settings.selected);
+
+  rv = rv .. SelectSelectionMechanism(settings.items, settings.selected);
 
   return rv;
 }

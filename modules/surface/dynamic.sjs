@@ -7,7 +7,7 @@ var { propertyPairs, keys } = require('sjs:object');
 var { Stream, toArray, map, filter, each, reverse, combine } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait } = require('sjs:events');
-var { isObservable, Value } = require('../observable');
+var { isObservable, get } = require('../observable');
 
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
@@ -115,7 +115,7 @@ function stopMechanisms(elems) {
 function unuseStyles(elems) {
   elems .. each {
     |elem|
-    elem.getAttribute('class') .. split(' ') .. each {
+    (elem.getAttribute('class')||'') .. split(' ') .. each {
       |cls|
       var matches = /_oni_style(\d+)_/.exec(cls);
       if (!matches) continue;
@@ -269,7 +269,6 @@ function removeElement(elem) {
   // stop our mechanism and all mechanisms below us
   combine([elem], elem.querySelectorAll('._oni_mech_')) ..
     stopMechanisms();
-
   if (elem.parentNode)
     elem.parentNode.removeChild(elem);
   
@@ -325,7 +324,7 @@ function Prop(html, name, value) {
       node[name] = value.get();
       value.observe {
         |change|
-        node[name] = Value(value);
+        node[name] = get(value);
       }
     }
   });
