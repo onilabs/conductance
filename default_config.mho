@@ -57,7 +57,7 @@ exports.hosts = [
       },
       // module 'mho:server/routes' defines some convenient functions for mapping
       // directories on the local file system, redirects, etc:
-      MappedDirectoryRoute(/^(\/.*)$/, conductanceRoot()),
+      MappedDirectoryRoute(/^(\/.*)$/, process.cwd()),
     ]
   }, 
 /*  {
@@ -84,7 +84,7 @@ exports.hosts = [
       // installs a bridge-over-aat handler at __aat_bridge, and a 
       // keyhole server at __keyhole
       StandardSystemRoutes(),
-      MappedDirectoryRoute(/^(\/.*)$/, conductanceRoot()),
+      MappedDirectoryRoute(/^(\/.*)$/, process.cwd()),
     ]
   }
 ];

@@ -1,4 +1,6 @@
 var url = require('sjs:url');
+var nodePath = require('nodejs:path');
+var fs = require('sjs:nodejs/fs');
 var { withServer } = require('sjs:nodejs/http');
 var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
@@ -48,6 +50,8 @@ var conductanceRoot = url.normalize('../../', module.id) .. url.toPath();
 console.log(banner);
 
 var configfile = "#{conductanceRoot}default_config.mho";
+var localConfig = nodePath.join(process.cwd(), 'config.mho');
+if (fs.exists(localConfig)) configfile = localConfig;
 
 var parser = dashdash.createParser({options: [
   {

@@ -1,6 +1,7 @@
 var { conductanceVersion } = require('./env');
 var { pump, readAll } = require('sjs:nodejs/stream');
 var { map, toArray } = require('sjs:sequence');
+var logging = require('sjs:logging');
 
 // XXX this should be configurable separately somewhere
 var SJSCache = require('sjs:lru-cache').makeCache(10*1000*1000); // 10MB
@@ -26,7 +27,7 @@ function sjscompile(src, dest, aux) {
     src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
   }
   catch (e) {
-    console.log("sjscompiler: #{aux.request.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
+    logging.error("sjscompiler: #{aux.request.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
     // communicate the compilation error to the caller in a little bit
     // of a round-about way: We create a compiled SJS file that throws
     // our compile error as an exception on execution
