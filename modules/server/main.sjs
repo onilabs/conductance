@@ -5,6 +5,8 @@ var { flatten } = require('sjs:array');
 var { override, propertyPairs, keys } = require('sjs:object');
 var { stat } = require('sjs:nodejs/fs');
 var { writeErrorResponse } = require('./response');
+var dashdash = require('sjs:dashdash');
+var logging = require('sjs:logging');
 
 require.hubs.push(['mho:', url.normalize('../', module.id)]);
 require.hubs.push(['\u2127:', 'mho:']); // mho sign '℧'
@@ -14,32 +16,31 @@ require.hubs.push(['\u2127:', 'mho:']); // mho sign '℧'
 
 var banner = "
 
-              O N I   C O N D U C T A N C E  
+              O N I   C O N D U C T A N C E
                                              
-             | \\____/ |          ___     ___ 
+             | \\____/ |          ___     ___
             |          |        |_  |   |  _|
-           |  ( )  ( )  |         | |   | |  
-          /|            |\\       / /    \\  \\ 
-         |/|            |\\|      | |     | | 
-            |          |         \\ \\_____/ / 
-            (___----___)          \\_______/  
+           |  ( )  ( )  |         | |   | |
+          /|            |\\       / /    \\  \\
+         |/|            |\\|      | |     | |
+            |          |         \\ \\_____/ /
+            (___----___)          \\_______/
                                              
-             http://onilabs.com/conductance  
+             http://onilabs.com/conductance
 
 ";
 
-function usage() {
+function usage(msg) {
   console.log("
 Usage: conductance [options] [configfile]
 
-Options:
-  -h, --help           Display this help message and exit
-
-Default configfile: #{configfile}
+#{parser.help()}
+    Default configfile: #{configfile}
 ");
+  if(msg) console.log(msg);
 }
 
-var conductanceRoot = url.normalize('../../', module.id).substr(7);
+var conductanceRoot = url.normalize('../../', module.id) .. url.toPath();
 
 //----------------------------------------------------------------------
 // parse parameters
@@ -48,15 +49,43 @@ console.log(banner);
 
 var configfile = "#{conductanceRoot}default_config.mho";
 
-for (var i=1; i<process.argv.length; ++i) {
-  var flag = process.argv[i]; 
-  switch (flag) {
-  case '-h':
-  case '--help':
-    usage();
-    process.exit(0);
-  default:
-    configfile = flag;
+var parser = dashdash.createParser({options: [
+  {
+    names: ['help', 'h'],
+    type: 'bool',
+    help: 'Print this help and exit.',
+  },
+  {
+    names: ['verbose', 'v'],
+    type: 'arrayOfBool',
+    help: 'Increase log level. Can be used multiple times.'
+  },
+]});
+
+try {
+  var opts = parser.parse(process.argv);
+} catch(e) {
+  usage(e.message || String(e));
+  process.exit(1);
+}
+if (opts.help) {
+  usage();
+  process.exit(0);
+}
+
+switch(opts.verbose && opts.verbose.length) {
+  case undefined :
+  case 0         : logging.setLevel(logging.WARN);    break;
+  case 1         : logging.setLevel(logging.INFO);    break;
+  case 2         : logging.setLevel(logging.VERBOSE); break;
+  default        : logging.setLevel(logging.DEBUG);   break;
+}
+logging.info("Log level: #{logging.levelNames[logging.getLevel()]}");
+if (opts._args.length > 0) {
+  configfile = opts._args.shift();
+  if (opts._args.length > 0) {
+    usage("Too many arguments");
+    process.exit(1);
   }
 }
 
