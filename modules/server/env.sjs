@@ -7,5 +7,6 @@ exports.init = function(vars) {
 };
 
 exports.conductanceRoot = -> env_vars.conductanceRoot;
-exports.configRoot      = -> env_vars.configRoot; 
+exports.configRoot      = -> env_vars.configRoot;
+exports.configPath      = -> env_vars.configPath;
 exports.conductanceVersion = -> env_vars.conductanceVersion;

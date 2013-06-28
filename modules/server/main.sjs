@@ -101,6 +101,7 @@ configfile = url.normalize(configfile, process.cwd() + '/');
 var env = require('./env');
 env.init({
   conductanceRoot    : conductanceRoot,
+  configPath         : configfile,
   configRoot         : url.normalize('./', configfile),
   conductanceVersion : "1-#{
                              (new Date(
@@ -210,7 +211,6 @@ catch(e) {
 Oni Conductance exiting with fatal error:
 #{e.toString()}
 
-"); 
+");
   process.exit(1);
 }
-
