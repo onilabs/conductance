@@ -1,7 +1,9 @@
 var { Widget, RequireStyle, Mechanism }  = require('./html');
 var { map, join, each } = require('sjs:sequence');
 
-var BootstrapStyle = RequireStyle('/__mho/surface/bootstrap.css');
+var BootstrapStyle = (html, theme) -> 
+  html .. RequireStyle("/__mho/surface/bootstrap.css#{theme? "?theme=#{theme}" : '' }");
+
 var BootstrapMechanism = Mechanism("
   var mechanisms = require('mho:surface/bootstrap/mechanisms');
   waitfor { mechanisms.dropdowns(this);     }
@@ -12,8 +14,8 @@ var BootstrapMechanism = Mechanism("
 /**
    @function Bootstrap
 */
-function Bootstrap(content) {
-  return Widget('div', content) .. BootstrapStyle .. BootstrapMechanism;
+function Bootstrap(content, theme) {
+  return Widget('div', content) .. BootstrapStyle(theme) .. BootstrapMechanism;
 }
 exports.Bootstrap = Bootstrap;
 

@@ -4,14 +4,54 @@
 
 var { darken, lighten, spin, add, scale } = require('../css');
 
+//----------------------------------------------------------------------
+var themes = {};
+
 /**
-   @variable defaultLookAndFeel
+   @function getTheme
+   @param {optional String} [name='default'] Name of bootstrap theme to retrieve
+   @summary Retrieves a bootstrap 'variables' object.
+   @desc
+     * If a theme with the given name isn't found, the default
+     theme will be returned
+
+     * New themes can be registered with [::registerTheme]
+*/
+function getTheme(name) {
+  var theme;
+  if (name) {
+    theme = themes[name];
+    if (!theme) console.log("Bootstrap theme '#{theme}' not found; using default theme");
+  }
+
+  if (!theme)
+    theme = themes['default'];
+  return theme;
+}
+exports.getTheme = getTheme;
+
+
+/**
+   @function registerTheme
+   @param {String} [name]
+   @param {Object} [theme] Bootstrap 'theme' object. See [::defaultTheme].
+   @summary Register a bootstrap theme object for retrieval with [::getTheme].
+*/
+function registerTheme(name, theme) {
+  themes[name] = theme;
+}
+exports.registerTheme = registerTheme;
+
+
+//----------------------------------------------------------------------
+
+/**
+   @variable defaultTheme
    @summary  Object with functions to customize the look and feel of Bootstrap (port of Variables.less)
    @desc
-      You can use this as prototype for a custom lookAndFeel object, which can then be passed to 
-      e.g. [::Container].
+      You can use this as prototype for a custom theme object for registering with [::registerTheme]
 */
-__js var defaultLookAndFeel = exports.defaultLookAndFeel = {
+__js var defaultTheme = themes['default'] = exports.defaultTheme = {
 
   // GLOBAL VALUES
   // --------------------------------------------------

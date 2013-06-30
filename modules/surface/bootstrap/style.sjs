@@ -1,6 +1,10 @@
-exports.css = function(vars, mixins) {  
-  vars  = vars || require('./variables').defaultLookAndFeel;
-  mixins = mixins || require('./mixins').Mixins(vars);
+/**
+   @function css
+   @param {optional String} [theme='default'] Name of bootstrap theme (see [varables::]) 
+*/
+exports.css = function(theme) {  
+  vars  = require('./variables').getTheme(theme);
+  mixins = require('./mixins').Mixins(vars);
 
   var rv = "\
 /* CSS Reset */

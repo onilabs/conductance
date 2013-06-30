@@ -532,7 +532,7 @@ select:focus:invalid:focus {
 
 .input-append .add-on:last-child,
 .input-append .btn:last-child,
-.input-append .btn-group:last-child > .dropdown-toggle /* XXX need Oni Labs edit: dropdowns aren't last-child, because of the <ul> */ { 
+.input-append .btn-group:last-child > .dropdown-toggle { 
     #{mixins.border_radius('0 '+vars.inputBorderRadius()+' '+vars.inputBorderRadius()+' 0')}
 }
 
@@ -621,7 +621,7 @@ input.search-query {
 .form-horizontal .help-inline,
 .form-horizontal .uneditable-input,
 .form-horizontal .input-prepend
-.form-horizontal .input-append /* XXX Oni Labs edit: remove for proper alignment of compound widgets */ {
+.form-horizontal .input-append {
     display: inline-block;
     #{mixins.ie7_inline_block()}
     margin-bottom: 0;
@@ -640,10 +640,6 @@ input.search-query {
 .form-inline .btn-group
  {
   display: inline-block;
-  /* XXX Oni Labs edits:
-  margin-bottom: 0;
-  vertical-align: middle;
-  */
 }
 /* Remove margin for input-prepend/-append */
 .form-search .input-append,

@@ -9,9 +9,9 @@ var date = Date.now();
 exports.etag = pars -> date;
  
 exports.content = function(pars) {  
-  var vars  = require('./bootstrap/variables').defaultLookAndFeel; // XXX implement different l&f's
+  var theme = sanitize(pars.theme || ''); 
   var scope = sanitize(pars.scope || '');
   
-  return CSSDocument(bootstrap_style.css(vars), scope);
+  return CSSDocument(bootstrap_style.css(theme), scope);
 };
 
