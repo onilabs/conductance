@@ -249,7 +249,13 @@ function BridgeConnection(transport, base_api) {
 
   function receiver() {
     while (1) {
-      var packet = transport.receive();
+      try {
+        var packet = transport.receive();
+      } catch(e) { 
+        // XXX this is probably the transport being closed
+        console.log("bridge.sjs: transport error: #{e}");
+        break; // XXX hmm, what to do?
+      }
       if (packet.type == 'message')
         spawn receiveMessage(packet);
       else if (packet.type == 'data')
@@ -292,9 +298,15 @@ function BridgeConnection(transport, base_api) {
           rv = e.toString();
           isException = true;
         }
-        transport.send(marshall(["return#{isException? '_exception':''}", 
-                                 call_no, rv],
-                                connection));
+        try {
+          transport.send(marshall(["return#{isException? '_exception':''}", 
+                                   call_no, rv],
+                                  connection));
+        }
+        catch (e) {
+          // transport closed -> ignore
+          // XXX anything else we need to do?
+        }
       })(message[1], message[2], message[3], message[4]);
       break;
     case 'abort':
