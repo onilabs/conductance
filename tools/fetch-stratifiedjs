@@ -4,9 +4,11 @@ var { dirname } = require('path');
 var { exec    } = require('sjs:nodejs/child-process');
 var { read    } = require('sjs:nodejs/stream');
 var fs = require('sjs:nodejs/fs');
+var url = require('sjs:url');
+var root = url.normalize('../', module.id) .. url.toPath();
 
 // make sure we're in the right directory
-process.chdir("#{dirname(process.argv[0])}/..");
+process.chdir(root);
 
 if (fs.exists('stratifiedjs/.git')) {
   console.log('stratifiedjs directory already contains a git repository -> exiting');

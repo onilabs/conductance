@@ -77,3 +77,44 @@ module.exports = {
   // the buildscript treats it like JSON
   "version" : "0.14.0-1-development",
 };
+
+
+/**
+  @variable executable
+  @summary The path to the running `sjs` script.
+  @hostenv nodejs
+  @desc
+    When combined with `process.execPath` (the path to nodejs), you
+    can consistently launch a new process running the same SJS version.
+
+    ### Example:
+
+        var childProcess = require('sjs:nodejs/child-process');
+        var sys = require('sjs:sys');
+        var nodePath = process.execPath;
+        var sjsPath = sys.executable;
+        childProcess.run(nodePath, [sjsPath,  ... ]);
+*/
+
+/**
+  @function argv
+  @summary Return the current command line arugments.
+  @hostenv nodejs
+  @desc
+    **Note**: This function returns only the actual command line
+    arguments passed to your script, unlike the builtin `process.argv`
+    which contains:
+
+        [
+          'path/to/node',
+          'path/to/main-module.sjs',
+          ... // actual arguments
+        ]
+
+    This allows `sys.argv()` to be independent of a particular runtime's choice
+    of `argv` format.
+*/
+if (s.hostenv === 'nodejs') {
+  module.exports.executable = s.canonicalizeURL("../sjs", module.id) .. require('sjs:url').toPath();
+  module.exports.argv = -> process.argv.slice(2); // remove `node` and main SJS module
+}

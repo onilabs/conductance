@@ -10,8 +10,7 @@ var { writeErrorResponse } = require('./response');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
 
-require.hubs.push(['mho:', url.normalize('../', module.id)]);
-require.hubs.push(['\u2127:', 'mho:']); // mho sign '℧'
+require('../../hub'); // install mho: hub
 
 var conductanceRoot = url.normalize('../../', module.id) .. url.toPath();
 
@@ -42,10 +41,9 @@ exports.loadConfig = function(path) {
 }
 
 exports.defaultConfig = function() {
-  var configfile = "#{conductanceRoot}default_config.mho";
-  var localConfig = nodePath.join(process.cwd(), 'config.mho');
-  if (fs.exists(localConfig)) configfile = localConfig;
-  return configfile;
+  var builtin = "#{conductanceRoot}default_config.mho";
+  var local = nodePath.join(process.cwd(), 'config.mho');
+  return (fs.exists(local)) ? local : builtin;
 }
 
 
@@ -102,7 +100,7 @@ exports.run = function() {
   ]});
 
   try {
-    var opts = parser.parse(process.argv);
+    var opts = parser.parse();
   } catch(e) {
     usage(e.message || String(e));
     process.exit(1);

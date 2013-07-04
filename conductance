@@ -1,5 +1,5 @@
-#!/bin/bash
-
-SJS_BIN=`dirname $0`/stratifiedjs
-CONDUCTANCE_LIB=`dirname $0`/modules/server
-exec $SJS_BIN/sjs "$CONDUCTANCE_LIB/main.sjs" "$@"
+#!/usr/bin/env node
+var fs = require('fs');
+var path = require('path');
+var base = path.dirname(fs.realpathSync(__filename));
+require('./stratifiedjs/stratified-node.js').run(path.join(base, 'modules/server/main.sjs'))
