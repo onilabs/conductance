@@ -4,7 +4,7 @@ var fs = require('sjs:nodejs/fs');
 var { withServer } = require('sjs:nodejs/http');
 var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
-var { override, propertyPairs, keys } = require('sjs:object');
+var { override, propertyPairs, keys, merge } = require('sjs:object');
 var { stat } = require('sjs:nodejs/fs');
 var { writeErrorResponse } = require('./response');
 var dashdash = require('sjs:dashdash');
@@ -140,8 +140,9 @@ exports.run = function() {
         ssl: false,
         key: undefined,
         cert: undefined,
-        passphrase: undefined
-      } .. 
+        passphrase: undefined,
+        fd: undefined,
+      } ..
       override(port_desc);
 
     // collect all hosts connected to our port:
@@ -211,7 +212,22 @@ exports.run = function() {
   // main program:
 
   try {
-    config.ports .. each.par(100, runPort);
+    var ports = config.ports;
+
+    if (process.env['LISTEN_PID'] === String(process.pid)) {
+      // use socket activation
+      var fdCount = parseInt(process.env.LISTEN_FDS, 10);
+      if (fdCount != ports.length) {
+        throw new Error("Configuration specifies #{ports.length} ports, but we were passed #{fdCount} $LISTEN_FDS");
+      }
+      logging.verbose("Adopting #{fdCount} $LISTEN_FDS");
+      var nextFD=3;
+      ports = ports .. map(function(p) {
+        return merge(p, {fd: nextFD++});
+      });
+    }
+
+    ports .. each.par(100, runPort);
     process.stdout.write("\nOni Conductance finished\n");
   //  process.exit(0);
   }
