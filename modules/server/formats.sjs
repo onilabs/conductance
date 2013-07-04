@@ -94,6 +94,14 @@ function gen_dir_html(src, dest, aux) {
 }
 
 //----------------------------------------------------------------------
+// filter that generates docs for an sjs module:
+function gen_moduledocs(src, dest, aux) {
+  var docs = require('../moduledocs').generateModuleDocs(aux.request.url.path, readAll(src));
+  dest.write(require('../surface').Document(docs));
+}
+
+
+//----------------------------------------------------------------------
 // filter that generates import sjs for an api:
 function apiimport(src, dest, aux) {
   if (!aux.apiid) 
@@ -125,7 +133,9 @@ var BaseFileFormatMap = {
            jsonp: { mime: "text/javascript",
                     filter: json2jsonp }
          },
-  sjs  : { none     : { mime: "text/plain" }, 
+  sjs  : { none     : { mime: "text/html",
+                        filter: gen_moduledocs
+                      }, 
            compiled : { mime: "text/plain",
                         filter: sjscompile,
                         // filterETag() returns a tag that will be added onto 

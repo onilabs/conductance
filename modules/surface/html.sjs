@@ -143,7 +143,8 @@ function collapseHtmlFragment(ft) {
   }
   else {
     rv = CollapsedFragment();
-    rv.content += sanitize(String(ft));
+    if (ft !== undefined)
+      rv.content += sanitize(String(ft));
   }
   
   return rv;
@@ -455,4 +456,12 @@ exports.Attrib = Attrib;
 //----------------------------------------------------------------------
 
 exports.Id = (widget, id) -> Attrib(widget, 'id', id);
+
+//----------------------------------------------------------------------
+
+exports.Unescaped = (str) -> Quasi([str]);
+
+//----------------------------------------------------------------------
+
+exports.Markdown = (str, settings) -> exports.Unescaped(require('sjs:marked').convert(str, settings));
 

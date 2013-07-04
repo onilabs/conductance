@@ -1,8 +1,19 @@
 var { Widget, RequireStyle, Mechanism }  = require('./html');
 var { map, join, each } = require('sjs:sequence');
 
-var BootstrapStyle = (html, theme) -> 
-  html .. RequireStyle("/__mho/surface/bootstrap.css#{theme? "?theme=#{theme}" : '' }");
+// theme->styles cache; we want to cache these, because each
+// `RequireStyle` constructor generates a new scope id
+var styles = {
+  'default' : RequireStyle("/__mho/surface/bootstrap.css")
+};
+
+var BootstrapStyle = function(html, theme) {
+  if (!theme) theme = 'default';
+  var style = styles[theme];
+  if (!style)
+    style = styles[theme] = RequireStyle("/__mho/surface/bootstrap.css?theme=#{theme}");
+  return html .. style;
+};
 
 var BootstrapMechanism = Mechanism("
   var mechanisms = require('mho:surface/bootstrap/mechanisms');
@@ -81,3 +92,10 @@ exports.BtnDropdown = (title, items) ->
          $DropdownMenu(items)
          `,
          {'class':'btn-group'});
+
+/**
+   @function Label
+*/
+exports.Label = (type, title) ->
+  Widget('span', title, {'class':"label #{type? "label-#{type}" : ''}"});
+
