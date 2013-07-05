@@ -1,4 +1,4 @@
-var { conductanceRoot } = require('./env');
+var { conductanceRoot, sjsRoot } = require('./env');
 var { setStatus, writeRedirectResponse } = require('./response');
 var { flatten } = require('sjs:array');
 var { each, join } = require('sjs:sequence');
@@ -73,7 +73,7 @@ exports.MappedDirectoryRoute = MappedDirectoryRoute;
 
 function StandardSystemRoutes() {
   return [
-    MappedDirectoryRoute(/^\/__sjs(\/.*)$/, "#{conductanceRoot()}stratifiedjs/"),
+    MappedDirectoryRoute(/^\/__sjs(\/.*)$/, "#{sjsRoot()}"),
     MappedDirectoryRoute(/^\/__mho(\/.*)$/, "#{conductanceRoot()}modules/"),
     {
       path: /__aat_bridge\/(2)$/,
