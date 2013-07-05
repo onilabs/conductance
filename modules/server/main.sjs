@@ -13,6 +13,11 @@ var logging = require('sjs:logging');
 require('../../hub'); // install mho: hub
 
 var conductanceRoot = url.normalize('../../', module.id) .. url.toPath();
+var conductanceVersion = "1-#{
+                              (new Date(
+                                  stat(require.resolve('sjs:../stratified-node.js').path .. url.toPath(7)).mtime
+                              )).getTime()
+                            }";
 
 exports.loadConfig = function(path) {
   var configfile = path || exports.defaultConfig();
@@ -23,11 +28,7 @@ exports.loadConfig = function(path) {
     conductanceRoot    : conductanceRoot,
     configPath         : configfile,
     configRoot         : url.normalize('./', configfile),
-    conductanceVersion : "1-#{
-                              (new Date(
-                                  stat(url.normalize('../../stratifiedjs/stratified-node.js', 
-                                      module.id).substr(7)).mtime)).getTime()
-                            }",
+    conductanceVersion : conductanceVersion,
   });
 
 
@@ -97,6 +98,11 @@ exports.run = function() {
       type: 'arrayOfBool',
       help: 'Increase log level. Can be used multiple times.'
     },
+    {
+      name: 'version',
+      type: 'bool',
+      help: 'Print version information'
+    },
   ]});
 
   try {
@@ -107,6 +113,15 @@ exports.run = function() {
   }
   if (opts.help) {
     usage();
+    process.exit(0);
+  }
+
+  if (opts.version) {
+    var sys = require('sjs:sys');
+    console.log("
+Conductance version #{conductanceVersion} (#{conductanceRoot})
+SJS version #{sys.version} (#{nodePath.normalize(sys.executable, '..')})
+");
     process.exit(0);
   }
 
