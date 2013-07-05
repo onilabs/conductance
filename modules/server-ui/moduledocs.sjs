@@ -1,7 +1,7 @@
 var { parseModuleDocs } = require('sjs:docutil');
 // XXX get rid of bootstrap dependency
-var { Bootstrap, Container, Label } = require('./surface/bootstrap');
-var { Markdown } = require('./surface');
+var { Bootstrap, Container, Label } = require('../surface/bootstrap');
+var { Markdown } = require('../surface');
 
 /**
    @function generateModuleDocs

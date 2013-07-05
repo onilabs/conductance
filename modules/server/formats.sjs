@@ -63,40 +63,15 @@ function gen_app_html(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates html for a directory listing:
 function gen_dir_html(src, dest, aux) {
-  // src is json:
-  var dir = JSON.parse(readAll(src));
-  // XXX shoud this preserve !format fragment when linking to other directories?
-  var header = "<h1>Contents of " + dir.path + "</h1>";
-  var folderList = dir.directories .. 
-    map(d ->
-        //XXX xml escaping!
-        "<li><a href=\"" + d + "/\">" + d + "/</a></li>") ..
-    toArray;
+  var listing = require('../server-ui/dirlisting').generateDirListing(JSON.parse(readAll(src)));
 
-  var fileList = dir.files ..
-    map(function(f) {
-      var desc;
-      if (f.generated) {
-        desc = 'generated';
-      }
-      else if (f.size < 1024)
-        desc = f.size + " B";
-      else if (f.size < 1024 * 1024)
-        desc = Math.round(f.size/1024*10)/10+ " kB";
-      else
-        desc = Math.round(f.size/1024/1024*10)/10+ " MB";
-      
-      return "<li><a href='#{f.name}'>#{f.name}</a> (#{desc})</li>";
-    }) ..
-    toArray;
-
-  dest.write("#{header}<ul>#{folderList.join("\n")}#{fileList.join("\n")}</ul>");
+  dest.write(require('../surface').Document(listing));
 }
 
 //----------------------------------------------------------------------
 // filter that generates docs for an sjs module:
-function gen_moduledocs(src, dest, aux) {
-  var docs = require('../moduledocs').generateModuleDocs(aux.request.url.path, readAll(src));
+function gen_moduledocs_html(src, dest, aux) {
+  var docs = require('../server-ui/moduledocs').generateModuleDocs(aux.request.url.path, readAll(src));
   dest.write(require('../surface').Document(docs));
 }
 
@@ -134,7 +109,7 @@ var BaseFileFormatMap = {
                     filter: json2jsonp }
          },
   sjs  : { none     : { mime: "text/html",
-                        filter: gen_moduledocs
+                        filter: gen_moduledocs_html
                       }, 
            compiled : { mime: "text/plain",
                         filter: sjscompile,
