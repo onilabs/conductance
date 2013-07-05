@@ -2,4 +2,17 @@
 var fs = require('fs');
 var path = require('path');
 var base = path.dirname(fs.realpathSync(__filename));
-require('./stratifiedjs/stratified-node.js').run(path.join(base, 'modules/server/main.sjs'))
+
+var sjs = require('stratifiedjs');
+
+exports.run = function() {
+	sjs.run(path.join(base, 'modules/server/main.sjs'));
+};
+
+exports.installHub = function(cb) {
+	sjs.require(path.join(base, 'hub.sjs'), {callback: cb});
+}
+
+if (require.main === module) {
+	exports.run();
+}

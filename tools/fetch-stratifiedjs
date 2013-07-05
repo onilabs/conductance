@@ -6,33 +6,34 @@ var { read    } = require('sjs:nodejs/stream');
 var fs = require('sjs:nodejs/fs');
 var url = require('sjs:url');
 var root = url.normalize('../', module.id) .. url.toPath();
+var dest = "node_modules/stratifiedjs";
 
 // make sure we're in the right directory
 process.chdir(root);
 
-if (fs.exists('stratifiedjs/.git')) {
+if (fs.exists("#{dest}/.git")) {
   console.log('stratifiedjs directory already contains a git repository -> exiting');
   process.exit(1);
 }
 
-if (exec('git status --porcelain stratifiedjs').stdout.length) {
+if (exec("git status --porcelain #{dest}").stdout.length) {
   console.log('stratifiedjs directory not clean -> exiting');
   process.exit(1);
 }
 
 console.log("\
-Replacing directory '#{fs.realpath('stratifiedjs')}' with github repository at git://github.com/onilabs/stratifiedjs.git.
+Replacing directory '#{fs.realpath(dest)}' with github repository at git://github.com/onilabs/stratifiedjs.git.
 Sure you want to proceed? [y/N]");
 if (read(process.stdin).toString().toLowerCase() != 'y\n') {
   console.log('-> exiting');
   process.exit(1);
 }
 
-exec('rm -rf stratifiedjs/');
+exec("rm -rf #{dest}");
 console.log('Cloning external repo');
-exec('git clone git://github.com/onilabs/stratifiedjs.git stratifiedjs');
+exec("git clone git://github.com/onilabs/stratifiedjs.git #{dest}");
 console.log("Checking out branch 'mho'");
-exec('cd stratifiedjs/; git checkout mho');
+exec("cd #{dest}; git checkout mho");
 console.log('Reapplying our patches');
-exec('git checkout -- stratifiedjs/');
+exec("git checkout -- #{dest}/");
 console.log('ALL DONE');

@@ -1,0 +1,17 @@
+{
+  "name": "conductance",
+  "description": "Conductance Web Framework",
+  "author" : "Oni Labs <maintainers@onilabs.com>",
+  "version" : "0.1.0-1-development",
+  "homepage" : "http://onilabs.com/conductance",
+  "private" : true,
+  "repository":   {
+    "type": "git",
+    "url": "git://github.com/onilabs/conductance.git"
+  },
+  "main": "conductance",
+  "bin": { "conductance": "conductance" },
+  "dependencies": {
+    "stratifiedjs": "0.14.0-1-development"
+  }
+}
