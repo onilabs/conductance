@@ -172,7 +172,7 @@ function listDirectory(req, root, branch, format, settings) {
   var listingJson = JSON.stringify(listing);
   formatResponse(
     req,
-    { input: -> new stream.ReadableStringStream(listingJson),
+    { input: -> new stream.ReadableStringStream(listingJson, true),
       extension: "/",
       format: format
     },
@@ -241,7 +241,7 @@ function generateFile(req, filePath, format, settings) {
 
   formatResponse(
     req,
-    { input: -> new stream.ReadableStringStream(generator.content(req.url.queryKey)),
+    { input: -> new stream.ReadableStringStream(generator.content(req.url.queryKey), true),
       extension: path.extname(filePath).slice(1),
       format: format,
 //      length: generator.content().length,
