@@ -1,5 +1,6 @@
 var dom    = require('sjs:xbrowser/dom');
 var events = require('sjs:events');
+var { each, find } = require('sjs:sequence');
 
 // dom module backfill:
 
@@ -101,4 +102,77 @@ exports.tabbing = function(parent) {
       newContent.classList.add('active');
     }
   }
+};
+
+
+// dom module or dom-shim backfill:
+var transitionEndEvent = 
+  ([['transition', 'transitionend'],
+    ['WebkitTransition', 'webkitTransitionEnd'],
+    ['MozTransition', 'transitionend']] ..
+   find([styleprop, eventname] -> document.body.style[styleprop] !== undefined, 
+        [,undefined])
+  )[1];
+
+exports.accordion = function(parent) {
+  events.HostEmitter(parent, 'click', function(e) { 
+    if (domFindData('toggle', 'accordion', e.target, parent)) {
+      dom.stopEvent(e);
+      return true;
+    }
+    else 
+      return false;
+  }) ..
+    events.Stream ..
+    each {
+      |ev|
+
+      var selected_group = dom.findNode('.accordion-group', ev.target, parent);
+      var selected_body = selected_group.querySelector('.accordion-body');
+      var old_body = parent.querySelector('.accordion-body.in');
+
+      // simultaneously animate in & out:
+      // unfortunately CSS can't animate from 'auto' values, so this
+      // is a bit convoluted
+      waitfor {
+        if (old_body) {
+          if (transitionEndEvent) {
+            // *sigh* need to temporarily remove 'collapse' class to
+            // prevent animation
+            old_body.classList.remove('collapse'); 
+            old_body.style.height = "#{old_body.offsetHeight}px";
+            // force reflow for new height to filter through:
+            var forceReflow = old_body.offsetHeight;
+            old_body.classList.add('collapse');
+            old_body.classList.remove('in');
+            old_body.style.height = null;
+            old_body .. events.wait(transitionEndEvent);
+          }
+          else {
+            // browser doesn't support transition effects
+            old_body.classList.remove('in');
+          }
+        }
+      }
+      and {
+        if (old_body !== selected_body) {
+          selected_body.classList.add('in');
+          if (transitionEndEvent) {
+            try {
+              selected_body.style.height = "#{selected_body.offsetHeight}px";
+              selected_body .. events.wait(transitionEndEvent);
+            }
+            finally {
+              // *sigh* need to temporarily remove 'collapse' class to
+              // prevent another animation
+              selected_body.classList.remove('collapse'); 
+              selected_body.style.height = null;
+              // force reflow for new height to filter through:
+              var forceReflow = selected_body.offsetHeight;
+              selected_body.classList.add('collapse');
+            }        
+          }
+        }
+      }
+    }
 };

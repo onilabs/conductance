@@ -26,7 +26,7 @@ exports.css = function(theme) {
   #{ require('./style/sprites').css(vars, mixins) }
   #{ require('./style/dropdowns').css(vars, mixins) }
   #{ require('./style/wells').css(vars, mixins) }
-  /* #xx{ require('./style/component-animations').css(vars, mixins) } */
+  #{ require('./style/component-animations').css(vars, mixins) }
   #{ require('./style/close').css(vars, mixins) }
 
 /* Components: Buttons & Alerts */
@@ -40,6 +40,7 @@ exports.css = function(theme) {
 
 /* Components: Misc */
   #{ require('./style/labels-badges').css(vars, mixins) }
+  #{ require('./style/accordion').css(vars, mixins) }
 
 /* Utility classes */
   #{ require('./style/utilities').css(vars, mixins) } /* Has to be last to override when necessary */
