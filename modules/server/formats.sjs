@@ -89,6 +89,13 @@ exports.api = api;
 }
 
 //----------------------------------------------------------------------
+// filter that generates html for markdown (*.md) files:
+function gen_markdown_html(src, dest, aux) {
+  var docs = require('../server-ui/markdownfile').generateMarkdown(readAll(src));
+  dest.write(require('../surface').Document(docs));
+}
+
+//----------------------------------------------------------------------
 
 var BaseFileFormatMap = {
   "/"  : { none : { mime: "text/html",
@@ -149,6 +156,12 @@ var BaseFileFormatMap = {
                         filter: apiimport
                       },
            src      : { mime: "text/plain" }
-         }
+         },
+  md   : { none     : { mime: "text/html",
+                        filter: gen_markdown_html
+                      }, 
+           src      : { mime: "text/plain" },
+         },
+
 };
 exports.BaseFileFormatMap = BaseFileFormatMap;
