@@ -146,7 +146,15 @@ exports.accordion = function(parent) {
             old_body.classList.add('collapse');
             old_body.classList.remove('in');
             old_body.style.height = null;
-            old_body .. events.wait(transitionEndEvent);
+            waitfor {
+              old_body .. events.wait(transitionEndEvent);
+            }
+            or {
+              // the timeout makes it robust; in case the
+              // transitionendevent isn't firing for some reason
+              // (style removed, etc)
+              hold(500);
+            }
           }
           else {
             // browser doesn't support transition effects
@@ -158,9 +166,21 @@ exports.accordion = function(parent) {
         if (old_body !== selected_body) {
           selected_body.classList.add('in');
           if (transitionEndEvent) {
-            try {
-              selected_body.style.height = "#{selected_body.offsetHeight}px";
+            waitfor {
+              // can't just do this:
+              //selected_body.style.height = "#{selected_body.offsetHeight}px";
+              // ff needs an explicit '0px' as starting point
+              var h = selected_body.offsetHeight;
+              selected_body.style.height = '0px';
+              var forceReflow = selected_body.offsetHeight;
+              selected_body.style.height = "#{h}px";
               selected_body .. events.wait(transitionEndEvent);
+            }
+            or {
+              // the timeout makes it robust; in case the
+              // transitionendevent isn't firing for some reason
+              // (style removed, etc)
+              hold(500);
             }
             finally {
               // *sigh* need to temporarily remove 'collapse' class to
