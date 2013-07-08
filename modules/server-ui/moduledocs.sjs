@@ -1,26 +1,70 @@
 var { parseModuleDocs } = require('sjs:docutil');
 // XXX get rid of bootstrap dependency
 var { Bootstrap, Container, Label, Accordion, Span, Icon } = require('../surface/bootstrap');
-var { Markdown, Attrib, Style } = require('../surface');
+var { Attrib, Style, Unescaped } = require('../surface');
 var { values } = require('sjs:object');
-var { transform, filter, intersperse, find } = require('sjs:sequence');
+var { transform, filter, intersperse, find, join } = require('sjs:sequence');
+var { convert } = require('sjs:marked');
+
+//----------------------------------------------------------------------
+
+// resolve a link of the form:
+//   module_url::
+//   module_url::symbol
+//   ::symbol
+function resolveLink(id) {
+  if (id.indexOf('::') == -1) return id; // ids we care about contain '::'
+  var [, opt, module, symbol] = /\s*(optional)?\s*([^:]*)::(.*)/.exec(id);
+  var rv;
+  if (module) {
+    if (symbol)
+      rv = "<a href='#{module}.sjs##{symbol}'>#{module}::#{symbol}</a>";
+    else
+      rv = "<a href='#{module}.sjs'>#{module}</a>";
+  }
+  else {
+    // link into our module:
+    rv = "<a href='##{symbol}'>#{symbol}</a>";
+  }
+
+  if (opt) 
+    rv = 'optional '+rv;
+  return rv;
+}
+
+// resolve all links [...::...] 
+function resolveLinks(html) {
+  return html.replace(/\[([^\]]*::[^\]]*)\]/g, function(m,p) { return resolveLink(p); }); 
+}
+
+var DocsMarkdown = txt -> 
+  convert(txt, {escapeCode:false}) .. 
+  resolveLinks ..
+  Unescaped;
 
 //----------------------------------------------------------------------
 // Style
 
 // style overrides applying to all our docs:
 var DocsStyle   = Style('
-  td > p { margin:0 }
+  td > p   { margin:0 }
 ');
 
 var OptArgStyle = Style('{color:#888}');
 var DefvalStyle = Style('{font-style:italic}');
 
 //----------------------------------------------------------------------
+// function to markup types:
+var type = (ts) -> 
+  ts.split('|') .. 
+  transform(t -> t.trim() .. resolveLink) .. 
+  intersperse(' | ') .. join .. Unescaped;
+
+//----------------------------------------------------------------------
 // function signature for the given function symbol `f` and (possibly undefined) class `cls`:
 var signature = (f, cls) -> 
   `<h2>${f.type=='ctor'&&!f.nonew? 'new '}${cls? cls.toLowerCase()+'.'}${f.name}($paramlist(f.param||[]))${
-      f['return']? ` $Icon('arrow-right') ${f['return'].valtype}`
+      f['return']? ` $Icon('arrow-right') $type(f['return'].valtype)`
     }</h2>`;
 var paramlist = (ps) -> 
   ps .. 
@@ -45,8 +89,8 @@ var paramtable = (ps) ->
 var paramrow = (p) ->
   `<tr>
      <td>${p.name}</td>
-     <td>${p.valtype}${p.defval? `<br>Default: ${p.defval}` .. DefvalStyle}</td>
-     <td>${p.summary ? Markdown(p.summary)}</td>
+     <td>$type(p.valtype)${p.defval? `<br>Default: ${p.defval}` .. DefvalStyle}</td>
+     <td>${p.summary ? DocsMarkdown(p.summary)}</td>
    </tr>`
 
 //----------------------------------------------------------------------
@@ -66,7 +110,7 @@ var returnvalue = (rv) ->
    <table class='table table-striped table-bordered'>
      <tbody>
        <trow>
-         <td>${rv.valtype}</td><td>${rv.summary? Markdown(rv.summary)}</td>
+         <td>$type(rv.valtype)</td><td>${rv.summary? DocsMarkdown(rv.summary)}</td>
        </trow>
      </tbody>
    </table>`;
@@ -77,12 +121,12 @@ var returnvalue = (rv) ->
 var functionslist = (symbols, cls, ftype) -> Accordion(values(symbols) .. 
     filter({type} -> type==ftype) ..
     transform(symbol -> 
-              [`$signature(symbol, cls) 
-                ${symbol.summary? Markdown(symbol.summary)}`,
+              [`<a id='${ftype=='ctor'? symbol.name+'::'}${cls? cls+'::'}${symbol.name}'></a>$signature(symbol, cls)
+                ${symbol.summary? DocsMarkdown(symbol.summary)}`,
                `${symbol.param ? paramtable(symbol.param)}
                 ${symbol['return'] ? returnvalue(symbol['return'])}
                 ${symbol.setting ? settingtable(symbol.setting)}
-                ${symbol.desc? Markdown(symbol.desc)}`
+                ${symbol.desc? DocsMarkdown(symbol.desc)}`
               ]));
 
 //----------------------------------------------------------------------
@@ -90,8 +134,8 @@ var functionslist = (symbols, cls, ftype) -> Accordion(values(symbols) ..
 
 var classlist = classes -> Accordion(values(classes) ..
     transform(cls ->
-              [`<h2>${cls.name}</h2>
-                ${cls.summary? Markdown(cls.summary)}`,
+              [`<a id='${cls.name}'></a><h2>${cls.name}</h2>
+                ${cls.summary? DocsMarkdown(cls.summary)}`,
                `
                <h3>Constructor:</h3>
                ${cls.symbols? functionslist(cls.symbols, undefined, 'ctor')}
@@ -99,7 +143,7 @@ var classlist = classes -> Accordion(values(classes) ..
                <h3>Methods:</h3>
                ${cls.symbols? functionslist(cls.symbols, cls.name, 'function')}
                <hr>
-               ${cls.desc? Markdown(cls.desc)}
+               ${cls.desc? DocsMarkdown(cls.desc)}
                `
               ]));
 
@@ -128,14 +172,14 @@ exports.generateModuleDocs = function(name, src) {
     `
       <div class='page-header'>
         <h1>${docs.module ? `The ${docs.module} module` : name}
-          ${docs.summary ? `<br><small>$Markdown(docs.summary)</small>`}
+          ${docs.summary ? `<br><small>$DocsMarkdown(docs.summary)</small>`}
         </h1>
 
       ${docs.hostenv ? 
         `<p>$Label('warning', 'Note') This module only works in the '${docs.hostenv}' host environment.</p>`
        }
 
-      ${docs.desc ? Markdown(docs.desc) }
+      ${docs.desc ? DocsMarkdown(docs.desc) }
       <hr>
       <h2>Functions:</h2>
       $functionslist(docs.symbols, undefined, 'function')
