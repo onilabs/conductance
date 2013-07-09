@@ -56,7 +56,7 @@ var DefvalStyle = Style('{font-style:italic}');
 //----------------------------------------------------------------------
 // function to markup types:
 var type = (ts) -> 
-  ts.split('|') .. 
+  (ts||'').split('|') .. 
   transform(t -> t.trim() .. resolveLink) .. 
   intersperse(' | ') .. join .. Unescaped;
 
