@@ -1,5 +1,5 @@
 // this script can process any manifest format v1.
-var API = 1;
+var VERSION = 1;
 var fs = require("fs");
 var path = require("path");
 var os = require("os");
@@ -12,8 +12,12 @@ if (typeof(__filename) == 'undefined') {
 	var __filename = decodeURIComponent(module.id.substr(7));
 }
 here = path.dirname(__filename);
+var conductance_root = process.env['CONDUCTANCE_ROOT'] || path.dirname(here);
 
-// var here = path.dirname(__filename);
+var CURRENT_MANIFEST = path.join(conductance_root, 'share', 'manifest.json');
+var NEW_MANIFEST = path.join(conductance_root, 'share', 'manifest.new.json');
+var trashDir = path.join(conductance_root, '.trash');
+
 var VERBOSE = process.env['CONDUCTANCE_DEBUG'] === '1';
 var debug = function(/* ... */) {
 	if(!VERBOSE) return;
@@ -21,7 +25,10 @@ var debug = function(/* ... */) {
 };
 
 var assert = exports.assert = function(o, desc) {
-	if (!o) throw new Error(desc || "not ok");
+	if (!o) {
+		console.error(desc || "not ok");
+		process.exit(1);
+	}
 	return o;
 };
 
@@ -39,8 +46,8 @@ exports.platformSpecificAttr = function(val, _os) {
 	if (!_os) _os = os;
 	var result = val;
 	if (val.platform_key) {
-		var key = exports.platformKey(val.platform_key, _os);
 		debug("platform config:", val);
+		var key = exports.platformKey(val.platform_key, _os);
 		var msg = "Unsupported platform type: " + key;
 		if (!val.hasOwnProperty(key)) {
 			key = 'default';
@@ -61,19 +68,28 @@ var ensureDir = exports.ensureDir = function (dir) {
 	}
 };
 
-function install(link, manifest) {
+function install(link, manifest, cb) {
 	debug("Installing link: ", link);
+	if (fs.existsSync(link.dest)) {
+		exports.trash(link.dest);
+	}
 	if(link.runner) {
 		var wrappers = assert(exports.platformSpecificAttr(manifest.wrappers[link.runner]));
-		var contents = wrapper.template.replace(/__REL_PATH__/, path.relative(here, link.src));
+		var contents = wrapper.template.replace(/__REL_PATH__/, path.relative(conductance_root, link.src));
 		fs.writeFileSync(link.dest, contents);
 		
 		// make sure it's executable
 		fs.chmodSync(link.dest, 0755);
 	} else {
+		if (os.platform().toLowerCase() == 'windows' && fs.statSync(link.src).isDirectory()) {
+			// can't symlink a dir on windows - just copy it
+			exports.runCmd("xcopy", [link.src, link.dest, '/s','/e'], cb);
+			return;
+		}
 		//just symlink it
 		fs.symlinkSync(link.src, link.dest);
 	}
+	cb();
 };
 
 function genTemp(name) {
@@ -86,7 +102,27 @@ exports.download = function(href, cb) {
 	var tmpfile = genTemp(name);
 
 	var file = fs.createWriteStream(tmpfile);
-	var request = http.get(href, function(response) {
+	var options = href;
+	var proto = href.split(':',1)[0];
+	var proxy = process.env[proto.toUpperCase() + '_PROXY'];
+	debug(proto + "_proxy: " + proxy);
+	if(proxy) {
+		var match = proxy.match(/^[^:]*:\/\/([^\/:]+)(?::(\d+))/);
+		var destMatch = href.match(/^[^:]*:\/\/([^\/]+)/);
+		assert(match, "Can't parse proxy host");
+		assert(destMatch, "Can't parse URL host");
+		options = {
+			host: match[1],
+			port: parseInt(match[2] || 8080, 10),
+			path: href,
+			headers: {
+				Host: destMatch[1]
+			}
+		};
+		debug(options);
+	}
+
+	var request = http.get(options, function(response) {
 			response.pipe(file);
 			response.on('end', function() {
 				file.close();
@@ -94,7 +130,7 @@ exports.download = function(href, cb) {
 				cb({ path: tmpfile, originalName: name});
 			});
 	}).on('error', function() {
-		assert(false, "Download failed. Try again later");
+		assert(false, "Download failed. The server may be experiencing trouble, please try again later");
 	});
 };
 
@@ -159,7 +195,7 @@ exports.extract = function(archive, dest, extract, cb) {
 		case ".tgz":
 			var cmd = 'tar';
 			if (os.platform().toLowerCase() == 'windows') {
-				cmd = os.path.join(here, 'bsdtar.exe');
+				cmd = os.path.join(conductance_root, 'share', 'bsdtar.exe');
 			}
 			var args = ["zxf", archivePath, '--directory=' + dest];
 			if (extract !== undefined) {
@@ -191,12 +227,15 @@ var download_and_extract = function(name, dest, attrs, cb) {
 	});
 }
 
-exports.load_manifest = function() {
+exports.load_manifest = function(p) {
 	// NOTE: we can't just require(./manifest.json) here, since
 	// that would give us the original manifest after an update is performed
-	var manifestJson = fs.readFileSync("./manifest.json", "utf-8");
+	var manifestJson = fs.readFileSync(p, "utf-8");
 	var manifest = JSON.parse(manifestJson);
-	if (manifest.version != API) {
+	assert(manifest.format_version, "manifest has no format_version attribute");
+	if (manifest.format_version != VERSION) {
+		console.error("Manifest format version: " + manifest.format_version);
+		console.error("This installation understands version: " + VERSION);
 		console.error(manifest.version_error);
 		return false;
 	}
@@ -204,7 +243,7 @@ exports.load_manifest = function() {
 };
 
 exports.dump_versions = function(manifest) {
-	manifest = manifest || exports.load_manifest();
+	manifest = manifest || exports.load_manifest(CURRENT_MANIFEST);
 	if (!manifest) return;
 	var keys = Object.keys(manifest.data);
 	keys.sort();
@@ -215,26 +254,55 @@ exports.dump_versions = function(manifest) {
 	});
 }
 
+exports.checkForUpdates = function() {
+	// checks for updates. This should *never* cause the process to exit when anything
+	// goes wrong, as it's called from conductance proper.
+	// Returns `true` if there are updates.
+	var existingManifest = exports.load_manifest(CURRENT_MANIFEST);
+	var updateUrl = existingManifest.manifest_url;
+	
+	// TODO: load updateUrl, and save to manifest.new.json if its version is > existingManifest
+};
+
 // main function
 exports.main = function(initial) {
-	var manifest = exports.load_manifest();
-	if (!manifest) return;
+	var oldManifest = exports.load_manifest(CURRENT_MANIFEST);
+	if (!oldManifest) return;
 
-	var idx = 0;
+	var manifest;
+	if (initial) {
+		debug("installing bundled manifest");
+		manifest = oldManifest; // install existing manifest
+	} else {
+		debug("checking for new manifest");
+		if (!fs.existsSync(NEW_MANIFEST)) {
+			console.log("No updates available");
+			process.exit(0);
+		}
+		try {
+			manifest = exports.load_manifest(NEW_MANIFEST);
+			if (!manifest) throw new Error();
+		} catch(e) {
+			console.error("Unable to load new manifest.");
+			fs.unlink(NEW_MANIFEST);
+			process.exit(1);
+		}
+	}
+
 	var new_components = [];
 	var all_components = [];
 	var tasks = Object.keys(manifest.data).map(function(componentName) {
 		return function(next) {
 			var v = manifest.data[componentName];
-			var parentDir = path.join(here, "data");
-			var dest = path.join(parentDir, componentName + '-' + ok(v.id));
+			var parentDir = path.join(conductance_root, "data");
+			var dest = path.join(parentDir, componentName + '-' + assert(v.id));
 			var component = {
 				name: componentName,
 				root: dest,
 				conf: v};
 			all_components.push(component);
 
-			if (!fs.exists(dest)) {
+			if (!fs.existsSync(dest)) {
 				debug("New component required: " + dest);
 				ensureDir(dest);
 				// download data
@@ -248,10 +316,21 @@ exports.main = function(initial) {
 		};
 	});
 
-	var run_next = function() {
-		i++;
-		if (i < tasks.length) {
-			tasks[i](run_next);
+	var linkDest = function(link) {
+		var src = link.src;
+		assert(src, "link has no source");
+		var dest = link.dest;
+		assert(dest, "link has no destination");
+
+		if (dest[dest.length - 1] != '/') {
+			dest = path.join(dest, path.basename(src));
+		}
+		return path.join(conductance_root, dest);
+	}
+
+	var cont = function() {
+		if (tasks.length > 0) {
+			tasks.shift()(cont);
 		} else {
 			// all tasks have been run in sequence
 			if (new_components.length == 0 && process.env['CONDUCTANCE_REINSTALL'] !== 'true') {
@@ -268,12 +347,8 @@ exports.main = function(initial) {
 				var links = exports.platformSpecificAttr(component.links);
 				links.forEach(function(link) {
 					var src = path.join(assert(component.root), assert(link.src, "link has no src"));
-					assert(fs.exists(src), "No such file: " + src);
-					var dest = assert(link.dest);
-					if (dest[dest.length - 1] != '/') {
-						dest = path.join(dest, path.basename(src));
-					}
-					dest = path.join(here, dest);
+					assert(fs.existsSync(src), "No such file: " + src);
+					var dest = linkDest(link);
 					ensureDir(path.dirname(dest));
 					all_links.push({
 						src: src,
@@ -284,41 +359,70 @@ exports.main = function(initial) {
 			});
 
 			console.warn("Installing components ...");
-			all_links.forEach(function(link) {
-				install(link, manifest);
-			});
+			var installNext = function() {
+				if (all_links.length > 0) {
+					var link = all_links.shift();
+					install(link, manifest, installNext);
+				} else {
+					// done installing links
+					console.warn("Cleaning up ...");
+					
+					// remove any links that were *not* specified by the current manifest
+					var old_link_paths = [];
+					var keep_link_paths = all_links.map(function(l) { return l.dest; });
+					Object.keys(oldManifest.data).forEach(function(componentName) {
+						var config = oldManifest.data[componentName];
+						var links = config.links;
+						if (!links) return;
+						links = exports.platformSpecificAttr(links);
+						links.forEach(function(link) {
+							var dest = linkDest(link);
+							if (keep_link_paths.indexOf(dest) == -1 && fs.existsSync(dest)) {
+								exports.trash(dest);
+							}
+						});
+					});
 
-			// now remove any links that were *not* specified by the current manifest
-			var link_dirs = {};
-			all_links.forEach(function(link) {
-				var parentDir = path.dirname(link.dest);
-				var filename = path.basename(link.dest);
-				if (!link_dirs[parentDir]) link_dirs[parentDir] = [];
-				link_dirs[parentDir].append(filename);
-			});
-			Object.keys(link_dirs).forEach(function(dir) {
-				debug("Checking " + dir + " for old links...");
-				var expected = link_dirs[dir];
-				var present = fs.readdirSync(dir);
-				present.forEach(function(filename) {
-					var p = path.join(dir, filename);
-					if (expected.indexOf(filename) == -1 && fs.statSync(p).isSymbolicLink) {
-						debug("Removing old link: " + p);
-						fs.unlinkSync(p);
+					// the manifest we just installed is now the current manifest:
+					if(fs.existsSync(NEW_MANIFEST)) fs.renameSync(NEW_MANIFEST, CURRENT_MANIFEST);
+					exports.purgeTrash();
+
+					if(initial) {
+						console.warn("Everything installed! Run " + path.join(conductance_root, 'bin','conductance') + "to get started!");
+					} else {
+						console.warn("Updated. Restart conductance for the new version to take effect.");
 					}
-				});
-			});
-
-
-			if(initial) {
-				console.warn("Everything installed!");
-			} else {
-				console.warn("Updated. Restart conductance for the new version to take effect.");
-			}
-			exports.dump_versions(manifest);
+					exports.dump_versions(manifest);
+				}
+			};
+			installNext(); // run installNext async loop
 		}
 	}
-	run_next();
+	cont(); // run cont() async loop
+};
+
+exports.purgeTrash = function() {
+	if(fs.existsSync(trashDir)) {
+		try {
+			exports.rm_rf(trashDir);
+		} catch(e) {
+			console.warn("Error cleaning up old files. Please delete " + trashDir + " manually.");
+			return false;
+		}
+	}
+	return true;
+};
+
+exports.trash = function(p) {
+	debug("Trashing: " + p);
+	exports.ensureDir(trashDir);
+	var filename = path.basename(p);
+	var dest;
+	for (var i=0; ; i++) {
+		dest = path.join(trashDir, filename + '.' + i);
+		if (!fs.existsSync(dest)) break;
+	}
+	fs.renameSync(p, dest);
 };
 
 exports.rm_rf = (function() {
@@ -443,3 +547,7 @@ exports.rm_rf = (function() {
 
 	return rimraf;
 })();
+
+if (require.main === module) {
+	exports.main(true);
+}

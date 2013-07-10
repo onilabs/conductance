@@ -1,3 +1,2 @@
 . ./env.do.sh
-redo-ifchange $scripts
-redo $platform_bundles
+redo-ifchange $platform_bundles

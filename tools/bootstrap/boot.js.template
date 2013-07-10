@@ -1,4 +1,0 @@
-// RUN ONCE, on initial install
-// defines exports.main()
-#include "share/self-update.js"
-exports.main();

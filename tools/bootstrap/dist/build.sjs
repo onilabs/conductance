@@ -3,7 +3,6 @@ var fs = require("sjs:nodejs/fs");
 var path = require("nodejs:path");
 var selfUpdate = require('../share/self-update.js');
 var {assert} = selfUpdate;
-var childProcess = require('sjs:nodejs/child-process');
 var object = require('sjs:object');
 var str = require('sjs:string');
 var url = require('sjs:url');
@@ -93,17 +92,20 @@ exports.main = function() {
 		}
 
 		var share_root = path.join(here, "../share");
+		var share_dest = path.join(base, "share");
+		selfUpdate.ensureDir(share_dest);
 		fs.readdir(share_root) .. each {|filename|
 			if (filename .. str.endsWith('.do') || filename .. str.startsWith('.')) continue;
 			filename = path.join(share_root, filename)
-			dest_filename = path.join(base, filename.replace(/-v[0-9]*/, ''));
-			run("cp", "-a", filename, base);
+			run("cp", "-a", filename, share_dest);
 		}
 
 		var node_wrapper = selfUpdate.platformSpecificAttr(manifest.wrappers.node, _os);
 		var filename = 'boot.' + (_os.platform == 'windows' ? 'cmd' : 'sh');
-		var content = node_wrapper.template.replace('__REL_PATH__', 'boot.js');
-		fs.writeFile(path.join(base, filename), content);
+		var content = node_wrapper.template.replace('__REL_PATH__', 'share/self-update.js');
+		var script = path.join(base, 'share', filename);
+		fs.writeFile(script, content);
+		fs.chmod(script, 0755);
 	}
 }
 

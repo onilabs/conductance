@@ -1,14 +1,15 @@
-{ "api": 1
+{ "format_version": 1
+, "version": 1
 , "manifest_url": "https://github.com/onilabs/conductance/TODO"
 , "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from http://onilabs.com/conductance"
 , "wrappers":
   { "node":
     { "platform_key": ["platform"]
     , "default":
-      { "template": "#!/bin/bash\nABSPATH=\"$(cd \"$(dirname \"$0\")\"; pwd)\";\nexec $ABSPATH/node \"$ABSPATH/__REL_PATH__\""
+      { "template": "#!/bin/bash\nCONDUCTANCE_ROOT=\"$(cd \"$(dirname \"$0\")/..\"; pwd)\";\nexec $CONDUCTANCE_ROOT/share/node \"$CONDUCTANCE_ROOT/__REL_PATH__\""
       }
     , "windows":
-      { "template": "\"%~dp0\\node.exe\"  \"%~dp0\\__REL_PATH__\" %*"
+      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=\"%~dp0\\..\"\n\"%CONDUCTANCE_ROOT%\\share\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
       }
     }
   }
@@ -20,17 +21,27 @@
       { "platform_key": ["platform"]
       , "all":
         [ {"src": "tools/bootstrap/share/self-update.js", "dest": "self-update.js"}
-        , {"src": "tools/bootstrap/share/manifest-v1.json", "dest": "manifest.json"}
         ]
       , "default":
         [ {"src": "conductance", "dest": "bin/", "runner": "node"}
-        , {"src": "node_modules/stratifiedjs/sjs", "dest": "bin/", "runner": "node"}
         ]
       , "windows":
         [ {"src": "conductance", "dest": "bin/"}
         , {"src": "conductance.cmd", "dest": "bin/"}
-        , {"src": "node_modules/stratifiedjs/sjs", "dest": "bin/"}
-        , {"src": "node_modules/stratifiedjs/sjs.cmd", "dest": "bin/"}
+        ]
+      }
+    }
+  { "stratifiedjs":
+    { "id": "0.14-dev"
+    , "href": "https://github.com/onilabs/stratifiedjs/tarball/6cd57229540f428c05c1417844f8d70cbb1220b2"
+    , "links":
+      { "platform_key": ["platform"]
+      , "default":
+        [ {"src": "sjs", "dest": "bin/", "runner": "node"}
+        ]
+      , "windows":
+        [ {"src": "sjs", "dest": "bin/"}
+        , {"src": "sjs.cmd", "dest": "bin/"}
         ]
       }
     }
@@ -50,8 +61,8 @@
       }
     , "links":
       { "platform_key": ["platform"]
-      , "default": [ {"src": "bin/node", "dest": "node"} ]
-      , "windows": [ {"src": "node.exe", "dest": "node.exe"} ]
+      , "default": [ {"src": "bin/node", "dest": "share/"} ]
+      , "windows": [ {"src": "node.exe", "dest": "share/"} ]
       }
     }
   , "bsdtar":
@@ -65,7 +76,7 @@
     , "links":
       { "platform_key": ["platform"]
       , "default": []
-      , "windows": [ { "src": "bin/bsdtar.exe", "dest": "bsdtar.exe" } ]
+      , "windows": [ { "src": "bin/bsdtar.exe", "dest": "share/bsdtar.exe" } ]
       }
     }
   }

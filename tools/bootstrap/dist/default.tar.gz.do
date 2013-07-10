@@ -1,5 +1,4 @@
 exec >&2
-set -eu
-sjs build.sjs "$2"
+. ./default.sh
 (cd tmp/"$2" && tar zcf "../../$3" *)
 
