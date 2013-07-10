@@ -1,0 +1,72 @@
+{ "api": 1
+, "manifest_url": "https://github.com/onilabs/conductance/TODO"
+, "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from http://onilabs.com/conductance"
+, "wrappers":
+  { "node":
+    { "platform_key": ["platform"]
+    , "default":
+      { "template": "#!/bin/bash\nABSPATH=\"$(cd \"$(dirname \"$0\")\"; pwd)\";\nexec $ABSPATH/node \"$ABSPATH/__REL_PATH__\""
+      }
+    , "windows":
+      { "template": "\"%~dp0\\node.exe\"  \"%~dp0\\__REL_PATH__\" %*"
+      }
+    }
+  }
+, "data":
+  { "conductance":
+    { "id": "0.1-dev"
+    , "href": "https://github.com/onilabs/conductance/tarball/fd6733fddc9daaf425387ad114650c169e3a2850"
+    , "links":
+      { "platform_key": ["platform"]
+      , "all":
+        [ {"src": "tools/bootstrap/share/self-update.js", "dest": "self-update.js"}
+        , {"src": "tools/bootstrap/share/manifest-v1.json", "dest": "manifest.json"}
+        ]
+      , "default":
+        [ {"src": "conductance", "dest": "bin/", "runner": "node"}
+        , {"src": "node_modules/stratifiedjs/sjs", "dest": "bin/", "runner": "node"}
+        ]
+      , "windows":
+        [ {"src": "conductance", "dest": "bin/"}
+        , {"src": "conductance.cmd", "dest": "bin/"}
+        , {"src": "node_modules/stratifiedjs/sjs", "dest": "bin/"}
+        , {"src": "node_modules/stratifiedjs/sjs.cmd", "dest": "bin/"}
+        ]
+      }
+    }
+  , "node":
+    { "id":"0.10.12"
+    , "bootstrap": true
+    , "extract":
+      { "platform_key": ["platform"]
+      , "default": 1
+      , "windows": 0
+      }
+    , "href":
+      { "platform_key": ["platform", "arch"]
+      , "linux_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-linux-x64.tar.gz"
+      , "windows_x64": "http://nodejs.org/dist/v0.10.12/x64/node.exe"
+      , "osx_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-darwin-x64.tar.gz"
+      }
+    , "links":
+      { "platform_key": ["platform"]
+      , "default": [ {"src": "bin/node", "dest": "node"} ]
+      , "windows": [ {"src": "node.exe", "dest": "node.exe"} ]
+      }
+    }
+  , "bsdtar":
+    { "id": "3.1.2"
+    , "bootstrap": true
+    , "href":
+      { "platform_key": ["platform"]
+      , "default": false
+      , "windows": "http://internode.dl.sourceforge.net/project/gnuwin32/libarchive/2.4.12-1/libarchive-2.4.12-1-bin.zip"
+      }
+    , "links":
+      { "platform_key": ["platform"]
+      , "default": []
+      , "windows": [ { "src": "bin/bsdtar.exe", "dest": "bsdtar.exe" } ]
+      }
+    }
+  }
+}
