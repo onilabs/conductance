@@ -4,6 +4,7 @@ var url = require('sjs:url');
 var fs = require('sjs:nodejs/fs');
 var childProcess = require('sjs:nodejs/child-process');
 var cutil = require('sjs:cutil');
+var str = require('sjs:string');
 
 var hosts = require('./hosts');
 
@@ -41,7 +42,7 @@ test.afterAll {||
 			childProcess.run('redo-ifchange', [bundle], {'stdio':'inherit'});
 			if (!proxy) {
 				proxy = cutil.breaking {|brk|
-					require('../proxy-server').serve(9090, brk);
+					require('../proxy').serve(9090, brk);
 				}
 			}
 		}
@@ -55,8 +56,10 @@ test.afterAll {||
 				assert.ok(fs.exists(bundle));
 				host.copyFile(bundle, '/tmp/conductance-install');
 				host.runCmd('bash -ex -c "cd $HOME; rm -rf .conductance; mkdir .conductance; cd .conductance; tar zxf /tmp/conductance-install"');
-				host.runCmd('export CONDUCTANCE_DEBUG=1 HTTP_PROXY=' + host.proxy +'; $HOME/.conductance/boot.sh');
-				host.runCmd('$HOME/.conductance/bin/conductance --help');
+				host.runCmd('export CONDUCTANCE_DEBUG=1 HTTP_PROXY=' + host.proxy +' HTTPS_PROXY='+host.proxy+'; $HOME/.conductance/share/boot.sh');
+				var output = host.runCmd('$HOME/.conductance/bin/conductance --help');
+				assert.ok(output .. str.contains('O N I   C O N D U C T A N C E'), output);
+				assert.ok(output .. str.contains('Usage: conductance [options] [configfile]'), output);
 			}
 		}
 	}.timeout(null);

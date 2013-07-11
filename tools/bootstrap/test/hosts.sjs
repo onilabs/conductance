@@ -4,7 +4,15 @@ var logging = require('sjs:logging');
 
 var run = function(cmd, args) {
 	logging.info("Running: #{cmd} #{shell_quote.quote(args)}");
-	return child_process.run( cmd, args, {stdio:'inherit'});
+	var result;
+	try {
+		result = child_process.run(cmd, args, {stdio:[process.stdin, 'pipe', process.stderr]});
+	} catch(e) {
+		logging.warn(e.stdout);
+		throw e;
+	}
+	logging.info(result.stdout);
+	return result.stdout;
 };
 
 var ssh = function(cmd) {

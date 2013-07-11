@@ -1,16 +1,20 @@
+if (typeof(__filename) == 'undefined') {
+	// SJS
+	var __filename = decodeURIComponent(module.id.substr(7));
+}
+
 // this script can process any manifest format v1.
 var VERSION = 1;
 var fs = require("fs");
 var path = require("path");
 var os = require("os");
 var http = require('http');
+var https = require('https');
+var PROTO_MODS = {http: http, https: https};
+
 var child_process = require('child_process');
 
 var here;
-if (typeof(__filename) == 'undefined') {
-	// SJS
-	var __filename = decodeURIComponent(module.id.substr(7));
-}
 here = path.dirname(__filename);
 var conductance_root = process.env['CONDUCTANCE_ROOT'] || path.dirname(here);
 
@@ -43,6 +47,7 @@ exports.platformKey = function(platform_key, _os) {
 };
 
 exports.platformSpecificAttr = function(val, _os) {
+	if (val === undefined) return undefined;
 	if (!_os) _os = os;
 	var result = val;
 	if (val.platform_key) {
@@ -74,7 +79,7 @@ function install(link, manifest, cb) {
 		exports.trash(link.dest);
 	}
 	if(link.runner) {
-		var wrappers = assert(exports.platformSpecificAttr(manifest.wrappers[link.runner]));
+		var wrapper = assert(exports.platformSpecificAttr(manifest.wrappers[link.runner]));
 		var contents = wrapper.template.replace(/__REL_PATH__/, path.relative(conductance_root, link.src));
 		fs.writeFileSync(link.dest, contents);
 		
@@ -96,17 +101,28 @@ function genTemp(name) {
 	return path.join(os.tmpdir(), "conductance-" + String(process.pid) + "-" + name);
 };
 
-exports.download = function(href, cb) {
+exports.download = function(href, cb, redirectCount) {
+	var _assert = function(o, detail) {
+		var msg = "Download failed. The server may be experiencing trouble, please try again later.";
+		if(detail) msg += "\n(" + detail + ")";
+		return assert(o, msg);
+	};
+
+	if (redirectCount === undefined) {
+		redirectCount = 0;
+	}
+	_assert(redirectCount < 10, "Too many redirects");
 	console.warn(" - Fetching: " + href);
 	var name = href.replace(/.*\//, '').replace(/\?.*/,'');
 	var tmpfile = genTemp(name);
 
 	var file = fs.createWriteStream(tmpfile);
 	var options = href;
-	var proto = href.split(':',1)[0];
+	var proto = href.split(':',1)[0].toLowerCase();
 	var proxy = process.env[proto.toUpperCase() + '_PROXY'];
 	debug(proto + "_proxy: " + proxy);
 	if(proxy) {
+		proto = 'http';
 		var match = proxy.match(/^[^:]*:\/\/([^\/:]+)(?::(\d+))/);
 		var destMatch = href.match(/^[^:]*:\/\/([^\/]+)/);
 		assert(match, "Can't parse proxy host");
@@ -122,15 +138,30 @@ exports.download = function(href, cb) {
 		debug(options);
 	}
 
-	var request = http.get(options, function(response) {
-			response.pipe(file);
-			response.on('end', function() {
-				file.close();
-				assert(fs.statSync(tmpfile).size > 0, "Downloaded file is empty.");
-				cb({ path: tmpfile, originalName: name});
-			});
+	var fetcher = assert(PROTO_MODS[proto], "Unsupported protocol: " + proto);
+	var request = fetcher.get(options, function(response) {
+		var redirect = response.headers['location'];
+		if (redirect) {
+			debug("Redirect: " + redirect);
+			return exports.download(redirect, cb, redirectCount + 1);
+		}
+		var statusCode = response.statusCode;
+		_assert(response.statusCode === 200, "Server returned " + statusCode + " error status");
+		debug("HEADERS:", response.headers);
+		var expectedLength = _assert(response.headers['content-length'], "no content-length given");
+		debug("Content-length: " + expectedLength);
+		expectedLength = parseInt(expectedLength, 10);
+		_assert(expectedLength > 0, "content-length = 0");
+		response.pipe(file);
+		response.on('end', function() {
+			file.close();
+			var fileSize = fs.statSync(tmpfile).size;
+			debug("File size: " + expectedLength);
+			_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize);
+			cb({ path: tmpfile, originalName: name});
+		});
 	}).on('error', function() {
-		assert(false, "Download failed. The server may be experiencing trouble, please try again later");
+		_assert(false);
 	});
 };
 
@@ -191,6 +222,7 @@ exports.extract = function(archive, dest, extract, cb) {
 		case ".exe":
 			return exports.copyFile(archivePath, path.join(dest, originalName), done);
 			break;
+		case null:
 		case ".gz":
 		case ".tgz":
 			var cmd = 'tar';
@@ -247,10 +279,11 @@ exports.dump_versions = function(manifest) {
 	if (!manifest) return;
 	var keys = Object.keys(manifest.data);
 	keys.sort();
-	keys.each(function(name) {
-		var component = manifest.data.name;
+	console.warn("\nComponent versions:");
+	keys.forEach(function(name) {
+		var component = manifest.data[name];
 		if (component.internal) return;
-		console.warn(" - " + name + ":" + component.id);
+		console.warn(" - " + name + ": " + component.id);
 	});
 }
 
@@ -322,7 +355,7 @@ exports.main = function(initial) {
 		var dest = link.dest;
 		assert(dest, "link has no destination");
 
-		if (dest[dest.length - 1] != '/') {
+		if (dest[dest.length - 1] == '/') {
 			dest = path.join(dest, path.basename(src));
 		}
 		return path.join(conductance_root, dest);
@@ -343,8 +376,8 @@ exports.main = function(initial) {
 			// just in case we have a bad component - we don't want to install only half the links
 			var all_links = [];
 			all_components.forEach(function(component) {
-				if (!component.links) return;
-				var links = exports.platformSpecificAttr(component.links);
+				if (!component.conf.links) return;
+				var links = exports.platformSpecificAttr(component.conf.links);
 				links.forEach(function(link) {
 					var src = path.join(assert(component.root), assert(link.src, "link has no src"));
 					assert(fs.existsSync(src), "No such file: " + src);
@@ -357,7 +390,14 @@ exports.main = function(initial) {
 					});
 				});
 			});
+			
+			// NOTE: this must be done *before* we start calling shift() on all_links
+			var keep_link_paths = all_links.map(function(l) { return l.dest; });
+			debug("Keeping links: ", keep_link_paths);
+			assert(keep_link_paths.length > 0, "no links in current version");
 
+			// NOTE: this is the pint of no return. If anything goes wrong between
+			// here and the end of the script, we've got a potentially-unrecoverable install
 			console.warn("Installing components ...");
 			var installNext = function() {
 				if (all_links.length > 0) {
@@ -369,7 +409,6 @@ exports.main = function(initial) {
 					
 					// remove any links that were *not* specified by the current manifest
 					var old_link_paths = [];
-					var keep_link_paths = all_links.map(function(l) { return l.dest; });
 					Object.keys(oldManifest.data).forEach(function(componentName) {
 						var config = oldManifest.data[componentName];
 						var links = config.links;
@@ -378,21 +417,32 @@ exports.main = function(initial) {
 						links.forEach(function(link) {
 							var dest = linkDest(link);
 							if (keep_link_paths.indexOf(dest) == -1 && fs.existsSync(dest)) {
-								exports.trash(dest);
+								old_link_paths.push(dest);
 							}
 						});
 					});
 
-					// the manifest we just installed is now the current manifest:
-					if(fs.existsSync(NEW_MANIFEST)) fs.renameSync(NEW_MANIFEST, CURRENT_MANIFEST);
-					exports.purgeTrash();
-
-					if(initial) {
-						console.warn("Everything installed! Run " + path.join(conductance_root, 'bin','conductance') + "to get started!");
-					} else {
-						console.warn("Updated. Restart conductance for the new version to take effect.");
+					var removeLink = function() {
+						if (old_link_paths.length > 0) {
+							exports.trash(old_link_paths.shift(), removeLink);
+						} else {
+							// all links trashed
+							
+							// the manifest we just installed is now the current manifest:
+							if(!initial) fs.renameSync(NEW_MANIFEST, CURRENT_MANIFEST);
+							exports.purgeTrash(function(err) {
+								// (err ignored, a warning has been printed)
+								exports.dump_versions(manifest);
+								console.warn("");
+								if(initial) {
+									console.warn("Everything installed! Run " + path.join(conductance_root, 'bin','conductance') + " to get started!");
+								} else {
+									console.warn("Updated. Restart conductance for the new version to take effect.");
+								}
+							});
+						}
 					}
-					exports.dump_versions(manifest);
+					removeLink();
 				}
 			};
 			installNext(); // run installNext async loop
@@ -401,16 +451,25 @@ exports.main = function(initial) {
 	cont(); // run cont() async loop
 };
 
-exports.purgeTrash = function() {
+exports.purgeTrash = function(cb) {
+	var _cb = function(err) {
+		if(err) {
+			debug(err);
+			console.warn("Error cleaning up old files. Please delete " + trashDir + " manually.");
+			return cb(err);
+		} else {
+			cb();
+		}
+	};
 	if(fs.existsSync(trashDir)) {
 		try {
-			exports.rm_rf(trashDir);
+			exports.rm_rf(trashDir, _cb);
 		} catch(e) {
-			console.warn("Error cleaning up old files. Please delete " + trashDir + " manually.");
-			return false;
+			_cb(e);
 		}
+	} else {
+		cb();
 	}
-	return true;
 };
 
 exports.trash = function(p) {

@@ -7,6 +7,7 @@ var object = require('sjs:object');
 var str = require('sjs:string');
 var url = require('sjs:url');
 var seq = require('sjs:sequence');
+var proxy = require('../proxy');
 var {map, each} = seq;
 
 function assert(o, r) {
@@ -58,17 +59,10 @@ exports.main = function() {
 			var originalName = url.replace(/.*\//, '').replace(/\?.*/,'');
 			var platform = 'all';
 			if (config.href.platform_key) platform = selfUpdate.platformKey(config.href.platform_key, _os);
-			var local_tarball = path.join(
-				here, 'dl', platform, component + '-' + config.id,
-				originalName);
+			
+			// download & cache
+			var local_tarball = proxy.download(url);
 
-			if (!fs.exists(local_tarball) || fs.stat(local_tarball).size == 0) {
-				selfUpdate.ensureDir(path.dirname(local_tarball));
-				waitfor(var tmpfile) {
-					selfUpdate.download(url, resume);
-				}
-				run("mv", tmpfile.path, local_tarball);
-			}
 			var extract = config.extract;
 			if (extract) extract = selfUpdate.platformSpecificAttr(extract, _os);
 			var component_base = path.join(base, "data", "#{component}-#{config.id}");

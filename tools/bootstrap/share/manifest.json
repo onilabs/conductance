@@ -6,7 +6,7 @@
   { "node":
     { "platform_key": ["platform"]
     , "default":
-      { "template": "#!/bin/bash\nCONDUCTANCE_ROOT=\"$(cd \"$(dirname \"$0\")/..\"; pwd)\";\nexec $CONDUCTANCE_ROOT/share/node \"$CONDUCTANCE_ROOT/__REL_PATH__\""
+      { "template": "#!/bin/bash\nCONDUCTANCE_ROOT=\"$(cd \"$(dirname \"$0\")/..\"; pwd)\";\nexec $CONDUCTANCE_ROOT/share/node \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\""
       }
     , "windows":
       { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=\"%~dp0\\..\"\n\"%CONDUCTANCE_ROOT%\\share\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
@@ -31,11 +31,15 @@
         ]
       }
     }
-  { "stratifiedjs":
+  , "stratifiedjs":
     { "id": "0.14-dev"
     , "href": "https://github.com/onilabs/stratifiedjs/tarball/6cd57229540f428c05c1417844f8d70cbb1220b2"
+    , "extract": 1
     , "links":
       { "platform_key": ["platform"]
+      , "all":
+        [ {"src": ".", "dest": "node_modules/stratifiedjs"}
+        ]
       , "default":
         [ {"src": "sjs", "dest": "bin/", "runner": "node"}
         ]
@@ -68,6 +72,7 @@
   , "bsdtar":
     { "id": "3.1.2"
     , "bootstrap": true
+    , "internal": true
     , "href":
       { "platform_key": ["platform"]
       , "default": false
