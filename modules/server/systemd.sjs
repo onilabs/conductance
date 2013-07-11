@@ -384,7 +384,11 @@ var install = function(opts) {
 			// -- Service --
 			var requires = [rootService.name];
 			if (socketUnit) requires.push(socketUnit.name);
-			serviceUnit.addSection('Unit', { 'X-Conductance-Source': env.configPath(), Requires: requires });
+			serviceUnit.addSection('Unit', {
+				'X-Conductance-Source': env.configPath(),
+				'Requires': requires,
+				'After': 'local-fs.target network.target',
+			});
 
 			var sjsExe = Url.normalize('../sjs', require.resolve('sjs:').path) .. Url.toPath();
 			if(!fs.exists(sjsExe)) {
@@ -393,7 +397,6 @@ var install = function(opts) {
 			service = object.merge({
 				// fully qualify both `node` and `sjs` executables to ensure we get the right runtime
 				'ExecStart': [nodeExe, sjsExe, env.conductanceRoot() + 'modules/server/main.sjs', env.configPath()],
-				'After': 'local-fs.target network.target',
 				'User': 'nobody',
 				'Group': 'nobody',
 				'SyslogIdentifier': fqn,
