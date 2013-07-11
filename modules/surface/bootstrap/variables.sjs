@@ -42,16 +42,28 @@ function registerTheme(name, theme) {
 }
 exports.registerTheme = registerTheme;
 
+//----------------------------------------------------------------------
+
 
 //----------------------------------------------------------------------
 
 /**
-   @variable defaultTheme
-   @summary  Object with functions to customize the look and feel of Bootstrap (port of Variables.less)
+   @variable bootstrapTheme
+   @summary  Vanilla Twitter Bootstrap theme. Object with functions to customize the look and feel of Bootstrap (port of Variables.less)
    @desc
       You can use this as prototype for a custom theme object for registering with [::registerTheme]
 */
-__js var defaultTheme = themes['default'] = exports.defaultTheme = {
+__js var bootstrapTheme = themes['bootstrap'] = exports.bootstrapTheme = {
+  // CONDUCTANCE ENHANCEMENTS:
+
+  // Custom Style
+  // --------------------------------------------------
+  customStyleDefs:  mixins -> '',
+
+
+
+  // ------------------------------------------
+  // STANDARD TWITTER BOOTSTRAP VARIABLES BELOW:
 
   // GLOBAL VALUES
   // --------------------------------------------------
@@ -117,7 +129,6 @@ __js var defaultTheme = themes['default'] = exports.defaultTheme = {
   paddingLarge:        ->  '11px 19px', // 44px
   paddingSmall:        ->  '2px 10px',  // 26px
   paddingMini:         ->  '0 6px',   // 22px
-
 
   baseBorderRadius:    -> '4px',
   borderRadiusLarge:   -> '6px',
@@ -347,3 +358,63 @@ __js var defaultTheme = themes['default'] = exports.defaultTheme = {
   //XXX @fluidGridGutterWidth768:      percentage(@gridGutterWidth768/@gridRowWidth768);
 
 };
+
+
+//----------------------------------------------------------------------
+
+/**
+   @variable defaultTheme
+   @summary  Default Oni Labs theme. Object with functions to customize the look and feel of Bootstrap (port of Variables.less)
+   @desc
+      You can use this as prototype for a custom theme object for registering with [::registerTheme]
+*/
+__js var defaultTheme = themes['default'] = exports.defaultTheme = Object.create(bootstrapTheme); 
+
+// see
+// http://coding.smashingmagazine.com/2013/02/14/setting-weights-and-styles-at-font-face-declaration/
+// for how to import fonts
+// XXX hack note: local font paths are relative to bootstrap.css.gen
+// atm, which is ugly
+defaultTheme.customStyleDefs = mixins -> "
+@global{
+  /*  @import url('http://fonts.googleapis.com/css?family=Raleway:400,700'); */
+  @font-face {
+    font-family: 'Raleway';
+    font-style: normal;
+    font-weight: 400;
+    src: url('./bootstrap/fonts/Raleway/Raleway-Regular.ttf') format('truetype');
+  }
+  @font-face {
+    font-family: 'Raleway';
+    font-style: normal;
+    font-weight: 700;
+    src: url('./bootstrap/fonts/Raleway/Raleway-Bold.ttf') format('truetype');
+  }
+
+  /* @import url('http://fonts.googleapis.com/css?family=Droid+Sans+Mono'); */ 
+  @font-face {
+    font-family: 'Droid Sans Mono';
+    font-style: normal;
+    font-weight: 400;
+    src: url('./bootstrap/fonts/Droid/DroidSansMono.ttf') format('truetype');
+  }
+}
+";
+
+//defaultTheme.baseFontFamily =       -> '"Raleway", sans-serif';
+defaultTheme.headingsFontFamily =   -> '"Raleway", sans-serif';
+defaultTheme.monoFontFamily =       -> '"Droid Sans Mono", "Courier New", monospace';
+
+defaultTheme.headingsColor =    -> '#333';
+
+
+defaultTheme.textColor =         -> '#444';
+defaultTheme.white =             -> '#fffff9';
+defaultTheme.baseBorderRadius =  -> '0';
+defaultTheme.borderRadiusSmall = -> '0';
+defaultTheme.borderRadiusLarge = -> '0';
+
+defaultTheme.navbarHeight = -> '60px';
+defaultTheme.navbarBackground =  -> '#7fc5ff';
+defaultTheme.navbarBackgroundHighlight = -> '#7fc5ff';
+defaultTheme.navbarBorder = -> '#7fc5ff';

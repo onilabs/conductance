@@ -24,7 +24,7 @@ exports.css = function(vars, mixins) {
 }
 /* Set unique padding and border-radii */
 .label {
-  #{mixins.border_radius('3px')}
+  #{mixins.border_radius(vars.borderRadiusSmall())}
 }
 .badge {
   padding-left: 9px;

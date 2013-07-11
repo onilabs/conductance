@@ -1,6 +1,6 @@
 var { parseModuleDocs } = require('sjs:docutil');
 // XXX get rid of bootstrap dependency
-var { Bootstrap, Container, Label, Accordion, Span, Icon } = require('../surface/bootstrap');
+var { Bootstrap, FluidContainer, Label, Accordion, Span, Icon } = require('../surface/bootstrap');
 var { Attrib, Style, Unescaped } = require('../surface');
 var { values } = require('sjs:object');
 var { transform, filter, intersperse, find, join } = require('sjs:sequence');
@@ -65,7 +65,9 @@ var type = (ts) ->
 var signature = (f, cls) -> 
   `<h2>${f.type=='ctor'&&!f.nonew? 'new '}${cls? cls.toLowerCase()+'.'}${f.name}($paramlist(f.param||[]))${
       f['return']? ` $Icon('arrow-right') $type(f['return'].valtype)`
-    }</h2>`;
+    }${
+      f.altsyntax? f.altsyntax .. transform(s -> `<br>${s}`)
+      }</h2>`;
 var paramlist = (ps) -> 
   ps .. 
   transform(function(p) {
@@ -168,7 +170,9 @@ exports.generateModuleDocs = function(name, src) {
       <pre>$src</pre>`;
   }    
 
-  return Bootstrap(Container(
+  return Bootstrap([     
+    `<div class='navbar navbar-static-top'><div class='navbar-inner'></div></div>`,
+    FluidContainer(
     `
       <div class='page-header'>
         <h1>${docs.module ? `The ${docs.module} module` : name}
@@ -192,6 +196,6 @@ exports.generateModuleDocs = function(name, src) {
       <hr>
       <h3>Output from docs parsing (just temporarily for debugging):</h3>
       <pre>${require('sjs:debug').inspect(docs, false, 6)}</pre>
-    `)) .. DocsStyle;
+    `)]) .. DocsStyle;
 };
 

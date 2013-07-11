@@ -12,7 +12,7 @@ pre {
   #{mixins.font.family.monospace()}
   font-size: #{add(vars.baseFontSize(), -2)};
   color: #{vars.grayDark() };
-  #{mixins.border_radius('3px')}
+  #{mixins.border_radius(vars.borderRadiusSmall())}
 }
 
 /* Inline code */

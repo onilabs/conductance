@@ -1,3 +1,4 @@
+// bootstrap css based on version 37d0a30589e8bd74299b2d857c348d91396563ed
 /**
    @function css
    @param {optional String} [theme='default'] Name of bootstrap theme (see [varables::]) 
@@ -7,6 +8,9 @@ exports.css = function(theme) {
   mixins = require('./mixins').Mixins(vars);
 
   var rv = "\
+/* Other custom style from variables */
+  #{ vars.customStyleDefs(mixins) }
+
 /* CSS Reset */
   #{ require('./style/reset').css(vars, mixins) }
 
@@ -44,6 +48,7 @@ exports.css = function(theme) {
 
 /* Utility classes */
   #{ require('./style/utilities').css(vars, mixins) } /* Has to be last to override when necessary */
+
 ";
   return rv;
 };

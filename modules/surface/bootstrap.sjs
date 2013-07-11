@@ -43,6 +43,12 @@ exports.Bootstrap = Bootstrap;
 exports.Container = content -> Widget('div', content, {'class':'container'});
 
 /**
+   @function FluidContainer
+*/
+exports.FluidContainer = content -> Widget('div', content, {'class':'container-fluid'});
+
+
+/**
    @function H1
 */
 exports.H1 = content -> Widget('h1', content);
