@@ -9,7 +9,7 @@ exports.run = function() {
 	sjs.run(path.join(base, 'modules/server/main.sjs'));
 };
 
-exports.installHub = function(cb) {
+exports.init = function(cb) {
 	sjs.require(path.join(base, 'hub.sjs'), {callback: cb});
 }
 

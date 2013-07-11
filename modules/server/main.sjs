@@ -142,6 +142,7 @@ SJS version #{sys.version} (#{nodePath.normalize(sys.executable, '..')})
   }
 
   var config = exports.loadConfig(configfile);
+  if (config.init) config.init();
 
   //----------------------------------------------------------------------
   // http(s) server(s)
