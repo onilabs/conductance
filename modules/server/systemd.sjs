@@ -5,7 +5,7 @@ var fs = require('sjs:nodejs/fs');
 var child_process = require('sjs:nodejs/child-process');
 var path = require('nodejs:path');
 var seq  = require('sjs:sequence');
-var { each, map, toArray, filter } = seq;
+var { concat, each, map, toArray, filter } = seq;
 var string = require('sjs:string');
 var array = require('sjs:array');
 var { isArrayLike } = array;
@@ -15,7 +15,6 @@ var shell_quote = require('sjs:shell-quote');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
 var assert = require('sjs:assert');
-//logging.setLevel(logging.DEBUG); // NOCOMMIT
 var Url = require('sjs:url');
 
 var conductance = require('mho:server/main');
@@ -93,6 +92,7 @@ SystemCtl.prototype.restart = function(units) {
 SystemCtl.prototype.log = function(units, args) {
 	var cmdline = units .. map(u -> ['--unit', u]) .. concat .. toArray;
 	cmdline = cmdline.concat(args);
+	logging.info(" - running: journalctl #{cmdline.join(" ")}");
 	return child_process.run('journalctl', cmdline, {stdio:'inherit'});
 };
 
@@ -573,7 +573,15 @@ exports.main = function() {
 			action = function(opts) {
 				var ctl = new SystemCtl(opts);
 				var units = installedUnits(opts);
-				ctl.log(units, opts._args);
+				ctl.log(units..map(u->u.name), opts._args);
+			};
+			break;
+
+		case "status":
+			action = function(opts) {
+				var ctl = new SystemCtl(opts);
+				var units = installedUnits(opts);
+				ctl.status(units..map(u->u.name), opts._args);
 			};
 			break;
 
@@ -591,6 +599,8 @@ Commands:
     start:      Start conductance target (noop if already running)
     stop:       Stop conductance units
     restart:    Restart conductance units
+    status:     Run systemctl status on conductance units
+    log:        Run journalctl on conductance units
 
 Global options:\n#{dashdash.createParser({ options: commonOptions }).help({indent:2})}
 
