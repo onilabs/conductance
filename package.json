@@ -12,6 +12,6 @@
   "main": "conductance",
   "bin": { "conductance": "conductance" },
   "dependencies": {
-    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#1ee5df32a368e72c2b3b1803a3f44ba5c2ebd98e"
+    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#dfc1486eb13efd57b752049dc273c0b71564b204"
   }
 }
