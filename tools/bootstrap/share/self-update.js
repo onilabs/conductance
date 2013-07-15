@@ -105,7 +105,11 @@ exports.download = function(href, cb, redirectCount) {
 	var _assert = function(o, detail) {
 		var msg = "Download failed. The server may be experiencing trouble, please try again later.";
 		if(detail) msg += "\n(" + detail + ")";
-		return assert(o, msg);
+		if (!o) {
+			cb(msg, null);
+			throw new Error("reached end of control");
+		}
+		return o;
 	};
 
 	if (redirectCount === undefined) {
@@ -158,7 +162,7 @@ exports.download = function(href, cb, redirectCount) {
 			var fileSize = fs.statSync(tmpfile).size;
 			debug("File size: " + expectedLength);
 			_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize);
-			cb({ path: tmpfile, originalName: name});
+			cb(null, { path: tmpfile, originalName: name});
 		});
 	}).on('error', function() {
 		_assert(false);
@@ -254,7 +258,8 @@ var download_and_extract = function(name, dest, attrs, cb) {
 	if (href === false) return cb();
 	console.warn("Downloading component: " + name + " to path " + dest);
 	assert(href, "Malformed manifest: no href");
-	exports.download(href, function(archive) {
+	exports.download(href, function(err, archive) {
+		if (err) assert(false, err);
 		exports.extract(archive, dest, extract, cb);
 	});
 }

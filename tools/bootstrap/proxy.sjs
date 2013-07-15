@@ -1,3 +1,4 @@
+#!/usr/bin/env sjs
 var Url = require('sjs:url');
 var fs = require('sjs:nodejs/fs');
 var stream = require('sjs:nodejs/stream');
@@ -5,13 +6,16 @@ var path = require('nodejs:path');
 var http = require('sjs:http');
 var cutil = require('sjs:cutil');
 var selfUpdate = require('./share/self-update.js');
+var logging = require('sjs:logging');
 var { withServer } = require('sjs:nodejs/http');
+
+// only used by in-process require() - when running as a
+// command line tool, cache_dir *must* be specified
+var cache_dir = Url.normalize('dist/dl', module.id) .. Url.toPath();
 
 exports.serve = function(port, block) {
 	var port_config =
-		{ address:  '0.0.0:' + port,
-			capacity: 1,
-			max_connections: 1,
+		{ address:  '0.0.0.0:' + port,
 			ssl: false,
 		};
 
@@ -28,15 +32,28 @@ exports.serve = function(port, block) {
 			server.eachRequest {
 				|{request, response}|
 				//console.log("REQUEST: ",request);
-				var url = request.url;
-				if (url[0] == '/') url = url.slice(1);
-				var localFile = exports.download(url);
-				var size = fs.stat(localFile).size;
-				response.setHeader('Content-Length', String(size));
-				console.log("PROXY: sending #{localFile}");
-				var f = require('nodejs:fs').createReadStream(localFile);
-				f .. stream.pump(response);
-				response.end();
+				try {
+					var url = request.url;
+					if (url[0] == '/') url = url.slice(1);
+					var localFile = exports.download(url);
+					var size = fs.stat(localFile).size;
+					response.setHeader('Content-Length', String(size));
+					console.log("PROXY: sending #{localFile}");
+					var f = require('nodejs:fs').createReadStream(localFile);
+					f .. stream.pump(response);
+					response.end();
+				} catch(e) {
+					try {
+						response.writeHead(500);
+						response.end(e.toString());
+						logging.error("error handling request to #{url}; written 400 response: #{e}\n");
+					} catch (writeErr) {
+						// ending up here means that we probably already sent headers to the clients...
+						logging.error(writeErr + "\n");
+						// throw the original exception, it's more important
+						throw e;
+					}
+				}
 			}
 		};
 	}
@@ -49,21 +66,28 @@ var run = function(cmd /*, args */) {
 	if (err !== undefined) throw err;
 };
 
-var cacheLock = cutil.Semaphore();
+var locks = {};
 exports.download = function(url) {
 	// ensures a URL is cached. Returns the local file path
 	// uses cacheLock to prevent concurrent access
-	var base = Url.normalize('dist/dl', module.id) .. Url.toPath();
 	var filename = url.replace(/[^a-zA-Z0-9.]+/g, '_');
+	var cacheLock = locks[filename];
+	if (!cacheLock) {
+		// TODO: this is unbounded...
+		cacheLock = cutil.Semaphore();
+		locks[filename] = cacheLock;
+	}
+
 	cacheLock.acquire();
 	try {
-		var dest = path.join(base, filename);
+		var dest = path.join(cache_dir, filename);
 		if (!fs.exists(dest)) {
 			console.log("PROXY: Caching to: " + filename);
 			selfUpdate.ensureDir(path.dirname(dest));
-			waitfor(var tmpfile) {
+			waitfor(var err, tmpfile) {
 				selfUpdate.download(url, resume);
 			}
+			if (err) throw err;
 			run("mv", tmpfile.path, dest);
 		}
 		return dest;
@@ -73,7 +97,32 @@ exports.download = function(url) {
 };
 
 if(require.main === module) {
-	exports.serve(9090) {||
+	var parser = require('sjs:dashdash').createParser({options: [
+		{ name: 'port', type: 'integer', },
+		{ name: 'cache', type: 'string',},
+		{ name: 'help', type: 'bool', },
+	]});
+
+	var opts;
+	try {
+		opts = parser.parse();
+		if (opts.help) throw new Error();
+		if (opts._args.length > 0) {
+			throw new Error("Too many arguments");
+		}
+		if (!opts.cache) {
+			throw new Error("You must provide a cache dir");
+		}
+		cache_dir = opts.cache;
+		if (!fs.exists(cache_dir)) throw new Error("No such directory: " + cache_dir);
+	} catch(e) {
+		if (e.message) console.error("Error: " + e.message);
+		console.error("Usage: proxy [OPTIONS]");
+		console.error(parser.help());
+		process.exit(1);
+	}
+
+	exports.serve(opts.port || 9090) {||
 		console.log("PROXY: ready...");
 		hold();
 	}
