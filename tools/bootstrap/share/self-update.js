@@ -107,7 +107,7 @@ exports.download = function(href, cb, redirectCount) {
 		if(detail) msg += "\n(" + detail + ")";
 		if (!o) {
 			cb(msg, null);
-			throw new Error("reached end of control");
+			return false;
 		}
 		return o;
 	};
@@ -115,7 +115,7 @@ exports.download = function(href, cb, redirectCount) {
 	if (redirectCount === undefined) {
 		redirectCount = 0;
 	}
-	_assert(redirectCount < 10, "Too many redirects");
+	if (!_assert(redirectCount < 10, "Too many redirects")) return;
 	var name = href.replace(/.*\//, '').replace(/\?.*/,'');
 	var tmpfile = genTemp(name);
 
@@ -149,19 +149,23 @@ exports.download = function(href, cb, redirectCount) {
 			return exports.download(redirect, cb, redirectCount + 1);
 		}
 		var statusCode = response.statusCode;
-		_assert(response.statusCode === 200, "Server returned " + statusCode + " error status");
+		if (!_assert(response.statusCode === 200, "Server returned " + statusCode + " error status")) return;
 		debug("HEADERS:", response.headers);
-		var expectedLength = _assert(response.headers['content-length'], "no content-length given");
+		var expectedLength = response.headers['content-length'];
+		if (!_assert(expectedLength, "no content-length given")) return;
+
 		debug("Content-length: " + expectedLength);
 		expectedLength = parseInt(expectedLength, 10);
-		_assert(expectedLength > 0, "content-length = 0");
+		if (!_assert(expectedLength > 0, "content-length = 0")) return;
 		response.pipe(file);
 		response.on('end', function() {
-			file.close();
-			var fileSize = fs.statSync(tmpfile).size;
-			debug("File size: " + expectedLength);
-			_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize);
-			cb(null, { path: tmpfile, originalName: name});
+			file.on('finish', function() {
+				file.close();
+				var fileSize = fs.statSync(tmpfile).size;
+				debug("File size: " + expectedLength);
+				if (!_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize)) return;
+				cb(null, { path: tmpfile, originalName: name});
+			});
 		});
 	}).on('error', function() {
 		_assert(false);
