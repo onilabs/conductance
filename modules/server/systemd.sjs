@@ -395,7 +395,7 @@ var install = function(opts) {
 			}
 			service = object.merge({
 				// fully qualify both `node` and `sjs` executables to ensure we get the right runtime
-				'ExecStart': [nodeExe, sjsExe, env.conductanceRoot() + 'modules/server/main.sjs', env.configPath()],
+				'ExecStart': [nodeExe, sjsExe, env.conductanceRoot() + 'modules/server/main.sjs', 'run', env.configPath()],
 				'User': 'nobody',
 				'Group': 'nobody',
 				'SyslogIdentifier': fqn,
