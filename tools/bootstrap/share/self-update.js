@@ -116,7 +116,6 @@ exports.download = function(href, cb, redirectCount) {
 		redirectCount = 0;
 	}
 	_assert(redirectCount < 10, "Too many redirects");
-	console.warn(" - Fetching: " + href);
 	var name = href.replace(/.*\//, '').replace(/\?.*/,'');
 	var tmpfile = genTemp(name);
 
@@ -258,6 +257,7 @@ var download_and_extract = function(name, dest, attrs, cb) {
 	if (href === false) return cb();
 	console.warn("Downloading component: " + name + " to path " + dest);
 	assert(href, "Malformed manifest: no href");
+	console.warn(" - fetching: " + href + ' ...');
 	exports.download(href, function(err, archive) {
 		if (err) assert(false, err);
 		exports.extract(archive, dest, extract, cb);
@@ -292,14 +292,31 @@ exports.dump_versions = function(manifest) {
 	});
 }
 
-exports.checkForUpdates = function() {
+exports.checkForUpdates = function(cb) {
 	// checks for updates. This should *never* cause the process to exit when anything
 	// goes wrong, as it's called from conductance proper.
-	// Returns `true` if there are updates.
+	// calls cb(error, updates);
 	var existingManifest = exports.load_manifest(CURRENT_MANIFEST);
 	var updateUrl = existingManifest.manifest_url;
 	
-	// TODO: load updateUrl, and save to manifest.new.json if its version is > existingManifest
+	var newfile = exports.download(updateUrl, function(err, file) {
+		if (err) return cb(err);
+		var available = false;
+		try {
+			var contents = fs.readFileSync(file.path, "utf-8");
+			var newManifest = JSON.parse(contents);
+			debug("Loaded latest manifest. Version " + newManifest.version + " (installed: " + existingManifest.version + ")");
+			if (newManifest.version > existingManifest.version) {
+				// potentially can't use rename across drives
+				debug("Wrote new manifest to " + NEW_MANIFEST);
+				fs.writeFileSync(NEW_MANIFEST, JSON.stringify(newManifest), 'utf-8');
+				available = true;
+			}
+		} catch(e) {
+			return cb(e);
+		}
+		cb(null, available);
+	});
 };
 
 // main function
@@ -312,7 +329,6 @@ exports.main = function(initial) {
 		debug("installing bundled manifest");
 		manifest = oldManifest; // install existing manifest
 	} else {
-		debug("checking for new manifest");
 		if (!fs.existsSync(NEW_MANIFEST)) {
 			console.log("No updates available");
 			process.exit(0);

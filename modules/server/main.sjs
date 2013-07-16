@@ -1,52 +1,14 @@
-var url = require('sjs:url');
+var sys = require('sjs:sys');
+var str = require('sjs:string');
 var nodePath = require('nodejs:path');
-var fs = require('sjs:nodejs/fs');
 var { withServer } = require('sjs:nodejs/http');
 var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
 var { override, propertyPairs, keys, merge } = require('sjs:object');
-var { stat } = require('sjs:nodejs/fs');
 var { writeErrorResponse } = require('./response');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
-
-require('../../hub'); // install mho: hub
-
-var conductanceRoot = url.normalize('../../', module.id) .. url.toPath();
-var conductanceVersion = "1-#{
-                              (new Date(
-                                  stat(require.resolve('sjs:../stratified-node.js').path .. url.toPath(7)).mtime
-                              )).getTime()
-                            }";
-
-exports.loadConfig = function(path) {
-  var configfile = path || exports.defaultConfig();
-  configfile = url.normalize(configfile, process.cwd() + '/');
-
-  var env = require('./env');
-  env.init({
-    conductanceRoot    : conductanceRoot,
-    configPath         : configfile,
-    configRoot         : url.normalize('./', configfile),
-    conductanceVersion : conductanceVersion,
-  });
-
-
-  //----------------------------------------------------------------------
-  // load config file
-
-  console.log("Loading config from #{configfile}");
-  var config = require(configfile);
-  env.update('config', config);
-  return config;
-}
-
-exports.defaultConfig = function() {
-  var builtin = "#{conductanceRoot}default_config.mho";
-  var local = nodePath.join(process.cwd(), 'config.mho');
-  return (fs.exists(local)) ? local : builtin;
-}
-
+var _config = require('./_config');
 
 var banner = "
 
@@ -65,7 +27,61 @@ var banner = "
 ";
 
 exports.run = function() {
-  var configfile = exports.defaultConfig();
+  var args = sys.argv();
+  var command = args.shift();
+  var actions = [
+    {
+      name: 'run',
+      desc: 'Run the conductance server',
+      fn: exports.serve,
+    },
+    {
+      name: 'version',
+      desc: 'Print version information',
+      fn: _config.printVersion,
+    },
+    {
+      name: 'systemd',
+      desc: 'Conductance systemd integration',
+      fn: function(args) {
+        require('./systemd').run(args);
+      }
+    },
+  ];
+
+  var selfUpdate = require('./self-update');
+  if (selfUpdate.available) {
+    actions.push({
+      name: 'update-check',
+      desc: 'Check for available updates',
+      fn: selfUpdate.check
+    });
+    actions.push({
+      name: 'self-update',
+      desc: 'Update to the latest conductance',
+      fn: selfUpdate.update
+    });
+  }
+
+  var action = actions .. find(a -> a.name == command);
+  console.log(banner);
+
+  if (!action) {
+    if (command) {
+      console.error("Unknown command: " + command + "\n");
+    }
+    console.log("Usage: conductance <action> ...\n");
+    actions .. each {|a|
+      console.log("#{a.name .. str.padLeft(15)}: #{a.desc}");
+    }
+    console.log("\nRun `conductance <action> --help` for command-specific help.\n");
+    return process.exit(1);
+  }
+  action.fn(args);
+};
+
+exports.serve = function(args) {
+  var configfile = _config.defaultConfig();
 
   //----------------------------------------------------------------------
   // helpers
@@ -73,10 +89,10 @@ exports.run = function() {
 
   function usage(msg) {
     console.log("
-  Usage: conductance [options] [configfile]
+  Usage: conductance run [options] [configfile]
 
-  #{parser.help()}
-      Default configfile: #{configfile}
+#{parser.help()}
+    Default configfile: #{configfile}
   ");
     if(msg) console.log(msg);
   }
@@ -84,8 +100,6 @@ exports.run = function() {
 
   //----------------------------------------------------------------------
   // parse parameters
-
-  console.log(banner);
 
   var parser = dashdash.createParser({options: [
     {
@@ -98,30 +112,16 @@ exports.run = function() {
       type: 'arrayOfBool',
       help: 'Increase log level. Can be used multiple times.'
     },
-    {
-      name: 'version',
-      type: 'bool',
-      help: 'Print version information'
-    },
   ]});
 
   try {
-    var opts = parser.parse();
+    var opts = parser.parse(args);
   } catch(e) {
     usage(e.message || String(e));
     process.exit(1);
   }
   if (opts.help) {
     usage();
-    process.exit(0);
-  }
-
-  if (opts.version) {
-    var sys = require('sjs:sys');
-    console.log("
-Conductance version #{conductanceVersion} (#{conductanceRoot})
-SJS version #{sys.version} (#{nodePath.normalize(sys.executable, '..')})
-");
     process.exit(0);
   }
 
@@ -141,7 +141,7 @@ SJS version #{sys.version} (#{nodePath.normalize(sys.executable, '..')})
     }
   }
 
-  var config = exports.loadConfig(configfile);
+  var config = _config.loadConfig(configfile);
   if (config.init) config.init();
 
   //----------------------------------------------------------------------

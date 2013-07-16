@@ -1,10 +1,13 @@
 #!/usr/bin/env sjs
 var Url = require('sjs:url');
 var fs = require('sjs:nodejs/fs');
+var nodeFs = require('nodejs:fs')
 var stream = require('sjs:nodejs/stream');
 var path = require('nodejs:path');
 var http = require('sjs:http');
+var seq = require('sjs:sequence');
 var cutil = require('sjs:cutil');
+var object = require('sjs:object');
 var selfUpdate = require('./share/self-update.js');
 var logging = require('sjs:logging');
 var { withServer } = require('sjs:nodejs/http');
@@ -20,6 +23,19 @@ exports.serve = function(port, block) {
 		};
 
 	var ready = require('sjs:cutil').Condition();
+	var fakes = {};
+
+	var api = {
+		fake: function(config, block) {
+			var orig = fakes;
+			fakes = object.merge(fakes, config);
+			try {
+				block();
+			} finally {
+				fakes = orig;
+			}
+		},
+	};
 
 	waitfor {
 		ready.wait();
@@ -35,12 +51,25 @@ exports.serve = function(port, block) {
 				try {
 					var url = request.url;
 					if (url[0] == '/') url = url.slice(1);
-					var localFile = exports.download(url);
-					var size = fs.stat(localFile).size;
-					response.setHeader('Content-Length', String(size));
-					console.log("PROXY: sending #{localFile}");
-					var f = require('nodejs:fs').createReadStream(localFile);
-					f .. stream.pump(response);
+					var setLength = (s) -> response.setHeader('Content-Length', String(s));
+					var fake = fakes[url];
+
+					var localFile;
+					if (fake !== undefined) {
+						if (Buffer.isBuffer(fake)) {
+						}
+						setLength(fake.length);
+						response.write(fake);
+					} else {
+						localFile = exports.download(url);
+					}
+
+					if (localFile) {
+						setLength(fs.stat(localFile).size);
+						console.log("PROXY: sending #{localFile}");
+						var f = nodeFs.createReadStream(localFile);
+						f .. stream.pump(response);
+					}
 					response.end();
 				} catch(e) {
 					try {

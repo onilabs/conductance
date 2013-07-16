@@ -1,6 +1,5 @@
 #!/usr/bin/env sjs
 // vim: syntax=sjs:
-require('../../hub');
 var fs = require('sjs:nodejs/fs');
 var child_process = require('sjs:nodejs/child-process');
 var path = require('nodejs:path');
@@ -17,8 +16,8 @@ var logging = require('sjs:logging');
 var assert = require('sjs:assert');
 var Url = require('sjs:url');
 
-var conductance = require('mho:server/main');
-var env = require('mho:server/env');
+var conductance = require('./_config');
+var env = require('./env');
 
 var fail = function(msg) {
 	throw new Error(msg);
@@ -469,7 +468,7 @@ var install = function(opts) {
 	}
 }
 
-exports.main = function() {
+exports.main = function(args) {
 	var commonOptions = [
 			{
 				name: 'dest',
@@ -506,7 +505,7 @@ exports.main = function() {
 		},
 	];
 
-	var args = require("sjs:sys").argv();
+	if (!args) args = require("sjs:sys").argv();
 	var command = args.shift();
 	var options = commonOptions;
 	var action;
@@ -611,9 +610,9 @@ Pass `--help` after a valid command to show command-specific help.");
 	action(opts);
 }
 
-if (require.main === module) {
+exports.run = function(args) {
 	try {
-		exports.main();
+		exports.main(args);
 	} catch(e) {
 		logging.debug(String(e));
 		if (e.message) logging.error(e.message);
@@ -621,3 +620,6 @@ if (require.main === module) {
 	}
 }
 
+if (require.main === module) {
+	exports.run();
+}
