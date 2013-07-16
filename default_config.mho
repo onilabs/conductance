@@ -38,7 +38,7 @@ exports.ports = [
 exports.hosts = [
   {
     // hostname regexp:
-    hostname: /^mypublicserver$/,
+    hostname: /^mypublicserver(:.*)?$/,
 
     // no ports array given, so this host is listening on all ports
 

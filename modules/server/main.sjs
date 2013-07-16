@@ -177,9 +177,14 @@ exports.serve = function(args) {
         req.response.setHeader("Server", "Conductance"); // XXX version
 
         // find host to dispatch to:
-        var host = hosts .. find({hostname} -> hostname.test(req.url.host));
+        if (!req.request.headers.host) {
+          // we require a host header
+          req .. writeErrorResponse(400, "Missing 'host' header");
+          continue;
+        }
+        var host = hosts .. find({hostname} -> hostname.test(req.request.headers.host));
         if (!host) {
-          req .. writeErrorResponse(400, 'Unknown host');
+          req .. writeErrorResponse(400, "Unknown host #{req.request.headers.host}");
           continue;
         }
 
