@@ -1,0 +1,24 @@
+exports.ports = [
+  {
+    name: 'insecure',  // name by which port will be referenced
+    address:'0.0.0.0:7079', // address of form 'port' or 'host:port'. If no 'host' is given,
+                    // conductance will listen on all interfaces
+  },
+];
+exports.hosts = [
+  {
+    hostname: /^.*$/,
+    routes: [
+      { path: /^\/ping$/,
+        handler: {
+          "GET": function(matches, req) { req.response.end("Pong!"); spawn(function(){hold(0); process.exit(0);}()); }
+        }
+      },
+      { path: /^\/stop$/,
+        handler: {
+          "GET": function(matches, req) { process.exit(0); }
+        }
+      },
+    ]
+  }
+];

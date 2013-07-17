@@ -25,12 +25,12 @@ exports.serve = function(port, block) {
 	var ready = require('sjs:cutil').Condition();
 	var fakes = {};
 
-	var api = {
+	var self = {
 		fake: function(config, block) {
 			var orig = fakes;
 			fakes = object.merge(fakes, config);
 			try {
-				block();
+				block(self);
 			} finally {
 				fakes = orig;
 			}
@@ -39,8 +39,8 @@ exports.serve = function(port, block) {
 
 	waitfor {
 		ready.wait();
-		block();
-		console.log("PROXY: Shutting down server...");
+		block(self);
+		logging.info("PROXY: Shutting down ...");
 	} or {
 		withServer(port_config) {
 			|server|
@@ -57,16 +57,19 @@ exports.serve = function(port, block) {
 					var localFile;
 					if (fake !== undefined) {
 						if (Buffer.isBuffer(fake)) {
+							logging.info("PROXY: sending fake: [Buffer]");
+							setLength(fake.length);
+							response.write(fake);
+						} else {
+							localFile = fake;
 						}
-						setLength(fake.length);
-						response.write(fake);
 					} else {
 						localFile = exports.download(url);
 					}
 
 					if (localFile) {
 						setLength(fs.stat(localFile).size);
-						console.log("PROXY: sending #{localFile}");
+						logging.info("PROXY: sending #{localFile}");
 						var f = nodeFs.createReadStream(localFile);
 						f .. stream.pump(response);
 					}
@@ -111,7 +114,7 @@ exports.download = function(url) {
 	try {
 		var dest = path.join(cache_dir, filename);
 		if (!fs.exists(dest)) {
-			console.log("PROXY: Caching to: " + filename);
+			logging.info("PROXY: Caching to: " + filename);
 			selfUpdate.ensureDir(path.dirname(dest));
 			waitfor(var err, tmpfile) {
 				selfUpdate.download(url, resume);

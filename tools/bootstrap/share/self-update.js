@@ -122,7 +122,7 @@ exports.download = function(href, cb, redirectCount) {
 	var file = fs.createWriteStream(tmpfile);
 	var options = href;
 	var proto = href.split(':',1)[0].toLowerCase();
-	var proxy = process.env[proto.toUpperCase() + '_PROXY'];
+	var proxy = process.env[((process.env['CONDUCTANCE_FORCE_HTTP'] == '1') ? 'http' : proto) + '_proxy'];
 	debug(proto + "_proxy: " + proxy);
 	if(proxy) {
 		proto = 'http';
@@ -138,7 +138,7 @@ exports.download = function(href, cb, redirectCount) {
 				Host: destMatch[1]
 			}
 		};
-		debug(options);
+		debug('http options: ', options);
 	}
 
 	var fetcher = assert(PROTO_MODS[proto], "Unsupported protocol: " + proto);
@@ -218,7 +218,9 @@ exports.extract = function(archive, dest, extract, cb) {
 	var ext = originalName.match(/\.[^./\\]*$/);
 	var done = function(err) {
 		if (err) {
-			assert(false, err.message || String(err));
+			exports.rm_rf(dest, function() {
+				assert(false, err.message || String(err));
+			});
 		} else {
 			cb();
 		}
@@ -259,7 +261,7 @@ var download_and_extract = function(name, dest, attrs, cb) {
 	var extract = exports.platformSpecificAttr(attrs.extract);
 	// `false` means not needed for this platform - just skip it
 	if (href === false) return cb();
-	console.warn("Downloading component: " + name + " to path " + dest);
+	console.warn("Downloading component: " + name);
 	assert(href, "Malformed manifest: no href");
 	console.warn(" - fetching: " + href + ' ...');
 	exports.download(href, function(err, archive) {
@@ -362,7 +364,6 @@ exports.main = function(initial) {
 
 			if (!fs.existsSync(dest)) {
 				debug("New component required: " + dest);
-				ensureDir(dest);
 				// download data
 				download_and_extract(componentName, dest, v, function() {
 					new_components.push(component);

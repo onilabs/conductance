@@ -20,7 +20,7 @@
     , "links":
       { "platform_key": ["platform"]
       , "all":
-        [ {"src": "tools/bootstrap/share/self-update.js", "dest": "self-update.js"}
+        [ {"src": "tools/bootstrap/share/self-update.js", "dest": "share/"}
         ]
       , "default":
         [ {"src": "conductance", "dest": "bin/", "runner": "node"}
