@@ -218,9 +218,8 @@ exports.extract = function(archive, dest, extract, cb) {
 	var ext = originalName.match(/\.[^./\\]*$/);
 	var done = function(err) {
 		if (err) {
-			exports.rm_rf(dest, function() {
-				assert(false, err.message || String(err));
-			});
+			exports.trash(dest);
+			assert(false, err.message || String(err));
 		} else {
 			cb();
 		}
@@ -266,7 +265,14 @@ var download_and_extract = function(name, dest, attrs, cb) {
 	console.warn(" - fetching: " + href + ' ...');
 	exports.download(href, function(err, archive) {
 		if (err) assert(false, err);
-		exports.extract(archive, dest, extract, cb);
+		
+		// extract to a tempdir, and move over to final dest on success
+		var tmp = dest + '.tmp';
+		if (fs.existsSync(dest)) exports.trash(dest);
+		exports.extract(archive, dest, extract, function() {
+			fs.renameSync(tmp, dest);
+			cb();
+		});
 	});
 }
 
