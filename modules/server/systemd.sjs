@@ -4,12 +4,12 @@ var fs = require('sjs:nodejs/fs');
 var child_process = require('sjs:nodejs/child-process');
 var path = require('nodejs:path');
 var seq  = require('sjs:sequence');
-var { concat, each, map, toArray, filter } = seq;
+var { concat, each, map, toArray, filter, find } = seq;
 var string = require('sjs:string');
 var array = require('sjs:array');
 var { isArrayLike } = array;
 var object = require('sjs:object');
-var { ownKeys, ownPropertyPairs } = object;
+var { ownKeys, ownPropertyPairs, merge } = object;
 var shell_quote = require('sjs:shell-quote');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
@@ -64,26 +64,101 @@ var SystemCtl = function(opts) {
 	this.mainTarget = "#{opts.namespace}.target";
 };
 
-SystemCtl.prototype._run = function(args) {
+SystemCtl.prototype._run = function(args, opts, quiet) {
+	if (!opts) opts = {};
 	var _args = [];
 	// TODO: add --user option if opts.user
 	args = _args.concat(args);
-	logging.info(" - running: systemctl #{args.join(" ")}");
-	return child_process.run('systemctl', args, {stdio:'inherit'});
+	if (quiet !== true) logging.info(" - running: systemctl #{args.join(" ")}");
+	return child_process.run('systemctl', args, {stdio: 'inherit'} .. merge(opts));
 };
 
-SystemCtl.prototype.reloadConfig = ()      -> this._run(['daemon-reload']);
-SystemCtl.prototype.reinstall    = (units) -> this._run(['reenable'].concat(units));
-SystemCtl.prototype.uninstall    = (units) -> this._run(['disable'].concat(units));
-SystemCtl.prototype.start        = (units) -> this._run(['start'].concat(units));
-SystemCtl.prototype.stop         = (units) -> this._run(['stop'].concat(units));
-SystemCtl.prototype.status       = (units) -> this._run(['status'].concat(units));
+SystemCtl.prototype._run_output = function(args) {
+	return this._run(args, {stdio: [process.stdin, 'pipe', process.stderr]}, true).stdout;
+}
 
-// TODO: there should be a more specific call we can make here:
-SystemCtl.prototype.stopUnwanted = -> this._run(['reset-failed']);
+SystemCtl.prototype._runUnits = function (action, units) {
+	if (units.length == 0) {
+		throw new Error("No units given to #{action} action.");
+	}
+	return this._run([action].concat(units));
+}
+
+SystemCtl.prototype.reloadConfig = ()      -> this._run(['daemon-reload']);
+SystemCtl.prototype.reinstall    = (units) -> this._runUnits('reenable', units);
+SystemCtl.prototype.uninstall    = (units) -> this._runUnits('disable', units);
+SystemCtl.prototype.start        = (units) -> this._runUnits('start', units);
+SystemCtl.prototype.stop         = (units) -> this._runUnits('stop', units);
+SystemCtl.prototype.status       = (units) -> this._runUnits('status', units);
+
+SystemCtl.prototype.stopUnwanted = function() {
+	// TODO: there should be a more specific call we can make here:
+	var unwanted = [];
+	this._runningUnits() .. each {|unitName|
+		var props = this._unitProperties(unitName, [
+			'LoadState',
+			'ActiveState',
+			'SubState',
+			'UnitFileState',
+		]);
+
+		if (props.ActiveState === 'failed') {
+			logging.debug("unit #{unitName} is in failed state - skipping");
+			continue;
+		}
+		if (props.UnitFileState === '') {
+			logging.debug("activeState is '#{props.ActiveState}', but unit file is '#{props.UnitFileState}'");
+			unwanted.push(unitName);
+		} else {
+			logging.debug("unit #{unitName} has file state #{props.UnitFileState} - skipping");
+		}
+	}
+
+	if (unwanted.length > 0) {
+		logging.debug("Stopping unwanted units:", unwanted);
+		this.stop(unwanted);
+	} else {
+		logging.info("No unwanted units running");
+	}
+};
+
+SystemCtl.prototype._unitProperties = function(unit, propertyNames) {
+	var args = seq.concat(
+		['show'],
+		propertyNames .. seq.intersperse('-p'),
+		['--', unit]) .. toArray;
+
+	var output = this._run_output(args);
+
+	var props = {};
+	output.split('\n')
+		.. each {|line|
+			line = line.trim();
+			if (!line) continue;
+			[key, val] = line .. string.split('=', 1);
+			props[key.trim()] = val.trim();
+		};
+	//logging.debug("Unit #{unit} has props:", props);
+	return props;
+};
+
+SystemCtl.prototype._runningUnits = function() {
+	var output = this._run_output(['list-units', '--no-legend', '--no-pager', '--full']);
+
+	var namespace = this.opts.namespace;
+	var units = output.split('\n')
+		.. filter(line -> line.trim())
+		.. map (function(line) {
+			return line.trim().split(/\s/)[0];
+		})
+		.. filter(name -> name .. string.startsWith(namespace))
+		.. toArray;
+	logging.debug("Currently running unit names: ", units);
+	return units;
+};
 
 SystemCtl.prototype.restart = function(units) {
-	this._run(['restart'].concat(units));
+	this._runUnits('restart', units);
 	// restart only has an effect if units are running, so we start them just in case
 	this.start(units);
 }
@@ -464,7 +539,7 @@ var install = function(opts) {
 		logging.info("(Re)starting services ...");
 		ctl.restart([rootService.name]);
 	} else {
-		logging.warn("Unit files installed, but nothing reloaded (--live not specified)");
+		logging.warn("Unit files installed, but nothing reloaded (--live not specified)\nRun `consuctance systemd update` to start newly-installed services.");
 	}
 }
 
@@ -538,7 +613,12 @@ exports.main = function(args) {
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
 				ctl.stopUnwanted();
-				ctl.start(ctl.mainTarget);
+				var units = installedUnits(opts);
+				if (units .. find(u -> u.name == ctl.mainTarget)) {
+					ctl.start([ctl.mainTarget]);
+				} else {
+					logging.info("No units to start.");
+				}
 			};
 			break;
 
@@ -547,7 +627,7 @@ exports.main = function(args) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
-				ctl.restart(ctl.mainTarget);
+				ctl.restart([ctl.mainTarget]);
 			};
 			break;
 
@@ -555,7 +635,7 @@ exports.main = function(args) {
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
-				ctl.stop(ctl.mainTarget);
+				ctl.stop([ctl.mainTarget]);
 			};
 			break;
 
@@ -564,7 +644,7 @@ exports.main = function(args) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
-				ctl.start(ctl.mainTarget);
+				ctl.start([ctl.mainTarget]);
 			};
 			break;
 
