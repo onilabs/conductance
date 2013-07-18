@@ -250,17 +250,19 @@ var uninstallExistingUnits = function(opts, exclude) {
 			["Uninstalling #{old_units.length} #{opts.namespace} units from #{opts.dest}:"]
 			.concat(old_units .. map(u -> u.name)).join("\n - "));
 		confirm(opts);
-		if (opts.live) {
-			var unitNames = old_units .. map(u -> u.name);
-			var ctl = new SystemCtl(opts);
-			try {
-				ctl.uninstall(unitNames);
-				ctl.stop(unitNames);
-			} catch(e) {
-				if (!opts.force) throw e;
+		var unitNames = old_units .. map(u -> u.name);
+		var ctl = new SystemCtl(opts);
+		try {
+			ctl.stop(unitNames);
+		} catch(e) {
+			if (!opts.force) throw e;
+		}
+		ctl.uninstall(unitNames);
+		old_units .. each {|unit|
+			if (fs.exists(unit.path())) {
+				fs.unlink(unit.path());
 			}
 		}
-		old_units .. each(u -> u.remove(opts));
 	}
 	return old_units;
 }
@@ -282,10 +284,6 @@ var uninstall = function(opts) {
 		fail("#{base} does not exist");
 	}
 	uninstallExistingUnits(opts);
-	if (!opts.live) {
-		logging.warn("Unit configuration removed, but not stopped. To stop removed services, run:
-conductance-systemd update");
-	}
 }
 
 /**
@@ -327,55 +325,6 @@ Unit.prototype.write = function() {
 
 Unit.prototype.toString = -> "<Unit(#{this.name})>";
 
-Unit.prototype.install = function() {
-	var installSection = this.sections .. seq.find(s -> s[0] == 'Install');
-	if (!installSection) {
-		logging.verbose("No install section found for #{this}");
-		return;
-	}
-	var currentLinks = this.existingLinks();
-	var wantedLinks = [];
-	installSection[1] .. each {|[k,val]|
-		switch(k) {
-			case 'WantedBy':
-				wantedLinks.push("#{val}.wants/#{this.name}");
-				break;
-			case 'RequiredBy':
-				wantedLinks.push("#{val}.requires/#{this.name}");
-				break;
-			case 'Alias':
-				wantedLinks.push(val);
-				break;
-			case 'Also':
-				logging.warn("Unable to proces `Also` directive without --live");
-				break;
-			default:
-				logging.verbose("Ignoring unknown install directive: #{k}");
-				break;
-		}
-	}
-	currentLinks .. array.difference(wantedLinks) .. each {|ln|
-		logging.debug("Removing #{ln}");
-		fs.unlink(path.join(this.base, ln));
-	}
-	wantedLinks .. each {|ln|
-		logging.debug("Linking #{ln}");
-		var destpath = path.join(this.base, ln);
-		var parentDir = path.dirname(destpath);
-		var relpath = path.relative(parentDir, this.path());
-		var linkName = path.basename(ln);
-
-		ensureDir(parentDir);
-		// have to do relative link from dest, otherwise nodejs throws an error
-		chdir(parentDir) {||
-			try {
-				fs.unlink(linkName);
-			} catch(e) { /* didn't exist */ }
-			fs.symlink(relpath, linkName);
-		}
-	}
-}
-
 Unit.prototype._write = function(f) {
 	this.sections .. each {|[name, params]|
 		f .. write("[#{name}]");
@@ -387,39 +336,6 @@ Unit.prototype._write = function(f) {
 };
 
 Unit.prototype.path = -> path.join(this.base, this.name);
-
-Unit.prototype.existingLinks = function() {
-	var links = [];
-	var entries = fs.readdir(this.base);
-	entries .. each {|entry|
-		var dirpath = path.join(this.base, entry);
-		if (fs.lstat(dirpath).isDirectory()) {
-			fs.readdir(dirpath) .. each {|link|
-				var linkRel = path.join(entry, link);
-				var linkPath = path.join(dirpath, link);
-				if (link === this.name) links.push(linkRel);
-				else {
-					try {
-						if (fs.realpath(linkPath) === fs.realpath(this.path())) {
-							links.push(linkRel);
-						}
-					} catch(e) {
-						logging.warn("Unable to check #{linkRel}: #{e.message}");
-					}
-				}
-			}
-		}
-	}
-	return links;
-};
-
-Unit.prototype.remove = function(opts) {
-	var files = this.existingLinks() .. map(l => path.join(this.base, l));
-	files.push(this.path());
-	logging.info(["Removing:"].concat(files).join("\n - "));
-	files .. each(fs.unlink);
-};
-
 
 var install = function(opts) {
 	var base = opts.dest;
@@ -523,23 +439,20 @@ var install = function(opts) {
 	confirm(opts);
 	units .. each {|unit|
 		unit.write();
-		if (!opts.live) {
-			// we have a modest "install-like" process for non-live installs
-			unit.install();
-		}
 	}
 
-	if (opts.live) {
-		var ctl = new SystemCtl(opts);
-		ctl.reinstall(unitNames);
+	var ctl = new SystemCtl(opts);
+	ctl.reinstall(unitNames);
 
-		logging.info("Reloading config ...");
-		ctl.reloadConfig();
+	logging.info("Reloading config ...");
+	ctl.reloadConfig();
 
-		logging.info("(Re)starting services ...");
-		ctl.restart([rootService.name]);
+	if (opts.no_restart) {
+		logging.info("Starting new services ...");
+		ctl.start([rootService.name]);
 	} else {
-		logging.warn("Unit files installed, but nothing reloaded (--live not specified)\nRun `consuctance systemd update` to start newly-installed services.");
+		logging.info("Restarting services ...");
+		ctl.restart([rootService.name]);
 	}
 }
 
@@ -569,9 +482,9 @@ exports.main = function(args) {
 
 	var commonInstallOptions = [
 		{
-			name: 'live',
+			name: 'no-restart',
 			type: 'bool',
-			help: 'add / remove / restart services immediately. Requires root.'
+			help: 'don\'t restart existing units, even if their configuration has changed (this will still start new units and stop old ones)'
 		},
 		{
 			names: ['interactive', 'i'],
@@ -607,18 +520,14 @@ exports.main = function(args) {
 			};
 			break;
 
-		case "update":
+		// undocumented action, as it shouldn't be
+		// necessary (and may be removed)
+		case "stop-unwanted":
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
 				ctl.stopUnwanted();
-				var units = installedUnits(opts);
-				if (units .. find(u -> u.name == ctl.mainTarget)) {
-					ctl.start([ctl.mainTarget]);
-				} else {
-					logging.info("No units to start.");
-				}
 			};
 			break;
 
@@ -669,17 +578,19 @@ exports.main = function(args) {
 			fail("#{msg}\n
 Commands:
   SYSTEM MODIFICATION:
-    install:    Install units from one or more .mho config files
-    uninstall:  Remove all currently installed conductance units
+    install:    Install units from one or more .mho config files.
+                Also removes previously-installed units that are
+                no longer defined.
+
+    uninstall:  Remove all currently installed conductance units.
 
   SERVICE ACTIONS:
-    update:     Start installed services, stop removed services
-    list:       List installed conductance units
-    start:      Start conductance target (noop if already running)
-    stop:       Stop conductance units
-    restart:    Restart conductance units
-    status:     Run systemctl status on conductance units
-    log:        Run journalctl on conductance units
+    list:       List installed conductance units.
+    start:      Start conductance target (noop if already running).
+    stop:       Stop conductance units.
+    restart:    Restart conductance units.
+    status:     Run systemctl status on conductance units.
+    log:        Run journalctl on conductance units.
 
 Global options:\n#{dashdash.createParser({ options: commonOptions }).help({indent:2})}
 
