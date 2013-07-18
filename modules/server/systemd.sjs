@@ -306,9 +306,9 @@ Unit.prototype.addSection = function(name, conf) {
 		vals .. each {|val|
 			params.push([key, val]);
 		}
-		if (name == 'Unit') {
-			params.push([CONDUCTANCE_FLAG, 'true']);
-		}
+	}
+	if (name == 'Unit') {
+		params.push([CONDUCTANCE_FLAG, 'true']);
 	}
 	this.sections.push([name, params]);
 }
