@@ -42,11 +42,14 @@ exports.defaultConfig = function() {
 exports.printVersion = function() {
   var sys = require('sjs:sys');
   console.log("
-  conductance version: #{conductanceVersion}
-  conductance path:    #{conductanceRoot}
+  NodeJS version:      #{process.versions['node']}
+  NodeJS path:         #{process.execPath}
 
   SJS version:         #{sys.version}
   SJS path:            #{path.normalize(sys.executable, '..')}
+
+  Conductance version: #{conductanceVersion}
+  Conductance path:    #{conductanceRoot}
 ");
 }
 

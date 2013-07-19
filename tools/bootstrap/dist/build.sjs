@@ -95,7 +95,7 @@ exports.main = function() {
 		}
 
 		var node_wrapper = selfUpdate.platformSpecificAttr(manifest.wrappers.node, _os);
-		var filename = 'boot.' + (_os.platform == 'windows' ? 'cmd' : 'sh');
+		var filename = 'boot' + (node_wrapper.ext || '.sh'); // posix scripts have no ext, but we want one because we're not going to +x it
 		var content = node_wrapper.template.replace('__REL_PATH__', 'share/self-update.js');
 		var script = path.join(base, 'share', filename);
 		fs.writeFile(script, content);

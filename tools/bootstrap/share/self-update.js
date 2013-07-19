@@ -115,6 +115,7 @@ exports.download = function(href, cb, redirectCount) {
 	if (redirectCount === undefined) {
 		redirectCount = 0;
 	}
+	debug("Downloading: " + href);
 	if (!_assert(redirectCount < 10, "Too many redirects")) return;
 	var name = href.replace(/.*\//, '').replace(/\?.*/,'');
 	var tmpfile = genTemp(name);
@@ -122,8 +123,11 @@ exports.download = function(href, cb, redirectCount) {
 	var file = fs.createWriteStream(tmpfile);
 	var options = href;
 	var proto = href.split(':',1)[0].toLowerCase();
-	var proxy = process.env[((process.env['CONDUCTANCE_FORCE_HTTP'] == '1') ? 'http' : proto) + '_proxy'];
-	debug(proto + "_proxy: " + proxy);
+	var proxy = null;
+	if ((process.env['CONDUCTANCE_FORCE_HTTP'] == '1') || proto === 'http') {
+		proxy = process.env['http_proxy'];
+		debug("using proxy: " + proxy);
+	}
 	if(proxy) {
 		proto = 'http';
 		var match = proxy.match(/^[^:]*:\/\/([^\/:]+)(?::(\d+))/);
@@ -268,8 +272,9 @@ var download_and_extract = function(name, dest, attrs, cb) {
 		
 		// extract to a tempdir, and move over to final dest on success
 		var tmp = dest + '.tmp';
+		if (fs.existsSync(tmp)) exports.trash(tmp);
 		if (fs.existsSync(dest)) exports.trash(dest);
-		exports.extract(archive, dest, extract, function() {
+		exports.extract(archive, tmp, extract, function() {
 			fs.renameSync(tmp, dest);
 			cb();
 		});
@@ -397,12 +402,6 @@ exports.main = function(initial) {
 		if (tasks.length > 0) {
 			tasks.shift()(cont);
 		} else {
-			// all tasks have been run in sequence
-			if (new_components.length == 0 && process.env['CONDUCTANCE_REINSTALL'] !== 'true') {
-				// nothing new available
-				return;
-			}
-			
 			// Figure out all links from all components (not just new ones, in case of broken install).
 			// We process each component (and check paths) before installing anything,
 			// just in case we have a bad component - we don't want to install only half the links
@@ -428,7 +427,7 @@ exports.main = function(initial) {
 			debug("Keeping links: ", keep_link_paths);
 			assert(keep_link_paths.length > 0, "no links in current version");
 
-			// NOTE: this is the pint of no return. If anything goes wrong between
+			// NOTE: this is the point of no return. If anything goes wrong between
 			// here and the end of the script, we've got a potentially-unrecoverable install
 			console.warn("Installing components ...");
 			var installNext = function() {
@@ -440,7 +439,6 @@ exports.main = function(initial) {
 					console.warn("Cleaning up ...");
 					
 					// remove any links that were *not* specified by the current manifest
-					var old_link_paths = [];
 					Object.keys(oldManifest.data).forEach(function(componentName) {
 						var config = oldManifest.data[componentName];
 						var links = config.links;
@@ -449,32 +447,23 @@ exports.main = function(initial) {
 						links.forEach(function(link) {
 							var dest = linkDest(link);
 							if (keep_link_paths.indexOf(dest) == -1 && fs.existsSync(dest)) {
-								old_link_paths.push(dest);
+								exports.trash(dest);
 							}
 						});
 					});
 
-					var removeLink = function() {
-						if (old_link_paths.length > 0) {
-							exports.trash(old_link_paths.shift(), removeLink);
+					// the manifest we just installed is now the current manifest:
+					if(!initial) fs.renameSync(NEW_MANIFEST, CURRENT_MANIFEST);
+					exports.purgeTrash(function(err) {
+						// (err ignored, a warning has been printed)
+						exports.dump_versions(manifest);
+						console.warn("");
+						if(initial) {
+							console.warn("Everything installed! Run " + path.join(conductance_root, 'bin','conductance') + " to get started!");
 						} else {
-							// all links trashed
-							
-							// the manifest we just installed is now the current manifest:
-							if(!initial) fs.renameSync(NEW_MANIFEST, CURRENT_MANIFEST);
-							exports.purgeTrash(function(err) {
-								// (err ignored, a warning has been printed)
-								exports.dump_versions(manifest);
-								console.warn("");
-								if(initial) {
-									console.warn("Everything installed! Run " + path.join(conductance_root, 'bin','conductance') + " to get started!");
-								} else {
-									console.warn("Updated. Restart conductance for the new version to take effect.");
-								}
-							});
+							console.warn("Updated. Restart conductance for the new version to take effect.");
 						}
-					}
-					removeLink();
+					});
 				}
 			};
 			installNext(); // run installNext async loop

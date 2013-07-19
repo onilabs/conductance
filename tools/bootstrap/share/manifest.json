@@ -6,10 +6,11 @@
   { "node":
     { "platform_key": ["platform"]
     , "default":
-      { "template": "#!/bin/bash\nCONDUCTANCE_ROOT=\"$(cd \"$(dirname \"$0\")/..\"; pwd)\";\nexec $CONDUCTANCE_ROOT/share/node \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\""
+      { "template": "#!/bin/bash\nexport CONDUCTANCE_ROOT=\"$(cd \"$(dirname \"$0\")/..\"; pwd)\";\nexec $CONDUCTANCE_ROOT/bin/node \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\""
       }
     , "windows":
-      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=\"%~dp0\\..\"\n\"%CONDUCTANCE_ROOT%\\share\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
+      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=\"%~dp0\\..\"\n\"%CONDUCTANCE_ROOT%\\bin\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
+      , "ext": ".bat"
       }
     }
   }
@@ -65,8 +66,8 @@
       }
     , "links":
       { "platform_key": ["platform"]
-      , "default": [ {"src": "bin/node", "dest": "share/"} ]
-      , "windows": [ {"src": "node.exe", "dest": "share/"} ]
+      , "default": [ {"src": "bin/node", "dest": "bin/"} ]
+      , "windows": [ {"src": "node.exe", "dest": "bin/"} ]
       }
     }
   , "bsdtar":

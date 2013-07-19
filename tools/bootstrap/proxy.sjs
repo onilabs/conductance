@@ -26,9 +26,10 @@ exports.serve = function(port, block) {
 	var fakes = {};
 
 	var self = {
-		fake: function(config, block) {
+		fake: function(pairs, block) {
 			var orig = fakes;
-			fakes = object.merge(fakes, config);
+			logging.info("PROXY: adding fakes for:\n - #{pairs .. seq.map(p->p[0]) .. seq.join("\n - ")}");
+			fakes = object.merge(fakes, object.pairsToObject(pairs));
 			try {
 				block(self);
 			} finally {
