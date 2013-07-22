@@ -1,4 +1,4 @@
-{ "format_version": 1
+{ "format": 1
 , "version": 1
 , "manifest_url": "https://github.com/onilabs/conductance/TODO"
 , "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from http://onilabs.com/conductance"
@@ -10,7 +10,6 @@
       }
     , "windows":
       { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=\"%~dp0\\..\"\n\"%CONDUCTANCE_ROOT%\\bin\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
-      , "ext": ".bat"
       }
     }
   }

@@ -4,7 +4,8 @@ if (typeof(__filename) == 'undefined') {
 }
 
 // this script can process any manifest format v1.
-var VERSION = 1;
+var FORMATS = [1];
+exports.FORMATS = FORMATS;
 var fs = require("fs");
 var path = require("path");
 var os = require("os");
@@ -30,7 +31,7 @@ var debug = function(/* ... */) {
 
 var assert = exports.assert = function(o, desc) {
 	if (!o) {
-		console.error(desc || "not ok");
+		console.error('ERROR: ' + (desc || "assertion failed"));
 		process.exit(1);
 	}
 	return o;
@@ -91,8 +92,15 @@ function install(link, manifest, cb) {
 			exports.runCmd("xcopy", [link.src, link.dest, '/s','/e'], cb);
 			return;
 		}
-		//just symlink it
-		fs.symlinkSync(link.src, link.dest);
+		// make relative symlinks so that the install dir can be moved
+		var cwd = process.cwd();
+		try {
+			process.chdir(path.dirname(link.dest));
+			var src = path.relative(process.cwd(), link.src);
+			fs.symlinkSync(src, path.basename(link.dest));
+		} finally {
+			process.chdir(cwd);
+		}
 	}
 	cb();
 };
@@ -286,11 +294,11 @@ exports.load_manifest = function(p) {
 	// that would give us the original manifest after an update is performed
 	var manifestJson = fs.readFileSync(p, "utf-8");
 	var manifest = JSON.parse(manifestJson);
-	assert(manifest.format_version, "manifest has no format_version attribute");
-	if (manifest.format_version != VERSION) {
-		console.error("Manifest format version: " + manifest.format_version);
-		console.error("This installation understands version: " + VERSION);
-		console.error(manifest.version_error);
+	assert(manifest.format, "manifest has no format attribute");
+	if (FORMATS.indexOf(manifest.format) === -1) {
+		console.error("Manifest format version: " + manifest.format);
+		console.error("This installation understands versions: " + FORMATS.join(","));
+		if (manifest.version_error) console.error(manifest.version_error);
 		return false;
 	}
 	return manifest;
@@ -352,7 +360,7 @@ exports.main = function(initial) {
 		}
 		try {
 			manifest = exports.load_manifest(NEW_MANIFEST);
-			if (!manifest) throw new Error();
+			if (!manifest) process.exit(1);
 		} catch(e) {
 			console.error("Unable to load new manifest.");
 			fs.unlink(NEW_MANIFEST);

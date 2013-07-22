@@ -10,6 +10,7 @@ var str = require('sjs:string');
 var logging = require('sjs:logging');
 var object = require('sjs:object');
 var {get} = object;
+var path = require('nodejs:path');
 
 var hosts = require('./hosts');
 var proxyModule = require('../proxy');
@@ -66,6 +67,7 @@ test.afterAll {||
 						proxy.fake([
 							[conductanceUrl, conductanceHead],
 							[bootstrapScript, localBootstrap],
+							[manifest.manifest_url, new Buffer(manifestContents)],
 							[bootstrapArchive, bundle],
 						], brk);
 					}
@@ -96,16 +98,21 @@ test.afterAll {||
 			return host.runCmd(exportProxy + "curl -s #{bootstrapScript} > /tmp/script && echo '#{input}' | bash -e /tmp/script");
 		};
 
-		var runServer = function(config) {
-			host.copyFile(url.normalize("fixtures/#{config}", module.id) .. url.toPath, "/tmp/#{config}");
-			return host.runCmd("$HOME/.conductance/bin/conductance run /tmp/#{config}");
+		var selfUpdate = function() {
+			return host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
 		};
 
-		var assertHealthy = function() {
+		var runServer = function(config, conductance_root) {
+			conductance_root = conductance_root || '$HOME/.conductance';
+			host.copyFile(url.normalize("fixtures/#{config}", module.id) .. url.toPath, "/tmp/#{config}");
+			return host.runCmd("#{conductance_root}/bin/conductance run /tmp/#{config}");
+		};
+
+		var assertHealthy = function(conductance_root) {
 			// run a little test server (shuts itself down after we ping it)
 			var contents;
 			waitfor {
-				runServer("hello.mho");
+				runServer("hello.mho", conductance_root);
 			} and {
 				seq.integers(0, 10) .. each {||
 					try {
@@ -118,6 +125,36 @@ test.afterAll {||
 				}
 			}
 			assert.eq(contents, "Pong!");
+		};
+
+
+		var withTemp = function(block) {
+			var tmpfile = '/tmp/conductance-test-' + process.pid + '-' + withTemp.counter++;
+			try {
+				block(tmpfile);
+			} finally {
+				if (fs.exists(tmpfile)) fs.unlink(tmpfile);
+			}
+		}
+		withTemp.counter = 0;
+
+		var modifyTar = function(archive, file, mutate) {
+			var root = 'tools/bootstrap/';
+			file = root + file;
+			withTemp {|tmp|
+				var cwd = process.cwd();
+				fs.mkdir(tmp);
+				process.chdir(tmp);
+				try {
+					childProcess.run('tar', ['xzf', archive], {stdio: 'inherit'});
+					var contents = fs.readFile(path.join(tmp, file), 'utf-8');
+					fs.writeFile(path.join(tmp, file), mutate(contents), 'utf-8');
+					childProcess.run('tar', ['czf', archive, file, '.'], {stdio: 'inherit'});
+				} finally {
+					process.chdir(cwd);
+					childProcess.run('rm', ['-rf', tmp]);
+				}
+			}
 		};
 
 		test.beforeAll {||
@@ -142,6 +179,12 @@ test.afterAll {||
 				return newManifest;
 			};
 
+			var withManifest = function(manifest, block) {
+				proxyStrata.value.fake([
+					[manifest.manifest_url, new Buffer(JSON.stringify(manifest))]
+				], block);
+			};
+
 			test.beforeEach {||
 				ensureClean();
 				manualInstall();
@@ -158,17 +201,13 @@ test.afterAll {||
 					node.id = "0.8.9"
 				}
 
-				proxyStrata.value.fake([
-					[manifest.manifest_url, new Buffer(JSON.stringify(manifest))]
-				]) {||
+				withManifest(manifest) {||
 					var output = host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
 					assert.ok(output .. str.contains('No updates available'), output);
 				}
 
 				manifest.version = manifest.version - 1;
-				proxyStrata.value.fake([
-					[manifest.manifest_url, new Buffer(JSON.stringify(manifest))]
-				]) {||
+				withManifest(manifest) {||
 					var output = host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
 					assert.ok(output .. str.contains('No updates available'), output);
 				}
@@ -194,9 +233,7 @@ test.afterAll {||
 				};
 				var initialVersion = getNodeVersion();
 
-				proxyStrata.value.fake([
-					[manifest.manifest_url, new Buffer(JSON.stringify(manifest))]
-				]) {||
+				withManifest(manifest) {||
 					var output = host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
 					assert.ok(output .. str.contains('node: 0.8.9'));
 
@@ -214,7 +251,7 @@ test.afterAll {||
 					.. seq.sort()
 					.. seq.toArray();
 
-			test('updates symlinks and wrapper scripts') {||
+			test('updates symlinks and wrapper scripts when manifest definitions change') {||
 				// NOTE: this is brittle based on contents of manifest.json,
 				// but that should change rarely
 				listDir('share') .. assert.eq(['boot.sh', 'manifest.json', 'self-update.js']);
@@ -225,11 +262,13 @@ test.afterAll {||
 					var existingWrapper = mf.wrappers.node;
 					existingWrapper .. object.keys .. each {|k|
 						if (k === 'platform_key') continue;
-						existingWrapper['k'] = 'A script invoking __REL_PATH__!'
+						existingWrapper[k] = {template: 'A script invoking __REL_PATH__!'};
 					}
 
-					mf.data.conductance.links = [{src: "conductance", dest:"new_conductance"}];
-					mf.data.stratifiedjs.links = [{src: "modules", dest:"sjs_modules"}];
+					mf.data.conductance.links = mf.data.conductance.links['default'];
+					mf.data.stratifiedjs.links = [
+						{src: "modules", dest:"sjs_modules/"},
+					];
 				}
 
 				proxyStrata.value.fake([
@@ -240,12 +279,165 @@ test.afterAll {||
 				}
 
 				// old links should be removed, and new ones in their place
-				listDir('.') .. assert.eq(['bin', 'data', 'new_conductance', 'node_modules', 'share', 'sjs_modules']);
+				listDir('.') .. assert.eq(['bin', 'data', 'node_modules', 'share', 'sjs_modules']);
 				listDir('share') .. assert.eq(['boot.sh', 'manifest.json']);
 				listDir('node_modules') .. assert.eq([]);
-				listDir('sjs_modules') .. assert.contains('http.sjs');
+				listDir('sjs_modules/modules') .. assert.contains('http.sjs');
 
 				JSON.parse(host.runCmd('cat $HOME/.conductance/share/manifest.json')) .. assert.eq(manifest);
+				host.runCmd('cat $HOME/.conductance/bin/conductance') .. assert.eq("A script invoking data/conductance-#{manifest.data.conductance.id}/conductance!");
+			}
+
+			test("is upgradeable to a new format via an intermediate version that includes a new manifest URL and self-updater") {||
+				// SCENARIO:
+				// We need to change from manifest format version N -> version (N+1)
+				// So we release a new manifest @ conductance-vN.json including a new version of conductance
+				// which contains a self-update.js script that can process versions [N, N+1], and
+				// has a new manifest url of conductance-vN-(N+1).json
+				//
+				// The transitional version's manifest is then conductance-(N+1).json, which contains
+				// an implementation that *only* understands format version (N+1)
+				
+				var conductanceUrl = (n) -> "http://example.com/conductance/#{n}.tar.gz";
+				var currentFormat = manifest.format;
+
+				var firstUpdate = modifyManifest {|mf|
+					mf.version+=1;
+					mf.manifest_url += currentFormat + '-' + (currentFormat + 1);
+					mf.data.conductance.id = 'test-2';
+					mf.data.conductance.href = conductanceUrl(2);
+				}
+
+				var secondUpdate = modifyManifest {|mf|
+					mf.version+=2;
+					mf.format = currentFormat + 1;
+					mf.manifest_url += (currentFormat + 1);
+					mf.data.conductance.id = 'test-3';
+					mf.data.conductance.href = conductanceUrl(3);
+				}
+
+				var thirdUpdate = modifyManifest {|mf|
+					mf.version+=3;
+					mf.format = currentFormat + 1;
+					mf.manifest_url += (currentFormat + 1);
+					mf.data.conductance.id = 'test-4';
+					mf.data.conductance.href = conductanceUrl(3);
+				}
+
+				withTemp {|tmp|
+					childProcess.run('cp', [conductanceHead, tmp], {'stdio':'inherit'});
+					// the new version of self-update.js understands version N and N+1
+					modifyTar(tmp, 'share/self-update.js', data -> data.replace(/var FORMATS = \[/, 'var FORMATS = [' + secondUpdate.format + ', '));
+
+					withTemp {|tmp2|
+						childProcess.run('cp', [conductanceHead, tmp2], {'stdio':'inherit'});
+						// the final version of self-update.js ONLY understands version N+1
+						modifyTar(tmp2, 'share/self-update.js', data -> data.replace(/var FORMATS = .*/, 'var FORMATS = [' + secondUpdate.format + '];'));
+
+						proxyStrata.value.fake([
+							[manifest.manifest_url, new Buffer(JSON.stringify(firstUpdate))],
+							[firstUpdate.manifest_url, new Buffer(JSON.stringify(secondUpdate))],
+							[secondUpdate.manifest_url, new Buffer(JSON.stringify(thirdUpdate))],
+							[conductanceUrl(2), tmp],
+							[conductanceUrl(3), tmp2],
+							]) {||
+							selfUpdate() .. str.contains("conductance: test-2") .. assert.ok();
+							assertHealthy();
+							selfUpdate() .. str.contains("conductance: test-3") .. assert.ok();
+							assertHealthy();
+							selfUpdate() .. str.contains("conductance: test-4") .. assert.ok();
+							assertHealthy();
+						}
+					}
+				}
+			}
+
+			test("allows install location to be moved") {||
+				var trash = -> host.runCmd("rm -rf $HOME/.conductance_moved");
+				trash();
+				try {
+					host.runCmd("cd $HOME && mv .conductance .conductance_moved");
+					assertHealthy('$HOME/.conductance_moved');
+				} finally {
+					trash();
+				}
+			}
+
+			context('error handling') {||
+				assertNotBroken = function() {
+					assertHealthy();
+
+					withManifest(modifyManifest(m -> m.version += 2)) {||
+						selfUpdate();
+					}
+				};
+
+				test('if a symlink source is not valid') {||
+					var manifest = modifyManifest() {|mf|
+						mf.data.conductance.links = [{src: 'noop', dest: 'bin'}];
+						mf.version++;
+					}
+					withManifest(manifest) {||
+						assert.raises({filter: e -> e.output.match(/^ERROR: No such file: .*\/noop$/m)}, selfUpdate);
+					}
+					assertNotBroken();
+				}
+
+				test('if an archive is not valid') {||
+					var fakeHref = 'http://example.com/conductance.tar.gz'
+					var manifest = modifyManifest() {|mf|
+						mf.data.conductance.href = fakeHref;
+						mf.data.conductance.id = '99.99.99';
+						mf.version++;
+					}
+					withManifest(manifest) {||
+						proxyStrata.value.fake([[fakeHref, new Buffer("hardly a tar")]]) {||
+							assert.raises({filter: e -> e.output.match(/^ERROR: Command failed with status: \d+$/m)}, selfUpdate);
+						}
+					}
+					assertNotBroken();
+
+					// with the same manifest but a fixed manifest, it should succeed
+					withManifest(manifest) {||
+						proxyStrata.value.fake([[fakeHref, conductanceHead]]) {||
+							selfUpdate();
+						}
+					}
+				}
+
+				test('if an URL fails to download') {||
+					var fakeHref = 'http://example.com/conductance.tar.gz'
+					var manifest = modifyManifest() {|mf|
+						mf.data.conductance.href = fakeHref;
+						mf.data.conductance.id = '99.99.99';
+						mf.version++;
+					}
+					withManifest(manifest) {||
+						proxyStrata.value.fake([[fakeHref, null]]) {||
+							assert.raises({filter: e -> e.output.match(/^ERROR: Download failed.*try again later/m)}, selfUpdate);
+						}
+					}
+					assertNotBroken();
+				}
+			}
+
+			context('manifest version upgrades') {||
+				var understoodFormats = require('../share/self-update.js').FORMATS;
+
+				test('gives the error defined in the new manifest on version error') {||
+					var manifest = modifyManifest {|mf|
+						mf.format++;
+						mf.version++;
+						mf.version_error = "You can't handle the manifest!";
+					};
+					withManifest(manifest) {||
+						assert.raises({filter: e -> e.output .. str.contains(
+							"Manifest format version: #{manifest.format}\n" +
+							"This installation understands versions: #{understoodFormats.join(", ")}\n" +
+							"You can't handle the manifest!"
+						)}, selfUpdate);
+					}
+				}
 			}
 		}
 
