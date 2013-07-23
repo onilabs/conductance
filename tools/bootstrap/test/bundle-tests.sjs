@@ -67,11 +67,16 @@ hosts.systems .. each {|system|
 		********************************************************/
 		var {assertHealthy, ensureClean, runServer} = require('./util').api(host);
 
-		var manualInstall = function() {
+		var manualInstall = function(input) {
 			assert.ok(fs.exists(bundle));
 			host.copyFile(bundle, '/tmp/conductance-install');
 			host.runCmd('bash -ex -c "cd $HOME; mkdir .conductance; cd .conductance; tar zxf /tmp/conductance-install"');
-			return host.runCmd(exportProxy + 'export PREFIX=""; $HOME/.conductance/share/install.sh');
+			var prefix='';
+			if (input !== undefined) {
+				prefix ='/tmp/conductance';
+				host.runCmd('rm -rf ' + prefix + ' && mkdir -p ' + prefix);
+			}
+			return host.runCmd(exportProxy + 'export PREFIX="' + prefix + '"; echo -e \'' + (input || '') + '\' | $HOME/.conductance/share/install.sh');
 		};
 
 		var bashInstallWithInput = function(input) {
@@ -317,15 +322,6 @@ hosts.systems .. each {|system|
 				}
 			}
 
-			test('installs links in $PREFIX/bin if the user wants') {||
-			}.skip("TODO");
-
-			test('skips global install if the user wants') {||
-			}.skip("TODO");
-
-			test('instructions to re-run installer are correct') {||
-			}.skip("TODO");
-
 			context('error handling') {||
 				var assertNotBroken = function() {
 					assertHealthy();
@@ -419,6 +415,22 @@ hosts.systems .. each {|system|
 			context('bash installer') {||
 				test('installs to a clean system') {||
 					bashInstallWithInput('y'); // install into $PREFIX
+					assertHealthy('/tmp/conductance');
+				}
+
+				test('skips global install if the user wants') {||
+					bashInstallWithInput('n') .. str.contains(
+						"Do you want to install conductance scripts globally into /tmp/conductance/bin? [Y/n] " +
+						"\n\nSkipped global installation.") .. assert.ok();
+					host.runCmd('ls -1 /tmp/conductance/bin').trim() .. assert.eq('');
+				}
+
+				test('instructions to re-run installer are correct') {||
+					var output = bashInstallWithInput('n');
+					var match = /Re-run this installer \(([^)]+)\) if you change your mind/.exec(output);
+					assert.ok(match, "couldn't find re-run instructions");
+					host.runCmd('ls -1 /tmp/conductance/bin').trim() .. assert.eq('');
+					host.runCmd(exportProxy + 'export PREFIX=/tmp/conductance; echo y | ' + match[1]);
 					assertHealthy('/tmp/conductance');
 				}
 

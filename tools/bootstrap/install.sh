@@ -1,4 +1,9 @@
 #!/bin/bash
+# TO install from the web directly, use:
+# bash -e <(curl -s URL)
+#
+# Or, if your shell doesn't support that syntax:
+# wget -o install URL && bash ./install
 set -e
 
 function log () {
@@ -50,7 +55,7 @@ fi
 
 if [ -e "$DEST" ]; then
   log "This installer will REMOVE the existing contents at $DEST"
-  log "Continue? [y/N]"
+  echo -n "Continue? [y/N] " >&2
   read res
   if [ 'y' = "$res" -o Y = "$res" ]; then
     true
@@ -64,7 +69,7 @@ fi
 log "Installing to $DEST ..."
 
 TARBALL="${PLATFORM}.tar.gz"
-URL="http://onilabs.com/conductance/$TARBALL"
+URL="http://onilabs.com/conductance/install/$TARBALL"
 log "Downloading $URL ..."
 curl -# "$URL" -o "$TMP_TAR"
 

@@ -132,7 +132,7 @@ exports.installGlobally = function(cb) {
 		return cb(null);
 	}
 	prefix = (prefix || '/usr') + '/bin';
-	console.warn("Do you want to install conductance scripts globally into " + prefix + "? [Y/n] ");
+	process.stderr.write("Do you want to install conductance scripts globally into " + prefix + "? [Y/n] ");
 	exports.prompt(function(response) {
 		console.warn("");
 		response = response.trim();
@@ -537,13 +537,13 @@ exports.main = function(initial) {
 									if (ok === false) { // failed
 										msg = {note: "Couldn't add conductance to your $PATH", rerun: "to try again"};
 									} else {
-										msg = {note: msg = "Skipped global installation", rerun: "if you change your mind"};
+										msg = {note: "Skipped global installation", rerun: "if you change your mind"};
 									}
-									console.warn("\n" + msg.note + ". You have a few options:\n" +
+									console.warn("\n" + msg.note + ". You can:\n" +
 										//TODO: print boot.cmd on windows
-										"  1. Re-run this installer (bash " + path.join(conductance_root, "share", "install.sh") +") " + msg.rerun + "\n" +
-										"  2. Add " + path.join(conductance_root, "bin") + " to $PATH yourself\n" +
-										"  3. Run conductance by its full path: " + path.join(conductance_root, "bin", "conductance") + "\n");
+										"  - Re-run this installer (" + path.join(conductance_root, "share", "install.sh") +") " + msg.rerun + "\n" +
+										"  - Add " + path.join(conductance_root, "bin") + " to $PATH yourself\n" +
+										"  - Run conductance by its full path: " + path.join(conductance_root, "bin", "conductance") + "\n");
 								}
 							});
 						} else {
