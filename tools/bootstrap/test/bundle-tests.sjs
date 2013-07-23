@@ -15,6 +15,7 @@ var path = require('nodejs:path');
 var hosts = require('./hosts');
 var proxyModule = require('../proxy');
 
+
 var proxyStrata = null;
 test.afterAll {||
 	if(proxyStrata) {
@@ -22,31 +23,17 @@ test.afterAll {||
 	}
 };
 
-[
-	{
-		platform: 'linux',
-		arch: 'x64',
-		archive: 'linux_x64.tar.gz',
-	},
-	{
-		platform: 'osx',
-		arch: 'x64',
-		archive: 'osx_x64.tar.gz',
-	},
-	{
-		platform: 'windows',
-		arch: 'x64',
-		archive: 'windows_x64.tar.gz',
-	},
-] .. each {|system|
-	var platform = system.platform;
-	var arch = system.arch;
-	var manifestContents = fs.readFile(url.normalize('../share/manifest.json', module.id) .. url.toPath, 'utf-8')
-	var manifest = JSON.parse(manifestContents);
+var manifestContents = fs.readFile(url.normalize('../share/manifest.json', module.id) .. url.toPath, 'utf-8')
+var manifest = JSON.parse(manifestContents);
 
-	var host = hosts[platform];
+hosts.systems .. each {|system|
+	var platform = system.platform;
+	var host = system.host && system.host();
+	var arch = system.arch;
+
 	context("#{platform}_#{arch}") {||
-		var bundle = url.normalize("../dist/#{system.archive}", module.id) .. url.toPath();
+		var archive = "#{platform}_#{arch}.#{platform == 'windows' ? 'zip' : 'tar.gz'}";
+		var bundle = url.normalize("../dist/#{archive}", module.id) .. url.toPath();
 		var conductanceHead = url.normalize("../dist/conductance-HEAD.tar.gz", module.id) .. url.toPath();
 		var conductanceUrl = manifest.data.conductance.href;
 		assert.string(conductanceUrl);
@@ -78,55 +65,23 @@ test.afterAll {||
 		/********************************************************
 		* helpers to setup / destroy conductance install
 		********************************************************/
-		var ensureClean = function() {
-			host.runCmd("rm -rf $HOME/.conductance");
-		};
+		var {assertHealthy, ensureClean, runServer} = require('./util').api(host);
 
 		var manualInstall = function() {
 			assert.ok(fs.exists(bundle));
 			host.copyFile(bundle, '/tmp/conductance-install');
-			ensureClean();
 			host.runCmd('bash -ex -c "cd $HOME; mkdir .conductance; cd .conductance; tar zxf /tmp/conductance-install"');
-			return host.runCmd(exportProxy + '$HOME/.conductance/share/boot.sh');
-		};
-
-		var bashInstall = function() {
-			return host.runCmd(exportProxy + "curl -# #{bootstrapScript} | tee /tmp/script | bash -e");
+			return host.runCmd(exportProxy + 'export PREFIX=""; $HOME/.conductance/share/install.sh');
 		};
 
 		var bashInstallWithInput = function(input) {
-			return host.runCmd(exportProxy + "curl -s #{bootstrapScript} > /tmp/script && echo '#{input}' | bash -e /tmp/script");
+			host.runCmd('rm -rf /tmp/conductance && mkdir -p /tmp/conductance/bin');
+			return host.runCmd(exportProxy + "export PREFIX=/tmp/conductance; curl -s #{bootstrapScript} > /tmp/script && echo -e '#{input}' | bash -e /tmp/script");
 		};
 
 		var selfUpdate = function() {
 			return host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
 		};
-
-		var runServer = function(config, conductance_root) {
-			conductance_root = conductance_root || '$HOME/.conductance';
-			host.copyFile(url.normalize("fixtures/#{config}", module.id) .. url.toPath, "/tmp/#{config}");
-			return host.runCmd("#{conductance_root}/bin/conductance run /tmp/#{config}");
-		};
-
-		var assertHealthy = function(conductance_root) {
-			// run a little test server (shuts itself down after we ping it)
-			var contents;
-			waitfor {
-				runServer("hello.mho", conductance_root);
-			} and {
-				seq.integers(0, 10) .. each {||
-					try {
-						contents = http.get("http://#{host.host}:7079/ping");
-						break;
-					} catch(e) {
-						logging.info("Error: #{e.message}, retrying ... ");
-						hold(1000);
-					}
-				}
-			}
-			assert.eq(contents, "Pong!");
-		};
-
 
 		var withTemp = function(block) {
 			var tmpfile = '/tmp/conductance-test-' + process.pid + '-' + withTemp.counter++;
@@ -148,8 +103,8 @@ test.afterAll {||
 				try {
 					childProcess.run('tar', ['xzf', archive], {stdio: 'inherit'});
 					var contents = fs.readFile(path.join(tmp, file), 'utf-8');
-					fs.writeFile(path.join(tmp, file), mutate(contents), 'utf-8');
-					childProcess.run('tar', ['czf', archive, file, '.'], {stdio: 'inherit'});
+					fs.writeFile(file, mutate(contents), 'utf-8');
+					childProcess.run('tar', ['czf', archive, '.'], {stdio: 'inherit'});
 				} finally {
 					process.chdir(cwd);
 					childProcess.run('rm', ['-rf', tmp]);
@@ -157,7 +112,7 @@ test.afterAll {||
 			}
 		};
 
-		test.beforeAll {||
+		test.beforeEach {||
 			ensureClean();
 		}
 
@@ -186,7 +141,6 @@ test.afterAll {||
 			};
 
 			test.beforeEach {||
-				ensureClean();
 				manualInstall();
 			}
 
@@ -202,13 +156,13 @@ test.afterAll {||
 				}
 
 				withManifest(manifest) {||
-					var output = host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
+					var output = selfUpdate();
 					assert.ok(output .. str.contains('No updates available'), output);
 				}
 
 				manifest.version = manifest.version - 1;
 				withManifest(manifest) {||
-					var output = host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
+					var output = selfUpdate();
 					assert.ok(output .. str.contains('No updates available'), output);
 				}
 			}
@@ -222,7 +176,7 @@ test.afterAll {||
 						platform_key: node.href.platform_key
 						, "linux_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-linux-x64.tar.gz"
 						, "windows_x64": "http://nodejs.org/dist/v0.8.9/x64/node.exe"
-						, "osx_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-darwin-x64.tar.gz"
+						, "darwin_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-darwin-x64.tar.gz"
 					};
 					mf.version++;
 				}
@@ -234,7 +188,7 @@ test.afterAll {||
 				var initialVersion = getNodeVersion();
 
 				withManifest(manifest) {||
-					var output = host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
+					var output = selfUpdate();
 					assert.ok(output .. str.contains('node: 0.8.9'));
 
 					var currentVersion = getNodeVersion();
@@ -254,7 +208,7 @@ test.afterAll {||
 			test('updates symlinks and wrapper scripts when manifest definitions change') {||
 				// NOTE: this is brittle based on contents of manifest.json,
 				// but that should change rarely
-				listDir('share') .. assert.eq(['boot.sh', 'manifest.json', 'self-update.js']);
+				listDir('share') .. assert.eq(['install.sh', 'manifest.json', 'self-update.js']);
 				listDir('node_modules') .. assert.eq(['stratifiedjs']);
 
 				var manifest = modifyManifest {|mf|
@@ -274,13 +228,13 @@ test.afterAll {||
 				proxyStrata.value.fake([
 					[manifest.manifest_url, new Buffer(JSON.stringify(manifest))]
 				]) {||
-					var output = host.runCmd(exportProxy + 'CONDUCTANCE_DEBUG=1 $HOME/.conductance/bin/conductance self-update');
+					var output = selfUpdate();
 					assert.ok(output .. str.contains('Updated. Restart conductance for the new version to take effect.'));
 				}
 
 				// old links should be removed, and new ones in their place
 				listDir('.') .. assert.eq(['bin', 'data', 'node_modules', 'share', 'sjs_modules']);
-				listDir('share') .. assert.eq(['boot.sh', 'manifest.json']);
+				listDir('share') .. assert.eq(['install.sh', 'manifest.json']);
 				listDir('node_modules') .. assert.eq([]);
 				listDir('sjs_modules/modules') .. assert.contains('http.sjs');
 
@@ -288,7 +242,7 @@ test.afterAll {||
 				host.runCmd('cat $HOME/.conductance/bin/conductance') .. assert.eq("A script invoking data/conductance-#{manifest.data.conductance.id}/conductance!");
 			}
 
-			test("is upgradeable to a new format via an intermediate version that includes a new manifest URL and self-updater") {||
+			test("is upgradeable to a new format via an intermediate release") {||
 				// SCENARIO:
 				// We need to change from manifest format version N -> version (N+1)
 				// So we release a new manifest @ conductance-vN.json including a new version of conductance
@@ -363,8 +317,17 @@ test.afterAll {||
 				}
 			}
 
+			test('installs links in $PREFIX/bin if the user wants') {||
+			}.skip("TODO");
+
+			test('skips global install if the user wants') {||
+			}.skip("TODO");
+
+			test('instructions to re-run installer are correct') {||
+			}.skip("TODO");
+
 			context('error handling') {||
-				assertNotBroken = function() {
+				var assertNotBroken = function() {
 					assertHealthy();
 
 					withManifest(modifyManifest(m -> m.version += 2)) {||
@@ -424,7 +387,7 @@ test.afterAll {||
 			context('manifest version upgrades') {||
 				var understoodFormats = require('../share/self-update.js').FORMATS;
 
-				test('gives the error defined in the new manifest on version error') {||
+				test('prints version error from the new manifest') {||
 					var manifest = modifyManifest {|mf|
 						mf.format++;
 						mf.version++;
@@ -455,9 +418,8 @@ test.afterAll {||
 		} else {
 			context('bash installer') {||
 				test('installs to a clean system') {||
-					ensureClean();
-					host.runCmd(exportProxy + "curl -# #{bootstrapScript} | tee /tmp/script | bash -e");
-					assertHealthy();
+					bashInstallWithInput('y'); // install into $PREFIX
+					assertHealthy('/tmp/conductance');
 				}
 
 				context("with existing install") {||
@@ -488,15 +450,15 @@ test.afterAll {||
 					}
 
 					test('overwrites existing directory if the user tells it to') {||
-						var output = bashInstallWithInput('y');
+						var output = bashInstallWithInput('y\ny');
 						var homePath = host.runCmd("echo $HOME").trim();
 
 						output .. str.contains("This installer will REMOVE the existing contents at #{homePath}/.conductance\nContinue? [y/N]") .. assert.ok;
 						output .. str.contains("Cancelled.") .. assert.falsy;
-						assertHealthy();
+						assertHealthy('/tmp/conductance');
 					}
 				}
 			}
 		}
-	}.timeout(null).skipIf(!host, "No host configured for this platform");;
+	}.timeout(60).skipIf(!host, "No host configured for this platform");;
 }

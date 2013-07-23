@@ -24,7 +24,7 @@ if [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
 fi
 
 if [ "$UNAME" = "Darwin" ] ; then
-    OS=osx
+    OS=darwin
     if [ "i386" != "$(uname -p)" -o "1" != "$(sysctl -n hw.cpu64bit_capable 2>/dev/null || echo 0)" ] ; then
 
         # Can't just test uname -m = x86_64, because Snow Leopard can
@@ -72,7 +72,7 @@ curl -# "$URL" -o "$TMP_TAR"
 if tar -xzf "$TMP_TAR" --to-stdout >/dev/null; then
   true
 else
-  log "Archive corrupted - try running this installer again later."
+  log "Server sent an invalid archive - try running this installer again later."
   exit 1
 fi
 
@@ -81,5 +81,5 @@ mkdir -p "$DEST"
 tar -xzf "$TMP_TAR" -C "$DEST"
 rm -f "$TMP_TAR"
 trap - EXIT
-exec bash "$DEST/share/boot.sh"
+exec bash "$DEST/share/install.sh"
 

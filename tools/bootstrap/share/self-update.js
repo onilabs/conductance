@@ -105,6 +105,67 @@ function install(link, manifest, cb) {
 	cb();
 };
 
+exports.prompt = function(cb) {
+	if (process.stdin.destroyed) return cb(null);
+	process.stdin.setEncoding('utf8');
+	var util = require('util');
+
+	process.stdin.on('data', function (text) {
+		process.stdin.pause();
+		cb(text);
+	});
+	process.stdin.resume();
+};
+
+exports.installGlobally = function(cb) {
+	// calls `cb` with:
+	//  - true: succeeded
+	//  - false: failed
+	//  - null: user declined
+	//
+	// TODO: windows
+	var bins = ['conductance', 'sjs'];
+	var success = true;
+	var prefix = process.env['PREFIX'];
+	if (prefix === '') {
+		// explicitly skip
+		return cb(null);
+	}
+	prefix = (prefix || '/usr') + '/bin';
+	console.warn("Do you want to install conductance scripts globally into " + prefix + "? [Y/n] ");
+	exports.prompt(function(response) {
+		console.warn("");
+		response = response.trim();
+		if (response == 'y' || response == '') {
+			var cmd = 'set -eux';
+			bins.forEach(function(name) {
+				var src = path.join(conductance_root, "bin", name);
+				var dest = path.join(prefix, name);
+				cmd += "; ln -s '" + src + "' '" + dest + "'";
+			});
+
+			exports.runCmd('bash', ['-c', cmd], function(err) {
+				if (err) {
+					// assume it's a permission error, and try with sudo:
+					console.warn("You may be prompted for your user password.");
+					exports.runCmd('sudo', ['bash', '-c', cmd], function(err) {
+						if (err) {
+							console.warn(err.message);
+							cb(false);
+						} else {
+							cb(true);
+						}
+					});
+				} else {
+					return cb(true);
+				}
+			});
+		} else {
+			return cb(null);
+		}
+	});
+};
+
 function genTemp(name) {
 	return path.join(os.tmpdir(), "conductance-" + String(process.pid) + "-" + name);
 };
@@ -467,7 +528,24 @@ exports.main = function(initial) {
 						exports.dump_versions(manifest);
 						console.warn("");
 						if(initial) {
-							console.warn("Everything installed! Run " + path.join(conductance_root, 'bin','conductance') + " to get started!");
+							console.warn("Conductance has been installed in " + conductance_root);
+							exports.installGlobally(function(ok) {
+								if (ok) {
+									console.warn("\nEverything installed! Run `conductance` to get started!");
+								} else {
+									var msg;
+									if (ok === false) { // failed
+										msg = {note: "Couldn't add conductance to your $PATH", rerun: "to try again"};
+									} else {
+										msg = {note: msg = "Skipped global installation", rerun: "if you change your mind"};
+									}
+									console.warn("\n" + msg.note + ". You have a few options:\n" +
+										//TODO: print boot.cmd on windows
+										"  1. Re-run this installer (bash " + path.join(conductance_root, "share", "install.sh") +") " + msg.rerun + "\n" +
+										"  2. Add " + path.join(conductance_root, "bin") + " to $PATH yourself\n" +
+										"  3. Run conductance by its full path: " + path.join(conductance_root, "bin", "conductance") + "\n");
+								}
+							});
 						} else {
 							console.warn("Updated. Restart conductance for the new version to take effect.");
 						}

@@ -1,5 +1,5 @@
 exec >&2
 set -eux
-redo-ifchange *-tests.sjs ../test.sjs
-../test.sjs ":$2"
+redo-ifchange *-tests.sjs ./run
+./run ":$2"
 echo 'ok' > "$3"

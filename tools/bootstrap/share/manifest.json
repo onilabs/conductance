@@ -6,7 +6,7 @@
   { "node":
     { "platform_key": ["platform"]
     , "default":
-      { "template": "#!/bin/bash\nexport CONDUCTANCE_ROOT=\"$(cd \"$(dirname \"$0\")/..\"; pwd)\";\nexec $CONDUCTANCE_ROOT/bin/node \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\""
+      { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexport CONDUCTANCE_ROOT=\"$(dirname \"$bindir\")\"\nexec \"$CONDUCTANCE_ROOT/bin/node\" \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\"\n"
       }
     , "windows":
       { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=\"%~dp0\\..\"\n\"%CONDUCTANCE_ROOT%\\bin\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
@@ -24,6 +24,7 @@
         ]
       , "default":
         [ {"src": "conductance", "dest": "bin/", "runner": "node"}
+        , {"src": "tools/bootstrap/share/self-update.js", "dest": "share/install.sh", "runner":"node"}
         ]
       , "windows":
         [ {"src": "conductance", "dest": "bin/"}
@@ -61,7 +62,7 @@
       { "platform_key": ["platform", "arch"]
       , "linux_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-linux-x64.tar.gz"
       , "windows_x64": "http://nodejs.org/dist/v0.10.12/x64/node.exe"
-      , "osx_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-darwin-x64.tar.gz"
+      , "darwin_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-darwin-x64.tar.gz"
       }
     , "links":
       { "platform_key": ["platform"]

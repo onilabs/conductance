@@ -1,0 +1,7 @@
+#!/usr/bin/env sjs
+require('sjs:test/runner').run({
+	base: module.id,
+	modules: ['test/acceptance-tests.sjs'],
+	bail: true,
+});
+
