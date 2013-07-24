@@ -62,6 +62,7 @@
       { "platform_key": ["platform", "arch"]
       , "linux_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-linux-x64.tar.gz"
       , "windows_x64": "http://nodejs.org/dist/v0.10.12/x64/node.exe"
+      , "windows_x86": "http://nodejs.org/dist/v0.10.12/node.exe"
       , "darwin_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-darwin-x64.tar.gz"
       }
     , "links":
