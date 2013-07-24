@@ -1,5 +1,7 @@
-*
-!.gitignore
-!*.sjs
-!*.do
-!*.sh
+*.7z
+*.zip
+*.tar.gz
+HEAD
+7z
+dl/
+tmp/
