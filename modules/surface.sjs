@@ -15,6 +15,7 @@ exports.Attrib = html.Attrib;
 exports.Id = html.Id;
 exports.Unescaped = html.Unescaped;
 exports.Markdown = html.Markdown;
+exports.RequireExternalScript = html.RequireExternalScript;
 
 exports.Div = widgets.Div;
 exports.Button = widgets.Button;

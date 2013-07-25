@@ -57,6 +57,7 @@ var CollapsedFragmentProto = {
   getHtml:         -> this.content,        // string
   getStyleDefs:    -> this.style,          // { style_id : [ref_count, def], ... }
   getMechanisms:   -> this.mechanisms,     // { mechanism_id : code, ... }
+  getExternalScripts: -> this.externalScripts,     // { url: true, ... }
 };
 
 //helpers:
@@ -64,6 +65,7 @@ function initCollapsedFragment(f) {
   f.content = '';
   f.style = {};
   f.mechanisms = {};
+  f.externalScripts = {};
 }
 
 function CollapsedFragment() {
@@ -90,6 +92,7 @@ function joinCollapsedFragment(target, src) {
       target.style[id] = def;
   }
   target.mechanisms .. extend(src.getMechanisms());
+  target.externalScripts .. extend(src.getExternalScripts());
 }
 
 /**
@@ -231,6 +234,7 @@ function cloneWidget(ft) {
   rv.content = ft.content;
   rv.style = clone(ft.getStyleDefs());
   rv.mechanisms = clone(ft.getMechanisms());
+  rv.externalScripts = clone(ft.getExternalScripts());
   return rv;
 }
 exports.cloneWidget = cloneWidget;
@@ -465,3 +469,10 @@ exports.Unescaped = (str) -> Quasi([str]);
 
 exports.Markdown = (str, settings) -> exports.Unescaped(require('sjs:marked').convert(str, settings));
 
+//----------------------------------------------------------------------
+
+exports.RequireExternalScript = function(url) {
+  var rv = CollapsedFragment();
+  rv.externalScripts[url] = true;
+  return rv;
+};

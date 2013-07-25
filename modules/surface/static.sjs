@@ -1,5 +1,5 @@
 var html  = require('./html');
-var { values, propertyPairs } = require('sjs:object');
+var { values, propertyPairs, keys } = require('sjs:object');
 var { map, join, each } = require('sjs:sequence');
 
 //----------------------------------------------------------------------
@@ -20,6 +20,11 @@ exports.Document = function(content) {
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    #{
+        keys(content.getExternalScripts()) ..
+        map(url -> "<script src='#{url}'></script>") ..
+        join('\n')
+    }
     #{
         values(content.getStyleDefs()) .. 
         map([ref_count,def] -> def.getHtml()) .. 

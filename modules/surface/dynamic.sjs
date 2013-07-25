@@ -90,8 +90,7 @@ var resourceRegistry = {
       }
       */
     }
-  },
-
+  }
 };
 exports.resourceRegistry = resourceRegistry;
 
@@ -143,6 +142,11 @@ function runMechanisms(elem, content_only) {
 function insertHtml(html, doInsertHtml) {
   html = collapseHtmlFragment(html);
   
+  // load external scripts:
+  keys(html.getExternalScripts()) .. each { 
+    |url| require('sjs:xbrowser/dom').script(url); 
+  }
+
   // install styles and mechanisms
   var styles = html.getStyleDefs();
   resourceRegistry.useStyleDefs(styles);
