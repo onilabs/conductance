@@ -5,6 +5,7 @@ var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
 var { isObservable, get } = require('../observable');
+var array = require('sjs:array');
 
 //----------------------------------------------------------------------
 // counters which will be used to generate style & mechanism ids
@@ -166,10 +167,21 @@ WidgetProto.toString = function() {
   return "html::Widget [#{this.getHtml()}]";
 };
 
+WidgetProto._normalizeClasses = function() {
+  // ensure the `class` attrib is an array
+  var classes = this.attribs['class'];
+  if (!Array.isArray(classes)) {
+    classes = this.attribs['class'] = classes ? String(classes).split(" ") : [];
+  }
+  return classes;
+};
+
+var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : String(val);
+
 WidgetProto.getHtml = function() {
   return "<#{this.tag} #{ 
             propertyPairs(this.attribs) ..
-            map([key,val] -> "#{key}=\"#{String(val).replace(/\"/g, '&quot;')}\"") ..
+            map([key,val] -> "#{key}=\"#{flattenAttrib(val).replace(/\"/g, '&quot;')}\"") ..
             join(' ')                     
           }>#{this.content}</#{this.tag}>";
 };
@@ -179,7 +191,7 @@ WidgetProto.createElement = function() {
   var elem = document.createElement(this.tag);
   propertyPairs(this.attribs) .. each {
     |[name,val]|
-    elem.setAttribute(name, val);
+    elem.setAttribute(name, flattenAttrib(val));
   }
   elem.innerHTML = this.content;
   return elem;
@@ -283,12 +295,11 @@ function Style(/* [opt] ft, style */) {
     else
       ft.style[id] = [ft.style[id][0]+1, styledef];
 
-    var classes = ft.attribs['class'] || '';
+    var classes = ft._normalizeClasses();
     if (classes.indexOf('_oni_style_') == -1)
-      classes += ' _oni_style_';
+      classes.push(' _oni_style_');
     if (classes.indexOf(class_name) == -1) 
-      classes += " "+class_name;
-    ft.attribs['class'] = classes;
+      classes.push(class_name);
     return ft;
   }
 
@@ -339,12 +350,11 @@ function RequireStyle(/* [opt] ft, url */) {
     else
       ft.style[id] = [ft.style[id][0]+1, styledef];
 
-    var classes = ft.attribs['class'] || '';
+    var classes = ft._normalizeClasses();
     if (classes.indexOf('_oni_style_') == -1)
-      classes += ' _oni_style_';
+      classes.push(' _oni_style_');
     if (classes.indexOf(class_name) == -1) 
-      classes += " "+class_name;
-    ft.attribs['class'] = classes;
+      classes.push(class_name);
     return ft;
   }
 
@@ -380,11 +390,9 @@ function Mechanism(/* [opt] ft, code */) {
     else 
       ft.attribs['data-oni-mechanisms'] += ' '+id;
 
-    var classes = ft.attribs['class'] || '';
+    var classes = ft._normalizeClasses();
     if (classes.indexOf('_oni_mech_') == -1)
-      classes += ' _oni_mech_';
-    ft.attribs['class'] = classes;
-
+      classes.push(' _oni_mech_');
     return ft;
   }
 
@@ -401,13 +409,29 @@ exports.Mechanism = Mechanism;
 
 //----------------------------------------------------------------------
 
-function Class(widget, clsname) {
+function Class(widget, clsname, val) {
   var widget = cloneWidget(widget);
 
-  if (!widget.attribs['class'])
-    widget.attribs['class'] = clsname;
-  else
-    widget.attribs['class'] += " #{clsname}";
+  var classes = widget._normalizeClasses();
+  if (arguments.length > 2) {
+    // val is provided, treat it as a boolean toggle
+    if (isObservable(val)) {
+      widget = widget .. Mechanism {|elem|
+        var cl = elem.classList;
+        val.observe {|change|
+          if (val.get()) cl.add(clsname);
+          else cl.remove(clsname);
+        }
+      }
+    } else {
+      // regular value
+      if (val) classes.push(clsname);
+      else classes .. array.remove(clsname);
+    }
+  } else {
+    classes.push(clsname);
+  }
+
   return widget;
 }
 exports.Class = Class;
