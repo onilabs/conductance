@@ -26,15 +26,18 @@
 */
 
 var { override } = require('sjs:object');
-var { inspect } = require('sjs:debug');
-var jwt_request = require('google-oauth-jwt').requestWithJWT();
-var request  = require('request');
+var { request } = require('sjs:http');
+var { TokenCache } = require('google-oauth-jwt');
+
+// authentication token cache:
+var tokens = new TokenCache(); 
 
 // initialize protobuf marshalling:
 // we use protobufs instead of json because e.g. 
 // the local development server doesn't have a json option. 
 var { Schema } = require('protobuf');
 var { readFile } = require('sjs:nodejs/fs');
+var { read:readStream } = require('sjs:nodejs/stream');
 var { normalize, toPath } = require('sjs:url');
 
 var datastore_schema = new Schema(readFile('./google-cloud-datastore/datastore_v1.desc' .. normalize(module.id) .. toPath));
@@ -229,7 +232,15 @@ function Context(attribs) {
     // production mode, using the google service
 
     dataset = attribs.dataset;
-    req_f = jwt_request;
+    req_f = function(url, opts) {
+      // XXX convert this tokens.get() function to use SJS's request()
+      waitfor(var err, token) {
+        tokens.get(opts.jwt, resume);
+      }
+      if (err) throw new Error("Google Cloud Datastore Authentication Error: #{err}");
+      opts.headers.authorization = "Bearer #{token}";
+      return request(url, opts);
+    }
     req_base = 'https://www.googleapis.com/';
     var jwt = {
       email: undefined,
@@ -249,25 +260,29 @@ function Context(attribs) {
   // the prototype so that we don't need to expose `attribs` on the
   // object
   rv._request = function(api_func, req_body, response_schema) {  
-    if (!req_body.length) throw new Error('Empty request to Google Cloud Datastore');
 
-    waitfor (var err, response, content) {
-      req_f(
+    var response = req_f(
         "#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}",
         { 
-          headers: {'Content-Type':'application/x-protobuf'},
+          headers: {'Content-Type':'application/x-protobuf',
+                    'Connection':'Keep-Alive'
+                   },
           method: 'POST',
           encoding: null,
           body: req_body,
-          jwt: jwt
-        },
-        resume);
-    }
+          jwt: jwt,
+          response: 'raw',
+          throwing: false
+        }
+      );
 
-    if (err) {
-         throw new Error("Error accessing db (#{err})");
-    }
-    
+    // extract content into a buffer:
+    var content = [];
+    var data;
+    while (data = readStream(response))
+      content.push(data);
+    content = Buffer.concat(content);
+
     if (response.statusCode !== 200) {
       throw new DatastoreError(api_func, response, content);
     }
