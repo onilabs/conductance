@@ -1,6 +1,7 @@
 *.7z
 *.zip
 *.tar.gz
+*.exe
 HEAD
 7z
 dl/
