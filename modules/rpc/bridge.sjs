@@ -52,8 +52,10 @@ Protocol:
 
 */
 
-var { each, toArray } = require('sjs:sequence');
-var { keys } = require('sjs:object');
+var { each, toArray, map, filter, transform} = require('sjs:sequence');
+var { pairsToObject } = require('sjs:object');
+var { isArrayLike } = require('sjs:array');
+var { keys, propertyPairs } = require('sjs:object');
 
 //----------------------------------------------------------------------
 // marshalling
@@ -90,45 +92,52 @@ function marshall(value, connection) {
 
   var blobs = [];
 
-  var rv = JSON.stringify(value, function(key, value) {
-//    console.log("#{key} -- #{value}");
-    if (typeof value == 'function') {
-      //XXX we'll be calling the function with the wrong 'this' object
-      return { __oni_type:'func', id: connection.publishFunction(value) }
-    }
-    if (typeof value != 'object' || value === null) return value;
-    if (value.__oni_type == 'api') {
-      // publish on the connection:
-      connection.publishAPI(value);
-      // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
-      var methods = [];
+  // XXX we can't use JSON.stringify(., replacer), because certain
+  // values (such as Dates) will have been converted to strings by the
+  // time the replacer sees them *sigh*
+  // Instead we prepare a 'stringifyable object first:
+ 
+  var stringifyable = {};
 
-      keys(value.obj) .. each {
-        |name| 
-        if (typeof value.obj[name] == 'function') methods.push(name);
+  function prepare(value) {
+    if (typeof value === 'function') {
+      // XXX we'll be calling the function with the wrong 'this' object
+      value = { __oni_type: 'func', id: connection.publishFunction(value) };
+    }
+    else if (value instanceof Date) {
+      value = { __oni_type: 'date', val: value.getTime() };
+    }
+    else if (isArrayLike(value)) {
+      value = value .. map(prepare);
+    }
+    else if (typeof value === 'object' && value !== null) {
+      if (value.__oni_type == 'api') {
+        // publish on the connection:
+        connection.publishAPI(value);
+        // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
+        var methods = keys(value.obj) .. 
+          filter(name -> typeof value.obj[name] === 'function') ..
+          toArray;
+        value = { __oni_type:'api', id: value.id, methods: methods};
       }
-
-      // XXX can we do the following without running the replacer over the api?
-      return /*JSON.stringify*/({ __oni_type:'api', id: value.id, methods: methods});
+      else if (value.__oni_type == 'blob') {
+        // send the blob as 'data'
+        var id = ++connection.sent_blob_counter;
+        connection.sendBlob(id, value.obj);
+        value = { __oni_type: 'blob', id:id };
+      }
+      else {
+        // a normal object -> traverse it
+        value = propertyPairs(value) .. 
+          transform([name, val] -> [name, prepare(val)]) ..
+          pairsToObject;
+      }
     }
-    else if (value.__oni_type == 'blob') {
-      // send the blob as 'data'
-      // XXX we can't just do this inline, because JSON.stringify is not 'stratified':
-      // return { __oni_type:'blob', id: connection.sendBlob(value.obj) };      
-      var id = ++connection.sent_blob_counter;
-      blobs.push([id, value.obj]); 
-      return { __oni_type:'blob', id: id};
-    }
-    else return value;
-  });
-
-  // send blobs before returning:
-  // XXX needs to be done here, after JSON.stringify, because that function isn't stratified.
-  blobs .. each {
-    |b|
-    connection.sendBlob(b[0], b[1]);
+    return value;
   }
 
+  var rv = value .. prepare .. JSON.stringify;
+  //console.log(require('sjs:debug').inspect(rv));
   return rv;
 }
 
@@ -148,6 +157,9 @@ function unmarshallComplexTypes(obj, connection) {
   }
   else if (obj.__oni_type == 'blob') {
     return unmarshallBlob(obj, connection);
+  }
+  else if (obj.__oni_type == 'date') {
+    return new Date(obj.val);
   }
   else {
     keys(obj) .. each {
