@@ -1,0 +1,47 @@
+body {
+	height:100%;
+	display:block;
+	margin:0; padding:0;
+}
+
+.header {
+	padding:10px 10px;
+	text-align: center;
+}
+
+#code-input {
+	width: auto;
+}
+
+.codeResult {
+	float: right;
+	height: 100%;
+	width:39%;
+	background:#eee;
+}
+
+.codeResult iframe {
+	border: 1px solid #ddd;
+	width:100%;
+	height:100%;
+	margin); padding:0;
+}
+
+.codePanel {
+	float:left;
+	height: 100%;
+	width:59%;
+}
+
+.runBar .btn, .runBar select {
+	margin-bottom:0;
+}
+
+.runBar .run {
+	float:right;
+	min-width: 8em;
+}
+
+.runBar .load {
+	margin-left:0.5em;
+}
