@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SJS tests</title>
+    <!--[if lt IE 8]>
+      <script src="../node_modules/stratifiedjs/test/json2.js"></script>
+    <![endif]-->
+    <script src="../node_modules/stratifiedjs/stratified.js"></script>
+    <script type="text/sjs">
+      var logging = require('sjs:logging');
+      // logging.setLevel(logging.DEBUG);
+
+      require('./helper').serve {||
+        var opts = {
+          modules: ["server/fs-test.sjs"],
+          // moduleList: "./_index.txt",
+          base: module.id,
+          logLevel: logging.INFO,
+        };
+        require('sjs:test/runner').run(opts);
+      }
+    </script>
+  </head>
+</html>

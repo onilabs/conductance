@@ -271,7 +271,9 @@ exports.MappedDirectoryHandler = function(root, settings) {
     override(settings || {});
 
   function handler_func(matches, req) {
-    var [relativePath, format]  = (matches[1] || '/').split('!');
+    var [relativeURI, format]  = (matches[1] || '/').split('!');
+    var relativePath = decodeURIComponent(relativeURI);
+
     if (format !== undefined) 
       format = { name: format, mandatory: true };
     else
@@ -282,13 +284,11 @@ exports.MappedDirectoryHandler = function(root, settings) {
     if (process.platform == 'win32')
       file = file.replace(/\\/g, '/');
 
-    file = decodeURIComponent(file);
-
     if (fs.isDirectory(file)) {
       if (file[file.length-1] != '/') {
         // Make sure we have a canonical url with '/' at the
         // end. Otherwise relative links will break.
-        var newUrl = "#{relativePath}/";
+        var newUrl = "#{relativeURI}/";
         if (format.mandatory)
           newUrl += "!#{format.name}";
         return req .. writeRedirectResponse(newUrl, 301); // moved permanently

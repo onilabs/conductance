@@ -26,8 +26,8 @@ var banner = "
 
 ";
 
-exports.run = function() {
-  var args = sys.argv();
+exports.run = function(args) {
+  args = args || sys.argv();
   var command = args.shift();
   var actions = [
     {

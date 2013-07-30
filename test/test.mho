@@ -1,0 +1,30 @@
+// Default conductance configuration
+
+var { StandardSystemRoutes,
+      MappedDirectoryRoute,
+      SimpleRedirectRoute
+    } = require('mho:server/routes');
+
+//----------------------------------------------------------------------
+// Array of ports that conductance will listen on:
+
+exports.ports = [
+  {
+    name: 'insecure',  // name by which port will be referenced
+    address:'7079', // address of form 'port' or 'host:port'. If no 'host' is given,
+                    // conductance will listen on all interfaces
+  },
+];
+
+exports.hosts = [
+  {
+    hostname: /^.*$/,
+    routes: [
+      // StandardSystemRoutes maps stratifiedjs/ to __sjs & modules to __mho,
+      // installs a bridge-over-aat handler at __aat_bridge, and a
+      // keyhole server at __keyhole
+      StandardSystemRoutes(),
+      MappedDirectoryRoute(/^(\/.*)$/, process.cwd()),
+    ]
+  }
+];
