@@ -10,10 +10,20 @@ var Url = require('sjs:url');
 var http = require('sjs:http');
 var seq = require('sjs:sequence');
 var bootstrap = require('mho:surface/bootstrap');
+var string = require('sjs:string');
+var array = require('sjs:array');
+var marked = require('sjs:marked');
+var {Quasi} = require('sjs:quasi');
 
 //----------------------------------------------------------------------
 
 var busy = Observable(false);
+
+// layout aids
+var windowHeight = Observable(document.documentElement.clientHeight);
+var headerElem = Observable(null);
+var contentHeight = Computed(windowHeight, headerElem, (h, e) -> h - (e ? e.offsetHeight : 0) - 20);
+var {VBox} = require('./layout');
 
 // editor operations
 var getEditorContents = -> "";
@@ -21,6 +31,19 @@ var setEditorContents = -> null;
 var updateCurrentCode = -> null;
 var addRuntimeAnnotation = -> null;
 var clearRuntimeAnnotations = -> null;
+var sampleDescription = Observable();
+
+var descriptionHtml = Widget("div") .. Mechanism(function(elem) {
+	sampleDescription.observe {||
+		var html = "";
+		try {
+			html = marked.convert(sampleDescription.get() || "");
+		} catch(e) {
+			html = "<h1>Error</h1><pre>#{string.sanitize(String(e))}</pre>";
+		}
+		elem.innerHTML = html;
+	}
+});
 
 var codeInput = Widget("pre",
 	[
@@ -35,6 +58,7 @@ var codeInput = Widget("pre",
 		var session = editor.getSession();
 		editor.setTheme("ace/theme/chrome");
 		session.setMode("ace/mode/sjs");
+		session.setTabSize(2);
 
 		var errorAnnotations = [];
 
@@ -64,6 +88,11 @@ var codeInput = Widget("pre",
 			readOnly: true
 		});
 		editor.focus();
+		waitfor {
+			contentHeight.observe(-> editor.resize());
+		} or {
+			sampleDescription.observe(-> editor.resize());
+		}
 	};
 
 
@@ -91,10 +120,26 @@ var selectedSample = Observable(null);
 var loadSample = function(name) {
 	if (name == null) return;
 	var url = Url.normalize(sampleDir + name + '.sjs', module.id);
-	setEditorContents(http.get([url, {format: 'src'}]));
+	var code = http.get([url, {format: 'src'}]);
+	var leadingComment = code.match(/^\/\*\*([\s\S]*)\*\/\n/m);
+	if (leadingComment) {
+		code = code.slice(leadingComment[0].length);
+		leadingComment = leadingComment[1].split("\n")
+			.. seq.transform(s -> s.slice(3)) // remove leading " * "
+			.. seq.join("\n");
+	}
+	sampleDescription.set(leadingComment);
+	setEditorContents(code .. string.strip('\n'));
 };
 
+var selectedSampleIndex = Computed(samples, selectedSample,
+	(samples, selected) -> samples.indexOf(selected)); 
+
 var loader = [
+	Button(`<i class="icon-chevron-left"></i>`) .. Class("btn") .. OnClick(function() {
+		var newSample = samples.get()[selectedSampleIndex.get() - 1];
+		if (newSample) selectedSample.set(newSample);
+	}) .. Attrib("disabled", Computed(selectedSampleIndex, i -> i <= 0)),
 	Select({
 		items: samples,
 		selected: selectedSample,
@@ -104,11 +149,26 @@ var loader = [
 		// strip .sjs extension
 		samples.set(contents.files .. seq.map(f -> f.name.slice(0,-4)));
 		waitfor {
-			selectedSample.observe( -> loadSample(selectedSample.get()));
+			selectedSample.observe(s -> document.location.hash = selectedSample.get());
 		} and {
-			selectedSample.set(samples.get()[0]);
+			//selectedSample.set(samples.get()[0]);
+			using(var hash = events.HostEmitter(window, 'hashchange')) {
+				while(true) {
+					var selected = document.location.hash.slice(1);
+					if (!(samples.get() .. array.contains(selected))) {
+						selected = samples.get()[0];
+					}
+					selectedSample.set(selected);
+					loadSample(selected);
+					hash.wait();
+				}
+			}
 		}
-	}
+	},
+	Button(`<i class="icon-chevron-right"></i>`) .. Class("btn") .. OnClick(function() {
+		var newSample = samples.get()[selectedSampleIndex.get() + 1];
+		if (newSample) selectedSample.set(newSample);
+	}) .. Attrib("disabled", Computed(samples, selectedSampleIndex, (s, i) -> i >= s.length)),
 ];
 
 var runBar = Widget("div", [
@@ -118,23 +178,21 @@ var runBar = Widget("div", [
 ]) .. Class("runBar");
 
 
-var codePanel = Widget("div", [codeInput, runBar]) .. Mechanism {|elem|
-	// TODO: builtin layout algorithms, perhaps a Splitter widget?
-	var runBar = elem.querySelector('.runBar');
-	var codeArea = elem.querySelector('#code-input');
-	using(var resize = events.HostEmitter(window, 'resize')) {
-		while(true) {
-			var avail = elem.offsetHeight - runBar.offsetHeight - 20;
-			codeArea.style.height = "#{avail}px";
-			resize.wait();
-		}
-	}
-};
+var codePanel = VBox([
+	descriptionHtml,
+	codeInput,
+	runBar,
+	Widget("div", Widget("sup", "Press <shift+return> in the editor window to run the current code")) .. Style("{text-align:center}")],
+	{
+		total: Computed(contentHeight, h -> h - 30),
+		ratio: [null, 1, null, null],
+		updateOn: sampleDescription,
+	});
+
 
 var codeResult = Widget("iframe", undefined,
 	{src: "scratchpad-eval.app"})
 .. Mechanism {|elem|
-	//var errorWatcher = null;
 	var strata = null;
 	var update = function() {
 		if(strata) {
@@ -208,25 +266,25 @@ var codeResult = Widget("iframe", undefined,
 	activeCode.observe(update);
 }
 
+
 var content = bootstrap.Bootstrap(
 	[
 		Widget("div", `
 			<h1>Conductance playground</h1>
-			<p>Press &lt;shift+return&gt; in the editor window to run the current code</p>
-		`) .. Class("header"),
+		`) .. Class("header") .. Mechanism(e -> headerElem.set(e)),
+
 		Widget("div", [
 			codePanel .. Class("codePanel"),
 			Widget("div", codeResult) .. Class("codeResult"),
-		]) .. Style("{padding: 0px 2%}") .. Class("main"),
+		]) .. Style("{padding: 0px 2%}") .. Class("main") .. Mechanism(function(e) {
+			contentHeight.observe( -> e.style.height = contentHeight.get() + 'px');
+		}),
 	]
 ) .. s.RequireStyle("scratchpad.css") .. Style("{height:100%}") .. Mechanism {|elem|
-	var header = elem.querySelector(".header");
-	var container = elem.querySelector(".main");
+	// make sure `windowHeight` is maintained
 	using(var resize = events.HostEmitter(window, 'resize')) {
 		while (true) {
-			var avail = document.documentElement.clientHeight - header.offsetHeight - 15;
-			window._e = elem;
-			container.style.height = "#{avail}px";
+			windowHeight.set(document.documentElement.clientHeight);
 			resize.wait();
 		}
 	}
