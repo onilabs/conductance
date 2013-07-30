@@ -277,9 +277,12 @@ exports.MappedDirectoryHandler = function(root, settings) {
     else
       format = { name: req.url.queryKey.format || 'none' };
 
+
     var file = relativePath ? path.join(root, relativePath) : root;
     if (process.platform == 'win32')
       file = file.replace(/\\/g, '/');
+
+    file = decodeURIComponent(file);
 
     if (fs.isDirectory(file)) {
       if (file[file.length-1] != '/') {

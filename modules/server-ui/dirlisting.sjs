@@ -1,6 +1,7 @@
 // XXX get rid of bootstrap dependency
 var { Bootstrap, Container, Label, Icon } = require('../surface/bootstrap');
 var { transform } = require('sjs:sequence');
+var url = require('sjs:url');
 
 // helper to format file sizes:
 function formatBytes(size) {
@@ -21,10 +22,10 @@ function formatBytes(size) {
 exports.generateDirListing = function(dir) {
 
   var folders = dir.directories .. 
-    transform(d -> `<div>$Icon('folder-close-alt') <a href="$d/">$d/</a></div>`);
+    transform(d -> `<div>$Icon('folder-close-alt') <a href="${url.encode(d)}/">$d/</a></div>`);
   
   var files = dir.files ..
-    transform(f -> `<div>$Icon('file') <a href="${f.name}">${f.name}</a>
+    transform(f -> `<div>$Icon('file') <a href="${url.encode(f.name)}">${f.name}</a>
                         (${f.generated ? 
                            'generated' :
                            formatBytes(f.size)})
