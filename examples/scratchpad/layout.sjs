@@ -1,4 +1,5 @@
 var { Attrib, OnClick, Class, Widget, Mechanism, Button, appendWidget, Id, Style } = require('mho:surface');
+var events = require('sjs:events');
 var seq = require('sjs:sequence');
 var {each, map, filter, join} = seq;
 
@@ -26,6 +27,7 @@ exports.VBox = function(contents, settings) {
 					child.style.height = "#{Math.floor(r * avail)}px";
 				}
 			}
+			container.changed.emit();
 		};
 		update();
 		waitfor {
@@ -36,5 +38,6 @@ exports.VBox = function(contents, settings) {
 			}
 		}
 	});
+	container.changed = events.Emitter();
 	return container;
 };

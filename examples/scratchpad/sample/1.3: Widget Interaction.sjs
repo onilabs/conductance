@@ -47,9 +47,6 @@ var greeting = Widget("div", "Hello, World!")
 			// is abandoned / aborted. Retraction can be
 			// caught much like an exception, by using
 			// this `try/retract` syntax.
-			//
-			// any `finally` blocks will also be called
-			// upon retraction.
 			logging.info("Goodbye!");
 		}
 	};

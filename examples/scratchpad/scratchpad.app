@@ -88,10 +88,10 @@ var codeInput = Widget("pre",
 			readOnly: true
 		});
 		editor.focus();
-		waitfor {
-			contentHeight.observe(-> editor.resize());
-		} or {
-			sampleDescription.observe(-> editor.resize());
+
+		while(true) {
+			codePanel.changed.wait();
+			editor.resize();
 		}
 	};
 
@@ -119,7 +119,7 @@ var sampleDir = "sample/";
 var selectedSample = Observable(null);
 var loadSample = function(name) {
 	if (name == null) return;
-	var url = Url.normalize(sampleDir + name + '.sjs', module.id);
+	var url = Url.normalize(sampleDir + encodeURIComponent(name) + '.sjs', module.id);
 	var code = http.get([url, {format: 'src'}]);
 	var leadingComment = code.match(/^\/\*\*([\s\S]*)\*\/\n/m);
 	if (leadingComment) {
