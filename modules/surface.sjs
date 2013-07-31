@@ -21,6 +21,7 @@ exports.Div = widgets.Div;
 exports.Button = widgets.Button;
 exports.Form = widgets.Form;
 exports.TextInput = widgets.TextInput;
+exports.Checkbox = widgets.Checkbox;
 exports.Select = widgets.Select;
 
 //----------------------------------------------------------------------

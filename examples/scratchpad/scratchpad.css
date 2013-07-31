@@ -11,6 +11,18 @@ body {
 
 #code-input {
 	width: auto;
+	margin:0;
+	margin-bottom: 2px;
+}
+
+.codePanel sup {
+	color: #888;
+}
+
+.codePanel .description {
+	max-height:40%;
+	overflow:auto;
+	margin-bottom:5px;
 }
 
 .codeResult {

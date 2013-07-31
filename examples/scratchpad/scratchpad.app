@@ -11,8 +11,10 @@ var http = require('sjs:http');
 var seq = require('sjs:sequence');
 var bootstrap = require('mho:surface/bootstrap');
 var string = require('sjs:string');
+var object = require('sjs:object');
 var array = require('sjs:array');
 var marked = require('sjs:marked');
+var CSS = require('mho:surface/css');
 var {Quasi} = require('sjs:quasi');
 
 //----------------------------------------------------------------------
@@ -33,11 +35,22 @@ var addRuntimeAnnotation = -> null;
 var clearRuntimeAnnotations = -> null;
 var sampleDescription = Observable();
 
-var descriptionHtml = Widget("div") .. Mechanism(function(elem) {
+var descriptionHtml = Widget("div") .. Class("description") .. Mechanism(function(elem) {
 	sampleDescription.observe {||
 		var html = "";
 		try {
-			html = marked.convert(sampleDescription.get() || "");
+			var [title, md] = sampleDescription.get();
+			// add common documentation links
+			md += "\n" + "
+				[Observable]: /__sjs/doc/modules.html#/modules/surface/observable#Observable
+				[Computed]: /__sjs/doc/modules.html#/modules/surface/observable#Computed
+				[Widget]: /__sjs/doc/modules.html#/modules/surface/html#Widget
+				[Condition]: /__sjs/doc/modules.html#cutil::Condition
+				[withWidget]: /__sjs/doc/modules.html#/modules/surface/html::withWidget
+				[appendWidget]: /__sjs/doc/modules.html#/modules/surface/html::appendWidget
+				[Mechanism]: /modules/surface/html.sjs#Mechanism
+				".substr(1) .. string.unindent();
+			html = "<h1>#{string.sanitize(title)}</h1>#{marked.convert(md || "")}";
 		} catch(e) {
 			html = "<h1>Error</h1><pre>#{string.sanitize(String(e))}</pre>";
 		}
@@ -49,6 +62,7 @@ var codeInput = Widget("pre",
 	[
 		s.RequireExternalScript("./ace-editor/ace.js"),
 		s.RequireExternalScript("./ace-editor/mode-javascript.js"),
+		s.RequireExternalScript("./ace-editor/theme-chrome.js"),
 		s.RequireExternalScript("./mode-sjs.js"),
 		getEditorContents()
 	],
@@ -56,7 +70,33 @@ var codeInput = Widget("pre",
 	.. Mechanism {|elem|
 		var editor = ace.edit(elem);
 		var session = editor.getSession();
-		editor.setTheme("ace/theme/chrome");
+
+		var setTheme = function(name) {
+			// override ace's default mechanism to
+			// scope css themes to the .codePanel class
+			//
+			// (otherwise default styles scoped to e.g. _oni_style_1
+			// will win over .ace_editor rules)
+			var dom = ace.require('ace/lib/dom');
+			var _old = dom.importCssString;
+
+			var args = [];
+			dom.importCssString = -> args = arguments;
+			try {
+				var theme = ace.require(name);
+			} finally {
+				dom.importCssString = _old;
+			}
+
+			console.log(args);
+			args[0] = CSS.scope(args[0], 'codePanel');
+			dom.importCssString.apply(dom, args);
+			editor.setTheme(name);
+		}
+
+		setTheme("ace/theme/chrome");
+		editor.setShowPrintMargin(false);
+		editor.setShowFoldWidgets(false);
 		session.setMode("ace/mode/sjs");
 		session.setTabSize(2);
 
@@ -128,7 +168,7 @@ var loadSample = function(name) {
 			.. seq.transform(s -> s.slice(3)) // remove leading " * "
 			.. seq.join("\n");
 	}
-	sampleDescription.set(leadingComment);
+	sampleDescription.set([name, leadingComment]);
 	setEditorContents(code .. string.strip('\n'));
 };
 
@@ -181,10 +221,11 @@ var runBar = Widget("div", [
 var codePanel = VBox([
 	descriptionHtml,
 	codeInput,
+	Widget("div", Widget("sup", "Press <shift+return> in the editor window to run the current code")) .. Style("{text-align:center}"),
 	runBar,
-	Widget("div", Widget("sup", "Press <shift+return> in the editor window to run the current code")) .. Style("{text-align:center}")],
+	],
 	{
-		total: Computed(contentHeight, h -> h - 30),
+		total: Computed(contentHeight, h -> h - 20),
 		ratio: [null, 1, null, null],
 		updateOn: sampleDescription,
 	});
@@ -289,7 +330,5 @@ var content = bootstrap.Bootstrap(
 		}
 	}
 };
-
-//.. Vbox({stretch: [null, 0.5, 0.5]});
 
 document.body .. appendWidget(content);

@@ -1,6 +1,4 @@
 /**
- * # Widget interactions
- *
  * Widgets can interact with each other via their mechanisms.
  *
  * In this example, we create a `stop` [Condition] object.
@@ -14,10 +12,6 @@
  *
  * In this example, the block function just waits for the `stop`
  * condition to be set.
- *
- * [Condition]: /__sjs/doc/modules.html#cutil::Condition
- * [withWidget]: /__sjs/doc/modules.html#/modules/surface/html::withWidget
- * [appendWidget]: /__sjs/doc/modules.html#/modules/surface/html::appendWidget
  */
 
 var cutil = require('sjs:cutil');
@@ -29,7 +23,7 @@ var { Widget, Mechanism,
 var stopped = cutil.Condition();
 
 // make a stop button
-var stopButton = Widget("button", "stop that...")
+var stopButton = Widget("button", "Stop that...")
 	.. OnClick(-> stopped.set());
 
 // make the greeting
@@ -43,16 +37,16 @@ var greeting = Widget("div", "Hello, World!")
 				hold(500); // 0.5 seconds
 			}
 		} retract {
-			// Retraction is what happens when a code path
-			// is abandoned / aborted. Retraction can be
-			// caught much like an exception, by using
-			// this `try/retract` syntax.
+			// When a code path is abandoned, it gets
+			// retracted. This can be caught much like an
+			// exception, using the `try/retract` syntax.
 			logging.info("Goodbye!");
 		}
 	};
 
 
-// add both widgets to the document
+// Add both widgets to the document for the duration of
+// the block function
 document.body .. withWidget([greeting, stopButton]) {||
 	stopped.wait();
 }

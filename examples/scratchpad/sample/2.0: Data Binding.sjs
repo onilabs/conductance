@@ -1,6 +1,4 @@
 /**
- * # Chapter 2: Data Binding
- *
  * An [Observable] is a wrapper for a value that can change
  * When it changes, other values that depend on it are
  * recomputed.
@@ -14,18 +12,31 @@
  * can depend on other computed values.
  */
 
-var { Input } = require('mho:surface/widgets');
+var { TextInput, appendWidget } = require('mho:surface');
+var { Observable, Computed } = require('mho:observable');
 
-var user = {
-	firstName: Observable("John"),
-	lastName: Observable("Smith"),
-};
+var firstName = Observable("John");
+var lastName  = Observable("Smith");
+
+// Computed() takes any number of observable
+// arguments, plus a function to compute the
+// value based on those inputs.
+var fullName = Computed(
+	firstName,
+	lastName,
+	(first, last) -> "#{first} #{last}");
 
 document.body .. appendWidget(`
 	<form>
-		<input>$firstName</input>
-		<input>$lastName</input>
+		<div>
+			<label>First:</label>
+			${TextInput(firstName)}
+		</div>
+		<div>
+			<label>Last:</label>
+			${TextInput(lastName)}
+		</div>
 	</form>
 
-	<p>Hello, $firstName $lastName</p>
+	<p>Hi there, <em>$fullName</em></p>
 `);

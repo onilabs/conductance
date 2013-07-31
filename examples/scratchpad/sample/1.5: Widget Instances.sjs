@@ -1,6 +1,4 @@
 /**
- * # Widget instances
- *
  * Every time a widget is added to the document, its
  * mechanisms will be run with the generated DOM node as the
  * first argument.

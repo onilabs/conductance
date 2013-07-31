@@ -18,12 +18,12 @@ exports.VBox = function(contents, settings) {
 			var fixedElements = pairs .. filter([node, r] -> r == null);
 			var fixedSize = fixedElements .. seq.reduce(0, (acc, [elem, _]) -> acc + elem.offsetHeight);
 
-			console.log("VBox has avail #{settings.total.get()}, minus a fixed size of #{fixedSize}");
+			//console.log("VBox has avail #{settings.total.get()}, minus a fixed size of #{fixedSize}");
 			var avail = settings.total.get() - fixedSize;
 
 			pairs .. each {|[child, r]|
 				if (r != null) {
-					console.log("setting child with ratio #{r} to height #{Math.floor(r * avail)}", child);
+					//console.log("setting child with ratio #{r} to height #{Math.floor(r * avail)}", child);
 					child.style.height = "#{Math.floor(r * avail)}px";
 				}
 			}

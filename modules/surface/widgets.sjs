@@ -1,4 +1,4 @@
-var { Widget, Mechanism } = require('./html');
+var { Widget, Mechanism, Attrib } = require('./html');
 var { replaceContent, appendContent, prependContent, Prop, removeElement, insertBefore } = require('./dynamic');
 var { HostEmitter, Stream } = require('sjs:events');
 var { integers, each, map, indexed, filter, sort, slice } = require('sjs:sequence');
@@ -66,6 +66,39 @@ var TextInput = value ->
     }
   });
 exports.TextInput = TextInput;
+
+
+//----------------------------------------------------------------------
+/**
+ @function Checkbox
+ @summary A HTML 'checkbox' widget
+ @param  {Boolean|../observable::Observable} [value] Value.
+ @return {html::Widget}
+*/
+var Checkbox = value ->
+  Widget('input') ..
+  Attrib("type", "checkbox") ..
+  Mechanism(function(node) {
+    node.checked = Boolean(get(value));
+    if (isObservable(value)) {
+      waitfor {
+        value.observe {
+          |change|
+          var current = Boolean(get(value));
+          if (node.checked !== current) node.checked = current;
+        }
+      }
+      and {
+        if (isMutatable(value)) {
+          HostEmitter(node, 'change') .. Stream .. each {
+            |ev|
+            value.set(node.checked);
+          }
+        }
+      }
+    }
+  });
+exports.Checkbox = Checkbox;
 
 //----------------------------------------------------------------------
 /**
