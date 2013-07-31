@@ -18,13 +18,13 @@ var time = Computed(date, ampm, function(date, ampm) {
 	var minutes = date.getMinutes();
 	var suffix = "";
 	if (ampm) {
-		suffix = hours > 12 ? 'pm' : 'am';
-		hours = hours % 12;
+		suffix = hours < 12 || hours >= 23 ? 'am' : 'pm';
+		hours = hours % 12 || 12;
 	}
-	return "#{hours}:#{minutes}#{suffix}";
+	return "#{hours}:#{minutes} #{suffix}";
 });
 
-var counter = Widget( "p",`
+var display = Widget( "p",`
 		The time is: <strong>$time</strong>
 		(and $seconds seconds...)
 		<br />
@@ -37,4 +37,4 @@ var counter = Widget( "p",`
 		}
 	});
 
-document.body .. appendWidget(counter);
+document.body .. appendWidget(display);
