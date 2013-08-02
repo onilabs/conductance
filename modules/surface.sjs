@@ -41,6 +41,7 @@ exports.insertBefore = dyn.insertBefore;
 exports.insertAfter = dyn.insertAfter;
 exports.removeElement = dyn.removeElement;
 exports.appendWidget = dyn.appendWidget;
+exports.prependWidget = dyn.prependWidget;
 exports.withWidget = dyn.withWidget;
 exports.Prop = dyn.Prop;
 exports.OnEvent = dyn.OnEvent;

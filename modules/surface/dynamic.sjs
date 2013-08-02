@@ -302,6 +302,25 @@ function appendWidget(parent_node, html) {
 }
 exports.appendWidget = appendWidget;
 
+/**
+   @function prependWidget
+*/
+function prependWidget(parent_node, html) {
+  html= ensureWidget(html);
+  
+  var elem = html.createElement();
+
+  insertHtml(html, function(html) {
+    parent_node.insertBefore(elem, parent_node.firstChild);
+
+    // run mechanisms:
+    elem .. runMechanisms();
+  });
+
+  return elem;
+}
+exports.prependWidget = prependWidget;
+
 
 /**
    @function withWidget

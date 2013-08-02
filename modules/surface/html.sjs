@@ -415,6 +415,9 @@ function Class(widget, clsname, val) {
   var classes = widget._normalizeClasses();
   if (arguments.length > 2) {
     // val is provided, treat it as a boolean toggle
+    if (get(val)) classes.push(clsname);
+    else classes .. array.remove(clsname);
+
     if (isObservable(val)) {
       widget = widget .. Mechanism {|elem|
         var cl = elem.classList;
@@ -423,10 +426,6 @@ function Class(widget, clsname, val) {
           else cl.remove(clsname);
         }
       }
-    } else {
-      // regular value
-      if (val) classes.push(clsname);
-      else classes .. array.remove(clsname);
     }
   } else {
     classes.push(clsname);
