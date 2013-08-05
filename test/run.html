@@ -7,12 +7,16 @@
     <![endif]-->
     <script src="../node_modules/stratifiedjs/stratified.js"></script>
     <script type="text/sjs">
+      require('../hub');
       var logging = require('sjs:logging');
       // logging.setLevel(logging.DEBUG);
 
       require('./helper').serve {||
         var opts = {
-          modules: ["server/fs-test.sjs"],
+          modules: [
+            "server/fs-test.sjs",
+            "unit/observable-tests.sjs",
+          ],
           // moduleList: "./_index.txt",
           base: module.id,
           logLevel: logging.INFO,

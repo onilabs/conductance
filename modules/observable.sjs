@@ -1,22 +1,35 @@
 var { Emitter } = require('sjs:events');
-var { slice, toArray, each, map, any } = require('sjs:sequence');
+var { slice, toArray, each, map, any, at, transform, zipLongest } = require('sjs:sequence');
 
 var ObservableProtoBase = {};
 
 var ObservableProto = Object.create(ObservableProtoBase);
 
+ObservableProto._emit = function(c) {
+  this.revision++;
+  this.emitter.emit(c);
+};
+
 ObservableProto.get = function() { return this.val };
 ObservableProto.set = function(v) {
   this.val = v;
-  this.emitter.emit({type: 'set'});
+  this._emit({type: 'set', value: v});
 };
+
 ObservableProto.observe = function(o) {
-  while (true) {
-    o(this.emitter.wait()); // xxx need a queue here
+  var lastrev, val;
+  while(true) {
+    this.emitter.wait();
+    while(lastrev !== this.revision) {
+      val = this.get();
+      lastrev = this.revision;
+      o(val);
+    }
   }
 };
 
 function initObservable(obj, initial_val) {
+  obj.revision = 0;
   obj.val = initial_val;
   obj.emitter = Emitter();
   return obj;
@@ -64,42 +77,42 @@ ObservableArrayProto.splice = function(index, removed /*,element1, ...*/) {
   var appending = added && index+removed == this.val.length;
 
   this.val.splice.apply(this.val, arguments);
-  this.emitter.emit({type:'splice', 
+  this._emit({type:'splice',
                      index: index, removed: removed, added: added, appending: appending});
 };
 
 ObservableArrayProto.pop = function() {
   var rv = this.val.pop();
-  this.emitter.emit({type:'splice', index:this.val.length, removed: 1, added: 0, appending: false});
+  this._emit({type:'splice', index:this.val.length, removed: 1, added: 0, appending: false});
   return rv;
 };
 
 ObservableArrayProto.push = function(v) {
   var l = this.val.push(v);
-  this.emitter.emit({type:'splice', index:l-1, removed: 0, added: 1, appending:true});
+  this._emit({type:'splice', index:l-1, removed: 0, added: 1, appending:true});
   return l;
 };
 
 ObservableArrayProto.shift = function() {
   var rv = this.val.shift();
-  this.emitter.emit({type:'splice', index:0, removed: 1, added: 0, appending:false});
+  this._emit({type:'splice', index:0, removed: 1, added: 0, appending:false});
   return rv;
 };
 
 ObservableArrayProto.unshift = function(v) {
   var l = this.val.unshift(v);
-  this.emitter.emit({type:'splice', index:0, removed: 0, added: 1, appending:false});
+  this._emit({type:'splice', index:0, removed: 0, added: 1, appending:false});
   return l;
 };
 
 ObservableArrayProto.reverse = function() {
   this.val.reverse.apply(this.val, arguments);
-  this.emitter.emit({type:'reverse'});
+  this._emit({type:'reverse'});
 };
 
 ObservableArrayProto.sort = function(/*args*/) {
   this.val.sort.apply(this.val, arguments);
-  this.emitter.emit({type:'sort'});
+  this._emit({type:'sort'});
 };
 
 ObservableArrayProto.at = index -> this.val[index];
@@ -130,19 +143,55 @@ function Computed(/* var1, ..., f */) {
   else {
     var rv = Object.create(ComputedProto);
     var emitter = Emitter();
-    var observers = 0;  
+    var observers = 0;
     var observeStratum;
-    rv.get = function() { return f.apply(deps, deps .. map(d -> d.get())) };
+    var calcStratum;
+
+    // dirty tracking
+    rv.revision = 0;
+    var lastValue;
+    var depRevisions = deps .. transform(d -> d.revision);
+    var lastRevisions = [];
+    var dirty = -> lastRevisions .. zipLongest(depRevisions) .. any([a,b] -> a !== b);
+
+    rv.get = function() {
+      if (calcStratum) calcStratum.waitforValue();
+      calcStratum = null;
+
+      if (dirty()) {
+        var revisions = [], inputs = [];
+        deps .. each {|d|
+          inputs.push(d.get()); // may block
+          revisions.push(d.revision);
+        }
+
+        if (dirty()) {
+          calcStratum = spawn(function() {
+            lastValue = f.apply(deps, inputs); // may block
+            lastRevisions = revisions;
+            rv.revision++;
+            calcStratum = null;
+          }());
+        }
+      }
+
+      if (calcStratum) calcStratum.waitforValue();
+      return lastValue;
+    };
     rv.set = function() { throw new Error("Cannot set a computed observable"); };
     
     rv.observe = function(o) {
       try {
-        if (++observers == 1) 
-          observeStratum = 
-          spawn deps .. each.par { |d| d.observe { |change| emitter.emit({type:'set'}) } };
+        if (++observers == 1)
+          observeStratum =
+            spawn deps .. each.par { |d| d.observe { |change| emitter.emit(null) } };
         
         while (true) {
-          o(emitter.wait()); // xxx need a queue here
+          emitter.wait();
+          // force evaluation (and keep repeating until dirty() returns false)
+          do {
+            o(this.get());
+          } while(dirty());
         }
         
       }
@@ -156,6 +205,14 @@ function Computed(/* var1, ..., f */) {
   }
 }
 exports.Computed = Computed;
+
+exports.observe = function(/* var1, ... , f */) {
+  // TODO: this could be done without creating a dummy Computed value
+  var deps = arguments .. slice(0, -1) .. toArray();
+  var f = arguments .. at(-1);
+  var args = deps.concat([-> deps .. map(d -> d.get())]);
+  return Computed.apply(null, args).observe(a -> f.apply(null, a));
+};
 
 //----------------------------------------------------------------------
 // polymorphic accessors: these work for 'base' objects or observables

@@ -20,12 +20,18 @@ var library = require('./library');
 
 exports.run = function() {
 
-	// TODO
-	var viewPath = Observable(['sjs:', 'sequence']);
+	var locationHash = Observable("");
+	var viewPath = Computed(locationHash, function(h) {
+		// TODO
+		return h.split(/:+|\.+|\/+/g);
+		return [h];
+	});
 
 	var libraries = library.Collection();
 
 	var currentSymbol = Computed(viewPath, function(path, libraries) {
+		return `<center><br><h4>TODO: display <strong>${JSON.stringify(path)}</strong></h4></center>`;
+
 		if (path.length == 0) {
 			return undefined;
 		}
@@ -68,6 +74,9 @@ exports.run = function() {
 						btn.parentNode.classList.add('hidden');
 						try {
 							var newLocation = require('./search').show(elem, libraries);
+							if (newLocation) {
+								document.location.hash = newLocation;
+							}
 						} finally {
 							btn.parentNode.classList.remove('hidden');
 						}
@@ -75,12 +84,23 @@ exports.run = function() {
 				}
 			}
 		});
+	
+	var mainDisplay = Widget('div') .. Mechanism(function(elem) {
+		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
+			while(true) {
+				locationHash.set(document.location.hash.slice(1));
+				hashChange.wait();
+			}
+		}
+	});
 
 	var root = document.body .. appendWidget(Widget("div", `
 		<div class="header navbar-inner">
 			$searchWidget
 			<h1>Documentation Browser</h1>
 		</div>
+		$mainDisplay
+		$currentSymbol
 		$loadingWidget
 	`)
 	.. Bootstrap()
