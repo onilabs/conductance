@@ -44,6 +44,43 @@ context("Observable") {||
 
 		log .. assert.eq(["a1","a4"]);
 	}
+
+	test("tracks (nested) property changes") {||
+		var obj = Observable({});
+		var changes = [];
+
+		waitfor {
+			obj.observe {|val, ch|
+				changes.push(ch);
+			}
+		} or {
+			assert.raises({message: /has no property: parent/},
+				-> obj.set("parent.child", "childVal"));
+
+			var parent = { what: "parent" };
+			var child = { what: "child" };
+			obj.set("parent", parent);
+			obj.set("parent.child", child);
+		}
+
+		obj.get().parent .. assert.is(parent);
+		obj.get().parent.child .. assert.is(child);
+
+		changes .. assert.eq([
+			{"type":"update", "path": ["parent"]},
+			{"type":"update", "path": ["parent", "child"]},
+		]);
+
+	}
+
+	test("allows property modification by either path string or array") {||
+		var obj = Observable({a: {b: "c"}});
+		obj.set("a.b", "d");
+		obj.get().a.b .. assert.eq("d")
+
+		obj.set(["a", "b"], "e");
+		obj.get().a.b .. assert.eq("e")
+	}
 }.timeout(2);
 
 context("Computed") {||
@@ -76,7 +113,7 @@ context("Computed") {||
 
 		var log = [];
 		waitfor {
-			c.observe(_ -> log.push(c.get()));
+			c.observe(_c -> log.push(_c));
 		} or {
 			log .. assert.eq([]);
 			c.get() .. assert.eq('a0 b0 c0');

@@ -1,5 +1,14 @@
 var { Emitter } = require('sjs:events');
 var { slice, toArray, each, map, any, at, transform, zipLongest } = require('sjs:sequence');
+var { isArrayLike } = require('builtin:apollo-sys');
+var { getPath } = require('sjs:object');
+
+var NonSpecificChange = {type: 'set'};
+var toPath = function(p) {
+  if (p === undefined) return [];
+  if (isArrayLike(p)) return p .. toArray;
+  return p.split(".");
+}
 
 var ObservableProtoBase = {};
 
@@ -11,19 +20,30 @@ ObservableProto._emit = function(c) {
 };
 
 ObservableProto.get = function() { return this.val };
-ObservableProto.set = function(v) {
-  this.val = v;
-  this._emit({type: 'set', value: v});
+
+ObservableProto.set = function(/* [path], */ v) {
+  var path, type='set';
+  if (arguments.length > 1) {
+    path = toPath(arguments[0]);
+    v = arguments[1];
+    type = 'update';
+    var par = path.length == 1 ? this.val : this.val .. getPath(path.slice(0,-1));
+    par[path .. at(-1)] = v;
+  } else {
+    this.val = v;
+  }
+  this._emit({type: type, path: path});
 };
 
 ObservableProto.observe = function(o) {
   var lastrev, val;
   while(true) {
-    this.emitter.wait();
+    var change = this.emitter.wait();
     while(lastrev !== this.revision) {
-      val = this.get();
       lastrev = this.revision;
-      o(val);
+      o(this.val, change);
+      // missed updates have no specific change information
+      change = NonSpecificChange;
     }
   }
 };
@@ -190,7 +210,7 @@ function Computed(/* var1, ..., f */) {
           emitter.wait();
           // force evaluation (and keep repeating until dirty() returns false)
           do {
-            o(this.get());
+            o(this.get(), NonSpecificChange);
           } while(dirty());
         }
         
@@ -211,7 +231,7 @@ exports.observe = function(/* var1, ... , f */) {
   var deps = arguments .. slice(0, -1) .. toArray();
   var f = arguments .. at(-1);
   var args = deps.concat([-> deps .. map(d -> d.get())]);
-  return Computed.apply(null, args).observe(a -> f.apply(null, a));
+  return Computed.apply(null, args).observe(vals -> f.apply(null, vals.concat([NonSpecificChange])));
 };
 
 //----------------------------------------------------------------------
