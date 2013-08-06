@@ -12,6 +12,20 @@ var toPath = function(p) {
 
 var ObservableProtoBase = {};
 
+ObservableProtoBase.observePath = function(path, o) {
+  path = toPath(path);
+  if (path.length == 0) return this.observe(o);
+  var last = undefined;
+  this.observe {|val, change|
+    // TODO: smartly process events of type=update
+    var newVal = val .. getPath(path, undefined);
+    if (newVal === last) continue;
+    last = newVal;
+    o(newVal, NonSpecificChange);
+  }
+};
+
+
 var ObservableProto = Object.create(ObservableProtoBase);
 
 ObservableProto._emit = function(c) {
@@ -21,18 +35,17 @@ ObservableProto._emit = function(c) {
 
 ObservableProto.get = function() { return this.val };
 
+ObservableProto.setPath = function(path, v) {
+  path = toPath(path);
+  if (path.length == 0) return this.set(v);
+  var par = path.length == 1 ? this.val : this.val .. getPath(path.slice(0,-1));
+  par[path .. at(-1)] = v;
+  this._emit({type: 'update', path: path});
+};
+
 ObservableProto.set = function(/* [path], */ v) {
-  var path, type='set';
-  if (arguments.length > 1) {
-    path = toPath(arguments[0]);
-    v = arguments[1];
-    type = 'update';
-    var par = path.length == 1 ? this.val : this.val .. getPath(path.slice(0,-1));
-    par[path .. at(-1)] = v;
-  } else {
-    this.val = v;
-  }
-  this._emit({type: type, path: path});
+  this.val = v;
+  this._emit(NonSpecificChange);
 };
 
 ObservableProto.observe = function(o) {

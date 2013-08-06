@@ -55,12 +55,12 @@ context("Observable") {||
 			}
 		} or {
 			assert.raises({message: /has no property: parent/},
-				-> obj.set("parent.child", "childVal"));
+				-> obj.setPath("parent.child", "childVal"));
 
 			var parent = { what: "parent" };
 			var child = { what: "child" };
-			obj.set("parent", parent);
-			obj.set("parent.child", child);
+			obj.setPath("parent", parent);
+			obj.setPath("parent.child", child);
 		}
 
 		obj.get().parent .. assert.is(parent);
@@ -75,10 +75,10 @@ context("Observable") {||
 
 	test("allows property modification by either path string or array") {||
 		var obj = Observable({a: {b: "c"}});
-		obj.set("a.b", "d");
+		obj.setPath("a.b", "d");
 		obj.get().a.b .. assert.eq("d")
 
-		obj.set(["a", "b"], "e");
+		obj.setPath(["a", "b"], "e");
 		obj.get().a.b .. assert.eq("e")
 	}
 }.timeout(2);
