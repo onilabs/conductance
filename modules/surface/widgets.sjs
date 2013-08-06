@@ -50,9 +50,9 @@ var TextInput = value ->
     if (isObservable(value)) {
       waitfor {
         value.observe {
-          |change|
-          if (node.value !== get(value))
-            node.value = get(value);
+          |val|
+          if (node.value !== val)
+            node.value = val;
         }
       }
       and {
@@ -83,8 +83,8 @@ var Checkbox = value ->
     if (isObservable(value)) {
       waitfor {
         value.observe {
-          |change|
-          var current = Boolean(get(value));
+          |current|
+          current = Boolean(current);
           if (node.checked !== current) node.checked = current;
         }
       }
@@ -137,7 +137,7 @@ function updateSelectionHtml(node, items, selection) {
 function SelectOptionsObserverMechanism(ft, items, selection) {
   return ft .. Mechanism(function(node) {
     items.observe {
-      |change|
+      |_items, change|
       switch (change.type) {
       case 'splice':
         if (change.removed) {
@@ -147,7 +147,7 @@ function SelectOptionsObserverMechanism(ft, items, selection) {
         }
         if (change.added) {
           var new_html = integers(change.index, change.index + change.added - 1) ..
-            map(i -> items.at(i) .. Computed(item -> `<option>$item</option>`));
+            map(i -> _items[i] .. Computed(item -> `<option>$item</option>`));
           if (change.appending)
             node .. appendContent(new_html);
           else {
@@ -158,7 +158,7 @@ function SelectOptionsObserverMechanism(ft, items, selection) {
         break;
       default:
         node .. 
-          replaceContent(items .. 
+          replaceContent(_items .. 
                          Map(item -> `<option>$item</option>`));
         updateSelectionHtml(node, items, selection);
       }
@@ -172,7 +172,7 @@ function SelectSelectionMechanism(ft, items, selection) {
     waitfor {
      if (isObservable(selection)) {
        selection.observe {
-         |change|
+         ||
          updateSelectionHtml(node, items, selection);
        }
      }

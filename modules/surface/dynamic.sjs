@@ -341,13 +341,13 @@ exports.withWidget = withWidget;
 // set a property on a widget
 function Prop(html, name, value) {
   return html .. Mechanism(function(node) {
-    if (!isObservable(value)) 
+    if (!isObservable(value))
       node[name] = value;
     else {
       node[name] = value.get();
       value.observe {
-        |change|
-        node[name] = get(value);
+        |v|
+        node[name] = v;
       }
     }
   });

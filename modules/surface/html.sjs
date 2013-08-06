@@ -105,8 +105,7 @@ function joinCollapsedFragment(target, src) {
 // helper mechanism for making observable content dynamic:
 function ObservableContentMechanism(ft, obs) {
   return ft .. Mechanism(function(node) {
-    obs.observe {
-      |change|
+    obs.observe { ||
       if (node.parentNode)
         (node .. require('./dynamic').replaceElement(obs));
     }
@@ -421,8 +420,8 @@ function Class(widget, clsname, val) {
     if (isObservable(val)) {
       widget = widget .. Mechanism {|elem|
         var cl = elem.classList;
-        val.observe {|change|
-          if (val.get()) cl.add(clsname);
+        val.observe {|v|
+          if (v) cl.add(clsname);
           else cl.remove(clsname);
         }
       }
@@ -450,15 +449,15 @@ function setAttribValue(widget, name, v) {
 function ObservableAttribMechanism(ft, name, obs) {
   return ft .. Mechanism(function(node) {
     obs.observe {
-      |change|
-      if (typeof get(obs) == 'boolean') {
-        if (get(obs)) 
+      |v|
+      if (typeof v == 'boolean') {
+        if (v)
           node.setAttribute(name, 'true');
         else
           node.removeAttribute(name);
       }
       else {
-        node.setAttribute(name, get(val));
+        node.setAttribute(name, v);
       }
     }
   });
