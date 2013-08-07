@@ -11,7 +11,7 @@ var { StandardSystemRoutes,
 exports.ports = [
   {
     name: 'insecure',  // name by which port will be referenced
-    address:'7079', // address of form 'port' or 'host:port'. If no 'host' is given,
+    address:'7078', // address of form 'port' or 'host:port'. If no 'host' is given,
                     // conductance will listen on all interfaces
   },
 ];

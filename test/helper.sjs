@@ -14,7 +14,7 @@ exports.serve = function(block) {
     'run',
     Url.normalize('./test.mho', module.id) .. Url.toPath,
   ];
-  var port = '7079';
+  var port = '7078';
 
   var isRunning = function() {
     var base_url = 'http://localhost:' + port + '/';
