@@ -409,7 +409,7 @@ defaultTheme.headingsColor =    -> '#333';
 
 
 defaultTheme.textColor =         -> '#444';
-defaultTheme.white =             -> '#fffff9';
+defaultTheme.white =             -> '#ffffff';
 defaultTheme.baseBorderRadius =  -> '0';
 defaultTheme.borderRadiusSmall = -> '0';
 defaultTheme.borderRadiusLarge = -> '0';
