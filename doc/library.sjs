@@ -1,8 +1,9 @@
 var array = require('sjs:array');
 var str = require('sjs:string');
 var {Computed, ObservableArray} = require('mho:observable');
-var {find, each} = require('sjs:sequence');
-var {ownValues, hasOwn} = require('sjs:object');
+var {find, each, filter, map, at, join} = require('sjs:sequence');
+var {ownValues, hasOwn, get} = require('sjs:object');
+var docutil = require('sjs:docutil');
 var http = require('sjs:http');
 var logging = require('sjs:logging');
 
@@ -42,7 +43,13 @@ CollectionProto.resolveModule = function(url) {
 	this.get() .. ownValues .. each {|lib|
 		[lib.name, lib.root] .. each {|prefix|
 			if (url .. str.startsWith(prefix)) {
-				ret = [lib, url.slice(prefix).split('/')];
+				var modulePath = url.slice(prefix.length).split('/');
+				// end all components but the last with a slash
+				for (var i=0; i<modulePath.length - 1; i++) {
+					modulePath[i] = modulePath[i] + '/';
+				}
+				if (!modulePath .. at(-1)) modulePath.pop();
+				ret = [lib, modulePath];
 				break;
 			}
 		}
@@ -99,10 +106,25 @@ function Library(url, name) {
 	}
 	this.root = url;
 	this.name = name;
+	this.moduleCache = {};
 }
 
 Library.prototype.loadFile = function(path) {
 	return http.get(this.root + path);
+};
+
+Library.prototype.loadModuleDocs = function(path) {
+	path = path .. join("");
+	if (!this.moduleCache .. hasOwn(path)) {
+		var docs;
+		if (path .. str.endsWith('/')) {
+			docs = docutil.parseSJSLibDocs(this.loadFile(path + "sjs-lib-index.txt"));
+		} else {
+			docs = docutil.parseModuleDocs(this.loadFile(path + ".sjs?format=src"));
+		}
+		this.moduleCache[path] = docs;
+	}
+	return this.moduleCache[path];
 };
 
 Library.prototype.loadIndex = function() {
@@ -122,3 +144,18 @@ Library.prototype.loadIndex = function() {
 	return this.loadIndex();
 };
 
+Library.prototype.loadDocs = function(modulePath, symbolPath) {
+	var moduleDocs = this.loadModuleDocs(modulePath);
+	
+	// TODO: integrate index info if it exists
+	var obj = moduleDocs;
+	symbolPath = symbolPath.slice();
+
+	while(symbolPath.length > 0) {
+		var children = symbolPath.length > 1 ? obj.classes : obj.symbols;
+		console.log("obj", obj, "children", children, "key", symbolPath[0]);
+		obj = children .. get(symbolPath.shift());
+		console.log("obj", obj);
+	}
+	return obj;
+};

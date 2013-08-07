@@ -2,7 +2,7 @@ var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
 var {RequireStyle, OnClick, Class, Mechanism, Widget, prependWidget, removeElement, appendWidget, Style, withWidget} = require('mho:surface');
 var {Bootstrap} = require('mho:surface/bootstrap');
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, join} = seq;
+var {map, indexed, find, each, join } = seq;
 var array = require('sjs:array');
 var events = require('sjs:events');
 var cutil = require('sjs:cutil');
@@ -17,51 +17,7 @@ logging.setLevel(logging.DEBUG);
 
 var ui = require('./ui');
 var Library = require('./library');
-
-var Symbol = function(library, modulePath, symbolPath) {
-	this.library = library;
-	this.modulePath = modulePath;
-	this.symbolPath = symbolPath;
-};
-
-Symbol.prototype.content = function() {
-	ui.LOADING.block { ||
-		return this.library.lookup(this.path);
-	}
-}
-Symbol.prototype.parentLinks = function() {
-	var rv = [];
-	var href = this.library.name;
-	rv.push([href, href]);
-	this.modulePath .. each {|p|
-		href += '/' + p;
-		rv.push([href, p]);
-	}
-
-	this.symbolPath .. each {|p|
-		href += '::' + p;
-		rv.push([href, p]);
-	}
-	return rv;
-};
-
-Symbol.prototype.toString = -> "Symbol #{this.symbolPath .. join("::")} of library #{this.library.name}/#{this.modulePath ..join("/")}";
-
-var MissingLibrary = function(moduleUrl, symbolPath) {
-	this.symbolPath = path;
-	this.moduleUrl = moduleUrl;
-};
-MissingLibrary.prototype.toString = -> "Symbol #{this.path .. join("::")} of missing module #{this.url}";
-MissingLibrary.prototype.parentLinks = function() {
-	var rv = [];
-	var href = this.moduleUrl;
-	rv.push([href, href]);
-	this.symbolPath .. each {|p|
-		href += '::' + p;
-		rv.push([href, p]);
-	}
-	return rv;
-};
+var {Symbol, MissingLibrary} = require('./symbol');
 
 exports.run = function() {
 	var libraries = Library.Collection();
@@ -71,14 +27,11 @@ exports.run = function() {
 	var currentSymbol = Computed(locationHash, libraries.val, function(h) {
 		logging.debug("Location hash: #{h}");
 		if (!h) return null;
-		if (h .. str.contains('/')) {
-			var [moduleUrl, symbolPath] = h .. str.rsplit('/', 1);
-		} else {
-			var match = /^(.*?)([^:]+::.*)$/.exec(h);
-			assert.ok(match, "Invalid path: #{h}");
-			var [_, moduleUrl, symbolPath] = match;
-		}
-		symbolPath = symbolPath.split('::');
+		var match = /^(.*?[^:]*)(::.*)?$/.exec(h);
+		assert.ok(match, "Invalid path: #{h}");
+		var [_, moduleUrl, symbolPath] = match;
+		console.log("moduleUrl", moduleUrl);
+		symbolPath = symbolPath ? symbolPath.slice(2).split('::') : [];
 
 		try {
 			var [library, modulePath] = libraries.resolveModule(moduleUrl);
@@ -95,13 +48,13 @@ exports.run = function() {
 		var prefix = '#';
 		var sep = Widget("span", ` &raquo; `);
 		if (sym) {
-			ret = sym.parentLinks() .. map([href, name] -> Widget("a", name, {href: prefix + href}));
+			ret = sym.parentLinks().slice(0, -1) .. map([href, name] -> Widget("a", name, {href: prefix + href}));
 		}
 		return Widget("div", ret .. seq.intersperse(sep), {"class":"breadcrumbs"});
 	});
 
 	var symbolDocs = Computed(currentSymbol, function(sym) {
-		return `<pre>Symbol: ${String(sym)}</pre>`;
+		return sym ? ui.renderDocs(sym);
 	});
 
 	libraries.add('sjs:');

@@ -24,8 +24,6 @@ var flattenLibraryIndex = function(lib) {
 					id += '/';
 					break;
 				case 'module':
-					id += '::';
-					break;
 				case 'class':
 					id += "::";
 					break;
@@ -181,7 +179,9 @@ exports.run = (function() {
 						index.get().concat(flattenLibraryIndex(lib))
 							.. seq.sortBy(i -> i[1].length)
 					);
-					logging.info("LOADED");
+					// TODO: observables embedded in widgets don't take their new value if they are updated too soon
+					// event loop as their creation
+					hold(50);
 					loaded.set("Loaded");
 				}());
 			});
