@@ -45,6 +45,23 @@ context("Observable") {||
 		log .. assert.eq(["a1","a4"]);
 	}
 
+	test("can suppress updates by adding a filter function") {||
+		var a = Observable("a").filter(next,last -> next > last);
+		var log = [];
+		waitfor {
+			a.observe(_a -> log.push(_a));
+		} or {
+			a.set("a") .. assert.falsy();;
+			a.set("b") .. assert.truthy();
+			a.set("b");
+			a.set("a");
+			a.set("a");
+			a.set("c");
+			a.set("c");
+		}
+		log .. assert.eq(['b', 'c']);
+	}.skip("TODO");
+
 	test("tracks (nested) property changes") {||
 		var obj = Observable({});
 		var changes = [];

@@ -328,7 +328,7 @@ exports.prependWidget = prependWidget;
 function withWidget(parent_node, html, block) {
   var elem = parent_node .. appendWidget(html);
   try {
-    block(elem);
+    return block(elem);
   }
   finally {
     removeElement(elem);

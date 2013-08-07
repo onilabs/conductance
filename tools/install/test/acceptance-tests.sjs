@@ -16,8 +16,8 @@ hosts.systems .. each {|system|
 	test.afterEach(clean);
 
 	test(system.platform) {||
-		var bootstrapScript = "http://onilabs.com/conductance.sh"
-		host.runCmd("curl -s #{bootstrapScript} | bash -e");
+		var installScript = "http://onilabs.com/conductance.sh"
+		host.runCmd("curl -s #{installScript} | bash -e");
 		assertHealthy("/usr");
 	}.skipIf(!host, "No configured host for this platform");
 }

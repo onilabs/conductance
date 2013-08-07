@@ -26,14 +26,13 @@ var flattenLibraryIndex = function(lib) {
 				case 'module':
 					id += '::';
 					break;
-				case 'symbol':
-					id += ".";
-					break;
 				case 'class':
 					id += "::";
 					break;
 				default:
-					//logging.warn("I don't know what a #{v.type} is!");
+					if (v.children) {
+						logging.warn("I don't know what a #{v.type} is!");
+					}
 					break;
 			}
 			if (v.children) addSymbols(v.children, id);
@@ -44,14 +43,14 @@ var flattenLibraryIndex = function(lib) {
 };
 
 
-exports.show = (function() {
+exports.run = (function() {
 	var searchTerm = Observable();
 	var lastQuery = null;
 
 	return function(elem, libraries) {
 		var done = cutil.Condition();
 
-		ui.withOverlay {||
+		return ui.withOverlay {||
 			var libraryStatus = [];
 			var index = ObservableArray([]);
 			var query = cutil.Queue();
@@ -81,11 +80,11 @@ exports.show = (function() {
 					var q = query.get();
 					while(true) {
 						waitfor {
-							q = query.get();
-							collapse; // abandon search strata on new input
-						} and {
 							hold(50);
 							search(q);
+							hold();
+						} or {
+							q = query.get();
 						}
 					}
 				}
@@ -98,7 +97,7 @@ exports.show = (function() {
 						while(true) {
 							var e = key.wait();
 							hold(0);
-							logging.debug('queueing query:', input.value);
+							//logging.debug('queueing query:', input.value);
 							query.put(input.value.trim().toLowerCase());
 						}
 					}
@@ -106,7 +105,7 @@ exports.show = (function() {
 					using(var key = events.HostEmitter(input, 'keydown')) {
 						while(true) {
 							var e = key.wait();
-							logging.debug("KEY", e);
+							//logging.debug("KEY", e);
 							if (e.which == ui.RETURN) {
 								return highlightedMatch.get();
 							} else if (e.keyIdentifier == 'Down') {
@@ -255,7 +254,7 @@ function searchIndex(query, index) {
 			results.overflow = true;
 			break;
 		}
-		if (count++ % 100 == 0) hold(0); // give UI a chance
+		if (count++ % 50 == 0) hold(0); // keep UI responsive
 		var idLower = id.toLowerCase();
 		var words = queryWords.slice();
 		var parts = [];

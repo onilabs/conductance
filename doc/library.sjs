@@ -30,12 +30,33 @@ CollectionProto._computeLibraries = function(hubs) {
 	return this._libraryCache;
 };
 
+CollectionProto.resolveModule = function(url) {
+	// url may be a shorthand (e.g sjs:foo),
+	// or a full URL (http://examples.com/sjs/foo).
+	//
+	// Returns: [library, relativePath]
+	
+	// TODO: return from inner blocklambda
+	var ret;
+	if (url .. str.endsWith('.sjs')) url = url.slice(0, -4);
+	this.get() .. ownValues .. each {|lib|
+		[lib.name, lib.root] .. each {|prefix|
+			if (url .. str.startsWith(prefix)) {
+				ret = [lib, url.slice(prefix).split('/')];
+				break;
+			}
+		}
+	}
+	if (ret) return ret;
+	throw new LibraryMissing(url);
+};
+
 CollectionProto.get = function(name) {
 	if (arguments.length === 0) {
 		return this._libraries.get();
 	}
 	var lib = this.get() .. ownValues .. find(l -> l.name == name);
-	assert.ok(lib, "library not fond: #{name}");
+	assert.ok(lib, "library not found: #{name}");
 	return lib;
 };
 
@@ -52,6 +73,12 @@ exports.Collection = function() {
 	rv._init();
 	return rv;
 }
+
+var LibraryMissing = exports.LibraryMissing = function(lib) {
+	this.message = "Missing library: #{lib}";
+	this.url = lib;
+};
+LibraryMissing.prototype = new Error();
 
 function expandHub(name) {
 	require.hubs .. each {|[prefix, dest]|

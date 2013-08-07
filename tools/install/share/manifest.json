@@ -20,11 +20,11 @@
     , "links":
       { "platform_key": ["platform"]
       , "all":
-        [ {"src": "tools/bootstrap/share/self-update.js", "dest": "share/"}
+        [ {"src": "tools/install/share/self-update.js", "dest": "share/"}
         ]
       , "default":
         [ {"src": "conductance", "dest": "bin/", "runner": "node"}
-        , {"src": "tools/bootstrap/share/self-update.js", "dest": "share/install.sh", "runner":"node"}
+        , {"src": "tools/install/share/self-update.js", "dest": "share/install.sh", "runner":"node"}
         ]
       , "windows":
         [ {"src": "conductance", "dest": "bin/"}

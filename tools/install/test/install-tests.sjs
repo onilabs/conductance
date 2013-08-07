@@ -38,10 +38,10 @@ hosts.systems .. each {|system|
 		var conductanceUrl = manifest.data.conductance.href;
 		assert.string(conductanceUrl);
 
-		// we'll prime the proxy with the current workspace' bootstrap script and archives
-		var bootstrapScript = "http://onilabs.com/conductance.sh"
-		var bootstrapArchive = "http://onilabs.com/conductance/#{system.platform}_#{system.arch}.tar.gz"
-		var localBootstrap = url.normalize("../install.sh", module.id) .. url.toPath();
+		// we'll prime the proxy with the current workspace' install script and archives
+		var installScript = "http://onilabs.com/conductance.sh"
+		var installArchive = "http://onilabs.com/conductance/install/#{system.platform}_#{system.arch}.tar.gz"
+		var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
 		var exportProxy = 'export CONDUCTANCE_FORCE_HTTP=1 http_proxy='+host.proxy+'; ';
 
 		test.beforeAll {||
@@ -53,9 +53,9 @@ hosts.systems .. each {|system|
 						// always fake out the condutance URL to serve the latest HEAD
 						proxy.fake([
 							[conductanceUrl, conductanceHead],
-							[bootstrapScript, localBootstrap],
+							[installScript, localInstallScript],
 							[manifest.manifest_url, new Buffer(manifestContents)],
-							[bootstrapArchive, bundle],
+							[installArchive, bundle],
 						], brk);
 					}
 				}
@@ -81,7 +81,7 @@ hosts.systems .. each {|system|
 
 		var bashInstallWithInput = function(input) {
 			host.runCmd('rm -rf /tmp/conductance && mkdir -p /tmp/conductance/bin');
-			return host.runCmd(exportProxy + "export PREFIX=/tmp/conductance; curl -s #{bootstrapScript} > /tmp/script && echo -e '#{input}' | bash -e /tmp/script");
+			return host.runCmd(exportProxy + "export PREFIX=/tmp/conductance; curl -s #{installScript} > /tmp/script && echo -e '#{input}' | bash -e /tmp/script");
 		};
 
 		var selfUpdate = function() {
@@ -99,7 +99,7 @@ hosts.systems .. each {|system|
 		withTemp.counter = 0;
 
 		var modifyTar = function(archive, file, mutate) {
-			var root = 'tools/bootstrap/';
+			var root = 'tools/install/';
 			file = root + file;
 			withTemp {|tmp|
 				var cwd = process.cwd();
@@ -454,7 +454,7 @@ hosts.systems .. each {|system|
 
 							output.split('\n') .. assert.eq([
 								"This installer will REMOVE the existing contents at #{homePath}/.conductance",
-								"Continue? [y/N]",
+								"Continue? [y/N] ",
 								"Cancelled.",
 								""
 							]);

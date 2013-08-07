@@ -10,7 +10,7 @@ function log () {
   echo "$@" >&2
 }
 
-TMP_TAR="/tmp/conductance-bootstrap-$$.tar.gz"
+TMP_TAR="/tmp/conductance-install-$$.tar.gz"
 function cleanup () {
   log "Install failed."
   if [ -e "$TMP_TAR" ]; then
@@ -57,6 +57,7 @@ if [ -e "$DEST" ]; then
   log "This installer will REMOVE the existing contents at $DEST"
   echo -n "Continue? [y/N] " >&2
   read res
+  log
   if [ 'y' = "$res" -o Y = "$res" ]; then
     true
   else

@@ -1,1 +1,1 @@
-redo-ifchange node_modules/install
+redo-ifchange node_modules/install modules/sjs-lib-index.json.stamp

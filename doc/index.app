@@ -2,7 +2,7 @@ var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
 var {RequireStyle, OnClick, Class, Mechanism, Widget, prependWidget, removeElement, appendWidget, Style, withWidget} = require('mho:surface');
 var {Bootstrap} = require('mho:surface/bootstrap');
 var seq = require('sjs:sequence');
-var {map, indexed, find, each} = seq;
+var {map, indexed, find, each, join} = seq;
 var array = require('sjs:array');
 var events = require('sjs:events');
 var cutil = require('sjs:cutil');
@@ -16,37 +16,99 @@ var assert = require('sjs:assert');
 logging.setLevel(logging.DEBUG);
 
 var ui = require('./ui');
-var library = require('./library');
+var Library = require('./library');
+
+var Symbol = function(library, modulePath, symbolPath) {
+	this.library = library;
+	this.modulePath = modulePath;
+	this.symbolPath = symbolPath;
+};
+
+Symbol.prototype.content = function() {
+	ui.LOADING.block { ||
+		return this.library.lookup(this.path);
+	}
+}
+Symbol.prototype.parentLinks = function() {
+	var rv = [];
+	var href = this.library.name;
+	rv.push([href, href]);
+	this.modulePath .. each {|p|
+		href += '/' + p;
+		rv.push([href, p]);
+	}
+
+	this.symbolPath .. each {|p|
+		href += '::' + p;
+		rv.push([href, p]);
+	}
+	return rv;
+};
+
+Symbol.prototype.toString = -> "Symbol #{this.symbolPath .. join("::")} of library #{this.library.name}/#{this.modulePath ..join("/")}";
+
+var MissingLibrary = function(moduleUrl, symbolPath) {
+	this.symbolPath = path;
+	this.moduleUrl = moduleUrl;
+};
+MissingLibrary.prototype.toString = -> "Symbol #{this.path .. join("::")} of missing module #{this.url}";
+MissingLibrary.prototype.parentLinks = function() {
+	var rv = [];
+	var href = this.moduleUrl;
+	rv.push([href, href]);
+	this.symbolPath .. each {|p|
+		href += '::' + p;
+		rv.push([href, p]);
+	}
+	return rv;
+};
 
 exports.run = function() {
+	var libraries = Library.Collection();
 
 	var locationHash = Observable("");
-	var viewPath = Computed(locationHash, function(h) {
-		// TODO
-		return h.split(/:+|\.+|\/+/g);
-		return [h];
+
+	var currentSymbol = Computed(locationHash, libraries.val, function(h) {
+		logging.debug("Location hash: #{h}");
+		if (!h) return null;
+		if (h .. str.contains('/')) {
+			var [moduleUrl, symbolPath] = h .. str.rsplit('/', 1);
+		} else {
+			var match = /^(.*?)([^:]+::.*)$/.exec(h);
+			assert.ok(match, "Invalid path: #{h}");
+			var [_, moduleUrl, symbolPath] = match;
+		}
+		symbolPath = symbolPath.split('::');
+
+		try {
+			var [library, modulePath] = libraries.resolveModule(moduleUrl);
+		} catch(e) {
+			if (!e instanceof Library.LibraryMissing) throw e;
+			return new MissingLibrary(e.url, symbolPath);
+		}
+
+		return new Symbol(library, modulePath, symbolPath);
 	});
 
-	var libraries = library.Collection();
-
-	var currentSymbol = Computed(viewPath, function(path, libraries) {
-		return `<center><br><h4>TODO: display <strong>${JSON.stringify(path)}</strong></h4></center>`;
-
-		if (path.length == 0) {
-			return undefined;
+	var breadcrumbs = Computed(currentSymbol, function(sym) {
+		var ret = [];
+		var prefix = '#';
+		var sep = Widget("span", ` &raquo; `);
+		if (sym) {
+			ret = sym.parentLinks() .. map([href, name] -> Widget("a", name, {href: prefix + href}));
 		}
-		var lib = libraries.get(path[0]);
+		return Widget("div", ret .. seq.intersperse(sep), {"class":"breadcrumbs"});
+	});
 
-		ui.LOADING.block { ||
-			lib.loadIndex();
-			return lib.lookup(path.slice(1));
-		}
+	var symbolDocs = Computed(currentSymbol, function(sym) {
+		return `<pre>Symbol: ${String(sym)}</pre>`;
 	});
 
 	libraries.add('sjs:');
 	libraries.add('mho:');
 
-	var loadingWidget = Widget("div", `Loading ${ui.LOADING} items...`)
+	var loadingText = ui.LOADING .. Computed(l -> "#{l} item#{l != 1 ? "s" : ""}");
+	var loadingWidget = Widget("div", `Loading ${loadingText}...`)
 			.. Class("loading")
 			.. Class("hidden", Computed(ui.LOADING, l -> l == 0));
 
@@ -55,6 +117,7 @@ exports.run = function() {
 	});
 	var hubDisplay = Widget("pre", hubDebug);
 
+	var FORWARD_SLASH = 47;
 	var searchWidget = Widget("div", `
 			<div class="searchTrigger">
 				<button class="btn search"><i class="icon-search"></i></button>
@@ -64,7 +127,7 @@ exports.run = function() {
 			var btn = elem.querySelector("button");
 
 			using (var searchClick = btn .. events.HostEmitter('click')) {
-				using (var searchShortcut = document.body .. events.HostEmitter('keypress', e -> e.which == 47)) {
+				using (var searchShortcut = document.body .. events.HostEmitter('keypress', e -> e.which == FORWARD_SLASH)) {
 					while(true) {
 						waitfor {
 							searchShortcut.wait();
@@ -73,7 +136,7 @@ exports.run = function() {
 						}
 						btn.parentNode.classList.add('hidden');
 						try {
-							var newLocation = require('./search').show(elem, libraries);
+							var newLocation = require('./search').run(elem, libraries);
 							if (newLocation) {
 								document.location.hash = newLocation;
 							}
@@ -100,7 +163,8 @@ exports.run = function() {
 			<h1>Documentation Browser</h1>
 		</div>
 		$mainDisplay
-		$currentSymbol
+		$breadcrumbs
+		$symbolDocs
 		$loadingWidget
 	`)
 	.. Bootstrap()
