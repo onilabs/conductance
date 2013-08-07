@@ -165,87 +165,115 @@ exports.ObservableArray = ObservableArray;
 
 var ComputedProto = Object.create(ObservableProtoBase);
 
-function Computed(/* var1, ..., f */) {
+ComputedProto.init = function(/* var1, ..., f */) {
+  this._deps = arguments .. slice(0,-1) .. toArray;
+  this._f = arguments[arguments.length-1];
+  this._emitter = Emitter();
+  this._observers = 0;
+  this._observeStratum = null;
+};
+
+ComputedProto.set = function() { throw new Error("Cannot set a computed observable"); };
+
+ComputedProto.observe = function(o) {
+  try {
+    var dirty = false;
+    if (++this._observers == 1)
+      this._observeStratum =
+        spawn this._deps .. each.par { |d| d.observe { |change| dirty = true; this._emitter.emit() } };
+    
+    while (true) {
+      this._emitter.wait();
+      while(dirty) {
+        dirty = false;
+        o(this.get(), NonSpecificChange);
+      }
+    }
+  }
+  finally {
+    if (--this._observers == 0)
+      this._observeStratum.abort();
+  }
+}
+
+var CachedComputedProto = Object.create(ComputedProto);
+CachedComputedProto.init = function() {
+  ComputedProto.init.apply(this, arguments);
+  this.revision = 0;
+
+  var self = this;
+  var lastValue;
+  var depRevisions = this._deps .. transform(d -> d.revision);
+  var lastRevisions = [];
+  var dirty = -> lastRevisions .. zipLongest(depRevisions) .. any([a,b] -> a !== b);
+  var calcStratum;
+
+  this.get = function() {
+    if (calcStratum) calcStratum.waitforValue();
+    calcStratum = null;
+
+    if (dirty()) {
+      var revisions = [], inputs = [];
+      self._deps .. each {|d|
+        inputs.push(d.get()); // may block
+        revisions.push(d.revision);
+      }
+
+      if (dirty()) {
+        calcStratum = spawn(function() {
+          lastValue = self._f.apply(self._deps, inputs); // may block
+          lastRevisions = revisions;
+          self.revision++;
+          calcStratum = null;
+        }());
+      }
+    }
+
+    if (calcStratum) calcStratum.waitforValue();
+    return lastValue;
+  };
+};
+
+
+function CachedComputed(/* var1, ..., f */) {
   var deps = arguments .. slice(0,-1) .. toArray;
-  var f = arguments[arguments.length-1];
 
   if (!(deps .. any(isObservable))) {
+    // TODO: do we ever use this?
     // not dependent on any observables
     return f.apply(null, deps);
   }
   else {
-    var rv = Object.create(ComputedProto);
-    var emitter = Emitter();
-    var observers = 0;
-    var observeStratum;
-    var calcStratum;
-
-    // dirty tracking
-    rv.revision = 0;
-    var lastValue;
-    var depRevisions = deps .. transform(d -> d.revision);
-    var lastRevisions = [];
-    var dirty = -> lastRevisions .. zipLongest(depRevisions) .. any([a,b] -> a !== b);
-
-    rv.get = function() {
-      if (calcStratum) calcStratum.waitforValue();
-      calcStratum = null;
-
-      if (dirty()) {
-        var revisions = [], inputs = [];
-        deps .. each {|d|
-          inputs.push(d.get()); // may block
-          revisions.push(d.revision);
-        }
-
-        if (dirty()) {
-          calcStratum = spawn(function() {
-            lastValue = f.apply(deps, inputs); // may block
-            lastRevisions = revisions;
-            rv.revision++;
-            calcStratum = null;
-          }());
-        }
-      }
-
-      if (calcStratum) calcStratum.waitforValue();
-      return lastValue;
-    };
-    rv.set = function() { throw new Error("Cannot set a computed observable"); };
-    
-    rv.observe = function(o) {
-      try {
-        if (++observers == 1)
-          observeStratum =
-            spawn deps .. each.par { |d| d.observe { |change| emitter.emit(null) } };
-        
-        while (true) {
-          emitter.wait();
-          // force evaluation (and keep repeating until dirty() returns false)
-          do {
-            o(this.get(), NonSpecificChange);
-          } while(dirty());
-        }
-        
-      }
-      finally {
-        if (--observers == 0)
-          observeStratum.abort();
-      }
+    if (deps .. any(d -> d.revision === undefined)) {
+      // no point caching computations that depend
+      // on a non-cacheable input
+      return ImpureComputed.apply(null, arguments);
     }
-    
+
+    var rv = Object.create(CachedComputedProto);
+    rv.init.apply(rv, arguments);
     return rv;
   }
 }
-exports.Computed = Computed;
+exports.Computed = CachedComputed;
+
+function ImpureComputed(/* var1, ..., f */) {
+  var rv = Object.create(ComputedProto);
+  rv.init.apply(rv, arguments);
+  rv.get = function() { return this._f.apply(this._deps, this._deps .. map(d -> d.get())) };
+  return rv;
+};
+exports.Computed.Always = ImpureComputed;
+
 
 exports.observe = function(/* var1, ... , f */) {
   // TODO: this could be done without creating a dummy Computed value
   var deps = arguments .. slice(0, -1) .. toArray();
   var f = arguments .. at(-1);
   var args = deps.concat([-> deps .. map(d -> d.get())]);
-  return Computed.apply(null, args).observe(vals -> f.apply(null, vals.concat([NonSpecificChange])));
+  return ImpureComputed.apply(null, args).observe(vals -> f.apply(null, vals.concat([NonSpecificChange])));
 };
+
 
 //----------------------------------------------------------------------
 // polymorphic accessors: these work for 'base' objects or observables

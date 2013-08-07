@@ -179,3 +179,21 @@ context("Computed") {||
 		]);
 	}
 }.timeout(2);
+
+context("Computed.Always") {||
+	test("is recomputed each time it's accessed") {||
+		var count = 0;
+		var c = Computed.Always(-> count++);
+		c.get() .. assert.eq(0);
+		c.get() .. assert.eq(1);
+	}
+
+	test("causes dependent values to also be uncacheable") {||
+		var count = 0;
+		var c = Computed.Always(-> count++);
+		var d = Computed(c, _c -> _c);
+		d.revision .. assert.is(undefined);
+		d.get() .. assert.eq(0);
+		d.get() .. assert.eq(1);
+	}
+}
