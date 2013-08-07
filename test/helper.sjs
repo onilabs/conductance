@@ -10,10 +10,6 @@ exports.setHost = h -> host = h;
 exports.url = u -> Url.normalize(u, host);
 
 exports.serve = function(block) {
-  var args = [
-    'run',
-    Url.normalize('./test.mho', module.id) .. Url.toPath,
-  ];
   var port = '7078';
 
   var isRunning = function() {
@@ -39,6 +35,10 @@ exports.serve = function(block) {
   var origLevel = logging.getLevel();
   waitfor {
     logging.setLevel(logging.WARN);
+    var args = [
+      'run',
+      Url.normalize('./test.mho', module.id) .. Url.toPath,
+    ];
     require('mho:server/main').run(args);
   } or {
     var tries = 0;
