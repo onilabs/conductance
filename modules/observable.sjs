@@ -19,6 +19,7 @@ ObservableProtoBase.observePath = function(path, o) {
   this.observe {|val, change|
     // TODO: smartly process events of type=update
     var newVal = val .. getPath(path, undefined);
+    // TODO: this will skip mutations
     if (newVal === last) continue;
     last = newVal;
     o(newVal, NonSpecificChange);
@@ -177,16 +178,24 @@ ComputedProto.set = function() { throw new Error("Cannot set a computed observab
 
 ComputedProto.observe = function(o) {
   try {
-    var dirty = false;
     if (++this._observers == 1)
       this._observeStratum =
-        spawn this._deps .. each.par { |d| d.observe { |change| dirty = true; this._emitter.emit() } };
+        spawn this._deps .. each.par { |d| d.observe { |change| this._emitter.emit() } };
     
+    var changed = false;
     while (true) {
       this._emitter.wait();
-      while(dirty) {
-        dirty = false;
-        o(this.get(), NonSpecificChange);
+      waitfor {
+        while (true) {
+          // collect change events while other branch is running
+          changed = true;
+          this._emitter.wait();
+        }
+      } or {
+        while(changed) {
+          changed = false;
+          o(this.get(), NonSpecificChange);
+        }
       }
     }
   }
