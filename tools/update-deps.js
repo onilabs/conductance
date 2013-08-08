@@ -26,20 +26,24 @@ packageNames = packageNames.filter(function(pkg) {
 	return true;
 });
 
-try {
-	packageNames.forEach(function(pkg) {
+var outOfDate = packageNames.filter(function(pkg) {
+	try {
 		var id = pkg + '@' + deps[pkg];
 		var installed = require(path.join(modules, pkg, 'package.json'));
 		if (installed._from != id) {
 			throw new Error(pkg + " out of date. \nRequired: " + id + "\nCurrent: " + installed._from);
 		}
 		console.log(pkg + ': Up to date');
-	});
-} catch(e) {
-	if(e.message) console.error("Error: " + e.message);
-	// if anything went wrong, run `npm install`
-	console.log("Calling `npm install`");
-	var proc = child_process.spawn('npm', ['install'].concat(packageNames), {stdio:'inherit'});
+		return false;
+	} catch(e) {
+		if(e.message) console.error("Error: " + e.message);
+		return true;
+	}
+});
+
+if (outOfDate.length > 0) {
+	console.log("Calling `npm install " + outOfDate.join(" ") + "`");
+	var proc = child_process.spawn('npm', ['install'].concat(outOfDate), {stdio:'inherit'});
 	proc.on('exit', function(code) {
 		process.exit(code);
 	})
