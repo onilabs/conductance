@@ -1,5 +1,6 @@
 var {Widget, Style, prependWidget, removeElement} = require('mho:surface');
 var {Observable} = require('mho:observable');
+var {map, intersperse} = require('sjs:sequence');
 
 var events = require('sjs:events');
 
@@ -55,12 +56,9 @@ LOADING.block = function(b) {
 exports.renderDocs = function(symbol) {
 	var docs = symbol.docs();
 	var parts = [];
-	var parentPath = symbol.modulePath.join("");
-	if (symbol.symbolPath.length > 1) {
-		parentPath += "::" + symbol.symbolPath.slice(0, -1).join("::");
-	}
-	parts.push(Widget("h4", "#{parentPath}"));
-	parts.push(Widget("h1", docs.name));
+	var parentPath = symbol.parentLinks().slice(0,-1) .. map([href, name] -> name);
+	parts.push(Widget("h4", parentPath .. intersperse(`&raquo;`)));
+	parts.push(Widget("h1", symbol.name));
 
 	var docs = docs .. require('sjs:object').merge({modulePath: symbol.modulePath, symbolPath: symbol.symbolPath});
 	parts.push(Widget("pre", JSON.stringify(docs, null, '  ')));

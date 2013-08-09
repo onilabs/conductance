@@ -30,8 +30,9 @@ exports.run = function() {
 		var match = /^(.*?[^:]*)(::.*)?$/.exec(h);
 		assert.ok(match, "Invalid path: #{h}");
 		var [_, moduleUrl, symbolPath] = match;
-		console.log("moduleUrl", moduleUrl);
 		symbolPath = symbolPath ? symbolPath.slice(2).split('::') : [];
+		console.log("moduleUrl", moduleUrl);
+		console.log("symbolPath", symbolPath);
 
 		try {
 			var [library, modulePath] = libraries.resolveModule(moduleUrl);

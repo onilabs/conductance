@@ -1,5 +1,6 @@
 var seq = require('sjs:sequence');
-var {each, join } = seq;
+var {each, join, at} = seq;
+var assert = require('sjs:assert');
 
 var ui = require('./ui');
 
@@ -8,6 +9,7 @@ var Symbol = exports.Symbol = function(library, modulePath, symbolPath) {
 	this.className = symbolPath.length == 2 ? symbolPath[0];
 	this.modulePath = modulePath;
 	this.symbolPath = symbolPath;
+	this.name = seq.concat([this.library.name], this.modulePath, this.symbolPath) .. at(-1);
 };
 
 Symbol.prototype.docs = function() {

@@ -1,7 +1,7 @@
 var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
 var {RequireStyle, Class, Mechanism, Widget, Style, withWidget} = require('mho:surface');
 var seq = require('sjs:sequence');
-var {map, indexed, find, each} = seq;
+var {map, indexed, find, each, toArray, filter} = seq;
 var events = require('sjs:events');
 var cutil = require('sjs:cutil');
 var {ownPropertyPairs, ownValues} = require('sjs:object');
@@ -15,25 +15,32 @@ var ui = require('./ui');
 
 var flattenLibraryIndex = function(lib) {
 	var symbols = [];
+	var allChildren = function(v) {
+		return [v.modules, v.dirs, v.symbols, v.classes] .. filter() .. toArray;
+	};
+
 	var addSymbols = function(obj, path) {
-		obj .. ownPropertyPairs .. each {|[k,v]|
-			var id = path + k;
-			symbols.push([lib.name, id, k.type]);
-			switch (v.type) {
-				case 'directory':
-					id += '/';
-					break;
-				case 'module':
-				case 'class':
-					id += "::";
-					break;
-				default:
-					if (v.children) {
-						logging.warn("I don't know what a #{v.type} is!");
-					}
-					break;
+		var childSets = allChildren(obj);
+		childSets .. each {|children|
+			children .. ownPropertyPairs .. each {|[k,v]|
+				var id = path + k;
+				if (v.type == 'lib') id += '/';
+				symbols.push([lib.name, id, v.type]);
+				switch (v.type) {
+					case 'lib':
+						break;
+					case 'module':
+					case 'class':
+						id += "::";
+						break;
+					default:
+						if (allChildren(v).length > 0) {
+							logging.warn("I don't know what a #{v.type} is!");
+						}
+						break;
+				}
+				addSymbols(v, id);
 			}
-			if (v.children) addSymbols(v.children, id);
 		}
 	};
 	addSymbols(lib.loadIndex(), "");

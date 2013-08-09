@@ -153,9 +153,7 @@ Library.prototype.loadDocs = function(modulePath, symbolPath) {
 
 	while(symbolPath.length > 0) {
 		var children = symbolPath.length > 1 ? obj.classes : obj.symbols;
-		console.log("obj", obj, "children", children, "key", symbolPath[0]);
 		obj = children .. get(symbolPath.shift());
-		console.log("obj", obj);
 	}
 	return obj;
 };
