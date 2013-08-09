@@ -28,6 +28,13 @@
 var { override } = require('sjs:object');
 var { request } = require('sjs:http');
 var { TokenCache } = require('google-oauth-jwt');
+var { HttpsAgent } = require('agentkeepalive');
+
+var keepaliveAgent = new HttpsAgent({
+  maxSockets: 20,
+  maxKeepAliveRequests: 0, // == unbounded
+  maxKeepAliveTime: 30000 // keep alive for 30 seconds
+});
 
 // authentication token cache:
 var tokens = new TokenCache(); 
@@ -70,7 +77,7 @@ var ContextProto = {
      @desc
        Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./google-cloud-datastore/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [google-cloud-datastore::] module description.
   */
-  blindWrite: function(req) {
+  blindWrite: function(req) { //console.log(require('sjs:debug').inspect(req, false, 10));
     return this._request(
       'blindWrite', 
       datastore_schema['api.services.datastore.BlindWriteRequest'].serialize(req),
@@ -101,6 +108,9 @@ var ContextProto = {
        Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./google-cloud-datastore/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [google-cloud-datastore::] module description.
   */
   runQuery: function(req) {
+//    console.log(require('sjs:debug').inspect(datastore_schema['api.services.datastore.RunQueryRequest'].serialize(req) ..
+//                datastore_schema['api.services.datastore.RunQueryRequest'].parse, false, 10));
+
     return this._request(
       'runQuery', 
       datastore_schema['api.services.datastore.RunQueryRequest'].serialize(req),
@@ -246,7 +256,8 @@ function Context(attribs) {
       email: undefined,
       key: undefined,
       keyFile: undefined,
-      delegationEmail: undefined
+      delegationEmail: undefined,
+//      debug: true
     } .. override(attribs);
     // xxx for some reason we always seem to require both of these
     // scopes, even though the docs say we need *one* of them
@@ -260,8 +271,10 @@ function Context(attribs) {
   // the prototype so that we don't need to expose `attribs` on the
   // object
   rv._request = function(api_func, req_body, response_schema) {  
-
-    var response = req_f(
+    var max_retries = 5; // make configurable
+    var retries = 0;
+    while (true) {
+      var response = req_f(
         "#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}",
         { 
           headers: {'Content-Type':'application/x-protobuf',
@@ -272,22 +285,30 @@ function Context(attribs) {
           body: req_body,
           jwt: jwt,
           response: 'raw',
+          agent: keepaliveAgent,
           throwing: false
         }
       );
 
-    // extract content into a buffer:
-    var content = [];
-    var data;
-    while (data = readStream(response))
-      content.push(data);
-    content = Buffer.concat(content);
-
-    if (response.statusCode !== 200) {
-      throw new DatastoreError(api_func, response, content);
+      // extract content into a buffer:
+      var content = [];
+      var data;
+      while (data = readStream(response))
+        content.push(data);
+      content = Buffer.concat(content);
+      
+      if (response.statusCode !== 200) {
+        if (response.statusCode >= 500 && retries < max_retries) {
+          console.log("google-cloud-datastore #{response.statusCode}; retrying");
+          // xxx should we have some backoff?
+          ++retries;
+          continue;
+        }
+        throw new DatastoreError(api_func, response, content);
+      }
+      
+      return response_schema ? response_schema.parse(content);
     }
-
-    return response_schema ? response_schema.parse(content);
   };
 
   return rv;
