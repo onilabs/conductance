@@ -144,7 +144,7 @@ exports.serve = function(args) {
   var config = _config.loadConfig(configfile);
   var main = config.run || (function() {
     logging.warn("declarative .mho files (no `run` function) are deprecated");
-    require('../server').serve(config);
+    require('../server').run(config);
   });
 
   try {
