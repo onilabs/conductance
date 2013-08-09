@@ -6,17 +6,19 @@ var { StandardSystemRoutes,
     } = require('mho:server/routes');
 var { conductanceRoot } = require('mho:server/env');
 var { readFile } = require('sjs:nodejs/fs');
+var assert = require('sjs:assert');
+var server = require('mho:server');
 
 //----------------------------------------------------------------------
 // Array of ports that conductance will listen on:
 
-exports.ports = [
-  { 
+var ports = [
+  {
     name: 'insecure',  // name by which port will be referenced
     address:'7075', // address of form 'port' or 'host:port'. If no 'host' is given,
                     // conductance will listen on all interfaces
   },
-  { name: 'secure', 
+  { name: 'secure',
     address:'localhost:7076',
     ssl: true,
     key: readFile("#{conductanceRoot()}ssl/insecure-localhost.key"),
@@ -35,7 +37,7 @@ exports.ports = [
    given port (if no ports are given the host will listen on all
    ports listed in the exports.ports array)
 */
-exports.hosts = [
+var hosts = [
   {
     // hostname regexp:
     hostname: /^mypublicserver(:.*)?$/,
@@ -88,3 +90,31 @@ exports.hosts = [
     ]
   }
 ];
+
+
+//----------------------------------------------------------------------
+// server main function, used by `conductance run`
+exports.run = function() {
+  arguments.length .. assert.eq(0, "Too many arguments");
+  server.run({ports: ports, hosts: hosts});
+};
+
+exports.systemd = function() {
+  var systemd = require('mho:server/systemd');
+  var url = require('sjs:url');
+  return {
+    master: {
+      Service: {
+        Restart: 'always',
+        User: 'conductance',
+        Group: 'conductance',
+        Environment: {'NODE_ENV': 'production'},
+        ExecStart: systemd.ConductanceArgs.concat('run', module.id .. url.toPath),
+      },
+      // use socket activation
+      Socket: {
+        Listen: ports,
+      },
+    }
+  }
+};

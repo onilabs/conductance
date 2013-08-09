@@ -15,6 +15,7 @@ var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
 var assert = require('sjs:assert');
 var Url = require('sjs:url');
+var sys = require('sjs:sys');
 
 var conductance = require('./_config');
 var env = require('./env');
@@ -24,6 +25,33 @@ var fail = function(msg) {
 }
 
 var CONDUCTANCE_FLAG = 'X-Conductance-Generated';
+var DEFAULT_GROUP = 'conductance';
+
+var GroupProto = Object.create({});
+GroupProto._init = function(name, units) {
+	this.name = name;
+	this.units = units;
+};
+var Group = exports.Group = function(name, units) {
+	var rv = Object.create(GroupProto);
+	if (arguments.length < 2) {
+		units = arguments[0];
+		name = DEFAULT_GROUP;
+	}
+	rv._init(name, units);
+	return rv;
+};
+
+/**
+  used by configs to define systemd actions which will launch conductance
+  (using the current node, sjs & conductance versions, regardless of what is on
+  $PATH etc)
+  */
+exports.ConductanceArgs = [
+	process.execPath,
+	sys.executable,
+	path.join(env.conductanceRoot(), 'modules/server/main.sjs'),
+];
 
 var parseArgs = function(command, options, args) {
 	var parser = dashdash.createParser({ options: options });
@@ -348,7 +376,6 @@ var install = function(opts) {
 		logging.warn("Using default config: #{configFiles[0]}");
 	}
 
-	var nodeExe = process.execPath;
 	var namespace = opts.namespace;
 	var units = [];
 
@@ -359,11 +386,21 @@ var install = function(opts) {
 
 	configFiles .. each {|configPath|
 		var config = conductance.loadConfig(configPath);
-		if (!config.systemd) {
+		var systemd = config.systemd;
+		if (!systemd) {
 			fail("No systemd config for #{configPath}");
 		}
+		
+		// allow lazy definitions
+		if (systemd instanceof(Function)) systemd = systemd();
 
-		config.systemd .. ownPropertyPairs .. each {|[name, sys]|
+		if (!GroupProto.isPrototypeOf(systemd)) {
+			logging.warn("Deprecation warning: exports.systemd should be a systemd.Group");
+			systemd = exports.Group(systemd);
+		}
+		//TODO: respect systemd.group keys, and remove `namespace` option
+
+		systemd .. ownPropertyPairs .. each {|[name, sys]|
 			var fqn = "#{namespace}-#{name}"
 			var serviceUnit = mkunit("#{fqn}.service");
 			var service = sys.Service || {};
@@ -380,13 +417,9 @@ var install = function(opts) {
 				'After': 'local-fs.target network.target',
 			});
 
-			var sjsExe = Url.normalize('../sjs', require.resolve('sjs:').path) .. Url.toPath();
-			if(!fs.exists(sjsExe)) {
-				fail("SJS executable not found at #{sjsExe}");
-			}
 			service = object.merge({
 				// fully qualify both `node` and `sjs` executables to ensure we get the right runtime
-				'ExecStart': [nodeExe, sjsExe, env.conductanceRoot() + 'modules/server/main.sjs', 'run', env.configPath()],
+				'ExecStart': exports.ConductanceArgs.concat('run', env.configPath()),
 				'User': 'nobody',
 				'Group': 'nobody',
 				'SyslogIdentifier': fqn,
@@ -398,6 +431,13 @@ var install = function(opts) {
 					service[k] = shell_quote.quote(v);
 				}
 			}
+			// expand environment {k1:"v1"} into ["k1=v1", ...]
+			if (service.Environment !== undefined &&
+			    !service.Environment .. isArrayLike() &&
+			    !service.Environment .. isString()) {
+				service.Environment = service.Environment .. ownPropertyPairs .. map([k,v] -> "#{k}=#{v}");
+			}
+
 			serviceUnit.addSection('Service', service);
 
 			// -- Service Install --

@@ -2,7 +2,15 @@
 // server-side only
 var sys = require("sjs:sys");
 var path = require("nodejs:path");
+var url = require("sjs:url");
+var { stat } = require('sjs:nodejs/fs');
 var sjsRoot = path.dirname(sys.executable);
+var conductanceRoot = url.normalize('../../', module.id) .. url.toPath();
+var conductanceVersion = "1-#{
+                              (new Date(
+                                  stat(require.resolve('sjs:../stratified-node.js').path .. url.toPath(7)).mtime
+                              )).getTime()
+                            }";
 
 var env_vars;
 exports.init = function(vars) {
@@ -13,9 +21,9 @@ exports.update = function(key, val) {
   env_vars[key] = val;
 }
 
-exports.conductanceRoot = -> env_vars.conductanceRoot;
+exports.conductanceRoot = -> conductanceRoot;
 exports.sjsRoot         = -> sjsRoot
+exports.conductanceVersion = -> conductanceVersion;
 exports.configRoot      = -> env_vars.configRoot;
 exports.configPath      = -> env_vars.configPath;
-exports.config          = -> env_vars.config;
-exports.conductanceVersion = -> env_vars.conductanceVersion;
+
