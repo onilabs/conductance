@@ -56,7 +56,7 @@ LOADING.block = function(b) {
 exports.renderDocs = function(symbol) {
 	var docs = symbol.docs();
 	var parts = [];
-	var parentPath = symbol.parentLinks().slice(0,-1) .. map([href, name] -> name);
+	var parentPath = symbol.path.slice(0,-1);
 	parts.push(Widget("h4", parentPath .. intersperse(`&raquo;`)));
 	parts.push(Widget("h1", symbol.name));
 
