@@ -52,7 +52,7 @@ function SimpleRedirectRoute(path, new_base, status) {
     path: path,
     handler: {
       '*': function(matches, req) {
-        req .. writeRedirectResponse("#{new_base}#{matches[0]}", status);
+        req .. writeRedirectResponse("#{new_base}#{matches[0]}#{req.url.query? "?#{req.url.query}":''}#{req.url.anchor? "##{req.url.anchor}":''}", status);
       }
     }
   }
