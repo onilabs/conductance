@@ -400,7 +400,7 @@ var install = function(opts) {
 		}
 		//TODO: respect systemd.group keys, and remove `namespace` option
 
-		systemd .. ownPropertyPairs .. each {|[name, sys]|
+		systemd.units .. ownPropertyPairs .. each {|[name, sys]|
 			var fqn = "#{namespace}-#{name}"
 			var serviceUnit = mkunit("#{fqn}.service");
 			var service = sys.Service || {};
