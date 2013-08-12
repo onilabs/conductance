@@ -11,6 +11,7 @@ var fs = require('sjs:nodejs/fs');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
 var _config = require('./_config');
+var env = require('./env');
 
 var banner = "
 
@@ -124,8 +125,26 @@ exports.serve = function(args) {
     },
   ]});
 
+  var opts = { verbose: 0, _args: [] };
   try {
-    var opts = parser.parse(args);
+    (function() {
+      for (var idx = 0; idx < args.length; idx++) {
+        var arg = args[idx];
+        switch(arg) {
+          case '-h':
+          case '--help':
+            opts.help = true;
+            break;
+          case '-v':
+          case '--verbose':
+            opts.verbose++;
+            break;
+          default:
+            opts._args = args.slice(idx);
+            return;
+        }
+      }
+    })();
   } catch(e) {
     usage(e.message || String(e));
     process.exit(1);
@@ -135,14 +154,14 @@ exports.serve = function(args) {
     process.exit(0);
   }
 
-  switch(opts.verbose && opts.verbose.length) {
-    case undefined :
+  switch(opts.verbose) {
     case 0         : logging.setLevel(logging.WARN);    break;
     case 1         : logging.setLevel(logging.INFO);    break;
     case 2         : logging.setLevel(logging.VERBOSE); break;
     default        : logging.setLevel(logging.DEBUG);   break;
   }
   logging.info("Log level: #{logging.levelNames[logging.getLevel()]}");
+
   if (opts._args.length > 0) {
     configfile = opts._args.shift();
   }
@@ -157,6 +176,7 @@ exports.serve = function(args) {
   });
 
   try {
+    process.argv = process.ARGV = [nodePath.join(env.conductanceRoot(), 'conductance'), env.configPath()].concat(opts._args);
     main.apply(config, opts._args);
   } catch(e) {
     process.stdout.write("\nOni Conductance exiting with fatal error:\n#{e.toString()}\n\n");
@@ -170,13 +190,12 @@ exports.printVersion = function() {
   NodeJS path:         #{process.execPath}
 
   SJS version:         #{sys.version}
-  SJS path:            #{path.normalize(sys.executable, '..')}
+  SJS path:            #{nodePath.normalize(sys.executable, '..')}
 
-  Conductance version: #{env.conductanceVersion}
-  Conductance path:    #{env.conductanceRoot}
+  Conductance version: #{env.conductanceVersion()}
+  Conductance path:    #{env.conductanceRoot()}
 ");
 }
-
 
 if (require.main === module) {
   exports.run();
