@@ -21,7 +21,7 @@ function getTheme(name) {
   var theme;
   if (name) {
     theme = themes[name];
-    if (!theme) console.log("Bootstrap theme '#{theme}' not found; using default theme");
+    if (!theme) console.log("Bootstrap theme '#{name}' not found; using default theme");
   }
 
   if (!theme)
