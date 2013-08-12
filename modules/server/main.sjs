@@ -7,6 +7,7 @@ var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
 var { override, propertyPairs, keys, merge } = require('sjs:object');
 var { writeErrorResponse } = require('./response');
+var fs = require('sjs:nodejs/fs');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
 var _config = require('./_config');
@@ -65,6 +66,14 @@ exports.run = function(args) {
   }
 
   var action = actions .. find(a -> a.name == command);
+
+  // shortcut (required for shebang lines):
+  // if run as: `conductance <filename> [...]`,
+  // assume:    `conductance run <filename> [...]`
+  if (!action && command && fs.exists(command)) {
+    return exports.run(['run', command].concat(args));
+  }
+
   console.log(banner);
 
   if (!action) {

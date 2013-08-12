@@ -1,3 +1,4 @@
+#!/usr/bin/env conductance
 // Default conductance configuration
 
 var { StandardSystemRoutes,
