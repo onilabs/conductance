@@ -22,6 +22,7 @@ exports.run = function(config, block) {
         ssl: false,
         key: undefined,
         cert: undefined,
+        ca: undefined,
         passphrase: undefined,
         fd: undefined,
       } ..
