@@ -1,7 +1,7 @@
 var { propertyPairs } = require('sjs:object');
 var { each, map, Stream, transform, join, buffer, unpack, slice, reduce, filter, indexed, toArray, at } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
-var { instantiate, traverse, isSimpleType } = require('./schema');
+var { instantiate, traverse, isSimpleType, IdToKey } = require('./schema');
 
 //----------------------------------------------------------------------
 // Google Cloud Datastore 
@@ -60,7 +60,7 @@ function GCDValueToJSValue(gcd_value, descriptor) {
     if (gcd_value.integerValue === undefined)
       base_val = null;
     else
-      base_val = Boolean(gcd_value.integerValue);
+      base_val = Boolean(Number(gcd_value.integerValue));
     break;
   case 'integer':
     if (gcd_value.integerValue === undefined)
@@ -303,6 +303,12 @@ function JSEntityToGCDEntity(js_entity, schema) {
     if (id)
       key += ":#{id}";
   }
+  else if (id) {
+    // check that key and id are consistent:
+    if (key.lastIndexOf(id) !== key.lastIndexOf(':')+1)
+      throw new Error("Id #{id} inconsistent with key #{key}");
+  }
+
   gcd_entity.key.pathElement = keyToGCDKey(key);
 
   return gcd_entity;
@@ -535,30 +541,56 @@ function GoogleCloudDatastore(attribs) {
       var filters = [];
       var kind = schema.__kind;
       var orders = [];
+      var id, key;
 
       traverse(query, schema) {
         |{parent, property_name:prop, type, schema, schema_path:path}|
         if (parent[prop] === undefined) continue;
-        if (!isSimpleType(type)) continue;
-        // XXX support other types than just equality filters
+        if (type === 'id') {
+          id = parent[prop];
+        }
+        else if (type === 'key') {
+          key = parent[prop];
+        }
+        else if (isSimpleType(type)) {
+          // XXX support other types than just equality filters
+          filters.push({
+            propertyFilter: {
+              property: {name: path.replace('.[]','')},
+              operator: 'EQUAL',
+              value: JSValueToGCDValue(parent[prop],schema)
+            }
+          });
+        }
+      }
+
+      if (key !== undefined) {
         filters.push({
           propertyFilter: {
-            property: {name: path.replace('.[]','')},
+            property: {name: '__key__'},
             operator: 'EQUAL',
-            value: JSValueToGCDValue(parent[prop],schema)
+            value: { keyValue: { pathElement: keyToGCDKey(key) } }
           }
         });
       }
-
-      if (schema.__parent) {
+      else if (id !== undefined) {
+        filters.push({
+          propertyFilter: {
+            property: {name: '__key__'},
+            operator: 'EQUAL',
+            value: { keyValue: { pathElement: keyToGCDKey(IdToKey(id, schema)) } }
+          }
+        });
+      }
+      else if (schema.__parent) {
         filters.push({
           propertyFilter: {
             property: {name: '__key__'},
             operator: 'HAS_ANCESTOR',
             value: { keyValue: { pathElement:keyToGCDKey(schema.__parent) } }
           }
-        })
-      };
+        });
+      }
 
       var batchStream = Stream(function(r) {
         // construct query request:

@@ -90,3 +90,14 @@ function KeyToId(path) {
   return matches ? matches[1] : null;
 }
 exports.KeyToId = KeyToId;
+
+function IdToKey(id, schema) {
+  var key = '';
+  if (schema.__parent)
+    key += schema.__parent + '/';
+  if (!schema.__kind)
+    throw new Error("Schema missing '__kind' definition");
+  key += schema.__kind + ':' + id;
+  return key;
+}
+exports.IdToKey = IdToKey;
