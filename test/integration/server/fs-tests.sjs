@@ -1,10 +1,10 @@
 var { context, test, assert } = require('sjs:test/suite');
 var http = require('sjs:http');
 var url = require('sjs:url');
-var helper = require('../helper');
+var helper = require('../../helper');
 
 context("serving files") {||
-	var rel = p -> helper.url('/test/server/fixtures/' + p);
+	var rel = p -> helper.url('/test/integration/server/fixtures/' + p);
 	test("Listing a directory with special characters") {||
 		var contents = http.get(rel(''));
 		contents .. assert.contains('<a href="%2520special%3A%20characters/">%20special: characters/</a>');

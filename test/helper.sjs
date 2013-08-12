@@ -9,14 +9,14 @@ exports.setHost = h -> host = h;
 
 exports.url = u -> Url.normalize(u, host);
 
-exports.serve = function(block) {
-  var port = '7078';
+exports.serve = function(config, block) {
+  var port = config.ports[0].address;
+  var base_url = 'http://localhost:' + port + '/';
+  exports.setHost(base_url);
 
   var isRunning = function() {
-    var base_url = 'http://localhost:' + port + '/';
     try {
       http.get(base_url);
-      exports.setHost(base_url);
       return true;
     } catch (e) {
       if(e.toString().indexOf('ECONNREFUSED') == -1) {
@@ -29,24 +29,9 @@ exports.serve = function(block) {
 
   if (isRunning()) {
     // no need to start or stop
+    console.warn("using existing server on #{port}");
     return block();
   }
 
-  var origLevel = logging.getLevel();
-  waitfor {
-    logging.setLevel(logging.WARN);
-    var args = [
-      'run',
-      Url.normalize('./test.mho', module.id) .. Url.toPath,
-    ];
-    require('mho:server/main').run(args);
-  } or {
-    var tries = 0;
-    while(!isRunning()) {
-      if (tries++ > 10) throw new Error("conductance failed to start");
-      hold(1000);
-    }
-    logging.setLevel(origLevel);
-    block();
-  }
+  require('mho:server').run(config, block);
 }

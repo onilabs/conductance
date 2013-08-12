@@ -8,21 +8,21 @@
     <script src="../node_modules/stratifiedjs/stratified.js"></script>
     <script type="text/sjs">
       require('../hub');
+      var {merge} = require('sjs:object');
       var logging = require('sjs:logging');
       // logging.setLevel(logging.DEBUG);
 
-      require('./helper').serve {||
-        var opts = {
-          modules: [
-            "server/fs-test.sjs",
-            "unit/observable-tests.sjs",
-            "unit/surface/dynamic-tests.sjs",
-          ],
-          // moduleList: "./_index.txt",
-          base: module.id,
-          logLevel: logging.INFO,
-        };
-        require('sjs:test/runner').run(opts);
+      var opts = {
+        moduleList: 'modules.txt',
+        base: module.id,
+        logLevel: logging.INFO,
+      };
+
+      var runner = require('sjs:test/runner');
+      if (require.main ===  module) {
+        runner.run(opts);
+      } else {
+        exports.run = (o) -> runner.run(o ? merge(opts, o) : opts);
       }
     </script>
   </head>
