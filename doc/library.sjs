@@ -55,6 +55,7 @@ CollectionProto.resolveModule = function(url) {
 		}
 	}
 	if (ret) return ret;
+	logging.info("can't find library for #{url}");
 	throw new LibraryMissing(url);
 };
 
@@ -152,8 +153,9 @@ Library.prototype.loadDocs = function(modulePath, symbolPath) {
 	symbolPath = symbolPath.slice();
 
 	while(symbolPath.length > 0) {
-		var children = symbolPath.length > 1 ? obj.classes : obj.symbols;
-		obj = children .. get(symbolPath.shift());
+		var key = symbolPath.shift();
+		// lookup in symbols first, then classes
+		obj = obj.symbols[key] || obj.classes .. get(key);
 	}
 	return obj;
 };

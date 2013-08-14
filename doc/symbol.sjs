@@ -1,6 +1,8 @@
 var seq = require('sjs:sequence');
 var {each, join, at, toArray} = seq;
 var assert = require('sjs:assert');
+var Library = require('./library');
+var logging = require('sjs:logging');
 
 var ui = require('./ui');
 
@@ -19,7 +21,14 @@ Symbol.prototype.docs = function() {
 	}
 };
 
-Symbol.prototype.requirePath = -> this.library.root + this.modulePath.join('');
+Symbol.prototype.moduleLink = function() {
+	return [this.library.name + this.modulePath.join(''), this.modulePath.join('')];
+}
+
+Symbol.prototype.link = function() {
+	var ext = this.modulePath.join('') + this.symbolPath.join('::')
+	return [this.library.name + ext, ext];
+}
 
 Symbol.prototype.parentLinks = function() {
 	var rv = [];
@@ -39,12 +48,12 @@ Symbol.prototype.parentLinks = function() {
 
 Symbol.prototype.toString = -> require('sjs:debug').inspect([this.library.name, this.modulePath, this.symbolPath]);
 
-var MissingLibrary = exports.MissingLibrary = function(moduleUrl, symbolPath) {
+var UnresolvedSymbol = exports.UnresolvedSymbol = function(moduleUrl, symbolPath) {
 	this.moduleUrl = moduleUrl;
 	this.symbolPath = symbolPath;
 };
-MissingLibrary.prototype.toString = -> "Symbol #{this.symbolPath .. join("::")} of missing module #{this.moduleUrl}";
-MissingLibrary.prototype.parentLinks = function() {
+UnresolvedSymbol.prototype.toString = -> "Symbol #{this.symbolPath .. join("::")} of missing module #{this.moduleUrl}";
+UnresolvedSymbol.prototype.parentLinks = function() {
 	var rv = [];
 	var href = this.moduleUrl;
 	rv.push([href, href]);
@@ -55,3 +64,21 @@ MissingLibrary.prototype.parentLinks = function() {
 	return rv;
 };
 
+
+exports.resolveLink = function(link, libraries) {
+	var match = /^(.*?[^:]*)(::.*)?$/.exec(link);
+	assert.ok(match, "Invalid path: #{link}");
+	var [_, moduleUrl, symbolPath] = match;
+	symbolPath = symbolPath ? symbolPath.slice(2).split('::') : [];
+	console.log("moduleUrl", moduleUrl);
+	console.log("symbolPath", symbolPath);
+
+	try {
+		var [library, modulePath] = libraries.resolveModule(moduleUrl);
+	} catch(e) {
+		if (!(e instanceof Library.LibraryMissing)) throw e;
+		return new UnresolvedSymbol(e.url, symbolPath);
+	}
+
+	return new Symbol(library, modulePath, symbolPath);
+};

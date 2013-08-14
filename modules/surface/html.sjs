@@ -212,7 +212,7 @@ function initWidget(w, tag, attribs) {
 function Widget(tag, content, attribs) {
   var rv = Object.create(WidgetProto);
   initWidget(rv, tag, attribs);
-  if (content !== undefined)
+  if (content != null)
     rv .. joinCollapsedFragment(collapseHtmlFragment(content));
 
   return rv;

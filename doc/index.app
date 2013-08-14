@@ -17,7 +17,7 @@ logging.setLevel(logging.DEBUG);
 
 var ui = require('./ui');
 var Library = require('./library');
-var {Symbol, MissingLibrary} = require('./symbol');
+var Symbol = require('./symbol');
 
 exports.run = function() {
 	var libraries = Library.Collection();
@@ -27,21 +27,7 @@ exports.run = function() {
 	var currentSymbol = Computed(locationHash, libraries.val, function(h) {
 		logging.debug("Location hash: #{h}");
 		if (!h) return null;
-		var match = /^(.*?[^:]*)(::.*)?$/.exec(h);
-		assert.ok(match, "Invalid path: #{h}");
-		var [_, moduleUrl, symbolPath] = match;
-		symbolPath = symbolPath ? symbolPath.slice(2).split('::') : [];
-		console.log("moduleUrl", moduleUrl);
-		console.log("symbolPath", symbolPath);
-
-		try {
-			var [library, modulePath] = libraries.resolveModule(moduleUrl);
-		} catch(e) {
-			if (!e instanceof Library.LibraryMissing) throw e;
-			return new MissingLibrary(e.url, symbolPath);
-		}
-
-		return new Symbol(library, modulePath, symbolPath);
+		return Symbol.resolveLink(h, libraries);
 	});
 
 	var breadcrumbs = Computed(currentSymbol, function(sym) {
@@ -54,8 +40,9 @@ exports.run = function() {
 		return Widget("div", ret .. seq.intersperse(sep), {"class":"breadcrumbs"});
 	});
 
+	var renderer = ui.renderer(libraries);
 	var symbolDocs = Computed(currentSymbol, function(sym) {
-		return sym ? ui.renderDocs(sym);
+		return sym ? renderer(sym);
 	});
 
 	libraries.add('sjs:');
@@ -77,6 +64,7 @@ exports.run = function() {
 				<button class="btn search"><i class="icon-search"></i></button>
 			</div>`)
 		.. Style("{ position: relative; top:1.1em}")
+		.. Class("searchContainer")
 		.. Mechanism(function(elem) {
 			var btn = elem.querySelector("button");
 
@@ -102,7 +90,7 @@ exports.run = function() {
 			}
 		});
 	
-	var mainDisplay = Widget('div') .. Mechanism(function(elem) {
+	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. RequireStyle(Url.normalize("./docs.css")) .. Mechanism(function(elem) {
 		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
 			while(true) {
 				locationHash.set(document.location.hash.slice(1));
@@ -111,21 +99,62 @@ exports.run = function() {
 		}
 	});
 
-	var root = document.body .. appendWidget(Widget("div", `
+	document.body .. appendWidget(Widget("div", `
 		<div class="header navbar-inner">
 			$searchWidget
-			<h1>Documentation Browser</h1>
+			<h1>Conductance documentation</h1>
 		</div>
-		$mainDisplay
 		$breadcrumbs
-		$symbolDocs
+		$mainDisplay
 		$loadingWidget
 	`)
 	.. Bootstrap()
 	.. Class("navbar navbar-inverted")
-	.. RequireStyle(Url.normalize('main.css', module.id)));
-
-
+	.. RequireStyle(Url.normalize('main.css', module.id))
+	);
 };
 
-exports.run();
+
+exports.main = function() {
+	// wraps `run` with error handling
+	var error = cutil.Condition();
+	window.onerror = function(e) {
+		error.set(e);
+	};
+
+	waitfor {
+		var e = error.wait();
+		ui.withOverlay("error") {|bg|
+			document.body .. withWidget(Widget("div",
+				`<h1>:-(</h1>
+				<h3>There was an error: </h3>
+						<pre>${e.toString()}</pre>
+				<p>You shouldn't have seen this error; please report to info@onilabs.com.</p>
+				<p>
+					To try again, reload the page or start over:
+				</p>
+				<p>
+					<button class="reload">Reload page</button>
+					<button class="restart">Start over</button>
+				</p>
+			`, {"class":"error-contents"})) {|elem|
+				window.scrollTo(0,0);
+				waitfor {
+					elem.querySelector('button.reload') .. events.wait('click');
+				} or {
+					elem.querySelector('button.restart') .. events.wait('click');
+					document.location.hash = "";
+				}
+			}
+		}
+		document.location.reload();
+	} and {
+		try {
+			exports.run();
+		} catch(e) {
+			error.set(e);
+		}
+	}
+};
+
+exports.main();

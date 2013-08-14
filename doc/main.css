@@ -1,5 +1,4 @@
 body {
-	color:blue;
 	font-family: sans-serif;
 	margin:0;
 	padding:0;
@@ -23,8 +22,52 @@ h1 {
 	float:right;
 }
 
+.searchContainer {
+	z-index: 5;
+}
+
 .searchTrigger button.search {
 	font-size:1.2em;
 	line-height: 1.4em;
 	padding: 0.2em 0.75em;
+}
+
+.overlay {
+	opacity: 0.7;
+	z-index: 1;
+}
+
+.overlay-error {
+	opacity: 0.9;
+	z-index: 99;
+}
+
+.error-contents {
+	z-index: 100;
+	color: white;
+	font-size:1.2em;
+	padding: 2em;
+	padding-top:5em;
+	position: absolute;
+	top:0;
+	left:0;
+}
+
+.mb-main {
+	padding: 15px;
+	min-width:600px;
+}
+
+.breadcrumbs {
+	font-size: 2em;
+	line-height: 1.2em;
+	min-height:1.2em;
+	background: rgb(80, 98, 124);
+	font-weight: bold;
+	padding: 5px 15px;
+	color: white;
+}
+
+.breadcrumbs a {
+	color: white !important;
 }
