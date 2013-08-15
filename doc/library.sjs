@@ -155,17 +155,12 @@ Library.prototype.loadDocs = function(modulePath, symbolPath) {
 			logging.debug("Traversing index", index, "for module path", modulePath);
 			modulePath = modulePath.slice();
 			while(modulePath.length > 0) {
-				var next = modulePath.shift();
-				if (next .. str.endsWith('/')) {
-					index = index.dirs .. get(next);
-				} else {
-					index = index.modules .. get(next);
-				}
+				index = index.children .. get(modulePath.shift());
 			}
 
 			docs = docs .. clone();
 			// merge
-			['dirs','modules'] .. each {|key|
+			['children'] .. each {|key|
 				docs[key] = merge(docs[key], index[key]);
 			};
 
@@ -180,8 +175,7 @@ Library.prototype.loadDocs = function(modulePath, symbolPath) {
 		symbolPath = symbolPath.slice();
 		while(symbolPath.length > 0) {
 			var key = symbolPath.shift();
-			// lookup in symbols first, then classes
-			docs = docs.symbols[key] || docs.classes .. get(key);
+			docs = docs.children .. get(key);
 		}
 	}
 	return docs;

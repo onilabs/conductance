@@ -15,32 +15,26 @@ var ui = require('./ui');
 
 var flattenLibraryIndex = function(lib) {
 	var symbols = [];
-	var allChildren = function(v) {
-		return [v.modules, v.dirs, v.symbols, v.classes] .. filter() .. toArray;
-	};
-
 	var addSymbols = function(obj, path) {
-		var childSets = allChildren(obj);
-		childSets .. each {|children|
-			children .. ownPropertyPairs .. each {|[k,v]|
-				var id = path + k;
-				if (v.type == 'lib') id += '/';
-				symbols.push([lib.name, id, v.type]);
-				switch (v.type) {
-					case 'lib':
-						break;
-					case 'module':
-					case 'class':
-						id += "::";
-						break;
-					default:
-						if (allChildren(v).length > 0) {
-							logging.warn("I don't know what a #{v.type} is!");
-						}
-						break;
-				}
-				addSymbols(v, id);
+		if (!obj.children) return;
+		obj.children .. ownPropertyPairs .. each {|[k,v]|
+			var id = path + k;
+			if (v.type == 'lib') id += '/';
+			symbols.push([lib.name, id, v.type]);
+			switch (v.type) {
+				case 'lib':
+					break;
+				case 'module':
+				case 'class':
+					id += "::";
+					break;
+				default:
+					if (v.children > 0) {
+						logging.warn("I don't know what a #{v.type} is!");
+					}
+					break;
 			}
+			addSymbols(v, id);
 		}
 	};
 	addSymbols(lib.loadIndex(), "");

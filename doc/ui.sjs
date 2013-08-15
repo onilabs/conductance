@@ -272,15 +272,14 @@ exports.renderer = function(libraries) {
 		} else if (docs.type == "class") {
 			rv.push(`<h3>Class ${symbol.symbol}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h3>`);
 
-			// collect symbols
-			var symbols = collectSymbols(docs.symbols, symbol);
+			var children = collectModuleChildren(docs, symbol);
 			rv.push(
 				Widget("div", [
-					symbols['ctor']            .. then(Table),
-					symbols['proto']           .. then(Table),
-					symbols['static-function'] .. then(HeaderTable("Static Functions")),
-					symbols['function']        .. then(HeaderTable("Methods")),
-					symbols['variable']        .. then(HeaderTable("Member Variables")),
+					children['ctor']            .. then(Table),
+					children['proto']           .. then(Table),
+					children['static-function'] .. then(HeaderTable("Static Functions")),
+					children['function']        .. then(HeaderTable("Methods")),
+					children['variable']        .. then(HeaderTable("Member Variables")),
 				] .. filter .. toArray,
 				{"class": "symbols"}));
 		}
@@ -290,40 +289,40 @@ exports.renderer = function(libraries) {
 		return rv;
 	}
 
-	function collectSymbols(obj, symbol) {
-		var symbols = {};
-		var [symbolLink] = symbol.link();
+	function accumulateByType(obj, mapFn) {
+		var rv = {};
 		obj .. ownPropertyPairs .. each {
-			|[name, s]|
-			var type = s.type;
-			if (s['static'])     type = 'static-'+type;
-			if (!symbols[type])  symbols[type] = [];
-			symbols[type].push(`
-				<tr>
-					<td class="mb-td-symbol">${Link("#{symbolLink}::#{name}", name)}</td>
-					<td>${makeSummaryHTML(s, symbol)}</td>
-				</tr>`);
+			|[name, val]|
+			var type = val.type;
+			if (val['static']) type = 'static-'+type;
+			if (!rv[type])  rv[type] = [];
+			rv[type].push(mapFn(name, val));
 		}
-		return symbols;
+		return rv;
+	}
+
+	function collectModuleChildren(obj, symbol) {
+		var [symbolLink] = symbol.link();
+		return accumulateByType(obj.children, (name, child) -> `
+			<tr>
+				<td class="mb-td-symbol">
+					${Link("#{symbolLink}::#{name}", name)}
+				</td>
+				<td>${makeSummaryHTML(child, symbol)}</td>
+			</tr>`
+		);
 	};
 
 	function collectLibChildren(obj, symbol) {
 		var [modulePath] = symbol.link();
-		var rv = {};
-		['modules', 'dirs'] .. each {|key|
-			var val = obj[key];
-			var items = val .. ownPropertyPairs .. map(function([name, m]) {
-				return `
-					<tr>
-						<td class='mb-td-symbol'>
-							${Link(modulePath + name, name)}
-						</td>
-						<td>${makeSummaryHTML(m, symbol)}</td>
-					</tr>`;
-			});
-			if (items.length) rv[key] = items;
-		}
-		return rv;
+		return accumulateByType(obj.children, (name, child) -> `
+				<tr>
+					<td class='mb-td-symbol'>
+						${Link(modulePath + name, name)}
+					</td>
+					<td>${makeSummaryHTML(child, symbol)}</td>
+				</tr>`
+		);
 	};
 
 	function makeJSONView(docs, symbol) {
@@ -341,13 +340,13 @@ exports.renderer = function(libraries) {
 		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		rv.push(makeDescriptionHTML(docs, symbol));
 	
-		var symbols = collectSymbols(docs.symbols, symbol);
+		var children = collectModuleChildren(docs.children, symbol);
 
 		rv.push(
 			Widget("div", [
-				symbols['function'] .. then(HeaderTable("Functions")),
-				symbols['variable'] .. then(HeaderTable("Variables")),
-				symbols['class']    .. then(HeaderTable("Classes")),
+				children['function'] .. then(HeaderTable("Functions")),
+				children['variable'] .. then(HeaderTable("Variables")),
+				children['class']    .. then(HeaderTable("Classes")),
 			] .. filter .. toArray,
 			{"class": "symbols"}));
 
@@ -366,8 +365,8 @@ exports.renderer = function(libraries) {
 
 		// collect modules & dirs:
 		var children = collectLibChildren(docs, symbol);
-		rv.push(children.dirs .. then(HeaderTable("Directories")));
-		rv.push(children.modules .. then(HeaderTable("Modules")));
+		rv.push(children.lib .. then(HeaderTable("Directories")));
+		rv.push(children.module .. then(HeaderTable("Modules")));
 
 		return rv;
 	};
