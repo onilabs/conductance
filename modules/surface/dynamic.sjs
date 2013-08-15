@@ -4,7 +4,7 @@
 
 var { ensureWidget, Mechanism, collapseHtmlFragment } = require('./html');
 var { propertyPairs, keys } = require('sjs:object');
-var { Stream, toArray, map, filter, each, reverse, combine } = require('sjs:sequence');
+var { Stream, toArray, map, filter, each, reverse, concat } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait } = require('sjs:events');
 var { isObservable, get } = require('../observable');
@@ -125,7 +125,7 @@ function unuseStyles(elems) {
 
 function runMechanisms(elem, content_only) {
   elem.querySelectorAll('[data-oni-mechanisms]') ..
-    combine((!content_only && elem.hasAttribute('data-oni-mechanisms')) ? [elem] : []) ..
+    concat((!content_only && elem.hasAttribute('data-oni-mechanisms')) ? [elem] : []) ..
     reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
     each {
       |elem|
@@ -143,8 +143,8 @@ function insertHtml(html, doInsertHtml) {
   html = collapseHtmlFragment(html);
   
   // load external scripts:
-  keys(html.getExternalScripts()) .. each { 
-    |url| require('sjs:xbrowser/dom').script(url); 
+  keys(html.getExternalScripts()) .. each {
+    |url| require('sjs:xbrowser/dom').script(url);
   }
 
   // install styles and mechanisms
@@ -207,8 +207,8 @@ exports.replaceContent = replaceContent;
 function replaceElement(old_elem, html) {
   var inserted_nodes = nodes(old_elem.parentNode, old_elem.previousSibling, old_elem.nextSibling);
   insertHtml(html, function(html) {
-    combine([old_elem], old_elem.querySelectorAll('._oni_mech_')) .. stopMechanisms();
-    combine([old_elem], old_elem.querySelectorAll('._oni_style_')) .. unuseStyles();
+    concat([old_elem], old_elem.querySelectorAll('._oni_mech_')) .. stopMechanisms();
+    concat([old_elem], old_elem.querySelectorAll('._oni_style_')) .. unuseStyles();
     
     old_elem.outerHTML = html.getHtml();
     
@@ -271,13 +271,13 @@ exports.insertAfter = insertAfter;
 */
 function removeElement(elem) {
   // stop our mechanism and all mechanisms below us
-  combine([elem], elem.querySelectorAll('._oni_mech_')) ..
+  concat([elem], elem.querySelectorAll('._oni_mech_')) ..
     stopMechanisms();
   if (elem.parentNode)
     elem.parentNode.removeChild(elem);
   
   // unuse our styles and all styles below us
-  combine([elem], elem.querySelectorAll('._oni_style_')) ..
+  concat([elem], elem.querySelectorAll('._oni_style_')) ..
     unuseStyles();
 }
 exports.removeElement = removeElement;
