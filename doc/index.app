@@ -22,27 +22,29 @@ var Symbol = require('./symbol');
 exports.run = function() {
 	var libraries = Library.Collection();
 
-	var locationHash = Observable("");
+	var locationHash = Observable(undefined);
 
 	var currentSymbol = Computed(locationHash, libraries.val, function(h) {
 		logging.debug("Location hash: #{h}");
-		if (!h) return null;
+		if (h === undefined) return undefined; // undefined: "not yet loaded"
+		if (!h) return null;                   // null: "no symbol selected"
 		return Symbol.resolveLink(h, libraries);
 	});
 
 	var breadcrumbs = Computed(currentSymbol, function(sym) {
 		var ret = [];
 		var prefix = '#';
-		var sep = Widget("span", ` &raquo; `);
+		var sep = Widget("span", ` &raquo; `, {"class": "sep"});
 		if (sym) {
 			ret = sym.parentLinks().slice(0, -1) .. map([href, name] -> Widget("a", name, {href: prefix + href}));
+			ret.push(Widget('span', sym.name, {"class":"leaf"}));
 		}
 		return Widget("div", ret .. seq.intersperse(sep), {"class":"breadcrumbs"});
 	});
 
 	var renderer = ui.renderer(libraries);
 	var symbolDocs = Computed(currentSymbol, function(sym) {
-		return sym ? renderer(sym);
+		return sym !== undefined ? renderer(sym);
 	});
 
 	libraries.add('sjs:');
@@ -124,6 +126,7 @@ exports.main = function() {
 
 	waitfor {
 		var e = error.wait();
+		logging.error(String(e));
 		ui.withOverlay("error") {|bg|
 			document.body .. withWidget(Widget("div",
 				`<h1>:-(</h1>

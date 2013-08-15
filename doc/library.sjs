@@ -2,7 +2,7 @@ var array = require('sjs:array');
 var str = require('sjs:string');
 var {Computed, ObservableArray} = require('mho:observable');
 var {find, each, filter, map, at, join} = require('sjs:sequence');
-var {ownValues, hasOwn, get} = require('sjs:object');
+var {ownValues, hasOwn, get, clone, merge} = require('sjs:object');
 var docutil = require('sjs:docutil');
 var http = require('sjs:http');
 var logging = require('sjs:logging');
@@ -36,8 +36,6 @@ CollectionProto.resolveModule = function(url) {
 	// or a full URL (http://examples.com/sjs/foo).
 	//
 	// Returns: [library, relativePath]
-	
-	// TODO: return from inner blocklambda
 	var ret;
 	if (url .. str.endsWith('.sjs')) url = url.slice(0, -4);
 	this.get() .. ownValues .. each {|lib|
@@ -49,6 +47,7 @@ CollectionProto.resolveModule = function(url) {
 					modulePath[i] = modulePath[i] + '/';
 				}
 				if (!modulePath .. at(-1)) modulePath.pop();
+				// TODO: return from inner blocklambda
 				ret = [lib, modulePath];
 				break;
 			}
@@ -139,6 +138,7 @@ Library.prototype.loadIndex = function() {
 		} finally {
 			this._index = result;
 			this.loadIndex = -> result;
+			return result;
 		}
 	}.call(this));
 	this.loadIndex = strata.waitforValue.bind(strata);
@@ -146,16 +146,43 @@ Library.prototype.loadIndex = function() {
 };
 
 Library.prototype.loadDocs = function(modulePath, symbolPath) {
-	var moduleDocs = this.loadModuleDocs(modulePath);
-	
-	// TODO: integrate index info if it exists
-	var obj = moduleDocs;
-	symbolPath = symbolPath.slice();
+	var docs = this.loadModuleDocs(modulePath);
 
-	while(symbolPath.length > 0) {
-		var key = symbolPath.shift();
-		// lookup in symbols first, then classes
-		obj = obj.symbols[key] || obj.classes .. get(key);
+	if (symbolPath.length == 0) {
+		// it's a module
+		var index = this.loadIndex();
+		if (index != null) {
+			logging.debug("Traversing index", index, "for module path", modulePath);
+			modulePath = modulePath.slice();
+			while(modulePath.length > 0) {
+				var next = modulePath.shift();
+				if (next .. str.endsWith('/')) {
+					index = index.dirs .. get(next);
+				} else {
+					index = index.modules .. get(next);
+				}
+			}
+
+			docs = docs .. clone();
+			// merge
+			['dirs','modules'] .. each {|key|
+				docs[key] = merge(docs[key], index[key]);
+			};
+
+			// override
+			['summary'] .. each {|key|
+				docs[key] = docs[key] || index[key];
+			};
+			logging.debug("after index merge, docs are now:", docs);
+
+		}
+	} else {
+		symbolPath = symbolPath.slice();
+		while(symbolPath.length > 0) {
+			var key = symbolPath.shift();
+			// lookup in symbols first, then classes
+			docs = docs.symbols[key] || docs.classes .. get(key);
+		}
 	}
-	return obj;
+	return docs;
 };

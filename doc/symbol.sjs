@@ -26,7 +26,8 @@ Symbol.prototype.moduleLink = function() {
 }
 
 Symbol.prototype.link = function() {
-	var ext = this.modulePath.join('') + this.symbolPath.join('::')
+	var ext = this.modulePath.join('');
+	if (this.symbolPath.length) ext += '::' + this.symbolPath.join('::')
 	return [this.library.name + ext, ext];
 }
 

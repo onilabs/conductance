@@ -1,12 +1,14 @@
 var {Widget, Style, Class, prependWidget, removeElement} = require('mho:surface');
 var {Observable} = require('mho:observable');
-var {each, transform, map, indexed, intersperse, toArray} = require('sjs:sequence');
-var {split} = require('sjs:string');
+var {each, transform, map, filter, indexed, intersperse, toArray} = require('sjs:sequence');
+var string = require('sjs:string');
+var {split, endsWith} = string;
 var {Quasi} = require('sjs:quasi');
 var array = require('sjs:array');
 var events = require('sjs:events');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
+var Url = require('sjs:url');
 var {merge, ownPropertyPairs} = require('sjs:object');
 
 var ESCAPE = exports.ESCAPE = 27;
@@ -71,7 +73,7 @@ exports.renderer = function(libraries) {
 		if (!text) return undefined;
 		logging.debug("Rendering: ", text);
 		// try to linkify everything that looks like a doc reference
-		text = text.replace(/\[([^\]]*::[^\]]+)\](?![\[\(])/g, function(orig, dest) {
+		text = text.replace(/\[([^ \]]+)\](?![\[\(])/g, function(orig, dest) {
 			var resolved = resolveLink(dest, symbol);
 			if (!resolved) return orig;
 			var [link, dest] = resolved;
@@ -104,11 +106,11 @@ exports.renderer = function(libraries) {
 	}
 
 	function makeDescriptionHTML(docs, symbol) {
-		return docs.desc ? `<h3>Description</h3>${markup(docs.desc, symbol)}`;
+		return Widget("div", docs.desc ? `<h3>Description</h3>${markup(docs.desc, symbol)}`, {"class":"desc"});
 	}
 
 	function makeRequireSnippet(modulePath, name) {
-		return Widget("div", `<code>require('${modulePath.join('')}').${name};</code>`) .. Class('mb-require');
+		return Widget("div", `<code>require('${modulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
 	};
 
 	function functionSignature(docs, symbol) {
@@ -182,12 +184,11 @@ exports.renderer = function(libraries) {
 	};
 
 	function resolveLink(dest, symbol) {
-		var Symbol = require('./symbol.sjs');
-		logging.info("resolving link: #{dest}");
-
 		if (dest.indexOf("::") == -1) return null; // ids we care about contain '::'
+		logging.info("resolving link: #{dest}");
+		var Symbol = require('./symbol.sjs');
 
-		var url, desc = dest.replace(/^[\/\.:]+/, '');
+		var url, desc = dest.replace(/^[\/\.:]+|[\/\.:]+$/g, '');
 
 		var leadingComponent = dest.split("::", 1)[0];
 		if (leadingComponent == "") {
@@ -206,7 +207,7 @@ exports.renderer = function(libraries) {
 			[url, desc] = Symbol.resolveLink(dest, libraries).link();
 		} else {
 			logging.info("Assuming library-relative link for #{dest}");
-			[url] = Symbol.moduleLink();
+			[url] = symbol.moduleLink();
 		}
 
 		logging.debug("resolved to #{url}");
@@ -230,11 +231,11 @@ exports.renderer = function(libraries) {
 	}
 
 	function makeSymbolView(docs, symbol) {
-		var parts = [];
+		var rv = [];
 		var [moduleLink, moduleDesc] = symbol.moduleLink();
 		if (symbol.classname) {
 			var name = docs['static'] ? symbol.classname + "." + symbol.name : symbol.name;
-			parts.push(Widget("h2", [
+			rv.push(Widget("h2", [
 				Link(moduleLink, moduleDesc),
 				"::",
 				Link("#{moduleLink}::#{symbol.className}", symbol.classname),
@@ -242,24 +243,24 @@ exports.renderer = function(libraries) {
 				name
 			]));
 			if (docs.type == 'ctor' || docs['static'] || docs.type == 'proto') {
-				parts.push(makeRequireSnippet(symbol.modulePath, name));
+				rv.push(makeRequireSnippet(symbol.modulePath, name));
 			}
 		} else {
-			parts.push(Widget("h2", `${Link(moduleLink, moduleDesc)}::${symbol.name}`));
+			rv.push(Widget("h2", `${Link(moduleLink, moduleDesc)}::${symbol.name}`));
 			if (docs.type != 'class') {
-				parts.push(makeRequireSnippet(symbol.modulePath, symbol.name));
+				rv.push(makeRequireSnippet(symbol.modulePath, symbol.name));
 			}
 		}
 
-		parts.push(makeSummaryHTML(docs, symbol));
+		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		
 		if (docs.type == "function" || docs.type == "ctor") {
-			parts.push(Widget("h3", functionSignature(docs, symbol)));
+			rv.push(Widget("h3", functionSignature(docs, symbol)));
 
-			parts.push(functionArgumentDetails(docs, symbol));
+			rv.push(functionArgumentDetails(docs, symbol));
 
 			if (docs['return'] && docs['return'].summary) {
-				parts.push(`
+				rv.push(`
 					<h3>Return Value</h3>
 					<table><tr>
 						<td>
@@ -269,51 +270,124 @@ exports.renderer = function(libraries) {
 					</tr></table>`);
 			}
 		} else if (docs.type == "class") {
-			parts.push(`<h3>Class ${symbol.symbol}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h3>`);
+			rv.push(`<h3>Class ${symbol.symbol}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h3>`);
 
 			// collect symbols
-			var symbols = {};
-			var [symbolLink] = symbol.link();
-			docs.symbols .. ownPropertyPairs .. each {
-				|[name, s]|
-				var type = s.type;
-				if (s['static'])		 type = 'static-'+type;
-				if (!symbols[type])  symbols[type] = [];
-				symbols[type].push(`
-					<tr>
-						<td class="mb-td-symbol">${Link("#{symbolLink}::#{name}", name)}</td>
-						<td>${makeSummaryHTML(s, symbol)}</td>
-					</tr>`);
-			}
-			
-			if (symbols['ctor'])
-				parts.push(`<table>${symbols['ctor']}</table>`);
-			if (symbols['proto'])
-				parts.push(`<table>${symbols['proto']}</table>`);
-			if (symbols['static-function'])
-				parts.push(`<h3>Static Functions</h3><table>${symbols['static-function']}</table>`);
-			if (symbols['function'])
-				parts.push(`<h3>Methods</h3><table>${symbols['function']}</table>`);
-			if (symbols['variable'])
-				parts.push(`<h3>Member Variables</h3><table>${symbols['variable']}</table>`);
+			var symbols = collectSymbols(docs.symbols, symbol);
+			rv.push(
+				Widget("div", [
+					symbols['ctor']            .. then(Table),
+					symbols['proto']           .. then(Table),
+					symbols['static-function'] .. then(HeaderTable("Static Functions")),
+					symbols['function']        .. then(HeaderTable("Methods")),
+					symbols['variable']        .. then(HeaderTable("Member Variables")),
+				] .. filter .. toArray,
+				{"class": "symbols"}));
 		}
 
-		parts.push(makeDescriptionHTML(docs, symbol));
+		rv.push(makeDescriptionHTML(docs, symbol));
 
-		return parts;
+		return rv;
 	}
 
+	function collectSymbols(obj, symbol) {
+		var symbols = {};
+		var [symbolLink] = symbol.link();
+		obj .. ownPropertyPairs .. each {
+			|[name, s]|
+			var type = s.type;
+			if (s['static'])     type = 'static-'+type;
+			if (!symbols[type])  symbols[type] = [];
+			symbols[type].push(`
+				<tr>
+					<td class="mb-td-symbol">${Link("#{symbolLink}::#{name}", name)}</td>
+					<td>${makeSummaryHTML(s, symbol)}</td>
+				</tr>`);
+		}
+		return symbols;
+	};
+
+	function collectLibChildren(obj, symbol) {
+		var [modulePath] = symbol.link();
+		var rv = {};
+		['modules', 'dirs'] .. each {|key|
+			var val = obj[key];
+			var items = val .. ownPropertyPairs .. map(function([name, m]) {
+				return `
+					<tr>
+						<td class='mb-td-symbol'>
+							${Link(modulePath + name, name)}
+						</td>
+						<td>${makeSummaryHTML(m, symbol)}</td>
+					</tr>`;
+			});
+			if (items.length) rv[key] = items;
+		}
+		return rv;
+	};
+
+	function makeJSONView(docs, symbol) {
+		// TODO: remove this function
+		if (symbol)
+			docs = docs .. merge({modulePath: symbol.modulePath, symbolPath: symbol.symbolPath});
+		return Widget("pre", JSON.stringify(docs, null, '  '));
+	};
+
+	function makeModuleView(docs, symbol) {
+		var rv = [];
+		rv.push(`<h2>The ${symbol.modulePath} module</h2>`);
+		rv.push(makeRequireSnippet(symbol.modulePath));
+
+		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+		rv.push(makeDescriptionHTML(docs, symbol));
+	
+		var symbols = collectSymbols(docs.symbols, symbol);
+
+		rv.push(
+			Widget("div", [
+				symbols['function'] .. then(HeaderTable("Functions")),
+				symbols['variable'] .. then(HeaderTable("Variables")),
+				symbols['class']    .. then(HeaderTable("Classes")),
+			] .. filter .. toArray,
+			{"class": "symbols"}));
+
+		return rv;
+	};
+
+	var then = (val, fn) -> val ? fn(val);
+	var Table = (contents) -> Widget("table", contents);
+	var HeaderTable = (header) -> (contents) -> [Widget("h3", header), Table(contents)];
+
+	function makeLibView(docs, symbol) {
+		var rv = [];
+		rv.push(Widget("h2", docs.lib || "Unnamed Module Collection"));
+		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+		rv.push(makeDescriptionHTML(docs, symbol));
+
+		// collect modules & dirs:
+		var children = collectLibChildren(docs, symbol);
+		rv.push(children.dirs .. then(HeaderTable("Directories")));
+		rv.push(children.modules .. then(HeaderTable("Modules")));
+
+		return rv;
+	};
+
+	function makeRootView() {
+		return makeJSONView(libraries);
+	};
+
 	return function (symbol) {
-		logging.debug("Rendering docs for", symbol);
+		if (symbol === null) return makeRootView();
 		var docs = symbol.docs();
+		logging.debug("Rendering docs", docs, "for", symbol);
 		var parts = [];
 
-		if (symbol.symbolPath) {
+		if (symbol.symbolPath.length) {
 			parts.push(makeSymbolView(docs, symbol));
+		} else if (symbol.modulePath.length == 0 || symbol.name .. endsWith('/')) {
+			parts.push(makeLibView(docs, symbol));
 		} else {
-			// TODO: render all types
-			docs = docs .. merge({modulePath: symbol.modulePath, symbolPath: symbol.symbolPath});
-			parts.push(Widget("pre", JSON.stringify(docs, null, '  ')));
+			parts.push(makeModuleView(docs, symbol));
 		}
 		return Widget("div", parts);
 	};

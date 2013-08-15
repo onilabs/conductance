@@ -63,11 +63,18 @@ h1 {
 	line-height: 1.2em;
 	min-height:1.2em;
 	background: rgb(80, 98, 124);
-	font-weight: bold;
 	padding: 5px 15px;
 	color: white;
 }
 
+.breadcrumbs .leaf {
+	font-weight: bold;
+}
+
 .breadcrumbs a {
-	color: white !important;
+	color: rgb(220, 229, 235) !important;
+}
+
+.breadcrumbs .sep {
+	opacity: 0.5;
 }
