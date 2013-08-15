@@ -208,6 +208,7 @@ exports.renderer = function(libraries) {
 		} else {
 			logging.info("Assuming library-relative link for #{dest}");
 			[url] = symbol.moduleLink();
+			url += dest .. string.rstrip(':');
 		}
 
 		logging.debug("resolved to #{url}");
@@ -340,7 +341,7 @@ exports.renderer = function(libraries) {
 		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		rv.push(makeDescriptionHTML(docs, symbol));
 	
-		var children = collectModuleChildren(docs.children, symbol);
+		var children = collectModuleChildren(docs, symbol);
 
 		rv.push(
 			Widget("div", [
