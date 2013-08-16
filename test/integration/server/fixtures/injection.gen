@@ -1,0 +1,15 @@
+var { get } = require('sjs:object');
+var logging = require('sjs:logging');
+var {collapseHtmlFragment} = require('mho:surface/html');
+
+var templates = {
+	script: v -> `<script id="content">window.injected = $v;</script>`,
+	div:    v -> `<div id="content">$v</div>`,
+	pre:    v -> `<pre id="content">$v</pre>`,
+};
+
+exports.content = function(pars) {
+	var tmpl = templates .. get(pars .. get('template'));
+	var result = tmpl(pars .. get('value'));
+	return collapseHtmlFragment(result).getHtml();
+}

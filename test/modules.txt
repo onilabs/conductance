@@ -1,3 +1,4 @@
 unit/observable-tests.sjs
 unit/surface/dynamic-tests.sjs
 integration/server/fs-tests.sjs
+integration/server/injection-tests.sjs
