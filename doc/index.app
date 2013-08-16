@@ -92,16 +92,8 @@ exports.run = function() {
 			}
 		});
 	
-	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. RequireStyle(Url.normalize("./docs.css")) .. Mechanism(function(elem) {
-		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
-			while(true) {
-				locationHash.set(document.location.hash.slice(1));
-				hashChange.wait();
-			}
-		}
-	});
-
-	document.body .. appendWidget(Widget("div", `
+	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. RequireStyle(Url.normalize("./docs.css"));
+	var toplevel = Widget("div", `
 		<div class="header navbar-inner">
 			$searchWidget
 			<h1>Conductance documentation</h1>
@@ -112,8 +104,18 @@ exports.run = function() {
 	`)
 	.. Bootstrap()
 	.. Class("navbar navbar-inverted")
-	.. RequireStyle(Url.normalize('main.css', module.id))
-	);
+	.. RequireStyle(Url.normalize('main.css', module.id));
+
+
+	document.body .. withWidget(toplevel) {|elem|
+		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
+			while(true) {
+				locationHash.set(document.location.hash.slice(1));
+				console.log("lochash", locationHash.get());
+				hashChange.wait();
+			}
+		}
+	};
 };
 
 
