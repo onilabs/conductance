@@ -12,7 +12,7 @@ var SJSCache = require('sjs:lru-cache').makeCache(10*1000*1000); // 10MB
 //----------------------------------------------------------------------
 // helper filter to wrap a file in a jsonp response:
 function json2jsonp(src, dest, aux) {
-  var callback = aux.request.url.queryKey['callback'];
+  var callback = aux.request.url.params()['callback'];
   if (!callback) callback = "callback";
   dest.write(callback + "(");
   pump(src, dest);

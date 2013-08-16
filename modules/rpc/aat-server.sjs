@@ -221,7 +221,7 @@ function createTransportHandler(transportSink) {
 
     var out_messages = [];
     
-    var command = decodeURIComponent(req.url.queryKey.cmd);
+    var command = req.url.params().cmd;
     
     if (command == 'send') {
       // message is arriving via a new transport -> create one:
@@ -264,7 +264,7 @@ function createTransportHandler(transportSink) {
       else {
         transport.exchangeMessages([
           { type: 'data', 
-            header: JSON.parse(decodeURIComponent(req.url.queryKey.header)),
+            header: JSON.parse(req.url.params().header),
             data: req.body
           }], 
                                    out_messages);

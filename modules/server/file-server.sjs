@@ -241,11 +241,11 @@ function generateFile(req, filePath, format, settings) {
 
   formatResponse(
     req,
-    { input: -> new stream.ReadableStringStream(generator.content(req.url.queryKey), true),
+    { input: -> new stream.ReadableStringStream(generator.content(req.url.params()), true),
       extension: path.extname(filePath).slice(1),
       format: format,
 //      length: generator.content().length,
-      etag: "#{generator_file_mtime}-#{generator.etag ? generator.etag(req.url.queryKey) : Date.now()}",
+      etag: "#{generator_file_mtime}-#{generator.etag ? generator.etag(req.url.params()) : Date.now()}",
     },
     settings);
   return true;
@@ -277,7 +277,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
     if (format !== undefined) 
       format = { name: format, mandatory: true };
     else
-      format = { name: req.url.queryKey.format || 'none' };
+      format = { name: req.url.params().format || 'none' };
 
 
     var file = relativePath ? path.join(root, relativePath) : root;
