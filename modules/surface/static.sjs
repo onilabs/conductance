@@ -1,5 +1,6 @@
 var html  = require('./html');
 var { values, propertyPairs, keys } = require('sjs:object');
+var { sanitize } = require('sjs:object');
 var { map, join, each } = require('sjs:sequence');
 
 //----------------------------------------------------------------------
@@ -22,12 +23,12 @@ exports.Document = function(content) {
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     #{
         keys(content.getExternalScripts()) ..
-        map(url -> "<script src='#{url}'></script>") ..
+        map(url -> "<script src=\"#{sanitize(url)}\"></script>") ..
         join('\n')
     }
     #{
-        values(content.getStyleDefs()) .. 
-        map([ref_count,def] -> def.getHtml()) .. 
+        values(content.getStyleDefs()) ..
+        map([ref_count,def] -> def.getHtml()) ..
         join('\n')
     }
     <script src='/__sjs/stratified.js'></script>
@@ -44,7 +45,7 @@ exports.Document = function(content) {
         var mechs = {};
         #{
           // XXX need to escape </script> -> <\/script> in #{code} below!!!
-          propertyPairs(content.getMechanisms()) .. 
+          propertyPairs(content.getMechanisms()) ..
           map(function([id, code]) {
             if (typeof code !== 'string')
               throw new Error('Static surface code cannot contain mechanisms with function objects');

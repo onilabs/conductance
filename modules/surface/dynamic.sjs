@@ -46,7 +46,6 @@ var resourceRegistry = {
     }
   },
   unuseStyle: function(id) {
-    console.log("Unusing style #{id}");
     var desc = stylesInstalled[id];
     if (!desc) console.log("Warning: Trying to unuse unknown style #{id}")
     if (--desc.ref_count === 0) {

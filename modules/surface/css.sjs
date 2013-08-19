@@ -6,8 +6,8 @@ A coarse CSS parser, parsing into an array BLOCK, which takes elements:
    - [ "kw_or_selector", BLOCK ]
 */
 var blockRE = /\s*((?:[^\"\'\{\}\;\/]|\/[^\*])*)(\"|\'|\/\*|\{|\}|\;)/g;
-var dstrRE = /(\"(?:[^\"]|\\\")*\")/g;
-var sstrRE = /(\'(?:[^\']|\\\')*\')/g;
+var dstrRE = /(\"(?:\\.|[^"])*\")/g;
+var sstrRE = /(\'(?:\\.|[^'])*\')/g;
 var commentRE = /\*\//g;
 var wsRE = /\s*$/g;
 

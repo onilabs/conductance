@@ -123,7 +123,7 @@ function ObservableContentMechanism(ft, obs) {
   });
 }
 
-function collapseHtmlFragment(ft) {
+function collapseHtmlFragment(ft, tag) {
   var rv;
 
   if (isCollapsedFragment(ft)) {
@@ -142,15 +142,13 @@ function collapseHtmlFragment(ft) {
     (ensureWidget(ft.get()) .. ObservableContentMechanism(ft)).appendTo(rv);
   }
   else if (Array.isArray(ft) || isStream(ft)) {
-    ft ..
-      map(collapseHtmlFragment) ..
-      each(p -> p.appendTo(rv));
+    ft .. each(p -> collapseHtmlFragment(p, tag).appendTo(rv));
   }
   else if (isQuasi(ft)) {
     indexed(ft.parts) ..
       each { |[idx, val]|
         if (idx % 2) {
-          collapseHtmlFragment(val).appendTo(rv);
+          collapseHtmlFragment(val, tag).appendTo(rv);
         }
         else // a literal value
           rv.content += val;
@@ -158,11 +156,26 @@ function collapseHtmlFragment(ft) {
   }
   else {
     if (ft !== undefined)
-      rv.content += sanitize(String(ft));
+      rv.content += escapeForTag(ft, tag);
   }
   
   return rv;
 }
+
+function escapeForTag(s, tag) {
+  switch(tag) {
+    case 'script':
+      return String(s).replace(/\</g, '\\x3C').replace(/\>/g, '\\x3E');
+      break;
+    case 'style':
+      return String(s).replace(/\</g, '\\<');
+      break;
+    default:
+      return sanitize(String(s));
+      break;
+  }
+}
+
 exports.collapseHtmlFragment = collapseHtmlFragment;
 
 //----------------------------------------------------------------------
@@ -207,7 +220,9 @@ WidgetProto.appendTo = function(target) {
 
 WidgetProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
   // append inner contents (as well as adding this widget's styles, mechanisms, etc)
-  collapseHtmlFragment(this.content).appendTo(target);
+  if (this.content != null) {
+    collapseHtmlFragment(this.content, this.tag).appendTo(target);
+  }
 });
 
 WidgetProto.createElement = function() {
@@ -271,8 +286,7 @@ exports.cloneWidget = cloneWidget;
 // Style classes
 
 var InternalStyleDefProto = {
-  // XXX this needs some sanitizing!
-  getHtml: -> "<style type='text/css'>#{this.content}</style>",
+  getHtml: -> "<style type='text/css'>#{escapeForTag(this.content, 'style')}</style>",
   createElement: function() {
     // xbrowser env only
     var elem = document.createElement('style');
@@ -330,8 +344,7 @@ function Style(/* [opt] ft, style */) {
 exports.Style = Style;
 
 var ExternalStyleDefProto = {
-  // XXX this needs some sanitizing!
-  getHtml: -> "<link rel='stylesheet' href='#{this.url}'>",
+  getHtml: -> "<link rel='stylesheet' href=\"#{sanitize(this.url)}\">",
   createElement: function() {
     // xbrowser env only
     var elem = document.createElement('link');
