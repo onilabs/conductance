@@ -78,7 +78,6 @@ exports.run = (function() {
 					var q = query.get();
 					while(true) {
 						waitfor {
-							hold(50);
 							search(q);
 							hold();
 						} or {
@@ -250,43 +249,46 @@ function searchIndex(query, index) {
 			break;
 		}
 		if (count++ % 50 == 0) hold(0); // keep UI responsive
-		var idLower = id.toLowerCase();
-		var words = queryWords.slice();
-		var parts = [];
-		var next = function(offset) {
-			var minimum = id.length;
-			var word = null;
-			words .. each {|w|
-				var i = idLower.indexOf(w, offset);
-				if (i == -1 && offset == 0) {
-					// a word was not found, abort early
-					return;
+		__js {
+			var idLower = id.toLowerCase();
+			var words = queryWords.slice();
+			var parts = [];
+			var next = function(offset) {
+				var minimum = id.length;
+				var word = null;
+				for (var i=0; i<words.length; i++) {
+					var w = words[i];
+					var strpos = idLower.indexOf(w, offset);
+					if (strpos == -1 && offset == 0) {
+						// a word was not found, abort early
+						return;
+					}
+					if (strpos != -1 && strpos < minimum) {
+						minimum = strpos;
+						word = w;
+					}
 				}
-				if (i != -1 && i < minimum) {
-					minimum = i;
-					word = w;
+				if (word) {
+					words.splice(words.indexOf(word), 1);
+					parts.push(id.slice(offset, minimum));
+					parts.push(id.slice(minimum, minimum + word.length));
+					next(minimum + word.length);
+				} else {
+					parts.push(id.slice(offset));
 				}
-			}
-			if (word) {
-				words.splice(words.indexOf(word), 1);
-				parts.push(id.slice(offset, minimum));
-				parts.push(id.slice(minimum, minimum + word.length));
-				next(minimum + word.length);
-			} else {
-				parts.push(id.slice(offset));
-			}
-		};
+			};
 
-		next(0);
+			next(0);
 
-		if (words.length == 0) {
-			// all words found
-			results.push({
-				hub: hub,
-				id: hub + id,
-				type: type,
-				text: parts,
-			});
+			if (words.length == 0) {
+				// all words found
+				results.push({
+					hub: hub,
+					id: hub + id,
+					type: type,
+					text: parts,
+				});
+			}
 		}
 	}
 	//results = results .. seq.sortBy(r -> r.id.length);
