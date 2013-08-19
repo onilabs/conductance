@@ -289,9 +289,10 @@ exports.removeElement = removeElement;
 function appendWidget(parent_node, html) {
   html= ensureWidget(html);
   
-  var elem = html.createElement();
+  var [elem, content] = html.createElement();
+  elem.innerHTML = content.getHtml();
 
-  insertHtml(html, function(html) {
+  insertHtml(content, function(fragment) {
     parent_node.appendChild(elem);
 
     // run mechanisms:
@@ -308,9 +309,10 @@ exports.appendWidget = appendWidget;
 function prependWidget(parent_node, html) {
   html= ensureWidget(html);
   
-  var elem = html.createElement();
+  var [elem, content] = html.createElement();
+  elem.innerHTML = content.getHtml();
 
-  insertHtml(html, function(html) {
+  insertHtml(content, function() {
     parent_node.insertBefore(elem, parent_node.firstChild);
 
     // run mechanisms:

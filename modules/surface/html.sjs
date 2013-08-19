@@ -6,6 +6,7 @@ var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
 var { isObservable, get } = require('../observable');
 var array = require('sjs:array');
+var func = require('sjs:function');
 
 //----------------------------------------------------------------------
 // counters which will be used to generate style & mechanism ids
@@ -48,30 +49,54 @@ exports._getDynOniSurfaceInit = ->
 */
 
 //----------------------------------------------------------------------
+var FragmentBase = {
+  appendTo: function(target) {
+    target.style .. extendStyle(this.style);
+    target.mechanisms .. extend(this.mechanisms);
+    target.externalScripts .. extend(this.externalScripts);
+  },
+  _init: function() {
+    this.style = {};
+    this.mechanisms = {};
+    this.externalScripts = {};
+  },
+};
+
 /**
    @class CollapsedFragment
-   @summary Internal class representing a collapsed [::HtmlFragment] 
+   @summary Internal class representing a collapsed [::HtmlFragment]
    @inherit ::HtmlFragment
 */
-var CollapsedFragmentProto = {
+var CollapsedFragmentProto = Object.create(FragmentBase);
+
+CollapsedFragmentProto .. extend({
   toString:        -> "html::CollapsedFragment [#{this.getHtml()}]",
   getHtml:         -> this.content,        // string
   getStyleDefs:    -> this.style,          // { style_id : [ref_count, def], ... }
   getMechanisms:   -> this.mechanisms,     // { mechanism_id : code, ... }
   getExternalScripts: -> this.externalScripts,     // { url: true, ... }
+  appendTo: func.seq(CollapsedFragmentProto.appendTo, function(target) {
+    target.content += this.content;
+  }),
+  _init: func.seq(CollapsedFragmentProto._init, function() {
+    this.content = "";
+  }),
+});
+
+function extendStyle(target, src) {
+  propertyPairs(src) .. each {
+    |[id,def]|
+    if (target[id])
+      target[id] = [target[id][0]+def[0], def[1]];
+    else
+      target[id] = def;
+  }
 };
 
 //helpers:
-function initCollapsedFragment(f) {
-  f.content = '';
-  f.style = {};
-  f.mechanisms = {};
-  f.externalScripts = {};
-}
-
 function CollapsedFragment() {
   var rv = Object.create(CollapsedFragmentProto);
-  initCollapsedFragment(rv);
+  rv._init();
   return rv;
 }
 
@@ -79,22 +104,8 @@ function CollapsedFragment() {
    @function isCollapsedFragment
 */
 function isCollapsedFragment(obj) { return CollapsedFragmentProto.isPrototypeOf(obj); }
-exports.isCollapsedFragment = isCollapsedFragment;
+function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
 
-
-// helper
-function joinCollapsedFragment(target, src) {
-  target.content += src.getHtml();
-  propertyPairs(src.getStyleDefs()) .. each { 
-    |[id,def]|
-    if (target.style[id])
-      target.style[id] = [target.style[id][0]+def[0], def[1]];
-    else
-      target.style[id] = def;
-  }
-  target.mechanisms .. extend(src.getMechanisms());
-  target.externalScripts .. extend(src.getExternalScripts());
-}
 
 /**
   @function collapseHtmlFragment
@@ -116,36 +127,36 @@ function collapseHtmlFragment(ft) {
   var rv;
 
   if (isCollapsedFragment(ft)) {
-    rv = ft;
+    return ft;
+  } else {
+    rv = CollapsedFragment();
   }
-  else if (isObservable(ft)) { 
+
+  if (isFragment(ft)) {
+    ft.appendTo(rv);
+  }
+  else if (isObservable(ft)) {
     // observables are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
-    rv = collapseHtmlFragment(ensureWidget(ft.get()) .. 
-                              ObservableContentMechanism(ft));
+    (ensureWidget(ft.get()) .. ObservableContentMechanism(ft)).appendTo(rv);
   }
   else if (Array.isArray(ft) || isStream(ft)) {
-    rv = ft .. 
+    ft ..
       map(collapseHtmlFragment) ..
-      reduce(CollapsedFragment(), function(c, p) {
-        c .. joinCollapsedFragment(p);
-        return c;
-      });
+      each(p -> p.appendTo(rv));
   }
   else if (isQuasi(ft)) {
-    rv = indexed(ft.parts) .. 
-      reduce(CollapsedFragment(), function(c, [idx, val]) {
+    indexed(ft.parts) ..
+      each { |[idx, val]|
         if (idx % 2) {
-          c .. joinCollapsedFragment(collapseHtmlFragment(val));
+          collapseHtmlFragment(val).appendTo(rv);
         }
         else // a literal value
-          c.content += val;
-        return c;
-      }); 
+          rv.content += val;
+      };
   }
   else {
-    rv = CollapsedFragment();
     if (ft !== undefined)
       rv.content += sanitize(String(ft));
   }
@@ -160,10 +171,17 @@ exports.collapseHtmlFragment = collapseHtmlFragment;
    @inherit ::CollapsedFragment
    @summary A [::HtmlFragment] rooted in a single HTML element
 */
-var WidgetProto = Object.create(CollapsedFragmentProto);
+var WidgetProto = Object.create(FragmentBase);
+
+WidgetProto._init = func.seq(WidgetProto._init, function(tag, content, attribs) {
+  this.tag = tag;
+  this.attribs = {};
+  if (attribs) this.attribs .. extend(attribs);
+  this.content = content;
+});
 
 WidgetProto.toString = function() {
-  return "html::Widget [#{this.getHtml()}]";
+  return "html::Widget [#{collapseHtmlFragment(this).getHtml()}]";
 };
 
 WidgetProto._normalizeClasses = function() {
@@ -177,13 +195,20 @@ WidgetProto._normalizeClasses = function() {
 
 var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : String(val);
 
-WidgetProto.getHtml = function() {
-  return "<#{this.tag} #{ 
+WidgetProto.appendTo = function(target) {
+  target.content += "<#{this.tag} #{
             propertyPairs(this.attribs) ..
             map([key,val] -> "#{key}=\"#{flattenAttrib(val).replace(/\"/g, '&quot;')}\"") ..
-            join(' ')                     
-          }>#{this.content}</#{this.tag}>";
+            join(' ')
+          }>"
+  this._appendInner(target);
+  target.content += "</#{this.tag}>";
 };
+
+WidgetProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
+  // append inner contents (as well as adding this widget's styles, mechanisms, etc)
+  collapseHtmlFragment(this.content).appendTo(target);
+});
 
 WidgetProto.createElement = function() {
   // xbrowser env only
@@ -192,16 +217,11 @@ WidgetProto.createElement = function() {
     |[name,val]|
     elem.setAttribute(name, flattenAttrib(val));
   }
-  elem.innerHTML = this.content;
-  return elem;
+  // content is a collapsedFragment without our outer tag
+  var content = CollapsedFragment();
+  this._appendInner(content);
+  return [elem, content];
 };
-
-function initWidget(w, tag, attribs) {
-  initCollapsedFragment(w);
-  w.tag = tag;
-  w.attribs = {};
-  if (attribs) w.attribs .. extend(attribs);
-}
 
 /**
    @function Widget
@@ -211,15 +231,12 @@ function initWidget(w, tag, attribs) {
 */
 function Widget(tag, content, attribs) {
   var rv = Object.create(WidgetProto);
-  initWidget(rv, tag, attribs);
-  if (content != null)
-    rv .. joinCollapsedFragment(collapseHtmlFragment(content));
-
+  rv._init.apply(rv, arguments);
   return rv;
 }
 exports.Widget = Widget;
 
-/** 
+/**
    @function isWidget
 */
 function isWidget(obj) { return WidgetProto.isPrototypeOf(obj); }
@@ -241,11 +258,10 @@ exports.ensureWidget = ensureWidget;
 function cloneWidget(ft) {
   if (!isWidget(ft)) return ensureWidget(ft);
   var rv = Object.create(WidgetProto);
-  initWidget(rv, ft.tag, ft.attribs);
-  rv.content = ft.content;
-  rv.style = clone(ft.getStyleDefs());
-  rv.mechanisms = clone(ft.getMechanisms());
-  rv.externalScripts = clone(ft.getExternalScripts());
+  rv._init(ft.tag, ft.content, ft.attribs);
+  rv.style = clone(ft.style);
+  rv.mechanisms = clone(ft.mechanisms);
+  rv.externalScripts = clone(ft.externalScripts);
   return rv;
 }
 exports.cloneWidget = cloneWidget;
@@ -279,7 +295,7 @@ function InternalStyleDef(content, parent_class) {
 
 /**
    @function Style
-   @summary Add style to a widget 
+   @summary Add style to a widget
 */
 
 function Style(/* [opt] ft, style */) {
@@ -297,7 +313,7 @@ function Style(/* [opt] ft, style */) {
     var classes = ft._normalizeClasses();
     if (classes.indexOf('_oni_style_') == -1)
       classes.push(' _oni_style_');
-    if (classes.indexOf(class_name) == -1) 
+    if (classes.indexOf(class_name) == -1)
       classes.push(class_name);
     return ft;
   }
@@ -374,7 +390,7 @@ exports.RequireStyle = RequireStyle;
 
 /**
    @function Mechanism
-   @summary Add a mechanism to a widget 
+   @summary Add a mechanism to a widget
 */
 function Mechanism(/* [opt] ft, code */) {
   var id = ++gMechanismCounter, code;
@@ -386,7 +402,7 @@ function Mechanism(/* [opt] ft, code */) {
 
     if(!ft.attribs['data-oni-mechanisms'])
       ft.attribs['data-oni-mechanisms'] = String(id);
-    else 
+    else
       ft.attribs['data-oni-mechanisms'] += ' '+id;
 
     var classes = ft._normalizeClasses();
