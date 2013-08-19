@@ -19,7 +19,6 @@ var flattenLibraryIndex = function(lib) {
 		if (!obj.children) return;
 		obj.children .. ownPropertyPairs .. each {|[k,v]|
 			var id = path + k;
-			if (v.type == 'lib') id += '/';
 			symbols.push([lib.name, id, v.type]);
 			switch (v.type) {
 				case 'lib':
@@ -163,29 +162,24 @@ exports.run = (function() {
 				return Widget("ul", rv) .. Class("results") .. Class("empty", rv.length == 0);
 			});
 
-			libraries.get() .. ownValues .. each(function(lib) {
+			libraries.get() .. ownValues .. each {|lib|
 				var loaded = Observable("loading ...");
-				// TODO: this never updates!
-				libraryStatus.push(Widget("li", `${lib.name} ${loaded}`));
-
-				spawn(function() {
+				libraryStatus.push(Widget("li", `${lib.name} ${loaded}`) .. Mechanism(function() {
+					console.log("loading lib:" , lib.name);
 					var idx = lib.loadIndex();
 					if (idx === null) {
 						loaded.set("Missing");
-						return;
+					} else {
+						logging.debug("Added library #{lib.name} to index");
+						index.set(
+							// always keep index sorted by shortest-first
+							index.get().concat(flattenLibraryIndex(lib))
+								.. seq.sortBy(i -> i[1].length)
+						);
+						loaded.set("Loaded");
 					}
-					logging.debug("Added library #{lib.name} to index");
-					index.set(
-						// always keep index sorted by shortest-first
-						index.get().concat(flattenLibraryIndex(lib))
-							.. seq.sortBy(i -> i[1].length)
-					);
-					// TODO: observables embedded in widgets don't take their new value if they are updated too soon
-					// event loop as their creation
-					hold(50);
-					loaded.set("Loaded");
-				}());
-			});
+				}));
+			};
 
 			var widget = Widget("div", `
 				<input type="text" value="${lastQuery ? lastQuery}"></input>
