@@ -134,9 +134,9 @@ exports.run = (function() {
 				if (res.length > 0) {
 					rv = res.map(function(m) {
 						var highlighted = Computed(highlightedMatch, h -> h == m.id);
-						var textBlock = [i, t] -> Widget(i % 2 ? "strong" : "span", t);
+						var textBlock = [i, t] -> i % 2 ? `<strong>$t</strong>` : `<span>$t</span>`;
 						var textWidgets = m.text .. indexed .. map(textBlock);
-						var hubWidget = Widget('span', m.hub, {"class":"hub"});
+						var hubWidget = `<span class="hub">${m.hub}</span>`;
 						return Widget('li', [hubWidget].concat(textWidgets))
 							.. Class("result result-#{m.type}")
 							.. Class("selected", highlighted)
@@ -151,7 +151,7 @@ exports.run = (function() {
 							});
 					});
 					if (res.overflow) {
-						rv.push(Widget("li", " ... ", {"class": "more"}));
+						rv.push(`<li class="more"> ... </li>`);
 					}
 				} else {
 					if (res.noResults) {
