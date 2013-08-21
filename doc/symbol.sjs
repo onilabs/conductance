@@ -1,6 +1,7 @@
 var seq = require('sjs:sequence');
 var {each, join, at, toArray} = seq;
 var assert = require('sjs:assert');
+var array = require('sjs:array');
 var Library = require('./library');
 var logging = require('sjs:logging');
 
@@ -21,6 +22,23 @@ Symbol.prototype.docs = function() {
 	}
 };
 
+Symbol.prototype.skeletonDocs = function() {
+	// like docs(), but can be satisfied from index (if present)
+	ui.LOADING.block { ||
+		return this.library.loadIndexFor(this.modulePath.concat(this.symbolPath))
+		    || this.library.loadDocs(this.modulePath, this.symbolPath);
+	}
+};
+
+Symbol.prototype.parent = function() {
+	if (this.symbolPath.length) {
+		return new Symbol(this.library, this.modulePath, this.symbolPath.slice(0,-1));
+	} else if (this.modulePath.length) {
+		return new Symbol(this.library, this.modulePath.slice(0,-1), []);
+	}
+	return null;
+};
+
 Symbol.prototype.moduleLink = function() {
 	return [this.library.name + this.modulePath.join(''), this.modulePath.join('')];
 }
@@ -29,6 +47,14 @@ Symbol.prototype.link = function() {
 	var ext = this.modulePath.join('');
 	if (this.symbolPath.length) ext += '::' + this.symbolPath.join('::')
 	return [this.library.name + ext, ext];
+}
+
+Symbol.prototype.childLink = function(name, info) {
+	var [href] = this.link();
+	if (!(['lib','module'] .. array.contains(info.type))) {
+		href += '::'
+	}
+	return [href + name, name];
 }
 
 Symbol.prototype.parentLinks = function() {

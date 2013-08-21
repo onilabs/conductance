@@ -1,6 +1,6 @@
-var {Widget, Style, Class, prependWidget, removeElement} = require('mho:surface');
+var {Widget, Mechanism, Style, Class, prependWidget, removeElement} = require('mho:surface');
 var {Observable} = require('mho:observable');
-var {each, transform, map, filter, indexed, intersperse, toArray} = require('sjs:sequence');
+var {each, transform, map, filter, indexed, intersperse, toArray, groupBy, sortBy, reduce, reverse} = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, endsWith} = string;
 var {Quasi} = require('sjs:quasi');
@@ -376,20 +376,86 @@ exports.renderer = function(libraries) {
 		return makeJSONView(libraries);
 	};
 
-	return function (symbol) {
-		if (symbol === null) return makeRootView();
-		var docs = symbol.docs();
-		logging.debug("Rendering docs", docs, "for", symbol);
-		var parts = [];
-
-		if (symbol.symbolPath.length) {
-			parts.push(makeSymbolView(docs, symbol));
-		} else if (symbol.modulePath.length == 0 || symbol.name .. endsWith('/')) {
-			parts.push(makeLibView(docs, symbol));
-		} else {
-			parts.push(makeModuleView(docs, symbol));
-		}
-		return Widget("div", parts);
+	function makeRootIndex() {
+		return makeJSONView(libraries);
 	};
+
+	var centerView = Mechanism {|elem|
+		var container = document.getElementById("sidebar");
+		container.scrollTop = elem.offsetTop - (container.clientHeight / 2);
+	};
+
+	function listChildren(parent, symbol) {
+		var docs = parent.skeletonDocs();
+		var getType = prop -> prop[1].type;
+		return docs.children
+		.. ownPropertyPairs
+		.. sortBy(getType)
+		.. map(function([name, val]) {
+				var [href, name] = parent.childLink(name, val);
+				if (symbol && name == symbol.name) {
+					// currently selected
+					var children = listChildren(symbol);
+					if (children.length) {
+						children = Widget("ul", children) .. Class("active-children");
+					}
+					return [Widget("li", name, {"class":"active"}) .. centerView, children];
+				} else {
+					return Widget("li", Widget("a", name, {href: '#' + href}));
+				}
+			});
+	};
+
+	function makeIndexView(parent, symbol) {
+		if (parent === null) {
+			return makeRootIndex();
+		}
+		var ancestors = parent.parentLinks();
+		var links = listChildren(parent, symbol);
+		links = ancestors .. reverse .. reduce(links, function(children, [href, name]) {
+			return Widget("li", [Widget("a", name, {href: '#' + href}), Widget("ul", children)]);
+		});
+		return Widget("ul", links);
+	};
+
+	return {
+		renderSymbol: function (symbol) {
+			if (symbol === null) return makeRootView();
+			var docs = symbol.docs();
+			logging.debug("Rendering docs", docs, "for", symbol);
+			var view;
+
+			switch(docs.type) {
+				case 'module':
+					view = makeModuleView(docs, symbol);
+					break;
+				case 'lib':
+					view = makeLibView(docs, symbol);
+					break;
+				default:
+					view = makeSymbolView(docs, symbol);
+					break;
+			}
+			return Widget("div", view);
+		},
+
+		renderSidebar: function(symbol) {
+			if (symbol === null) return undefined;
+			var parent = symbol.parent();
+			var view = makeIndexView(parent, symbol);
+			return Widget("div", view, {"id":"sidebar"});
+		},
+
+		renderBreadcrumbs: function(symbol) {
+			var ret = [];
+			var prefix = '#';
+			var sep = Widget("span", ` &raquo; `, {"class": "sep"});
+			if (symbol) {
+				ret = symbol.parentLinks().slice(0, -1) .. map([href, name] -> Widget("a", name, {href: prefix + href}));
+				ret.push(Widget('span', symbol.name, {"class":"leaf"}));
+			}
+			return Widget("div", ret .. intersperse(sep), {"class":"breadcrumbs"});
+		},
+	}
 }
 

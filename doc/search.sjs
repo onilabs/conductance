@@ -189,7 +189,7 @@ exports.run = (function() {
 						${libraryStatus}
 					</ul>
 				</div>
-			`) .. Class("searchWidget") .. RequireStyle(Url.normalize('search.css', module.id));
+			`) .. Class("searchWidget") .. RequireStyle(Url.normalize('css/search.css', module.id));
 
 			var changeSelected = function(offset, newIndex) {
 				var res = results.get();

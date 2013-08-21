@@ -31,20 +31,17 @@ exports.run = function() {
 		return Symbol.resolveLink(h, libraries);
 	});
 
-	var breadcrumbs = Computed(currentSymbol, function(sym) {
-		var ret = [];
-		var prefix = '#';
-		var sep = Widget("span", ` &raquo; `, {"class": "sep"});
-		if (sym) {
-			ret = sym.parentLinks().slice(0, -1) .. map([href, name] -> Widget("a", name, {href: prefix + href}));
-			ret.push(Widget('span', sym.name, {"class":"leaf"}));
-		}
-		return Widget("div", ret .. seq.intersperse(sep), {"class":"breadcrumbs"});
-	});
-
 	var renderer = ui.renderer(libraries);
 	var symbolDocs = Computed(currentSymbol, function(sym) {
-		return sym !== undefined ? renderer(sym);
+		return sym !== undefined ? renderer.renderSymbol(sym);
+	});
+
+	var breadcrumbs = Computed(currentSymbol, function(sym) {
+		return sym !== undefined ? renderer.renderBreadcrumbs(sym);
+	});
+
+	var sidebar = Computed(currentSymbol, function(sym) {
+		return sym !== undefined ? renderer.renderSidebar(sym);
 	});
 
 	libraries.add('sjs:');
@@ -92,19 +89,20 @@ exports.run = function() {
 			}
 		});
 	
-	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. RequireStyle(Url.normalize("./docs.css"));
+	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. RequireStyle(Url.normalize("css/docs.css", module.id));
 	var toplevel = Widget("div", `
 		<div class="header navbar-inner">
 			$searchWidget
 			<h1>Conductance documentation</h1>
 		</div>
 		$breadcrumbs
+		$sidebar
 		$mainDisplay
 		$loadingWidget
 	`)
 	.. Bootstrap()
 	.. Class("navbar navbar-inverted")
-	.. RequireStyle(Url.normalize('main.css', module.id));
+	.. RequireStyle(Url.normalize('css/main.css', module.id));
 
 
 	document.body .. withWidget(toplevel) {|elem|

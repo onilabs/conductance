@@ -145,19 +145,25 @@ Library.prototype.loadIndex = function() {
 	return this.loadIndex();
 };
 
+Library.prototype.loadIndexFor = function(path) {
+	var index = this.loadIndex();
+	if (index != null) {
+		path = path.slice();
+		logging.debug("Traversing index", index, "for path", path);
+		while(path.length > 0) {
+			index = index.children .. get(path.shift());
+		}
+	}
+	return index;
+};
+
 Library.prototype.loadDocs = function(modulePath, symbolPath) {
 	var docs = this.loadModuleDocs(modulePath);
 
 	if (symbolPath.length == 0) {
 		// it's a module
-		var index = this.loadIndex();
+		var index = this.loadIndexFor(modulePath);
 		if (index != null) {
-			logging.debug("Traversing index", index, "for module path", modulePath);
-			modulePath = modulePath.slice();
-			while(modulePath.length > 0) {
-				index = index.children .. get(modulePath.shift());
-			}
-
 			docs = docs .. clone();
 			// merge
 			['children'] .. each {|key|
@@ -169,7 +175,6 @@ Library.prototype.loadDocs = function(modulePath, symbolPath) {
 				docs[key] = docs[key] || index[key];
 			};
 			logging.debug("after index merge, docs are now:", docs);
-
 		}
 	} else {
 		symbolPath = symbolPath.slice();
