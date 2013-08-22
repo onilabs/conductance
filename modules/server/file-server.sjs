@@ -2,6 +2,7 @@ var fs     = require('sjs:nodejs/fs');
 var nodefs = require('fs');
 var stream = require('sjs:nodejs/stream');
 var path = require('path');
+var logging = require('sjs:logging');
 var { override } = require('sjs:object');
 var { each, any } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
@@ -143,7 +144,6 @@ function formatResponse(req, item, settings) {
 // directory listing server
 
 function listDirectory(req, root, branch, format, settings) {
-  
   var listing = {
     path: branch,
     directories: [],
@@ -197,7 +197,7 @@ function serveFile(req, filePath, format, settings) {
   var extension = path.extname(filePath).slice(1);
   if (settings.allowApis && extension == 'api') {
     apiid = require('./api-registry').registerAPI(filePath);
-    console.log("registered API #{filePath} -> #{apiid}");
+    logging.info("registered API #{filePath} -> #{apiid}");
   }
 
   formatResponse(
@@ -232,7 +232,7 @@ function generateFile(req, filePath, format, settings) {
   // purge module if it is loaded already, but the mtime doesn't match:
   var module_desc = require.modules[resolved_path];
   if (module_desc && module_desc.etag !== generator_file_mtime) {
-    console.log("reloading generator file #{resolved_path}; mtime doesn't match");
+    logging.verbose("reloading generator file #{resolved_path}; mtime doesn't match");
     delete require.modules[resolved_path];
   }
 

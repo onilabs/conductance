@@ -2,6 +2,7 @@ var url = require('sjs:url');
 var path = require('nodejs:path');
 var fs = require('sjs:nodejs/fs');
 var env = require('./env');
+var logging = require('sjs:logging');
 
 exports.loadConfig = function(path) {
   var configfile = path || exports.defaultConfig();
@@ -16,7 +17,7 @@ exports.loadConfig = function(path) {
   //----------------------------------------------------------------------
   // load config file
 
-  console.log("Loading config from #{configfile}");
+  logging.info("Loading config from #{configfile}");
   var config = require(configfile);
   return config;
 }
