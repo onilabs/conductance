@@ -10,11 +10,20 @@ body {
 }
 
 .loading {
-	position:absolute;
-	bottom:0;
+	z-index: 10;
+	position:fixed;
+	bottom:2em;
 	right:0;
+	background: #fff;
+	padding:0.4em 0.5em 0.4em 1em;
+	border-radius: 5em;
+	border-bottom-right-radius: 0;
+	border-top-right-radius: 0;
+	background: rgb(216, 135, 135);
+	color: rgb(134, 74, 74);
+	font-weight:bold;
 }
-	
+
 h1 {
 	margin:0;
 }
@@ -119,4 +128,16 @@ h1 {
 	position:relative;
 	padding-bottom: 0em;
 	margin-bottom: 0.2em;
+}
+
+#sidebar::-webkit-scrollbar
+{
+  width: 8pt;
+  height: 8pt;
+}
+
+#sidebar::-webkit-scrollbar-thumb
+{
+  border-radius:10px;
+  background: rgba(0, 0, 0, 0.4);
 }
