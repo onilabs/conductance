@@ -266,15 +266,15 @@ exports.MappedDirectoryHandler = function(root, settings) {
                allowDirListing: true,
                allowGenerators: true,
                allowApis:       true,
-               formats: BaseFileFormatMap, 
-             } .. 
+               formats: BaseFileFormatMap,
+             } ..
     override(settings || {});
 
-  function handler_func(matches, req) {
-    var [relativeURI, format]  = (matches[1] || '/').split('!');
+  function handler_func(req, matches) {
+    var [relativeURI, format] = (matches[1] !== undefined ? matches[1] : matches.input.slice(matches.index + matches[0].length)).split('!');
     var relativePath = decodeURIComponent(relativeURI);
 
-    if (format !== undefined) 
+    if (format !== undefined)
       format = { name: format, mandatory: true };
     else
       format = { name: req.url.params().format || 'none' };
@@ -285,7 +285,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
       file = file.replace(/\\/g, '/');
 
     if (fs.isDirectory(file)) {
-      if (file[file.length-1] != '/') {
+      if (relativeURI && file[file.length-1] != '/') {
         // Make sure we have a canonical url with '/' at the
         // end. Otherwise relative links will break.
         var newUrl = "#{relativeURI}/";
@@ -313,9 +313,8 @@ exports.MappedDirectoryHandler = function(root, settings) {
     }
   }
 
-  return { 
-    "GET":  handler_func, 
+  return {
+    "GET":  handler_func,
     "HEAD": handler_func
   };
 }
-

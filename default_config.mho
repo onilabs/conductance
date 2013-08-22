@@ -1,102 +1,37 @@
 // Default conductance configuration
 
-var { StandardSystemRoutes, 
-      MappedDirectoryRoute,
-      SimpleRedirectRoute
-    } = require('mho:server/routes');
-var { conductanceRoot } = require('mho:server/env');
-var { readFile } = require('sjs:nodejs/fs');
 var assert = require('sjs:assert');
+var logging = require('sjs:logging');
 var server = require('mho:server');
-
-//----------------------------------------------------------------------
-// Array of ports that conductance will listen on:
-
-var ports = [
-  {
-    name: 'insecure',  // name by which port will be referenced
-    address:'7075', // address of form 'port' or 'host:port'. If no 'host' is given,
-                    // conductance will listen on all interfaces
-  },
-  { name: 'secure',
-    address:'localhost:7076',
-    ssl: true,
-    key: readFile("#{conductanceRoot()}ssl/insecure-localhost.key"),
-    cert: readFile("#{conductanceRoot()}ssl/insecure-localhost.crt")
-  }
-];
-
-//----------------------------------------------------------------------
-// "Virtual" host configuration
-/* 
-   Array of hostnames and the ports they listen on.
-
-   When a request is received on a given port, conductance will go
-   through this array in order and dispatch the request to the first
-   host with matching hostname that is configured to listen on the
-   given port (if no ports are given the host will listen on all
-   ports listed in the exports.ports array)
-*/
-var hosts = [
-  {
-    // hostname regexp:
-    hostname: /^mypublicserver(:.*)?$/,
-
-    // no ports array given, so this host is listening on all ports
-
-    // potentially nested array of routes that determine how requests
-    // to given urls get handled:
-    /*
-      The array will be traversed in order and the request url matched
-      against 'path'.  When the first matching route is found, its
-      'handler' function will be invoked.
-     */
-    routes: [
-      { path: /^\/foo$/,
-        handler: {
-          "GET": function(matches, req) { req.response.end("Testing, 1, 2"); }
-        }
-      },
-      // module 'mho:server/routes' defines some convenient functions for mapping
-      // directories on the local file system, redirects, etc:
-      MappedDirectoryRoute(/^(\/.*)$/, process.cwd()),
-    ]
-  }, 
-/*  {
-    // Redirect all requests to port 7071 to https server:
-    hostname: /^(127\.0\.0\.1)|(localhost)$/,
-    ports: ['insecure'],    
-    routes: [
-      // redirect all traffic to https server:
-      SimpleRedirectRoute(/^(.*)$/, 'https://localhost:7076', 301)
-    ]
-  }, */
-/*  { 
-    // Redirect 127.0.0.1 traffic to localhost:
-    hostname: /^(127\.0\.0\.1)$/,
-    routes: [
-      SimpleRedirectRoute(/^(.*)$/, 'https://localhost:7076', 301)
-    ]
-  }, */
-  { 
-    hostname: /^.*$/, 
-    ports: ['secure', 'insecure'],
-    routes: [
-      // StandardSystemRoutes maps stratifiedjs/ to __sjs & modules to __mho,
-      // installs a bridge-over-aat handler at __aat_bridge, and a 
-      // keyhole server at __keyhole
-      StandardSystemRoutes(),
-      MappedDirectoryRoute(/^(\/.*)$/, process.cwd()),
-    ]
-  }
-];
-
 
 //----------------------------------------------------------------------
 // server main function, used by `conductance run`
 exports.run = function() {
   arguments.length .. assert.eq(0, "Too many arguments");
-  server.run({ports: ports, hosts: hosts});
+  var { readFile } = require('sjs:nodejs/fs');
+  var { conductanceRoot } = require('mho:server/env');
+  var { Port } = server;
+  var { SystemRoutes, DynamicDirectory, LogRequests } = require('mho:server/routes');
+
+  server.run([
+    {
+      address: Port(7075),
+      routes: [
+        SystemRoutes(),
+        DynamicDirectory(process.cwd()),
+      ] .. LogRequests(logging.INFO)
+    },
+    {
+      address: Port(7076).ssl({
+        key: readFile("#{conductanceRoot()}ssl/insecure-localhost.key"),
+        cert: readFile("#{conductanceRoot()}ssl/insecure-localhost.crt")
+      }),
+      routes: [
+        SystemRoutes(),
+        DynamicDirectory(process.cwd()),
+      ] .. LogRequests(logging.INFO)
+    },
+  ]);
 };
 
 exports.systemd = function() {
