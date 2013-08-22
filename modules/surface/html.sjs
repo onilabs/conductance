@@ -70,7 +70,7 @@ var FragmentBase = {
 var CollapsedFragmentProto = Object.create(FragmentBase);
 
 CollapsedFragmentProto .. extend({
-  toString:        -> "html::CollapsedFragment [#{this.getHtml()}]",
+  toString:        -> "html::CollapsedFragment [#{this.content}]",
   getHtml:         -> this.content,        // string
   getStyleDefs:    -> this.style,          // { style_id : [ref_count, def], ... }
   getMechanisms:   -> this.mechanisms,     // { mechanism_id : code, ... }
@@ -194,7 +194,7 @@ WidgetProto._init = func.seq(WidgetProto._init, function(tag, content, attribs) 
 });
 
 WidgetProto.toString = function() {
-  return "html::Widget [#{collapseHtmlFragment(this).getHtml()}]";
+  return "html::Widget[#{this.tag}]";
 };
 
 WidgetProto._normalizeClasses = function() {
