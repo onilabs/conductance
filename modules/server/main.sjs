@@ -135,13 +135,17 @@ exports.serve = function(args) {
           case '--help':
             opts.help = true;
             break;
-          case '-v':
           case '--verbose':
             opts.verbose++;
             break;
           default:
-            opts._args = args.slice(idx);
-            return;
+            // special case for squashed -vvv flags
+            if (/^-v+$/.test(arg)) {
+              opts.verbose += arg.length - 1;
+            } else {
+              opts._args = args.slice(idx);
+              return;
+            }
         }
       }
     })();
