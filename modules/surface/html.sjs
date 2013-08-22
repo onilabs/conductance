@@ -123,44 +123,35 @@ function ObservableContentMechanism(ft, obs) {
   });
 }
 
-function collapseHtmlFragment(ft, tag) {
-  var rv;
-
-  if (isCollapsedFragment(ft)) {
-    return ft;
-  } else {
-    rv = CollapsedFragment();
-  }
-
+// internal function used by collapseHtmlFragment()
+function appendFragmentTo(target, ft, tag) {
   if (isFragment(ft)) {
-    ft.appendTo(rv);
+    return ft.appendTo(target, tag);
   }
   else if (isObservable(ft)) {
     // observables are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
-    (ensureWidget(ft.get()) .. ObservableContentMechanism(ft)).appendTo(rv);
+    (ensureWidget(ft.get()) .. ObservableContentMechanism(ft)).appendTo(target);
   }
   else if (Array.isArray(ft) || isStream(ft)) {
-    ft .. each(p -> collapseHtmlFragment(p, tag).appendTo(rv));
+    ft .. each(p -> appendFragmentTo(target, p, tag));
   }
   else if (isQuasi(ft)) {
     indexed(ft.parts) ..
       each { |[idx, val]|
         if (idx % 2) {
-          collapseHtmlFragment(val, tag).appendTo(rv);
+          appendFragmentTo(target, val, tag);
         }
         else // a literal value
-          rv.content += val;
+          target.content += val;
       };
   }
   else {
     if (ft !== undefined)
-      rv.content += escapeForTag(ft, tag);
+      target.content += escapeForTag(ft, tag);
   }
-  
-  return rv;
-}
+};
 
 function escapeForTag(s, tag) {
   switch(tag) {
@@ -174,6 +165,13 @@ function escapeForTag(s, tag) {
       return sanitize(String(s));
       break;
   }
+}
+
+function collapseHtmlFragment(ft, tag) {
+  if (isCollapsedFragment(ft)) return ft;
+  var rv = CollapsedFragment();
+  appendFragmentTo(rv, ft, tag);
+  return rv;
 }
 
 exports.collapseHtmlFragment = collapseHtmlFragment;
@@ -221,7 +219,7 @@ WidgetProto.appendTo = function(target) {
 WidgetProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
   // append inner contents (as well as adding this widget's styles, mechanisms, etc)
   if (this.content != null) {
-    collapseHtmlFragment(this.content, this.tag).appendTo(target);
+    appendFragmentTo(target, this.content, this.tag);
   }
 });
 
