@@ -291,7 +291,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
         var newUrl = "#{relativeURI}/";
         if (format.mandatory)
           newUrl += "!#{format.name}";
-        return req .. writeRedirectResponse(newUrl, 301); // moved permanently
+        return req .. writeRedirectResponse(newUrl, 302); // moved temporarily
       }
       // ... else
       var served = false;
