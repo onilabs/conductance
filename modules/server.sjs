@@ -412,10 +412,14 @@ PortProto.config = function(conf) {
   return this;
 };
 
+PortProto.getAddress = function() {
+  return (this.address == null ? '': this.address + ":") + String(this.port || 0);
+};
+
 PortProto.getConfig = function() {
   var sslConfig = this.sslConfig || {ssl:false};
   return merge(this.defaultConfig, this.config, sslConfig, {
-    address: (this.address == null ? '': this.address + ":") + String(this.port || 0),
+    address: this.getAddress(),
   });
 };
 

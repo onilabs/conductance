@@ -457,7 +457,8 @@ var install = function(opts) {
 				if (socket.Listen) {
 					var ports = socket.Listen;
 					delete socket.Listen;
-					socket.ListenStream = ports .. map(p -> p.address ? p.address : p);
+					if (!Array.isArray(ports)) ports = [ports];
+					socket.ListenStream = ports .. map(p -> p.getAddress ? p.getAddress() : p);
 				}
 				socketUnit.addSection('Socket', socket);
 				socketUnit.addSection('Install', { WantedBy: rootService.name });
