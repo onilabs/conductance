@@ -18,7 +18,7 @@ var string = require('sjs:string');
   @desc
     `config` should be a single object or array of objects. Each object should have the keys:
 
-    * address - a [::Port]
+    * address - a single [::Port] or array of [::Port]s
     * routes - an (optionally nested) Array of [::Responder]
       (i.e [::Route] or [::Host]) objects.
 
@@ -200,7 +200,7 @@ function findMatchingRoute(routes, req, path) {
     }
   });
   if (!route) {
-    req .. writeErrorResponse(400, 'No handler found');
+    req .. writeErrorResponse(404, 'No handler matched request');
   }
   return [route, matchResult];
 };
@@ -249,6 +249,18 @@ HostProto._init = func.seq(HostProto._init, function(hostName, routes) {
     // assume regexp
     this.matchesHost = (h) -> hostName.exec(h);
   }
+
+  if (logging.isEnabled(logging.DEBUG)) {
+    // augment matcher function with debug info
+    var orig = this.matchesHost;
+    this.matchesHost = function(host) {
+      var rv = orig.apply(this, arguments);
+      logging.debug("Host(#{hostName}) #{rv ? "matched" : "did not match"} host: #{host}");
+      return rv;
+    };
+  }
+
+  if (!Array.isArray(routes)) routes = [routes];
   this.routes = flatten(routes);
 });
 
@@ -268,21 +280,36 @@ HostProto._handle = function(req) {
 
 exports.Host = Constructor(HostProto);
 
+var stringMatchesPath = function(s) {
+  var match = [s];
+  match.index = 0;
+  match.input = s;
+  return function(path) {
+    if (path === s) {
+      return match;
+    }
+  }
+}
+
 var RouteProto = Object.create(Responder);
 RouteProto._init = func.seq(RouteProto._init, function(matcher, handlers) {
-  this.handlers = handlers;
+  if (arguments.length == 1) {
+    handlers = matcher;
+    matcher = null;
+  }
 
-  // set up `this.matchesPath() and this.`stripPath()`` based on type of matcher
+  this.handlers = handlers;
   if (matcher == null) {
-    this.matchesPath = -> true;
-    this.stripPath = p -> p.slice(1);
-  } else if (string.isString(matcher)) {
-    this.matchesPath = (p) -> p === matcher;
-    this.stripPath = (p) -> p.slice(matcher.length + 1);
+    matcher = /^/;
+  }
+  
+  // set up `this.matchesPath() based on type of matcher
+  // note that the return value should always look like a regexp match object
+  if (string.isString(matcher)) {
+    this.matchesPath = stringMatchesPath(matcher);
   } else {
     // assume regexp
     this.matchesPath = (p) -> matcher.exec(p);
-    this.stripPath = (p, matches) -> p.slice(matches.index + matches[0].length + 1);
   }
 
   if (logging.isEnabled(logging.DEBUG)) {
@@ -290,7 +317,7 @@ RouteProto._init = func.seq(RouteProto._init, function(matcher, handlers) {
     var orig = this.matchesPath;
     this.matchesPath = function(path) {
       var rv = orig.apply(this, arguments);
-      logging.debug("Route for #{matcher} #{rv ? "matched" : "did not match"} path #{path}");
+      logging.debug("Route(#{matcher}) #{rv ? "matched" : "did not match"} path: #{path}");
       return rv;
     };
   }
@@ -309,14 +336,12 @@ RouteProto._clone = function() {
   rv._initClone(this);
   rv._handle = this._handle;
   rv.matchesPath = this.matchesPath;
-  rv.stripPath = this.stripPath;
   rv.handlers = clone(this.handlers);
   return rv;
 }
 
 RouteProto._handleNested = function(req, pathMatches) {
-  // an array must consist of `Route` objects
-  var path = this.stripPath(req.url.path, pathMatches);
+  var path = pathMatches.input.slice(pathMatches.index + pathMatches[0].length);
   var [route, pathMatches] = findMatchingRoute(this.handlers, req, path);
   if (!route) return;
   route.handle(req, pathMatches);
@@ -324,11 +349,7 @@ RouteProto._handleNested = function(req, pathMatches) {
 
 RouteProto._handleDirect = function(req, pathMatches) {
   // check if there's a handler function for the given method:
-  var handler = this.handlers[req.request.method];
-  if (!handler) {
-    // try the generic "*" handler
-    handler = route.handler['*'];
-  }
+  var handler = this.handlers[req.request.method] || this.handlers['*'];
   if (!handler) {
     req.response.setHeader('Allow', keys(this.handlers) .. join(', '));
     req .. writeErrorResponse(405, 'Method not allowed');
@@ -339,22 +360,29 @@ RouteProto._handleDirect = function(req, pathMatches) {
 /**
   @class Route
   @function Route
-  @param {RexExp|String} [path] Path to match
+  @param {optional RexExp|String} [path] Path to match
   @param {Object|Array} [handlers] handler object or array of sub-routes
   @desc
     **Note**: `path` is matched against the request path, *without* the leading slash.
     So to handle a HTTP request for "/foo/bar", you would use
     `Route(/^foo\/bar$/, ...)` or `Route("foo/bar", ...)`
 
+    A `null` or missing `path` parameter is treated as if it were `/^/`
+    (i.e match any path and consume nothing).
+
     If `handlers` is an array, it must contain only [::Route] objects. If `path`
     matches a request's path, the matched portion will be removed and the remaining
     path will be used to find the appropriate sub-route.
 
     If `handlers` is not an Array, it should be an object with a property for each
-    supported HTTP request type. Keys should be a function which will be called with
-    `req` (a [::TODO]) and `matches` (the result of `path.exec(requestPath)`) if `path`
-    is a regular expression. The `"*"` property may be used to handle all other
-    HTTP methods.
+    supported HTTP request type. The `"*"` property may be used to handle methods
+    that aren't explicitly mentioned.
+
+    Each property value of `handlers` should be a function which will be called with
+    `req` (a [::TODO]) and `matches`, which is the result of `path.exec(requestPath)`
+    when `path` is a regular expression. If `path` is a string, then `match` is
+    the match object you would get if `path` were `new RegExp(/^#{regexp.escape(path)}$/)`
+    (i.e a RegExp matching the exact `path` string).
 
     ### Example:
 
