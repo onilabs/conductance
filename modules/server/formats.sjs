@@ -1,6 +1,7 @@
 var { conductanceVersion } = require('./env');
 var { pump, readAll } = require('sjs:nodejs/stream');
-var { map, toArray } = require('sjs:sequence');
+var { map, each, toArray } = require('sjs:sequence');
+var { clone, merge, ownPropertyPairs } = require('sjs:object');
 var logging = require('sjs:logging');
 
 // XXX this should be configurable separately somewhere
@@ -79,7 +80,7 @@ function gen_moduledocs_html(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates import sjs for an api:
 function apiimport(src, dest, aux) {
-  if (!aux.apiid) 
+  if (!aux.apiid)
     throw new Error("API access not enabled");
   dest.write("\
 var bridge = require('mho:rpc/bridge');
@@ -97,7 +98,11 @@ function gen_markdown_html(src, dest, aux) {
 
 //----------------------------------------------------------------------
 
-var BaseFileFormatMap = {
+/**
+  @variable StaticFormatMap
+  @summary a format map appropriate for serving untrusted, static files.
+*/
+exports.StaticFormatMap = {
   "/"  : { none : { mime: "text/html",
                     filter: gen_dir_html
                   },
@@ -112,23 +117,8 @@ var BaseFileFormatMap = {
          },
   json : { none : { mime: "application/json" },
            src  : { mime: "text/plain" },
-           jsonp: { mime: "text/javascript",
-                    filter: json2jsonp }
          },
-  sjs  : { none     : { mime: "text/html",
-                        filter: gen_moduledocs_html
-                      }, 
-           compiled : { mime: "text/plain",
-                        filter: sjscompile,
-                        // filterETag() returns a tag that will be added onto 
-                        // the base file's modification date to derive an etag for
-                        // the filtered file.
-                        filterETag: -> conductanceVersion(),
-                        // cache is an lru-cache object which caches requests to filtered
-                        // files (requires presence of filterETag() ):
-                        cache: SJSCache
-                      },
-           src      : { mime: "text/plain" },
+  sjs  : { none : { mime: "text/plain", },
          },
   xml  : { none : { mime: "text/xml" },
            src  : { mime: "text/plain" }
@@ -142,26 +132,97 @@ var BaseFileFormatMap = {
          },
   "*"  : { none : { /* serve without mimetype */ }
          },
-  app  : { none     : { mime: "text/html",
+  app  : { none : { mime: "text/plain" } },
+  api  : { none : { mime: "text/plain" } },
+  md   : { none : { mime: "text/plain" } },
+};
+
+// TODO: export this?
+var withFormats = function(map, extensions) {
+  var rv = clone(map);
+  extensions .. ownPropertyPairs .. each {|[extension, formats]|
+    rv[extension] = merge(rv[extension], formats);
+  }
+  return rv;
+}
+
+/**
+  @function Code
+  @summary return a copy of `base` with mappings for serving application code
+  @desc
+    This function enables:
+     - server-side compilation of .sjs files
+     - serving .sjs files as HTML module documentation content
+*/
+var Code = (base) -> base
+  .. withFormats({
+    sjs: { none     : { mime: "text/html",
+                        filter: gen_moduledocs_html
+                      },
+           compiled : { mime: "text/plain",
+                        filter: sjscompile,
+                        // filterETag() returns a tag that will be added onto
+                        // the base file's modification date to derive an etag for
+                        // the filtered file.
+                        filterETag: -> conductanceVersion(),
+                        // cache is an lru-cache object which caches requests to filtered
+                        // files (requires presence of filterETag() ):
+                        cache: SJSCache
+                      },
+           src      : { mime: "text/plain" },
+         },
+  });
+exports.Code = Code;
+
+/**
+  @function Jsonp
+  @summary return a copy of `base` with mappings for serving JSON files via jsonp
+*/
+var Jsonp = (base) -> base
+  .. withFormats({
+    json: {
+      jsonp    : { mime: "text/javascript", filter: json2jsonp }
+    }
+  });
+exports.Jsonp = Jsonp;
+
+
+/**
+  @function Executable
+  @summary return a copy of `base` with mappings for serving trusted files
+  @desc
+    Adds:
+       - .api, for SJS modules that are run only on the server and exported to the client
+       - .app, as SJS apps executed on the client
+       - .md, for rendering as HTML
+
+    Note that the source of .api files is accessible via the `src` format.
+
+    You should never use these filters for locations containing untrusted or
+    user-submitted content, as they enable arbitrary code execution on the server.
+*/
+//TODO: should we enable blocking of server-side source code?
+var Executable = (base) -> base
+  .. withFormats({
+    api      : { none : { mime: "text/plain",
+                          filter: apiimport
+                        },
+                 src  : { mime: "text/plain" }
+               },
+    md       : { none : { mime: "text/html",
+                          filter: gen_markdown_html
+                        },
+                 src  : { mime: "text/plain" },
+    },
+    app    : { none : { mime: "text/html",
                         filter: gen_app_html
                       },
-           sjs      : { mime: "text/plain",
+               sjs  : { mime: "text/plain",
                         filter: sjscompile,
                         filterETag: -> conductanceVersion(),
                         cache: SJSCache
                       },
-           src      : { mime: "text/plain" }
-         },
-  api  : { none     : { mime: "text/plain",
-                        filter: apiimport
-                      },
-           src      : { mime: "text/plain" }
-         },
-  md   : { none     : { mime: "text/html",
-                        filter: gen_markdown_html
-                      }, 
-           src      : { mime: "text/plain" },
-         },
-
-};
-exports.BaseFileFormatMap = BaseFileFormatMap;
+               src  : { mime: "text/plain" }
+             },
+  });
+exports.Executable = Executable;

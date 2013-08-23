@@ -62,27 +62,39 @@ exports.SimpleRedirect = SimpleRedirect;
 
 //----------------------------------------------------------------------
 
-function ExecutableDirectory(path, root) {
-  if (arguments.length == 1) {
-    root = path;
-    path = /^/;
-  } else {
-    if (isString(path)) path = new RegExp("^#{require('sjs:regexp').escape(path)}");
-  }
-  return Route(path, require('./file-server').MappedDirectoryHandler(root));
-}
-exports.ExecutableDirectory = ExecutableDirectory;
+var formats = require('./formats');
 
-function StaticDirectory(path, root) {
-  // TODO...
-}
-exports.StaticDirectory = StaticDirectory;
+function createDirectoryMapper(settings) {
+  return function(path, root) {
+    if (arguments.length == 1) {
+      root = path;
+      path = /^/;
+    } else {
+      if (isString(path)) path = new RegExp("^#{require('sjs:regexp').escape(path)}");
+    }
+
+    return Route(path, require('./file-server').MappedDirectoryHandler(root, settings));
+  }
+};
+
+var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
+  allowGenerators: true,
+  allowApis:       true,
+  formats: formats.StaticFormatMap .. formats.Code() .. formats.Executable(),
+});
+
+var CodeDirectory = exports.CodeDirectory = createDirectoryMapper({
+  formats: formats.StaticFormatMap .. formats.Code(),
+});
+
+exports.StaticDirectory = createDirectoryMapper({});
+
 
 //----------------------------------------------------------------------
 
 function SystemRoutes() {
   return [
-    ExecutableDirectory('__sjs/', "#{sjsRoot()}"),
+    CodeDirectory('__sjs/', "#{sjsRoot()}"),
     ExecutableDirectory('__mho/', "#{conductanceRoot()}modules/"),
     Route(
       /^__aat_bridge\/(2)$/,

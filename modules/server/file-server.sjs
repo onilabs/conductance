@@ -6,7 +6,7 @@ var logging = require('sjs:logging');
 var { override } = require('sjs:object');
 var { each, any } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
-var { BaseFileFormatMap } = require('./formats');
+var { StaticFormatMap } = require('./formats');
 var { setStatus, writeRedirectResponse, writeErrorResponse } = require('./response');
 
 //----------------------------------------------------------------------
@@ -262,17 +262,23 @@ function generateFile(req, filePath, format, settings) {
 // - Can handle 'GET' or 'HEAD' requests
 exports.MappedDirectoryHandler = function(root, settings) {
 
+  // NOTE: these settings MUST be safe by default, suitable for
+  // serving untrusted files.
+  // ExecutableDirectory and CodeDirectory will selectively enable more dynamic
+  // (and less safe) behaviour.
+  
   settings = { mapIndexToDir:   true,
                allowDirListing: true,
-               allowGenerators: true,
-               allowApis:       true,
-               formats: BaseFileFormatMap,
+               allowGenerators: false,
+               allowApis:       false,
+               formats: StaticFormatMap,
              } ..
     override(settings || {});
 
   function handler_func(req, matches) {
-    var [relativeURI, format] = (matches[1] !== undefined ? matches[1] : matches.input.slice(matches.index + matches[0].length)).split('!');
-    var relativePath = decodeURIComponent(relativeURI);
+    var relativeURI = req.url.path;
+    var [relativePath, format] = matches.input.slice(matches.index + matches[0].length).split('!');
+    var relativePath = decodeURIComponent(relativePath);
 
     if (format !== undefined)
       format = { name: format, mandatory: true };
@@ -285,7 +291,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
       file = file.replace(/\\/g, '/');
 
     if (fs.isDirectory(file)) {
-      if (relativeURI && file[file.length-1] != '/') {
+      if (relativeURI && relativeURI[relativeURI.length-1] != '/') {
         // Make sure we have a canonical url with '/' at the
         // end. Otherwise relative links will break.
         var newUrl = "#{relativeURI}/";
