@@ -3,6 +3,7 @@ var path = require('nodejs:path');
 var fs = require('sjs:nodejs/fs');
 var env = require('./env');
 var logging = require('sjs:logging');
+/** @nodoc */
 
 exports.loadConfig = function(path) {
   var configfile = path || exports.defaultConfig();

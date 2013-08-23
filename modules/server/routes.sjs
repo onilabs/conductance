@@ -11,7 +11,7 @@ var logging = require('sjs:logging');
 //----------------------------------------------------------------------
 
 /**
-  @func AllowCORS
+  @function AllowCORS
   @param {../server::Responder|Array} [responder]
   @param {Settings} [options]
   @setting {String} [origins] Access-Control-Allow-Origin value
@@ -116,7 +116,7 @@ exports.SystemRoutes = SystemRoutes;
 
 
 /**
-  @func SetHeaders
+  @function SetHeaders
   @altsyntax responder .. SetHeaders(headers)
   @param {../server::Responder|Array} [responder]
   @param {Object} [headers]
@@ -139,7 +139,7 @@ exports.SetHeaders = function(responder, headers) {
 };
 
 /**
-  @func SetHeader
+  @function SetHeader
   @altsyntax responder .. SetHeader(headerName, value)
   @param {../server::Responder|Array} [responder]
   @param {String} [headerName]
@@ -157,7 +157,7 @@ exports.SetHeader = function(responder, k, v) {
 
 
 /**
-  @func LogRequests
+  @function LogRequests
   @param {Object} [headers]
   @param {../server::Responder|Array} [responder]
   @return A copy of `responder` which logs request boundaries at the given log level
@@ -175,7 +175,7 @@ exports.LogRequests = function(responder, level) {
 };
 
 /**
-  @func Filter
+  @function Filter
   @summary Add a filter function to the given route(s) or host(s)
   @param {../server::Responder|Array} [responder]
   @param {Function} [func] The filter to add
