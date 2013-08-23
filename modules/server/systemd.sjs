@@ -4,12 +4,12 @@ var fs = require('sjs:nodejs/fs');
 var child_process = require('sjs:nodejs/child-process');
 var path = require('nodejs:path');
 var seq  = require('sjs:sequence');
-var { concat, each, map, toArray, filter, find } = seq;
+var { concat, each, map, toArray, filter, find, any, join } = seq;
 var string = require('sjs:string');
 var array = require('sjs:array');
 var { isArrayLike } = array;
 var object = require('sjs:object');
-var { ownKeys, ownPropertyPairs, merge } = object;
+var { ownKeys, ownValues, hasOwn, ownPropertyPairs, merge } = object;
 var shell_quote = require('sjs:shell-quote');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
@@ -32,6 +32,48 @@ GroupProto._init = function(name, units) {
 	this.name = name;
 	this.units = units;
 };
+
+/**
+  @class Group
+  @function Group
+  @param {optional String} [name]
+  @default "conductance"
+  @param {Object} [units]
+  @desc
+    Creates a group of systemd services.
+
+    The keys from `units` become the systemd target names (prefixed by the group name).
+    The values of `units will be turned into sytemd units.
+
+    ### Example:
+
+        var { Group, conductanceArgs } = require('mho:server/systemd');
+        exports.systemd = Group("my-app",
+          {
+            main: {
+              Service: {
+                Restart: 'always',
+                User: 'myapp',
+                Group: 'myapp',
+                Environment: [
+                  'NODE_ENV=production',
+                ],
+                'ExecStart': [process.execPath, "#{conductanceRoot()}/conductance", 'run', "#{configFile}"],
+              },
+              // use socket activation
+              Socket: {
+                Listen: address,
+              },
+
+    
+
+
+    The systemd units are generated with the following rules:
+  
+
+
+
+*/
 var Group = exports.Group = function(name, units) {
 	var rv = Object.create(GroupProto);
 	if (arguments.length < 2) {
@@ -57,7 +99,7 @@ var parseArgs = function(command, options, args) {
 	var parser = dashdash.createParser({ options: options });
 	var opts = parser.parse(args);
 	if (opts.help) {
-		logging.error("Usage: gen-systemd #{command} [OPTIONS]\nOPTIONS:\n#{parser.help()}");
+		logging.error("Usage: conductance systemd #{command} [OPTIONS]\nOPTIONS:\n#{parser.help()}");
 		throw new Error();
 	}
 	if (!opts.dest) {
@@ -89,7 +131,7 @@ var run_systemctl = function(opts, args) {
  */
 var SystemCtl = function(opts) {
 	this.opts = opts;
-	this.mainTarget = "#{opts.namespace}.target";
+	this.mainTargets = opts.groups .. map(name -> "#{name}.target");
 };
 
 SystemCtl.prototype._run = function(args, opts, quiet) {
@@ -172,15 +214,16 @@ SystemCtl.prototype._unitProperties = function(unit, propertyNames) {
 
 SystemCtl.prototype._runningUnits = function() {
 	var output = this._run_output(['list-units', '--no-legend', '--no-pager', '--full']);
-
-	var namespace = this.opts.namespace;
-	var units = output.split('\n')
-		.. filter(line -> line.trim())
-		.. map (function(line) {
+	output = output.split('\n')
+	.. filter(line -> line.trim())
+	.. map (function(line) {
 			return line.trim().split(/\s/)[0];
-		})
-		.. filter(name -> name .. string.startsWith(namespace))
-		.. toArray;
+		});
+
+	var units = this.opts.groups .. transform(function(namespace) {
+		return output
+		.. filter(name -> name .. string.startsWith(namespace));
+	}) .. concat .. toArray;
 	logging.debug("Currently running unit names: ", units);
 	return units;
 };
@@ -231,18 +274,22 @@ var ensureDir = function(dir) {
 
 /**
  * Return a list of all installed units
- * under the given namespace.
+ * under the given groups.
  */
 var installedUnits = function(opts, exclude) {
 	var base = opts.dest;
-	var namespace = opts.namespace;
 	exclude = (exclude || []) .. map(u -> u.name);
 
 	var unit_files = fs.readdir(base);
-	logging.debug("unit files:", unit_files);
+	logging.debug("existing unit files:", unit_files);
 	var conductanceFlagRe = new RegExp("^#{CONDUCTANCE_FLAG} *= *true", "m")
 	var is_conductance = function(target) {
-		if(target .. string.startsWith("#{namespace}-") || target == "#{namespace}.target") {
+		var validName = (
+			opts.groups .. any((namespace)
+				-> target .. string.startsWith("#{namespace}-")
+				|| target == "#{namespace}.target"));
+
+		if(validName) {
 			var contents = fs.readFile(path.join(base, target)).toString();
 			if (conductanceFlagRe.test(contents)) {
 				return true;
@@ -272,11 +319,12 @@ var chdir = function(dir, block) {
 
 var uninstallExistingUnits = function(opts, exclude) {
 	var old_units = installedUnits(opts, exclude);
-	logging.debug("old unit files:", old_units);
+	var oldUnitNames = old_units .. map(u -> u.name);
+	logging.debug("old unit files:", oldUnitNames);
 	if (old_units.length > 0) {
 		logging.print(
-			["Uninstalling #{old_units.length} #{opts.namespace} units from #{opts.dest}:"]
-			.concat(old_units .. map(u -> u.name)).join("\n - "));
+			["Uninstalling #{old_units.length} #{opts.groups .. join(",")} units from #{opts.dest}:"]
+			.concat(oldUnitNames).join("\n - "));
 		confirm(opts);
 		var unitNames = old_units .. map(u -> u.name);
 		var ctl = new SystemCtl(opts);
@@ -376,31 +424,33 @@ var install = function(opts) {
 		logging.warn("Using default config: #{configFiles[0]}");
 	}
 
-	var namespace = opts.namespace;
-	var units = [];
-
-	var rootService = mkunit("#{namespace}.target");
-	rootService.addSection('Unit', { Description: "Oni Conductance target" });
-	rootService.addSection('Install', { WantedBy: "multi-user.target" });
-	units.push(rootService);
+	var namespaces = {};
+	var addUnit = function(namespace, unit) {
+		if (!namespaces .. hasOwn(namespace)) {
+			namespaces[namespace] = [];
+		}
+		namespaces[namespace].push(unit);
+	};
 
 	configFiles .. each {|configPath|
 		var config = conductance.loadConfig(configPath);
-		var systemd = config.systemd;
-		if (!systemd) {
+		var group = config.systemd;
+		if (!group) {
 			fail("No systemd config for #{configPath}");
 		}
 		
 		// allow lazy definitions
-		if (systemd instanceof(Function)) systemd = systemd();
+		if (group instanceof(Function)) group = group();
 
-		if (!GroupProto.isPrototypeOf(systemd)) {
+		if (!GroupProto.isPrototypeOf(group)) {
 			logging.warn("Deprecation warning: exports.systemd should be a systemd.Group");
-			systemd = exports.Group(systemd);
+			group = exports.Group(group);
 		}
-		//TODO: respect systemd.group keys, and remove `namespace` option
 
-		systemd.units .. ownPropertyPairs .. each {|[name, sys]|
+		var namespace = group.name;
+		var groupTarget = "#{namespace}.target";
+
+		group.units .. ownPropertyPairs .. each {|[name, sys]|
 			var fqn = "#{namespace}-#{name}"
 			var serviceUnit = mkunit("#{fqn}.service");
 			var service = sys.Service || {};
@@ -409,7 +459,7 @@ var install = function(opts) {
 			var socketUnit = socket ? mkunit("#{fqn}.socket") : null;
 
 			// -- Service --
-			var requires = [rootService.name];
+			var requires = [];
 			if (socketUnit) requires.push(socketUnit.name);
 			serviceUnit.addSection('Unit', {
 				'X-Conductance-Source': env.configPath(),
@@ -443,14 +493,14 @@ var install = function(opts) {
 			// -- Service Install --
 			var defaults = {};
 			if (!socketUnit) {
-				defaults['WantedBy'] = rootService.name;
+				defaults['WantedBy'] = groupTarget;
 			}
 			var install = object.merge(defaults, sys.Install || {});
 			serviceUnit.addSection('Install', install);
-			units.push(serviceUnit);
+			addUnit(namespace, serviceUnit);
 
 			if (socket) {
-				socketUnit.addSection('Unit', { 'Requires': rootService.name });
+				socketUnit.addSection('Unit', { 'Requires': groupTarget });
 				socket = object.clone(socket);
 				// socket.listen is intended for `ports` style objects, we move it to socket.ListenStream
 				// after processing
@@ -461,24 +511,38 @@ var install = function(opts) {
 					socket.ListenStream = ports .. map(p -> p.getAddress ? p.getAddress() : p);
 				}
 				socketUnit.addSection('Socket', socket);
-				socketUnit.addSection('Install', { WantedBy: rootService.name });
-				units.push(socketUnit);
+				socketUnit.addSection('Install', { WantedBy: groupTarget });
+				addUnit(namespace, socketUnit);
 			}
 		}
 	}
 
-	var unitNames = units .. map(u -> u.name) .. seq.sort();
+
+	opts.groups = namespaces .. ownKeys .. toArray;
+	// add one root target per namespace
+	namespaces .. ownPropertyPairs .. each {|[namespace, units]|
+		var rootService = mkunit("#{namespace}.target");
+		rootService.addSection('Unit', { Description: "Oni Conductance target" });
+		rootService.addSection('Install', { WantedBy: "multi-user.target" });
+		units.push(rootService);
+	}
+
+	// combine units from all namespaces
+	var allUnits = namespaces .. ownValues .. concat .. toArray;
+
+	// check for duplicates
+	var unitNames = allUnits .. map(u -> u.name) .. seq.sort();
 
 	var firstDupe = firstDuplicate(unitNames);
 	if (firstDupe !== null) {
 		fail("Duplicate unit file detected (#{firstDupe}) - no files written");
 	}
 
-	uninstallExistingUnits(opts, units);
+	uninstallExistingUnits(opts, allUnits);
 
 	logging.info(["Installing:"].concat(unitNames).join("\n - "));
 	confirm(opts);
-	units .. each {|unit|
+	allUnits .. each {|unit|
 		unit.write();
 	}
 
@@ -490,10 +554,10 @@ var install = function(opts) {
 
 	if (opts.no_restart) {
 		logging.info("Starting new services ...");
-		ctl.start([rootService.name]);
+		ctl.start(ctl.mainTargets);
 	} else {
 		logging.info("Restarting services ...");
-		ctl.restart([rootService.name]);
+		ctl.restart(ctl.mainTargets);
 	}
 }
 
@@ -503,12 +567,6 @@ exports.main = function(args) {
 				name: 'dest',
 				type: 'string',
 				help: 'Override default systemd unit location',
-			},
-			{
-				names: ['namespace','n'],
-				type: 'string',
-				help: 'Namespace (used to separate multiple conductance-powered services, default "conductance")',
-				'default': 'conductance',
 			},
 			{
 				names: ['verbose','v'],
@@ -534,9 +592,19 @@ exports.main = function(args) {
 		},
 	];
 
+	var groupOptions = [
+		{
+			names: ['group','g'],
+			type: 'arrayOfString',
+			help: "Specify group to act on (if not given, the default of \"#{DEFAULT_GROUP}\" is used)",
+			'default': [],
+		},
+	]
+
 	if (!args) args = require("sjs:sys").argv();
 	var command = args.shift();
-	var options = commonOptions;
+	// everything but `install` uses groupOptions, so we include it in the default set
+	var options = [commonOptions, groupOptions] .. concat .. toArray;
 	var action;
 	switch(command) {
 		case "install":
@@ -544,13 +612,13 @@ exports.main = function(args) {
 			action = install;
 			break;
 		case "uninstall":
-			options = commonOptions.concat(commonInstallOptions.concat([
+			options = [commonOptions, commonInstallOptions, groupOptions, [
 				{
 					name: 'force',
 					type: 'bool',
 					help: "Remove config files even if services can't be stopped",
 				}
-			]));
+			]] .. concat .. toArray;
 			action = uninstall;
 			break;
 
@@ -577,7 +645,7 @@ exports.main = function(args) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
-				ctl.restart([ctl.mainTarget]);
+				ctl.restart(ctl.mainTargets);
 			};
 			break;
 
@@ -585,7 +653,7 @@ exports.main = function(args) {
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
-				ctl.stop([ctl.mainTarget]);
+				ctl.stop(ctl.mainTargets);
 			};
 			break;
 
@@ -594,7 +662,7 @@ exports.main = function(args) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
-				ctl.start([ctl.mainTarget]);
+				ctl.start(ctl.mainTargets);
 			};
 			break;
 
@@ -623,15 +691,19 @@ Commands:
                 Also removes previously-installed units that are
                 no longer defined.
 
-    uninstall:  Remove all currently installed conductance units.
+    uninstall:  Remove all currently installed conductance units in
+                the given group(s).
 
   SERVICE ACTIONS:
-    list:       List installed conductance units.
-    start:      Start conductance target (noop if already running).
-    stop:       Stop conductance units.
-    restart:    Restart conductance units.
-    status:     Run systemctl status on conductance units.
-    log:        Run journalctl on conductance units.
+    list:       List installed conductance units in the given group(s).
+    start:      Start conductance group(s) (noop if already running).
+    stop:       Stop conductance group(s).
+    restart:    Restart conductance group(s).
+    status:     Run systemctl status on conductance group(s).
+    log:        Run journalctl on conductance group(s).
+
+  Actions that act on group(s) accept `--group/-g` multiple times,
+  and default to #{DEFAULT_GROUP} if no groups are specified.
 
 Global options:\n#{dashdash.createParser({ options: commonOptions }).help({indent:2})}
 
@@ -639,6 +711,12 @@ Pass `--help` after a valid command to show command-specific help.");
 			break;
 	}
 	var opts = parseArgs(command, options, args);
+	if (opts.group && opts.group.length === 0) {
+		opts.groups = [DEFAULT_GROUP];
+	} else {
+		opts.groups = opts.group;
+		delete opts.group;
+	}
 	action(opts);
 }
 
