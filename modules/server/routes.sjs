@@ -62,7 +62,7 @@ exports.SimpleRedirect = SimpleRedirect;
 
 //----------------------------------------------------------------------
 
-function DynamicDirectory(path, root) {
+function ExecutableDirectory(path, root) {
   if (arguments.length == 1) {
     root = path;
     path = /^/;
@@ -71,7 +71,7 @@ function DynamicDirectory(path, root) {
   }
   return Route(path, require('./file-server').MappedDirectoryHandler(root));
 }
-exports.DynamicDirectory = DynamicDirectory;
+exports.ExecutableDirectory = ExecutableDirectory;
 
 function StaticDirectory(path, root) {
   // TODO...
@@ -82,8 +82,8 @@ exports.StaticDirectory = StaticDirectory;
 
 function SystemRoutes() {
   return [
-    DynamicDirectory('__sjs/', "#{sjsRoot()}"),
-    DynamicDirectory('__mho/', "#{conductanceRoot()}modules/"),
+    ExecutableDirectory('__sjs/', "#{sjsRoot()}"),
+    ExecutableDirectory('__mho/', "#{conductanceRoot()}modules/"),
     Route(
       /^__aat_bridge\/(2)$/,
       require('mho:rpc/aat-server').createTransportHandler(
