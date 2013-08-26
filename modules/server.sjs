@@ -110,6 +110,7 @@ exports.run = function(config, block) {
   function runApp(app) {
     var port_config = app.address.getConfig();
     logging.debug("server config: ", port_config);
+    var routes = flatten(app.routes);
 
     // run a http(s) server on the port:
     http.withServer(port_config) {
@@ -130,7 +131,7 @@ exports.run = function(config, block) {
           // execute handler function:
           try {
             var matchResult;
-            var [route, matchResult] = findMatchingRoute(app.routes, req);
+            var [route, matchResult] = findMatchingRoute(routes, req);
             if (!route) continue;
             route.handle(req, matchResult);
           }
