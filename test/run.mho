@@ -1,36 +1,25 @@
 #!/usr/bin/env conductance
 
-var { StandardSystemRoutes,
-      MappedDirectoryRoute,
-      SimpleRedirectRoute
+var { SystemRoutes,
+      ExecutableDirectory,
     } = require('mho:server/routes');
+var { Port } = require('mho:server');
 
 //----------------------------------------------------------------------
 // Array of ports that conductance will listen on:
 
-var config = {
-  ports: [{
-    name: 'insecure',  // name by which port will be referenced
-    address:'7078', // address of form 'port' or 'host:port'. If no 'host' is given,
-                      // conductance will listen on all interfaces
-  }],
-
-  hosts: [{
-    hostname: /^.*$/,
-    routes: [
-      // StandardSystemRoutes maps stratifiedjs/ to __sjs & modules to __mho,
-      // installs a bridge-over-aat handler at __aat_bridge, and a
-      // keyhole server at __keyhole
-      StandardSystemRoutes(),
-      MappedDirectoryRoute(/^(\/.*)$/, process.cwd()),
-    ]
-  }],
+var serverConfig = {
+  address: Port(7078),
+  routes: [
+    SystemRoutes(),
+    ExecutableDirectory(process.cwd()),
+  ]
 };
 
 exports.run = function() {
   var helper = require('./helper');
   if (arguments.length == 0) {
-    return require('mho:server').run(config);
+    return require('mho:server').run(serverConfig);
   }
   var cutil = require('sjs:cutil');
   var string = require('sjs:string');
@@ -40,7 +29,7 @@ exports.run = function() {
   var serverRunning = false, cleanup = -> null;
   var startServer = function() {
     serverRunning = true;
-    var ctx = cutil.breaking(brk -> helper.serve(config, brk));
+    var ctx = cutil.breaking(brk -> helper.serve(serverConfig, brk));
     cleanup = ctx.resume;
   };
 

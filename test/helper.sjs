@@ -10,7 +10,7 @@ exports.setHost = h -> host = h;
 exports.url = u -> Url.normalize(u, host);
 
 exports.serve = function(config, block) {
-  var port = config.ports[0].address;
+  var port = config.address.port;
   var base_url = 'http://localhost:' + port + '/';
   exports.setHost(base_url);
 
