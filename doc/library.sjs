@@ -114,7 +114,7 @@ Library.prototype.loadFile = function(path) {
 };
 
 Library.prototype.loadModuleDocs = function(path) {
-	path = path .. join("");
+	path = path ? path .. join("") : '/';
 	if (!this.moduleCache .. hasOwn(path)) {
 		var docs;
 		if (path .. str.endsWith('/')) {

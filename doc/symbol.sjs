@@ -1,9 +1,10 @@
 var seq = require('sjs:sequence');
-var {each, join, at, toArray} = seq;
+var {each, join, at, toArray, map, sortBy} = seq;
 var assert = require('sjs:assert');
 var array = require('sjs:array');
 var Library = require('./library');
 var logging = require('sjs:logging');
+var {ownValues, pairsToObject} = require('sjs:object');
 
 var ui = require('./ui');
 
@@ -90,6 +91,18 @@ UnresolvedSymbol.prototype.parentLinks = function() {
 	}
 	return rv;
 };
+
+var RootSymbol = exports.RootSymbol = function(libraries) {
+	this.libraries = libraries;
+};
+
+RootSymbol.prototype.parentLinks = -> [];
+RootSymbol.prototype.skeletonDocs = function() {
+	return {
+		children: this.libraries.get() .. ownValues .. map(lib -> [lib.name, {type: 'lib'}]) .. pairsToObject
+	}
+};
+RootSymbol.prototype.childLink = (name) -> [name, name];
 
 
 exports.resolveLink = function(link, libraries) {

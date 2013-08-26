@@ -9,7 +9,7 @@ var events = require('sjs:events');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
 var Url = require('sjs:url');
-var {merge, ownPropertyPairs} = require('sjs:object');
+var {merge, ownValues, ownPropertyPairs} = require('sjs:object');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
@@ -72,13 +72,15 @@ exports.renderer = function(libraries) {
 	function markup(text, symbol) {
 		if (!text) return undefined;
 		logging.debug("Rendering: ", text);
-		// try to linkify everything that looks like a doc reference
-		text = text.replace(/\[([^ \]]+)\](?![\[\(])/g, function(orig, dest) {
-			var resolved = resolveLink(dest, symbol);
-			if (!resolved) return orig;
-			var [link, dest] = resolved;
-			return "[#{dest}](##{link})";
-		});
+		if (symbol) {
+			// try to linkify everything that looks like a doc reference
+			text = text.replace(/\[([^ \]]+)\](?![\[\(])/g, function(orig, dest) {
+				var resolved = resolveLink(dest, symbol);
+				if (!resolved) return orig;
+				var [link, dest] = resolved;
+				return "[#{dest}](##{link})";
+			});
+		}
 		return Quasi([Marked.convert(text)]);
 	}
 
@@ -326,13 +328,6 @@ exports.renderer = function(libraries) {
 		);
 	};
 
-	function makeJSONView(docs, symbol) {
-		// TODO: remove this function
-		if (symbol)
-			docs = docs .. merge({modulePath: symbol.modulePath, symbolPath: symbol.symbolPath});
-		return Widget("pre", JSON.stringify(docs, null, '  '));
-	};
-
 	function makeModuleView(docs, symbol) {
 		var rv = [];
 		rv.push(`<h2>The ${symbol.modulePath} module</h2>`);
@@ -373,11 +368,15 @@ exports.renderer = function(libraries) {
 	};
 
 	function makeRootView() {
-		return makeJSONView(libraries);
-	};
-
-	function makeRootIndex() {
-		return makeJSONView(libraries);
+		var rv = [];
+		rv.push(Widget("h1", "Available libraries:"));
+		rv.push(Widget("dl", libraries.get() .. ownValues .. sortBy(v -> v.name) .. map(function(lib) {
+			return [
+				Widget("dt", `<a href="#${lib.name}">${lib.name}</a>`),
+				Widget("dd", markup(lib.loadModuleDocs().summary))
+			];
+		})));
+		return rv;
 	};
 
 	var centerView = Mechanism {|elem|
@@ -407,10 +406,8 @@ exports.renderer = function(libraries) {
 	};
 
 	function makeIndexView(parent, symbol) {
-		if (parent === null) {
-			return makeRootIndex();
-		}
 		var ancestors = parent.parentLinks();
+		ancestors.unshift(['', `&#x21aa;`]);
 		var links = listChildren(parent, symbol);
 		links = ancestors .. reverse .. reduce(links, function(children, [href, name]) {
 			return Widget("li", [Widget("a", name, {href: '#' + href}), Widget("ul", children)]);
@@ -440,8 +437,10 @@ exports.renderer = function(libraries) {
 		},
 
 		renderSidebar: function(symbol) {
-			if (symbol === null) return undefined;
-			var parent = symbol.parent();
+			var parent = symbol ? symbol.parent() : null;
+			if (!parent) {
+				parent = new (require('./symbol').RootSymbol)(libraries);
+			}
 			var view = makeIndexView(parent, symbol);
 			return Widget("div", view, {"id":"sidebar"});
 		},
