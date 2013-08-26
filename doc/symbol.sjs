@@ -4,11 +4,12 @@ var assert = require('sjs:assert');
 var array = require('sjs:array');
 var Library = require('./library');
 var logging = require('sjs:logging');
-var {ownValues, pairsToObject} = require('sjs:object');
+var {ownValues, pairsToObject, ownPropertyPairs} = require('sjs:object');
 
 var ui = require('./ui');
 
-var Symbol = exports.Symbol = function(library, modulePath, symbolPath) {
+var Symbol = exports.Symbol = function(libraries, library, modulePath, symbolPath) {
+	this.libraries = libraries;
 	this.library = library;
 	this.className = symbolPath.length == 2 ? symbolPath[0];
 	this.modulePath = modulePath;
@@ -16,6 +17,11 @@ var Symbol = exports.Symbol = function(library, modulePath, symbolPath) {
 	this.path = seq.concat([this.library.name], this.modulePath, this.symbolPath) .. toArray;
 	this.name = this.path .. at(-1);
 };
+
+// construct an instance for a symbol in the same library
+Symbol.prototype._new = function(modulePath, symbolPath) {
+	return new Symbol(this.libraries, this.library, modulePath, symbolPath);
+}
 
 Symbol.prototype.docs = function() {
 	ui.LOADING.block { ||
@@ -31,13 +37,14 @@ Symbol.prototype.skeletonDocs = function() {
 	}
 };
 
+
 Symbol.prototype.parent = function() {
 	if (this.symbolPath.length) {
-		return new Symbol(this.library, this.modulePath, this.symbolPath.slice(0,-1));
+		return this._new(this.modulePath, this.symbolPath.slice(0,-1));
 	} else if (this.modulePath.length) {
-		return new Symbol(this.library, this.modulePath.slice(0,-1), []);
+		return this._new(this.modulePath.slice(0,-1), []);
 	}
-	return null;
+	return new RootSymbol(this.libraries);
 };
 
 Symbol.prototype.moduleLink = function() {
@@ -96,6 +103,17 @@ var RootSymbol = exports.RootSymbol = function(libraries) {
 	this.libraries = libraries;
 };
 
+RootSymbol.prototype.parent = -> null;
+RootSymbol.prototype.docs = function() {
+	var rv = {
+		type: 'lib',
+		lib: 'Available hubs',
+		children: this.libraries.get() .. ownValues .. map(v -> [v.name, v.loadModuleDocs()]) .. pairsToObject
+	};
+	console.log(rv);
+	return rv;
+}
+RootSymbol.prototype.link = -> ['', 'All modules'];
 RootSymbol.prototype.parentLinks = -> [];
 RootSymbol.prototype.skeletonDocs = function() {
 	return {
@@ -106,6 +124,9 @@ RootSymbol.prototype.childLink = (name) -> [name, name];
 
 
 exports.resolveLink = function(link, libraries) {
+	if (!link) {
+		return new RootSymbol(libraries);
+	}
 	var match = /^(.*?[^:]*)(::.*)?$/.exec(link);
 	assert.ok(match, "Invalid path: #{link}");
 	var [_, moduleUrl, symbolPath] = match;
@@ -120,5 +141,5 @@ exports.resolveLink = function(link, libraries) {
 		return new UnresolvedSymbol(e.url, symbolPath);
 	}
 
-	return new Symbol(library, modulePath, symbolPath);
+	return new Symbol(libraries, library, modulePath, symbolPath);
 };

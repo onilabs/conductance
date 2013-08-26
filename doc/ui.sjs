@@ -361,21 +361,9 @@ exports.renderer = function(libraries) {
 
 		// collect modules & dirs:
 		var children = collectLibChildren(docs, symbol);
-		rv.push(children.lib .. then(HeaderTable("Directories")));
+		rv.push(children.lib .. then(HeaderTable("Libraries")));
 		rv.push(children.module .. then(HeaderTable("Modules")));
 
-		return rv;
-	};
-
-	function makeRootView() {
-		var rv = [];
-		rv.push(Widget("h1", "Available libraries:"));
-		rv.push(Widget("dl", libraries.get() .. ownValues .. sortBy(v -> v.name) .. map(function(lib) {
-			return [
-				Widget("dt", `<a href="#${lib.name}">${lib.name}</a>`),
-				Widget("dd", markup(lib.loadModuleDocs().summary))
-			];
-		})));
 		return rv;
 	};
 
@@ -417,7 +405,6 @@ exports.renderer = function(libraries) {
 
 	return {
 		renderSymbol: function (symbol) {
-			if (symbol === null) return makeRootView();
 			var docs = symbol.docs();
 			logging.debug("Rendering docs", docs, "for", symbol);
 			var view;
@@ -437,10 +424,7 @@ exports.renderer = function(libraries) {
 		},
 
 		renderSidebar: function(symbol) {
-			var parent = symbol ? symbol.parent() : null;
-			if (!parent) {
-				parent = new (require('./symbol').RootSymbol)(libraries);
-			}
+			var parent = symbol.parent() || symbol;
 			var view = makeIndexView(parent, symbol);
 			return Widget("div", view, {"id":"sidebar"});
 		},

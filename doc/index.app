@@ -27,7 +27,6 @@ exports.run = function() {
 	var currentSymbol = Computed(locationHash, libraries.val, function(h) {
 		logging.debug("Location hash: #{h}");
 		if (h === undefined) return undefined; // undefined: "not yet loaded"
-		if (!h) return null;                   // null: "no symbol selected"
 		return Symbol.resolveLink(h, libraries);
 	});
 
