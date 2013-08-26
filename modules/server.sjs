@@ -120,6 +120,7 @@ exports.run = function(config, block) {
       }
       waitfor {
         shutdown.wait();
+        server.stop();
       } or {
         server.eachRequest {
           |req|
