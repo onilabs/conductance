@@ -1,14 +1,15 @@
 var {Widget, Mechanism, Style, Class, prependWidget, removeElement} = require('mho:surface');
 var {Observable} = require('mho:observable');
-var {each, transform, map, filter, indexed, intersperse, toArray, groupBy, sortBy, reduce, reverse} = require('sjs:sequence');
+var {each, transform, map, filter, indexed,
+     intersperse, toArray, groupBy, sortBy,
+     reduce, reverse, join} = require('sjs:sequence');
 var string = require('sjs:string');
-var {split, endsWith} = string;
+var {split, startsWith, endsWith} = string;
 var {Quasi} = require('sjs:quasi');
 var array = require('sjs:array');
 var events = require('sjs:events');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
-var Url = require('sjs:url');
 var {merge, ownValues, ownPropertyPairs} = require('sjs:object');
 
 var ESCAPE = exports.ESCAPE = 27;
@@ -190,7 +191,8 @@ exports.renderer = function(libraries) {
 		logging.info("resolving link: #{dest}");
 		var Symbol = require('./symbol.sjs');
 
-		var url, desc = dest.replace(/^[\/\.:]+|[\/\.:]+$/g, '');
+		dest = dest .. string.rstrip(':');
+		var url, desc = dest.replace(/^[\/\.:]+/g, '');
 
 		var leadingComponent = dest.split("::", 1)[0];
 		if (leadingComponent == "") {
@@ -201,8 +203,13 @@ exports.renderer = function(libraries) {
 		else if (leadingComponent .. string.startsWith(".")) {
 			// relative link
 			var [moduleUrl] = symbol.moduleLink();
-			logging.debug("relativizing #{dest} against #{moduleUrl}");
-			url = Url.normalize(dest, moduleUrl);
+			var base = [symbol.library.name].concat(symbol.modulePath.slice(0, -1));
+			logging.debug("relativizing #{dest} against #{base}");
+			while(dest .. startsWith('../')) {
+				dest = dest.slice(3);
+				base.pop();
+			}
+			url = (base .. join('')) + dest;
 		}
 		else if (leadingComponent .. string.contains(":")) {
 			// leadingComponent has hub / protocol: treat it as an absolute link
@@ -226,11 +233,11 @@ exports.renderer = function(libraries) {
 			var resolved = resolveLink(type.replace('optional ',''), symbol);
 			if (resolved) {
 				var [url, desc] = resolved;
-				type = `${type.indexOf('optional') != -1 ? "optional "}${Link(url, desc)} `;
+				type = `${type.indexOf('optional') != -1 ? "optional "}${Link(url, desc)}`;
 			}
 			return type;
 		});
-		return Widget("span", types .. intersperse("|") .. toArray, {"class":"mb-type"});
+		return Widget("span", types .. intersperse(" | ") .. toArray, {"class":"mb-type"});
 	}
 
 	function makeSymbolView(docs, symbol) {
