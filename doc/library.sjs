@@ -1,6 +1,6 @@
 var array = require('sjs:array');
 var str = require('sjs:string');
-var {Computed, ObservableArray} = require('mho:observable');
+var {Observable, Computed, ObservableArray} = require('mho:observable');
 var {find, each, filter, map, at, join} = require('sjs:sequence');
 var {ownValues, hasOwn, get, clone, merge} = require('sjs:object');
 var docutil = require('sjs:docutil');
@@ -107,6 +107,7 @@ function Library(url, name) {
 	this.root = url;
 	this.name = name;
 	this.moduleCache = {};
+	this.searchEnabled = Observable(true);
 }
 
 Library.prototype.loadFile = function(path) {

@@ -1,5 +1,5 @@
 var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
-var {RequireStyle, Class, Mechanism, Widget, Style, withWidget} = require('mho:surface');
+var {RequireStyle, Class, Mechanism, Widget, Style, withWidget, Checkbox, Attrib} = require('mho:surface');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter} = seq;
 var events = require('sjs:events');
@@ -90,7 +90,7 @@ exports.run = (function() {
 			var inputWorker = function(input) {
 				waitfor {
 					// keyup for entry (i.e after it's been pressed)
-					using(var key = events.HostEmitter(input, 'keyup')) {
+					using(var key = events.HostEmitter(input, ['keyup'])) {
 						while(true) {
 							var e = key.wait();
 							hold(0);
@@ -153,41 +153,62 @@ exports.run = (function() {
 					if (res.overflow) {
 						rv.push(`<li class="more"> ... </li>`);
 					}
-				} else {
+				} else { // rv.length == 0
 					if (res.noResults) {
 						rv.push(Widget("li", "No results found"));
 					}
 				}
+				rv.push([`<li class="sep">Libraries:</li>`, libraryStatus]);
 				return Widget("ul", rv) .. Class("results") .. Class("empty", rv.length == 0);
 			});
 
+			var indexWithout = function(idx, lib) {
+				return idx .. filter([name] -> name != lib.name);
+			};
+			var indexWith = function(idx, lib) {
+				return idx
+					.. indexWithout(lib)
+					.. seq.concat(flattenLibraryIndex(lib))
+						// always keep index sorted by shortest-first
+					.. seq.sortBy(i -> i[1].length);
+			};
+
 			libraries.get() .. ownValues .. each {|lib|
 				var loaded = Observable("loading ...");
-				libraryStatus.push(Widget("li", `${lib.name} ${loaded}`) .. Mechanism(function() {
-					console.log("loading lib:" , lib.name);
-					var idx = lib.loadIndex();
-					if (idx === null) {
-						loaded.set("Missing");
-					} else {
+				var disabled = Observable(false);
+				var enabledWidget = Checkbox(lib.searchEnabled) .. Attrib("disabled", disabled);
+				libraryStatus.push(Widget("li", `${enabledWidget} <span class="hub">${lib.name}</span> ${loaded}`, {"class":"libraryStatus"}));
+				console.log("loading lib:" , lib.name);
+				var idx = lib.loadIndex();
+				if (idx === null) {
+					loaded.set("No search index");
+					disabled.set(true);
+				} else {
+					if (lib.searchEnabled.get()) {
 						logging.debug("Added library #{lib.name} to index");
-						index.set(
-							// always keep index sorted by shortest-first
-							index.get().concat(flattenLibraryIndex(lib))
-								.. seq.sortBy(i -> i[1].length)
-						);
-						loaded.set("Loaded");
+						index.set(index.get() .. indexWith(lib) .. toArray);
 					}
-				}));
+					loaded.set("");
+				}
+			};
+
+			var indexUpdate = function() {
+				libraries.get() .. ownValues .. each.par {|lib|
+					lib.searchEnabled.observe {|val|
+						if (val) {
+							// add to index
+							index.set(index.get() .. indexWith(lib) .. toArray);
+						} else {
+							index.set(index.get() .. indexWithout(lib) .. toArray);
+						}
+					}
+				}
 			};
 
 			var widget = Widget("div", `
 				<input type="text" value="${lastQuery ? lastQuery}"></input>
+				<a class="reset" style="position:absolute; top:0; right:5px;">&#x2A2F;</a>
 				${resultWidget}
-				<div style="background: #555; margin-top:50px;color: white; padding:10px;">
-					library status:
-					<ul>
-						${libraryStatus}
-					</ul>
 				</div>
 			`) .. Class("searchWidget") .. RequireStyle(Url.normalize('css/search.css', module.id));
 
@@ -210,6 +231,17 @@ exports.run = (function() {
 				selectedMatch.set(res[newIndex].id);
 			};
 
+			var resetWorker = function(reset, input) {
+				using(var click = reset .. events.HostEmitter('click')) {
+					while(true) {
+						click.wait();
+						input.value = '';
+						input.focus();
+						search('');
+					}
+				}
+			};
+
 			elem .. withWidget(widget) {|elem|
 				var input = elem.querySelector('input');
 				input.focus();
@@ -218,6 +250,11 @@ exports.run = (function() {
 					searchWorker();
 				} or {
 					return inputWorker(input);
+				} or {
+					indexUpdate(input);
+				} or {
+					var reset = elem.querySelector('.reset');
+					resetWorker(reset, input);
 				} or {
 					done.wait();
 					return selectedMatch.get();
