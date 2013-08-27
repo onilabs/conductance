@@ -96,6 +96,10 @@ h1 {
 	height:100%;
 
 	background: rgb(122, 125, 129);
+	background: linear-gradient(to left,
+		rgb(112, 112, 112) 0%, rgb(122, 125, 129) 7%, rgb(122, 125, 129) 100%
+	);
+
 	width: 280px;
 	color: white;
 	font-size: 14pt;
@@ -103,7 +107,7 @@ h1 {
 	border-right: 1px solid #555;
 }
 #sidebar .active {
-	background: rgb(95, 100, 105);
+	background: rgba(53, 58, 63, 0.37);
 	color: white;
 	font-weight:bold;
 }

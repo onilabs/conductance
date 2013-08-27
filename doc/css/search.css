@@ -46,14 +46,30 @@ ul.results {
 	padding-right:0;
 	color: #555;
 	background: rgb(224, 224, 224);
+
+	background: rgb(221, 221, 221);
+	background: linear-gradient(to bottom,
+		rgb(209, 209, 209) 0%,
+		rgb(221, 221, 221) 20%,
+		rgb(221, 221, 221) 100%
+	);
 }
+
+li.libraryStatus input[type='checkbox'] {
+	margin:0;
+}
+
+.results li.libraryStatus {
+	background: rgb(221, 221, 221);
+}
+
 
 .results li {
 	list-style-type: none;
 	margin:0;
 	padding: 0.5em 0.75em 0.5em 0.75em;
 	border-top: 1px solid #ccc;
-	background:#eee;
+	background:rgb(248,248,248);
 	color: #555;
 	font-family: monospace;
 	position:relative;
@@ -92,10 +108,6 @@ ul.results {
 	position: absolute;
 	right: 10px;
 	margin-left:1em;
-}
-
-li.libraryStatus input[type='checkbox'] {
-	margin:0;
 }
 
 .searchWidget a.reset {
