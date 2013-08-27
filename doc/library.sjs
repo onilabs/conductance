@@ -168,7 +168,7 @@ Library.prototype.loadDocs = function(modulePath, symbolPath) {
 			docs = docs .. clone();
 			// merge
 			['children'] .. each {|key|
-				docs[key] = merge(docs[key], index[key]);
+				docs[key] = merge(index[key], docs[key]);
 			};
 
 			// override
