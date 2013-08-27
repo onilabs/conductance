@@ -164,7 +164,7 @@ exports.renderer = function(libraries) {
 		var rv = [];
 		var makeRow = function(val, name) {
 			name = name || val.name;
-			var def = val.defval ? `<span class='mb-defval'>Default: `+makeTypeHTML(val.defval, symbol)+"</span>";
+			var def = val.defval ? `<span class='mb-defval'>Default: ${val.defval}</span>`;
 			return `
 			<tr>
 				<td class='mb-td-symbol'>${name}</td>
@@ -181,7 +181,7 @@ exports.renderer = function(libraries) {
 
 		if (args.length)		 rv.push(`<table>$args</table>`);
 		if (settings.length) rv.push(`<h3>Settings</h3><table>$settings</table>`);
-		if (attribs.length)  rv.push(`<h3>Attribs</h3><table>${attribs}</table>`);
+		if (attribs.length)  rv.push(`<h3>Attribs</h3><table>$attribs</table>`);
 		return rv;
 	};
 
