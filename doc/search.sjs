@@ -158,7 +158,7 @@ exports.run = (function() {
 						rv.push(Widget("li", "No results found"));
 					}
 				}
-				rv.push([`<li class="sep">Libraries:</li>`, libraryStatus]);
+				rv.push([`<li class="sep">Search in:</li>`, libraryStatus]);
 				return Widget("ul", rv) .. Class("results") .. Class("empty", rv.length == 0);
 			});
 

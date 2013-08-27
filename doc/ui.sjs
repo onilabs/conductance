@@ -2,7 +2,7 @@ var {Widget, Mechanism, Style, Class, prependWidget, removeElement} = require('m
 var {Observable} = require('mho:observable');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
-     reduce, reverse, join} = require('sjs:sequence');
+     reduce, reverse, join, find} = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, startsWith, endsWith} = string;
 var {Quasi} = require('sjs:quasi');
@@ -118,8 +118,8 @@ exports.renderer = function(libraries) {
 
 	function functionSignature(docs, symbol) {
 		var signature = [];
-		if (docs.type != 'ctor' && symbol.classname && !docs['static'])
-			signature.push(symbol.classname.toLowerCase()+"."+symbol.name);
+		if (docs.type != 'ctor' && symbol.className && !docs['static'])
+			signature.push(symbol.className.toLowerCase()+"."+symbol.name);
 		else {
 			var call = symbol.name;
 			if (docs.type == 'ctor' && !docs.nonew) {
@@ -152,7 +152,7 @@ exports.renderer = function(libraries) {
 					.. split(/(\[[^\]]+\])/)
 					.. indexed
 					.. map(function([idx, str]) {
-						if (idx % 2) return (idx % 2) ? `<span class='mb-optarg'>$str</span>` : str;
+						return (idx % 2) ? `<span class='mb-optarg'>$str</span>` : str;
 					});
 				signature = signature.concat(parts);
 			}
@@ -216,8 +216,7 @@ exports.renderer = function(libraries) {
 			[url, desc] = Symbol.resolveLink(dest, libraries).link();
 		} else {
 			logging.info("Assuming library-relative link for #{dest}");
-			[url] = symbol.moduleLink();
-			url += dest .. string.rstrip(':');
+			url = symbol.library.name + dest;
 		}
 
 		logging.debug("resolved to #{url}");
@@ -240,52 +239,48 @@ exports.renderer = function(libraries) {
 		return Widget("span", types .. intersperse(" | ") .. toArray, {"class":"mb-type"});
 	}
 
+	function makeFunctionHtml(docs, symbol) {
+		var rv = [];
+		rv.push(Widget("h3", functionSignature(docs, symbol)));
+		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+
+		rv.push(functionArgumentDetails(docs, symbol));
+
+		if (docs['return'] && docs['return'].summary) {
+			rv.push(`
+				<h3>Return Value</h3>
+				<table><tr>
+					<td>
+						${makeTypeHTML(docs['return'].valtype, symbol)}
+						${makeSummaryHTML(docs['return'], symbol)}
+					</td>
+				</tr></table>`);
+		}
+		return rv;
+	};
+
 	function makeSymbolView(docs, symbol) {
 		var rv = [];
 		var [moduleLink, moduleDesc] = symbol.moduleLink();
-		if (symbol.classname) {
-			var name = docs['static'] ? symbol.classname + "." + symbol.name : symbol.name;
-			rv.push(Widget("h2", [
-				Link(moduleLink, moduleDesc),
-				"::",
-				Link("#{moduleLink}::#{symbol.className}", symbol.classname),
-				"::",
-				name
-			]));
-			if (docs.type == 'ctor' || docs['static'] || docs.type == 'proto') {
-				rv.push(makeRequireSnippet(symbol.modulePath, name));
-			}
-		} else {
-			rv.push(Widget("h2", `${Link(moduleLink, moduleDesc)}::${symbol.name}`));
-			if (docs.type != 'class') {
-				rv.push(makeRequireSnippet(symbol.modulePath, symbol.name));
-			}
+		if (!symbol.className && docs.type != 'class') {
+			rv.push(makeRequireSnippet(symbol.modulePath, symbol.name));
 		}
 
-		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
-		
 		if (docs.type == "function" || docs.type == "ctor") {
-			rv.push(Widget("h3", functionSignature(docs, symbol)));
-
-			rv.push(functionArgumentDetails(docs, symbol));
-
-			if (docs['return'] && docs['return'].summary) {
-				rv.push(`
-					<h3>Return Value</h3>
-					<table><tr>
-						<td>
-							${makeTypeHTML(docs['return'].valtype, symbol)}
-							${makeSummaryHTML(docs['return'], symbol)}
-						</td>
-					</tr></table>`);
-			}
+			rv.push(makeFunctionHtml(docs, symbol));
 		} else if (docs.type == "class") {
-			rv.push(`<h3>Class ${symbol.symbol}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h3>`);
+			rv.push(`<h3>Class ${symbol.name}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h3>`);
+			rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+			var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor');
+			if (constructor) {
+				var [name, child] = constructor;
+				var childSymbol = symbol.child(name);
+				rv.push(makeFunctionHtml(child, childSymbol));
+			}
 
 			var children = collectModuleChildren(docs, symbol);
 			rv.push(
 				Widget("div", [
-					children['ctor']            .. then(Table),
 					children['proto']           .. then(Table),
 					children['static-function'] .. then(HeaderTable("Static Functions")),
 					children['function']        .. then(HeaderTable("Methods")),

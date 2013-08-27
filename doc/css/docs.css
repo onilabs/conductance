@@ -79,16 +79,10 @@
 }
 
 div.mb-summary {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     color: #777;
     font-size: 1.2em;
     font-style:italic;
-}
-
-div.mb-require {
-    xborder-bottom: 1px solid #ddd;
-    padding-bottom: 15px;
-    xmargin-bottom: 15px;
 }
 
 span.mb-arglist {

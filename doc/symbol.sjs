@@ -65,6 +65,11 @@ Symbol.prototype.childLink = function(name, info) {
 	return [href + name, name];
 }
 
+Symbol.prototype.child = function(name) {
+	// TODO: do we ever need this for sub-modules?
+	return this._new(this.modulePath, this.symbolPath.concat([name]));
+}
+
 Symbol.prototype.parentLinks = function() {
 	var rv = [];
 	var href = this.library.name;
