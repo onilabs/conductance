@@ -165,7 +165,8 @@ function escapeForTag(s, tag) {
       return sanitize(String(s));
       break;
   }
-}
+};
+exports.escapeForTag = escapeForTag;
 
 function collapseHtmlFragment(ft, tag) {
   if (isCollapsedFragment(ft)) return ft;

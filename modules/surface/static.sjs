@@ -11,49 +11,38 @@ exports.CSSDocument = function(content, parent_class) {
 
 //----------------------------------------------------------------------
 
-exports.Document = function(content) {
+// NOTE: settings.head is treated as plain HTML - things like external scripts,
+// styles & mechanisms will be ignored.
+exports.Document = function(content, settings) {
 
-  content = html.collapseHtmlFragment(content);
+  content = html.collapseHtmlFragment(content || undefined);
 
-  return "\
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    #{
-        keys(content.getExternalScripts()) ..
-        map(url -> "<script src=\"#{sanitize(url)}\"></script>") ..
-        join('\n')
-    }
-    #{
-        values(content.getStyleDefs()) ..
-        map([ref_count,def] -> def.getHtml()) ..
-        join('\n')
-    }
-    <script src='/__sjs/stratified.js'></script>
-    <script type='text/sjs'>
-      require.hubs.push(['mho:', '/__mho/']);
-      require.hubs.push(['\u2127:', 'mho:']);
+  var headContent="", userInit="";
+  if(settings) {
+    headContent = settings.head || "";
+    userInit = settings.init || "";
+  }
 
-      #{
-         // keep static & dynamic worlds from colliding; see comment at top of html.sjs
-         html._getDynOniSurfaceInit()
-      }
+  headContent = headContent ? html.collapseHtmlFragment(headContent).getHtml() : "";
 
+  var mechanisms = propertyPairs(content.getMechanisms()) ..
+    map(function([id, code]) {
+      if (typeof code !== 'string')
+        throw new Error('Static surface code cannot contain mechanisms with function objects');
+      return "mechs[#{id}] = function(){ #{code} };"
+    });
+  var bootScript = "
+    require.hubs.push(['mho:', '/__mho/']);
+    require.hubs.push(['\u2127:', 'mho:']);
+  ";
+  // keep static & dynamic worlds from colliding; see comment at top of html.sjs
+  bootScript += html._getDynOniSurfaceInit()
+
+  if (mechanisms.length > 0) {
+    bootScript += "
       (function () {
         var mechs = {};
-        #{
-          // XXX need to escape </script> -> <\/script> in #{code} below!!!
-          propertyPairs(content.getMechanisms()) ..
-          map(function([id, code]) {
-            if (typeof code !== 'string')
-              throw new Error('Static surface code cannot contain mechanisms with function objects');
-            return "mechs[#{id}] = function(){ #{code} };"
-          }) ..
-          join('\n')
-        }
-
+        #{mechanisms .. join('\n')}
         var { reverse, each, filter } = require('sjs:sequence');
         (document.body.querySelectorAll('._oni_mech_') || []) .. 
           reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
@@ -68,9 +57,30 @@ exports.Document = function(content) {
             }
           }
         })();
-    </script>
+    ";
+  }
+  bootScript += "\n" + userInit;
+
+  return "\
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    #{
+      headContent
+    }#{
+      keys(content.getExternalScripts()) ..
+      map(url -> "<script src=\"#{sanitize(url)}\"></script>") ..
+      join('\n')
+    }#{
+      values(content.getStyleDefs()) ..
+      map([ref_count,def] -> def.getHtml()) ..
+      join('\n')
+    }
+    <script src='/__sjs/stratified.js'></script>
+    <script type='text/sjs'>#{ html.escapeForTag(bootScript, 'script') }</script>
   </head>
   <body>#{content.getHtml()}</body>
-</html>
-";
+</html>";
 };

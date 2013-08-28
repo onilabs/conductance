@@ -44,21 +44,10 @@ function sjscompile(src, dest, aux) {
 // filter that generates the html boilerplate for *.app files:
 function gen_app_html(src, dest, aux) {
   var app_name = aux.request.url.file || "index.app";
+  var { Document, headTag, Widget } = require('../surface');
   dest.write(
-    "<!DOCTYPE html>
-     <html>
-       <head>
-         <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
-         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-         <script src='/__sjs/stratified.js'></script>
-         <script type='text/sjs'>
-           require.hubs.push(['mho:', '/__mho/']);
-           require.hubs.push(['\u2127:', 'mho:']);
-           require('#{app_name}!sjs');
-         </script>
-       </head>
-       <body></body>
-     </html>");
+    Document(null, {init: "require(\"#{app_name}!sjs\");"})
+  );
 }
 
 //----------------------------------------------------------------------
@@ -201,7 +190,6 @@ exports.Jsonp = Jsonp;
     You should never use these filters for locations containing untrusted or
     user-submitted content, as they enable arbitrary code execution on the server.
 */
-//TODO: should we enable blocking of server-side source code?
 var Executable = (base) -> base
   .. withFormats({
     api      : { none : { mime: "text/plain",
@@ -214,15 +202,15 @@ var Executable = (base) -> base
                         },
                  src  : { mime: "text/plain" },
     },
-    app    : { none : { mime: "text/html",
+    app      : { none : { mime: "text/html",
                         filter: gen_app_html
-                      },
-               sjs  : { mime: "text/plain",
-                        filter: sjscompile,
-                        filterETag: -> conductanceVersion(),
-                        cache: SJSCache
-                      },
-               src  : { mime: "text/plain" }
-             },
+                        },
+                 sjs  : { mime: "text/plain",
+                          filter: sjscompile,
+                          filterETag: -> conductanceVersion(),
+                          cache: SJSCache
+                        },
+                 src  : { mime: "text/plain" }
+               },
   });
 exports.Executable = Executable;
