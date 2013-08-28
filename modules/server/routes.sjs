@@ -1,11 +1,10 @@
 var { conductanceRoot, sjsRoot } = require('./env');
 var { setStatus, writeRedirectResponse } = require('./response');
 var { flatten } = require('sjs:array');
-var { isString } = require('sjs:string');
+var { isString, sanitize } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
 var { keys } = require('sjs:object');
 var { Route } = require('../server');
-var assert = require('sjs:assert');
 var logging = require('sjs:logging');
 
 //----------------------------------------------------------------------
@@ -211,7 +210,7 @@ exports.LogRequests = function(responder, level) {
 */
 var Filter = exports.Filter = function(responder, fn) {
   var apply = function(r) {
-    assert.ok(r.addFilter, "Filter must be applied to a Responder (Route or Host) object");
+    if (!r.addFilter) throw new Error("Filter must be applied to a Responder (Route or Host) object");
     r = r._clone();
     r.addFilter(fn);
     return r;

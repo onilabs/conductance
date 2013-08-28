@@ -218,8 +218,7 @@ var Responder = {
     this.filters = [];
   },
   addFilter: function(f) {
-    // filters are stored outermost-first
-    this.filters.unshift(f);
+    this.filters.push(f);
   },
   handle: function(req) {
     var args = arguments;
@@ -324,6 +323,8 @@ RouteProto._init = func.seq(RouteProto._init, function(matcher, handlers) {
     };
   }
 
+  if (RouteProto.isPrototypeOf(this.handlers)) this.handlers = [this.handlers];
+
   if (Array.isArray(this.handlers)) {
     // if we have sub-routes, use the nested handle function
     this._handle = this._handleNested;
@@ -355,6 +356,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
   if (!handler) {
     req.response.setHeader('Allow', keys(this.handlers) .. join(', '));
     req .. writeErrorResponse(405, 'Method not allowed');
+    return;
   }
   handler.call(this.handlers, req, pathMatches);
 };
