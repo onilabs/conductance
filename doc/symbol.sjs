@@ -8,51 +8,52 @@ var {ownValues, pairsToObject, ownPropertyPairs} = require('sjs:object');
 
 var ui = require('./ui');
 
-var Symbol = exports.Symbol = function(libraries, library, modulePath, symbolPath) {
+var Symbol = exports.Symbol = function(libraries, library, relativeModulePath, symbolPath) {
 	this.libraries = libraries;
 	this.library = library;
 	this.className = symbolPath.length == 2 ? symbolPath[0];
-	this.modulePath = modulePath;
+	this.relativeModulePath = relativeModulePath;
+	this.fullModulePath = [this.library.name].concat(this.relativeModulePath);
 	this.symbolPath = symbolPath;
-	this.path = seq.concat([this.library.name], this.modulePath, this.symbolPath) .. toArray;
+	this.path = this.fullModulePath.concat(this.symbolPath);
 	this.name = this.path .. at(-1);
 };
 
 // construct an instance for a symbol in the same library
-Symbol.prototype._new = function(modulePath, symbolPath) {
-	return new Symbol(this.libraries, this.library, modulePath, symbolPath);
+Symbol.prototype._new = function(relativeModulePath, symbolPath) {
+	return new Symbol(this.libraries, this.library, relativeModulePath, symbolPath);
 }
 
 Symbol.prototype.docs = function() {
 	ui.LOADING.block { ||
-		return this.library.loadDocs(this.modulePath, this.symbolPath)
+		return this.library.loadDocs(this.relativeModulePath, this.symbolPath)
 	}
 };
 
 Symbol.prototype.skeletonDocs = function() {
 	// like docs(), but can be satisfied from index (if present)
 	ui.LOADING.block { ||
-		return this.library.loadIndexFor(this.modulePath.concat(this.symbolPath))
-		    || this.library.loadDocs(this.modulePath, this.symbolPath);
+		return this.library.loadIndexFor(this.relativeModulePath.concat(this.symbolPath))
+		    || this.library.loadDocs(this.relativeModulePath, this.symbolPath);
 	}
 };
 
 
 Symbol.prototype.parent = function() {
 	if (this.symbolPath.length) {
-		return this._new(this.modulePath, this.symbolPath.slice(0,-1));
-	} else if (this.modulePath.length) {
-		return this._new(this.modulePath.slice(0,-1), []);
+		return this._new(this.relativeModulePath, this.symbolPath.slice(0,-1));
+	} else if (this.relativeModulePath.length) {
+		return this._new(this.relativeModulePath.slice(0,-1), []);
 	}
 	return new RootSymbol(this.libraries);
 };
 
 Symbol.prototype.moduleLink = function() {
-	return [this.library.name + this.modulePath.join(''), this.modulePath.join('')];
+	return [this.fullModulePath.join(''), this.relativeModulePath.join('')];
 }
 
 Symbol.prototype.link = function() {
-	var ext = this.modulePath.join('');
+	var ext = this.relativeModulePath.join('');
 	if (this.symbolPath.length) ext += '::' + this.symbolPath.join('::')
 	return [this.library.name + ext, ext];
 }
@@ -67,14 +68,13 @@ Symbol.prototype.childLink = function(name, info) {
 
 Symbol.prototype.child = function(name) {
 	// TODO: do we ever need this for sub-modules?
-	return this._new(this.modulePath, this.symbolPath.concat([name]));
+	return this._new(this.relativeModulePath, this.symbolPath.concat([name]));
 }
 
 Symbol.prototype.parentLinks = function() {
 	var rv = [];
-	var href = this.library.name;
-	rv.push([href, href]);
-	this.modulePath .. each {|p|
+	var href = "";
+	this.fullModulePath .. each {|p|
 		href += p;
 		rv.push([href, p]);
 	}
@@ -86,7 +86,7 @@ Symbol.prototype.parentLinks = function() {
 	return rv;
 };
 
-Symbol.prototype.toString = -> require('sjs:debug').inspect([this.library.name, this.modulePath, this.symbolPath]);
+Symbol.prototype.toString = -> require('sjs:debug').inspect([this.fullModulePath, this.symbolPath]);
 
 var UnresolvedSymbol = exports.UnresolvedSymbol = function(moduleUrl, symbolPath) {
 	this.moduleUrl = moduleUrl;
@@ -108,6 +108,7 @@ var RootSymbol = exports.RootSymbol = function(libraries) {
 	this.libraries = libraries;
 };
 
+RootSymbol.prototype.relativeModulePath = [];
 RootSymbol.prototype.parent = -> null;
 RootSymbol.prototype.docs = function() {
 	var rv = {
@@ -140,11 +141,11 @@ exports.resolveLink = function(link, libraries) {
 	console.log("symbolPath", symbolPath);
 
 	try {
-		var [library, modulePath] = libraries.resolveModule(moduleUrl);
+		var [library, relativeModulePath] = libraries.resolveModule(moduleUrl);
 	} catch(e) {
 		if (!(e instanceof Library.LibraryMissing)) throw e;
 		return new UnresolvedSymbol(e.url, symbolPath);
 	}
 
-	return new Symbol(libraries, library, modulePath, symbolPath);
+	return new Symbol(libraries, library, relativeModulePath, symbolPath);
 };

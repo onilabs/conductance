@@ -158,6 +158,10 @@ Library.prototype.loadIndexFor = function(path) {
 	return index;
 };
 
+Library.prototype.loadSkeletonDocs = function() {
+	return this.loadIndex() || this.loadModuleDocs();
+}
+
 Library.prototype.loadDocs = function(modulePath, symbolPath) {
 	var docs = this.loadModuleDocs(modulePath);
 

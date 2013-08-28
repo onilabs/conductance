@@ -10,7 +10,7 @@ var array = require('sjs:array');
 var events = require('sjs:events');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
-var {merge, ownValues, ownPropertyPairs} = require('sjs:object');
+var {merge, ownValues, ownPropertyPairs, getPath} = require('sjs:object');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
@@ -112,8 +112,8 @@ exports.renderer = function(libraries) {
 		return Widget("div", docs.desc ? `<h3>Description</h3>${markup(docs.desc, symbol)}`, {"class":"desc"});
 	}
 
-	function makeRequireSnippet(modulePath, name) {
-		return Widget("div", `<code>require('${modulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
+	function makeRequireSnippet(fullModulePath, name) {
+		return Widget("div", `<code>require('${fullModulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
 	};
 
 	function functionSignature(docs, symbol) {
@@ -203,7 +203,7 @@ exports.renderer = function(libraries) {
 		else if (leadingComponent .. string.startsWith(".")) {
 			// relative link
 			var [moduleUrl] = symbol.moduleLink();
-			var base = [symbol.library.name].concat(symbol.modulePath.slice(0, -1));
+			var base = symbol.fullModulePath.slice(0, -1);
 			logging.debug("relativizing #{dest} against #{base}");
 			while(dest .. startsWith('../')) {
 				dest = dest.slice(3);
@@ -263,7 +263,7 @@ exports.renderer = function(libraries) {
 		var rv = [];
 		var [moduleLink, moduleDesc] = symbol.moduleLink();
 		if (!symbol.className && docs.type != 'class') {
-			rv.push(makeRequireSnippet(symbol.modulePath, symbol.name));
+			rv.push(makeRequireSnippet(symbol.fullModulePath, symbol.name));
 		}
 
 		if (docs.type == "function" || docs.type == "ctor") {
@@ -332,8 +332,8 @@ exports.renderer = function(libraries) {
 
 	function makeModuleView(docs, symbol) {
 		var rv = [];
-		rv.push(`<h2>The ${symbol.modulePath} module</h2>`);
-		rv.push(makeRequireSnippet(symbol.modulePath));
+		rv.push(`<h2>The ${symbol.relativeModulePath ..join('')} module</h2>`);
+		rv.push(makeRequireSnippet(symbol.fullModulePath));
 
 		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		rv.push(makeDescriptionHTML(docs, symbol));
@@ -357,15 +357,14 @@ exports.renderer = function(libraries) {
 
 	function makeLibView(docs, symbol) {
 		var rv = [];
-		rv.push(Widget("h2", docs.lib || "Unnamed Module Collection"));
-		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+		rv.push(Widget("h2", makeSummaryHTML(docs, symbol)));
+
 		rv.push(makeDescriptionHTML(docs, symbol));
 
 		// collect modules & dirs:
 		var children = collectLibChildren(docs, symbol);
 		rv.push(children.lib .. then(HeaderTable("Libraries")));
 		rv.push(children.module .. then(HeaderTable("Modules")));
-
 		return rv;
 	};
 
@@ -422,6 +421,14 @@ exports.renderer = function(libraries) {
 					view = makeSymbolView(docs, symbol);
 					break;
 			}
+
+			if (symbol.library && symbol.library.root) {
+				// add a "source" link where possible
+				var link = symbol.library.root + (symbol.relativeModulePath .. join());
+				if (!link .. endsWith('/')) link += '.sjs';
+				view = [view, Widget("div", `Source: <a href="$link?format=src">$link</a>`, {"class":"mb-canonical-url"})];
+			}
+
 			return Widget("div", view);
 		},
 
@@ -439,7 +446,16 @@ exports.renderer = function(libraries) {
 				ret = symbol.parentLinks().slice(0, -1) .. map([href, name] -> Widget("a", name, {href: prefix + href}));
 				ret.push(Widget('span', symbol.name, {"class":"leaf"}));
 			}
-			return Widget("div", ret .. intersperse(sep), {"class":"breadcrumbs"});
+			var crumbs = ret .. intersperse(sep);
+			var content = [crumbs];
+
+			if (symbol.library) {
+				var version = symbol.library.loadSkeletonDocs().version;
+				if(version) {
+					content.unshift(Widget("span", "#{symbol.library.name}#{version}", {"class":"version"}));
+				}
+			}
+			return Widget("div", content, {"class":"breadcrumbs"});
 		},
 	}
 }

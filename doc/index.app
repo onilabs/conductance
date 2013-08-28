@@ -92,7 +92,7 @@ exports.run = function() {
 	var toplevel = Widget("div", `
 		<div class="header navbar-inner">
 			$searchWidget
-			<h1>Conductance documentation</h1>
+			<h1>Conductance docs</h1>
 		</div>
 		$breadcrumbs
 		$sidebar

@@ -78,6 +78,16 @@
     text-decoration:underline;
 }
 
+div.mb-canonical-url , .mb-canonical-url a{
+    color: #999 !important;
+}
+
+div.mb-canonical-url {
+    text-align: right;
+    margin-top: 2em;
+    font-size:0.9em;
+}
+
 div.mb-summary {
     margin-bottom: 20px;
     color: #777;
