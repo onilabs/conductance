@@ -178,7 +178,7 @@ exports.renderer = function(libraries) {
 
 		var args = (docs.param || []) .. map(p -> makeRow(p, p.name || '.'));
 		var settings = (docs.setting || []) .. map(makeRow);
-		var attribs = (docs.setting || []) .. map(makeRow);
+		var attribs = (docs.attrib || []) .. map(makeRow);
 
 		if (args.length)		 rv.push(`<table>$args</table>`);
 		if (settings.length) rv.push(`<h3>Settings</h3><table>$settings</table>`);
