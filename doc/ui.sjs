@@ -82,7 +82,7 @@ exports.renderer = function(libraries) {
 				return "[#{dest}](##{link})";
 			});
 		}
-		return Quasi([Marked.convert(text)]);
+		return Quasi([Marked.convert(text, {sanitize:true})]);
 	}
 
 	function Link(href, text) {
