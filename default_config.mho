@@ -11,25 +11,26 @@ exports.run = function() {
   var { readFile } = require('sjs:nodejs/fs');
   var { conductanceRoot } = require('mho:server/env');
   var { Port } = server;
-  var { SystemRoutes, ExecutableDirectory, LogRequests } = require('mho:server/routes');
+  var { SystemRoutes, ExecutableDirectory, LogRequests, DeveloperMode } = require('mho:server/routes');
+
+
+  var routes = [
+        SystemRoutes(),
+        ExecutableDirectory(process.cwd()),
+      ] .. LogRequests(logging.INFO)
+        .. DeveloperMode();
 
   server.run([
     {
       address: Port(7075),
-      routes: [
-        SystemRoutes(),
-        ExecutableDirectory(process.cwd()),
-      ] .. LogRequests(logging.INFO)
+      routes: routes,
     },
     {
       address: Port(7076).ssl({
         key: readFile("#{conductanceRoot()}ssl/insecure-localhost.key"),
         cert: readFile("#{conductanceRoot()}ssl/insecure-localhost.crt")
       }),
-      routes: [
-        SystemRoutes(),
-        ExecutableDirectory(process.cwd()),
-      ] .. LogRequests(logging.INFO)
+      routes: routes
     },
   ]);
 };

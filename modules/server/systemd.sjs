@@ -47,7 +47,12 @@ GroupProto._init = function(name, units) {
 
     ### Example:
 
-        var { Group, conductanceArgs } = require('mho:server/systemd');
+        var env = require('mho:server/env');
+        var { Group, ConductanceArgs } = require('mho:server/systemd');
+        var { Port } = require('mho:server');
+
+        var serverAddress = Port(8080);
+
         exports.systemd = Group("my-app",
           {
             main: {
@@ -58,20 +63,21 @@ GroupProto._init = function(name, units) {
                 Environment: [
                   'NODE_ENV=production',
                 ],
-                'ExecStart': [process.execPath, "#{conductanceRoot()}/conductance", 'run', "#{configFile}"],
+                'ExecStart': ConductanceArgs.concat('run', env.config().path),
               },
               // use socket activation
               Socket: {
-                Listen: address,
+                Listen: serverAddress,
               },
-
+            }
+          }
+         );
     
 
 
     The systemd units are generated with the following rules:
   
-
-
+    // TODO...
 
 */
 var Group = exports.Group = function(name, units) {

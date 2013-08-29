@@ -3,6 +3,7 @@ var nodefs = require('fs');
 var stream = require('sjs:nodejs/stream');
 var path = require('path');
 var logging = require('sjs:logging');
+var { isString } = require('sjs:string');
 var { override } = require('sjs:object');
 var { each, any } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
@@ -217,8 +218,9 @@ function serveFile(req, filePath, format, settings) {
 exports.serveFile = serveFile;
 
 function generateFile(req, filePath, format, settings) {
+  var genPath = filePath + ".gen";
   try {
-    var stat = fs.stat("#{filePath}.gen");
+    var stat = fs.stat(genPath);
   }
   catch (e) {
     return false;
@@ -227,7 +229,7 @@ function generateFile(req, filePath, format, settings) {
   
   var generator_file_mtime = stat.mtime.getTime();
 
-  var resolved_path = require.resolve("#{filePath}.gen").path;
+  var resolved_path = require.resolve(genPath).path;
 
   // purge module if it is loaded already, but the mtime doesn't match:
   var module_desc = require.modules[resolved_path];
@@ -237,15 +239,22 @@ function generateFile(req, filePath, format, settings) {
   }
 
   var generator = require(resolved_path);
+  var etag = generator.etag;
   require.modules[resolved_path].etag = generator_file_mtime;
+
+  var params = req.url.params();
+  var response = generator.content.call(req, params);
+  if (response .. isString() || !response.read) {
+    response = new stream.ReadableStringStream(response, true);
+  }
 
   formatResponse(
     req,
-    { input: -> new stream.ReadableStringStream(generator.content(req.url.params()), true),
+    { input: -> response,
       extension: path.extname(filePath).slice(1),
       format: format,
 //      length: generator.content().length,
-      etag: "#{generator_file_mtime}-#{generator.etag ? generator.etag(req.url.params()) : Date.now()}",
+      etag: "#{generator_file_mtime}-#{etag ? etag.call(req, params) : Date.now()}",
     },
     settings);
   return true;
@@ -303,7 +312,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
       var served = false;
       if (settings.mapIndexToDir) {
         served = ['index.html', 'index.app'] ..
-          any(name -> serveFile(req, "#{file}/#{name}", format, settings));
+          any(name -> serveFile(req, file + name, format, settings));
       }
       if (!served) {
         if (settings.allowDirListing)

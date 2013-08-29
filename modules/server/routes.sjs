@@ -1,5 +1,5 @@
 var { conductanceRoot, sjsRoot } = require('./env');
-var { setStatus, writeRedirectResponse } = require('./response');
+var { setStatus, writeRedirectResponse, writeErrorResponse } = require('./response');
 var { flatten } = require('sjs:array');
 var { isString, sanitize } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
@@ -151,6 +151,29 @@ exports.SetHeader = function(responder, k, v) {
   return responder .. Filter(function(req, blk) {
     req.response.setHeader(k,v);
     blk();
+  });
+};
+
+/**
+  @function DeveloperMode
+  @altsyntax responder .. DeveloperMode()
+  @param {../server::Responder|Array} [responder]
+  @return A copy of `responder` with development mode enabled
+  @desc
+    Currently, developer mode sends server-side errors to the client as a stacktrace.
+*/
+exports.DeveloperMode = function(responder) {
+  return responder .. Filter(function(req, block) {
+    try {
+      block();
+    } catch(e) {
+      // TODO: need to check if headers / content is already written
+      req .. writeErrorResponse(500, "Internal server error", "
+        <h3>Stacktrace:</h3>
+        <pre>#{sanitize(e)}</pre>
+        ");
+      throw e;
+    }
   });
 };
 

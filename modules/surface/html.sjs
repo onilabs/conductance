@@ -23,7 +23,7 @@ if (typeof __oni_surface_init !== 'undefined') {
 }
 
 exports._getDynOniSurfaceInit = -> 
-  "__oni_surface_init = [#{gStyleCounter+1}, #{gMechanismCounter+1}];";
+  "__oni_surface_init = [#{gStyleCounter+1}, #{gMechanismCounter+1}];\n";
 
 
 //----------------------------------------------------------------------
@@ -156,7 +156,7 @@ function appendFragmentTo(target, ft, tag) {
 function escapeForTag(s, tag) {
   switch(tag) {
     case 'script':
-      return String(s).replace(/\</g, '\\x3C').replace(/\>/g, '\\x3E');
+      return String(s).replace(/\<\//g, '<\\x3C');
       break;
     case 'style':
       return String(s).replace(/\</g, '\\<');
