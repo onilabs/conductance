@@ -9,10 +9,6 @@ exports.loadConfig = function(path) {
   var configfile = path || exports.defaultConfig();
   configfile = url.normalize(configfile, process.cwd() + '/');
 
-  env.init({
-    configPath         : configfile,
-    configRoot         : url.normalize('./', configfile),
-  });
 
 
   //----------------------------------------------------------------------
@@ -20,6 +16,7 @@ exports.loadConfig = function(path) {
 
   logging.info("Loading config from #{configfile}");
   var config = require(configfile);
+  env.init({config: {path:configfile, module: config}});
   return config;
 }
 

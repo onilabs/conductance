@@ -24,6 +24,6 @@ exports.update = function(key, val) {
 exports.conductanceRoot = -> conductanceRoot;
 exports.sjsRoot         = -> sjsRoot
 exports.conductanceVersion = -> conductanceVersion;
-exports.configRoot      = -> env_vars.configRoot;
-exports.configPath      = -> env_vars.configPath;
+exports.config          = -> env_vars && env_vars.config;
+exports.configPath      = -> env_vars && env_vars.config.path; // TODO: remove
 
