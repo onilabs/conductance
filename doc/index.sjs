@@ -19,6 +19,10 @@ var ui = require('./ui');
 var Library = require('./library');
 var Symbol = require('./symbol');
 
+var mainStyle   = RequireStyle(Url.normalize('css/main.css', module.id))
+var docsStyle   = RequireStyle(Url.normalize('css/docs.css', module.id))
+var searchStyle = RequireStyle(Url.normalize('css/search.css', module.id));
+
 exports.run = function() {
 	var libraries = Library.Collection();
 
@@ -76,7 +80,8 @@ exports.run = function() {
 						}
 						btn.parentNode.classList.add('hidden');
 						try {
-							var newLocation = require('./search').run(elem, libraries);
+							ui.LOADING.inc();
+							var newLocation = require('./search').run(elem, libraries, ui.LOADING.dec);
 							if (newLocation) {
 								document.location.hash = newLocation;
 							}
@@ -88,7 +93,7 @@ exports.run = function() {
 			}
 		});
 	
-	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. RequireStyle(Url.normalize("css/docs.css", module.id));
+	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. docsStyle;
 	var toplevel = Widget("div", `
 		<div class="header navbar-inner">
 			$searchWidget
@@ -101,10 +106,13 @@ exports.run = function() {
 	`)
 	.. Bootstrap()
 	.. Class("navbar navbar-inverted")
-	.. RequireStyle(Url.normalize('css/main.css', module.id));
+	.. mainStyle
+	.. searchStyle;
 
+	console.log('STYLE', toplevel.style);
 
 	document.body .. withWidget(toplevel) {|elem|
+		if(window.rainbow) window.rainbow.hide();
 		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
 			while(true) {
 				locationHash.set(document.location.hash.slice(1));

@@ -1,0 +1,49 @@
+var Url = require('sjs:url');
+var logging = require('sjs:logging');
+var {readFile} = require('sjs:nodejs/fs');
+var {join} = require('sjs:sequence');
+
+exports.content = function() {
+  var { Document, Widget } = require('mho:surface');
+
+  return Document(null, {
+    title: "Conductance Documentation Browser",
+    main: 'index.sjs',
+    head: [
+      Widget("script", [
+        // loading script
+        readFile(Url.normalize('rainbow.min.js', module.id) .. Url.toPath),
+        readFile(Url.normalize('init.js', module.id) .. Url.toPath),
+      ] .. join(';')),
+      //bundle:
+      Widget("script", null, {src: Url.normalize(makeBundle(), this.url.relative)}),
+    ],
+  });
+};
+
+var makeBundle = function() {
+  var bundleFilename = 'index.bundle.js';
+  var bundlePath = Url.normalize(bundleFilename, module.id) .. Url.toPath;
+
+  logging.info("Generating #{bundlePath}");
+
+  var resources = {
+      'mho:': '/__mho/',
+      'sjs:': '/__sjs/modules/',
+  };
+  resources["#{Url.normalize("../", module.id)}"] = "/";
+
+  require('sjs:bundle').create({
+    sources: [
+      'sjs:xbrowser/dom',
+      'mho:surface',
+      Url.normalize('index.sjs', module.id),
+    ],
+    resources: resources,
+    bundle: bundlePath,
+  });
+
+  // don't regenerate while this module remains in memory
+  makeBundle = -> bundleFilename;
+  return bundleFilename;
+};

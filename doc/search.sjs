@@ -45,7 +45,7 @@ exports.run = (function() {
 	var searchTerm = Observable();
 	var lastQuery = null;
 
-	return function(elem, libraries) {
+	return function(elem, libraries, onReady) {
 		var done = cutil.Condition();
 
 		return ui.withOverlay {||
@@ -210,7 +210,7 @@ exports.run = (function() {
 				<a class="reset" style="position:absolute; top:0; right:5px;">&#x2A2F;</a>
 				${resultWidget}
 				</div>
-			`) .. Class("searchWidget") .. RequireStyle(Url.normalize('css/search.css', module.id));
+			`) .. Class("searchWidget");
 
 			var changeSelected = function(offset, newIndex) {
 				var res = results.get();
@@ -245,6 +245,7 @@ exports.run = (function() {
 			elem .. withWidget(widget) {|elem|
 				var input = elem.querySelector('input');
 				input.focus();
+				if (onReady) onReady();
 				search(lastQuery, true);
 				waitfor {
 					searchWorker();
@@ -328,7 +329,6 @@ function searchIndex(query, index) {
 			}
 		}
 	}
-	//results = results .. seq.sortBy(r -> r.id.length);
 	results.noResults = results.length == 0;
 	return results;
 }
