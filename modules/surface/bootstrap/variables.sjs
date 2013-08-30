@@ -64,6 +64,18 @@ __js var bootstrapTheme = themes['bootstrap'] = exports.bootstrapTheme = {
   preBackground:       -> '#f5f5f5',
   preBorder:           -> 'rgba(0,0,0,.15)',
 
+  fontSizeH1:          -> this.baseFontSize() .. scale(2.75), // ~38px
+  fontSizeH2:          -> this.baseFontSize() .. scale(2.25), // ~32px
+  fontSizeH3:          -> this.baseFontSize() .. scale(1.75), // ~24px
+  fontSizeH4:          -> this.baseFontSize() .. scale(1.25), // ~18px
+  fontSizeH5:          -> this.baseFontSize(), 
+  fontSizeH6:          -> this.baseFontSize() .. scale(0.85), // ~12px
+
+  fontSizeH1Small:     -> this.baseFontSize() .. scale(1.75), // ~24px
+  fontSizeH2Small:     -> this.baseFontSize() .. scale(1.25), // ~18px
+  fontSizeH3Small:     -> this.baseFontSize(), 
+  fontSizeH4Small:     -> this.baseFontSize(), 
+
   // ------------------------------------------
   // STANDARD TWITTER BOOTSTRAP VARIABLES BELOW:
 
@@ -411,6 +423,18 @@ defaultTheme.customStyleDefs = mixins -> "
 
 defaultTheme.preBackground =       -> '#f5f5f5';
 defaultTheme.preBorder =           -> 'rgba(0,0,0,.15)';
+
+defaultTheme.fontSizeH1 =          -> this.baseFontSize() .. scale(2.75); // ~38px
+defaultTheme.fontSizeH2 =          -> this.baseFontSize() .. scale(2.25); // ~32px
+defaultTheme.fontSizeH3 =          -> this.baseFontSize() .. scale(1.75); // ~24px
+defaultTheme.fontSizeH4 =          -> this.baseFontSize() .. scale(1.25); // ~18px
+defaultTheme.fontSizeH5 =          -> this.baseFontSize();
+defaultTheme.fontSizeH6 =          -> this.baseFontSize() .. scale(0.85); // ~12px
+
+defaultTheme.fontSizeH1Small =     -> this.baseFontSize() .. scale(1.75); // ~24px
+defaultTheme.fontSizeH2Small =     -> this.baseFontSize() .. scale(1.25); // ~18px
+defaultTheme.fontSizeH3Small =     -> this.baseFontSize();
+defaultTheme.fontSizeH4Small =     -> this.baseFontSize();
 
 
   // ------------------------------------------

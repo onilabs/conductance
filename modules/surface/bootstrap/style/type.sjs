@@ -75,17 +75,17 @@ h1, h2, h3 {
   line-height: #{scale(vars.baseLineHeight(), 2)};
 }
 
-h1 { font-size: #{vars.baseFontSize() .. scale(2.75) }; } /* ~38px */
-h2 { font-size: #{vars.baseFontSize() .. scale(2.25) }; } /* ~32px */
-h3 { font-size: #{vars.baseFontSize() .. scale(1.75) }; } /* ~24px */
-h4 { font-size: #{vars.baseFontSize() .. scale(1.25) }; } /* ~18px */
-h5 { font-size: #{vars.baseFontSize() }; }
-h6 { font-size: #{vars.baseFontSize() .. scale(0.85) }; } /* ~12px */
+h1 { font-size: #{vars.fontSizeH1()}; } /* Oni Labs edit */
+h2 { font-size: #{vars.fontSizeH2()}; } /* Oni Labs edit */
+h3 { font-size: #{vars.fontSizeH3()}; } /* Oni Labs edit */
+h4 { font-size: #{vars.fontSizeH4() }; } /* Oni Labs edit */
+h5 { font-size: #{vars.fontSizeH5() }; } /* Oni Labs edit */
+h6 { font-size: #{vars.fontSizeH6() }; } /* Oni Labs edit */
 
-h1 small { font-size: #{vars.baseFontSize() .. scale(1.75) }; } /* ~24px */
-h2 small { font-size: #{vars.baseFontSize() .. scale(1.25) }; } /* ~18px */
-h3 small { font-size: #{vars.baseFontSize() }; }
-h4 small { font-size: #{vars.baseFontSize() }; }
+h1 small { font-size: #{vars.fontSizeH1Small() }; } /* Oni Labs edit */
+h2 small { font-size: #{vars.fontSizeH2Small() }; } /* Oni Labs edit */
+h3 small { font-size: #{vars.fontSizeH3Small() }; } /* Oni Labs edit */
+h4 small { font-size: #{vars.fontSizeH4Small() }; } /* Oni Labs edit */
 
 
 /* Page header */
