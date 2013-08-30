@@ -61,6 +61,8 @@ __js var bootstrapTheme = themes['bootstrap'] = exports.bootstrapTheme = {
   customStyleDefs:  mixins -> '',
 
 
+  preBackground:       -> '#f5f5f5',
+  preBorder:           -> 'rgba(0,0,0,.15)',
 
   // ------------------------------------------
   // STANDARD TWITTER BOOTSTRAP VARIABLES BELOW:
@@ -405,6 +407,10 @@ defaultTheme.customStyleDefs = mixins -> "
   }
 }
 ";
+
+
+defaultTheme.preBackground =       -> '#f5f5f5';
+defaultTheme.preBorder =           -> 'rgba(0,0,0,.15)';
 
 
   // ------------------------------------------

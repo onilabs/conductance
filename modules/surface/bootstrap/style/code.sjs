@@ -35,10 +35,10 @@ pre {
   word-wrap: break-word;
   white-space: pre;
   white-space: pre-wrap;
-  background-color: #f5f5f5;
+  background-color: #{vars.preBackground()}; /* Oni Labs edit */
   border: 1px solid #ccc; /* fallback for IE7-8 */
-  border: 1px solid rgba(0,0,0,.15);
-  #{mixins.border_radius(vars.baseBorderRadius())}
+  border: 1px solid #{vars.preBorder()}; /* Oni Labs edit */
+  #{mixins.border_radius(vars.baseBorderRadius())} 
 }
 
   /* Make prettyprint styles more spaced out for readability */
