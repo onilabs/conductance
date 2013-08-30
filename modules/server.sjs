@@ -134,7 +134,6 @@ exports.run = function(config, block) {
             var matchResult;
             var [route, matchResult] = findMatchingRoute(routes, req);
             if (!route) continue;
-            hold(500);
             route.handle(req, matchResult);
           }
           catch(e) {
