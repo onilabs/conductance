@@ -18,9 +18,9 @@ pre {
 /* Inline code */
 code {
   padding: 2px 4px;
-  color: #d14;
-  background-color: #f7f7f9;
-  border: 1px solid #e1e1e8;
+  color: #{vars.codeColor()}; /* Oni Labs edit */
+  background-color: #{vars.codeBackground()}; /* Oni Labs edit */
+  border: 1px solid #{vars.codeBorder()}; /* Oni Labs edit */
   white-space: nowrap;
 }
 

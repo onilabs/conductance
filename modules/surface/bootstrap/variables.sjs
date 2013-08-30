@@ -76,6 +76,11 @@ __js var bootstrapTheme = themes['bootstrap'] = exports.bootstrapTheme = {
   fontSizeH3Small:     -> this.baseFontSize(), 
   fontSizeH4Small:     -> this.baseFontSize(), 
 
+  // inline code:
+  codeColor:           -> '#d14',
+  codeBackground:      -> '#f7f7f9',
+  codeBorder:          -> '#e1e1e8',
+
   // ------------------------------------------
   // STANDARD TWITTER BOOTSTRAP VARIABLES BELOW:
 
@@ -435,6 +440,11 @@ defaultTheme.fontSizeH1Small =     -> this.baseFontSize() .. scale(1.75); // ~24
 defaultTheme.fontSizeH2Small =     -> this.baseFontSize() .. scale(1.25); // ~18px
 defaultTheme.fontSizeH3Small =     -> this.baseFontSize();
 defaultTheme.fontSizeH4Small =     -> this.baseFontSize();
+
+  // inline code:
+defaultTheme.codeColor =           -> '#d14';
+defaultTheme.codeBackground =      -> '#f7f7f9';
+defaultTheme.codeBorder =          -> '#e1e1e8';
 
 
   // ------------------------------------------
