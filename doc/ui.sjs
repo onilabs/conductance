@@ -11,6 +11,7 @@ var events = require('sjs:events');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
 var {merge, ownValues, ownPropertyPairs, getPath} = require('sjs:object');
+var { SymbolMissing } = require('./library');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
@@ -67,8 +68,8 @@ LOADING.block = function(b) {
 };
 
 
-exports.renderer = function(libraries) {
-	// we keep `libraries` in scope, to prevent passing it around to everything
+exports.renderer = function(libraries, rootSymbol) {
+	// we keep `libraries` and `rootSymbol` in scope, to prevent passing it around to everything
 
 	function markup(text, symbol) {
 		if (!text) return undefined;
@@ -404,37 +405,67 @@ exports.renderer = function(libraries) {
 		return Widget("ul", links);
 	};
 
+	function renderMissing(symbol) {
+		if (symbol.library) {
+			return `
+				<h1 class="missing">No such symbol: ${symbol.link()[0]}</h1>
+				<p>The link you followed may be broken, or it may be intended for a different version of the library.</p>
+			`;
+		} else {
+			return `
+				<h1 class="missing">Unknown library: ${symbol.moduleUrl}</h1>
+			`;
+		}
+	};
+
 	return {
 		renderSymbol: function (symbol) {
-			var docs = symbol.docs();
-			logging.debug("Rendering docs", docs, "for", symbol);
+			logging.debug("Rendering docs for", symbol);
 			var view;
+			try {
+				var docs = symbol.docs();
 
-			switch(docs.type) {
-				case 'module':
-					view = makeModuleView(docs, symbol);
-					break;
-				case 'lib':
-					view = makeLibView(docs, symbol);
-					break;
-				default:
-					view = makeSymbolView(docs, symbol);
-					break;
+				switch(docs.type) {
+					case 'module':
+						view = makeModuleView(docs, symbol);
+						break;
+					case 'lib':
+						view = makeLibView(docs, symbol);
+						break;
+					default:
+						view = makeSymbolView(docs, symbol);
+						break;
+				}
+
+				if (symbol.library && symbol.library.root) {
+					// add a "source" link where possible
+					var link = symbol.library.root + (symbol.relativeModulePath .. join());
+					if (!link .. endsWith('/')) link += '.sjs';
+					view = [view, Widget("div", `Source: <a href="$link?format=src">$link</a>`, {"class":"mb-canonical-url"})];
+				}
+			} catch(e) {
+				if (e instanceof SymbolMissing)
+					view = renderMissing(symbol);
+				else
+					throw e;
 			}
-
-			if (symbol.library && symbol.library.root) {
-				// add a "source" link where possible
-				var link = symbol.library.root + (symbol.relativeModulePath .. join());
-				if (!link .. endsWith('/')) link += '.sjs';
-				view = [view, Widget("div", `Source: <a href="$link?format=src">$link</a>`, {"class":"mb-canonical-url"})];
-			}
-
 			return Widget("div", view);
 		},
 
 		renderSidebar: function(symbol) {
-			var parent = symbol.parent() || symbol;
-			var view = makeIndexView(parent, symbol);
+			logging.debug("rendering sidebar for symbol", symbol);
+			var view;
+			try {
+				view = makeIndexView(symbol.parent(), symbol);
+			} catch(e) {
+				if (e instanceof SymbolMissing || e instanceof LibraryMissing) {
+					// display root view
+					view = makeIndexView(rootSymbol);
+				} else {
+					throw e;
+				}
+			}
+
 			return Widget("div", view, {"id":"sidebar"});
 		},
 
@@ -450,9 +481,9 @@ exports.renderer = function(libraries) {
 			var content = [crumbs];
 
 			if (symbol.library) {
-				var version = symbol.library.loadSkeletonDocs().version;
-				if(version) {
-					content.unshift(Widget("span", "#{symbol.library.name}#{version}", {"class":"version"}));
+				var docs = symbol.library.loadSkeletonDocs();
+				if(docs && docs.version) {
+					content.unshift(Widget("span", "#{symbol.library.name}#{docs.version}", {"class":"version"}));
 				}
 			}
 			return Widget("div", content, {"class":"breadcrumbs"});

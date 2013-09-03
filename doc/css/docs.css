@@ -185,3 +185,7 @@ td.mb-td-symbol {
 .mb-banner h1 {
     margin: 0 0 7px 0;
 }
+
+h1.missing {
+    color: rgb(190, 29, 29);
+}

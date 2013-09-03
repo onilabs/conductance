@@ -1,4 +1,3 @@
-var array = require('sjs:array');
 var str = require('sjs:string');
 var {Observable, Computed, ObservableArray} = require('mho:observable');
 var {find, each, filter, map, at, join} = require('sjs:sequence');
@@ -87,6 +86,12 @@ var LibraryMissing = exports.LibraryMissing = function(lib) {
 };
 LibraryMissing.prototype = new Error();
 
+var SymbolMissing = exports.SymbolMissing = function() {
+	this.message = "Missing symbol";
+};
+SymbolMissing.prototype = new Error();
+
+
 function expandHub(name) {
 	require.hubs .. each {|[prefix, dest]|
 		if (!str.isString(dest)) {
@@ -117,15 +122,21 @@ Library.prototype.loadFile = function(path) {
 Library.prototype.loadModuleDocs = function(path) {
 	path = path ? path .. join("") : '/';
 	if (!this.moduleCache .. hasOwn(path)) {
-		var docs;
-		if (path .. str.endsWith('/')) {
-			docs = docutil.parseSJSLibDocs(this.loadFile(path + "sjs-lib-index.txt"));
-		} else {
-			docs = docutil.parseModuleDocs(this.loadFile(path + ".sjs?format=src"));
+		var docs = null;
+		try {
+			if (path .. str.endsWith('/')) {
+				docs = docutil.parseSJSLibDocs(this.loadFile(path + "sjs-lib-index.txt"));
+			} else {
+				docs = docutil.parseModuleDocs(this.loadFile(path + ".sjs?format=src"));
+			}
+		} catch(e) {
+			if (e.status != 404) throw e;
 		}
 		this.moduleCache[path] = docs;
 	}
-	return this.moduleCache[path];
+	var rv = this.moduleCache[path];
+	if (!rv) throw new SymbolMissing();
+	return rv;
 };
 
 Library.prototype.loadIndex = function() {
@@ -134,7 +145,7 @@ Library.prototype.loadIndex = function() {
 		try {
 			result = JSON.parse(this.loadFile('sjs-lib-index.json'));
 		} catch(e) {
-			// TODO: probably a 404, but what if not?
+			if (e.status !== 404) throw e;
 			logging.info("Couldn't find index for #{this.root}: #{e}");
 		} finally {
 			this._index = result;
@@ -151,8 +162,8 @@ Library.prototype.loadIndexFor = function(path) {
 	if (index != null) {
 		path = path.slice();
 		logging.debug("Traversing index", index, "for path", path);
-		while(path.length > 0) {
-			index = index.children .. get(path.shift());
+		while(index && path.length > 0) {
+			index = index.children .. get(path.shift(), null);
 		}
 	}
 	return index;
@@ -183,10 +194,11 @@ Library.prototype.loadDocs = function(modulePath, symbolPath) {
 		}
 	} else {
 		symbolPath = symbolPath.slice();
-		while(symbolPath.length > 0) {
-			var key = symbolPath.shift();
-			docs = docs.children .. get(key);
+		while(docs && symbolPath.length > 0) {
+			docs = docs.children .. get(symbolPath.shift(), null);
 		}
 	}
+	if (!docs) throw new SymbolMissing();
 	return docs;
 };
+

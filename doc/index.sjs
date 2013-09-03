@@ -34,7 +34,7 @@ exports.run = function() {
 		return Symbol.resolveLink(h, libraries);
 	});
 
-	var renderer = ui.renderer(libraries);
+	var renderer = ui.renderer(libraries, new Symbol.RootSymbol(libraries));
 	var symbolDocs = Computed(currentSymbol, function(sym) {
 		return sym !== undefined ? renderer.renderSymbol(sym);
 	});
@@ -109,14 +109,11 @@ exports.run = function() {
 	.. mainStyle
 	.. searchStyle;
 
-	console.log('STYLE', toplevel.style);
-
 	document.body .. withWidget(toplevel) {|elem|
 		if(window.rainbow) window.rainbow.hide();
 		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
 			while(true) {
 				locationHash.set(document.location.hash.slice(1));
-				console.log("lochash", locationHash.get());
 				hashChange.wait();
 			}
 		}

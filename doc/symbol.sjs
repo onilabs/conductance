@@ -22,7 +22,7 @@ var Symbol = exports.Symbol = function(libraries, library, relativeModulePath, s
 // construct an instance for a symbol in the same library
 Symbol.prototype._new = function(relativeModulePath, symbolPath) {
 	return new Symbol(this.libraries, this.library, relativeModulePath, symbolPath);
-}
+};
 
 Symbol.prototype.docs = function() {
 	ui.LOADING.block { ||
@@ -37,7 +37,6 @@ Symbol.prototype.skeletonDocs = function() {
 		    || this.library.loadDocs(this.relativeModulePath, this.symbolPath);
 	}
 };
-
 
 Symbol.prototype.parent = function() {
 	if (this.symbolPath.length) {
@@ -91,18 +90,12 @@ Symbol.prototype.toString = -> require('sjs:debug').inspect([this.fullModulePath
 var UnresolvedSymbol = exports.UnresolvedSymbol = function(moduleUrl, symbolPath) {
 	this.moduleUrl = moduleUrl;
 	this.symbolPath = symbolPath;
+	this.name = [moduleUrl].concat(symbolPath) .. join('::');
 };
 UnresolvedSymbol.prototype.toString = -> "Symbol #{this.symbolPath .. join("::")} of missing module #{this.moduleUrl}";
-UnresolvedSymbol.prototype.parentLinks = function() {
-	var rv = [];
-	var href = this.moduleUrl;
-	rv.push([href, href]);
-	this.symbolPath .. each {|p|
-		href += '::' + p;
-		rv.push([href, p]);
-	}
-	return rv;
-};
+UnresolvedSymbol.prototype.parent = function() { throw new Library.SymbolMissing(); };
+UnresolvedSymbol.prototype.docs = function() { throw new Library.SymbolMissing(); };
+UnresolvedSymbol.prototype.parentLinks = -> [];
 
 var RootSymbol = exports.RootSymbol = function(libraries) {
 	this.libraries = libraries;
