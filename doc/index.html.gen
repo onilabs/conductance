@@ -6,18 +6,27 @@ var {join} = require('sjs:sequence');
 exports.content = function() {
   var { Document, Widget } = require('mho:surface');
 
+  var head = [
+    Widget("script", [
+      // loading script
+      readFile(Url.normalize('rainbow.min.js', module.id) .. Url.toPath),
+      readFile(Url.normalize('init.js', module.id) .. Url.toPath),
+    ] .. join(';')),
+  ];
+
+  //bundle:
+  if (!this.development) {
+    head.push(
+      Widget("script", null,
+        {src: Url.normalize(makeBundle(), this.url.relative)}));
+  } else {
+    logging.info("Skipping bundle - developer mode");
+  }
+
   return Document(null, {
     title: "Conductance Documentation Browser",
     main: 'index.sjs',
-    head: [
-      Widget("script", [
-        // loading script
-        readFile(Url.normalize('rainbow.min.js', module.id) .. Url.toPath),
-        readFile(Url.normalize('init.js', module.id) .. Url.toPath),
-      ] .. join(';')),
-      //bundle:
-      Widget("script", null, {src: Url.normalize(makeBundle(), this.url.relative)}),
-    ],
+    head: head,
   });
 };
 

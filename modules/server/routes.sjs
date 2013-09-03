@@ -160,10 +160,15 @@ exports.SetHeader = function(responder, k, v) {
   @param {../server::Responder|Array} [responder]
   @return A copy of `responder` with development mode enabled
   @desc
-    Currently, developer mode sends server-side errors to the client as a stacktrace.
+    Developer mode sends server-side errors to the client as a stacktrace.
+
+    It also sets the `development` property to `true` on each request object
+    it handles, which can be used elsewhere in your app to conditionally
+    enable development features.
 */
 exports.DeveloperMode = function(responder) {
   return responder .. Filter(function(req, block) {
+    req.development = true;
     try {
       block();
     } catch(e) {
