@@ -3,7 +3,7 @@ var http = require('sjs:nodejs/http');
 var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
 var { override, propertyPairs, keys, merge, clone } = require('sjs:object');
-var { writeErrorResponse } = require('./server/response');
+var { isHttpError, NotFound } = require('./server/response');
 var logging = require('sjs:logging');
 var {Constructor} = require('sjs:object');
 var func = require('sjs:function');
@@ -159,7 +159,17 @@ exports.run = function(config, block) {
             route.handle(req, matchResult);
           }
           catch(e) {
-            console.log("Error handling request: #{e}");
+            if (isHttpError(e)) {
+              if(!req.response.finished) {
+                if(!req.response.headersSent) {
+                  e.writeTo(req);
+                } else {
+                  logging.warn("HTTPError #{e.code} thrown after headersSent; ignoring");
+                }
+              }
+            } else {
+              console.log("Unknown error handling request: #{e}");
+            }
           }
         }
       }
@@ -211,7 +221,7 @@ function findMatchingRoute(routes, req, path) {
     }
   });
   if (!route) {
-    req .. writeErrorResponse(404, 'No handler matched request');
+    throw NotFound("No handler matched request");
   }
   return [route, matchResult];
 };
@@ -364,8 +374,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
   var handler = this.handlers[req.request.method] || this.handlers['*'];
   if (!handler) {
     req.response.setHeader('Allow', keys(this.handlers) .. join(', '));
-    req .. writeErrorResponse(405, 'Method not allowed');
-    return;
+    throw HttpError(405, 'Method not allowed');
   }
   handler.call(this.handlers, req, pathMatches);
 };
@@ -392,7 +401,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
     that aren't explicitly mentioned.
 
     Each property value of `handlers` should be a function which will be called with
-    `req` (a [::TODO]) and `matches`, which is the result of `path.exec(requestPath)`
+    `req` (a [sjs:nodejs/http/ServerRequest]) and `matches`, which is the result of `path.exec(requestPath)`
     when `path` is a regular expression. If `path` is a string, then `match` is
     the match object you would get if `path` were `new RegExp(/^#{regexp.escape(path)}$/)`
     (i.e a RegExp matching the exact `path` string).
@@ -404,9 +413,14 @@ RouteProto._handleDirect = function(req, pathMatches) {
             req.response.end("GOT: #{remainder}");
           },
           '*': function(req) {
-            req.response .. writeErrorResponse(500, "Unsupported method: #{req.request.method}");
+            logging.info("Unsupported method requested: #{req.request.method}");
+            throw HttpError(405, 'Method not allowed');
           }
         });
+
+    It's worth pointing out that the default behaviour of a request method with no
+    matching handler is to send a 405 HTTP response, so you rarely need to do this
+    explicitly.
 */
 exports.Route = Constructor(RouteProto);
 

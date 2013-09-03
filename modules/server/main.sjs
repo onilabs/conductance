@@ -6,7 +6,6 @@ var { withServer } = require('sjs:nodejs/http');
 var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
 var { override, propertyPairs, keys, merge } = require('sjs:object');
-var { writeErrorResponse } = require('./response');
 var fs = require('sjs:nodejs/fs');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');

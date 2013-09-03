@@ -8,7 +8,7 @@ var { override } = require('sjs:object');
 var { each, any } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
-var { setStatus, writeRedirectResponse, writeErrorResponse } = require('./response');
+var { setStatus, writeRedirectResponse, HttpError, NotFound } = require('./response');
 
 //----------------------------------------------------------------------
 // formatResponse:
@@ -26,12 +26,12 @@ var { setStatus, writeRedirectResponse, writeErrorResponse } = require('./respon
 function formatResponse(req, item, settings) {
   var { input, extension, format, apiid } = item;
 
+  var notAcceptable = HttpError(406, 'Not Acceptable',
+                                'Could not find an appropriate representation');
   var filedesc = settings.formats[extension] || settings.formats["*"];
   if (!filedesc) {
     verbose("Don't know how to serve item with extension '#{extension}'");
-    req .. writeErrorResponse(406, 'Not Acceptable', 
-                              'Could not find an appropriate representation');
-    return;
+    throw notAcceptable;
   }
 
   var formatdesc = filedesc[format.name];
@@ -39,9 +39,7 @@ function formatResponse(req, item, settings) {
     formatdesc = filedesc["none"];
   if (!formatdesc) {
     verbose("Can't serve item with extension '#{extension}' in format '#{format.name}'");
-    req .. writeErrorResponse(406, 'Not Acceptable', 
-                              'Could not find an appropriate representation');
-    return;
+    throw notAcceptable;
   }
 
   // try to construct an etag, based on the file's & (potential) filter's etag:
@@ -323,7 +321,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
       // a normal file
       if (!serveFile(req, file, format, settings)) {
         info("File '#{file}' not found");
-        req .. writeErrorResponse(404, 'Not Found', "File '#{relativePath}' not found");
+        throw NotFound('Not Found', "File '#{relativePath}' not found");
       }
     }
   }

@@ -1,4 +1,33 @@
 var { debug, info, verbose } = require('sjs:logging');
+var { Constructor } = require('sjs:object');
+var assert = require('sjs:assert');
+var { sanitize } = require('sjs:string');
+var { mapQuasi } = require('sjs:quasi');
+var { collapseHtmlFragment } = require('../surface/html');
+
+var HttpErrorProto = new Error();
+HttpErrorProto._init = function(code, statusText, description) {
+  assert.number(code, "HttpError code");
+  assert.optionalString(statusText);
+  this.code = code;
+  this.statusText = statusText;
+  this.description = description;
+  // TODO: is this legit?
+  Error.call(this, "HTTP #{this.code}: #{this.statusText}");
+};
+
+HttpErrorProto.writeTo = function(req) {
+  req .. writeErrorResponse(this.code, this.statusText, this.description);
+};
+
+var HttpError = exports.HttpError = Constructor(HttpErrorProto);
+var isHttpError = exports.isHttpError = (e) -> HttpErrorProto.isPrototypeOf(e);
+
+// Aliases for commonly-used HTTP errors
+exports.NotFound = (msg, desc) -> HttpError(404, msg || "File not found", desc);
+exports.ServerError = (msg, desc) -> HttpError(500, msg || "Internal Server Error", desc);
+// TODO: add more of these
+
 
 //----------------------------------------------------------------------
 // response helpers
@@ -22,12 +51,18 @@ function writeRedirectResponse(req, location, status) {
 exports.writeRedirectResponse = writeRedirectResponse;
 
 function writeErrorResponse(req, status, title, text) {
-  text = text || title;
-  var resp = "<html><head><title>"+status+" "+title+"</title></head>";
-  resp += "<body><h4>"+status+" "+title+"</h4>";
-  resp += text;
-  resp += "<hr>Oni Conductance Server</body></html>";
   req .. setStatus(status, title, { "Content-Type":"text/html" });
+
+  text = text || title;
+  var resp = (
+    `<html><head><title>$status $title</title></head>
+      <body>
+        <h4>$status $title</h4>
+        $text
+        <hr>
+        Oni Conductance Server
+      </body>
+    </html>` .. collapseHtmlFragment()).getHtml();
   req.response.end(resp);
 }
 exports.writeErrorResponse = writeErrorResponse;

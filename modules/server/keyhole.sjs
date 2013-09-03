@@ -1,6 +1,6 @@
 var { createID } = require('./random');
 var logging = require('sjs:logging');
-var { writeErrorResponse } = require('./response');
+var { NotFound } = require('./response');
 var { serveFile } = require('./file-server');
 
 //----------------------------------------------------------------------
@@ -36,8 +36,7 @@ function createKeyholeHandler() {
     // no descriptor
     if (!keyhole || !(descriptor = keyhole[keyhole_path])) {
       logging.verbose("keyhole #{keyhole_id} -- #{keyhole_path} not found");
-      writeErrorResponse(req, 404, "Not Found");
-      return;
+      throw NotFound();
     }
 
     if (descriptor.file) {
@@ -46,7 +45,7 @@ function createKeyholeHandler() {
       var formats = { '*': { custom : { mime: descriptor.mime } } };
       if (!serveFile(req, descriptor.file, {name:'custom'}, {formats:formats})) {
         if (!req.response._header) {
-          writeErrorResponse(req, 404, "Not Found");
+          throw NotFound();
         }
         throw new Error("Cannot serve file");
       }

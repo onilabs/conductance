@@ -1,5 +1,5 @@
 var { conductanceRoot, sjsRoot } = require('./env');
-var { setStatus, writeRedirectResponse, writeErrorResponse } = require('./response');
+var { setStatus, writeRedirectResponse, writeErrorResponse, isHttpError, ServerError } = require('./response');
 var { flatten } = require('sjs:array');
 var { isString, sanitize } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
@@ -167,13 +167,25 @@ exports.DeveloperMode = function(responder) {
     try {
       block();
     } catch(e) {
-      // TODO: need to check if headers / content is already written
-      try {
-        req .. writeErrorResponse(500, "Internal server error", "
-          <h3>Stacktrace:</h3>
-          <pre>#{sanitize(e)}</pre>
-        ");
-      } catch(ee) { /* ignore header already written */ }
+      var desc = String(e);
+      var additional;
+      if (!isHttpError(e)) {
+        additional = e.message;
+        e = ServerError();
+      } else {
+        additional = e.description;
+      }
+      if (req.response.headersSent) {
+        logging.warn("Couldn't send stacktrace response - headers already sent");
+      } else {
+        try {
+          req .. writeErrorResponse(e.code, e.statusText, `
+            ${additional ? `<h2>Error: ${additional}</h2>`}
+            <h3>Stack trace:</h3>
+            <pre>${String(desc)}</pre>
+          `);
+        } catch(ee) { /* ignore */ }
+      }
       throw e;
     }
   });
