@@ -20,11 +20,40 @@ HttpErrorProto.writeTo = function(req) {
   req .. writeErrorResponse(this.code, this.statusText, this.description);
 };
 
+/**
+  @class HttpError
+  @constructor HttpError
+  @nonew
+  @param {Number} [code]
+  @param {optional String} [statusText]
+  @param {optional String} [description]
+*/
 var HttpError = exports.HttpError = Constructor(HttpErrorProto);
+
+/**
+  @function isHttpError
+  @param {Error} [error]
+  @return {Boolean}
+  @summary returns whether `error` is a [::HttpError].
+*/
 var isHttpError = exports.isHttpError = (e) -> HttpErrorProto.isPrototypeOf(e);
 
-// Aliases for commonly-used HTTP errors
+/**
+  @function NotFound
+  @param {optional String} [statusText]
+  @param {optional String} [description]
+  @return {::HttpError}
+  @summary Shotrcut for constructing a [::HttpError] with status code `404`.
+*/
 exports.NotFound = (msg, desc) -> HttpError(404, msg || "File not found", desc);
+
+/**
+  @function ServerError
+  @param {optional String} [statusText]
+  @param {optional String} [description]
+  @return {::HttpError}
+  @summary Shotrcut for constructing a [::HttpError] with status code `500`.
+*/
 exports.ServerError = (msg, desc) -> HttpError(500, msg || "Internal Server Error", desc);
 // TODO: add more of these
 
