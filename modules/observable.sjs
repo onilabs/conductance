@@ -77,6 +77,31 @@ function Observable(initial_val) {
 
 exports.Observable = Observable;
 
+
+//----------------------------------------------------------------------
+
+var PropertyProto = Object.create(ObservableProtoBase);
+
+PropertyProto._init = function (root, prop /*, ... */) {
+  if (!isObservable(root)) throw new Error("object is not observable");
+  this._root = root;
+  this._path = (arguments .. toArray).slice(1);
+};
+
+PropertyProto.observe = (o) -> this._root.observePath(this._path, o);
+PropertyProto.observePath = (p, o) -> this._root.observePath(this._path.concat(p));
+PropertyProto.get = (o) -> this._root.get() .. getPath(this._path);
+PropertyProto.set = (v) -> this._root.setPath(this._path, v);
+PropertyProto.setPath = (p, v) -> this._root.setPath(this._path.concat(p), v);
+PropertyProto.revision = -> this._root.revision;
+
+var Property = exports.Property = function() {
+  var rv = Object.create(PropertyProto);
+  rv._init.apply(rv, arguments);
+  return rv;
+};
+
+
 //----------------------------------------------------------------------
 
 function isObservable(obj) {
@@ -212,7 +237,7 @@ CachedComputedProto.init = function() {
 
   var self = this;
   var lastValue;
-  var depRevisions = this._deps .. transform(d -> d.revision);
+  var depRevisions = this._deps .. transform(getRevision);
   var lastRevisions = [];
   var dirty = -> lastRevisions .. zipLongest(depRevisions) .. any([a,b] -> a !== b);
   var calcStratum;
@@ -225,7 +250,7 @@ CachedComputedProto.init = function() {
       var revisions = [], inputs = [];
       self._deps .. each {|d|
         inputs.push(d.get()); // may block
-        revisions.push(d.revision);
+        revisions.push(getRevision(d));
       }
 
       if (dirty()) {
@@ -320,3 +345,8 @@ function Map(arr, f) {
 }
 exports.Map = Map;
 
+__js var getRevision = function(o) {
+  var r = o.revision;
+  if (typeof r == "function") return r.call(o);
+  return r;
+};

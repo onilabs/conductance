@@ -1,7 +1,7 @@
 var {context, test, assert} = require('sjs:test/suite');
 var {at} = require('sjs:sequence');
 
-var {observe, Observable, Computed} = require('mho:observable');
+var {observe, Observable, Computed, Property} = require('mho:observable');
 
 context("Observable") {||
 	test("observe multiple values at once") {||
@@ -87,7 +87,6 @@ context("Observable") {||
 			{"type":"update", "path": ["parent"]},
 			{"type":"update", "path": ["parent", "child"]},
 		]);
-
 	}
 
 	test("allows property modification by either path string or array") {||
@@ -98,6 +97,32 @@ context("Observable") {||
 		obj.setPath(["a", "b"], "e");
 		obj.get().a.b .. assert.eq("e")
 	}
+}.timeout(2);
+
+context("Property") {||
+	test("Nested Property") {||
+		var log = [];
+		var obj = Observable({a: {b: "c"}});
+		var prop = obj .. Property("a","b");
+
+		waitfor {
+			prop.observe {|newval, change|
+				log.push(newval);
+			}
+		} or {
+			prop.get() .. assert.eq("c");
+			prop.set("d");
+			obj.get().a.b .. assert.eq("d")
+			prop.get()    .. assert.eq("d")
+
+			obj.set({a: {b: "c"}});
+			prop.get() .. assert.eq("c");
+			hold(10);
+		}
+		
+		log .. assert.eq(["d", "c"]);
+	}
+
 }.timeout(2);
 
 context("Computed") {||
