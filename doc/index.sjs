@@ -25,6 +25,7 @@ var searchStyle = RequireStyle(Url.normalize('css/search.css', module.id));
 
 exports.run = function() {
 	var libraries = Library.Collection();
+	var defaultHubs = ['sjs:','mho:'];
 
 	var locationHash = Observable(undefined);
 
@@ -47,8 +48,7 @@ exports.run = function() {
 		return sym !== undefined ? renderer.renderSidebar(sym);
 	});
 
-	libraries.add('sjs:');
-	libraries.add('mho:');
+	defaultHubs .. each(h -> libraries.add(h));
 
 	var loadingText = ui.LOADING .. Computed(l -> "#{l} item#{l != 1 ? "s" : ""}");
 	var loadingWidget = Widget("div", `Loading ${loadingText}...`)
@@ -60,43 +60,74 @@ exports.run = function() {
 	});
 	var hubDisplay = Widget("pre", hubDebug);
 
-	var FORWARD_SLASH = 47;
-	var searchWidget = Widget("div", `
-			<div class="searchTrigger">
-				<button class="btn search"><i class="icon-search"></i></button>
-			</div>`)
-		.. Style("{ position: relative; top:1.1em}")
-		.. Class("searchContainer")
-		.. Mechanism(function(elem) {
-			var btn = elem.querySelector("button");
+	var FORWARD_SLASH = (e) -> e.which == 47;
+	var PLUS = (e) -> e.which == 43 && e.shiftKey;
 
-			using (var searchClick = btn .. events.HostEmitter('click')) {
-				using (var searchShortcut = document.body .. events.HostEmitter('keypress', e -> e.which == FORWARD_SLASH)) {
-					while(true) {
-						waitfor {
-							searchShortcut.wait();
-						} or {
-							searchClick.wait();
-						}
-						btn.parentNode.classList.add('hidden');
-						try {
-							ui.LOADING.inc();
-							var newLocation = require('./search').run(elem, libraries, ui.LOADING.dec);
-							if (newLocation) {
-								document.location.hash = newLocation;
+	var toolbar = Widget("div", `
+			<div class="trigger">
+				<button class="btn search"><i class="icon-search"></i></button>
+				<button class="btn config"><i class="icon-cog"></i></button>
+			</div>
+		`)
+		.. Style("{ position: relative; top:1.1em}")
+		.. Class("popupContainer")
+		.. Mechanism(function(elem) {
+			var [searchButton, configureButton] = elem.getElementsByTagName("button");
+
+			var buttonContainer = elem.getElementsByTagName("div")[0];
+
+			var doSearch = function() {
+				ui.LOADING.inc();
+				var newLocation = require('./search').run(elem, libraries, ui.LOADING.dec);
+				if (newLocation) {
+					document.location.hash = newLocation;
+				}
+			};
+
+			var doConfig = function() {
+				ui.LOADING.inc();
+				require('./config').run(elem, libraries, defaultHubs, ui.LOADING.dec);
+			};
+
+
+			using (var searchClick = searchButton .. events.HostEmitter('click')) {
+				using (var searchShortcut = document.body .. events.HostEmitter('keypress', FORWARD_SLASH)) {
+					using (var configClick = configureButton .. events.HostEmitter('click')) {
+						using (var configShortcut = document.body .. events.HostEmitter('keypress', PLUS)) {
+							while(true) {
+								var action;
+								waitfor {
+									waitfor {
+										searchClick.wait();
+									} or {
+										searchShortcut.wait();
+									}
+									action = doSearch;
+								} or {
+									waitfor {
+										configClick.wait();
+									} or {
+										configShortcut.wait();
+									}
+									action = doConfig;
+								}
+								buttonContainer.classList.add('hidden');
+								try {
+									action();
+								} finally {
+									buttonContainer.classList.remove('hidden');
+								}
 							}
-						} finally {
-							btn.parentNode.classList.remove('hidden');
 						}
 					}
 				}
 			}
 		});
-	
+
 	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. docsStyle;
 	var toplevel = Widget("div", `
 		<div class="header navbar-inner">
-			$searchWidget
+			$toolbar
 			<h1>Conductance docs</h1>
 		</div>
 		$breadcrumbs

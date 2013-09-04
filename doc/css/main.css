@@ -65,15 +65,15 @@ h1 {
 	margin:0;
 }
 
-.searchTrigger {
+.trigger {
 	float:right;
 }
 
-.searchContainer {
+.popupContainer {
 	z-index: 5;
 }
 
-.searchTrigger button.search {
+.trigger button {
 	font-size:1.2em;
 	line-height: 1.4em;
 	padding: 0.2em 0.75em;

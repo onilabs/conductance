@@ -11,7 +11,7 @@ var events = require('sjs:events');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
 var {merge, ownValues, ownPropertyPairs, getPath} = require('sjs:object');
-var { SymbolMissing } = require('./library');
+var { SymbolMissing, LibraryMissing } = require('./library');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
@@ -408,13 +408,11 @@ exports.renderer = function(libraries, rootSymbol) {
 	function renderMissing(symbol) {
 		if (symbol.library) {
 			return `
-				<h1 class="missing">No such symbol: ${symbol.link()[0]}</h1>
+				${Widget("h1", `No such symbol: ${symbol.link()[0]}`) .. errorText()}
 				<p>The link you followed may be broken, or it may be intended for a different version of the library.</p>
 			`;
 		} else {
-			return `
-				<h1 class="missing">Unknown library: ${symbol.moduleUrl}</h1>
-			`;
+			return Widget("h1", "Unknown library: #{symbol.moduleUrl}") .. errorText();
 		}
 	};
 
@@ -456,7 +454,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			logging.debug("rendering sidebar for symbol", symbol);
 			var view;
 			try {
-				view = makeIndexView(symbol.parent(), symbol);
+				view = makeIndexView(symbol.parent() || rootSymbol, symbol);
 			} catch(e) {
 				if (e instanceof SymbolMissing || e instanceof LibraryMissing) {
 					// display root view
@@ -491,3 +489,13 @@ exports.renderer = function(libraries, rootSymbol) {
 	}
 }
 
+
+exports.Hub = function(name) {
+	return `<span class="hub">$name</span>`;
+};
+
+// TODO: shouldn't need !important decl here, battling with
+// bootsrap
+var errorText = exports.errorText = Style("{
+    color: rgb(190, 29, 29) !important;
+}");

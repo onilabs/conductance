@@ -1,6 +1,7 @@
 var str = require('sjs:string');
 var {Observable, Computed, ObservableArray} = require('mho:observable');
 var {find, each, filter, map, at, join} = require('sjs:sequence');
+var {remove} = require('sjs:array');
 var {ownValues, hasOwn, get, clone, merge} = require('sjs:object');
 var docutil = require('sjs:docutil');
 var http = require('sjs:http');
@@ -17,17 +18,20 @@ CollectionProto._init = function() {
 };
 
 CollectionProto._computeLibraries = function(hubs) {
-	//logging.debug(`hub change: ${change}`);
+	logging.debug(`hub change: ${hubs}`);
 	hubs .. each {|hub|
 		var [name, url] = hub;
-		console.log(name, url);
-
-		if (! this._libraryCache .. hasOwn(url)) {
-			this._libraryCache[url] = new Library(url, name);
-		}
-		this._libraryCache[url].name = name;
+		var cached = this._cacheUrl(url);
+		cached.name = name;
 	}
 	return this._libraryCache;
+};
+
+CollectionProto._cacheUrl = function(url) {
+	if (! this._libraryCache .. hasOwn(url)) {
+		this._libraryCache[url] = new Library(url, name);
+	}
+	return this._libraryCache[url];
 };
 
 CollectionProto.resolveModule = function(url) {
@@ -67,11 +71,27 @@ CollectionProto.get = function(name) {
 };
 
 CollectionProto.add = function(name, url) {
+	if(!name) throw new Error("Missing hub name");
 	url = url ? url.trim();
 	if (!url) {
 		url = expandHub(name);
+		if (url === name) url = "";
 	}
+	if(!url) throw new Error("Missing URL");
+	if (this.val.get() .. find([n, u] -> u === url || n === name)) {
+		throw new Error("Library already added");
+	}
+	this._cacheUrl(url);
 	this.val.push([name,url]);
+};
+
+CollectionProto.remove = function(name) {
+	if (Array.isArray(name)) name = name[0];
+	var current = this.val.get();
+	logging.debug("removing: ", name, 'from', current);
+	var found = current .. find([n,url] -> n == name);
+	current .. remove(found) .. assert.ok("Item not found: #{name}");
+	this.val.set(current);
 };
 
 exports.Collection = function() {
@@ -86,8 +106,8 @@ var LibraryMissing = exports.LibraryMissing = function(lib) {
 };
 LibraryMissing.prototype = new Error();
 
-var SymbolMissing = exports.SymbolMissing = function() {
-	this.message = "Missing symbol";
+var SymbolMissing = exports.SymbolMissing = function(m) {
+	this.message = m || "Missing symbol";
 };
 SymbolMissing.prototype = new Error();
 
@@ -112,6 +132,7 @@ function Library(url, name) {
 	this.root = url;
 	this.name = name;
 	this.moduleCache = {};
+	this.loadModuleDocs();
 	this.searchEnabled = Observable(true);
 }
 
@@ -120,7 +141,7 @@ Library.prototype.loadFile = function(path) {
 };
 
 Library.prototype.loadModuleDocs = function(path) {
-	path = path ? path .. join("") : '/';
+	path = (path || []) .. join("");
 	if (!this.moduleCache .. hasOwn(path)) {
 		var docs = null;
 		try {
@@ -135,7 +156,7 @@ Library.prototype.loadModuleDocs = function(path) {
 		this.moduleCache[path] = docs;
 	}
 	var rv = this.moduleCache[path];
-	if (!rv) throw new SymbolMissing();
+	if (!rv) throw new SymbolMissing("No module found at #{this.root}#{path}");
 	return rv;
 };
 
