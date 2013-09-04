@@ -35,7 +35,7 @@ var string = require('sjs:string');
 
         // common definitions for all examples
         var { Port, Route, run } = require('mho:server');
-        function hello (req) -> req.response.end("hi!");
+        var hello = (req) -> req.response.end("hi!");
 
         // run a simple server
         run({
