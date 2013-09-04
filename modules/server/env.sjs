@@ -26,4 +26,4 @@ exports.sjsRoot         = -> sjsRoot
 exports.conductanceVersion = -> conductanceVersion;
 exports.config          = -> env_vars && env_vars.config;
 exports.configPath      = -> env_vars && env_vars.config.path; // TODO: remove
-
+exports.configRoot      = -> env_vars && url.normalize('./', env_vars.config.path); // TODO: remove
