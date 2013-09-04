@@ -216,11 +216,11 @@ function createTransport() {
 function createTransportHandler(transportSink) {
   if (!transportSink) transportSink = defaultTransportSink;
 
-  function handler_func(matches, req) {
+  function handler_func(req, matches) {
     //      console.log("AAT request #{require('sjs:debug').inspect(req)}");
 
     var out_messages = [];
-    
+
     var command = req.url.params().cmd;
     
     if (command == 'send') {

@@ -24,7 +24,7 @@ exports.createKeyhole = createKeyhole;
 //----------------------------------------------------------------------
 
 function createKeyholeHandler() {
-  function handler_func(matches, req) {
+  function handler_func(req, matches) {
     
     // find the keyhole descriptor:
     var descriptor;
