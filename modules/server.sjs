@@ -50,7 +50,7 @@ var string = require('sjs:string');
     ### Example 2: Matching paths:
 
         run({
-          port: Port(8080),
+          address: Port(8080),
           routes: [
             
             // matches e.g "/greet/john"
@@ -76,7 +76,7 @@ var string = require('sjs:string');
     ### Example 3: Virtual hosts:
 
         run({
-          port: Port(8080),
+          address: Port(8080),
           routes: [
             Host("code.example.com",
               [
