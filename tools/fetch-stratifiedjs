@@ -29,8 +29,8 @@ if (read(process.stdin).toString().toLowerCase() != 'y\n') {
 exec('rm -rf stratifiedjs/');
 console.log('Cloning external repo');
 exec('git clone git://github.com/onilabs/stratifiedjs.git stratifiedjs');
-console.log("Checking out branch 'mho'");
-exec('cd stratifiedjs/; git checkout mho');
+console.log("Checking out base");
+exec('cd stratifiedjs/; git checkout 3f31edeac9d255a83c31048573eb1238eb1d2c6d');
 console.log('Reapplying our patches');
 exec('git checkout -- stratifiedjs/');
 console.log('ALL DONE');
