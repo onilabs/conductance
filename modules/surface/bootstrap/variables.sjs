@@ -426,12 +426,12 @@ defaultTheme.customStyleDefs = mixins -> "
 ";
 
 
-defaultTheme.preBackground =       -> '#f5f5f5';
-defaultTheme.preBorder =           -> 'rgba(0,0,0,.15)';
+defaultTheme.preBackground =       -> '#fcfcfc'; // '#f5f5f5';
+defaultTheme.preBorder =           -> 'rgba(0,0,0,0.15)'; //'rgba(0,0,0,.15)';
 
-defaultTheme.fontSizeH1 =          -> this.baseFontSize() .. scale(2.75); // ~38px
-defaultTheme.fontSizeH2 =          -> this.baseFontSize() .. scale(2.25); // ~32px
-defaultTheme.fontSizeH3 =          -> this.baseFontSize() .. scale(1.75); // ~24px
+defaultTheme.fontSizeH1 =          -> this.baseFontSize() .. scale(2.5); // ~38px // 2.75 ~40px
+defaultTheme.fontSizeH2 =          -> this.baseFontSize() .. scale(2); // ~32px	//
+defaultTheme.fontSizeH3 =          -> this.baseFontSize() .. scale(1.5); // ~24px
 defaultTheme.fontSizeH4 =          -> this.baseFontSize() .. scale(1.25); // ~18px
 defaultTheme.fontSizeH5 =          -> this.baseFontSize();
 defaultTheme.fontSizeH6 =          -> this.baseFontSize() .. scale(0.85); // ~12px
@@ -442,9 +442,9 @@ defaultTheme.fontSizeH3Small =     -> this.baseFontSize();
 defaultTheme.fontSizeH4Small =     -> this.baseFontSize();
 
   // inline code:
-defaultTheme.codeColor =           -> '#d14';
-defaultTheme.codeBackground =      -> '#f7f7f9';
-defaultTheme.codeBorder =          -> '#e1e1e8';
+defaultTheme.codeColor =           -> '#333'; // '#d14';
+defaultTheme.codeBackground =      -> '#fff'; // '#f7f7f9';
+defaultTheme.codeBorder =          -> '#ccc'; //'#e1e1e8';
 
 
   // ------------------------------------------
@@ -469,7 +469,7 @@ defaultTheme.white =               -> '#fff';
 defaultTheme.blue =                -> '#049cdb';
 defaultTheme.blueDark =            -> '#0064cd';
 defaultTheme.green =               -> '#46a546';
-defaultTheme.red =                 -> '#9d261d';
+defaultTheme.red =                 -> '#fc474e'; // '#9d261d';
 defaultTheme.yellow =              -> '#ffc40d';
 defaultTheme.orange =              -> '#f89406';
 defaultTheme.pink =                -> '#c3325f';
@@ -478,14 +478,14 @@ defaultTheme.purple =              -> '#7a43b6';
 
   // Scaffolding
   // -------------------------
-defaultTheme.bodyBackground =      -> this.white();
+defaultTheme.bodyBackground =      -> this.white(); // this.white();
 defaultTheme.textColor =           -> '#444';
 
 
   // Links
   // -------------------------
-defaultTheme.linkColor =           -> '#08c';
-defaultTheme.linkColorHover =      -> this.linkColor() .. darken(0.15);
+defaultTheme.linkColor =           -> '#389aed'; // '#08c';
+defaultTheme.linkColorHover =      -> this.linkColor() .. darken(0.15); // this.linkColor() .. darken(0.15);
 
 
   // Typography
@@ -494,10 +494,10 @@ defaultTheme.sansFontFamily =      -> '"Helvetica Neue", Helvetica, Arial, sans-
 defaultTheme.serifFontFamily =     -> 'Georgia, "Times New Roman", Times, serif';
 defaultTheme.monoFontFamily =       -> '"Droid Sans Mono", "Courier New", monospace';
 
-defaultTheme.baseFontSize =        -> '14px';
+defaultTheme.baseFontSize =        -> '14px'; // '14px';
 //defaultTheme.baseFontFamily =       -> '"Raleway", sans-serif';
 defaultTheme.baseFontFamily =      -> this.sansFontFamily();
-defaultTheme.baseLineHeight =      -> '20px';
+defaultTheme.baseLineHeight =      -> '24px'; // '20px';
 defaultTheme.altFontFamily =       -> this.serifFontFamily();
 
 defaultTheme.headingsFontFamily =   -> '"Raleway", sans-serif';
