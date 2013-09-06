@@ -98,8 +98,8 @@ __js function scope(css, parent_class) {
           // '&' append without space (e.g. a class selector that
           // should apply to the top-level)
           elem[0] = elem[0].split(',') ..
-            map(s -> s.charAt(0) == '&' ? 
-                "#{prefix}#{s.substr(1)}" :
+            map(s -> /\s*\&/.test(s) ? 
+                "#{prefix}#{s.trim().substr(1)}" :
                 "#{prefix} #{s}") ..
             join(',');
           return "#{elem[0]} { #{processBlock(elem[1], lvl+1, prefix)} }";
