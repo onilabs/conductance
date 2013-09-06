@@ -125,7 +125,18 @@ function ObservableContentMechanism(ft, obs) {
 
 // internal function used by collapseHtmlFragment()
 function appendFragmentTo(target, ft, tag) {
-  if (isFragment(ft)) {
+  if (isQuasi(ft)) {    
+    indexed(ft.parts) ..
+      each { |[idx, val]|
+        if (idx % 2) {
+          appendFragmentTo(target, val, tag);
+        }
+        else {// a literal value 
+          target.content += val;
+        }
+      }
+  }
+  else if (isFragment(ft)) {
     return ft.appendTo(target, tag);
   }
   else if (isObservable(ft)) {
@@ -137,23 +148,13 @@ function appendFragmentTo(target, ft, tag) {
   else if (Array.isArray(ft) || isStream(ft)) {
     ft .. each(p -> appendFragmentTo(target, p, tag));
   }
-  else if (isQuasi(ft)) {
-    indexed(ft.parts) ..
-      each { |[idx, val]|
-        if (idx % 2) {
-          appendFragmentTo(target, val, tag);
-        }
-        else // a literal value
-          target.content += val;
-      };
-  }
   else {
     if (ft !== undefined)
       target.content += escapeForTag(ft, tag);
   }
-};
+}
 
-function escapeForTag(s, tag) {
+__js function escapeForTag(s, tag) {
   switch(tag) {
     case 'script':
       return String(s).replace(/\<\//g, '<\\x3C');
@@ -165,7 +166,7 @@ function escapeForTag(s, tag) {
       return sanitize(String(s));
       break;
   }
-};
+}
 exports.escapeForTag = escapeForTag;
 
 function collapseHtmlFragment(ft, tag) {
@@ -192,11 +193,11 @@ WidgetProto._init = func.seq(WidgetProto._init, function(tag, content, attribs) 
   this.content = content;
 });
 
-WidgetProto.toString = function() {
+__js WidgetProto.toString = function() {
   return "html::Widget[#{this.tag}]";
 };
 
-WidgetProto._normalizeClasses = function() {
+__js WidgetProto._normalizeClasses = function() {
   // ensure the `class` attrib is an array
   var classes = this.attribs['class'];
   if (!Array.isArray(classes)) {
@@ -205,14 +206,14 @@ WidgetProto._normalizeClasses = function() {
   return classes;
 };
 
-var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : String(val);
+__js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : String(val);
 
 WidgetProto.appendTo = function(target) {
   target.content += "<#{this.tag} #{
             propertyPairs(this.attribs) ..
             map([key,val] -> "#{key}=\"#{flattenAttrib(val).replace(/\"/g, '&quot;')}\"") ..
             join(' ')
-          }>"
+          }>";
   this._appendInner(target);
   target.content += "</#{this.tag}>";
 };
@@ -253,7 +254,7 @@ exports.Widget = Widget;
 /**
    @function isWidget
 */
-function isWidget(obj) { return WidgetProto.isPrototypeOf(obj); }
+__js function isWidget(obj) { return WidgetProto.isPrototypeOf(obj); }
 exports.isWidget = isWidget;
 
 /**
@@ -436,26 +437,49 @@ exports.Mechanism = Mechanism;
 
 //----------------------------------------------------------------------
 
+// helper mechanism for making observable classes dynamic:
+function ObservableClassMechanism(ft, cls, current) {
+  return ft .. Mechanism(function(node) {
+    cls.observe { 
+      ||
+      if (current !== undefined) 
+        node.classList.remove(current);
+      if ((current = get(cls)) !== undefined) 
+        node.classList.add(current);
+    }
+  });
+}
+
 function Class(widget, clsname, val) {
   var widget = cloneWidget(widget);
 
   var classes = widget._normalizeClasses();
-  if (arguments.length > 2) {
-    // val is provided, treat it as a boolean toggle
-    if (get(val)) classes.push(clsname);
-    else classes .. array.remove(clsname);
-
-    if (isObservable(val)) {
-      widget = widget .. Mechanism {|elem|
-        var cl = elem.classList;
-        val.observe {|v|
-          if (v) cl.add(clsname);
-          else cl.remove(clsname);
+  if (isObservable(clsname)) {
+    if (arguments.length > 2)
+      throw new Error('Class(.) argument error: Cannot have a boolean toggle in conmbination with an observable class name');
+    classes.push(clsname .. get);
+    widget = widget .. ObservableClassMechanism(clsname, clsname .. get);
+  }
+  else {
+    // !isObservable(clsname)
+    if (arguments.length > 2) {
+      // val is provided, treat it as a boolean toggle
+      if (get(val)) classes.push(clsname);
+      else classes .. array.remove(clsname);
+      
+      if (isObservable(val)) {
+        widget = widget .. Mechanism {
+          |elem|
+          var cl = elem.classList;
+          val.observe {|v|
+                       if (v) cl.add(clsname);
+                       else cl.remove(clsname);
+                      }
         }
       }
+    } else {
+      classes.push(clsname);
     }
-  } else {
-    classes.push(clsname);
   }
 
   return widget;
