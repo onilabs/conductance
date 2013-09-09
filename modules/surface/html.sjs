@@ -49,7 +49,7 @@ exports._getDynOniSurfaceInit = ->
 */
 
 //----------------------------------------------------------------------
-var FragmentBase = {
+__js var FragmentBase = {
   appendTo: function(target) {
     target.style .. extendStyle(this.style);
     target.mechanisms .. extend(this.mechanisms);
@@ -69,7 +69,7 @@ var FragmentBase = {
 */
 var CollapsedFragmentProto = Object.create(FragmentBase);
 
-CollapsedFragmentProto .. extend({
+__js CollapsedFragmentProto .. extend({
   toString:        -> "html::CollapsedFragment [#{this.content}]",
   getHtml:         -> this.content,        // string
   getStyleDefs:    -> this.style,          // { style_id : [ref_count, def], ... }
@@ -83,18 +83,17 @@ CollapsedFragmentProto .. extend({
   }),
 });
 
-function extendStyle(target, src) {
-  propertyPairs(src) .. each {
-    |[id,def]|
+__js function extendStyle(target, src) {
+  propertyPairs(src) .. each(function([id,def]) {
     if (target[id])
       target[id] = [target[id][0]+def[0], def[1]];
     else
       target[id] = def;
-  }
+  })
 };
 
 //helpers:
-function CollapsedFragment() {
+__js function CollapsedFragment() { 
   var rv = Object.create(CollapsedFragmentProto);
   rv._init();
   return rv;
@@ -103,8 +102,8 @@ function CollapsedFragment() {
 /**
    @function isCollapsedFragment
 */
-function isCollapsedFragment(obj) { return CollapsedFragmentProto.isPrototypeOf(obj); }
-function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
+__js function isCollapsedFragment(obj) { return CollapsedFragmentProto.isPrototypeOf(obj); }
+__js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
 
 
 /**
@@ -124,17 +123,17 @@ function ObservableContentMechanism(ft, obs) {
 }
 
 // internal function used by collapseHtmlFragment()
-function appendFragmentTo(target, ft, tag) {
-  if (isQuasi(ft)) {    
-    indexed(ft.parts) ..
-      each { |[idx, val]|
-        if (idx % 2) {
-          appendFragmentTo(target, val, tag);
-        }
-        else {// a literal value 
-          target.content += val;
-        }
+__js function appendFragmentTo(target, ft, tag) { 
+  if (isQuasi(ft)) {
+    for (var idx=0,l=ft.parts.length;idx<l;++idx) {
+      var val = ft.parts[idx];
+      if (idx % 2) {
+        appendFragmentTo(target, val, tag);
       }
+      else {// a literal value 
+        target.content += val;
+      }
+    }
   }
   else if (isFragment(ft)) {
     return ft.appendTo(target, tag);
@@ -154,8 +153,9 @@ function appendFragmentTo(target, ft, tag) {
   }
 }
 
-__js function escapeForTag(s, tag) {
-  switch(tag) {
+__js {
+  function escapeForTag(s, tag) {
+    switch(tag) {
     case 'script':
       return String(s).replace(/\<\//g, '<\\x3C');
       break;
@@ -165,18 +165,21 @@ __js function escapeForTag(s, tag) {
     default:
       return sanitize(String(s));
       break;
+    }
   }
-}
-exports.escapeForTag = escapeForTag;
-
-function collapseHtmlFragment(ft, tag) {
-  if (isCollapsedFragment(ft)) return ft;
-  var rv = CollapsedFragment();
-  appendFragmentTo(rv, ft, tag);
-  return rv;
+  exports.escapeForTag = escapeForTag;
 }
 
-exports.collapseHtmlFragment = collapseHtmlFragment;
+__js {
+  function collapseHtmlFragment(ft, tag) {
+    if (isCollapsedFragment(ft)) return ft;
+    var rv = CollapsedFragment();
+    appendFragmentTo(rv, ft, tag);
+    return rv;
+  }
+  
+  exports.collapseHtmlFragment = collapseHtmlFragment;
+}
 
 //----------------------------------------------------------------------
 /**
@@ -184,12 +187,14 @@ exports.collapseHtmlFragment = collapseHtmlFragment;
    @inherit ::CollapsedFragment
    @summary A [::HtmlFragment] rooted in a single HTML element
 */
-var WidgetProto = Object.create(FragmentBase);
+__js var WidgetProto = Object.create(FragmentBase);
 
-WidgetProto._init = func.seq(WidgetProto._init, function(tag, content, attribs) {
+__js WidgetProto._init = func.seq(WidgetProto._init, function(tag, content, attribs) { 
   this.tag = tag;
-  this.attribs = {};
-  if (attribs) this.attribs .. extend(attribs);
+  // XXX do we need to copy attribs?
+  // probably not here, because we always clone before we modify anything
+  this.attribs = attribs ? attribs : {};
+//  if (attribs) this.attribs .. extend(attribs);
   this.content = content;
 });
 
@@ -208,7 +213,7 @@ __js WidgetProto._normalizeClasses = function() {
 
 __js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : String(val);
 
-WidgetProto.appendTo = function(target) {
+__js WidgetProto.appendTo = function(target) {
   target.content += "<#{this.tag} #{
             propertyPairs(this.attribs) ..
             map([key,val] -> "#{key}=\"#{flattenAttrib(val).replace(/\"/g, '&quot;')}\"") ..
@@ -218,20 +223,21 @@ WidgetProto.appendTo = function(target) {
   target.content += "</#{this.tag}>";
 };
 
-WidgetProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
+__js WidgetProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
   // append inner contents (as well as adding this widget's styles, mechanisms, etc)
   if (this.content != null) {
     appendFragmentTo(target, this.content, this.tag);
   }
 });
 
-WidgetProto.createElement = function() {
+__js WidgetProto.createElement = function() { 
   // xbrowser env only
   var elem = document.createElement(this.tag);
-  propertyPairs(this.attribs) .. each {
-    |[name,val]|
-    elem.setAttribute(name, flattenAttrib(val));
-  }
+  propertyPairs(this.attribs) .. each(
+    function([name,val]) {
+      elem.setAttribute(name, flattenAttrib(val));
+    }
+  )
   // content is a collapsedFragment without our outer tag
   var content = CollapsedFragment();
   this._appendInner(content);
@@ -244,48 +250,56 @@ WidgetProto.createElement = function() {
    @param {::HtmlFragment} [content]
    @return {::Widget}
 */
-function Widget(tag, content, attribs) {
-  var rv = Object.create(WidgetProto);
-  rv._init.apply(rv, arguments);
-  return rv;
+__js {
+  function Widget(tag, content, attribs) {
+    var rv = Object.create(WidgetProto);
+    rv._init.apply(rv, arguments);
+    return rv;
+  }
+  exports.Widget = Widget;
 }
-exports.Widget = Widget;
 
 /**
    @function isWidget
 */
-__js function isWidget(obj) { return WidgetProto.isPrototypeOf(obj); }
-exports.isWidget = isWidget;
+__js {
+  function isWidget(obj) { return WidgetProto.isPrototypeOf(obj); }
+  exports.isWidget = isWidget;
+}
 
 /**
    @function ensureWidget
 */
-function ensureWidget(ft) {
-  if (!isWidget(ft))
-    ft = Widget('surface-ui', ft);
-  return ft;
+__js {
+  function ensureWidget(ft) {
+    if (!isWidget(ft))
+      ft = Widget('surface-ui', ft);
+    return ft;
+  }
+  exports.ensureWidget = ensureWidget;
 }
-exports.ensureWidget = ensureWidget;
 
 /**
   @function cloneWidget
 */
-function cloneWidget(ft) {
-  if (!isWidget(ft)) return ensureWidget(ft);
-  var rv = Object.create(WidgetProto);
-  rv._init(ft.tag, ft.content, ft.attribs);
-  rv.style = clone(ft.style);
-  rv.mechanisms = clone(ft.mechanisms);
-  rv.externalScripts = clone(ft.externalScripts);
-  return rv;
+__js {
+  function cloneWidget(ft) {
+    if (!isWidget(ft)) return ensureWidget(ft);
+    var rv = Object.create(WidgetProto);
+    rv._init(ft.tag, ft.content, ft.attribs);
+    rv.style = clone(ft.style);
+    rv.mechanisms = clone(ft.mechanisms);
+    rv.externalScripts = clone(ft.externalScripts);
+    return rv;
+  }
+  exports.cloneWidget = cloneWidget;
 }
-exports.cloneWidget = cloneWidget;
 
 //----------------------------------------------------------------------
 
 // Style classes
 
-var InternalStyleDefProto = {
+__js var InternalStyleDefProto = {
   getHtml: -> "<style type='text/css'>#{escapeForTag(this.content, 'style')}</style>",
   createElement: function() {
     // xbrowser env only
@@ -301,7 +315,7 @@ var InternalStyleDefProto = {
   }
 };
 
-function InternalStyleDef(content, parent_class) {
+__js function InternalStyleDef(content, parent_class) {
   var rv = Object.create(InternalStyleDefProto);
   rv.content = scope(content, parent_class);
   return rv;
@@ -312,38 +326,40 @@ function InternalStyleDef(content, parent_class) {
    @summary Add style to a widget
 */
 
-function Style(/* [opt] ft, style */) {
-  var id = ++gStyleCounter, styledef;
-  var class_name = "_oni_style#{id}_";
-
-  function setStyle(ft) {
-    ft = cloneWidget(ft);
-
-    if (!ft.style[id])
-      ft.style[id] = [1,styledef];
-    else
-      ft.style[id] = [ft.style[id][0]+1, styledef];
-
-    var classes = ft._normalizeClasses();
-    if (classes.indexOf('_oni_style_') == -1)
-      classes.push(' _oni_style_');
-    if (classes.indexOf(class_name) == -1)
-      classes.push(class_name);
-    return ft;
+__js {
+  function Style(/* [opt] ft, style */) {
+    var id = ++gStyleCounter, styledef;
+    var class_name = "_oni_style#{id}_";
+    
+    function setStyle(ft) {
+      ft = cloneWidget(ft);
+      
+      if (!ft.style[id])
+        ft.style[id] = [1,styledef];
+      else
+        ft.style[id] = [ft.style[id][0]+1, styledef];
+      
+      var classes = ft._normalizeClasses();
+      if (classes.indexOf('_oni_style_') == -1)
+        classes.push(' _oni_style_');
+      if (classes.indexOf(class_name) == -1)
+        classes.push(class_name);
+      return ft;
+    }
+    
+    if (arguments.length == 1) {
+      styledef = InternalStyleDef(arguments[0], class_name);
+      return setStyle;
+    }
+    else /* if (arguments == 2) */{
+      styledef = InternalStyleDef(arguments[1], class_name);
+      return setStyle(arguments[0]);
+    }
   }
-
-  if (arguments.length == 1) {
-    styledef = InternalStyleDef(arguments[0], class_name);
-    return setStyle;
-  }
-  else /* if (arguments == 2) */{
-    styledef = InternalStyleDef(arguments[1], class_name);
-    return setStyle(arguments[0]);
-  }
+  exports.Style = Style;
 }
-exports.Style = Style;
 
-var ExternalStyleDefProto = {
+__js var ExternalStyleDefProto = {
   getHtml: -> "<link rel='stylesheet' href=\"#{sanitize(this.url)}\">",
   createElement: function() {
     // xbrowser env only
@@ -354,7 +370,7 @@ var ExternalStyleDefProto = {
   }
 };
 
-function ExternalStyleDef(url, parent_class) {
+__js function ExternalStyleDef(url, parent_class) {
   var rv = Object.create(ExternalStyleDefProto);
   rv.url = buildUrl(url, {scope:parent_class});
   return rv;
@@ -405,35 +421,37 @@ exports.RequireStyle = RequireStyle;
    @function Mechanism
    @summary Add a mechanism to a widget
 */
-function Mechanism(/* [opt] ft, code */) {
-  var id = ++gMechanismCounter, code;
-
-  function setMechanism(ft) {
-    ft = cloneWidget(ft);
-
-    ft.mechanisms[id] = code;
-
-    if(!ft.attribs['data-oni-mechanisms'])
-      ft.attribs['data-oni-mechanisms'] = String(id);
-    else
-      ft.attribs['data-oni-mechanisms'] += ' '+id;
-
-    var classes = ft._normalizeClasses();
-    if (classes.indexOf('_oni_mech_') == -1)
-      classes.push(' _oni_mech_');
-    return ft;
+__js {
+  function Mechanism(/* [opt] ft, code */) {
+    var id = ++gMechanismCounter, code;
+    
+    function setMechanism(ft) {
+      ft = cloneWidget(ft);
+      
+      ft.mechanisms[id] = code;
+      
+      if(!ft.attribs['data-oni-mechanisms'])
+        ft.attribs['data-oni-mechanisms'] = String(id);
+      else
+        ft.attribs['data-oni-mechanisms'] += ' '+id;
+      
+      var classes = ft._normalizeClasses();
+      if (classes.indexOf('_oni_mech_') == -1)
+        classes.push(' _oni_mech_');
+      return ft;
+    }
+    
+    if (arguments.length == 1) {
+      code = arguments[0];
+      return setMechanism;
+    }
+    else /* if (arguments == 2) */ {
+      code = arguments[1];
+      return setMechanism(arguments[0]);
+    }
   }
-
-  if (arguments.length == 1) {
-    code = arguments[0];
-    return setMechanism;
-  }
-  else /* if (arguments == 2) */ {
-    code = arguments[1];
-    return setMechanism(arguments[0]);
-  }
+  exports.Mechanism = Mechanism;
 }
-exports.Mechanism = Mechanism;
 
 //----------------------------------------------------------------------
 
@@ -442,20 +460,22 @@ function ObservableClassMechanism(ft, cls, current) {
   return ft .. Mechanism(function(node) {
     cls.observe { 
       ||
-      if (current !== undefined) 
-        node.classList.remove(current);
-      if ((current = get(cls)) !== undefined) 
-        node.classList.add(current);
+      __js {      
+        if (current !== undefined) 
+          node.classList.remove(current);
+        if ((current = get(cls)) !== undefined) 
+          node.classList.add(current); 
+      }
     }
   });
 }
 
 function Class(widget, clsname, val) {
-  var widget = cloneWidget(widget);
-
-  var classes = widget._normalizeClasses();
+  __js  var widget = cloneWidget(widget);
+  
+  __js  var classes = widget._normalizeClasses();
   if (isObservable(clsname)) {
-    if (arguments.length > 2)
+    __js    if (arguments.length > 2)
       throw new Error('Class(.) argument error: Cannot have a boolean toggle in conmbination with an observable class name');
     classes.push(clsname .. get);
     widget = widget .. ObservableClassMechanism(clsname, clsname .. get);
