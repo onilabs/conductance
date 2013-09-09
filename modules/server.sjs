@@ -2,7 +2,7 @@ var cutil = require('sjs:cutil');
 var http = require('sjs:nodejs/http');
 var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
-var { override, propertyPairs, keys, merge, clone } = require('sjs:object');
+var { override, propertyPairs, keys, merge, clone, extend } = require('sjs:object');
 var { isHttpError, NotFound } = require('./server/response');
 var logging = require('sjs:logging');
 var {Constructor} = require('sjs:object');
@@ -13,8 +13,8 @@ var string = require('sjs:string');
 /**
   @function run
   @summary run a conductance server
-  @arg {Object|Array} [config] server configuration(s)
-  @arg {optional Function} [block] Block to run the server around
+  @param {Object|Array} [config] server configuration(s)
+  @param {optional Function} [block] Block to run the server around
   @desc
     `config` should be a single object or array of objects. Each object should have the keys:
 
@@ -445,7 +445,7 @@ PortProto._init = function(port, address) {
   this.sslConfig = null;
   assert.number(port, 'port');
   this.port = port;
-  this.config = {};
+  this._config = {};
 };
 
 /**
@@ -463,7 +463,7 @@ PortProto.ssl = function(opts) {
 };
 
 PortProto.config = function(conf) {
-  this.config.extend(conf);
+  this._config .. extend(conf);
   return this;
 };
 
@@ -473,7 +473,7 @@ PortProto.getAddress = function() {
 
 PortProto.getConfig = function() {
   var sslConfig = this.sslConfig || {ssl:false};
-  return merge(this.defaultConfig, this.config, sslConfig, {
+  return merge(this.defaultConfig, this._config, sslConfig, {
     address: this.getAddress(),
   });
 };
