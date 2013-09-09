@@ -100,22 +100,44 @@ var string = require('sjs:string');
           ]
         });
 */
-exports.run = function(config, block) {
-  var apps = Array.isArray(config) ? config : [config];
-  var unstartedApps = apps.length;
 
+var toArray = (v) -> Array.isArray(v) ? v : [v];
+
+exports.run = function(config, block) {
+  var servers = [];
+
+  toArray(config) .. each {|config|
+    var routes = config.routes .. flatten();
+    toArray(config.address) .. each {|address|
+      servers.push([config, address, routes]);
+    }
+  };
+
+  if (process.env['LISTEN_PID'] === String(process.pid)) {
+    // use socket activation
+    var fdCount = parseInt(process.env.LISTEN_FDS, 10);
+    if (fdCount != servers.length) {
+      throw new Error("Configuration specifies #{ports.length} ports, but we were passed #{fdCount} $LISTEN_FDS");
+    }
+    logging.verbose("Adopting #{fdCount} $LISTEN_FDS");
+    var nextFD=3;
+    servers .. each {|[app, address, routes]|
+      address.config = merge(address.config, {fd: nextFD++});
+    }
+  }
+
+  var unstartedServers = servers.length;
   var shutdown = cutil.Condition();
   var ready = cutil.Condition();
 
-  function runApp(app) {
-    var port_config = app.address.getConfig();
+  function runServer([app, address, routes]) {
+    var port_config = address.getConfig();
     logging.debug("server config: ", port_config);
-    var routes = flatten(app.routes);
 
     // run a http(s) server on the port:
     http.withServer(port_config) {
       |server|
-      if (--unstartedApps == 0) {
+      if (--unstartedServers == 0) {
         ready.set();
       }
       waitfor {
@@ -148,21 +170,8 @@ exports.run = function(config, block) {
   // main program:
 
 
-  if (process.env['LISTEN_PID'] === String(process.pid)) {
-    // use socket activation
-    var fdCount = parseInt(process.env.LISTEN_FDS, 10);
-    if (fdCount != apps.length) {
-      throw new Error("Configuration specifies #{ports.length} ports, but we were passed #{fdCount} $LISTEN_FDS");
-    }
-    logging.verbose("Adopting #{fdCount} $LISTEN_FDS");
-    var nextFD=3;
-    apps .. each {|app|
-      app.address.config = merge(app.address.config, {fd: nextFD++});
-    }
-  }
-
   waitfor {
-    cutil.waitforAll(runApp, apps);
+    cutil.waitforAll(runServer, servers);
   } and {
     if (block) {
       try {
