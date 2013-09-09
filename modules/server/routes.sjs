@@ -168,10 +168,12 @@ exports.DeveloperMode = function(responder) {
       block();
     } catch(e) {
       // TODO: need to check if headers / content is already written
-      req .. writeErrorResponse(500, "Internal server error", "
-        <h3>Stacktrace:</h3>
-        <pre>#{sanitize(e)}</pre>
+      try {
+        req .. writeErrorResponse(500, "Internal server error", "
+          <h3>Stacktrace:</h3>
+          <pre>#{sanitize(e)}</pre>
         ");
+      } catch(ee) { /* ignore header already written */ }
       throw e;
     }
   });
