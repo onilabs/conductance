@@ -123,7 +123,7 @@ function ObservableContentMechanism(ft, obs) {
 }
 
 // internal function used by collapseHtmlFragment()
-__js function appendFragmentTo(target, ft, tag) { 
+function appendFragmentTo(target, ft, tag) { 
   if (isQuasi(ft)) {
     for (var idx=0,l=ft.parts.length;idx<l;++idx) {
       var val = ft.parts[idx];
@@ -170,16 +170,14 @@ __js {
   exports.escapeForTag = escapeForTag;
 }
 
-__js {
-  function collapseHtmlFragment(ft, tag) {
-    if (isCollapsedFragment(ft)) return ft;
-    var rv = CollapsedFragment();
-    appendFragmentTo(rv, ft, tag);
-    return rv;
-  }
-  
-  exports.collapseHtmlFragment = collapseHtmlFragment;
+function collapseHtmlFragment(ft, tag) {
+  if (isCollapsedFragment(ft)) return ft;
+  var rv = CollapsedFragment();
+  appendFragmentTo(rv, ft, tag);
+  return rv;
 }
+  
+exports.collapseHtmlFragment = collapseHtmlFragment;
 
 //----------------------------------------------------------------------
 /**
@@ -213,7 +211,7 @@ __js WidgetProto._normalizeClasses = function() {
 
 __js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : String(val);
 
-__js WidgetProto.appendTo = function(target) {
+WidgetProto.appendTo = function(target) {
   target.content += "<#{this.tag} #{
             propertyPairs(this.attribs) ..
             map([key,val] -> "#{key}=\"#{flattenAttrib(val).replace(/\"/g, '&quot;')}\"") ..
@@ -223,14 +221,14 @@ __js WidgetProto.appendTo = function(target) {
   target.content += "</#{this.tag}>";
 };
 
-__js WidgetProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
+WidgetProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
   // append inner contents (as well as adding this widget's styles, mechanisms, etc)
   if (this.content != null) {
     appendFragmentTo(target, this.content, this.tag);
   }
 });
 
-__js WidgetProto.createElement = function() { 
+WidgetProto.createElement = function() { 
   // xbrowser env only
   var elem = document.createElement(this.tag);
   propertyPairs(this.attribs) .. each(
