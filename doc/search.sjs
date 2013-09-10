@@ -19,6 +19,7 @@ var flattenLibraryIndex = function(lib) {
 		if (!obj.children) return;
 		obj.children .. ownPropertyPairs .. each {|[k,v]|
 			var id = path + k;
+			if (v.type == 'ctor') continue;
 			symbols.push([lib.name, id, v.type]);
 			switch (v.type) {
 				case 'lib':

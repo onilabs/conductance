@@ -379,6 +379,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		var getType = prop -> prop[1].type;
 		return docs.children
 		.. ownPropertyPairs
+		.. filter(prop -> getType(prop) != 'ctor')
 		.. sortBy(getType)
 		.. map(function([name, val]) {
 				var [href, name] = parent.childLink(name, val);
