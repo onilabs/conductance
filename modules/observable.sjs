@@ -289,7 +289,6 @@ function CachedComputed(/* var1, ..., f */) {
     return rv;
   }
 }
-exports.Computed = CachedComputed;
 
 function ImpureComputed(/* var1, ..., f */) {
   var rv = Object.create(ComputedProto);
@@ -297,8 +296,8 @@ function ImpureComputed(/* var1, ..., f */) {
   rv.get = function() { return this._f.apply(this._deps, this._deps .. map(d -> d.get())) };
   return rv;
 };
-exports.Computed.Always = ImpureComputed;
-
+exports.Computed = ImpureComputed;
+exports.Computed.Cached = CachedComputed;
 
 exports.observe = function(/* var1, ... , f */) {
   // TODO: this could be done without creating a dummy Computed value

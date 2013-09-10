@@ -125,14 +125,14 @@ context("Property") {||
 
 }.timeout(2);
 
-context("Computed") {||
+context("Computed.Cached") {||
 	test("is only recomputed minimally") {||
 		var log = [];
 		var a = Observable('a0');
 		var b = Observable('b0');
 
 		var count = 0;
-		var c = Computed(a, b, function(_a, _b) {
+		var c = Computed.Cached(a, b, function(_a, _b) {
 			return "#{_a} #{_b} c#{count++}";
 		});
 
@@ -149,7 +149,7 @@ context("Computed") {||
 		var b = Observable('b0');
 
 		var count = 0;
-		var c = Computed(a, b, function(_a, _b) {
+		var c = Computed.Cached(a, b, function(_a, _b) {
 			return "#{_a} #{_b} c#{count++}";
 		});
 
@@ -172,7 +172,7 @@ context("Computed") {||
 	test("keeps emitting new values while inputs have changed") {||
 		var a = Observable();
 		var count = 1;
-		var c = Computed(a, _a -> _a + " result");
+		var c = Computed.Cached(a, _a -> _a + " result");
 		var log = [];
 		waitfor {
 			c.observe {|val|
@@ -191,7 +191,7 @@ context("Computed") {||
 	test("get() triggers at most one concurrent compute, always uses most recent inputs") {||
 		var a = Observable('a0');
 		var log = [];
-		var c = Computed(a, function(_a) {
+		var c = Computed.Cached(a, function(_a) {
 			try {
 				log.push("computing #{_a}");
 				hold(50);
@@ -222,18 +222,18 @@ context("Computed") {||
 	}
 }.timeout(2);
 
-context("Computed.Always") {||
+context("Computed") {||
 	test("is recomputed each time it's accessed") {||
 		var count = 0;
-		var c = Computed.Always(-> count++);
+		var c = Computed(-> count++);
 		c.get() .. assert.eq(0);
 		c.get() .. assert.eq(1);
 	}
 
 	test("causes dependent values to also be uncacheable") {||
 		var count = 0;
-		var c = Computed.Always(-> count++);
-		var d = Computed(c, _c -> _c);
+		var c = Computed(-> count++);
+		var d = Computed.Cached(c, _c -> _c);
 		d.revision .. assert.is(undefined);
 		d.get() .. assert.eq(0);
 		d.get() .. assert.eq(1);
