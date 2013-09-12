@@ -18,7 +18,7 @@ exports.content = function() {
   if (!this.development) {
     head.push(
       Widget("script", null,
-        {src: Url.normalize(makeBundle(), this.url.relative)}));
+        {src: Url.normalize(makeBundle(this.url), this.url.relative)}));
   } else {
     logging.info("Skipping bundle - developer mode");
   }
@@ -30,17 +30,14 @@ exports.content = function() {
   });
 };
 
-var makeBundle = function() {
+var makeBundle = function(selfUrl) {
   var bundleFilename = 'index.bundle.js';
   var bundlePath = Url.normalize(bundleFilename, module.id) .. Url.toPath;
 
   logging.info("Generating #{bundlePath}");
 
-  var resources = {
-      'mho:': '/__mho/',
-      'sjs:': '/__sjs/modules/',
-  };
-  resources["#{Url.normalize("../", module.id)}"] = "/";
+  var resources = {};
+  resources["#{Url.normalize("./", module.id)}"] = selfUrl.relative;
 
   require('sjs:bundle').create({
     sources: [
