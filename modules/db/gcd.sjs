@@ -1,7 +1,7 @@
 var { propertyPairs } = require('sjs:object');
 var { each, map, Stream, transform, join, buffer, unpack, slice, reduce, filter, indexed, toArray, at } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
-var { instantiate, traverse, isSimpleType, IdToKey } = require('./schema');
+var { instantiate, isSimpleType, IdToKey, cotraverse } = require('./schema');
 
 //----------------------------------------------------------------------
 // Google Cloud Datastore 
@@ -40,6 +40,11 @@ function GCDKeyToKey(path) {
 function GCDKeyToId(path) {
   var last = path[path.length-1];
   return last.id ? "##{last.id}" : last.name;
+}
+
+function GCDKeyToKind(path) {
+  var last = path[path.length-1];
+  return last.kind;
 }
 
 function GCDKeyToParent(path) {
@@ -98,9 +103,9 @@ function GCDValueToJSValue(gcd_value, descriptor) {
 function JSValueToGCDValue(js_val, descriptor) {
   var value = {};
 
-  if (descriptor.toRepository)
+/*  if (descriptor.toRepository)
     js_val = descriptor.toRepository(js_val);
-
+*/
   if (js_val === null) {
     if (descriptor.__allowNull)
       return value;
@@ -136,188 +141,80 @@ function JSValueToGCDValue(js_val, descriptor) {
   return value;
 }
 
-function JSEntityToGCDEntity(js_entity, schema) {
-  var gcd_entity = {key: {}, property:[]};
-  var parent, key, id, kind;
+function JSEntityToGCDEntity(js_entity, schemas) {
+  var schema = schemas[js_entity.schema];
+  if (!schema) throw new Error("Unknown schema #{js_entity.schema}");
+  var key = js_entity.id;
+  var gcd_entity = { property:[] };
 
-  // helper to map a single js value to a gcd value, based on given schema descriptor
-  function extractProperty(js_val, descriptor) {
-    if (js_val === undefined) {
-      if (descriptor.__defval !== undefined) {
-        if (typeof descriptor.__defval == 'function')
-          js_val = descriptor.__defval();
-        else
-          js_val = descriptor.__defval;
-      }
-//XXX      else if (descriptor.__required)
-//        throw "Validation error: Missing value for property #{name}";
-      else 
-        return;
+  js_entity.data .. cotraverse(schema) {
+    |node, descriptor|
+    //console.log("iterating #{node.path} #{node.value}");
+    if (descriptor.type === 'object') {
+      // feed through parent context (or create new one at the root)
+      node.state = node.parent_state || {};
+      // if we're in an array, every field of structured data must
+      // exist (see also comment below):
+      if (node.state.arr_ctx && node.value === undefined)
+        throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
     }
+    else if (descriptor.type === 'key') {
+      if (key && node.value !== key) 
+        throw new Error("Google Cloud Datastore: Inconsistent key values in data ('#{key}' != '#{node.value}')");
+      key = node.value;
+    }
+    else if (descriptor.type === 'array') {
+      if (node.parent_state.arr_ctx)
+        throw new Error("Google Cloud Datastore: Nested arrays not supported (#{node.path})");
+      node.state = Object.create(node.parent_state);
+      node.state.arr_ctx = {};
+    }
+    else if (node.parent_state.arr_ctx) {
+      // we're in an array
 
-    if (descriptor.toRepository)
-      js_val = descriptor.toRepository(js_val);
+      // We store structed array data in separate, parallel
+      // multi-valued properties.  For this scheme to work, every
+      // field of a structured array value must have a value (possibly
+      // 'Null'), otherwise the correspondance between array fields
+      // will get out of sync. 
+      if (node.value === undefined) 
+        throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
 
-    switch (descriptor.__type) {
-      // first some 'special' types:
-    case 'key':
-      key = js_val;
-      if (descriptor.toRepository)
-        key = descriptor.toRepository(key);
-      break;
-    case 'id':
-      id = js_val;
-      if (descriptor.toRepository)
-        id = descriptor.toRepository(id);
-      break;
-    case 'parent':
-      parent = js_val;
-      if (descriptor.toRepository)
-        parent = descriptor.toRepository(parent);
-      break;
-    default:
-      // a normal serialized value
-      return JSValueToGCDValue(js_val, descriptor);
+      if (!node.parent_state.arr_ctx[descriptor.path]) {
+        gcd_entity.property.push({
+          name: descriptor.path.replace(".[]", ""),
+          multi: true,
+          value: (node.parent_state.arr_ctx[descriptor.path] = [])
+        });
+      }
+      node.parent_state.arr_ctx[descriptor.path].push(JSValueToGCDValue(node.value, descriptor.value));
+    }
+    else if (node.value !== undefined) {
+      // a single-valued property:
+      gcd_entity.property.push({
+        name: node.path,
+        value: [JSValueToGCDValue(node.value, descriptor.value)]
+      });
     }
   }
-
-  function parseSchemaObj(schemaobj, path, array_path) {
-    try {
-      propertyPairs(schemaobj) .. each {
-        |[name, descriptor]|
-        if (name == '__parent') {
-          if (path || array_path) throw "Unexpected '__parent'";
-          parent = descriptor;
-        }
-        else if (name == '__kind') {
-          if (path || array_path) throw "Unexpected '__kind'";
-          kind = descriptor;
-        }
-        else if (isArrayLike(descriptor)) {
-          if (descriptor.length != 1) throw "#{name}: Polymorphic arrays not supported";
-          if (array_path) throw "#{name}: Nested arrays not supported";
-          if (typeof descriptor[0] !== 'object') throw "#{name}: Invalid array descriptor: Object expected";
-          
-          if (descriptor[0].__type) {
-            // descriptor describes a property -> fetch all values
-            var base = path ? path .. reduce(js_entity, (v,p) -> v === undefined ? undefined : v[p]) : js_entity;
-            // XXX validation on array? like e.g. non-empty arrays?
-            if (base && base[name] && base[name].length) {
-              gcd_entity.property.push({
-                name: path ? path.join('.')+'.'+name : name,
-                multi: true,
-                value: base[name] .. transform(x -> extractProperty(x, descriptor[0])) /* XXX .. filter(x->x!==undefined) */ .. toArray
-              });                
-            }
-            
-          }
-          else // descriptor is a sub object
-            parseSchemaObj(descriptor[0], path ? path.concat(name) : [name], []);
-        }
-        else if (typeof descriptor === 'object') { 
-          if (descriptor.__type) {
-            // descriptor describes a property on js_entity
-            if (array_path) {
-              // property nested in array
-              // iterate over all array elements and accumulate all values found at array_path
-              // relative to the array.
-
-              // XXX currently each array element needs to be
-              // reachable otherwise an exception will be thrown. Also
-              // if a value is 'undefined' subsequent array values get out of
-              // sync with their indexes on retrieval
-              var base = path .. reduce(js_entity, (v,p) -> v === undefined ? undefined : v[p]);
-              // XXX validation on array itself (rather than elements?)
-              if (base && base.length) { 
-                try { 
-                  gcd_entity.property.push({
-                    name: path.concat(array_path).join('.') + '.' + name,
-                    multi: true,
-                    value: base .. 
-                      transform(arr_base -> reduce(array_path, arr_base, (arr_base,prop) -> arr_base[prop])[name] ..
-                                            extractProperty(descriptor)) ..
-                      toArray
-                  });
-                }
-                catch (e) { 
-                  throw "Invalid format of array data (#{e})";
-                }
-              }
-            }
-            else {
-              // single valued property:
-              var base = path ? path .. reduce(js_entity, (v,p) -> v === undefined ? undefined : v[p]) : js_entity;
-              try {
-                var value = extractProperty(base ? base[name] : undefined, descriptor);
-              }
-              catch (e) {
-                if (typeof e === 'string')
-                  e += " (#{name})";
-                throw e;
-              }
-              if (value !== undefined) {
-                gcd_entity.property.push({
-                  name: path ? path.join('.') + '.' + name : name,
-                  value: [value]
-                });
-              }
-            }
-          }
-          else {
-            // descriptor is a sub object
-            parseSchemaObj(descriptor, path ? path.concat(name) : [name], array_path);
-          }
-        }
-        else 
-          throw "Invalid descriptor type '#{typeof descriptor}' for #{name}";
-      }
-    }
-    catch (e) {
-      if (typeof e === 'string') {
-        // XXX add path/array_path to error
-        var err = "Schema error: #{e}.";
-        if (path || array_path) {
-          err += " (";
-          if (path)
-            err += "path = '#{path}'";
-          if (array_path)
-            err += " array_path = '#{array_path}'";
-          err += ")";
-        }
-        throw new Error(err);
-      }
-      else
-        throw e;
-    }
-  }
-
-  parseSchemaObj(schema);
 
   if (!key) {
-    if (parent)
-      key = parent + '/';
-    else 
-      key = '';
-    if (!kind) throw new Error("Schema missing '__kind' definition.");
-    key += kind;
-    if (id)
-      key += ":#{id}";
-  }
-  else if (id) {
-    // check that key and id are consistent:
-    if (key.lastIndexOf(id) !== key.lastIndexOf(':')+1)
-      throw new Error("Id #{id} inconsistent with key #{key}");
+    key = schema.__parent ? schema.__parent + '/' : '';
+    key += js_entity.schema;
   }
 
-  gcd_entity.key.pathElement = keyToGCDKey(key);
+  gcd_entity.key = { pathElement: keyToGCDKey(key) };
 
   return gcd_entity;
 }
 
-function GCDEntityToJSEntity(gcd_entity, schema) {
-  var kind = gcd_entity.key.pathElement[gcd_entity.key.pathElement.length-1].kind;
 
-  var js_entity = instantiate(schema);
+function GCDEntityToJSEntity(gcd_entity, schemas) {
+  var kind = GCDKeyToKind(gcd_entity.key.pathElement);
+  var schema = schemas[kind];
+  if (!schema) throw new Error("Google Cloud Datastore: Unknown schema #{kind}");
+
+  var js_data = instantiate(schema);
 
   // go through properties array of GCD entity:
   gcd_entity.property .. each {
@@ -346,9 +243,9 @@ function GCDEntityToJSEntity(gcd_entity, schema) {
 
     if (!descriptor) continue;
 
-    // make sure path exists in js_entity:
+    // make sure path exists in js_data:
     var target = path .. slice(0,-1) .. 
-      reduce(js_entity, (target, p) -> target[p] ? target[p] : (target[p] = {}));
+      reduce(js_data, (target, p) -> target[p] ? target[p] : (target[p] = {}));
 
     if (!array_path) {
       // a single value
@@ -379,7 +276,7 @@ function GCDEntityToJSEntity(gcd_entity, schema) {
   // __key), check if required properties are there, and fill in default properties
   propertyPairs(schema) .. each {
     |[name, descriptor]|
-    if (js_entity[name]) continue; // already there
+    if (js_data[name]) continue; // already there
     var base_val;
     switch (descriptor.__type) {
     case 'id':
@@ -396,21 +293,64 @@ function GCDEntityToJSEntity(gcd_entity, schema) {
 //        throw new Error("Schema validation error: Missing value for property #{name}");
     }
     if (base_val !== undefined) {
-      if (descriptor.fromRepository)
-        base_val = descriptor.fromRepository(base_val);
-      js_entity[name] = base_val;
+      js_data[name] = base_val;
     }
   }
 
-  return js_entity;
+  return { id: GCDKeyToKey(gcd_entity.key.pathElement), schema: kind,  data: js_data};
 }
 
+/**
+   @function GoogleCloudDatastore
+   @return {GCD} Google Cloud Datastore instance
+   @param {Object} [attribs]
+   @attrib {Object} [schemas]
+   @attrib {Object} [context] Object with settings as described at [./gcd/backend::Context] (Note: this should not be a `Context` object itself, but a hash of settings that will be passed to to [./gcd/backend::Context]!)
+ */
 function GoogleCloudDatastore(attribs) {
-  var context = require('./gcd/backend/google-cloud-datastore').Context(attribs);
-  // returns a 'Repository' object
+  var context = require('./gcd/backend').Context(attribs.context);
+  var schemas = attribs.schemas;
+  // returns a 'Datastore' object
   var rv = {
-    put: function(entity, schema) {
-      entity = JSEntityToGCDEntity(entity, schema);
+    /**
+       @function GCD.put
+       @param {datastore::Entity} [entity] Entity to create/update/delete
+       @summary Create/update/delete an entity in the datastore
+       @desc
+          If `entity` is of the form
+          
+              {  id:     IDENTIFIER_STRING,
+                 schema: SCHEMA_NAME,
+                 data:   SIMPLE_JS_OBJ
+              }
+
+          then the item identified by `id` will be updated with `data` as described by the
+          given `schema`. If the item does not exist yet, a new item will be created.
+
+          If `entity` is of the form
+ 
+              {  schema: SCHEMA_NAME,
+                 data:   SIMPLE_JS_OBJ
+              }
+
+          then a new item with the given `data` as described by `schema` will be created.
+          
+          If `entity` is of the form
+
+              {  id: IDENTIFIER_STRING,
+                 data: undefined|null
+              }
+               
+          then the given item will be deleted from the datastore.
+     */
+    put: function(entity) {
+      if (entity.data === undefined || entity.data === null) {
+        // DELETE
+        context.blindWrite({mutation: { 'delete': [{pathElement: keyToGCDKey(entity.id)}]}});
+        return entity.id;
+      }
+      // else UPSERT
+      entity = JSEntityToGCDEntity(entity, schemas);
       //console.log(require('sjs:debug').inspect(entity, false, 10));
       var mutation = {};
 
@@ -432,135 +372,50 @@ function GoogleCloudDatastore(attribs) {
         result.mutationResult.insertAutoIdKey[0].pathElement .. GCDKeyToKey;
     },
 
-    get: function(key, schema) {
+    /**
+       @function GCD.get
+     */
+    get: function(entity) {
       var result = context.lookup({
-        key: [ { pathElement: keyToGCDKey(key) } ]
+        key: [ { pathElement: keyToGCDKey(entity.id) } ]
       });
       if (!result.found) return null;
-      return result.found[0].entity .. GCDEntityToJSEntity(schema);
+      return result.found[0].entity .. GCDEntityToJSEntity(schemas);
     },
 
-    remove: function(key) {
-      context.blindWrite({mutation: { 'delete': [{pathElement: keyToGCDKey(key)}]}});
-    },
+    /**
+       @function GCD.query
+     */
+    query: function(entity, idsOnly) {
+      var schema = schemas[entity.schema];
+      if (!schema) throw new Error("Unknown schema #{entity.schema}");
 
-    query_old: function(query) {
-
-      // untangle args:
-
+      // XXX all of our queries are currently kind-queries
+      var kind = entity.schema;
+      
       var filters = [];
-      var kinds = [];
       var orders = [];
-      var schema;
+      var key = entity.id;
 
-      propertyPairs(query) .. each {
-        |[name, value]|
-        switch (name) {
-        case 'kind':
-          kinds = (isArrayLike(value) ? value : [value]) ..
-            map(kind -> {name:kind});
-          break;
-        case 'hasAncestor':
-          filters.push({
-            propertyFilter: {
-              property: {name: '__key__'},
-              operator: 'HAS_ANCESTOR',
-              value: { keyValue: { pathElement:keyToGCDKey(value) }}
-            }
-          }); 
-          break;
-        case 'order':
-          orders = (isArrayLike(value) ? value : [value]) .. 
-            map(order -> order.charAt(0) == '-' ?
-                { property: {name:order.substr(1)}, direction:'DESCENDING' } :
-                { property: {name:order}, direction:'ASCENDING' });
-          break;
-        case 'schema':
-          schema = value;
-          break;
-        default:
-          throw new Error("Unknown keyword #{name} in query");
-        }
-      }
-
-      var batchStream = Stream(function(r) {
-        // construct query request:
-        var request = {query: {}};
-        
-        if (filters.length == 1) {
-          request.query.filter = filters[0];
-        }
-        else if (filters.length > 1) {
-          request.query.filter = {
-            compositeFilter: {
-              operator: 'AND',
-              filter: filters
-            }
-          };
-        }
-        
-        if (kinds.length) {
-          request.query.kind = kinds;
-        }
-
-        if (orders.length) {
-          request.query.order = orders;
-        }
-
-        if (!schema) {
-          request.query.projection = [ { property:{name:'__key__'}}];
-        }
-
-//        console.log(require('sjs:debug').inspect(request, false, 20));
-
-        while (1) {
-          var results = context.runQuery(request);
-          if (!results.batch || !results.batch.entityResult) break;
-          r(results.batch.entityResult);
-          // XXX not sure this logic is correct; 
-          // see https://groups.google.com/d/msg/gcd-discuss/iNs6M1jA2Vw/kn7VVgxQeHkJ
-          //console.log(results.batch.moreResults);
-          if (results.batch.moreResults != 'NOT_FINISHED' ||!results.batch.endCursor) break;
-          request.query.startCursor = results.batch.endCursor; 
-        }
-      });
-
-      // buffer(1) ensures that we already perform the next GCD
-      // request while processing results; this is to compensate for
-      // GCD's high latency
-      return batchStream .. 
-        buffer(1) .. 
-        unpack ..
-        transform({entity} -> schema ? 
-                  GCDEntityToJSEntity(entity, schema) :
-                  GCDKeyToKey(entity.key.pathElement));
-    },
-
-    query: function(query, schema, idsOnly) {
-      if (typeof schema !== 'object') throw new Error('Invalid schema argument'); 
-      var filters = [];
-      var kind = schema.__kind;
-      var orders = [];
-      var id, key;
-
-      traverse(query, schema) {
-        |{parent, property_name:prop, type, schema, schema_path:path}|
-        if (parent[prop] === undefined) continue;
-        if (type === 'id') {
-          id = parent[prop];
-        }
-        else if (type === 'key') {
-          key = parent[prop];
-        }
-        else if (isSimpleType(type)) {
-          // XXX support other types than just equality filters
-          filters.push({
-            propertyFilter: {
-              property: {name: path.replace('.[]','')},
-              operator: 'EQUAL',
-              value: JSValueToGCDValue(parent[prop],schema)
-            }
-          });
+      if (entity.data) {
+        cotraverse(entity.data, schema) {
+          |node, descriptor|
+          if (node.value === undefined) continue;
+          if (descriptor.type === 'key') {
+            if (key && node.value !== key) 
+              throw new Error("Google Cloud Datastore: Inconsistent key values in data ('#{key}' != '#{node.value}')");
+            key = node.value;
+          }
+          else if (isSimpleType(descriptor.type)) {
+            // XXX support other types than just equality filters
+            filters.push({
+              propertyFilter: {
+                property: {name: descriptor.path.replace('.[]','')},
+                operator: 'EQUAL',
+                value: JSValueToGCDValue(node.value, descriptor.value)
+              }
+            });
+          }
         }
       }
 
@@ -570,15 +425,6 @@ function GoogleCloudDatastore(attribs) {
             property: {name: '__key__'},
             operator: 'EQUAL',
             value: { keyValue: { pathElement: keyToGCDKey(key) } }
-          }
-        });
-      }
-      else if (id !== undefined) {
-        filters.push({
-          propertyFilter: {
-            property: {name: '__key__'},
-            operator: 'EQUAL',
-            value: { keyValue: { pathElement: keyToGCDKey(IdToKey(id, schema)) } }
           }
         });
       }
@@ -642,7 +488,7 @@ function GoogleCloudDatastore(attribs) {
         unpack ..
         transform({entity} -> idsOnly ? 
                   GCDKeyToKey(entity.key.pathElement) :
-                  GCDEntityToJSEntity(entity, schema)
+                  GCDEntityToJSEntity(entity, schemas)
                  );
     }
   };

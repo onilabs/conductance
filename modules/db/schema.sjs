@@ -17,35 +17,51 @@ function instantiate(schema) {
 }
 exports.instantiate = instantiate;
 
+//----------------------------------------------------------------------
 
-function traverse(obj, schema, block) {
+/**
+   @function cotraverse
+*/
+function cotraverse(obj, schema, block) {
 
-  function inner(parent, property_name, schema, schema_path) {
+  function inner(parent, path, property_name, parent_state, schema, schema_path) {
     var type = schema ? schema.__type;
     if (!type) {
       if (isArrayLike(schema)) 
         type = 'array';
       else if (typeof schema === 'object')
-        type = 'obj';
+        type = 'object';
       else
         throw new Error("Schema error: unknown type '#{schema}' (property: '#{property_name}')");
     }
     
-    block({ parent:        parent, 
-            property_name: property_name, 
-            value:         parent[property_name],
-            type:          type, 
-            schema:        schema, 
-            schema_path:   schema_path});
+    var node = { 
+      parent:        parent, 
+      property:      property_name, 
+      value:         parent[property_name],
+      path:          path, 
+      parent_state:  parent_state
+    };
+
+    var descriptor = {
+      type:          type,
+      value:         schema, 
+      path:          schema_path
+    };
+    
+    block(node, descriptor);
     
     switch (type) {
-    case 'obj':
+    case 'object':
       if (parent[property_name] !== undefined) {
         propertyPairs(schema) .. 
         filter([name] -> name.indexOf('__') !== 0) ..
         each { 
           |[name, subschema]|
-          inner(parent[property_name], name, 
+          inner(parent[property_name], 
+                path === '' ? name : path + '.' + name,
+                name,
+                node.state,
                 subschema, 
                 schema_path==='' ? name : schema_path + '.' + name);
         }
@@ -57,16 +73,23 @@ function traverse(obj, schema, block) {
         integers(0,parent[property_name].length-1) ..
         each {
           |i|
-          inner(parent[property_name], i, arr_elem_schema, schema_path + '.[]');
+          inner(parent[property_name], 
+                path + '.' + i, 
+                i,
+                node.state,
+                arr_elem_schema, 
+                schema_path + '.[]');
         }
       }
-      break;    
+      break;
     }
   }
 
-  inner({root:obj}, 'root', schema, '');
+  inner({root:obj}, '', 'root', undefined, schema, '');
 }
-exports.traverse = traverse;
+exports.cotraverse = cotraverse;
+
+//----------------------------------------------------------------------
 
 var simple_types = {
   'integer': true,
