@@ -16,9 +16,7 @@ exports.content = function() {
 
   //bundle:
   if (!this.development) {
-    head.push(
-      Widget("script", null,
-        {src: Url.normalize(makeBundle(this.url), this.url.relative)}));
+    head.push(Widget("script", null, {src: 'index.bundle.js'}));
   } else {
     logging.info("Skipping bundle - developer mode");
   }
@@ -28,28 +26,4 @@ exports.content = function() {
     main: 'index.sjs',
     head: head,
   });
-};
-
-var makeBundle = function(selfUrl) {
-  var bundleFilename = 'index.bundle.js';
-  var bundlePath = Url.normalize(bundleFilename, module.id) .. Url.toPath;
-
-  logging.info("Generating #{bundlePath}");
-
-  var resources = {};
-  resources["#{Url.normalize("./", module.id)}"] = selfUrl.relative;
-
-  require('sjs:bundle').create({
-    sources: [
-      'sjs:xbrowser/dom',
-      'mho:surface',
-      Url.normalize('index.sjs', module.id),
-    ],
-    resources: resources,
-    bundle: bundlePath,
-  });
-
-  // don't regenerate while this module remains in memory
-  makeBundle = -> bundleFilename;
-  return bundleFilename;
 };

@@ -1,0 +1,20 @@
+var func = require('sjs:function');
+var logging = require('sjs:logging');
+var Url = require('sjs:url');
+var { join } = require('sjs:sequence');
+
+exports.content = func.memoize(function() {
+  logging.debug("Generating bundle...");
+
+  var resources = {};
+  resources["#{Url.normalize("./", module.id)}"] = this.url.directory;
+
+  return require('sjs:bundle').create({
+    sources: [
+      'sjs:xbrowser/dom',
+      'mho:surface',
+      Url.normalize('index.sjs', module.id),
+    ],
+    resources: resources,
+  }) .. join("\n");
+}, -> null);
