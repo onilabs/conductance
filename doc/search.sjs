@@ -215,6 +215,7 @@ exports.run = (function() {
 
 			var changeSelected = function(offset, newIndex) {
 				var res = results.get();
+        if (res.length === 0) return;
 				if (newIndex === undefined) {
 					// use offset
 					var current = highlightedMatch.get();
@@ -229,7 +230,7 @@ exports.run = (function() {
 				}
 				if (newIndex < 0) newIndex = 0;
 				if (newIndex >= res.length) newIndex = res.length - 1;
-				selectedMatch.set(res[newIndex].id);
+        selectedMatch.set(res[newIndex].id);
 			};
 
 			var resetWorker = function(reset, input) {
