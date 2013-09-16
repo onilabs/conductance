@@ -17,8 +17,11 @@ exports.run = function() {
   var routes = [
         SystemRoutes(),
         ExecutableDirectory(process.cwd()),
-      ] .. LogRequests(logging.INFO)
-        .. DeveloperMode();
+      ] .. LogRequests(logging.INFO);
+
+  if (process.env['NODE_ENV'] !== 'production') {
+    routes = routes .. DeveloperMode();
+  }
 
   server.run([
     {
