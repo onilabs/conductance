@@ -2,6 +2,8 @@ var { propertyPairs } = require('sjs:object');
 var { each, map, Stream, transform, join, buffer, unpack, slice, reduce, filter, indexed, toArray, at } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { instantiate, isSimpleType, IdToKey, cotraverse } = require('./schema');
+var { Context } = require('./gcd/backend');
+var { ChangeBuffer } = require('./helpers');
 
 //----------------------------------------------------------------------
 // Google Cloud Datastore 
@@ -217,7 +219,7 @@ function GCDEntityToJSEntity(gcd_entity, schemas) {
   var js_data = instantiate(schema);
 
   // go through properties array of GCD entity:
-  gcd_entity.property .. each {
+  (gcd_entity.property || []) .. each {
     |{name, value}|
     // find schema descriptor:
     var descriptor=schema, path=[], array_path;
@@ -307,13 +309,16 @@ function GCDEntityToJSEntity(gcd_entity, schemas) {
    @attrib {Object} [schemas]
    @attrib {Object} [context] Object with settings as described at [./gcd/backend::Context] (Note: this should not be a `Context` object itself, but a hash of settings that will be passed to to [./gcd/backend::Context]!)
  */
+
 function GoogleCloudDatastore(attribs) {
-  var context = require('./gcd/backend').Context(attribs.context);
+  var CHANGE_BUFFER_SIZE = 100; // XXX should this be configurable?
+  var change_buffer = ChangeBuffer(CHANGE_BUFFER_SIZE);
+  var context = Context(attribs.context);
   var schemas = attribs.schemas;
   // returns a 'Datastore' object
   var rv = {
     /**
-       @function GCD.put
+       @function GCD.write
        @param {datastore::Entity} [entity] Entity to create/update/delete
        @summary Create/update/delete an entity in the datastore
        @desc
@@ -343,7 +348,7 @@ function GoogleCloudDatastore(attribs) {
                
           then the given item will be deleted from the datastore.
      */
-    put: function(entity) {
+    write: function(entity) {
       if (entity.data === undefined || entity.data === null) {
         // DELETE
         context.blindWrite({mutation: { 'delete': [{pathElement: keyToGCDKey(entity.id)}]}});
@@ -367,15 +372,19 @@ function GoogleCloudDatastore(attribs) {
 
       var result = context.blindWrite({mutation: mutation});
 
-      return has_path ? 
+      var id = has_path ? 
         entity.key.pathElement .. GCDKeyToKey :
         result.mutationResult.insertAutoIdKey[0].pathElement .. GCDKeyToKey;
+
+      change_buffer.addChange(id);
+
+      return id;
     },
 
     /**
-       @function GCD.get
+       @function GCD.read
      */
-    get: function(entity) {
+    read: function(entity) {
       var result = context.lookup({
         key: [ { pathElement: keyToGCDKey(entity.id) } ]
       });
@@ -490,7 +499,21 @@ function GoogleCloudDatastore(attribs) {
                   GCDKeyToKey(entity.key.pathElement) :
                   GCDEntityToJSEntity(entity, schemas)
                  );
+    },
+
+    watch: function(f) {
+      var start_revision = change_buffer.revision, current_revision;
+      while (true) {
+        current_revision = change_buffer.emitter.wait();
+        while (current_revision !== start_revision) {
+          f(change_buffer.getChanges(start_revision));
+          start_revision = current_revision;
+          current_revision = change_buffer.revision;
+        }
+      }
     }
+
+
   };
 
   return rv;
