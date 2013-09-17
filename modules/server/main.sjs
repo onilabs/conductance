@@ -38,6 +38,13 @@ exports.run = function(args) {
       fn: exports.serve,
     },
     {
+      name: 'shell',
+      desc: 'Run an interactive shell',
+      fn: function() {
+        require('sjs:nodejs/repl', {main:true});
+      }
+    },
+    {
       name: 'version',
       desc: 'Print version information',
       fn: exports.printVersion,
