@@ -1,5 +1,5 @@
 var { makeCache } = require('sjs:lru-cache');
-var { each } = require('sjs:sequence');
+var { each, map } = require('sjs:sequence');
 
 exports.Cache = function(size, upstream) {
 
@@ -12,28 +12,43 @@ exports.Cache = function(size, upstream) {
 
 
   var rv = {
-    write: function(entity) {
+    write: function(entities) {
       // discard will happen automatically via `watch` loop
-      return upstream.write(entity);
+      return upstream.write(entities);
     },
-    read: function(entity) {
-      var entry = items.get(entity.id);
-      if (entry) {
-        console.log("cache hit on #{entity.id}");
-        return JSON.parse(entry);
+    read: function(entities) {
+      var found = {};
+      var remotes = [];
+      
+      entities .. each { 
+        |entity|
+        var entry = items.get(entity.id);
+        if (entry) {
+//          console.log("cache hit on #{entity.id}");
+          found[entity.id] = entry; // XXX can't do this because of date -> JSON.parse(entry);
+        }
+        else {
+          console.log("cache miss on #{entity.id}");
+          remotes.push(entity);
+        }
       }
-      else 
-        console.log("cache miss on #{entity.id}");
 
-      var rv = upstream.read(entity);
-      if (rv) {
-        console.log("putting #{rv.id} into cache");
-        items.put(rv.id, JSON.stringify(rv));
+      if (remotes.length) {
+        upstream.read(remotes) .. each {
+          |entity|
+          found[entity.id] = entity;
+//XXX          items.put(entity.id, JSON.stringify(entity));
+          items.put(entity.id, entity);
+        }
       }
-      return rv;
+
+      // XXX we need to handle cache invalidates that happened while getting remotes
+
+      // consolidate found entities with input array
+      return entities .. map({id} -> found[id]);
     },
-    query: function(entity) {
-      return upstream.query(entity);
+    query: function(entity, idsOnly) {
+      return upstream.query(entity, idsOnly);
     }
   };
   return rv;
