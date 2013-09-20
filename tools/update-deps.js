@@ -15,6 +15,12 @@ process.chdir(root);
 var modules = path.join(root, 'node_modules');
 var packageInfo = require(path.join(root, 'package.json'));
 var deps = packageInfo.dependencies;
+
+// merge devDependencies
+for (var k in packageInfo.devDependencies) {
+	deps[k] = packageInfo.devDependencies[k];
+}
+
 var packageNames = Object.keys(deps);
 
 packageNames = packageNames.filter(function(pkg) {
@@ -28,7 +34,7 @@ packageNames = packageNames.filter(function(pkg) {
 
 var outOfDate = packageNames.filter(function(pkg) {
 	try {
-		var id = pkg + '@' + deps[pkg];
+		var id = pkg + '@' + (deps[pkg] == '*' ? '' : deps[pkg]);
 		var installed = require(path.join(modules, pkg, 'package.json'));
 		if (installed._from != id) {
 			throw new Error(pkg + " out of date. \nRequired: " + id + "\nCurrent: " + installed._from);
@@ -42,8 +48,8 @@ var outOfDate = packageNames.filter(function(pkg) {
 });
 
 if (outOfDate.length > 0) {
-	console.log("Calling `npm install " + outOfDate.join(" ") + "`");
-	var proc = child_process.spawn('npm', ['install'].concat(outOfDate), {stdio:'inherit'});
+	console.log("Calling `npm install --production " + outOfDate.join(" ") + "`");
+	var proc = child_process.spawn('npm', ['install', '--production'].concat(outOfDate), {stdio:'inherit'});
 	proc.on('exit', function(code) {
 		process.exit(code);
 	})
