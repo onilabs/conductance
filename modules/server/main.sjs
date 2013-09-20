@@ -4,8 +4,9 @@ var str = require('sjs:string');
 var nodePath = require('nodejs:path');
 var { withServer } = require('sjs:nodejs/http');
 var { each, map, filter, find, toArray, join } = require('sjs:sequence');
-var { flatten } = require('sjs:array');
+var { flatten, remove } = require('sjs:array');
 var { override, propertyPairs, keys, merge } = require('sjs:object');
+var { seq } = require('sjs:function');
 var fs = require('sjs:nodejs/fs');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
@@ -28,6 +29,8 @@ var banner = "
 
 ";
 
+var printBanner = -> console.log(banner);
+
 exports.run = function(args) {
   args = args || sys.argv();
   var command = args.shift();
@@ -41,6 +44,7 @@ exports.run = function(args) {
       name: 'shell',
       desc: 'Run an interactive shell',
       fn: function() {
+        printBanner();
         require('sjs:nodejs/repl', {main:true});
       }
     },
@@ -81,9 +85,8 @@ exports.run = function(args) {
     return exports.run(['run', command].concat(args));
   }
 
-  console.log(banner);
-
   if (!action) {
+    printBanner();
     if (command) {
       console.error("Unknown command: " + command + "\n");
     }
@@ -129,10 +132,17 @@ exports.serve = function(args) {
       type: 'arrayOfBool',
       help: 'Increase log level. Can be used multiple times.'
     },
+    {
+      names: ['autorestart', 'r'],
+      type: 'bool',
+      help: 'Restart the server whenever any file changes (using `nodemon`)'
+    },
   ]});
+
 
   var opts = { verbose: 0, _args: [] };
   try {
+    var end=false;
     (function() {
       for (var idx = 0; idx < args.length; idx++) {
         var arg = args[idx];
@@ -144,6 +154,28 @@ exports.serve = function(args) {
           case '--verbose':
             opts.verbose++;
             break;
+          case '-r':
+          case '--autorestart':
+            process.argv .. remove(arg);
+            // nodemon has no API - it just takes over as soon as it's imported.
+            // we need to modify the original ARGV:
+            // [ '/path/to/node',
+            //   '/path/to/conductance',
+            //   'run', ...]
+            //
+            // To look like a valid nodemon invocation:
+            //
+            // [ '/path/to/node',
+            //   '/path/to/nodemon',
+            //   '--exec',
+            //   '/path/to/conductance',
+            //   'run', ...]
+            //
+            process.argv.splice(1, 1, require.resolve('nodejs:nodemon').path, '--exec', process.argv[1]);
+            // console.log(process.argv);
+            require('nodejs:nodemon');
+            end = true;
+            return;
           default:
             // special case for squashed -vvv flags
             if (/^-v+$/.test(arg)) {
@@ -155,14 +187,19 @@ exports.serve = function(args) {
         }
       }
     })();
+    if(end) return;
   } catch(e) {
+    printBanner();
     usage(e.message || String(e));
     process.exit(1);
   }
   if (opts.help) {
+    printBanner();
     usage();
     process.exit(0);
   }
+
+  printBanner();
 
   switch(opts.verbose) {
     case 0         : logging.setLevel(logging.WARN);    break;
