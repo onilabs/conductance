@@ -36,9 +36,11 @@
    @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
 */
 
-var sjcl   = require('sjs:sjcl');
-var fs     = require('sjs:nodejs/fs');
-var buffer = require('nodejs:buffer');
+var sjcl    = require('sjs:sjcl');
+var fs      = require('sjs:nodejs/fs');
+var logging = require('sjs:logging');
+var buffer  = require('nodejs:buffer');
+
 var { each, map, toArray } = require('sjs:sequence');
 var { createID } = require('../server/random');
 
@@ -54,7 +56,7 @@ function defaultTransportSink(transport) {
     try {
       while (1) {
         var message = transport.receive();
-        console.log("TransportSink #{transport.id}: #{message}");
+        logging.info("TransportSink #{transport.id}: #{message}");
         if (message == 'time')
           transport.send(new Date());
         else if (message == 'delay') 
@@ -62,7 +64,7 @@ function defaultTransportSink(transport) {
       }
     }
     catch (e) {
-      console.log("TransportSink #{transport.id}: #{e}");
+      logging.error("TransportSink #{transport.id}: #{e}");
     }
   })();
 }
@@ -130,7 +132,7 @@ function createTransport() {
         out_messages.push('error_unsupported_poll');
       }
       else if (resume_poll) {
-        console.log('multiple poll');
+        logging.warn('multiple poll');
         // Can only have one active poll
         out_messages.push('error_poll_in_progress');
       }
@@ -195,7 +197,7 @@ function createTransport() {
     transport.active = false;
     if (resume_receive)
       resume_receive(new Error('transport closed'));
-    console.log("#{transport.id} closed");
+    logging.info("#{transport.id} closed");
   }
 
   spawn reaper();
@@ -217,7 +219,7 @@ function createTransportHandler(transportSink) {
   if (!transportSink) transportSink = defaultTransportSink;
 
   function handler_func(req, matches) {
-    //      console.log("AAT request #{require('sjs:debug').inspect(req)}");
+    logging.debug("AAT request", matches);
 
     var out_messages = [];
 
@@ -232,16 +234,18 @@ function createTransportHandler(transportSink) {
       var in_messages = 
         (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) .. 
         map(mes -> { type: 'message', data: mes}) .. toArray;
+
+      logging.debug("messages: ", in_messages);
       
       transport.exchangeMessages(in_messages, out_messages);
-      console.log("new transport #{transport.id}");
+      logging.info("new transport #{transport.id}");
       out_messages.unshift("ok_#{transport.id}");
     }
     else if (command.indexOf('send_') == 0) {
       // find the transport:
       var transport = transports[command.substr(5)];
       if (!transport) {
-        console.log("#{command}: transport not found");
+        logging.warn("#{command}: transport not found");
         out_messages.push('error_id');
       }
       else {
@@ -258,7 +262,7 @@ function createTransportHandler(transportSink) {
       // find the transport:
       var transport = transports[command.substr(5)];
       if (!transport) {
-        console.log("#{command}: transport not found");
+        logging.warn("#{command}: transport not found");
         out_messages.push('error_id');
       }
       else {
@@ -275,7 +279,7 @@ function createTransportHandler(transportSink) {
       // find the transport:
       var transport = transports[command.substr(5)];
       if (!transport) {
-        console.log("#{command}: transport not found");
+        logging.warn("#{command}: transport not found");
         out_messages.push('error_id');
       }
       else {

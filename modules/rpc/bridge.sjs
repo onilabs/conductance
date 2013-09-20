@@ -52,6 +52,7 @@ Protocol:
 
 */
 
+var logging = require('sjs:logging');
 var { each, toArray, map, filter, transform} = require('sjs:sequence');
 var { pairsToObject } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
@@ -265,7 +266,7 @@ function BridgeConnection(transport, base_api) {
         var packet = transport.receive();
       } catch(e) { 
         // XXX this is probably the transport being closed
-        console.log("bridge.sjs: transport error: #{e}");
+        logging.warn("bridge.sjs: transport error: #{e}");
         break; // XXX hmm, what to do?
       }
       if (packet.type == 'message')
@@ -273,7 +274,7 @@ function BridgeConnection(transport, base_api) {
       else if (packet.type == 'data')
         receiveData(packet);
       else {
-        console.log("Unknown packet '#{packet.type}' received");
+        logging.warn("Unknown packet '#{packet.type}' received");
       }
     }
   }
