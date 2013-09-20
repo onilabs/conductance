@@ -13,6 +13,7 @@
   "bin": { "conductance": "conductance" },
   "dependencies": {
     "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#ca1478c9582b2594b9d844b187935b4008fda346",
+    "nodemon": ">=0.7.0",
     "protobuf": ">=0.8.6",
     "google-oauth-jwt": ">=0.0.7",
     "agentkeepalive": ">=0.1.5"
