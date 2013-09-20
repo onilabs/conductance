@@ -163,26 +163,3 @@ td.mb-td-symbol {
   margin: 15px 0 15px 0;
 }
 
-
-/* remove these */
-.mb-banner {
-  margin: 0px 20px;
-}
-
-.mb-banner > a {
-    text-decoration: none;
-}
-
-.mb-banner > a:hover {
-    text-decoration: underline;
-}
-
-.mb-banner {
-    min-height:115px;
-    padding-bottom: 6px;
-}
-
-.mb-banner h1 {
-    margin: 0 0 7px 0;
-}
-
