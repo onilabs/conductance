@@ -3,38 +3,67 @@ var { replaceContent, appendContent, prependContent, Prop, removeElement, insert
 var { HostEmitter, Stream } = require('sjs:events');
 var { integers, each, map, indexed, filter, sort, slice } = require('sjs:sequence');
 var { areEquivalentArrays, isArrayLike } = require('sjs:array');
-var { override } = require('sjs:object');
+var { override, merge } = require('sjs:object');
 var { isObservable, isObservableArray, isMutatable, Computed, get, Map, at } = require('../observable');
 
-//----------------------------------------------------------------------
 /**
- @function Div
- @summary A plain HTML 'div' widget
- @param  {html::HtmlFragment} [content] Html content.
- @return {html::Widget}
-*/
-var Div = content -> Widget('div', content);
-exports.Div = Div;
+  @desc
+    As well as the explicitly document widgets below, this module exports a
+    symbol for every HTML tag in the
+    [HTML5 Element List](https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/HTML5/HTML5_element_list).
+    The symbol for each tag is in TitleCase, e.g:
 
-//----------------------------------------------------------------------
-/**
- @function Button
- @summary A plain HTML 'button' widget
- @param  {html::HtmlFragment} [title] Button title.
- @return {html::Widget}
-*/
-var Button = title -> Widget('button', title || 'A button');
-exports.Button = Button;
+     - A
+     - Div
+     - Span
+     - Input
+     - Ol, Ul, Li, Dl, Dt, etc
+     - H1 ... H6
+     - BlockQuote, THead, TBody, FigCaption, DataLost, OptGroup, TextArea, MenuItem, etc
 
-//----------------------------------------------------------------------
-/**
- @function Form
- @summary A plain HTML 'form' widget
- @param  {html::HtmlFragment} [content] Html content.
- @return {html::Widget}
+    Each of these tag methods is a shortcut for calling [surface::Widget] with the given tag name - i.e `Widget(<tagName>, ... )`.
+
+    ### Examples:
+
+        A("Click me!", {href: "http://example.com/"});
+
+        Ul([
+          Li("item 1"),
+          Li("item 2"),
+        ]);
+
+        Ul(`
+          <li>item 1</li>
+          <li>item 2</li>
+        `);
+
+        Br();
 */
-var Form = content -> Widget('form', content);
-exports.Form = Form;
+
+// commented-out tag names are those we have advanced bindings for, so we don't want the default
+;[
+  'Html',
+  'Head', 'Title', 'Base', 'Link', 'Meta', 'Style',
+  'Script','NoScript',
+  'Body', 'Section', 'Nav',
+  'Article', 'Aside',
+  'H1','H2','H3','H4','H5','H6',
+  'Header', 'Footer', 'Address', 'Main',
+  'P','Hr','Pre', 'BlockQuote', 'Ol', 'Ul', 'Li','Dl','Dt','Dd','Figure','FigCaption','Div',
+  'A','Em','Strong','Small','S','Cite','Q','Dfn','Abbr','Data', 'Time', 'Code', 'Var',
+  'Samp', 'Kbd', 'Sub', 'Sup', 'I', 'B', 'U', 'Mark', 'Ruby', 'Rt', 'Rp',
+  'Bdi', 'Bdo', 'Br', 'Wbr',
+  'Ins', 'Del',
+  'Img', 'Iframe', 'Embed', 'Object', 'Param', 'Video', 'Audio', 'Source', 'Track',
+  'Canvas', 'Map', 'Area', 'Svg', 'Math',
+  'Table', 'Caption', 'ColGroup', 'Col', 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
+  'Form', 'FieldSet', 'Legend', 'Label', 'Input', 'Button', /* 'Select', */
+  'DataList', 'OptGroup', 'Option', 'TextArea', 'KeyGen', 'Output', 'Progress', 'Meter',
+  'Details', 'Summary', 'MenuItem', 'Menu',
+] .. each {|name|
+  var tag = name.toLowerCase();
+  exports[name] = (content, attr) -> Widget(tag, content, attr);
+}
 
 //----------------------------------------------------------------------
 /**
@@ -43,9 +72,10 @@ exports.Form = Form;
  @param  {String|../observable::Observable} [value] Value.
  @return {html::Widget}
 */
-var TextInput = value ->
-  Widget('input') ..
+var TextInput = (value, attrs) ->
+  Widget('input', null, {'type':'text'} .. merge(attrs||{})) ..
   Mechanism(function(node) {
+    value = value || "";
     node.value = get(value);
     if (isObservable(value)) {
       waitfor {
@@ -238,3 +268,35 @@ function Select(settings) {
 }
 exports.Select = Select;
 
+
+// create an Observable.Map of the inputs if they are an ObservableArray, else
+// just `map` them.
+var _map = function(items, fn) {
+  var m = isObservable(items) ? Map : map;
+  return m(items, fn);
+}
+/**
+ @function UnorderedList
+ @param {Array} [items]
+ @param {optional Object} [attrs]
+ @return {html::Widget}
+ @summary Crate a `<ul>` widget, wrapping each element of`items` in a `<li>`
+*/
+exports.UnorderedList = (items, attrs) -> exports.Ul(items .. _map(exports.Li), attrs);
+/**
+ @function OrderedList
+ @param {Array} [items]
+ @param {optional Object} [attrs]
+ @return {html::Widget}
+ @summary Crate a `<ol>` widget, wrapping each element of`items` in a `<li>`
+*/
+exports.OrderedList = (items, attrs) -> exports.Ol(items .. _map(exports.Li), attrs);
+
+/**
+ @function Submit
+ @param {../html::HtmlFragment} [content]
+ @param {optional Object} [attrs]
+ @return {html::Widget}
+ @summary Crate an `<input type="submit">` widget.
+*/
+exports.Submit = (content, attr) -> Widget('input', null, (attr || {}) .. merge({type:'submit', value: content}));

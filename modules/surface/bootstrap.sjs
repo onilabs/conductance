@@ -1,4 +1,5 @@
 var { Widget, RequireStyle, Mechanism, Class, Attrib }  = require('./html');
+var widgets  = require('./widgets');
 var { map, join, each } = require('sjs:sequence');
 
 // theme->styles cache; we want to cache these, because each
@@ -47,25 +48,6 @@ exports.Container = content -> Widget('div', content, {'class':'container'});
 */
 exports.FluidContainer = content -> Widget('div', content, {'class':'container-fluid'});
 
-
-/**
-   @function H1
-*/
-exports.H1 = content -> Widget('h1', content);
-/**
-   @function H2
-*/
-exports.H2 = content -> Widget('h2', content);
-/**
-   @function H3
-*/
-exports.H3 = content -> Widget('h3', content);
-
-/**
-   @function Span
-*/
-exports.Span = content -> Widget('span', content);
-
 /**
    @function Icon
 */
@@ -78,18 +60,12 @@ var Btn = content -> Widget('button', content || 'Btn', {'class':'btn'});
 exports.Btn = Btn;
 
 
-/**
-   @function Select
-*/
-exports.Select = options ->
-  Widget('select',
-         options .. map({title,value} -> `<option value='$value'>$title</option>`));
+var _map = (items, fn) -> (isObservable(items) ? Map : map)(items,fn);
 
-var DropdownMenu = items -> 
+var DropdownMenu = items ->
   Widget('ul',
-         items .. 
-         map(({name, url}) -> 
-             `<li><a tabindex='-1' href='${url||'#'}'>$name</a></li>`),
+         items ..
+         _map(({name, url}) -> `<li><a tabindex='-1' href='${url||'#'}'>$name</a></li>`),
          {'class':'dropdown-menu'});
 
 
@@ -109,8 +85,13 @@ exports.BtnDropdown = (title, items) ->
 /**
    @function Label
 */
-exports.Label = (type, title) ->
+exports.Label = (title, type) ->
   Widget('span', title, {'class':"label #{type? "label-#{type}" : ''}"});
+
+/**
+   @function Submit
+*/
+exports.Submit = (title, type) -> widgets.Submit(title, {'class':"btn"});
 
 /**
    @Accordion
