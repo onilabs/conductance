@@ -8,7 +8,13 @@ var { contains } = require('sjs:array');
 var assert = require('sjs:assert');
 var { startsWith, endsWith } = require('sjs:string');
 
-var run = (cmd, args) -> childProcess.run(cmd, args, {stdio:'inherit'});
+var TRACE = process.env.REDO_XTRACE;
+var run = function(cmd, args) {
+	if(TRACE) {
+		console.warn('+', cmd, args.join(' '));
+	}
+	return childProcess.run(cmd, args, {stdio:'inherit'});
+}
 
 var [target, _, tempfile] = require('sjs:sys').argv();
 var dir = path.dirname(target);
@@ -18,6 +24,11 @@ if (dir == ".") {
 	filename = "";
 }
 var src = "src";
+
+if(dir === src) {
+	console.warn("WARN: attempt to build #{target} ignored");
+	process.exit(0);
+}
 
 assert.ok(dir .. startsWith('step'), "invalid directory name #{dir} making #{target}");
 var stepno = parseInt(dir.slice("step".length));
@@ -29,55 +40,39 @@ var stepno = parseInt(dir.slice("step".length));
 var createDirectory = function(dir) {
 	// ensure dir does not contain anything extra
 	run('redo-ifchange', ['inputs']);
-	var inputs = fs.readFile('inputs', 'utf-8').split("\n") .. filter() .. map(l -> l.replace(/\.md$/, ''));
+	var inputs = fs.readFile('inputs', 'utf-8').split("\n") .. filter (f -> ! f .. contains(path.sep))  .. toArray();
+	var expectedFiles = inputs .. map(l -> l.replace(/\.md$/, ''));
+
 	if (!fs.exists(dir)) {
 		console.warn("Making #{dir}");
 		fs.mkdir(dir);
 	} else {
 		fs.readdir(dir) .. each {|file|
-			if (!inputs .. contains(file)) {
+			if (file .. path.extname() === '.tmp') continue;
+			if (!expectedFiles .. contains(file)) {
 				var p = path.join(dir, file);
 				console.warn("Removing #{p}");
 				fs.unlink(p);
 			}
 		}
 	}
-
-	run('redo-ifchange', (inputs .. map(f -> path.join(dir, f))));
 };
 
 /*
  * Generate HTML from the input markdown
  */
 var createHtml = function(source) {
-	var sources = fs.readdir(src) .. map(f -> path.join(src, f));
+	var sources = fs.readFile('inputs', 'utf-8').split("\n") .. filter()  .. map(f -> path.join(src, f));
 	run('redo-ifchange', sources);
-	console.log('
-		<html>
-		<link rel="stylesheet" href="/__mho/surface/bootstrap.css"/>
-		<link rel="stylesheet" href="highlight.js/src/styles/xcode.css"/>
-		<style>
-			.filename {
-				float:right;
-				padding: 0.2em 1em 0.4em 1em;
-				border-bottom-left-radius: 0.5em;
-				color: #999;
-				background:#ddd;
-			}
-			pre code {
-				background: transparent !important;
-				padding: 0 !important;
-			}
-		</style>
-		<body>
-		<article class="container">
-	');
+	fs.readFile(path.join(src, 'res','_head.html'), 'utf-8') .. console.log();
 
 	var defines = ['DOC', "STEPNO=#{stepno}"];
 	defines.push("STEP#{stepno}");
 	defines.push("STEP#{stepno}_ONLY");
 
-	var md = childProcess.run('../../tools/filepp', [source].concat(defines .. map(d -> "-D#{d}")), {stdio:[0,'pipe',2]}).stdout;
+	var args = ['-imacros', path.join(src,'res','macros'), source].concat(defines .. map(d -> "-D#{d}"))
+	if(TRACE) args.unshift('-dl');
+	var md = childProcess.run('../../tools/filepp', args, {stdio:[0,'pipe',2]}).stdout;
 	assert.ok(md);
 	var currentFile = null;
 	// insert file markers
@@ -88,9 +83,9 @@ var createHtml = function(source) {
 		}
 		return "#{pre}<span class=\"filename\">#{currentFile}</span>\n\n#{code}";
 	});
-	/*console.warn(md);*/
+	if(TRACE) console.warn(md);
 
-	var opts = {gfm:true};
+	var opts = {};
 
 	/* TODO:
 	var hljs = require('nodejs:highlight.js');
@@ -103,11 +98,7 @@ var createHtml = function(source) {
 
 	require('sjs:marked').convert(md, opts) .. console.log();
 
-	console.log('
-	</article>
-	</body>
-	</html>
-	');
+	fs.readFile(path.join(src, 'res','_foot.html'), 'utf-8') .. console.log();
 };
 
 
@@ -139,22 +130,39 @@ function createCode(source) {
 };
 
 
-
 /******************************
  * actually build the target:
  ******************************/
 
+
+
 if (!filename) {
 	createDirectory(dir);
 } else {
-	// create file in `dir`
-	var source = path.join(src, filename + '.md')
-	run('redo-ifchange', [source])
+	run('redo-ifchange', [dir]);
 
-	if (filename .. endsWith('.html')) {
-		createHtml(source);
+	var source = path.join(src, filename);
+
+	if (fs.exists(source)) {
+		run('redo-ifchange', [dir]);
+		// just symlink
+		var cwd = process.cwd();
+		process.chdir(dir);
+		try {
+			fs.symlink(path.join('..', source), path.basename(tempfile));
+		} finally {
+			process.chdir(cwd);
+		}
 	} else {
-		createCode(source);
+		// create file in `dir`
+		source += '.md';
+		run('redo-ifchange', [source])
+
+		if (filename .. endsWith('.html')) {
+			createHtml(source);
+		} else {
+			createCode(source);
+		}
 	}
 }
 

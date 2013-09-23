@@ -1,0 +1,20 @@
+<div class="info">
+<h3 class="feature">Function blocks</h3>
+<p>
+SJS adds a block syntax, which is similar to blocks in the ruby language.
+Blocks are appended to the existing arguments, so:
+</p>
+
+<pre><code>fn(arg) {|x, y| /\* body \*/ }</code></pre>
+
+<p>Is similar to:</p>
+
+<pre><code>fn(arg, function(x, y) { /\* body \*/ })</code></pre>
+
+<p>
+The above code is equivalent, but blocks do behave differently to
+regular functions when they include `continue`, `break` or `return` statements,
+as well as retaining the same `this` reference inside the block.
+READ_MORE(TODO)
+</p>
+</div>

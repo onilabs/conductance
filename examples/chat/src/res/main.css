@@ -1,0 +1,23 @@
+.filename {
+	float:right;
+	padding: 0.2em 1em 0.4em 1em;
+	border-bottom-left-radius: 0.5em;
+	color: #999;
+	background:#ddd;
+}
+pre code {
+	background: transparent !important;
+	padding: 0 !important;
+}
+
+.info {
+	float: right;
+	width: 300px;
+	border: 2px solid #ddd;
+	background: white;
+	clear: both;
+}
+
+h1, h2, h3 {
+	clear: both;
+}

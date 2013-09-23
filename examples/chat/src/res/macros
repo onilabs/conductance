@@ -1,0 +1,4 @@
+#define READ_MORE(LINK) <p><a href="LINK"</a>Read more ...</a></p>
+#define MODULE(NAME) <code><a class="apidocs" href="/doc/#NAME">NAME</a></code>
+#define SYMBOL(MODNAME,NAME) <code><a class="apidocs" href="/doc/#MODNAME::NAME">NAME</a></code>
+#define CLEAR <div style="clear:both;"></div>

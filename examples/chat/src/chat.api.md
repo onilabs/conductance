@@ -2,7 +2,9 @@
 #ifdef STEP2
 ### File: chat.api
 
-Import modules we need:
+Import modules we need. Note that these modules are the same ones
+available in the browser. Most modules can be used exactly the same
+in both browser and client code.
 
     var { remove } = require('sjs:array');
     var { each }   = require('sjs:sequence');
@@ -12,7 +14,7 @@ Import modules we need:
 For persistence, we'll just store the list of recent messages
 in a server-side variable. Since a module will be re-used
 if it's imported again, this creates a persistent list
-of messages for as long as the server process runs.
+of messages for as long as the server process is running.
 
     var messages = [
       { user: 'tim',
@@ -29,7 +31,7 @@ Create a message receiver function which updates the above
       messages.push(m);
     };
 
-Receivers stores a list of functions which want
+`receivers` stores a list of functions which want
 to be notified of new messages. Initially, it just contains
 `logMessage`, which we defined above:
 
@@ -61,12 +63,13 @@ removed from `receivers`.
 
 The `send` function just notifies all current listeners
 of the new message.
-Both client-side and server-side receviers are invoked the same way,
-as a normal function call.
+
+Regardless of where the receiver function comes from (local function
+or a client-side function passed through to `join`),
+receviers are invoked as a normal function call.
 
 Messages are delivered to receivers in parallel, and errors are
-caught so that a broken client can't prevent delivery to other
-recipients.
+caught so that a broken client can't cause errors on the server.
 
     exports.send = function(user, val) {
       var msg = {
@@ -81,4 +84,18 @@ recipients.
         catch(e) { /* ignore */ }
       }
     };
+
+## What we've done
+
+To review, we've replaced a local client-side API object with a connection to the
+server, running server-side code. We didn't have to change the way the client calls
+the API, it still just looks like plain function calls - we can even pass function references
+to the API (as we did in `join`), and the server will be able to invoke them.
+Because SJS allows functions to suspend, we don't have to suddenly convert all our code
+to use callbacks to propagate return values and errors, even though the API calls now involve
+asynchronous communication.
+
+The bridge functionality used by .api modules gives us a simple two-way communication
+channel between the client and server which is as easy to use as calling functions.
+
 #endif // STEP2

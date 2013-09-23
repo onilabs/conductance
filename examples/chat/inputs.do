@@ -1,2 +1,2 @@
 redo-always
-ls -1 src | tee "$3" | redo-stamp
+find src/ | cut -d / -f 1 --complement | sort | tee "$3" | redo-stamp
