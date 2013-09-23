@@ -4,15 +4,19 @@
 to use functional APIs but maintain the familiar look and chainaing ability
 of Object-Oriented APIs.</p>
 
-<p>Strictly speaking, `a .. fn(b, c)` transforms into `fun(a, b, c)`.
+<p>Essentially, `a .. fn(b, c)` transforms into `fun(a, b, c)`.
 Since a lot of functions in conductance take their "subject" as a first argument,
 this allows us to extend objects unobtrusively. e.g to iterate over an array, you can do:
 
-<pre><code>[1, 2, 3] .. map(elem -&gt; elem * 2)</code></pre>
+<pre><code>[1, 2, 3] .. map(elem -&gt; elem \* 2)</code></pre>
+
+<p>Which actually results in the following call:</p>
+
+<pre><code>map([1, 2, 3], elem -&gt; elem \* 2)</code></pre>
 
 <p>We could have added the `map` method to Array.prototype, but using
 a simple function allows `map` to work on multiple types of objects
-(e.g it also accepts a SYMBOL(sjs:sequence,Stream)).
+(e.g infinite streams).
 Using plain functions also means we don't have to fight with other
 libraries that might also want to add their own Array functions.
 </p>

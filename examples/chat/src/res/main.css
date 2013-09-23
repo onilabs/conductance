@@ -1,10 +1,16 @@
 .filename {
-	float:right;
+	position:absolute;
+	top:0;
+	right:0;
 	padding: 0.2em 1em 0.4em 1em;
 	border-bottom-left-radius: 0.5em;
-	color: #999;
-	background:#ddd;
+	color: rgb(93, 111, 134);
+	background: rgb(203, 231, 238);
 }
+pre {
+	position:relative;
+}
+
 pre code {
 	background: transparent !important;
 	padding: 0 !important;
@@ -12,12 +18,46 @@ pre code {
 
 .info {
 	float: right;
-	width: 300px;
-	border: 2px solid #ddd;
-	background: white;
+	width: 22%;
+	margin-right: 4%;
+	border: 1px solid rgb(240, 237, 158);
+	background: rgb(255, 253, 208);
 	clear: both;
+	margin-bottom: 1em;
+	padding: 0 0.5em;
+	box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.14);
+}
+
+.info h1, .info h2, .info h3 {
+	line-height: auto;
+	margin: 0 5px;
+}
+
+.info h3:after {
+	float:right;
+	font-size:0.7em;
+	font-weight: normal;
+	color: #555;
+}
+
+h3.feature:after {
+	content:"(feature)";
+}
+
+h3.syntax:after {
+	content:"(syntax)";
+}
+
+.content {
+	margin-right: 26%;
+	width: 68%;
+	margin-left: 4%;
 }
 
 h1, h2, h3 {
 	clear: both;
+}
+
+body {
+	min-width: 800px;
 }

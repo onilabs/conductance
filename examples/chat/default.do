@@ -81,22 +81,21 @@ var createHtml = function(source) {
 			currentFile = filename;
 			return match;
 		}
-		return "#{pre}<span class=\"filename\">#{currentFile}</span>\n\n#{code}";
+		return "#{pre}    //FILE:#{currentFile}\n#{code}";
 	});
 	if(TRACE) console.warn(md);
 
-	var opts = {};
+	var opts = {gfm: true};
 
-	/* TODO:
-	var hljs = require('nodejs:highlight.js');
-	opts.highlight = function(code) {
-		var hl = hljs.highlight('javascript', code);
-		// console.warn(hl.value);
-		return hl.value;
-	};
-	*/
+	var htmlContents = require('sjs:marked').convert(md, opts);
 
-	require('sjs:marked').convert(md, opts) .. console.log();
+	// break content div at info-box boundaries
+	htmlContents = htmlContents.replace(/^(<div class="info">(.|\n)*?<\/div>)/gm, "</div>$1<div class=\"content\">");
+
+	// insert filename markers
+	htmlContents = htmlContents.replace(/<code>(?:\n|\s)*\/\/FILE:(.*)\n/gm, "<span class=\"filename\">$1</span><code>");
+
+	htmlContents .. console.log();
 
 	fs.readFile(path.join(src, 'res','_foot.html'), 'utf-8') .. console.log();
 };

@@ -4,7 +4,23 @@
 
 ## Part 1: Simple User Interface
 
+In this step, we'll be creating a simple, client-side application.
+We'll assume you have installed conductance. To begin, create
+a directory called `chat-demo/` (it doesn't matter where, on your
+Desktop is fine). Create a file called `index.app` inside this
+folder, and open it in your favourite text editor.
+
+While reading the tutorial, you can copy & paste the code blocks
+into the file indicate. Unless otherwise indicated, each new snippet
+should be added to the end of the file.
+
 ### File: index.app
+
+An `.app` file is condunctance's file extensions for client-only apps.
+Conductance serves them with some HTML boilerplate that tells
+the browser to run the contents of your `.app` file as code.
+
+## Import modules
 
 #include res/require-system.html
 
@@ -213,7 +229,7 @@ given content, which gives a reasonably attractive default look.
   #ifndef DOC
       #comment | this is cheating - we don't include it in the documentation,
       #comment | only the generated code.
-      <div><a href="./">&lt;- Back to tutorial</a></dov>
+      <div><a href="./">&laquo; Back to tutorial</a></dov>
   #endif // DOC
     `));
 
@@ -231,5 +247,15 @@ we don't want the block to finish - so we end it with a call to `hold()`.
       document.body .. appendWidget(chatWindow);
       hold();
     }
+
+To serve this .app file, open a terminal and navigate to the `chat-demo/` directory.
+From this directory, run:
+
+<pre>$ conductance run</pre>
+
+This will serve the current directory using the default configuration. You should
+now be able to navigate to [http://localhost:7075/]() to run your app. If it doesn't
+seem to be working, open the javascript console to check for errors.
+
 #endif // STEP1
 
