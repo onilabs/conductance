@@ -11,6 +11,7 @@ exports .. @extend(require.merge({id:'sjs:object', exclude: ['get']},
                                  'sjs:quasi',
                                  'sjs:regexp',
                                  {id:'sjs:string', exclude: ['contains']},
+                                 {id:'sjs:events', exclude: ['Stream', 'Queue']},
                                  'sjs:sys',
                                  'sjs:url',
 
