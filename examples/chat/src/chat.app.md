@@ -175,12 +175,11 @@ sends the message to the server. We attach a
 <span class="info-link">Mechanism</span> to the form which
 will handle form submission.
 
-    // TODO: remove !important markers from inline styles.
     var chatInput = Form([
         Legend("Speak your mind:"),
-        TextInput(username) .. Style("{width: 8em !important}"),
+        TextInput(username) .. Style("{width: 8em}"),
         " : ",
-        TextInput(null, {name: "message", size: 25}) .. Style("{width: 20em !important}"),
+        TextInput(null, {name: "message", size: 25}) .. Style("{width: 20em}"),
         Submit('Speak!'),
       ])
       .. Class("form-inline")
