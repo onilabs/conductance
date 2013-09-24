@@ -178,6 +178,10 @@ ObservableArrayProto.at = index -> this.val[index];
 
 ObservableArrayProto.length = -> this.val.length;
 
+ObservableArrayProto.indexOf = function(searchElement, fromIndex) {
+  return this.val.indexOf(searchElement, fromIndex || 0);
+};
+
 
 function ObservableArray(initial_val) {
   var rv = Object.create(ObservableArrayProto);
