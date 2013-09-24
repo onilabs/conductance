@@ -94,7 +94,7 @@ h4 small { font-size: #{vars.fontSizeH4Small() }; } /* Oni Labs edit */
 .page-header {
   padding-bottom: #{add(vars.baseLineHeight() .. scale(1/2), -1)};
   margin: #{vars.baseLineHeight()} 0 #{vars.baseLineHeight() .. scale(1.5)};
-  border-bottom: 1px solid #{vars.grayLighter()};
+  border-bottom: 1px solid #{vars.hrBorder()}; /* Oni Labs edit */
 }
 
 

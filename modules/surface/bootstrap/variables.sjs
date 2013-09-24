@@ -387,7 +387,60 @@ __js var bootstrapTheme = themes['bootstrap'] = exports.bootstrapTheme = {
    @desc
       You can use this as prototype for a custom theme object for registering with [::registerTheme]
 */
-__js var defaultTheme = themes['default'] = exports.defaultTheme = Object.create(bootstrapTheme); 
+
+
+__js var defaultTheme = themes['default'] = exports.defaultTheme = Object.create(bootstrapTheme);
+// see
+// http://coding.smashingmagazine.com/2013/02/14/setting-weights-and-styles-at-font-face-declaration/
+// for how to import fonts
+// XXX hack note: local font paths are relative to bootstrap.css.gen
+// atm, which is ugly
+defaultTheme.customStyleDefs = mixins -> "
+@global{
+  @import url('http://fonts.googleapis.com/css?family=Lato:300,400,700');
+}";
+defaultTheme.sansFontFamily =      -> '"Lato", Helvetica, Arial, sans-serif';
+defaultTheme.monoFontFamily =       -> '"Droid Sans Mono", "Courier New", monospace';
+
+defaultTheme.baseFontSize =        -> '15px';
+defaultTheme.baseLineHeight =      -> '22px'; // '20px';
+defaultTheme.headingsFontWeight =  -> '300';    // instead of browser default, bold
+
+defaultTheme.textColor = -> '#555';
+
+/*
+defaultTheme.fontSizeH1=          -> this.baseFontSize() .. scale(3); // ~38px
+defaultTheme.fontSizeH2=          -> this.baseFontSize() .. scale(2.45); // ~32px
+defaultTheme.fontSizeH3=          -> this.baseFontSize() .. scale(1.85); // ~24px
+defaultTheme.fontSizeH4=          -> this.baseFontSize() .. scale(1.45); // ~18px
+defaultTheme.fontSizeH5=          -> this.baseFontSize() .. scale(1.25);
+defaultTheme.fontSizeH6=          -> this.baseFontSize(); // ~12px
+*/
+
+defaultTheme.headingsFontFamily = -> "'Lato', sans-serif";
+
+defaultTheme.navbarInverseBackground =         -> '#a31317';
+defaultTheme.navbarInverseBackgroundHighlight =-> '#c4161c';
+defaultTheme.navbarInverseBorder =             -> '#c4161c';
+  
+defaultTheme.navbarInverseText =               -> this.white();
+defaultTheme.navbarInverseLinkColor =          -> this.white();
+defaultTheme.navbarInverseLinkColorHover =     -> this.white();
+
+defaultTheme.hrBorder =                -> '#c4161c';
+
+defaultTheme.headingsColor =    -> '#444';
+
+//defaultTheme.linkColor =           -> '#c4161c'; // '#08c';
+
+defaultTheme.navbarHeight =                    -> '60px';
+
+defaultTheme.baseBorderRadius =    -> '3px';
+defaultTheme.borderRadiusLarge =   -> '4px';
+defaultTheme.borderRadiusSmall =   -> '2px';
+
+
+__js var jasonTheme = themes['jason'] = exports.jasonTheme = Object.create(bootstrapTheme); 
 
   // CONDUCTANCE ENHANCEMENTS:
 
@@ -399,7 +452,7 @@ __js var defaultTheme = themes['default'] = exports.defaultTheme = Object.create
 // for how to import fonts
 // XXX hack note: local font paths are relative to bootstrap.css.gen
 // atm, which is ugly
-defaultTheme.customStyleDefs = mixins -> "
+jasonTheme.customStyleDefs = mixins -> "
 @global{
   /*  @import url('http://fonts.googleapis.com/css?family=Raleway:400,700'); */
   @font-face {
@@ -426,25 +479,25 @@ defaultTheme.customStyleDefs = mixins -> "
 ";
 
 
-defaultTheme.preBackground =       -> '#fcfcfc'; // '#f5f5f5';
-defaultTheme.preBorder =           -> 'rgba(0,0,0,0.15)'; //'rgba(0,0,0,.15)';
+jasonTheme.preBackground =       -> '#fcfcfc'; // '#f5f5f5';
+jasonTheme.preBorder =           -> 'rgba(0,0,0,0.15)'; //'rgba(0,0,0,.15)';
 
-defaultTheme.fontSizeH1 =          -> this.baseFontSize() .. scale(2.5); // ~38px // 2.75 ~40px
-defaultTheme.fontSizeH2 =          -> this.baseFontSize() .. scale(2); // ~32px	//
-defaultTheme.fontSizeH3 =          -> this.baseFontSize() .. scale(1.5); // ~24px
-defaultTheme.fontSizeH4 =          -> this.baseFontSize() .. scale(1.25); // ~18px
-defaultTheme.fontSizeH5 =          -> this.baseFontSize();
-defaultTheme.fontSizeH6 =          -> this.baseFontSize() .. scale(0.85); // ~12px
+jasonTheme.fontSizeH1 =          -> this.baseFontSize() .. scale(2.5); // ~38px // 2.75 ~40px
+jasonTheme.fontSizeH2 =          -> this.baseFontSize() .. scale(2); // ~32px	//
+jasonTheme.fontSizeH3 =          -> this.baseFontSize() .. scale(1.5); // ~24px
+jasonTheme.fontSizeH4 =          -> this.baseFontSize() .. scale(1.25); // ~18px
+jasonTheme.fontSizeH5 =          -> this.baseFontSize();
+jasonTheme.fontSizeH6 =          -> this.baseFontSize() .. scale(0.85); // ~12px
 
-defaultTheme.fontSizeH1Small =     -> this.baseFontSize() .. scale(1.75); // ~24px
-defaultTheme.fontSizeH2Small =     -> this.baseFontSize() .. scale(1.25); // ~18px
-defaultTheme.fontSizeH3Small =     -> this.baseFontSize();
-defaultTheme.fontSizeH4Small =     -> this.baseFontSize();
+jasonTheme.fontSizeH1Small =     -> this.baseFontSize() .. scale(1.75); // ~24px
+jasonTheme.fontSizeH2Small =     -> this.baseFontSize() .. scale(1.25); // ~18px
+jasonTheme.fontSizeH3Small =     -> this.baseFontSize();
+jasonTheme.fontSizeH4Small =     -> this.baseFontSize();
 
   // inline code:
-defaultTheme.codeColor =           -> '#333'; // '#d14';
-defaultTheme.codeBackground =      -> '#fff'; // '#f7f7f9';
-defaultTheme.codeBorder =          -> '#ccc'; //'#e1e1e8';
+jasonTheme.codeColor =           -> '#333'; // '#d14';
+jasonTheme.codeBackground =      -> '#fff'; // '#f7f7f9';
+jasonTheme.codeBorder =          -> '#ccc'; //'#e1e1e8';
 
 
   // ------------------------------------------
@@ -455,127 +508,127 @@ defaultTheme.codeBorder =          -> '#ccc'; //'#e1e1e8';
 
   // Grays
   // -------------------------
-defaultTheme.black =               -> '#000';
-defaultTheme.grayDarker =          -> '#222';
-defaultTheme.grayDark =            -> '#333';
-defaultTheme.gray =                -> '#555';
-defaultTheme.grayLight =           -> '#999';
-defaultTheme.grayLighter =         -> '#eee';
-defaultTheme.white =               -> '#fff';
+jasonTheme.black =               -> '#000';
+jasonTheme.grayDarker =          -> '#222';
+jasonTheme.grayDark =            -> '#333';
+jasonTheme.gray =                -> '#555';
+jasonTheme.grayLight =           -> '#999';
+jasonTheme.grayLighter =         -> '#eee';
+jasonTheme.white =               -> '#fff';
 
 
   // Accent colors
   // -------------------------
-defaultTheme.blue =                -> '#049cdb';
-defaultTheme.blueDark =            -> '#0064cd';
-defaultTheme.green =               -> '#46a546';
-defaultTheme.red =                 -> '#fc474e'; // '#9d261d';
-defaultTheme.yellow =              -> '#ffc40d';
-defaultTheme.orange =              -> '#f89406';
-defaultTheme.pink =                -> '#c3325f';
-defaultTheme.purple =              -> '#7a43b6';
+jasonTheme.blue =                -> '#049cdb';
+jasonTheme.blueDark =            -> '#0064cd';
+jasonTheme.green =               -> '#46a546';
+jasonTheme.red =                 -> '#fc474e'; // '#9d261d';
+jasonTheme.yellow =              -> '#ffc40d';
+jasonTheme.orange =              -> '#f89406';
+jasonTheme.pink =                -> '#c3325f';
+jasonTheme.purple =              -> '#7a43b6';
 
 
   // Scaffolding
   // -------------------------
-defaultTheme.bodyBackground =      -> this.white(); // this.white();
-defaultTheme.textColor =           -> '#444';
+jasonTheme.bodyBackground =      -> this.white(); // this.white();
+jasonTheme.textColor =           -> '#444';
 
 
   // Links
   // -------------------------
-defaultTheme.linkColor =           -> '#389aed'; // '#08c';
-defaultTheme.linkColorHover =      -> this.linkColor() .. darken(0.15); // this.linkColor() .. darken(0.15);
+jasonTheme.linkColor =           -> '#389aed'; // '#08c';
+jasonTheme.linkColorHover =      -> this.linkColor() .. darken(0.15); // this.linkColor() .. darken(0.15);
 
 
   // Typography
   // -------------------------
-defaultTheme.sansFontFamily =      -> '"Helvetica Neue", Helvetica, Arial, sans-serif';
-defaultTheme.serifFontFamily =     -> 'Georgia, "Times New Roman", Times, serif';
-defaultTheme.monoFontFamily =       -> '"Droid Sans Mono", "Courier New", monospace';
+jasonTheme.sansFontFamily =      -> '"Helvetica Neue", Helvetica, Arial, sans-serif';
+jasonTheme.serifFontFamily =     -> 'Georgia, "Times New Roman", Times, serif';
+jasonTheme.monoFontFamily =       -> '"Droid Sans Mono", "Courier New", monospace';
 
-defaultTheme.baseFontSize =        -> '14px'; // '14px';
-//defaultTheme.baseFontFamily =       -> '"Raleway", sans-serif';
-defaultTheme.baseFontFamily =      -> this.sansFontFamily();
-defaultTheme.baseLineHeight =      -> '24px'; // '20px';
-defaultTheme.altFontFamily =       -> this.serifFontFamily();
+jasonTheme.baseFontSize =        -> '14px'; // '14px';
+//jasonTheme.baseFontFamily =       -> '"Raleway", sans-serif';
+jasonTheme.baseFontFamily =      -> this.sansFontFamily();
+jasonTheme.baseLineHeight =      -> '24px'; // '20px';
+jasonTheme.altFontFamily =       -> this.serifFontFamily();
 
-defaultTheme.headingsFontFamily =   -> '"Raleway", sans-serif';
+jasonTheme.headingsFontFamily =   -> '"Raleway", sans-serif';
 
-defaultTheme.headingsFontWeight =  -> 'bold';    // instead of browser default, bold
-defaultTheme.headingsColor =    -> '#333';
+jasonTheme.headingsFontWeight =  -> 'bold';    // instead of browser default, bold
+jasonTheme.headingsColor =    -> '#333';
 
   // Component sizing
   // -------------------------
   // Based on 14px font-size and 20px line-height
 
-defaultTheme.fontSizeLarge =       ->  this.baseFontSize() .. scale(1.25); // ~18px
-defaultTheme.fontSizeSmall =       ->  this.baseFontSize() .. scale(0.85); // ~12px
-defaultTheme.fontSizeMini =        ->  this.baseFontSize() .. scale(0.75); // ~11px
+jasonTheme.fontSizeLarge =       ->  this.baseFontSize() .. scale(1.25); // ~18px
+jasonTheme.fontSizeSmall =       ->  this.baseFontSize() .. scale(0.85); // ~12px
+jasonTheme.fontSizeMini =        ->  this.baseFontSize() .. scale(0.75); // ~11px
   
-defaultTheme.paddingLarge =        ->  '11px 19px'; // 44px
-defaultTheme.paddingSmall =        ->  '2px 10px';  // 26px
-defaultTheme.paddingMini =         ->  '0 6px';   // 22px
+jasonTheme.paddingLarge =        ->  '11px 19px'; // 44px
+jasonTheme.paddingSmall =        ->  '2px 10px';  // 26px
+jasonTheme.paddingMini =         ->  '0 6px';   // 22px
 
-defaultTheme.baseBorderRadius =    -> '0';
-defaultTheme.borderRadiusLarge =   -> '0';
-defaultTheme.borderRadiusSmall =   -> '0';
+jasonTheme.baseBorderRadius =    -> '0';
+jasonTheme.borderRadiusLarge =   -> '0';
+jasonTheme.borderRadiusSmall =   -> '0';
 
   // Tables
   // -------------------------
-defaultTheme.tableBackground =                 -> 'transparent'; // overall background-color
-defaultTheme.tableBackgroundAccent =           -> '#f9f9f9'; // for striping
-defaultTheme.tableBackgroundHover =            -> '#f5f5f5'; // for hover
-defaultTheme.tableBorder =                     -> '#ddd'; // table and cell border
+jasonTheme.tableBackground =                 -> 'transparent'; // overall background-color
+jasonTheme.tableBackgroundAccent =           -> '#f9f9f9'; // for striping
+jasonTheme.tableBackgroundHover =            -> '#f5f5f5'; // for hover
+jasonTheme.tableBorder =                     -> '#ddd'; // table and cell border
 
 
   // Buttons
   // -------------------------
-defaultTheme.btnBackground =                     -> this.white();
-defaultTheme.btnBackgroundHighlight =            -> this.white() .. darken(0.1);
-defaultTheme.btnBorder =                         -> '#ccc';
+jasonTheme.btnBackground =                     -> this.white();
+jasonTheme.btnBackgroundHighlight =            -> this.white() .. darken(0.1);
+jasonTheme.btnBorder =                         -> '#ccc';
   
-defaultTheme.btnPrimaryBackground =              -> this.linkColor();
-defaultTheme.btnPrimaryBackgroundHighlight =     -> this.btnPrimaryBackground() ..spin(20);
+jasonTheme.btnPrimaryBackground =              -> this.linkColor();
+jasonTheme.btnPrimaryBackgroundHighlight =     -> this.btnPrimaryBackground() ..spin(20);
   
-defaultTheme.btnInfoBackground =                 -> '#5bc0de';
-defaultTheme.btnInfoBackgroundHighlight =        -> '#2f96b4';
+jasonTheme.btnInfoBackground =                 -> '#5bc0de';
+jasonTheme.btnInfoBackgroundHighlight =        -> '#2f96b4';
   
-defaultTheme.btnSuccessBackground =              -> '#62c462';
-defaultTheme.btnSuccessBackgroundHighlight =     -> '#51a351';
+jasonTheme.btnSuccessBackground =              -> '#62c462';
+jasonTheme.btnSuccessBackgroundHighlight =     -> '#51a351';
   
-defaultTheme.btnWarningBackground =              -> this.orange() .. lighten(0.15);
-defaultTheme.btnWarningBackgroundHighlight =     -> this.orange();
+jasonTheme.btnWarningBackground =              -> this.orange() .. lighten(0.15);
+jasonTheme.btnWarningBackgroundHighlight =     -> this.orange();
   
-defaultTheme.btnDangerBackground =               -> '#ee5f5b';
-defaultTheme.btnDangerBackgroundHighlight =      -> '#bd362f';
+jasonTheme.btnDangerBackground =               -> '#ee5f5b';
+jasonTheme.btnDangerBackgroundHighlight =      -> '#bd362f';
   
-defaultTheme.btnInverseBackground =              -> '#444';
-defaultTheme.btnInverseBackgroundHighlight =     -> this.grayDarker();
+jasonTheme.btnInverseBackground =              -> '#444';
+jasonTheme.btnInverseBackgroundHighlight =     -> this.grayDarker();
 
 
   // Forms
   // -------------------------
-defaultTheme.inputBackground =               -> this.white();
-defaultTheme.inputBorder =                   -> '#ccc';
-defaultTheme.inputBorderRadius =             -> this.baseBorderRadius();
-defaultTheme.inputDisabledBackground =       -> this.grayLighter();
-defaultTheme.formActionsBackground =         -> '#f5f5f5';
-defaultTheme.inputHeight =                   -> this.baseLineHeight() .. add(10); // base line-height + 8px vertical padding + 2px top/bottom border
+jasonTheme.inputBackground =               -> this.white();
+jasonTheme.inputBorder =                   -> '#ccc';
+jasonTheme.inputBorderRadius =             -> this.baseBorderRadius();
+jasonTheme.inputDisabledBackground =       -> this.grayLighter();
+jasonTheme.formActionsBackground =         -> '#f5f5f5';
+jasonTheme.inputHeight =                   -> this.baseLineHeight() .. add(10); // base line-height + 8px vertical padding + 2px top/bottom border
 
   // Dropdowns
   // -------------------------
-defaultTheme.dropdownBackground =            -> this.white();
-defaultTheme.dropdownBorder =                -> 'rgba(0,0,0,.2)';
-defaultTheme.dropdownDividerTop =            -> '#e5e5e5';
-defaultTheme.dropdownDividerBottom =         -> this.white();
+jasonTheme.dropdownBackground =            -> this.white();
+jasonTheme.dropdownBorder =                -> 'rgba(0,0,0,.2)';
+jasonTheme.dropdownDividerTop =            -> '#e5e5e5';
+jasonTheme.dropdownDividerBottom =         -> this.white();
 
-defaultTheme.dropdownLinkColor =             -> this.grayDark();
-defaultTheme.dropdownLinkColorHover =        -> this.white();
-defaultTheme.dropdownLinkColorActive =       -> this.white();
+jasonTheme.dropdownLinkColor =             -> this.grayDark();
+jasonTheme.dropdownLinkColorHover =        -> this.white();
+jasonTheme.dropdownLinkColorActive =       -> this.white();
 
-defaultTheme.dropdownLinkBackgroundActive =  -> this.linkColor();
-defaultTheme.dropdownLinkBackgroundHover =   -> this.dropdownLinkBackgroundActive();
+jasonTheme.dropdownLinkBackgroundActive =  -> this.linkColor();
+jasonTheme.dropdownLinkBackgroundHover =   -> this.dropdownLinkBackgroundActive();
 
   // COMPONENT VARIABLES
   // --------------------------------------------------
@@ -584,12 +637,12 @@ defaultTheme.dropdownLinkBackgroundHover =   -> this.dropdownLinkBackgroundActiv
   // -------------------------
   // Used for a bird's eye view of components dependent on the z-axis
   // Try to avoid customizing these :)
-defaultTheme.zindexDropdown =          -> 1000;
-defaultTheme.zindexPopover =           -> 1010;
-defaultTheme.zindexTooltip =           -> 1020;
-defaultTheme.zindexFixedNavbar =       -> 1030;
-defaultTheme.zindexModalBackdrop =     -> 1040;
-defaultTheme.zindexModal =             -> 1050;
+jasonTheme.zindexDropdown =          -> 1000;
+jasonTheme.zindexPopover =           -> 1010;
+jasonTheme.zindexTooltip =           -> 1020;
+jasonTheme.zindexFixedNavbar =       -> 1030;
+jasonTheme.zindexModalBackdrop =     -> 1040;
+jasonTheme.zindexModal =             -> 1050;
 
   // Sprite icons path
   // -------------------------
@@ -598,24 +651,24 @@ defaultTheme.zindexModal =             -> 1050;
   // in lieu of the sprite icons we use Font Awesome:
 
   // XXX hack note: this is relative to the bootstrap.css.gen atm, which is ugly!
-defaultTheme.fontAwesomePath =         -> './bootstrap/fontawesome/';
+jasonTheme.fontAwesomePath =         -> './bootstrap/fontawesome/';
 
   // Input placeholder text color
   // -------------------------
-defaultTheme.placeholderText =         -> this.grayLight();
+jasonTheme.placeholderText =         -> this.grayLight();
   
   // Hr border color
   // -------------------------
-defaultTheme.hrBorder =                -> this.grayLighter();
+jasonTheme.hrBorder =                -> this.grayLighter();
 
   // Horizontal forms & lists
   // -------------------------
-defaultTheme.horizontalComponentOffset =->     '180px';
+jasonTheme.horizontalComponentOffset =->     '180px';
 
 
   // Wells
   // -------------------------
-defaultTheme.wellBackground =          -> '#f5f5f5';
+jasonTheme.wellBackground =          -> '#f5f5f5';
 
 
   // Navbar
@@ -623,38 +676,38 @@ defaultTheme.wellBackground =          -> '#f5f5f5';
   //XXX @navbarCollapseWidth:             979px;
   //XXX @navbarCollapseDesktopWidth:      @navbarCollapseWidth + 1;
 
-defaultTheme.navbarHeight =                    -> '60px';
-defaultTheme.navbarBackgroundHighlight = -> '#7fc5ff';
-defaultTheme.navbarBackground =  -> '#7fc5ff';
-defaultTheme.navbarBorder = -> '#7fc5ff';
+jasonTheme.navbarHeight =                    -> '60px';
+jasonTheme.navbarBackgroundHighlight = -> '#7fc5ff';
+jasonTheme.navbarBackground =  -> '#7fc5ff';
+jasonTheme.navbarBorder = -> '#7fc5ff';
   
-defaultTheme.navbarText =                      -> '#777';
-defaultTheme.navbarLinkColor =                 -> '#777';
-defaultTheme.navbarLinkColorHover =            -> this.grayDark();
-defaultTheme.navbarLinkColorActive =           -> this.gray();
-defaultTheme.navbarLinkBackgroundHover =       -> 'transparent';
-defaultTheme.navbarLinkBackgroundActive =      -> this.navbarBackground() .. darken(0.05);
+jasonTheme.navbarText =                      -> '#777';
+jasonTheme.navbarLinkColor =                 -> '#777';
+jasonTheme.navbarLinkColorHover =            -> this.grayDark();
+jasonTheme.navbarLinkColorActive =           -> this.gray();
+jasonTheme.navbarLinkBackgroundHover =       -> 'transparent';
+jasonTheme.navbarLinkBackgroundActive =      -> this.navbarBackground() .. darken(0.05);
   
-defaultTheme.navbarBrandColor =                -> this.navbarLinkColor();
+jasonTheme.navbarBrandColor =                -> this.navbarLinkColor();
 
   // Inverted navbar
-defaultTheme.navbarInverseBackground =         -> '#111111';
-defaultTheme.navbarInverseBackgroundHighlight =-> '#222222';
-defaultTheme.navbarInverseBorder =             -> '#252525';
+jasonTheme.navbarInverseBackground =         -> '#111111';
+jasonTheme.navbarInverseBackgroundHighlight =-> '#222222';
+jasonTheme.navbarInverseBorder =             -> '#252525';
   
-defaultTheme.navbarInverseText =               -> this.grayLight();
-defaultTheme.navbarInverseLinkColor =          -> this.grayLight();
-defaultTheme.navbarInverseLinkColorHover =     -> this.white();
-defaultTheme.navbarInverseLinkColorActive =    -> this.navbarInverseLinkColorHover();
-defaultTheme.navbarInverseLinkBackgroundHover =-> 'transparent';
-defaultTheme.navbarInverseLinkBackgroundActive =->this.navbarInverseBackground();
+jasonTheme.navbarInverseText =               -> this.grayLight();
+jasonTheme.navbarInverseLinkColor =          -> this.grayLight();
+jasonTheme.navbarInverseLinkColorHover =     -> this.white();
+jasonTheme.navbarInverseLinkColorActive =    -> this.navbarInverseLinkColorHover();
+jasonTheme.navbarInverseLinkBackgroundHover =-> 'transparent';
+jasonTheme.navbarInverseLinkBackgroundActive =->this.navbarInverseBackground();
   
-defaultTheme.navbarInverseSearchBackground =   -> lighten(this.navbarInverseBackground, .25);
-defaultTheme.navbarInverseSearchBackgroundFocus =->this.white();
-defaultTheme.navbarInverseSearchBorder =       -> this.navbarInverseBackground();
-defaultTheme.navbarInverseSearchPlaceholderColor =->'#ccc';
+jasonTheme.navbarInverseSearchBackground =   -> lighten(this.navbarInverseBackground, .25);
+jasonTheme.navbarInverseSearchBackgroundFocus =->this.white();
+jasonTheme.navbarInverseSearchBorder =       -> this.navbarInverseBackground();
+jasonTheme.navbarInverseSearchPlaceholderColor =->'#ccc';
 
-defaultTheme.navbarInverseBrandColor =         -> this.navbarInverseLinkColor();
+jasonTheme.navbarInverseBrandColor =         -> this.navbarInverseLinkColor();
 
   // Pagination
   // -------------------------
@@ -665,28 +718,28 @@ defaultTheme.navbarInverseBrandColor =         -> this.navbarInverseLinkColor();
 
   // Hero unit
   // -------------------------
-defaultTheme.heroUnitBackground =              -> this.grayLighter();
-defaultTheme.heroUnitHeadingColor =            -> 'inherit';
-defaultTheme.heroUnitLeadColor =               -> 'inherit';
+jasonTheme.heroUnitBackground =              -> this.grayLighter();
+jasonTheme.heroUnitHeadingColor =            -> 'inherit';
+jasonTheme.heroUnitLeadColor =               -> 'inherit';
 
 
   // Form states and alerts
   // -------------------------
-defaultTheme.warningText =             -> '#c09853';
-defaultTheme.warningBackground =       -> '#fcf8e3';
-defaultTheme.warningBorder =           -> this.warningBackground() .. spin(-10) .. darken(.03);
+jasonTheme.warningText =             -> '#c09853';
+jasonTheme.warningBackground =       -> '#fcf8e3';
+jasonTheme.warningBorder =           -> this.warningBackground() .. spin(-10) .. darken(.03);
   
-defaultTheme.errorText =               -> '#b94a48';
-defaultTheme.errorBackground =         -> '#f2dede';
-defaultTheme.errorBorder =             -> this.errorBackground() .. spin(-10) .. darken(.03);
+jasonTheme.errorText =               -> '#b94a48';
+jasonTheme.errorBackground =         -> '#f2dede';
+jasonTheme.errorBorder =             -> this.errorBackground() .. spin(-10) .. darken(.03);
   
-defaultTheme.successText =             -> '#468847';
-defaultTheme.successBackground =       -> '#dff0d8';
-defaultTheme.successBorder =           -> this.successBackground() .. spin(-10) .. darken(.05);
+jasonTheme.successText =             -> '#468847';
+jasonTheme.successBackground =       -> '#dff0d8';
+jasonTheme.successBorder =           -> this.successBackground() .. spin(-10) .. darken(.05);
   
-defaultTheme.infoText =                -> '#3a87ad';
-defaultTheme.infoBackground =          -> '#d9edf7';
-defaultTheme.infoBorder =              -> this.infoBackground() .. spin(-10) .. darken(.07);
+jasonTheme.infoText =                -> '#3a87ad';
+jasonTheme.infoBackground =          -> '#d9edf7';
+jasonTheme.infoBorder =              -> this.infoBackground() .. spin(-10) .. darken(.07);
 
   // Tooltips and popovers
   // -----------------------
@@ -695,14 +748,14 @@ defaultTheme.infoBorder =              -> this.infoBackground() .. spin(-10) .. 
   //XXX @tooltipArrowWidth:       5px;
   //XXX @tooltipArrowColor:       @tooltipBackground;
 
-defaultTheme.popoverBackground =       -> '#fff';
-defaultTheme.popoverArrowWidth =       -> '10px';
-defaultTheme.popoverArrowColor =       -> '#fff';
-defaultTheme.popoverTitleBackground =  -> this.popoverBackground() .. darken(.03);
+jasonTheme.popoverBackground =       -> '#fff';
+jasonTheme.popoverArrowWidth =       -> '10px';
+jasonTheme.popoverArrowColor =       -> '#fff';
+jasonTheme.popoverTitleBackground =  -> this.popoverBackground() .. darken(.03);
 
   // Special enhancement for popovers
-defaultTheme.popoverArrowOuterWidth =  -> this.popoverArrowWidth() .. add(1);
-defaultTheme.popoverArrowOuterColor =  -> 'rgba(0,0,0,.25)';
+jasonTheme.popoverArrowOuterWidth =  -> this.popoverArrowWidth() .. add(1);
+jasonTheme.popoverArrowOuterColor =  -> 'rgba(0,0,0,.25)';
 
 
 
@@ -711,10 +764,10 @@ defaultTheme.popoverArrowOuterColor =  -> 'rgba(0,0,0,.25)';
 
   // Default 940px grid
   // -------------------------
-defaultTheme.gridColumns =             -> 12;
-defaultTheme.gridColumnWidth =         -> "60px";
-defaultTheme.gridGutterWidth =         -> "20px";
-defaultTheme.gridRowWidth =            -> add(scale(this.gridColumnWidth(), this.gridColumns()),
+jasonTheme.gridColumns =             -> 12;
+jasonTheme.gridColumnWidth =         -> "60px";
+jasonTheme.gridGutterWidth =         -> "20px";
+jasonTheme.gridRowWidth =            -> add(scale(this.gridColumnWidth(), this.gridColumns()),
                                   scale(this.gridGutterWidth(), this.gridColumns()-1));
 
   // 1200px min
@@ -730,8 +783,8 @@ defaultTheme.gridRowWidth =            -> add(scale(this.gridColumnWidth(), this
   // Fluid grid
   //--------------------------
   //XXX these need to go
-defaultTheme.fluidGridColumnWidth =    -> "6.382978723%";
-defaultTheme.fluidGridGutterWidth =    -> "2.127659574%";
+jasonTheme.fluidGridColumnWidth =    -> "6.382978723%";
+jasonTheme.fluidGridGutterWidth =    -> "2.127659574%";
 
   //XXX @fluidGridColumnWidth:    percentage(@gridColumnWidth/@gridRowWidth);
   //XXX @fluidGridGutterWidth:    percentage(@gridGutterWidth/@gridRowWidth);
