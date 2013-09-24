@@ -447,7 +447,7 @@ function GoogleCloudDatastore(attribs) {
               throw new Error("Google Cloud Datastore: Inconsistent key values in data ('#{key}' != '#{node.value}')");
             key = node.value;
           }
-          else if (isSimpleType(descriptor.type)) {
+          else if (isSimpleType(descriptor.type) || descriptor.type === 'ref') {
             // XXX support other types than just equality filters
             filters.push({
               propertyFilter: {
