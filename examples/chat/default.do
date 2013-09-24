@@ -50,12 +50,12 @@ var highlight = (function() {
 	
 	// load the highlighter and the desired mode and theme
 	var highlighter = require("nodejs:#{ACE_ROOT}/lib/ace/ext/static_highlight");
-	var JavaScriptMode = require("nodejs:#{ACE_ROOT}/lib/ace/mode/javascript").Mode;
+	var SJSMode = require("nodejs:#{ACE_ROOT}/lib/ace/mode/sjs").Mode;
 	var ShellMode = require("nodejs:#{ACE_ROOT}/lib/ace/mode/sh").Mode;
 	var theme = require("nodejs:#{ACE_ROOT}/lib/ace/theme/eclipse");
 	var styleInserted = false;
 	return function(src, lang) {
-		var mode = lang == 'sh' ? new ShellMode() : new JavaScriptMode();
+		var mode = lang == 'sh' ? new ShellMode() : new SJSMode();
 		var highlighted = highlighter.render(src, mode, theme, 1, true);
 		if (!styleInserted) {
 			styleInserted = true;
