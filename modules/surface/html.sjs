@@ -4,7 +4,7 @@ var { each, indexed, reduce, map, join, isStream } = require('sjs:sequence');
 var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
-var { isObservable, get } = require('../observable');
+var { isObservable, get, observe } = require('../observable');
 var array = require('sjs:array');
 var func = require('sjs:function');
 
@@ -313,9 +313,10 @@ __js var InternalStyleDefProto = {
   }
 };
 
-__js function InternalStyleDef(content, parent_class) {
+__js function InternalStyleDef(content, parent_class, mech) {
   var rv = Object.create(InternalStyleDefProto);
-  rv.content = scope(content, parent_class);
+  rv.content = content;
+  rv.mechanism = mech;
   return rv;
 }
 
@@ -344,13 +345,53 @@ __js {
         classes.push(class_name);
       return ft;
     }
+
+    var styleMechanism;
+    var content = arguments.length == 1 ? arguments[0] : arguments[1];
+    if (content .. isQuasi) {
+      var q = content;
+      var render = function(observables) {
+        var rv = "";
+        for (var i=0; i<q.parts.length; i++) {
+          var p = q.parts[i];
+          if (i%2) {
+            // XXX: are there general escaping rules we can use for CSS attribs?
+            if (isObservable(p)) {
+              if(observables) observables.push(p);
+              rv += String(p.get());
+            } else {
+              rv += String(p);
+            }
+          } else rv += p;
+        }
+        return scope(rv, class_name);
+      }
+      var observables = [];
+      content = render(observables);
+      // if render found any observables, set up a mechanism:
+      if (observables.length) {
+        styleMechanism = function(elem) {
+          var onChange = function() {
+            var content = render();
+            if (elem.styleSheet) {
+              // IE
+              elem.styleSheet.cssText = content;
+            } else {
+              elem.lastChild.nodeValue = content;
+            }
+          }
+          observe.apply(null, observables.concat(onChange));
+        };
+      }
+    } else {
+      content = scope(content, class_name);
+    }
+    styledef = InternalStyleDef(content, class_name, styleMechanism);
     
     if (arguments.length == 1) {
-      styledef = InternalStyleDef(arguments[0], class_name);
       return setStyle;
     }
     else /* if (arguments == 2) */{
-      styledef = InternalStyleDef(arguments[1], class_name);
       return setStyle(arguments[0]);
     }
   }

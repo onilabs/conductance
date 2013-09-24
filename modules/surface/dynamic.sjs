@@ -21,8 +21,11 @@ var resourceRegistry = {
       |[id, [cnt,def]]|
       var desc;
       if (!(desc = stylesInstalled[id])) {
-        desc = stylesInstalled[id] = { ref_count: cnt, elem: def.createElement() };
+        desc = stylesInstalled[id] = { ref_count: cnt, elem: def.createElement(), mechanism: def.mechanism };
         (document.head || document.getElementsByTagName("head")[0] /* IE<9 */).appendChild(desc.elem);
+        if (desc.mechanism) {
+          desc.elem.__oni_mech = spawn(desc.mechanism.call(desc.elem, desc.elem));
+        }
         // wait for stylesheet to load for an arbitrary maximum of 2s; 
         // display warning in console if it hasn't loaded by then.
         // XXX we should refactor the code to allow loading of stylesheets in parallel!
@@ -49,6 +52,10 @@ var resourceRegistry = {
     var desc = stylesInstalled[id];
     if (!desc) console.log("Warning: Trying to unuse unknown style #{id}")
     if (--desc.ref_count === 0) {
+      if (desc.elem.__oni_mech) {
+        desc.elem.__oni_mech.abort();
+        delete desc.elem.__oni_mech;
+      }
       // XXX might actually want to cache this for a while
       desc.elem.parentNode.removeChild(desc.elem);
       delete stylesInstalled[id];
