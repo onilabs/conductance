@@ -1,2 +1,2 @@
 redo-always
-find src/ | colrm 1 5 | sort | tee "$3" | redo-stamp
+find src/ | sed -e 's@^[^/]*/@@' | grep . | sort | tee "$3" | redo-stamp
