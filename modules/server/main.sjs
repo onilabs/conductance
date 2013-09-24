@@ -45,6 +45,7 @@ exports.run = function(args) {
       desc: 'Run an interactive shell',
       fn: function() {
         printBanner();
+        global.__oni_altns = Object.create(require('mho:stdlib'));
         require('sjs:nodejs/repl', {main:true});
       }
     },
