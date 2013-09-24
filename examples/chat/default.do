@@ -3,7 +3,7 @@
 var childProcess = require('sjs:nodejs/child-process');
 var fs = require('sjs:nodejs/fs');
 var path = require('nodejs:path');
-var { each, map, concat, filter, toArray, integers } = require('sjs:sequence');
+var { each, map, concat, filter, join, toArray, integers } = require('sjs:sequence');
 var { contains } = require('sjs:array');
 var assert = require('sjs:assert');
 var { startsWith, endsWith } = require('sjs:string');
@@ -32,6 +32,55 @@ if(dir === src) {
 
 assert.ok(dir .. startsWith('step'), "invalid directory name #{dir} making #{target}");
 var stepno = parseInt(dir.slice("step".length));
+
+
+
+
+/*
+ * Highlight SJS source code:
+ */
+var highlight = (function() {
+	// XXX get this working without manual setup
+	var ACE_ROOT = process.env['ACE_ROOT'];
+	if (!ACE_ROOT) return src -> src;
+
+	require("amd-loader");
+	// load jsdom, which is required by Ace
+	require("nodejs:#{ACE_ROOT}/lib/ace/test/mockdom");
+	
+	// load the highlighter and the desired mode and theme
+	var highlighter = require("nodejs:#{ACE_ROOT}/lib/ace/ext/static_highlight");
+	var JavaScriptMode = require("nodejs:#{ACE_ROOT}/lib/ace/mode/javascript").Mode;
+	var ShellMode = require("nodejs:#{ACE_ROOT}/lib/ace/mode/sh").Mode;
+	var theme = require("nodejs:#{ACE_ROOT}/lib/ace/theme/eclipse");
+	var styleInserted = false;
+	return function(src, lang) {
+		var mode = lang == 'sh' ? new ShellMode() : new JavaScriptMode();
+		var highlighted = highlighter.render(src, mode, theme, 1, true);
+		if (!styleInserted) {
+			styleInserted = true;
+			var css = highlighted.css.split("\n");
+
+
+			css = css
+				// remove clear declaration. It's only needed when
+				// displaying the gutter, but we've disable that.
+				.. filter(line -> ! /clear:/.test(line))
+				// strip out font declarations:
+				.. filter(line -> ! /font-(family|size)/.test(line))
+				// and background colours
+				.. filter(line -> ! /background-/.test(line))
+			;
+
+			console.log("
+				<style type=\"text/css\" media=\"screen\">
+					#{css .. join("\n")}
+				</style>
+			");
+		}
+		return highlighted.html;
+	}
+})();
 
 /*
  * Create directory, and ensure it doesn't have any
@@ -72,6 +121,7 @@ var createHtml = function(source) {
 
 	var args = ['-imacros', path.join(src,'res','macros'), source].concat(defines .. map(d -> "-D#{d}"))
 	if(TRACE) args.unshift('-dl');
+	if(TRACE) console.warn('+', '../../tools/filepp', args.join(' '));
 	var md = childProcess.run('../../tools/filepp', args, {stdio:[0,'pipe',2]}).stdout;
 	assert.ok(md);
 	var currentFile = null;
@@ -81,11 +131,13 @@ var createHtml = function(source) {
 			currentFile = filename;
 			return match;
 		}
-		return "#{pre}    //FILE:#{currentFile}\n#{code}";
+		return "#{pre}<!-- #FILE: #{currentFile} -->\n\n#{code}";
 	});
 	if(TRACE) console.warn(md);
 
 	var opts = {gfm: true};
+
+	opts.highlight = highlight;
 
 	var htmlContents = require('sjs:marked').convert(md, opts);
 
@@ -93,7 +145,7 @@ var createHtml = function(source) {
 	htmlContents = htmlContents.replace(/^(<div class="info">(.|\n)*?<\/div>)/gm, "</div>$1<div class=\"content\">");
 
 	// insert filename markers
-	htmlContents = htmlContents.replace(/<code>(?:\n|\s)*\/\/FILE:(.*)\n/gm, "<span class=\"filename\">$1</span><code>");
+	htmlContents = htmlContents.replace(/<!-- #FILE: (\S+) -->\s*<pre>/gm, "<pre><span class=\"filename\">$1</span>");
 
 	htmlContents .. console.log();
 

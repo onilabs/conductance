@@ -250,11 +250,16 @@ we don't want the block to finish - so we end it with a call to `hold()`.
 To serve this .app file, open a terminal and navigate to the `chat-demo/` directory.
 From this directory, run:
 
-<pre>$ conductance run</pre>
+#comment NOTE: we use github-style ``` blocks to prevent 
+#comment non-SJS code blocks appearing in source code
+
+```sh
+$ conductance run
+```
 
 This will serve the current directory using the default configuration. You should
 now be able to navigate to [http://localhost:7075/]() to run your app. If it doesn't
-seem to be working, open the javascript console to check for errors.
+seem to be working, open your browser's javascript console to check for errors.
 
 #endif // STEP1
 

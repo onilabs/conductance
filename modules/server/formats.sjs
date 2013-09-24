@@ -44,7 +44,7 @@ function sjscompile(src, dest, aux) {
 // filter that generates the html boilerplate for *.app files:
 function gen_app_html(src, dest, aux) {
   var app_name = aux.request.url.file || "index.app";
-  var { Document, headTag, Widget } = require('../surface');
+  var { Document } = require('../surface');
   dest.write(
     Document(null, {init: "require(\"#{app_name}!sjs\");"})
   );
