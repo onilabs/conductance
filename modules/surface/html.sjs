@@ -346,6 +346,8 @@ __js {
       return ft;
     }
 
+    var selector = '_oni_style_.' + class_name;
+
     var styleMechanism;
     var content = arguments.length == 1 ? arguments[0] : arguments[1];
     if (content .. isQuasi) {
@@ -364,7 +366,7 @@ __js {
             }
           } else rv += p;
         }
-        return scope(rv, class_name);
+        return scope(rv, selector);
       }
       var observables = [];
       content = render(observables);
@@ -384,7 +386,7 @@ __js {
         };
       }
     } else {
-      content = scope(content, class_name);
+      content = scope(content, selector);
     }
     styledef = InternalStyleDef(content, class_name, styleMechanism);
     
