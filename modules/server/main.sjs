@@ -224,7 +224,7 @@ exports.serve = function(args) {
 
   try {
     process.argv = process.ARGV = [nodePath.join(env.conductanceRoot(), 'conductance'), configfile].concat(opts._args);
-    main.apply(config, opts._args);
+    main.call(config, opts._args);
   } catch(e) {
     process.stdout.write("\nOni Conductance exiting with fatal error:\n#{e.toString()}\n\n");
     process.exit(1);

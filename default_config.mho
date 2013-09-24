@@ -6,8 +6,46 @@ var server = require('mho:server');
 
 //----------------------------------------------------------------------
 // server main function, used by `conductance run`
-exports.run = function() {
-  arguments.length .. assert.eq(0, "Too many arguments");
+exports.run = function(args) {
+  var parser = require('sjs:dashdash').createParser({
+    options: [
+      {
+        name: 'cors',
+        type: 'bool',
+        help: 'enable CORS',
+        'default': false,
+      },
+      {
+        names: ['help', 'h'],
+        type: 'bool',
+      },
+      {
+        names: ['production'],
+        type: 'bool',
+        help: 'disable development mode features',
+        'default': process.env['NODE_ENV'] === 'production',
+      },
+      {
+        names: ['host'],
+        type: 'string',
+        help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
+        'default': 'localhost',
+      },
+    ]
+  });
+  try {
+    var opts = parser.parse(args);
+  } catch(e) {
+    console.error('Error: ', e.message);
+    process.exit(1);
+  }
+
+  if (opts.help) {
+    console.log("  default_config.mho run options:");
+    console.log(parser.help({includeEnv:true}));
+    process.exit(0);
+  }
+
   var { readFile } = require('sjs:nodejs/fs');
   var { conductanceRoot } = require('mho:server/env');
   var { Port } = server;
@@ -19,17 +57,20 @@ exports.run = function() {
         ExecutableDirectory(process.cwd()),
       ] .. LogRequests(logging.INFO);
 
-  if (process.env['NODE_ENV'] !== 'production') {
+  if (!opts.production) {
     routes = routes .. DeveloperMode();
   }
 
+
+  var host = opts.host == 'any' ? null : opts.host;
+
   server.run([
     {
-      address: Port(7075),
+      address: Port(7075, host),
       routes: routes,
     },
     {
-      address: Port(7076).ssl({
+      address: Port(7076, host).ssl({
         key: readFile("#{conductanceRoot()}ssl/insecure-localhost.key"),
         cert: readFile("#{conductanceRoot()}ssl/insecure-localhost.crt")
       }),
