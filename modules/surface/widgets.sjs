@@ -2,7 +2,8 @@ var { Widget, Mechanism, Attrib } = require('./html');
 var { replaceContent, appendContent, prependContent, Prop, removeElement, insertBefore } = require('./dynamic');
 var { HostEmitter, Stream } = require('sjs:events');
 var { integers, each, map, indexed, filter, sort, slice } = require('sjs:sequence');
-var { areEquivalentArrays, isArrayLike } = require('sjs:array');
+var { isArrayLike } = require('sjs:array');
+var { shallowEq } = require('sjs:compare');
 var { override, merge } = require('sjs:object');
 var { isObservable, isObservableArray, isMutatable, Computed, get, Map, at } = require('../observable');
 
@@ -216,7 +217,7 @@ function SelectSelectionMechanism(ft, items, selection) {
             filter(([idx,elem]) -> elem.selected) ..
             map(([idx,]) -> items.at(idx));
           if (isObservableArray(selection)) {
-            if (!areEquivalentArrays(selection, new_selection))
+            if (!shallowEq(selection, new_selection))
               selection.set(new_selection);
           }
           else if (selection.get() !== new_selection[0])
