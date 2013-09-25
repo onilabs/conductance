@@ -129,12 +129,13 @@ var ContextProto = {
   withTransaction: function(/* [isolationLevel], block*/) {
     var isolationLevel, block;
     if (arguments.length == 1) {
-      isolationLevel = 'SNAPSHOT';
       block = arguments[0];
     }
     else {
       [isolationLevel, block] = arguments;
     }
+    if (!isolationLevel) 
+      isolationLevel = 'SNAPSHOT';
 
     var context = this;
     var transaction_id = context._request(

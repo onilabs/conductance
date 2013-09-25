@@ -1,5 +1,5 @@
-var { propertyPairs } = require('sjs:object');
-var { each, map, Stream, transform, join, buffer, unpack, slice, reduce, filter, indexed, toArray, at } = require('sjs:sequence');
+var { propertyPairs, keys } = require('sjs:object');
+var { each, map, Stream, transform, join, buffer, unpack, slice, reduce, filter, indexed, toArray, at, zip, consume } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { instantiate, isSimpleType, IdToKey, cotraverse } = require('./schema');
 var { Context } = require('./gcd/backend');
@@ -316,7 +316,7 @@ function GoogleCloudDatastore(attribs) {
   var context = Context(attribs.context);
   var schemas = attribs.schemas;
 
-  function writeInner(entities) {
+  function writeInner(entities, transaction) {
     var ids = [];
     var deletes = [], autoid_inserts = [], upserts = [];
     
@@ -328,50 +328,82 @@ function GoogleCloudDatastore(attribs) {
         ids.push(entity.id);
       }
       else {
-        // UPSERT
+        // UPSERT 
         entity = JSEntityToGCDEntity(entity, schemas);
-        //console.log(require('sjs:debug').inspect(entity, false, 10));
         
-        // check if the entity has a full key path, or if we need insertAutoId
+        // check if the entity has a full key path, or if we need to create an autoid
         // XXX we don't check for `id` in the js entity, because an id might have 
         // been constructed according to the schema (from a primary field).
         var last = entity.key.pathElement[entity.key.pathElement.length-1];
         var has_path = (last.id || last.name);
         if (has_path) {
-          //        console.log("upserting #{require('sjs:debug').inspect(entity, false, 10)}");
           upserts.push(entity);
           ids.push(entity.key.pathElement .. GCDKeyToKey);
         }
         else {
+          // need to generate autoids
           autoid_inserts.push(entity);
-          // id needs to be taken from results:
+          // id needs to be resolved later:
           ids.push(null);
         }
       }
     }
     
-    var mutation = {};
-    if (deletes.length) mutation['delete'] = deletes;
-    if (autoid_inserts.length) mutation.insertAutoId = autoid_inserts;
-    if (upserts.length) mutation.upsert = upserts;
+    // we've now got our entities sorted into `deletes`,
+    // `autoid_inserts` and `upserts`.
+    // further processing depends on whether we're in a transaction or
+    // in a blind write
     
-    var result = context.blindWrite({mutation: mutation});
-    
-    if (autoid_inserts.length) {
-      // splice auto ids into return array
-      var auto_id_index = 0;
-      for (var i=0; i<ids.length; ++i) {
-        if (ids[i] !== null) continue;
-        ids[i] = result.mutationResult.insertAutoIdKey[auto_id_index++].pathElement .. GCDKeyToKey;
+    if (transaction) {
+      // we're in a transaction. don't actually perform the write. just
+      // return data for later comittal.
+      if (autoid_inserts.length) {
+        var req = { key: autoid_inserts .. map({key} -> key) };
+        var results = context.allocateIds(req);
+        // splice results into ids
+        results.key .. consume {
+          |next_id|
+          for (var i=0;i<ids.length; ++i) {
+            if (ids[i] === null)
+              ids[i] = next_id().pathElement .. GCDKeyToKey;
+          }
+        }
+        
+        // splice results into autoid_inserts
+        zip(results.key, autoid_inserts) .. each { 
+          |[key, entity]|
+          entity.key = key;
+        }
+        
+        upserts = upserts.concat(autoid_inserts);
       }
+      return { ids: ids, deletes: deletes, upserts: upserts };
     }
-    change_buffer.addChanges(ids);
-    return ids;
+    else {
+      // blind write
+      var mutation = {};
+      if (deletes.length) mutation['delete'] = deletes;
+      if (autoid_inserts.length) mutation.insertAutoId = autoid_inserts;
+      if (upserts.length) mutation.upsert = upserts;
+      
+      var result = context.blindWrite({mutation: mutation});
+      
+      if (autoid_inserts.length) {
+        // splice auto ids into return array
+        var auto_id_index = 0;
+        for (var i=0; i<ids.length; ++i) {
+          if (ids[i] !== null) continue;
+          ids[i] = result.mutationResult.insertAutoIdKey[auto_id_index++].pathElement .. GCDKeyToKey;
+        }
+      }
+      change_buffer.addChanges(ids);
+      return ids;
+    }
   }
 
-  function readInner(entities) {
+  function readInner(entities, transaction) {
     var query = entities .. map(entity -> { pathElement: keyToGCDKey(entity.id) });
-    var results = context.lookup({
+    var results = (transaction || context).lookup({
       key: query
     });
     
@@ -388,7 +420,7 @@ function GoogleCloudDatastore(attribs) {
     return entities .. map({id} -> found[id] || null);
   }
 
-  function queryInner(query_descriptor, idsOnly) {
+  function queryInner(query_descriptor, idsOnly, transaction) {
     var schema = schemas[query_descriptor.schema];
     if (!schema) throw new Error("Unknown schema #{query_descriptor.schema}");
     
@@ -471,7 +503,7 @@ function GoogleCloudDatastore(attribs) {
       //        console.log(require('sjs:debug').inspect(request, false, 20));
       
       while (1) {
-        var results = context.runQuery(request);
+        var results = (transaction || context).runQuery(request);
         if (!results.batch || !results.batch.entityResult) break;
         
         r(results.batch.entityResult .. 
@@ -555,6 +587,62 @@ function GoogleCloudDatastore(attribs) {
      */
     query: function(query_descriptor, idsOnly) {
       return queryInner(query_descriptor, idsOnly);
+    },
+
+    /**
+       @function withTransaction
+       @altsyntax googleclouddatastore.withTransaction([options]) { |transaction| ... }
+       @param {optional Object} [options] Transaction options
+       @param {Function} [block]
+       @summary Execute *block* with a new [::Transaction] object. The transaction will automatically be rolled back if there is an error during committing.
+     */
+    withTransaction: function(options, block) {
+      if (!block) {
+        block = options;
+        options = {};
+      }
+
+      context.withTransaction(options.isolationLevel) {
+        |transaction_context|
+
+        var mutated_ids = {}, deletes = [], upserts = [];
+
+        block({
+
+          read:  function(entities) {
+            return readInner(entities, transaction_context);
+          },
+
+          write: function(entities) { 
+            var result = writeInner(entities, transaction_context);
+
+            // make sure we didn't attempt to mutate entities before
+            result.ids .. each { 
+              |id|
+              if (mutated_ids[id]) throw new Error("Cannot mutate entity multiple times within a transaction (#{id})");
+              mutated_ids[id] = true;
+            }
+
+            deletes = deletes.concat(result.deletes);
+            upserts = upserts.concat(result.upserts);
+
+            return result.ids;
+          },
+
+          query: function(entities, idsOnly) { 
+            return queryInner(entities, idsOnly, transaction_context) 
+          }
+
+        });
+        
+        // commit deletes and upserts
+        var mutation = {};
+        if (deletes.length) mutation['delete'] = deletes;
+        if (upserts.length) mutation.upsert = upserts;
+           
+        transaction_context.commit({mutation: mutation});
+        change_buffer.addChanges(keys(mutated_ids) .. toArray);
+      }
     },
 
     /**

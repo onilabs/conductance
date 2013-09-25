@@ -49,6 +49,9 @@ exports.Cache = function(size, upstream) {
     },
     query: function(entity, idsOnly) {
       return upstream.query(entity, idsOnly);
+    },
+    withTransaction: function(options, block) {
+      upstream.withTransaction(options, block);
     }
   };
   return rv;
