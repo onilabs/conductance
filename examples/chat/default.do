@@ -40,19 +40,16 @@ var stepno = parseInt(dir.slice("step".length));
  * Highlight SJS source code:
  */
 var highlight = (function() {
-	// XXX get this working without manual setup
-	var ACE_ROOT = process.env['ACE_ROOT'];
-	if (!ACE_ROOT) return src -> src;
-
+	run('redo-ifchange', ['node_modules/ace']);
 	require("amd-loader");
 	// load jsdom, which is required by Ace
-	require("nodejs:#{ACE_ROOT}/lib/ace/test/mockdom");
+	require("nodejs:ace/lib/ace/test/mockdom");
 	
 	// load the highlighter and the desired mode and theme
-	var highlighter = require("nodejs:#{ACE_ROOT}/lib/ace/ext/static_highlight");
-	var SJSMode = require("nodejs:#{ACE_ROOT}/lib/ace/mode/sjs").Mode;
-	var ShellMode = require("nodejs:#{ACE_ROOT}/lib/ace/mode/sh").Mode;
-	var theme = require("nodejs:#{ACE_ROOT}/lib/ace/theme/eclipse");
+	var highlighter = require("nodejs:ace/lib/ace/ext/static_highlight");
+	var SJSMode = require("nodejs:ace/lib/ace/mode/sjs").Mode;
+	var ShellMode = require("nodejs:ace/lib/ace/mode/sh").Mode;
+	var theme = require("nodejs:ace/lib/ace/theme/eclipse");
 	var styleInserted = false;
 	return function(src, lang) {
 		var mode = lang == 'sh' ? new ShellMode() : new SJSMode();
@@ -64,7 +61,7 @@ var highlight = (function() {
 
 			css = css
 				// remove clear declaration. It's only needed when
-				// displaying the gutter, but we've disable that.
+				// displaying the gutter, but we've disabled that.
 				.. filter(line -> ! /clear:/.test(line))
 				// strip out font declarations:
 				.. filter(line -> ! /font-(family|size)/.test(line))

@@ -11,6 +11,10 @@
   },
   "main": "conductance",
   "bin": { "conductance": "conductance" },
+  "devDependencies": {
+    "jsdom": "*",
+    "amd-loader": "*"
+  },
   "dependencies": {
     "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#d02dc75d5b5705d8f44231a68da3857e1935fc09",
     "nodemon": ">=0.7.0",
