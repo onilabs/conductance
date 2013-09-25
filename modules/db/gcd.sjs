@@ -303,8 +303,8 @@ function GCDEntityToJSEntity(gcd_entity, schemas) {
 }
 
 /**
+   @class GoogleCloudDatastore
    @function GoogleCloudDatastore
-   @return {GCD} Google Cloud Datastore instance
    @param {Object} [attribs]
    @attrib {Object} [schemas]
    @attrib {Object} [context] Object with settings as described at [./gcd/backend::Context] (Note: this should not be a `Context` object itself, but a hash of settings that will be passed to to [./gcd/backend::Context]!)
@@ -315,11 +315,190 @@ function GoogleCloudDatastore(attribs) {
   var change_buffer = ChangeBuffer(CHANGE_BUFFER_SIZE);
   var context = Context(attribs.context);
   var schemas = attribs.schemas;
+
+  function writeInner(entities) {
+    var ids = [];
+    var deletes = [], autoid_inserts = [], upserts = [];
+    
+    entities .. each {
+      |entity|
+      if (entity.data === undefined || entity.data === null) {
+        // DELETE
+        deletes.push({pathElement: keyToGCDKey(entity.id)});
+        ids.push(entity.id);
+      }
+      else {
+        // UPSERT
+        entity = JSEntityToGCDEntity(entity, schemas);
+        //console.log(require('sjs:debug').inspect(entity, false, 10));
+        
+        // check if the entity has a full key path, or if we need insertAutoId
+        // XXX we don't check for `id` in the js entity, because an id might have 
+        // been constructed according to the schema (from a primary field).
+        var last = entity.key.pathElement[entity.key.pathElement.length-1];
+        var has_path = (last.id || last.name);
+        if (has_path) {
+          //        console.log("upserting #{require('sjs:debug').inspect(entity, false, 10)}");
+          upserts.push(entity);
+          ids.push(entity.key.pathElement .. GCDKeyToKey);
+        }
+        else {
+          autoid_inserts.push(entity);
+          // id needs to be taken from results:
+          ids.push(null);
+        }
+      }
+    }
+    
+    var mutation = {};
+    if (deletes.length) mutation['delete'] = deletes;
+    if (autoid_inserts.length) mutation.insertAutoId = autoid_inserts;
+    if (upserts.length) mutation.upsert = upserts;
+    
+    var result = context.blindWrite({mutation: mutation});
+    
+    if (autoid_inserts.length) {
+      // splice auto ids into return array
+      var auto_id_index = 0;
+      for (var i=0; i<ids.length; ++i) {
+        if (ids[i] !== null) continue;
+        ids[i] = result.mutationResult.insertAutoIdKey[auto_id_index++].pathElement .. GCDKeyToKey;
+      }
+    }
+    change_buffer.addChanges(ids);
+    return ids;
+  }
+
+  function readInner(entities) {
+    var query = entities .. map(entity -> { pathElement: keyToGCDKey(entity.id) });
+    var results = context.lookup({
+      key: query
+    });
+    
+    // XXX we need to handle this
+    if (results.deferred) console.log("WARNING: DEFERRED BATCH RESULTS IN GCD.read!!!");
+    // index found results by id
+    var found = {};
+    (results.found || []) .. each {
+      |result|
+      var entity = result.entity .. GCDEntityToJSEntity(schemas);
+      found[entity.id] = entity;
+    }
+    
+    return entities .. map({id} -> found[id] || null);
+  }
+
+  function queryInner(query_descriptor, idsOnly) {
+    var schema = schemas[query_descriptor.schema];
+    if (!schema) throw new Error("Unknown schema #{query_descriptor.schema}");
+    
+    // XXX all of our queries are currently kind-queries
+    var kind = query_descriptor.schema;
+    
+    var filters = [];
+    var orders = [];
+    var key = query_descriptor.id;
+    
+    if (query_descriptor.data) {
+      cotraverse(query_descriptor.data, schema) {
+        |node, descriptor|
+        if (node.value === undefined) continue;
+        if (descriptor.type === 'key') {
+          if (key && node.value !== key) 
+            throw new Error("Google Cloud Datastore: Inconsistent key values in data ('#{key}' != '#{node.value}')");
+          key = node.value;
+        }
+        else if (isSimpleType(descriptor.type) || descriptor.type === 'ref') {
+          // XXX support other types than just equality filters
+          filters.push({
+            propertyFilter: {
+              property: {name: descriptor.path.replace('.[]','')},
+              operator: 'EQUAL',
+              value: JSValueToGCDValue(node.value, descriptor.value)
+            }
+          });
+        }
+      }
+    }
+    
+    if (key !== undefined) {
+      filters.push({
+        propertyFilter: {
+          property: {name: '__key__'},
+          operator: 'EQUAL',
+          value: { keyValue: { pathElement: keyToGCDKey(key) } }
+        }
+      });
+    }
+    else if (schema.__parent) {
+      filters.push({
+        propertyFilter: {
+          property: {name: '__key__'},
+          operator: 'HAS_ANCESTOR',
+          value: { keyValue: { pathElement:keyToGCDKey(schema.__parent) } }
+        }
+      });
+    }
+    
+    var batchStream = Stream(function(r) {
+      // construct query request:
+      var request = {query: {}};
+      
+      if (filters.length == 1) {
+        request.query.filter = filters[0];
+      }
+      else if (filters.length > 1) {
+        request.query.filter = {
+          compositeFilter: {
+            operator: 'AND',
+            filter: filters
+          }
+        };
+      }
+      
+      if (kind) {
+        request.query.kind = [{name:kind}];
+      }
+      
+      if (orders.length) {
+        request.query.order = orders;
+      }
+      
+      if (idsOnly) {
+        request.query.projection = [ { property:{name:'__key__'}}];
+      }
+      
+      //        console.log(require('sjs:debug').inspect(request, false, 20));
+      
+      while (1) {
+        var results = context.runQuery(request);
+        if (!results.batch || !results.batch.entityResult) break;
+        
+        r(results.batch.entityResult .. 
+          map({entity} -> idsOnly ?
+              GCDKeyToKey(entity.key.pathElement) :
+              GCDEntityToJSEntity(entity, schemas)                
+             ));
+        
+        // XXX not sure this logic is correct; 
+        // see https://groups.google.com/d/msg/gcd-discuss/iNs6M1jA2Vw/kn7VVgxQeHkJ
+        //console.log(results.batch.moreResults);
+        if (results.batch.moreResults != 'NOT_FINISHED' ||!results.batch.endCursor) break;
+        request.query.startCursor = results.batch.endCursor; 
+      }
+    });
+    
+    // buffer(1) ensures that we already perform the next GCD
+    // request while processing results; this is to compensate for
+    // GCD's high latency
+    return batchStream .. buffer(1); 
+  }
+
   // returns a 'Datastore' object
   var rv = {
     /**
-       @function GCD.write
-       @param {Array} [entities] Array with [datastore::Entity] elements to create/update/delete
+       @function GoogleCloudDatastore.write
+       @param {Array} [entities] [datastore::Entity] objects to create/update/delete
        @return {Array} Array of ids of changed entities
        @summary Create/update/delete entities in the datastore
        @desc
@@ -350,189 +529,40 @@ function GoogleCloudDatastore(attribs) {
           then the given item will be deleted from the datastore.
      */
     write: function(entities) {
-      var ids = [];
-      var deletes = [], autoid_inserts = [], upserts = [];
-
-      entities .. each {
-        |entity|
-        if (entity.data === undefined || entity.data === null) {
-          // DELETE
-          deletes.push({pathElement: keyToGCDKey(entity.id)});
-          ids.push(entity.id);
-        }
-        else {
-          // UPSERT
-          entity = JSEntityToGCDEntity(entity, schemas);
-          //console.log(require('sjs:debug').inspect(entity, false, 10));
-
-          // check if the entity has a full key path, or if we need insertAutoId
-          // XXX we don't check for `id` in the js entity, because an id might have 
-          // been constructed according to the schema (from a primary field).
-          var last = entity.key.pathElement[entity.key.pathElement.length-1];
-          var has_path = (last.id || last.name);
-          if (has_path) {
-            //        console.log("upserting #{require('sjs:debug').inspect(entity, false, 10)}");
-            upserts.push(entity);
-            ids.push(entity.key.pathElement .. GCDKeyToKey);
-          }
-          else {
-            autoid_inserts.push(entity);
-            // id needs to be taken from results:
-            ids.push(null);
-          }
-        }
-      }
-
-      var mutation = {};
-      if (deletes.length) mutation['delete'] = deletes;
-      if (autoid_inserts.length) mutation.insertAutoId = autoid_inserts;
-      if (upserts.length) mutation.upsert = upserts;
-
-      var result = context.blindWrite({mutation: mutation});
-
-      if (autoid_inserts.length) {
-        // splice auto ids into return array
-        var auto_id_index = 0;
-        for (var i=0; i<ids.length; ++i) {
-          if (ids[i] !== null) continue;
-          ids[i] = result.mutationResult.insertAutoIdKey[auto_id_index++].pathElement .. GCDKeyToKey;
-        }
-      }
-      change_buffer.addChanges(ids);
-      return ids;
+      return writeInner(entities);
     },
 
     /**
-       @function GCD.read
+       @function GoogleCloudDatastore.read
+       @param {Array} [entities] Array of [datastore::Entity] descriptors to look up
+       @return {Array} Array of entities
+       @summary Read entities from the datastore
+       @desc
+          `entity` needs to have an `id` attribute. Other attributes (such as `schema` or `data`) will
+          be ignored.
+          
      */
     read: function(entities) {
-      var query = entities .. map(entity -> { pathElement: keyToGCDKey(entity.id) });
-      var results = context.lookup({
-        key: query
-      });
-
-      // XXX we need to handle this
-      if (results.deferred) console.log("WARNING: DEFERRED BATCH RESULTS IN GCD.read!!!");
-      // index found results by id
-      var found = {};
-      (results.found || []) .. each {
-        |result|
-        var entity = result.entity .. GCDEntityToJSEntity(schemas);
-        found[entity.id] = entity;
-      }
-
-      return entities .. map({id} -> found[id] || null);
+      return readInner(entities);
     },
 
     /**
-       @function GCD.query
+       @function GoogleCloudDatastore.query
+       @param {Object} [query_descriptor] Query Descriptor
+       @param {optional Boolean} [idsOnly=false] Whether to look up entities or just ids
+       @return {sjs::sequence::Stream} Stream of result *batches* (use [sjs:sequence::unpack] to get a stream of results)
+       @summary Query for entities
      */
-    query: function(entity, idsOnly) {
-      var schema = schemas[entity.schema];
-      if (!schema) throw new Error("Unknown schema #{entity.schema}");
-
-      // XXX all of our queries are currently kind-queries
-      var kind = entity.schema;
-      
-      var filters = [];
-      var orders = [];
-      var key = entity.id;
-
-      if (entity.data) {
-        cotraverse(entity.data, schema) {
-          |node, descriptor|
-          if (node.value === undefined) continue;
-          if (descriptor.type === 'key') {
-            if (key && node.value !== key) 
-              throw new Error("Google Cloud Datastore: Inconsistent key values in data ('#{key}' != '#{node.value}')");
-            key = node.value;
-          }
-          else if (isSimpleType(descriptor.type) || descriptor.type === 'ref') {
-            // XXX support other types than just equality filters
-            filters.push({
-              propertyFilter: {
-                property: {name: descriptor.path.replace('.[]','')},
-                operator: 'EQUAL',
-                value: JSValueToGCDValue(node.value, descriptor.value)
-              }
-            });
-          }
-        }
-      }
-
-      if (key !== undefined) {
-        filters.push({
-          propertyFilter: {
-            property: {name: '__key__'},
-            operator: 'EQUAL',
-            value: { keyValue: { pathElement: keyToGCDKey(key) } }
-          }
-        });
-      }
-      else if (schema.__parent) {
-        filters.push({
-          propertyFilter: {
-            property: {name: '__key__'},
-            operator: 'HAS_ANCESTOR',
-            value: { keyValue: { pathElement:keyToGCDKey(schema.__parent) } }
-          }
-        });
-      }
-
-      var batchStream = Stream(function(r) {
-        // construct query request:
-        var request = {query: {}};
-        
-        if (filters.length == 1) {
-          request.query.filter = filters[0];
-        }
-        else if (filters.length > 1) {
-          request.query.filter = {
-            compositeFilter: {
-              operator: 'AND',
-              filter: filters
-            }
-          };
-        }
-        
-        if (kind) {
-          request.query.kind = [{name:kind}];
-        }
-
-        if (orders.length) {
-          request.query.order = orders;
-        }
-
-        if (idsOnly) {
-          request.query.projection = [ { property:{name:'__key__'}}];
-        }
-
-//        console.log(require('sjs:debug').inspect(request, false, 20));
-
-        while (1) {
-          var results = context.runQuery(request);
-          if (!results.batch || !results.batch.entityResult) break;
-
-          r(results.batch.entityResult .. 
-            map({entity} -> idsOnly ?
-                GCDKeyToKey(entity.key.pathElement) :
-                GCDEntityToJSEntity(entity, schemas)                
-               ));
-
-          // XXX not sure this logic is correct; 
-          // see https://groups.google.com/d/msg/gcd-discuss/iNs6M1jA2Vw/kn7VVgxQeHkJ
-          //console.log(results.batch.moreResults);
-          if (results.batch.moreResults != 'NOT_FINISHED' ||!results.batch.endCursor) break;
-          request.query.startCursor = results.batch.endCursor; 
-        }
-      });
-
-      // buffer(1) ensures that we already perform the next GCD
-      // request while processing results; this is to compensate for
-      // GCD's high latency
-      return batchStream .. buffer(1); 
+    query: function(query_descriptor, idsOnly) {
+      return queryInner(query_descriptor, idsOnly);
     },
 
+    /**
+       @function GoogleCloudDatastore.watch
+       @altsyntax gcd.watch { |changed_ids| ... }
+       @param {Function} [watcher] Function which will be called with arrays of ids that have changed.
+       @summary Watch for changes to entities.
+    */
     watch: function(f) {
       var start_revision = change_buffer.revision, current_revision;
       while (true) {
