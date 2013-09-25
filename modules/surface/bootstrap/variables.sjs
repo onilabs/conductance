@@ -397,10 +397,23 @@ __js var defaultTheme = themes['default'] = exports.defaultTheme = Object.create
 // atm, which is ugly
 defaultTheme.customStyleDefs = mixins -> "
 @global{
-  @import url('http://fonts.googleapis.com/css?family=Lato:300,400,700');
+  /* @import url('http://fonts.googleapis.com/css?family=Lato:300,400,700'); */
+  @font-face {
+    font-family: 'Lato';
+    font-style: light;
+    font-weight: 300;
+    src: url('./bootstrap/fonts/Lato/Lato-Light.ttf') format('truetype');
+  }
+  @font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 400;
+    src: url('./bootstrap/fonts/Lato/Lato-Regular.ttf') format('truetype');
+  }
+
 }";
 defaultTheme.sansFontFamily =      -> '"Lato", Helvetica, Arial, sans-serif';
-defaultTheme.monoFontFamily =       -> '"Droid Sans Mono", "Courier New", monospace';
+//defaultTheme.monoFontFamily =       -> '"Droid Sans Mono", "Courier New", monospace';
 
 defaultTheme.baseFontSize =        -> '15px';
 defaultTheme.baseLineHeight =      -> '22px'; // '20px';
@@ -454,7 +467,7 @@ __js var jasonTheme = themes['jason'] = exports.jasonTheme = Object.create(boots
 // atm, which is ugly
 jasonTheme.customStyleDefs = mixins -> "
 @global{
-  /*  @import url('http://fonts.googleapis.com/css?family=Raleway:400,700'); */
+  @import url('http://fonts.googleapis.com/css?family=Raleway:400,700');
   @font-face {
     font-family: 'Raleway';
     font-style: normal;
