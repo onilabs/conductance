@@ -2,6 +2,12 @@
 #define TITLE_1 Part 1: Simple Display
 #define TITLE_2 Part 2: Derived Values
 
+#ifdef DOC
+  #define TUTORIAL_FOOTER
+#else
+  #define TUTORIAL_FOOTER <a href="./">&laquo; Back to tutorial</a>
+#endif // DOC
+
 ## Part $STEPNO: $TITLE
 
 #ifdef PREV_STEPNO
@@ -16,27 +22,45 @@ We'll assume you have installed conductance. To begin, create
 a directory called `chat-demo/` and navigate to it
 (it doesn't matter where you put this folder - on your Desktop is fine).
 
-### File: index.app
+### File: chat.app
 
 An `.app` file is condunctance's file extensions for client-only apps.
 Conductance serves them with some HTML boilerplate that tells
 the browser to run the contents of your `.app` file as code.
 
-Let's start with a simple UI. Paste the following into a new file called `index.app`:
+Let's start with a simple UI. Paste the following into a new file called `chat.app`:
 
 #elif defined STEP2_ONLY
 
 Splicing an array directly into HTML isn't very pretty - we don't even
 get line breaks. But we still want the UI to update when the `messages`
 variable changes, so we'll create a derived value to display using $SYMBOL(mho:observable,Map).
-Update `index.app` as shown:
+Update `chat.app` as shown:
 
 #include res/lambda.html
 
+#elif defined STEP3_ONLY
+
+There hasn't been much chatting going on so far. Let's add an input box so
+you can add your own messages. While we're at it, let's make it a bit less of
+an eyesore by applying a default [Bootstrap]() theme to our UI:
+
+#include res/mechanism.html
+
+#include res/block.html
+
+
 #endif // STEP1_ONLY || STEP2_ONLY
-<!-- file: index.app -->
+<!-- file: chat.app -->
 
     @ = require('mho:stdlib');
+#ifdef STEP3
+    $hl_3
+    // TODO: need to make this:
+    // { @Bootstrap, @Container } = require('mho:surface/bootstrap');
+    var { Bootstrap, Container } = require('mho:surface/bootstrap'); @Bootstrap = Bootstrap, @Container = Container;
+    $hl_off
+#endif // STEP3
 
     var messages = @ObservableArray();
     
@@ -48,7 +72,7 @@ Update `index.app` as shown:
 #endif
 #ifdef STEP3
     $hl_3
-    var input = @Input() .. @Mechanism(function(elem) {
+    var input = @Input(null, {type: "text"}) .. @Mechanism(function(elem) {
       elem.focus();
       elem .. @when('keydown') { |ev|
         if (ev.keyCode !== 13) continue;
@@ -73,15 +97,14 @@ Update `index.app` as shown:
 #ifdef STEP3
     $hl_3
       <hr>
-      <div>Say something: $input</div>
-    $hl_off
-#endif // STEP3
-    `);
-#ifndef DOC
-    document.body .. @appendContent(
-        `<a href="./">&laquo; Back to tutorial</a>`
+      <div>Say something: $input</div>$TUTORIAL_FOOTER`
+      .. @Container()
+      .. @Bootstrap()
     );
-#endif // !DOC
+    $hl_off
+#else // !step3
+    $TUTORIAL_FOOTER`);
+#endif // STEP3
     
     messages.push('hey');
     hold(1000);
@@ -132,7 +155,7 @@ imported symbols, and allows shorthand access - `@property` is equivalent to `@.
 
 Next, we create an $SYMBOL(mho:observable,ObservableArray) which we'll use to store chat messages.
 
-#include res/backtick.html
+#include res/quasi.html
 
     var messages = @ObservableArray();
 
@@ -144,7 +167,7 @@ Now, add some content to the current document body:
     `);
 
 Although the above code looks like string interpolation in other
-languages, backtick quotes don't collapse everything into a string representation - they
+languages, quais-quotes (surrounded by backticks) don't collapse everything into a string representation - they
 preserve the original values. This allows the receiver (`appendContent` in
 this case) to treat embedded values intelligently, such as escaping any special HTML
 characters.
@@ -175,9 +198,23 @@ to callbacks.
 #elif defined STEP2_ONLY
 
 Now, the messages display as `<ul>` list items - but because `messageView` is still an
-$SYMBOL(mho:observable,Observable), the UI updates when we add a new message.
+$SYMBOL(mho:observable,Observable), the UI updates when we add a new message. And
+since each element of `messageView` is a quasi-quote, it is merged into the display
+as HTML (if it were a plain string, it would instead be escaped).
+#endif // STEP2_ONLY
 
-Refresh your local version, or [run this version online](./chat.app).
+Refresh your browser after modifying `chat.app`, or [run this version online](./chat.app).
+
+#if defined STEP3_ONLY
+
+Here we've created a simple `<input>` element (the $MODULE(mho:surface/widget) module
+provides constructors for HTML tags), and attached a
+$SYMBOL(mho:surface/html,Mechanism) to it.
+
+Inside the mechanism, we loop over each `keydown` event using the $SYMBOL(sjs:events,when)
+function. This treats event emissions as an (infinite) sequence, and runs the
+provided blocklambda for each event. Inside the blocklambda we use the
+`continue` statement to skip an event, just like you would in a `while` or `for` loop.
 
 #endif // STEP1_ONLY || STEP2_ONLY
 

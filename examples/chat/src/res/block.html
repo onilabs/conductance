@@ -1,18 +1,18 @@
 <div class="info">
-<h3 class="syntax">Function blocks</h3>
+<h3 class="syntax">Blocklambda</h3>
 <p>
-SJS adds a block syntax, which is similar to blocks in the ruby language.
-Blocks are appended to the existing arguments, so:
+SJS adds a "blocklambda" syntax, which is similar to blocks in the ruby language.
+Blocklambdas are appended to the existing arguments in a function call, so:
 </p>
 
-<pre><code>fn(arg) {|x, y| /\* body \*/ }</code></pre>
+<pre><code>fn(arg) { |x, y| /\* body \*/ }</code></pre>
 
 <p>Is similar to:</p>
 
 <pre><code>fn(arg, function(x, y) { /\* body \*/ })</code></pre>
 
 <p>
-The above code is equivalent, but blocks do behave differently to
+The above code is not quite equivalent - blocklambdas behave differently to
 regular functions when they include `continue`, `break` or `return` statements,
 as well as retaining the same `this` reference inside the block.
 $READ_MORE(TODO)
