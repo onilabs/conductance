@@ -1,5 +1,6 @@
 var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
 var {RequireStyle, Class, Mechanism, Widget, Style, withWidget, Checkbox, Attrib} = require('mho:surface');
+var {Checkbox} = require('mho:surface/widgets');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter} = seq;
 var events = require('sjs:events');
