@@ -49,6 +49,11 @@ an eyesore by applying a default [Bootstrap]() theme to our UI:
 
 #include res/block.html
 
+#elif defined STEP4_ONLY
+
+It's time to invite the rest of the world in. Rather than an array in your browser,
+we need to store messages on the server, so that multiple clients can chat to each
+other. On the client side, this is pretty straightforward:
 
 #endif // STEP1_ONLY || STEP2_ONLY
 <!-- file: chat.app -->
@@ -62,7 +67,14 @@ an eyesore by applying a default [Bootstrap]() theme to our UI:
     $hl_off
 #endif // STEP3
 
+#ifndef STEP4
     var messages = @ObservableArray();
+#else // step4 and beyond
+    $hl_4
+    var api = require('./chat.api');
+    var messages = api.getMessages();
+    $hl_off
+#endif
     
 #ifdef STEP2
     $hl_2
@@ -201,7 +213,25 @@ Now, the messages display as `<ul>` list items - but because `messageView` is st
 $SYMBOL(mho:observable,Observable), the UI updates when we add a new message. And
 since each element of `messageView` is a quasi-quote, it is merged into the display
 as HTML (if it were a plain string, it would instead be escaped).
-#endif // STEP2_ONLY
+
+#elif defined STEP4_ONLY
+
+#include res/api-files.html
+
+That was easy, because `getMessages()` will return us an observable array, just like before.
+Only this time, the object is stored on the server - we just get a proxy to it.
+This means that when the server modifies this array, the UI on _every_
+connected client will be updated.
+
+Of course, it won't do much good without the corresponding server-side code.
+Conductance uses the `.api` extension for code that will always be run on the server,
+but the syntax is still the same:
+
+#ifdef DOC
+#include chat.api.md
+#endif // DOC
+
+#endif // STEPn_ONLY
 
 Refresh your browser after modifying `chat.app`, or [run this version online](./chat.app).
 
