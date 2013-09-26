@@ -1,3 +1,8 @@
+body {
+	max-width: 1300px;
+	min-width: 800px;
+}
+
 .filename {
 	position:absolute;
 	top:0;
@@ -16,9 +21,20 @@ pre code {
 	padding: 0 !important;
 }
 
+.content {
+	margin-right: 36%;
+	width: 58%;
+	margin-left: 4%;
+}
+
+.content p {
+	font-size: 1.1em;
+	line-height: 1.5em;
+}
+
 .info {
+	width: 30%;
 	float: right;
-	width: 22%;
 	margin-right: 4%;
 	border: 1px solid rgb(240, 237, 158);
 	background: rgb(255, 253, 208);
@@ -29,15 +45,14 @@ pre code {
 }
 
 .info h1, .info h2, .info h3 {
-	line-height: auto;
 	margin: 0 5px;
 }
 
 .info h3:after {
 	float:right;
-	font-size:0.7em;
+	font-size:0.6em;
 	font-weight: normal;
-	color: #555;
+	color: rgb(182, 180, 162);
 }
 
 h3.feature:after {
@@ -48,16 +63,7 @@ h3.syntax:after {
 	content:"(syntax)";
 }
 
-.content {
-	margin-right: 26%;
-	width: 68%;
-	margin-left: 4%;
-}
-
 h1, h2, h3 {
 	clear: both;
 }
 
-body {
-	min-width: 800px;
-}

@@ -1,11 +1,11 @@
 <div class="info">
 <h3 class="syntax">Double-dots</h3>
-<p>SJS adds the <code>..</code> ("double-dot") syntax as a handy way
-to use functional APIs but maintain the familiar look and chainaing ability
+<p>SJS adds the <code>..</code> ("double-dot") syntax as a convenient way
+to use functional APIs while maintaining the familiar look and chainaing ability
 of Object-Oriented APIs.</p>
 
 <p>Essentially, `a .. fn(b, c)` transforms into `fun(a, b, c)`.
-Since a lot of functions in conductance take their "subject" as a first argument,
+Since a lot of functions in conductance (and SJS) take their "subject" as a first argument,
 this allows us to extend objects unobtrusively. e.g to iterate over an array, you can do:
 
 <pre><code>[1, 2, 3] .. map(elem -&gt; elem \* 2)</code></pre>
@@ -16,7 +16,7 @@ this allows us to extend objects unobtrusively. e.g to iterate over an array, yo
 
 <p>We could have added the `map` method to Array.prototype, but using
 a simple function allows `map` to work on multiple types of objects
-(e.g infinite streams).
+(arrays, infinite streams and `arguments` objects).
 Using plain functions also means we don't have to fight with other
 libraries that might also want to add their own Array functions.
 </p>

@@ -24,6 +24,9 @@ if (dir == ".") {
 	filename = "";
 }
 var src = "src";
+var macroFile = path.join(src, 'res', 'macros')
+var filepp = '../../tools/filepp';
+var fileppArgs = ['-imacros', macroFile, '-mp', '$', '-mpnk'];
 
 if(dir === src) {
 	console.warn("WARN: attempt to build #{target} ignored");
@@ -33,12 +36,20 @@ if(dir === src) {
 assert.ok(dir .. startsWith('step'), "invalid directory name #{dir} making #{target}");
 var stepno = parseInt(dir.slice("step".length));
 
+var stepTitles = [
+	undefined, // for 1-based indexing
+	"Simple Display",
+	"Derived Values",
+	"User Input",
+];
+assert.ok(stepTitles[stepno], "step #{stepno} is not defined (update default.do)");
 
 
 
 /*
  * Highlight SJS source code:
  */
+var HIGHLIGHT_ON='//hl_on', HIGHLIGHT_OFF='//hl_off', HIGHLIGHT_NOOP='//hl_noop';
 var highlight = (function() {
 	run('redo-ifchange', ['node_modules/ace']);
 	require("amd-loader");
@@ -53,11 +64,31 @@ var highlight = (function() {
 	var styleInserted = false;
 	return function(src, lang) {
 		var mode = lang == 'sh' ? new ShellMode() : new SJSMode();
+		var src_lines = src.split("\n");
+		var highlights = [];
+		var lineno = 0;
+		var in_hl = false;
+		src_lines = src_lines .. filter(function(line) {
+			if (line.trim() == HIGHLIGHT_ON) {
+				in_hl = true;
+			} else if (line.trim() == HIGHLIGHT_OFF) {
+				in_hl = false;
+			} else if (line.trim() == HIGHLIGHT_NOOP) {
+				// ignore this line
+			} else {
+				// normal line
+				if(in_hl) highlights.push(lineno);
+				lineno++;
+				return true;
+			}
+		});
+
+		src = src_lines .. join("\n");
+
 		var highlighted = highlighter.render(src, mode, theme, 1, true);
 		if (!styleInserted) {
 			styleInserted = true;
 			var css = highlighted.css.split("\n");
-
 
 			css = css
 				// remove clear declaration. It's only needed when
@@ -71,11 +102,24 @@ var highlight = (function() {
 
 			console.log("
 				<style type=\"text/css\" media=\"screen\">
+					.ace_line { min-height: 1em; }
+					.ace_static_highlight .highlight { background: #fff; }
+					.ace_static_highlight .non_highlight, .ace_static_highlight .non_highlight * { color: #888 !important; }
 					#{css .. join("\n")}
 				</style>
 			");
 		}
-		return highlighted.html;
+		var lineno = 0;
+		var has_highlights = highlights.length > 0;
+		var default_line_style = has_highlights ? 'ace_line non_highlight' : 'ace_line';
+		var html = highlighted.html.replace(/\bace_line\b/g, function(match) {
+			if (highlights .. contains(lineno++)) {
+				return 'ace_line highlight';
+			} else {
+				return default_line_style;
+			}
+		});
+		return html;
 	}
 })();
 
@@ -104,6 +148,35 @@ var createDirectory = function(dir) {
 	}
 };
 
+var macroDefinitions = function(isDoc) {
+	var defines = [];
+	if(isDoc) {
+		defines.push('DOC');
+		defines.push("TITLE=#{stepTitles[stepno]}");
+		if (stepTitles[stepno-1]) {
+			defines.push("PREV_STEPNO=#{stepno-1}");
+			defines.push("PREV_STEP_TITLE=#{stepTitles[stepno-1]}");
+		}
+		if (stepTitles[stepno+1]) {
+			defines.push("NEXT_STEPNO=#{stepno+1}");
+			defines.push("NEXT_STEP_TITLE=#{stepTitles[stepno+1]}");
+		}
+	}
+	defines.push("STEPNO=#{stepno}");
+	defines.push("STEP#{stepno}");
+	defines.push("STEP#{stepno}_ONLY");
+
+	integers(1, stepno-1) .. each {|i|
+		defines.push("STEP#{i}");
+		defines.push("hl_#{i}=#{HIGHLIGHT_NOOP}");
+	}
+
+	defines.push("hl_#{stepno}=#{isDoc ? HIGHLIGHT_ON : HIGHLIGHT_NOOP}");
+	defines.push("hl_off=#{isDoc ? HIGHLIGHT_OFF : HIGHLIGHT_NOOP}");
+	if(TRACE) console.warn('defines: ', defines);
+	return defines;
+};
+
 /*
  * Generate HTML from the input markdown
  */
@@ -112,23 +185,21 @@ var createHtml = function(source) {
 	run('redo-ifchange', sources);
 	fs.readFile(path.join(src, 'res','_head.html'), 'utf-8') .. console.log();
 
-	var defines = ['DOC', "STEPNO=#{stepno}"];
-	defines.push("STEP#{stepno}");
-	defines.push("STEP#{stepno}_ONLY");
-
-	var args = ['-imacros', path.join(src,'res','macros'), source].concat(defines .. map(d -> "-D#{d}"))
+	var defines = macroDefinitions(true);
+	var args = fileppArgs.concat([source]).concat(defines .. map(d -> "-D#{d}"))
 	if(TRACE) args.unshift('-dl');
-	if(TRACE) console.warn('+', '../../tools/filepp', args.join(' '));
-	var md = childProcess.run('../../tools/filepp', args, {stdio:[0,'pipe',2]}).stdout;
+	if(TRACE) console.warn('+', filepp, args.join(' '));
+	var md = childProcess.run(filepp, args, {stdio:[0,'pipe',2]}).stdout;
 	assert.ok(md);
 	var currentFile = null;
 	// insert file markers
-	md = md.replace(/^#+ File: ([^\n]*)|^((?:[^ \n].*?\n)(?:\s*\n)*)(     *\S)/gm, function(match, filename, pre, code) {
-		if(filename) {
+	md = md.replace(/^(<!-- +file: *([^- ]*) *-->)|^((?:[^ \n].*?\n)(?:\s*\n)*)(     *\S)/gm, function(match, isFilename, filename, pre, code) {
+		if(TRACE) { console.warn("FILE match: ", toArray(arguments).slice(1,4)); }
+		if(isFilename) {
 			currentFile = filename;
-			return match;
 		}
-		return "#{pre}<!-- #FILE: #{currentFile} -->\n\n#{code}";
+		var marker = currentFile ? "<!-- #FILE: #{currentFile} -->\n\n" : "";
+		return isFilename ? marker : "#{pre}#{marker}#{code}";
 	});
 	if(TRACE) console.warn(md);
 
@@ -155,11 +226,13 @@ var createHtml = function(source) {
  * (i.e include only indented blocks from a file)
  */
 function createCode(source) {
-	var defines = integers(1, stepno) .. map(n -> "STEP#{n}");
+	var defines = macroDefinitions(false);
+	run('redo-ifchange', [macroFile]);
 	defines.push("STEP#{stepno}_ONLY");
-	console.warn('defines: ', defines);
-	var out = childProcess.run('../../tools/filepp',
+
+	var out = childProcess.run(filepp,
 		concat(
+			fileppArgs,
 			defines .. map(flag -> "-D#{flag}"),
 			[source]
 		) .. toArray(),
@@ -167,12 +240,15 @@ function createCode(source) {
 	).stdout;
 
 	var is_code = true;
+	var firstline = true;
 	out.split("\n") .. each {|line|
 		var old_is_code = is_code;
 		is_code = line .. startsWith('    ');
 		if (is_code) {
-			if (!old_is_code) console.log();
+			if (!firstline && !old_is_code) console.log();
+			if (line.trim() === HIGHLIGHT_NOOP) continue;
 			console.log(line.slice(4));
+			firstline = false;
 		}
 	}
 };

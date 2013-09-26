@@ -1,18 +1,20 @@
 #comment vim: syntax=markdown:
-#ifdef DOC
-  #ifdef STEP1_ONLY
+#define TITLE_1 Part 1: Simple Display
+#define TITLE_2 Part 2: Derived Values
 
-## Part 1: Simple User Interface
+## Part $STEPNO: $TITLE
+
+#ifdef PREV_STEPNO
+This tutorial continues on from the code
+we wrote in [part $PREV_STEPNO: $PREV_STEP_TITLE](../step$PREV_STEPNO/).
+#endif // PREV_STEPNO
+
+#ifdef STEP1_ONLY
 
 In this step, we'll be creating a simple, client-side application.
 We'll assume you have installed conductance. To begin, create
-a directory called `chat-demo/` (it doesn't matter where, on your
-Desktop is fine). Create a file called `index.app` inside this
-folder, and open it in your favourite text editor.
-
-While reading the tutorial, you can copy & paste the code blocks
-into the file indicate. Unless otherwise indicated, each new snippet
-should be added to the end of the file.
+a directory called `chat-demo/` and navigate to it
+(it doesn't matter where you put this folder - on your Desktop is fine).
 
 ### File: index.app
 
@@ -20,234 +22,74 @@ An `.app` file is condunctance's file extensions for client-only apps.
 Conductance serves them with some HTML boilerplate that tells
 the browser to run the contents of your `.app` file as code.
 
-## Import modules
+Let's start with a simple UI. Paste the following into a new file called `index.app`:
 
-#include res/require-system.html
+#elif defined STEP2_ONLY
 
-Conductance is built on [StratifiedJS](TODO) (SJS), which adds a number of powerful features
-on top of the JavaScript language, including a module system. When we require a module, the
-require function loads that module asynchronously. But we don't need to use a callback to
-receive its results, the SJS runtime lets us to call asynchronous code and simply wait
-for their value as if they were synchronous.
+Splicing an array directly into HTML isn't very pretty - we don't even
+get line breaks. But we still want the UI to update when the `messages`
+variable changes, so we'll create a derived value to display using $SYMBOL(mho:observable,Map).
+Update `index.app` as shown:
 
-Condunctance includes two builtin `hubs`, which are essentially short names for library URLs:
+#include res/lambda.html
 
- - `sjs:` The StratifiedJS standard library
- - `mho:` Condunctance libraries
+#endif // STEP1_ONLY || STEP2_ONLY
+<!-- file: index.app -->
 
-To start writing our app, we require the different modules we'll make use of. We use
-<span class="info-link">destructuring assignment</span> to create local variables
-for specific functions in the modules we load:
+    @ = require('mho:stdlib');
 
-#include res/destructuring.html
+    var messages = @ObservableArray();
+    
+#ifdef STEP2
+    $hl_2
+    var messageView = messages .. @Map(msg -> `<li>$msg</li>`);
+    $hl_off
 
-  #elif defined STEP2_ONLY
+#endif
+#ifdef STEP3
+    $hl_3
+    var input = @Input() .. @Mechanism(function(elem) {
+      elem.focus();
+      elem .. @when('keydown') { |ev|
+        if (ev.keyCode !== 13) continue;
+        messages.push(elem.value);
+        elem.value = '';
+      }
+    });
+    $hl_off
 
-## Part 2: Multiple users
-
-Now that we have a basic UI, we'll add the server-side component
-that allows multiple users to chat to each other.
-
-### File: index.app
-
-  #endif // STEP1_ONLY
-#endif // DOC
-#ifdef STEP1
-
-    var { each }                             = require('sjs:sequence');
-    var events                               = require('sjs:events');
-    var { Observable, ObservableArray, Map } = require('mho:observable');
-    var { appendWidget, Mechanism,
-          Class, Style }                     = require('mho:surface');
-    var { Bootstrap, Container, Submit }     = require('mho:surface/bootstrap');
-    var { UnorderedList, Form, Label,
-          FieldSet, Legend, TextInput,
-          Div, H1 }                          = require('mho:surface/widgets');
-#endif // STEP1
+#endif
+    document.body .. @appendContent(`
+      <h1>Oni Labs Chat Demo</h1>
+#ifdef STEP1_ONLY
+      $messages
+#elif defined STEP2
+    $hl_2
+      <ul>
+        $messageView
+      </ul>
+    $hl_off
+#endif
+#ifdef STEP3
+    $hl_3
+      <hr>
+      <div>Say something: $input</div>
+    $hl_off
+#endif // STEP3
+    `);
+#ifndef DOC
+    document.body .. @appendContent(
+        `<a href="./">&laquo; Back to tutorial</a>`
+    );
+#endif // !DOC
+    
+    messages.push('hey');
+    hold(1000);
+    messages.push('how are you?');
 
 #ifdef STEP1_ONLY
 
-CLEAR
-
-Now that we have all the modules we need, let's start with a heading for the page.
-The MODULE(mho:surface/widgets) module exports helper functions for creating HTML
-tags, as well as some richer widgets. We'll just make a plain `H1`:
-
-    var heading = H1("Conductance single-user chat demo");
-
-<a name="fakeApi"></a>
-So that we can quickly start showing some data, we'll make a "fake server" API
-that just uses a local variable to store messages.
-Later on, we'll replace this code with a real server API:
-
-    // fake server API:
-    var chat = (function() {
-      var receiver;
-      return {
-        join: function(receiveMessage, block) {
-          receiver = receiveMessage;
-          this.send('amin', 'welcome to single-user chat!');
-          try {
-            block();
-          } finally {
-            receiver = null;
-          }
-        },
-        send: function(user, val) {
-          if (receiver) receiver([{ user: user, message: val }]);
-        },
-      };
-    })();
-
-
-#elif defined STEP2
-
-To avoid confusion, update the `heading` variable to show off our multi-user abilities:
-
-    var heading = H1("Conductance multi-user chat demo");
-
-#include res/api-files.html
-
-Now it's just a small matter of implementation.
-In [part 1](../step1/#fakeApi), we made a `chat` variable which just pretended to send
-and receive messages. Let's replace that with an actual server connection:
-
-#define USES_CHAT_API
-
-    var chat = require('chat.api').api;
-
-Unlike the modules we `require()` at the top of the file, requiring an `.api` file
-opens a bridge connection to the server. This allows us to use the
-exported module as if it were local, but all exported functions are executed
-on the server:
-
-
-And here's the code for the server-side API module:
-
-  #ifdef DOC
-  #include "chat.api.md"
-  #endif
-#endif // STEP2
-
-#ifdef STEP1
-
-### UI:
-
-### User name:
-
-We'll store the user name in an SYMBOL(mho:observable,Observable) variable,
-so that we can simply bind the variable to a HTML input element - whenever one changes, the other
-will be updtated to match:
-
-    var username = Observable('<anon>');
-
-### Incoming messages:
-
-#include res/lambda.html
-#include res/backtick.html
-#include res/doubledot.html
-
-The display of incoming messages takes the messages
-from the server and puts them in an observable list.
-
-We transform each element of the observable list to add formatting,
-and then pass the whole thing to an `UnorderedList`. Since the
-contents of the list are observable, the UI will automatically update
-when new messages are added to the array:
-
-    var messages = ObservableArray();
-    var renderMessage = {user, message} -> `<strong>${user}:</strong> ${message}`;
-    var messageDisplay = UnorderedList(messages .. Map(renderMessage));
-
-    var addMessages = function(newMessages) {
-      // newMessages is an array,
-      // add them all to the `messages` array
-      console.log("Got messages", newMessages);
-      newMessages .. each(m -> messages.push(m));
-    }
-
-### Sending messages:
-
-#include res/mechanism.html
-
-The chat input waits for the form to be submitted, and then
-sends the message to the server. We attach a
-<span class="info-link">Mechanism</span> to the form which
-will handle form submission.
-
-    var chatInput = Form([
-        Legend("Speak your mind:"),
-        TextInput(username) .. Style("{width: 8em}"),
-        " : ",
-        TextInput(null, {name: "message", size: 25}) .. Style("{width: 20em}"),
-        Submit('Speak!'),
-      ])
-      .. Class("form-inline")
-      .. Mechanism(function(form) {
-        var input = form.querySelector('input[name=message]');
-        var button = form.querySelector('input[type=submit]');
-        using (var submit = form .. events.HostEmitter('submit', null, e -> e.preventDefault())) {
-          while(true) {
-            // wait for the form to be sumitted
-            submit.wait();
-    
-            /* During sending of the message we disable the `send` button.
-             * We use a try / finally block to ensure the button
-             * always ends up re-enabled:
-             */
-
-            var message = input.value;
-            if(!message) continue; // don't send blank messages
-
-            button.setAttribute('disabled', "true");
-            try {
-              chat.send(username.get(), message);
-              
-              // clear input on success if it hasn't been edited
-              if(input.value == message) input.value = '';
-              else console.log("input value [#{input.value}] -> [#{message}]"); // TODO: REMOVE
-            } finally {
-              button.removeAttribute('disabled');
-            }
-          }
-        }
-      });
-
-
-
-Put all the components together. `Bootstrap` adds Twitter Bootstrap CSS styles to the
-given content, which gives a reasonably attractive default look.
-
-    var chatWindow = Bootstrap(
-      Container(`
-      $heading
-      $messageDisplay
-      <div>
-        $chatInput
-      </div>
-  #ifndef DOC
-      #comment | this is cheating - we don't include it in the documentation,
-      #comment | only the generated code.
-      <div><a href="./">&laquo; Back to tutorial</a></dov>
-  #endif // DOC
-    `));
-
-
-#include res/block.html
-#include res/hold.html
-
-Finally, we join the chat room and add the UI to the current document. Note that the second
-argument to `chat.join` is actually a function _block_. Since we never want to leave the room,
-we don't want the block to finish - so we end it with a call to `hold()`.
-
-
-    console.log(chat);
-    chat.join(addMessages) { ||
-      document.body .. appendWidget(chatWindow);
-      hold();
-    }
-
-To serve this .app file, open a terminal and navigate to the `chat-demo/` directory.
+To serve this .app file, open a terminal and navigate to the `chat-demo/` directory you created.
 From this directory, run:
 
 #comment NOTE: we use github-style ``` blocks to prevent 
@@ -261,5 +103,86 @@ This will serve the current directory using the default configuration. You shoul
 now be able to navigate to [http://localhost:7075/]() to run your app. If it doesn't
 seem to be working, open your browser's javascript console to check for errors.
 
-#endif // STEP1
+You can also [run this example online](./chat.app).
+
+#ifdef DOC
+### What happened?
+
+<!-- file: -->
+
+Let's go over the code we wrote, and explain what's new to conductance that you may not
+have seen before:
+
+#include res/require-system.html
+
+Conductance is built on [StratifiedJS](TODO) (SJS), which adds a number of powerful features
+on top of the JavaScript language, including a module system. We'll import the `stdlib` module
+from Conductance, which is a catch-all module combining a number of frequently used modules.
+
+    @ = require('mho:stdlib');
+
+`require()` loads a module asynchronously, but the SJS runtime allows us to simply wait
+for the result of this operation rather than passing a callbck.
+
+We assign the imported `stdlib` module to `@`, which is
+known as the "alternative namespace". This variable
+is predefined in the scope of every module, and is (by convention) where you place all imported
+modules / functions. It provides a convenient way to keep local symbols distinct from
+imported symbols, and allows shorthand access - `@property` is equivalent to `@.property`.
+
+Next, we create an $SYMBOL(mho:observable,ObservableArray) which we'll use to store chat messages.
+
+#include res/backtick.html
+
+    var messages = @ObservableArray();
+
+Now, add some content to the current document body:
+
+    document.body .. @appendContent(`
+      <h1>Oni Labs Chat Demo</h1>
+       $messages
+    `);
+
+Although the above code looks like string interpolation in other
+languages, backtick quotes don't collapse everything into a string representation - they
+preserve the original values. This allows the receiver (`appendContent` in
+this case) to treat embedded values intelligently, such as escaping any special HTML
+characters.
+
+$CLEAR
+
+#include res/doubledot.html
+
+Also note that we used the double-dot (`..`) operator to call `appendContent`. We could
+have written this more plainly as <code>@appendContent(document.body, \` ... \`)</code>,
+but often the double-dot version is more readable, especially when chaining multiple calls.
+
+    messages.push('hey');
+    hold(1000);
+    messages.push('how are you?');
+
+More than just escaping values, `appendContent` has automatically added a mechanism to keep
+the displayed value of `messages` updated whenever the underlying variable changes,
+which it does for any $SYMBOL(mho:observable,Observable) object. So we can add messages to
+the display by modifying the `messages` array.
+
+We also use the global `hold` function, which suspends an expression for (in this case) 1000 milliseconds.
+`"how are you?"` is added one second after the first message, without having to resort
+to callbacks.
+
+#endif // DOC
+
+#elif defined STEP2_ONLY
+
+Now, the messages display as `<ul>` list items - but because `messageView` is still an
+$SYMBOL(mho:observable,Observable), the UI updates when we add a new message.
+
+Refresh your local version, or [run this version online](./chat.app).
+
+#endif // STEP1_ONLY || STEP2_ONLY
+
+#ifdef NEXT_STEPNO
+### Onwards:
+Part $NEXT_STEPNO: [$NEXT_STEP_TITLE](../step$NEXT_STEPNO/)
+#endif // NEXT_STEPNO
 
