@@ -278,11 +278,13 @@ exports.MappedDirectoryHandler = function(root, settings) {
                allowDirListing: true,
                allowGenerators: false,
                allowApis:       false,
+               context:         null,
                formats: StaticFormatMap,
              } ..
     override(settings || {});
 
   function handler_func(req, matches) {
+    req.context = settings.context;
     var relativeURI = req.url.path;
     var [relativePath, format] = matches.input.slice(matches.index + matches[0].length).split('!');
     var relativePath = decodeURIComponent(relativePath);
