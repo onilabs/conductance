@@ -62,6 +62,16 @@ var { keys, propertyPairs } = require('sjs:object');
 // marshalling
 
 /**
+   @function setMarshallingDescriptor
+   @summary XXX
+*/
+function setMarshallingDescriptor(obj, descr) {
+  obj.__oni_marshalling_descriptor = descr;
+  return obj;
+}
+exports.setMarshallingDescriptor = setMarshallingDescriptor;
+
+/**
    @function API
    @summary Wrap an object into a remotable API
    @param {Object} [obj] 
@@ -112,7 +122,12 @@ function marshall(value, connection) {
       value = value .. map(prepare);
     }
     else if (typeof value === 'object' && value !== null) {
-      if (value.__oni_type == 'api') {
+      var descriptor;
+      if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
+        value = prepare(descriptor.wrapLocal(value));
+        value = { __oni_type: 'custom_marshalled', proxy: value, wrap: descriptor.wrapRemote };
+      }
+      else if (value.__oni_type == 'api') {
         // publish on the connection:
         connection.publishAPI(value);
         // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
@@ -161,6 +176,9 @@ function unmarshallComplexTypes(obj, connection) {
   }
   else if (obj.__oni_type == 'date') {
     return new Date(obj.val);
+  }
+  else if (obj.__oni_type == 'custom_marshalled') {
+    return require(obj.wrap[0])[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
   }
   else {
     keys(obj) .. each {
@@ -212,7 +230,8 @@ function unmarshallFunction(obj, connection) {
    @variable BridgeConnection.api
 */
 function BridgeConnection(transport, base_api) {
-  var pending_calls  = {};
+  var pending_calls  = {}; // calls in progress, made to the other side
+  var executing_calls = {}; // calls in progress, made to our side; call_no -> stratum
   var call_counter   = 0;
   var published_apis = {};
   var published_funcs = {};
@@ -235,6 +254,11 @@ function BridgeConnection(transport, base_api) {
         // initiate waiting for return value:
         waitfor (var rv, isException) {
           pending_calls[call_no] = resume;
+        }
+        retract {
+          // make the call:
+//          console.log('ISSUE RETRACTION');
+          transport.send(marshall(['abort', call_no], connection));
         }
         finally {
           delete pending_calls[call_no];
@@ -270,7 +294,7 @@ function BridgeConnection(transport, base_api) {
         break; // XXX hmm, what to do?
       }
       if (packet.type == 'message')
-        spawn receiveMessage(packet);
+        receiveMessage(packet);
       else if (packet.type == 'data')
         receiveData(packet);
       else {
@@ -285,6 +309,7 @@ function BridgeConnection(transport, base_api) {
 
   function receiveMessage(packet) {
     var message = unmarshall(packet.data, connection);
+//    console.log(message);
     switch (message[0]) {
     case 'return':
       var cb = pending_calls[message[1]];
@@ -297,8 +322,9 @@ function BridgeConnection(transport, base_api) {
         cb(message[2], true);
       break;
     case 'call':
-      // no need to spawn here; we already execute receiveMessage asynchronously
-      /*spawn*/ (function(call_no, api_id, method, args) {
+      executing_calls[message[1]] = spawn (function(call_no, api_id, method, args) {
+        // xxx asynchronize, so that executing_calls[call_no] will be filled in:
+        hold(0);
         var isException = false;
         try {
           var rv;
@@ -320,10 +346,17 @@ function BridgeConnection(transport, base_api) {
           // transport closed -> ignore
           // XXX anything else we need to do?
         }
+        finally {
+          delete executing_calls[call_no];
+        }
       })(message[1], message[2], message[3], message[4]);
       break;
     case 'abort':
-      //XXX
+      var executing_call = executing_calls[message[1]];
+      if (executing_call) {
+//        console.log("ABORTING PENDING CALL");
+        executing_call.abort();
+      }
       break;
     }
   }
