@@ -16,7 +16,8 @@ exports .. @extend(require.merge({id:'sjs:object', exclude: ['get']},
                                  'sjs:url',
 
                                  {id:'mho:observable', exclude: ['at']},
-                                 {id:'mho:surface'}
+                                 {id:'mho:surface'},
+                                 {id:'mho:surface/widgets', exclude: ['Map', 'Style']}
                                 ));
 
 // server-only exports:

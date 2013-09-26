@@ -1,7 +1,6 @@
 var html    = require('./surface/html');
 var stat    = require('./surface/static');
 var dyn     = require('./surface/dynamic');
-var widgets = require('./surface/widgets');
 
 //----------------------------------------------------------------------
 // primitives allowed in both 'static' and 'dynamic' worlds:
@@ -16,13 +15,6 @@ exports.Id = html.Id;
 exports.Unescaped = html.Unescaped;
 exports.Markdown = html.Markdown;
 exports.RequireExternalScript = html.RequireExternalScript;
-
-exports.Div = widgets.Div;
-exports.Button = widgets.Button;
-exports.Form = widgets.Form;
-exports.TextInput = widgets.TextInput;
-exports.Checkbox = widgets.Checkbox;
-exports.Select = widgets.Select;
 
 //----------------------------------------------------------------------
 // primitives for the 'static' world:
