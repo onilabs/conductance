@@ -2,6 +2,7 @@ var { Emitter } = require('sjs:events');
 var { slice, toArray, each, map, any, at, transform, zipLongest } = require('sjs:sequence');
 var { isArrayLike } = require('builtin:apollo-sys');
 var { getPath } = require('sjs:object');
+var { setMarshallingDescriptor } = require('./rpc/bridge');
 
 var NonSpecificChange = {type: 'set'};
 var toPath = function(p) {
@@ -27,7 +28,23 @@ ObservableProtoBase.observePath = function(path, o) {
 };
 
 
-var ObservableProto = Object.create(ObservableProtoBase);
+var ObservableProto = Object.create(ObservableProtoBase) .. 
+  setMarshallingDescriptor({
+    wrapLocal: local -> { get: -> local.get(), 
+                          set: val -> local.set(val),
+                          observe: o -> local.observe(o) },
+    wrapRemote: ['mho:observable', 'wrapRemoteObservable']
+  });
+
+// XXX not complete and not optimal; just a proof-of-principle at this moment
+function wrapRemoteObservable(proxy) {
+  var rv = Object.create(ObservableProto);
+  rv.get = -> proxy.get();
+  rv.set = val -> proxy.set(val);
+  rv.observe = o -> proxy.observe(o); // XXX want to observe locally
+  return rv;
+}
+exports.wrapRemoteObservable = wrapRemoteObservable;
 
 ObservableProto._emit = function(c) {
   this.revision++;
@@ -118,7 +135,47 @@ exports.isMutatable = isMutatable;
 
 // it's important to inherit from ObservableProto, not
 // ObservableProtoBase, so that isMutatable() is true for ObservableArrays
-var ObservableArrayProto = Object.create(ObservableProto);
+var ObservableArrayProto = Object.create(ObservableProto) ..
+  setMarshallingDescriptor({
+    wrapLocal: local -> { get: -> local.get(), 
+                          set: val -> local.set(val),
+                          observe: o -> local.observe(o),
+                          splice: -> local.splice.apply(local, arguments),
+                          pop: -> local.pop(),
+                          push: val -> local.push(val),
+                          shift: -> local.shift(),
+                          unshift: val -> local.unshift(val),
+                          reverse: -> local.reverse(),
+                          sort: -> local.sort.apply(local, arguments),
+                          at: index -> local.at(index),
+                          length: -> local.length(),
+                          indexOf: (searchElem, fromIndex) -> local.indexOf(searchElem, fromIndex)
+                        },
+    wrapRemote: ['mho:observable', 'wrapRemoteObservableArray']
+  });
+
+// XXX not complete and not optimal; just a proof-of-principle at this moment
+function wrapRemoteObservableArray(proxy) {
+  var rv = Object.create(ObservableArrayProto);
+  rv.get = -> proxy.get();
+  rv.set = val -> proxy.set(val);
+  rv.observe = o -> proxy.observe(o); // XXX want to observe locally
+  rv.splice = -> proxy.splice.apply(proxy, arguments);
+  rv.pop = -> proxy.pop();
+  rv.push = val -> proxy.push(val);
+  rv.shift = -> proxy.shift();
+  rv.unshift = val -> proxy.unshift(val);
+  rv.reverse = -> proxy.reverse();
+  rv.sort = -> proxy.sort.apply(proxy, arguments);
+  rv.at = index -> proxy.at(index);
+  rv.length = -> proxy.length();
+  rv.indexOf = (searchElem, fromIndex) -> proxy.indexOf(searchElem, fromIndex);
+
+  return rv;
+}
+exports.wrapRemoteObservableArray = wrapRemoteObservableArray;
+
+
 
 function isObservableArray(obj) {
   return (ObservableArrayProto.isPrototypeOf(obj));
