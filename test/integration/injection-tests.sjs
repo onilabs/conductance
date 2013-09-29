@@ -3,7 +3,6 @@ var http = require('sjs:http');
 var Url = require('sjs:url');
 var {clone} = require('sjs:object');
 var {each} = require('sjs:sequence');
-var helper = require('../../helper');
 
 context() {|| // browserOnly
 var {Driver, waitforSuccess, waitforCondition} = require('sjs:xbrowser/driver');

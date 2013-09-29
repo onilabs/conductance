@@ -16,9 +16,9 @@ var serverConfig = {
   ]
 };
 
-exports.run = function() {
+exports.run = function(args) {
   var helper = require('./helper');
-  if (arguments.length == 0) {
+  if (args.length == 0) {
     return require('mho:server').run(serverConfig);
   }
   var cutil = require('sjs:cutil');
