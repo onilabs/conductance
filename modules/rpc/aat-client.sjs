@@ -115,6 +115,7 @@ function openTransport(server) {
         
         // put any messages in receive queue:
         messages.shift();
+
         messages .. each {
           |mes| 
           receive_q.unshift({ type: 'message', data: mes });
@@ -135,7 +136,11 @@ function openTransport(server) {
   var transport = {
     active: true,
 
-    send: function(message) {
+    send: func.unbatched(function(messages) {
+      // XXX we actually don't want to use 'unbatched' here, because
+      // we don't need to map the return value. We want some async
+      // equivalent to 'unbatched'
+      console.log(messages);
       if (!this.active) throw new Error("inactive transport");
 
       try {
@@ -147,7 +152,7 @@ function openTransport(server) {
           ],
           { method: 'POST', 
             headers: {'Content-Type': 'text/plain; charset=utf-8'},
-            body: JSON.stringify([message])
+            body: JSON.stringify(messages)
           });
         
         result = JSON.parse(result);
@@ -184,7 +189,8 @@ function openTransport(server) {
         this.close();
         throw e;
       }
-    },
+      return messages; // XXX no point in mapping the return value
+    }),
 
     // XXX factor out common code between send() and sendData()
     sendData: function(header, data) {
