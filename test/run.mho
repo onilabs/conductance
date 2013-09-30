@@ -10,9 +10,10 @@ var url = require('sjs:url');
 // Array of ports that conductance will listen on:
 
 var apiRegistry = require('mho:server/api-registry');
+var port = require('./conf/server.js').port;
 
 var serverConfig = {
-  address: Port(7078),
+  address: Port(port),
   routes: [
     /* override bridge route to inject transport instance into server-side module */
     Route(
@@ -39,6 +40,15 @@ exports.run = function(args) {
   var helper = require('./helper');
   if (args.length == 0) {
     return require('mho:server').run(serverConfig);
+  } else if (args[0] === '--karma') {
+    args.shift();
+    if(args[0] === 'run') {
+      args.splice(1, 0, '--', 'app:test/run.html');
+    } else {
+      args.splice(1,0, url.normalize("./conf/karma.js", module.id) .. url.toPath);
+    }
+    require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
+    return;
   }
   var cutil = require('sjs:cutil');
   var string = require('sjs:string');

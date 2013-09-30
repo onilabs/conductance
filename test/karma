@@ -1,0 +1,3 @@
+#!/usr/bin/env sjs
+require('../hub');
+require('./run.mho').run(['--karma'].concat(require('sjs:sys').argv()));

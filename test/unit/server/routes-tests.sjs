@@ -1,9 +1,11 @@
 var {test, context, assert} = require('sjs:test/suite');
 
-var {Route, Host} = require('mho:server');
-var {Filter} = require('mho:server/routes');
+context {||
 var url = require('sjs:url');
 var logging = require('sjs:logging');
+
+var {Route, Host} = require('mho:server');
+var {Filter} = require('mho:server/routes');
 
 context('route filters') {||
 	test('filters from multiple nested routes are applied in the correct order') {||
@@ -58,3 +60,5 @@ context('route filters') {||
 		]);
 	}
 }
+
+}.serverOnly();
