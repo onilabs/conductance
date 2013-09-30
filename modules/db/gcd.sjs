@@ -1,6 +1,7 @@
 var { propertyPairs, keys } = require('sjs:object');
 var { each, map, Stream, transform, join, buffer, unpack, slice, reduce, filter, indexed, toArray, at, zip, consume } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
+var { unbatched } = require('sjs:function');
 var { instantiate, isSimpleType, IdToKey, cotraverse } = require('./schema');
 var { Context } = require('./gcd/backend');
 var { ChangeBuffer } = require('./helpers');
@@ -211,7 +212,11 @@ function JSEntityToGCDEntity(js_entity, schemas) {
 }
 
 
-function GCDEntityToJSEntity(gcd_entity, schemas) {
+function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
+  if (!gcd_entity) {
+    js_entity.data = null;
+    return js_entity;
+  }
   var kind = GCDKeyToKind(gcd_entity.key.pathElement);
   var schema = schemas[kind];
   if (!schema) throw new Error("Google Cloud Datastore: Unknown schema #{kind}");
@@ -299,7 +304,24 @@ function GCDEntityToJSEntity(gcd_entity, schemas) {
     }
   }
 
-  return { id: GCDKeyToKey(gcd_entity.key.pathElement), schema: kind,  data: js_data};
+  var id = GCDKeyToKey(gcd_entity.key.pathElement);
+  if (js_entity.id) {
+    if (js_entity.id !== id) 
+      throw new Error("Id mismatch: #{id} != #{js_entity.id}");
+  }
+  else
+    js_entity.id = id;
+
+  if (js_entity.schema) {
+    if (js_entity.schema !== kind)
+      throw new Error("Schema mismatch: #{kind} != #{js_entity.schema}");
+  }
+  else 
+    js_entity.schema = kind;
+
+  js_entity.data = js_data;
+
+  return js_entity;
 }
 
 /**
@@ -317,17 +339,21 @@ function GoogleCloudDatastore(attribs) {
   var schemas = attribs.schemas;
 
   function writeInner(entities, transaction) {
+    // XXX we need to catch errors for individual entities here and
+    // feed them through to the corresponding `write` call. ATM we
+    // just fail the whole batch if one entity errors.
+
     var ids = [];
     var deletes = [], autoid_inserts = [], upserts = [];
     
     entities .. each {
       |entity|
-      if (entity.data === undefined || entity.data === null) {
+      if (entity.data === null && entity.id) {
         // DELETE
         deletes.push({pathElement: keyToGCDKey(entity.id)});
         ids.push(entity.id);
       }
-      else {
+      else if (entity.data) {
         // UPSERT 
         entity = JSEntityToGCDEntity(entity, schemas);
         
@@ -347,6 +373,10 @@ function GoogleCloudDatastore(attribs) {
           ids.push(null);
         }
       }
+      else if (entity.id)
+        throw new Error("Cannot write entity #{entity.id}: Missing 'data' field");
+      else
+        throw new Error("Malformed entity");
     }
     
     // we've now got our entities sorted into `deletes`,
@@ -402,7 +432,17 @@ function GoogleCloudDatastore(attribs) {
   }
 
   function readInner(entities, transaction) {
-    var query = entities .. map(entity -> { pathElement: keyToGCDKey(entity.id) });
+    console.log("GCD: read #{entities.length}: #{entities.. map(e->e.id)}");
+    var query = [];
+    entities .. indexed .. each {
+      |[i,entity]|
+      try {
+        query.push({pathElement: keyToGCDKey(entity.id)})
+      }
+      catch (e) {
+        entities[i] = e;
+      }
+    }
     var results = (transaction || context).lookup({
       key: query
     });
@@ -413,14 +453,28 @@ function GoogleCloudDatastore(attribs) {
     var found = {};
     (results.found || []) .. each {
       |result|
-      var entity = result.entity .. GCDEntityToJSEntity(schemas);
-      found[entity.id] = entity;
+      found[GCDKeyToKey(result.entity.key.pathElement)] = result.entity;
     }
-    
-    return entities .. map({id} -> found[id] || null);
+    entities .. indexed .. each {
+      |[i,entity]|
+      if (entity.id) {
+        try {
+          found[entity.id] .. GCDEntityToJSEntity(entity, schemas);
+        }
+        catch (e) {
+          entities[i] = e;
+        }
+      }
+      // else entity is an Error which will be thrown by our unbatched function
+    }
+    return entities;
   }
 
-  function queryInner(query_descriptor, idsOnly, transaction) {
+  function queryInner(query_descriptor, transaction) {
+    console.log("GCD:query(#{query_descriptor .. require('sjs:debug').inspect})");
+    var idsOnly = true; // XXX should we have a mode for returning
+                        // full results too? It would complicate
+                        // implementation of filters, etc
     var schema = schemas[query_descriptor.schema];
     if (!schema) throw new Error("Unknown schema #{query_descriptor.schema}");
     
@@ -505,11 +559,12 @@ function GoogleCloudDatastore(attribs) {
       while (1) {
         var results = (transaction || context).runQuery(request);
         if (!results.batch || !results.batch.entityResult) break;
-        
+        console.log("GCD:query: #{results.batch.entityResult.length} results");
         r(results.batch.entityResult .. 
           map({entity} -> idsOnly ?
-              GCDKeyToKey(entity.key.pathElement) :
-              GCDEntityToJSEntity(entity, schemas)                
+              { id:GCDKeyToKey(entity.key.pathElement), 
+                schema: GCDKeyToKind(entity.key.pathElement) } :
+              GCDEntityToJSEntity(entity, {}, schemas)                
              ));
         
         // XXX not sure this logic is correct; 
@@ -555,38 +610,37 @@ function GoogleCloudDatastore(attribs) {
           If `entity` is of the form
 
               {  id: IDENTIFIER_STRING,
-                 data: undefined|null
+                 data: null
               }
                
           then the given item will be deleted from the datastore.
      */
-    write: function(entities) {
-      return writeInner(entities);
-    },
+    write: unbatched(writeInner),
 
     /**
        @function GoogleCloudDatastore.read
-       @param {Array} [entities] Array of [datastore::Entity] descriptors to look up
-       @return {Array} Array of entities
-       @summary Read entities from the datastore
+       @param {flux::Entity} [entity] Entity to retrieve
+       @return {flux::Entity} *entity* with `data` attribute set to retrieved data 
+               or `null` if the entity could not be found in the datastore
+       @summary Read an entity from the datastore
        @desc
-          `entity` needs to have an `id` attribute. Other attributes (such as `schema` or `data`) will
-          be ignored.
+          `entity` needs to have an `id` attribute. If `entity` contains a `schema` 
+          attribute it will be compared against the stored schema of the retrieved data. 
+          If the two don't match an error will be thrown.
+
+          Other attributes on *entity* (e.g. `data`) will be ignored.
           
      */
-    read: function(entities) {
-      return readInner(entities);
-    },
+    read: unbatched(readInner),
 
     /**
        @function GoogleCloudDatastore.query
        @param {Object} [query_descriptor] Query Descriptor
-       @param {optional Boolean} [idsOnly=false] Whether to look up entities or just ids
        @return {sjs::sequence::Stream} Stream of result *batches* (use [sjs:sequence::unpack] to get a stream of results)
        @summary Query for entities
      */
-    query: function(query_descriptor, idsOnly) {
-      return queryInner(query_descriptor, idsOnly);
+    query: function(query_descriptor) {
+      return queryInner(query_descriptor);
     },
 
     /**
@@ -609,11 +663,11 @@ function GoogleCloudDatastore(attribs) {
 
         block({
 
-          read:  function(entities) {
+          read:  unbatched(function(entities) {
             return readInner(entities, transaction_context);
-          },
+          }),
 
-          write: function(entities) { 
+          write: unbatched(function(entities) { 
             var result = writeInner(entities, transaction_context);
 
             // make sure we didn't attempt to mutate entities before
@@ -627,10 +681,10 @@ function GoogleCloudDatastore(attribs) {
             upserts = upserts.concat(result.upserts);
 
             return result.ids;
-          },
+          }),
 
-          query: function(entities, idsOnly) { 
-            return queryInner(entities, idsOnly, transaction_context) 
+          query: function(entities) { 
+            return queryInner(entities, transaction_context) 
           }
 
         });
