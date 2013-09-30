@@ -53,7 +53,7 @@ Protocol:
 */
 
 var logging = require('sjs:logging');
-var { each, toArray, map, filter, transform} = require('sjs:sequence');
+var { each, toArray, map, filter, transform, isStream, Stream} = require('sjs:sequence');
 var { pairsToObject } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
 var { keys, propertyPairs } = require('sjs:object');
@@ -112,8 +112,15 @@ function marshall(value, connection) {
 
   function prepare(value) {
     if (typeof value === 'function') {
-      // XXX we'll be calling the function with the wrong 'this' object
-      value = { __oni_type: 'func', id: connection.publishFunction(value) };
+      if (isStream(value)) {
+        // XXX we want to batch up streams
+        value = { __oni_type: 'stream', id: connection.publishFunction(value) }
+      }
+      else {
+        // a normal function
+        // XXX we'll be calling the function with the wrong 'this' object
+        value = { __oni_type: 'func', id: connection.publishFunction(value) };
+      }
     }
     else if (value instanceof Date) {
       value = { __oni_type: 'date', val: value.getTime() };
@@ -167,6 +174,10 @@ function unmarshallComplexTypes(obj, connection) {
   if (typeof obj != 'object' || obj === null) return obj;
   if (obj.__oni_type == 'func') {
     return unmarshallFunction(obj, connection);
+  }
+  else if (obj.__oni_type == 'stream') {
+    // XXX we want to batch up streams
+    return Stream(unmarshallFunction(obj, connection));
   }
   else if (obj.__oni_type == 'api') {
     return unmarshallAPI(obj, connection);

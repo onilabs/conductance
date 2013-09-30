@@ -16,7 +16,7 @@
     "amd-loader": "*"
   },
   "dependencies": {
-    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#63b4a5414a7c290df7450c82550f26c61d35b56f",
+    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#dca8fa74bf48d4d35f8cc9b39bcca09ce5343982",
     "nodemon": ">=0.7.0",
     "protobuf": ">=0.8.6",
     "google-oauth-jwt": ">=0.0.7",
