@@ -3,14 +3,33 @@
 var { SystemRoutes,
       ExecutableDirectory,
     } = require('mho:server/routes');
-var { Port } = require('mho:server');
+var { Port, Route } = require('mho:server');
+var url = require('sjs:url');
 
 //----------------------------------------------------------------------
 // Array of ports that conductance will listen on:
 
+var apiRegistry = require('mho:server/api-registry');
+
 var serverConfig = {
   address: Port(7078),
   routes: [
+    /* override bridge route to inject transport instance into server-side module */
+    Route(
+      /^__aat_bridge\/(2)$/,
+      require('mho:rpc/aat-server').createTransportHandler(
+        function(transport) {
+          require('mho:rpc/bridge').accept(
+            function(apiid) {
+              var api = apiRegistry.getAPIbyAPIID(apiid);
+              //console.log("got API ", api, "for ID ", apiid);
+              api.obj._transport = transport;
+              return api;
+            },
+            transport);
+        }
+      )
+    ),
     SystemRoutes(),
     ExecutableDirectory(process.cwd()),
   ]

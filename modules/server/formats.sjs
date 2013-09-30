@@ -78,6 +78,13 @@ exports.api = api;
 ");
 }
 
+// filter that generates JSON info about api endpoint:
+function apiinfo(src, dest, aux) {
+  if (!aux.apiid)
+    throw new Error("API access not enabled");
+  dest.write(JSON.stringify({apiid: aux.apiid}));
+}
+
 //----------------------------------------------------------------------
 // filter that generates html for markdown (*.md) files:
 function gen_markdown_html(src, dest, aux) {
@@ -194,6 +201,9 @@ var Executable = (base) -> base
   .. withFormats({
     api      : { none : { mime: "text/plain",
                           filter: apiimport
+                        },
+                 json : { mime: "application/json",
+                          filter: apiinfo
                         },
                  src  : { mime: "text/plain" }
                },

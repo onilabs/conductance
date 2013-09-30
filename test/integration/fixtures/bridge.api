@@ -1,0 +1,15 @@
+exports.throwError = function(msg) { throw new Error(msg); }
+
+exports.callme = function(f) { return f(); }
+
+exports.dieAfter = function(timeout) {
+  if (!exports._transport) {
+    throw new Error("Test harness error: exports._transport not set by server config");
+  }
+  spawn(function() {
+    hold(timeout);
+    exports._transport.__finally__();
+  }());
+}
+
+exports.ping = -> "pong";

@@ -246,7 +246,7 @@ function openTransport(server) {
       }
     },
 
-    receive: func.sequential(function() { 
+    receive: func.sequential(function() {
       if (!this.active) throw new Error("inactive transport");
 
       if (!receive_q.length) {
@@ -262,12 +262,21 @@ function openTransport(server) {
       return receive_q.pop();
     }),
     close: function() {
-      this.active = false;
-      if (poll_stratum) poll_stratum.abort();
-      if (resume_receive) resume_receive(new Error('transport closed'));
+      if (!this.closed) {
+        this.closed = true;
+        try {
+          http.post([
+            server, SERVER_PATH, AAT_VERSION,
+            { cmd: "close#{transport_id_suffix}" } ]);
+        } catch (e) { /* close is a courtesy; ignore errors */ }
+        this.active = false;
+        if (poll_stratum) poll_stratum.abort();
+        if (resume_receive) spawn(resume_receive(new Error('transport closed')));
+      }
     }
   };
 
+  transport.__finally__ = transport.close;
   return transport;
 }
 exports.openTransport = openTransport;

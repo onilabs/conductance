@@ -42,6 +42,7 @@ var logging = require('sjs:logging');
 var buffer  = require('nodejs:buffer');
 
 var { each, map, toArray } = require('sjs:sequence');
+var { ownValues } = require('sjs:object');
 var { createID } = require('../server/random');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
@@ -174,6 +175,17 @@ function createTransport() {
       }
       // assert (receive_q.length)
       return receive_q.shift();
+    },
+    __finally__: function() {
+      delete transports[this.id];
+      this.active = false;
+      if (this._reaper) {
+        this._reaper.abort();
+        this._reaper = null;
+      }
+      if (resume_receive)
+        resume_receive(new Error('transport closed'));
+      logging.info("#{this.id} closed");
     }
   };
 
@@ -192,15 +204,11 @@ function createTransport() {
         break;
       }
     }
-    // ok, we've been reaped; remove from transports:
-    delete transports[transport.id];
-    transport.active = false;
-    if (resume_receive)
-      resume_receive(new Error('transport closed'));
-    logging.info("#{transport.id} closed");
+    // ok, we've been reaped; clean up transport:
+    transport.__finally__();
   }
 
-  spawn reaper();
+  transport._reaper = spawn reaper();
 
   transports[transport.id] = transport;
 
@@ -286,6 +294,10 @@ function createTransportHandler(transportSink) {
         transport.pollMessages(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], 
                                out_messages);
       }
+    }
+    else if (command.indexOf('close_') == 0) {
+      var transport = transports[command.substr(6)];
+      if (transport) transport.__finally__();
     }
     else if (command == 'poll') {
       // XXX poll without id not supported yet

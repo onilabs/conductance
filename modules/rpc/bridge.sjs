@@ -54,8 +54,10 @@ Protocol:
 
 var logging = require('sjs:logging');
 var { each, toArray, map, filter, transform, isStream, Stream} = require('sjs:sequence');
-var { pairsToObject } = require('sjs:object');
+var { pairsToObject, ownPropertyPairs } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
+var { isString } = require('sjs:string');
+var { isFunction } = require('sjs:function');
 var { keys, propertyPairs } = require('sjs:object');
 
 //----------------------------------------------------------------------
@@ -125,6 +127,15 @@ function marshall(value, connection) {
     else if (value instanceof Date) {
       value = { __oni_type: 'date', val: value.getTime() };
     }
+    else if (value instanceof Error) {
+      var props = {};
+      props.message = value.message;
+      ownPropertyPairs(value) .. each {|[name, val]|
+        if(name.charAt(0) === '_' || !val .. isFunction() || name === 'toString') continue;
+        props[name] = prepare(val);
+      }
+      value = { __oni_type: 'error', props: props };
+    }
     else if (isArrayLike(value)) {
       value = value .. map(prepare);
     }
@@ -188,6 +199,9 @@ function unmarshallComplexTypes(obj, connection) {
   else if (obj.__oni_type == 'date') {
     return new Date(obj.val);
   }
+  else if (obj.__oni_type == 'error') {
+    return unmarshallError(obj.props, connection);
+  }
   else if (obj.__oni_type == 'custom_marshalled') {
     return require(obj.wrap[0])[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
   }
@@ -207,6 +221,15 @@ function unmarshallBlob(obj, connection) {
     throw new Error("Cannot find blob #{id}");
   delete connection.received_blobs[id];
   return blob;
+}
+
+function unmarshallError(props, connection) {
+  var err = new Error(props.message);
+  props .. ownPropertyPairs .. each {|[name, val]|
+    if (name === 'message') continue;
+    err[name] = unmarshallComplexTypes(val);
+  }
+  return err;
 }
 
 function unmarshallAPI(obj, connection) {
@@ -230,9 +253,25 @@ function unmarshallFunction(obj, connection) {
   };
 }
 
-
+var ConnectionErrorProto = new Error("Connection error");
+function ConnectionError(message, connection) {
+  var err = Object.create(ConnectionErrorProto);
+  err.message = message;
+  err.connection = connection;
+  return err;
+}
 
 //----------------------------------------------------------------------
+
+/**
+  @function isConnectionError
+  @param {Error} [err]
+  @return Boolean
+  @summary Returns whether `err` is a bridge connection error
+*/
+exports.isConnectionError = function(e) {
+  return ConnectionErrorProto.isPrototypeOf(e);
+}
 
 /**
    @class BridgeConnection
@@ -240,13 +279,14 @@ function unmarshallFunction(obj, connection) {
    @variable BridgeConnection.transport
    @variable BridgeConnection.api
 */
-function BridgeConnection(transport, base_api) {
+function BridgeConnection(transport, base_api, ignore_errors) {
   var pending_calls  = {}; // calls in progress, made to the other side
   var executing_calls = {}; // calls in progress, made to our side; call_no -> stratum
   var call_counter   = 0;
   var published_apis = {};
   var published_funcs = {};
   var published_func_counter = 0;
+  var closed = false;
 
   if (base_api)
     published_apis[0] = base_api;
@@ -281,7 +321,7 @@ function BridgeConnection(transport, base_api) {
                                 connection));
       }
       
-      if (isException) throw new Error(rv);
+      if (isException) throw rv;
       return rv;
     },
     publishAPI: function(api) {
@@ -292,7 +332,11 @@ function BridgeConnection(transport, base_api) {
       var id = ++published_func_counter;
       published_funcs[id] = f;
       return id;
-    }
+    },
+    __finally__: function() {
+      closed = true;
+      transport.__finally__();
+    },
   };
 
   function receiver() {
@@ -300,9 +344,8 @@ function BridgeConnection(transport, base_api) {
       try {
         var packet = transport.receive();
       } catch(e) { 
-        // XXX this is probably the transport being closed
-        logging.warn("bridge.sjs: transport error: #{e}");
-        break; // XXX hmm, what to do?
+        if(closed || ignore_errors === true) break;
+        throw ConnectionError(e.message || String(e));
       }
       if (packet.type == 'message')
         receiveMessage(packet);
@@ -345,7 +388,7 @@ function BridgeConnection(transport, base_api) {
             rv = published_apis[api_id][method].apply(published_apis[api_id], args);
         }
         catch (e) {
-          rv = e.toString();
+          rv = e;
           isException = true;
         }
         try {
@@ -372,16 +415,15 @@ function BridgeConnection(transport, base_api) {
     }
   }
   
-  spawn receiver();
-
+  connection._ended = spawn receiver();
   return connection;
 }
 
 /**
    @function connect
    @summary To be documented
-   @param {String} [api_name] 
-   @param {optional Transport} [transport=aat-client::Transport]
+   @param {String} [api_name]
+   @param {optional Function} [block]
    @return {::BridgeConnection}
    @desc
      **Note**: connecting to a server-side API does a require() on the
@@ -389,11 +431,22 @@ function BridgeConnection(transport, base_api) {
      force the server to reload the module other than restarting the
      server process.
 */
-exports.connect = function(api_name, transport) {
-  if (typeof transport != 'object') {
+exports.connect = function(api_name, block) {
+  return exports.connectWith(null, api_name, block);
+};
+
+/**
+   @function connectWith
+   @summary To be documented
+   @param {optional Transport|String} [transport|server] A transport object or server address
+   @param {String} [api_name]
+   @param {Function} [block]
+   @return {::BridgeConnection}
+*/
+exports.connectWith = function(transport, api_name, block) {
+  if (!transport || typeof transport != 'object') {
     transport = require('./aat-client').openTransport(transport);
   }  
-
   var connection = BridgeConnection(transport);
 
   // retrieve server api:
@@ -401,17 +454,26 @@ exports.connect = function(api_name, transport) {
   // sure how that's going to work from the server-side (sys:resolve??)
   connection.api = connection.makeCall(0, 'getAPI', [api_name]);
 
-  return connection;
-};
+  if (block) {
+    using(connection) {
+      waitfor {
+        return block(connection);
+      } or {
+        connection._ended.waitforValue();
+      }
+    }
+  }
+  else return connection;
+}
 
 /**
    @function accept
    @summary To be documented
-   @param {Function} [getAPI] 
+   @param {Function} [getAPI]
    @param {Transport} [transport]
    @return {::BridgeConnection}
 */
 exports.accept = function(getAPI, transport) {
-  var connection = BridgeConnection(transport, {getAPI:getAPI});
+  var connection = BridgeConnection(transport, {getAPI:getAPI}, true);
   return connection;
 };
