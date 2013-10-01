@@ -129,7 +129,7 @@ function marshall(value, connection) {
     }
     else if (value instanceof Error) {
       var props = {};
-      props.message = value.message;
+      props.message = value.toString(); // we want toString() to get callstack
       ownPropertyPairs(value) .. each {|[name, val]|
         if(name.charAt(0) === '_' || !val .. isFunction() || name === 'toString') continue;
         props[name] = prepare(val);
