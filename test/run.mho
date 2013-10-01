@@ -43,9 +43,7 @@ exports.run = exports.serve = function(args) {
 
 if (require.main === module) {
   var args = require('sjs:sys').argv();
-  if (args.length == 0) {
-    return exports.serve();
-  } else if (args[0] === '--karma') {
+  if (args[0] === '--karma') {
     var karmaConf = url.normalize('./conf/karma.js', module.id);
     args.shift();
     var runKarma = -> require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
@@ -63,8 +61,10 @@ if (require.main === module) {
       throw new Error("unknown karma command: #{args[0]}");
     }
     return;
+  } else if (args[0] === '--serve') {
+    return exports.serve();
   } else {
-    // nonzero args: serve while running tests
+    // serve while running tests
     var cutil = require('sjs:cutil');
     var string = require('sjs:string');
     var func = require('sjs:function');

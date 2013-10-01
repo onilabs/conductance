@@ -13,7 +13,8 @@
   "bin": { "conductance": "conductance" },
   "devDependencies": {
     "jsdom": "*",
-    "amd-loader": "*"
+    "amd-loader": "*",
+    "karma-sjs-adapter": "~0.1.0"
   },
   "dependencies": {
     "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#dca8fa74bf48d4d35f8cc9b39bcca09ce5343982",
