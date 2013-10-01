@@ -206,8 +206,7 @@ var Executable = (base) -> base
                         },
                  json : { mime: "application/json",
                           filter: apiinfo
-                        },
-                 src  : { mime: "text/plain" }
+                        }
                },
     md       : { none : { mime: "text/html",
                           filter: gen_markdown_html

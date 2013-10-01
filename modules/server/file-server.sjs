@@ -194,6 +194,10 @@ function serveFile(req, filePath, format, settings) {
   
   var apiid;
   var extension = path.extname(filePath).slice(1);
+  if (settings.allowGenerators && extension == 'gen') {
+    return false;
+  }
+
   if (settings.allowApis && extension == 'api') {
     apiid = require('./api-registry').registerAPI(filePath);
     logging.info("registered API #{filePath} -> #{apiid}");
@@ -206,7 +210,7 @@ function serveFile(req, filePath, format, settings) {
               nodefs.createReadStream(filePath, opts),
       length: stat.size,
       apiid: apiid,
-      extension: path.extname(filePath).slice(1),
+      extension: extension,
       format: format,
       etag: stat.mtime.getTime()
     },
