@@ -9,8 +9,8 @@ context("observable widget content") {||
   test("should reflect changes made before & after insertion") {||
     var content = Observable("first");
     var observableWidget = Widget("div", content);
-    var cachedComputedWidget = Widget("div", Computed(content, c -> 'cached computed ' + c));
-    var computedWidget = Widget("div", Computed.Always(content, c -> 'always computed ' + c));
+    var cachedComputedWidget = Widget("div", Computed.Cached(content, c -> 'cached computed ' + c));
+    var computedWidget = Widget("div", Computed(content, c -> 'always computed ' + c));
     content.set("second");
 
     var widgets = [observableWidget, cachedComputedWidget, computedWidget];
