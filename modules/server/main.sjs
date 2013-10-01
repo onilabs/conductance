@@ -35,7 +35,7 @@ exports.run = function(args) {
   args = args || sys.argv();
   var actions = [
     {
-      name: 'run',
+      name: 'serve',
       args: '[<file>]',
       desc: 'Run the conductance server
        -r, --autorestart - Restart the server whenever any
@@ -189,8 +189,8 @@ exports.serve = function(args) {
   }
 
   var config = _config.loadConfig(configfile);
-  var main = config.run || (function() {
-    logging.warn("declarative .mho files (no `run` function) are deprecated");
+  var main = config.serve || (function() {
+    logging.warn("declarative .mho files (no `serve` function) are deprecated");
     require('../server').run(config);
   });
 

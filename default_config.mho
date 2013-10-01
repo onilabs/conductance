@@ -5,8 +5,8 @@ var logging = require('sjs:logging');
 var server = require('mho:server');
 
 //----------------------------------------------------------------------
-// server main function, used by `conductance run`
-exports.run = function(args) {
+// function invoked by `conductance serve`
+exports.serve = function(args) {
   var parser = require('sjs:dashdash').createParser({
     options: [
       {
@@ -41,7 +41,7 @@ exports.run = function(args) {
   }
 
   if (opts.help) {
-    console.log("  default_config.mho run options:");
+    console.log("  default_config.mho options:\n");
     console.log(parser.help({includeEnv:true}));
     process.exit(0);
   }

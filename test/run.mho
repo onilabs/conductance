@@ -37,14 +37,14 @@ var serverConfig = {
   ]
 };
 
-exports.run = function(args) {
+exports.run = exports.serve = function(args) {
   require('mho:server').run(serverConfig);
 }
 
 if (require.main === module) {
   var args = require('sjs:sys').argv();
   if (args.length == 0) {
-    return exports.run();
+    return exports.serve();
   } else if (args[0] === '--karma') {
     var karmaConf = url.normalize('./conf/karma.js', module.id);
     args.shift();
