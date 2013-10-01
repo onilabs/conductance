@@ -13,3 +13,4 @@ exports.dieAfter = function(timeout) {
 }
 
 exports.ping = -> "pong";
+exports.hostenv = -> require('sjs:sys').hostenv;

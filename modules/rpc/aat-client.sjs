@@ -42,6 +42,8 @@ var func = require('sjs:function');
 
 var AAT_VERSION   = '2';
 var SERVER_PATH   = '__aat_bridge';
+var SERVER_PREFIX = '/';
+exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
 
 /*
 
@@ -85,7 +87,7 @@ var SERVER_PATH   = '__aat_bridge';
    @return {::Transport}
 */
 function openTransport(server) {
-  server = server || url.normalize('/', module.id);
+  server = server || url.normalize(SERVER_PREFIX, module.id);
   
   var transport_id_suffix = '';
 

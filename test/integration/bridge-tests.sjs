@@ -3,10 +3,12 @@ var helper = require('../helper');
 var bridge = require('mho:rpc/bridge');
 var http = require('sjs:http');
 var logging = require('sjs:logging');
-var url = require('sjs:url');
+var Url = require('sjs:url');
+
+var apiUrl = -> helper.url('test/integration/fixtures/bridge.api');
 
 context('bridge error handling') {||
-  var apiName = (helper.url('test/integration/fixtures/bridge.api') .. url.parse()).relative;
+  var apiName = Url.parse(apiUrl()).relative;
   var apiid;
 
   test.beforeAll {|s|
@@ -43,4 +45,23 @@ context('bridge error handling') {||
     };
     log .. assert.eq([ 'pong' ]);
   }
+}
+
+context('api loader') {||
+  var url = apiUrl();
+
+  test.beforeAll {||
+    var path = Url.parse(url).relative;
+    var prefix = path.slice(0, path.indexOf('test/'));
+    require('mho:rpc/aat-client').setServerPrefix(prefix);
+  }
+
+  test('returns API') {||
+    require(url).ping() .. assert.eq('pong');
+    require(url).hostenv() .. assert.eq('nodejs');
+  }
+
+  test('exposes connection object') {||
+    require(url).__connection .. assert.ok();
+  }.skip("Not yet implemented");
 }

@@ -3,6 +3,7 @@ var { pump, readAll } = require('sjs:nodejs/stream');
 var { map, each, toArray } = require('sjs:sequence');
 var { clone, merge, ownPropertyPairs } = require('sjs:object');
 var logging = require('sjs:logging');
+var Url = require('sjs:url');
 
 // XXX this should be configurable separately somewhere
 var SJSCache = require('sjs:lru-cache').makeCache(10*1000*1000); // 10MB
@@ -71,10 +72,11 @@ function gen_moduledocs_html(src, dest, aux) {
 function apiimport(src, dest, aux) {
   if (!aux.apiid)
     throw new Error("API access not enabled");
+  var serverRoot = Url.normalize('/', aux.request.url);
   dest.write("\
+var server = require('builtin:apollo-sys').hostenv !== 'xbrowser' ? #{JSON.stringify(serverRoot)};
 var bridge = require('mho:rpc/bridge');
-var api    = bridge.connect('#{aux.apiid}').api;
-exports.api = api;
+module.exports = bridge.connectWith(server, '#{aux.apiid}').api;
 ");
 }
 
