@@ -189,14 +189,13 @@ exports.serve = function(args) {
   }
 
   var config = _config.loadConfig(configfile);
-  var main = config.serve || (function() {
-    logging.warn("declarative .mho files (no `serve` function) are deprecated");
-    require('../server').run(config);
-  });
+  if (!config.serve) {
+    throw new Error("config file #{configfile} has no `serve` function");
+  }
+  process.argv = process.ARGV = [env.executable, 'serve', configfile].concat(args);
 
   try {
-    process.argv = process.ARGV = [env.executable, configfile].concat(args);
-    main.call(config, args);
+    config.serve(args);
   } catch(e) {
     process.stdout.write("\nOni Conductance exiting with fatal error:\n#{e.toString()}\n\n");
     process.exit(1);
