@@ -6,13 +6,7 @@ var logging = require('sjs:logging');
 var url = require('sjs:url');
 
 context('bridge error handling') {||
-  var apiName;
-  if (isBrowser) {
-    apiName = url.normalize('fixtures/bridge.api', module.id);
-  } else {
-    apiName = '/test/integration/fixtures/bridge.api';
-  }
-  console.log(apiName);
+  var apiName = (helper.url('test/integration/fixtures/bridge.api') .. url.parse()).relative;
   var apiid;
 
   test.beforeAll {|s|
