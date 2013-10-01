@@ -93,8 +93,8 @@ exports.StaticDirectory = createDirectoryMapper({});
 
 function SystemRoutes() {
   return [
-    CodeDirectory('__sjs/', "#{sjsRoot()}"),
-    ExecutableDirectory('__mho/', "#{conductanceRoot()}modules/"),
+    CodeDirectory('__sjs/', "#{sjsRoot}"),
+    ExecutableDirectory('__mho/', "#{conductanceRoot}modules/"),
     Route(
       /^__aat_bridge\/(2)$/,
       require('mho:rpc/aat-server').createTransportHandler(

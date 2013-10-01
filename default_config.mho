@@ -71,8 +71,8 @@ exports.run = function(args) {
     },
     {
       address: Port(7076, host).ssl({
-        key: readFile("#{conductanceRoot()}ssl/insecure-localhost.key"),
-        cert: readFile("#{conductanceRoot()}ssl/insecure-localhost.crt")
+        key: readFile("#{conductanceRoot}ssl/insecure-localhost.key"),
+        cert: readFile("#{conductanceRoot}ssl/insecure-localhost.crt")
       }),
       routes: routes
     },

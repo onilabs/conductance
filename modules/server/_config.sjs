@@ -21,7 +21,7 @@ exports.loadConfig = function(path) {
 }
 
 exports.defaultConfig = function() {
-  var builtin = "#{env.conductanceRoot()}default_config.mho";
+  var builtin = "#{env.conductanceRoot}default_config.mho";
   var local = path.join(process.cwd(), 'config.mho');
   return (fs.exists(local)) ? local : builtin;
 }

@@ -98,7 +98,7 @@ var Group = exports.Group = function(name, units) {
 exports.ConductanceArgs = [
 	process.execPath,
 	sys.executable,
-	path.join(env.conductanceRoot(), 'modules/server/main.sjs'),
+	path.join(env.conductanceRoot, 'modules/server/main.sjs'),
 ];
 
 var parseArgs = function(command, options, args) {

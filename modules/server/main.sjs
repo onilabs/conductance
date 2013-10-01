@@ -224,7 +224,7 @@ exports.serve = function(args) {
   });
 
   try {
-    process.argv = process.ARGV = [nodePath.join(env.conductanceRoot(), 'conductance'), configfile].concat(opts._args);
+    process.argv = process.ARGV = [env.executable, configfile].concat(opts._args);
     main.call(config, opts._args);
   } catch(e) {
     process.stdout.write("\nOni Conductance exiting with fatal error:\n#{e.toString()}\n\n");
@@ -241,7 +241,7 @@ exports.printVersion = function() {
   SJS path:            #{nodePath.normalize(sys.executable, '..')}
 
   Conductance version: #{env.conductanceVersion()}
-  Conductance path:    #{env.conductanceRoot()}
+  Conductance path:    #{env.executable}
 ");
 }
 
