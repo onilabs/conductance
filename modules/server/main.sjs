@@ -33,12 +33,20 @@ var printBanner = -> console.log(banner);
 
 exports.run = function(args) {
   args = args || sys.argv();
-  var command = args.shift();
   var actions = [
     {
       name: 'run',
-      desc: 'Run the conductance server',
+      args: '[<file>]',
+      desc: 'Run the conductance server
+       -r, --autorestart - Restart the server whenever any
+                           file changes (using `nodemon`)\n',
       fn: exports.serve,
+    },
+    {
+      name: 'exec',
+      args: '<file>',
+      desc: 'Execute a SJS script (equivalent to `conductance <file>`)',
+      fn: exports.exec,
     },
     {
       name: 'shell',
@@ -56,6 +64,7 @@ exports.run = function(args) {
     },
     {
       name: 'systemd',
+      args: '<command> ...',
       desc: 'Conductance systemd integration',
       fn: function(args) {
         require('./systemd').run(args);
@@ -77,13 +86,49 @@ exports.run = function(args) {
     });
   }
 
+  var usage = function() {
+    console.log("Usage: conductance [-v|--verbose] [<file>|<action>] ...");
+    console.log();
+    actions .. each {|a|
+      var args = a.args ? a.args : "";
+      console.log("#{a.name .. str.padLeft(10)} #{args .. str.padRight(13)} : #{a.desc}");
+    }
+    console.log("\nRun `conductance <action> --help` for more specific help.\n");
+    return process.exit(1);
+  }
+
+  var command;
+  var verbosity = 0;
+  while (command = args.shift()) {
+    if(command == '-h' || command == '--help') {
+      printBanner();
+      return usage();
+    } else if (command == '--verbose') {
+      verbosity++;
+    } else if (/^-v+$/.test(command)) {
+      verbosity += arg.length - 1;
+    } else {
+      // stop at first non-option arg
+      break;
+    }
+  }
+
+  switch(verbosity) {
+    case 0  : logging.setLevel(logging.WARN);    break;
+    case 1  : logging.setLevel(logging.INFO);    break;
+    case 2  : logging.setLevel(logging.VERBOSE); break;
+    default : logging.setLevel(logging.DEBUG);   break;
+  }
+
+  logging.info("Log level: #{logging.levelNames[logging.getLevel()]}");
+
   var action = actions .. find(a -> a.name == command);
 
   // shortcut (required for shebang lines):
   // if run as: `conductance <filename> [...]`,
-  // assume:    `conductance run <filename> [...]`
+  // assume:    `conductance exec <filename> [...]`
   if (!action && command && fs.exists(command)) {
-    return exports.run(['run', command].concat(args));
+    return exports.run(['exec', command].concat(args));
   }
 
   if (!action) {
@@ -91,131 +136,57 @@ exports.run = function(args) {
     if (command) {
       console.error("Unknown command: " + command + "\n");
     }
-    console.log("Usage: conductance <action> ...\n");
-    actions .. each {|a|
-      console.log("#{a.name .. str.padLeft(15)}: #{a.desc}");
-    }
-    console.log("\nRun `conductance <action> --help` for command-specific help.\n");
-    return process.exit(1);
+    return usage();
   }
   action.fn(args);
 };
+
+exports.exec = function(args) {
+  var url = args.shift();
+  if (url.indexOf(":") == -1) {
+    url = "file://" + fs.realpath(url);
+  }
+  process.argv = [ env.executable, url ].concat(args);
+  require(url, {main:true});
+}
 
 exports.serve = function(args) {
   var configfile = _config.defaultConfig();
 
   //----------------------------------------------------------------------
-  // helpers
-
-
-  function usage(msg) {
-    console.log("
-  Usage: conductance run [options] [configfile]
-
-#{parser.help()}
-    Default configfile: #{configfile}
-  ");
-    if(msg) console.log(msg);
-  }
-
-
-  //----------------------------------------------------------------------
-  // parse parameters
-
-  var parser = dashdash.createParser({options: [
-    {
-      names: ['help', 'h'],
-      type: 'bool',
-      help: 'Print this help and exit.',
-    },
-    {
-      names: ['verbose', 'v'],
-      type: 'arrayOfBool',
-      help: 'Increase log level. Can be used multiple times.'
-    },
-    {
-      names: ['autorestart', 'r'],
-      type: 'bool',
-      help: 'Restart the server whenever any file changes (using `nodemon`)'
-    },
-  ]});
-
-
-  var opts = { verbose: 0, _args: [] };
-  try {
-    var end=false;
-    (function() {
-      for (var idx = 0; idx < args.length; idx++) {
-        var arg = args[idx];
-        switch(arg) {
-          case '-h':
-          case '--help':
-            opts.help = true;
-            break;
-          case '--verbose':
-            opts.verbose++;
-            break;
-          case '-r':
-          case '--autorestart':
-            process.argv .. remove(arg);
-            // nodemon has no API - it just takes over as soon as it's imported.
-            // we need to modify the original ARGV:
-            // [ '/path/to/node',
-            //   '/path/to/conductance',
-            //   'run', ...]
-            //
-            // To look like a valid nodemon invocation:
-            //
-            // [ '/path/to/node',
-            //   '/path/to/nodemon',
-            //   '--exec',
-            //   '/path/to/conductance',
-            //   'run', ...]
-            //
-            process.argv.splice(1, 1, require.resolve('nodejs:nodemon').path, '--exec', process.argv[1]);
-            // console.log(process.argv);
-            require('nodejs:nodemon');
-            end = true;
-            return;
-          default:
-            // special case for squashed -vvv flags
-            if (/^-v+$/.test(arg)) {
-              opts.verbose += arg.length - 1;
-            } else {
-              opts._args = args.slice(idx);
-              return;
-            }
-        }
-      }
-    })();
-    if(end) return;
-  } catch(e) {
-    printBanner();
-    usage(e.message || String(e));
-    process.exit(1);
-  }
-  if (opts.help) {
-    printBanner();
-    usage();
-    process.exit(0);
-  }
-
-  printBanner();
-
-  switch(opts.verbose) {
-    case 0         : logging.setLevel(logging.WARN);    break;
-    case 1         : logging.setLevel(logging.INFO);    break;
-    case 2         : logging.setLevel(logging.VERBOSE); break;
-    default        : logging.setLevel(logging.DEBUG);   break;
-  }
-  logging.info("Log level: #{logging.levelNames[logging.getLevel()]}");
-
-  if (opts._args.length > 0) {
-    configfile = opts._args.shift();
+  // --autorestart:
+  
+  var arg = args[0];
+  if(arg === '-r' || arg === '--autorestart') {
+    process.argv .. remove(arg);
+    // nodemon has no API - it just takes over as soon as it's imported.
+    // we need to modify the original ARGV:
+    // [ '/path/to/node',
+    //   '/path/to/conductance',
+    //   'serve', ...]
+    //
+    // To look like a valid nodemon invocation:
+    //
+    // [ '/path/to/node',
+    //   '/path/to/nodemon',
+    //   '--exec',
+    //   '/path/to/conductance',
+    //   'serve', ...]
+    //
+    process.argv.splice(1, 1, require.resolve('nodejs:nodemon').path, '--exec', process.argv[1]);
+    // console.log(process.argv);
+    require('nodejs:nodemon');
+    return;
   }
 
   //----------------------------------------------------------------------
   // main program:
+
+  printBanner();
+
+  if (args.length > 0 && args[0].charAt(0) != '-') {
+    configfile = args.shift();
+  }
 
   var config = _config.loadConfig(configfile);
   var main = config.run || (function() {
@@ -224,8 +195,8 @@ exports.serve = function(args) {
   });
 
   try {
-    process.argv = process.ARGV = [env.executable, configfile].concat(opts._args);
-    main.call(config, opts._args);
+    process.argv = process.ARGV = [env.executable, configfile].concat(args);
+    main.call(config, args);
   } catch(e) {
     process.stdout.write("\nOni Conductance exiting with fatal error:\n#{e.toString()}\n\n");
     process.exit(1);

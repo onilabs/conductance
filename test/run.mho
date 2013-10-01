@@ -5,6 +5,7 @@ var { SystemRoutes,
     } = require('mho:server/routes');
 var { Port, Route } = require('mho:server');
 var url = require('sjs:url');
+var helper = require('./helper');
 
 //----------------------------------------------------------------------
 // Array of ports that conductance will listen on:
@@ -37,44 +38,59 @@ var serverConfig = {
 };
 
 exports.run = function(args) {
-  var helper = require('./helper');
+  require('mho:server').run(serverConfig);
+}
+
+if (require.main === module) {
+  var args = require('sjs:sys').argv();
   if (args.length == 0) {
-    return require('mho:server').run(serverConfig);
+    return exports.run();
   } else if (args[0] === '--karma') {
+    var karmaConf = url.normalize('./conf/karma.js', module.id);
     args.shift();
+    var runKarma = -> require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
     if(args[0] === 'run') {
-      args.splice(1, 0, '--', 'app:test/run.html');
-    } else {
-      args.splice(1,0, url.normalize("./conf/karma.js", module.id) .. url.toPath);
-    }
-    require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
-    return;
-  }
-  var cutil = require('sjs:cutil');
-  var string = require('sjs:string');
-  var func = require('sjs:function');
-
-  // integration tests expect a server to be running
-  var serverRunning = false, cleanup = -> null;
-  var startServer = function() {
-    serverRunning = true;
-    var ctx = cutil.breaking(brk -> helper.serve(serverConfig, brk));
-    cleanup = ctx.resume;
-  };
-
-  var init = function(runner) {
-    // inherit from runner.reporter, and amend its reporting
-    // functions with hooks to start/stop server as necessary
-    var reporter = runner.reporter = Object.create(runner.reporter);
-    reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
-      if (!serverRunning && ctx.module() .. string.startsWith('integration/')) {
-        startServer();
+      args.splice(1, 0, '--', require(karmaConf).testScript);
+      runKarma();
+    } else if(args[0] === 'start') {
+      args.splice(1,0, karmaConf .. url.toPath);
+      helper.serve(serverConfig) {||
+        runKarma();
+        // XXX karma is fire-and-forget, we can't wait for its completion
+        hold();
       }
-    });
-    reporter.suiteEnd = func.seq(-> cleanup(), reporter.suiteEnd);
-  }
+    } else {
+      throw new Error("unknown karma command: #{args[0]}");
+    }
+    return;
+  } else {
+    // nonzero args: serve while running tests
+    var cutil = require('sjs:cutil');
+    var string = require('sjs:string');
+    var func = require('sjs:function');
 
-  require('./run.html').run({
-    init: init,
-  });
+    // integration tests expect a server to be running
+    var serverRunning = false, cleanup = -> null;
+    var startServer = function() {
+      serverRunning = true;
+      var ctx = cutil.breaking(brk -> helper.serve(serverConfig, brk));
+      cleanup = ctx.resume;
+    };
+
+    var init = function(runner) {
+      // inherit from runner.reporter, and amend its reporting
+      // functions with hooks to start/stop server as necessary
+      var reporter = runner.reporter = Object.create(runner.reporter);
+      reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
+        if (!serverRunning && ctx.module() .. string.startsWith('integration/')) {
+          startServer();
+        }
+      });
+      reporter.suiteEnd = func.seq(-> cleanup(), reporter.suiteEnd);
+    }
+
+    require('./run.html').run({
+      init: init,
+    });
+  }
 }

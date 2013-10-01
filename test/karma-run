@@ -1,4 +1,0 @@
-#!/usr/bin/env sjs
-var conf = require('./conf/karma.js')
-process.argv.splice(2, 0, 'run', '--', conf.testScript);
-require('nodejs:karma-sjs-adapter/karma', {main:true});
