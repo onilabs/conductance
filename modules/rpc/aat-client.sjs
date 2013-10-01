@@ -140,7 +140,7 @@ function openTransport(server) {
       // XXX we actually don't want to use 'unbatched' here, because
       // we don't need to map the return value. We want some async
       // equivalent to 'unbatched'
-      console.log(messages);
+      //console.log(messages);
       if (!this.active) throw new Error("inactive transport");
 
       try {

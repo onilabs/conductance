@@ -157,7 +157,7 @@ __js {
   function escapeForTag(s, tag) {
     switch(tag) {
     case 'script':
-      return String(s).replace(/\<\//g, '<\\x3C');
+      return String(s).replace(/\<\//g, '\\x3C/');
       break;
     case 'style':
       return String(s).replace(/\</g, '\\<');
