@@ -106,7 +106,7 @@ exports.run = function(args) {
     } else if (command == '--verbose') {
       verbosity++;
     } else if (/^-v+$/.test(command)) {
-      verbosity += arg.length - 1;
+      verbosity += command.length - 1;
     } else {
       // stop at first non-option arg
       break;
