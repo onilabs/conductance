@@ -449,8 +449,7 @@ var install = function(opts) {
 		if (group instanceof(Function)) group = group();
 
 		if (!GroupProto.isPrototypeOf(group)) {
-			logging.warn("Deprecation warning: exports.systemd should be a systemd.Group");
-			group = exports.Group(group);
+			throw new Error("exports.systemd should be (or return) a systemd.Group");
 		}
 
 		var namespace = group.name;
