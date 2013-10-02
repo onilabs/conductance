@@ -91,14 +91,25 @@ function createTransport() {
     active: true,
     exchangeMessages: function(in_messages, out_messages) {
       // assert(this.active)
+
+      // put new incoming messages into our receive_q:      
+      in_messages .. each {
+        |mes|
+        receive_q.unshift(mes);
+      }
+
+      if (exchange_in_progress) { 
+        // Reentrant call to exchangeMessages
+        // we're not going to wait for outgoing messages; there is
+        // already an exchange in progress that will pick those up
+        if (in_messages.length && resume_receive) {
+          resume_receive();
+        }        
+        return;
+      }
+
       try {
         exchange_in_progress = true;
-
-        // put new incoming messages into our receive_q:
-        in_messages .. each {
-          |mes|
-          receive_q.unshift(mes);
-        }
         
         // now resume our receiver; this might lead to 
         // re-entrant calls to send(), which is good, because then 
