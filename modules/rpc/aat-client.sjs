@@ -39,7 +39,7 @@ var http = require('sjs:http');
 var url  = require('sjs:url');
 var { each } = require('sjs:sequence');
 var func = require('sjs:function');
-var { ConnectionError } = require('./error');
+var { TransportError } = require('./error');
 
 var AAT_VERSION   = '2';
 var SERVER_PATH   = '__aat_bridge';
@@ -116,7 +116,7 @@ function openTransport(server) {
         
         // check for error response:
         if (!messages[0] || messages[0] != 'ok') {
-          throw new Error("Transport Error (#{messages[0]})");
+          throw TransportError("response is not ok: #{messages[0]}");
         }
         
         // put any messages in receive queue:
@@ -136,6 +136,50 @@ function openTransport(server) {
     }
   }
 
+  function sendCommand(url, opts) {
+    if (!this.active) throw TransportError("inactive transport");
+    var result;
+    try {
+      try {
+        result = http.request(url, opts);
+      } catch(e) {
+        throw TransportError(e.message);
+      }
+      
+      result = JSON.parse(result);
+
+      // check for error response:
+      if (!result[0] || result[0].indexOf('ok') != 0)
+        throw TransportError("response is not ok: #{result[0]}");
+
+      if (!transport_id_suffix.length) {
+        // we're expecting an id
+        if (result[0].indexOf('ok_') != 0)
+          throw TransportError("Missing transport ID");
+        // ok, all good, we've got an id:
+        transport_id_suffix = result[0].substr(2);
+        this.id = transport_id_suffix.substr(1);
+        
+        // start our polling loop:
+        poll_stratum = spawn (hold(0),poll_loop());
+      }
+      else if (result[0] != 'ok')
+        throw TransportError("response not ok: #{result[0]}");
+
+      // put any messages in receive queue:
+      result.shift();
+      result .. each {
+        |mes|
+        receive_q.unshift({ type: 'message', data: mes });
+      }
+      // prod receiver:
+      if (receive_q.length && resume_receive) resume_receive();
+    } catch (e) {
+      this.close();
+      throw e;
+    }
+  }
+
 
   //----
 
@@ -144,8 +188,8 @@ function openTransport(server) {
 
     reconnect: function() {
       var t = openTransport(server);
-      t.ping();
-      return t;
+      t._reconnect(this.id);
+      return [t, t.id === this.id];
     },
 
     send: func.unbatched(function(messages) {
@@ -153,118 +197,36 @@ function openTransport(server) {
       // we don't need to map the return value. We want some async
       // equivalent to 'unbatched'
       //console.log(messages);
-      if (!this.active) throw ConnectionError("inactive transport");
-
-      try {
-        var result;
-        try {
-          result = http.request(
-            [server, SERVER_PATH, AAT_VERSION,
-            {
-              cmd: "send#{transport_id_suffix}"
-            }
-            ],
-            { method: 'POST', 
-              headers: {'Content-Type': 'text/plain; charset=utf-8'},
-              body: JSON.stringify(messages)
-            });
-        } catch(e) {
-          throw new ConnectionError(e.message);
+      sendCommand.call(this,
+        [server, SERVER_PATH, AAT_VERSION,
+        {
+          cmd: "send#{transport_id_suffix}"
         }
-        
-        result = JSON.parse(result);
-        
-        // check for error response:
-        if (!result[0] || result[0].indexOf('ok') != 0)
-          throw new Error("Transport Error (#{result[0]})");
-        
-        // parse response code:
-        if (!transport_id_suffix.length) {
-          // we're expecting an id
-          if (result[0].indexOf('ok_') != 0) 
-            throw new Error("Transport Error (Missing ID)");
-          // ok, all good, we've got an id:
-          transport_id_suffix = result[0].substr(2);
-          this.id = transport_id_suffix.substr(1);
-          
-          // start our polling loop:
-          poll_stratum = spawn (hold(0),poll_loop());
-        }
-        else if (result[0] != 'ok')
-          throw new Error("Transport Error (#{result[0]} instead of 'ok')");
-        
-        // put any messages in receive queue:
-        result.shift();
-        result .. each {
-          |mes| 
-          receive_q.unshift({ type: 'message', data: mes });
-        }
-        // prod receiver:
-        if (receive_q.length && resume_receive) resume_receive();
-      }
-      catch (e) {
-        this.close();
-        throw e;
-      }
+        ],
+        { method: 'POST', 
+          headers: {'Content-Type': 'text/plain; charset=utf-8'},
+          body: JSON.stringify(messages)
+        });
       return messages; // XXX no point in mapping the return value
     }),
 
-    // XXX factor out common code between send() and sendData()
     sendData: function(header, data) {
-      if (!this.active) throw ConnectionError("inactive transport");
-
-      try {
-        var result = http.request(
-          [server, SERVER_PATH, AAT_VERSION,
-           {
-             cmd: "data#{transport_id_suffix}",
-             header: JSON.stringify(header)
-           }
-          ],
-          {
-            method: 'POST',
-            headers: {'Content-Type': 'text/plain; charset=utf-8'},
-            body: data
-          });
-        
-        result = JSON.parse(result);
-
-        // check for error response:
-        if (!result[0] || result[0].indexOf('ok') != 0)
-          throw new Error("Transport Error (#{result[0]})");
-
-        // parse response code:
-        if (!transport_id_suffix.length) {
-          // we're expecting an id
-          if (result[0].indexOf('ok_') != 0) 
-            throw new Error("Transport Error (Missing ID)");
-          // ok, all good, we've got an id:
-          transport_id_suffix = result[0].substr(2);
-          this.id = transport_id_suffix.substr(1);
-          
-          // start our polling loop:
-          poll_stratum = spawn (hold(0),poll_loop());
+      sendCommand.call(this
+        [server, SERVER_PATH, AAT_VERSION,
+        {
+          cmd: "data#{transport_id_suffix}",
+          header: JSON.stringify(header)
         }
-        else if (result[0] != 'ok')
-          throw new Error("Transport Error (#{result[0]} instead of 'ok')");
-        
-        // put any messages in receive queue:
-        result.shift();
-        result .. each {
-          |mes| 
-          receive_q.unshift({ type: 'message', data: mes });
-        }
-        // prod receiver:
-        if (receive_q.length && resume_receive) resume_receive();
-      }
-      catch (e) {
-        this.close();
-        throw e;
-      }
+        ],
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'text/plain; charset=utf-8'},
+          body: data
+        });
     },
 
     receive: func.sequential(function() {
-      if (!this.active) throw ConnectionError("inactive transport");
+      if (!this.active) throw TransportError("inactive transport");
 
       if (!receive_q.length) {
         waitfor(var e) {
@@ -279,8 +241,11 @@ function openTransport(server) {
       return receive_q.pop();
     }),
 
-    ping: function() {
-      http.post([ server, SERVER_PATH, AAT_VERSION, { cmd: "ping" } ]);
+    _reconnect: function(id) {
+      if(!id) throw new Error("can't reconnect - transport ID is empty");
+      sendCommand.call(this, [
+        server, SERVER_PATH, AAT_VERSION, { cmd: "reconnect_#{id}" }
+      ]);
     },
 
     close: function() {

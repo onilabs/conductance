@@ -44,6 +44,7 @@ var buffer  = require('nodejs:buffer');
 
 var { each, map, toArray } = require('sjs:sequence');
 var { ownValues } = require('sjs:object');
+var { startsWith } = require('sjs:string');
 var { createID } = require('../server/random');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
@@ -265,7 +266,7 @@ function createTransportHandler(transportSink) {
       logging.info("new transport #{transport.id}");
       out_messages.unshift("ok_#{transport.id}");
     }
-    else if (command.indexOf('send_') == 0) {
+    else if (command .. startsWith('send_')) {
       // find the transport:
       var transport = transports[command.substr(5)];
       if (!transport) {
@@ -282,7 +283,7 @@ function createTransportHandler(transportSink) {
         out_messages.unshift('ok');
       }
     }
-    else if (command.indexOf('data_') == 0) {
+    else if (command .. startsWith('data_')) {
       // find the transport:
       var transport = transports[command.substr(5)];
       if (!transport) {
@@ -295,11 +296,11 @@ function createTransportHandler(transportSink) {
             header: JSON.parse(req.url.params().header),
             data: req.body
           }], 
-                                   out_messages);
+          out_messages);
         out_messages.unshift('ok');
       }
     }
-    else if (command.indexOf('poll_') == 0) {
+    else if (command .. startsWith('poll_')) {
       // find the transport:
       var transport = transports[command.substr(5)];
       if (!transport) {
@@ -311,7 +312,21 @@ function createTransportHandler(transportSink) {
                                out_messages);
       }
     }
-    else if (command.indexOf('close_') == 0) {
+    else if (command .. startsWith('reconnect_')) {
+      var id = command.substr(10);
+      var transport = transports[id];
+      if(transport) {
+        logging.info("transport", id, "reconnected");
+        out_messages.unshift('ok');
+      } else {
+        logging.info("attempt to reconnect missing transport", id, "- creating new");
+        transport = createTransport(finish);
+        transportSink(transport);
+        out_messages.unshift("ok_#{transport.id}");
+      }
+      transport.exchangeMessages([], out_messages);
+    }
+    else if (command .. startsWith('close_')) {
       var transport = transports[command.substr(6)];
       if (transport) transport.__finally__();
     }

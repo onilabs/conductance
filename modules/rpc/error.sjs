@@ -1,12 +1,12 @@
 /** @nodoc */
-var ConnectionErrorProto = new Error("Connection error");
-exports.ConnectionError = function(message, connection) {
-  var err = Object.create(ConnectionErrorProto);
+var TransportErrorProto = new Error();
+exports.TransportError = function(message, connection) {
+  var err = Object.create(TransportErrorProto);
   err.message = message;
   err.connection = connection;
   return err;
 }
 
-exports.isConnectionError = function(e) {
-  return ConnectionErrorProto.isPrototypeOf(e);
+exports.isTransportError = function(e) {
+  return TransportErrorProto.isPrototypeOf(e);
 }

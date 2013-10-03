@@ -54,21 +54,22 @@ Protocol:
 
 var logging = require('sjs:logging');
 var { each, toArray, map, filter, transform, isStream, Stream, at } = require('sjs:sequence');
-var { pairsToObject, ownPropertyPairs } = require('sjs:object');
+var { pairsToObject, ownPropertyPairs, ownValues } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
 var { isString } = require('sjs:string');
 var { isFunction, exclusive } = require('sjs:function');
+var { Emitter } = require('sjs:events');
 var { keys, propertyPairs } = require('sjs:object');
 
 
 /**
-  @function isConnectionError
+  @function isTransportError
   @param {Error} [err]
   @return Boolean
   @summary Returns whether `err` is a bridge connection error
 */
-var { isConnectionError, ConnectionError } = require('./error');
-exports.isConnectionError = isConnectionError;
+var { isTransportError, TransportError } = require('./error');
+exports.isTransportError = isTransportError;
 
 //----------------------------------------------------------------------
 // marshalling
@@ -277,49 +278,62 @@ function BridgeConnection(transport, opts) {
   var published_func_counter = 0;
   var closed = false;
   var throwing = opts.throwing !== false;
-  var suspendedCalls; // client-side calls attempted, suspended while attempting to reconnect
   var statusObs;
-  var _originalTransport = transport;
+  var _lastTransport = transport;
 
-  var setStateProp = function(key, val) {
-    if(!stateObs) return;
-    var s = stateObs.get() || {};
+  var sessionLost = Emitter(); // session has been lost (may be dead, or reconnected with a different session)
+  var reconnected = Emitter(); // reconnected after a dropout
+
+  if (opts.publish)
+    published_apis[0] = opts.publish;
+
+  var setStatusProp = function(key, val) {
+    if(!statusObs) return;
+    var s = statusObs.get() || {};
     s[key] = val;
-    stateObs.set(s);
+    statusObs.set(s);
   }
 
-  if (opts.api)
-    published_apis[0] = opts.api;
-
-  var getTransport = function() {
-    if(!transport) return transport;
-    if (suspendedCalls) {
-      waitfor(var err) {
-        suspendedCalls.push(resume);
+  var transportRetry = function(block) {
+    var count=0;
+    while(count++<3) {
+      if (!transport) {
+        // transport is known to be down - just wait for it to come back
+        reconnected.wait();
+      }
+      try {
+        return block(transport);
+      } catch(e) {
+        if (!isTransportError(e)) throw e;
+        attemptReconnect();
+        continue;
       }
     }
-    if(err) throw err;
-    return transport;
   }
 
   // attempt reconnect (or wait for an existing attempt to complete).
   // returns on success, throws on failure
   var disconnectHandler;
   var attemptReconnect = exclusive(function (err) {
+    if(closed) return;
     logging.debug("rpc/bridge: connection lost,", disconnectHandler ? "attempting reconnect" : "no disconnectHandler");
+    err = err || TransportError("transport disconnected");
     if (!disconnectHandler) throw err;
-    setStateProp('connected', false);
-    setStateProp('connecting', false);
+    setStatusProp('connected', false);
+    setStatusProp('connecting', false);
     var t = transport;
-    transport = null;
-    suspendedCalls = [];
-    t.__finally__();
+    if(t) {
+      _lastTransport = t;
+      transport = null;
+      t.__finally__();
+    }
 
     var finish = function(err) {
       logging.debug("rpc/bridge: reconnect #{err ? "failed" : "succeeded"}");
-      if (suspendedCalls) suspendedCalls .. each(f -> spawn(f(err)));
-      suspendedCalls = null;
-      if(err) throw err;
+      if (err) {
+        sessionLost.emit(err);
+        throw err;
+      }
     }
 
     try {
@@ -333,38 +347,44 @@ function BridgeConnection(transport, opts) {
     finish();
   }, true);
 
-
   var connection = {
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
     received_blobs: {},
     sendBlob: function(id, obj) {
-      getTransport().sendData(id, obj);
-      return id;
+      return transportRetry(function(t) {
+        t.sendData(id, obj);
+        return id;
+      });
     },
     handleDisconnect: function(f) {
       disconnectHandler = this.disconnectHandler = f;
     },
     reconnect: exclusive(function(f) {
-      // reconnects to the server, sending a ping()
-      // to verify connectivity.
-      // returns bool.
+      // reconnects to the server, returning bool (true = success)
       // On success, `transport` will be set
       // to the connected transport
       var t;
-      if (!_originalTransport.reconnect) throw new Error("transport does not support reconnections");
+      if (!_lastTransport.reconnect) throw new Error("transport does not support reconnections");
       logging.debug("rpc/bridge: reconnecting ...");
-      setStateProp('connecting', true);
+      setStatusProp('connecting', true);
+      var sameSession;
       try {
-        t = _originalTransport.reconnect();
+        [t, sameSession] = _lastTransport.reconnect();
       } catch(e) {
         logging.debug("rpc/bridge: transport.reconnect() failed");
         return false;
       } finally {
-        setStateProp('connecting', false);
+        setStatusProp('connecting', false);
       }
       transport = t;
-      setStateProp('connected', true);
-      logging.debug("rpc/bridge: transport.reconnect() succeeded");
+      // execute getAPI outside of try/catch, as an error here usually means the API is no longer available (unrecoverable)
+      setStatusProp('connected', true);
+      reconnected.emit();
+      if (!sameSession) {
+        sessionLost.emit();
+        getAPI(); // XXX we assume the API will be the same (and discard it),
+                  // as we're requesting the same ID
+      }
       return true;
     }, true),
     status: function() {
@@ -375,33 +395,31 @@ function BridgeConnection(transport, opts) {
     },
     makeCall: function(api, method, args) {
       var call_no = ++call_counter;
-      var tr;
       waitfor {
-        // initiate waiting for return value:
-        waitfor (var rv, isException) {
-          pending_calls[call_no] = resume;
-        }
-        retract {
-          if(tr) tr.send(marshall(['abort', call_no], connection));
-        }
-        finally {
-          delete pending_calls[call_no];
-        }
-      }
-      and {
-        // make the call. If the send() fails, we assume that the
-        // other side hasn't received the call, so it's safe to retry
-        var args = marshall(['call', call_no, api, method, toArray(args)], connection);
-        while(true) {
-          try {
-            transport.send(args);
-            tr = transport;
-            break;
-          } catch(e) {
-            if (!isConnectionError(e)) throw e;
-            attemptReconnect(e);
+        waitfor {
+          // initiate waiting for return value:
+          waitfor (var rv, isException) {
+            //logging.debug("awaiting result for call #{call_no} (#{method})");
+            pending_calls[call_no] = resume;
           }
+          retract {
+            //logging.debug("call #{call_no} (#{method}) retracted");
+            if(transport) transport.send(marshall(['abort', call_no], connection));
+          }
+          finally {
+            //logging.debug("deleting call responder #{call_no} (#{method})");
+            delete pending_calls[call_no];
+          }
+          //logging.debug("got result for call #{call_no} - #{rv}");
         }
+        and {
+          // make the call.
+          var args = marshall(['call', call_no, api, method, toArray(args)], connection);
+          transportRetry(t -> t.send(args));
+        }
+      } or {
+        var err = sessionLost.wait();
+        throw err || TransportError("session lost");
       }
       
       if (isException) throw rv;
@@ -418,31 +436,37 @@ function BridgeConnection(transport, opts) {
     },
     __finally__: function() {
       closed = true;
-      suspendedCalls = null;
       spawn(this.stratum.abort());
       if (transport) {
         transport.__finally__();
         transport = null;
       }
-      logging.debug("bridge connection ended");
     },
   };
 
   function receiver() {
     while (1) {
-      try {
-        var packet = transport.receive();
-      } catch(e) {
-        if(closed || !throwing) break;
-        attemptReconnect(ConnectionError(e.message || String(e)));
-        continue; // above code will throw() if it can't reconnect
-      }
-      if (packet.type == 'message')
-        receiveMessage(packet);
-      else if (packet.type == 'data')
-        receiveData(packet);
-      else {
-        logging.warn("Unknown packet '#{packet.type}' received");
+      waitfor {
+        try {
+          var packet = transport.receive();
+        } catch(e) {
+          if(closed || !throwing) break;
+          logging.debug("transport error in receive()");
+          attemptReconnect(TransportError(e.message || String(e)));
+          continue; // above code will throw() if it can't reconnect
+        }
+        logging.debug("received packet", packet);
+        if (packet.type == 'message')
+          receiveMessage(packet);
+        else if (packet.type == 'data')
+          receiveData(packet);
+        else {
+          logging.warn("Unknown packet '#{packet.type}' received");
+        }
+      } or {
+        // restart the loop when reconnected (no point in
+        // listening to a stale transport
+        reconnected.wait();
       }
     }
   }
@@ -470,25 +494,31 @@ function BridgeConnection(transport, opts) {
         // xxx asynchronize, so that executing_calls[call_no] will be filled in:
         hold(0);
         var isException = false;
-        try {
-          var rv;
-          if (api_id == -1)
-            rv = published_funcs[method].apply(null, args);
-          else
-            rv = published_apis[api_id][method].apply(published_apis[api_id], args);
-        }
-        catch (e) {
-          rv = e;
-          isException = true;
-        }
-        try {
-          transport.send(marshall(["return#{isException? '_exception':''}", 
-                                   call_no, rv],
-                                  connection));
-        }
-        catch (e) {
-          // transport closed -> ignore
-          // XXX anything else we need to do?
+        waitfor {
+          try {
+            var rv;
+            if (api_id == -1)
+              rv = published_funcs[method].apply(null, args);
+            else
+              rv = published_apis[api_id][method].apply(published_apis[api_id], args);
+          }
+          catch (e) {
+            rv = e;
+            isException = true;
+          }
+
+          try {
+            transport.send(
+              marshall(["return#{isException? '_exception':''}", call_no, rv],
+              connection)
+            );
+          }
+          catch (e) {
+            // transport closed -> ignore
+            // XXX can we attempt reconnect here?
+          }
+        } or {
+          sessionLost.wait();
         }
         finally {
           delete executing_calls[call_no];
@@ -504,8 +534,14 @@ function BridgeConnection(transport, opts) {
       break;
     }
   }
+
+  // XXX we want the api_name to be relative to the current app's base; not
+  // sure how that's going to work from the server-side (sys:resolve??)
+  var getAPI = -> connection.makeCall(0, 'getAPI', [opts.api]);
   
   connection.stratum = spawn receiver();
+  if (opts.api)
+    connection.api = getAPI();
   return connection;
 }
 
@@ -537,12 +573,7 @@ exports.connectWith = function(transport, api_name, block) {
   if (!transport || typeof transport != 'object') {
     transport = require('./aat-client').openTransport(transport);
   }
-  var connection = BridgeConnection(transport, {throwing:true});
-
-  // retrieve server api:
-  // XXX we want the api_name to be relative to the current app's base; not
-  // sure how that's going to work from the server-side (sys:resolve??)
-  connection.api = connection.makeCall(0, 'getAPI', [api_name]);
+  var connection = BridgeConnection(transport, {throwing:true, api:api_name});
 
   if (block) {
     using(connection) {
@@ -564,7 +595,7 @@ exports.connectWith = function(transport, api_name, block) {
    @return {::BridgeConnection}
 */
 exports.accept = function(getAPI, transport) {
-  var connection = BridgeConnection(transport, {api: {getAPI:getAPI}, throwing:false});
+  var connection = BridgeConnection(transport, {publish: {getAPI:getAPI}, throwing:false});
   return connection;
 };
 
@@ -594,8 +625,11 @@ exports.accept = function(getAPI, transport) {
 exports.AutoReconnect = function(opts) {
   opts = opts || {};
   var backoff = opts.backoff || 1.5;
-  var timeout = opts.timeout === undefined ? 30 : (opts.timeout || undefined);
+  var timeout;
+  if(opts.timeout !== null)
+    timeout = (opts.timeout || 30) * 1000;
   return function(connection, err, status) {
+    logging.debug("AutoReconnect start");
     var waitTime = (opts.initialDelay || 1) * 1000;
     waitfor {
       if(status) {
@@ -608,10 +642,12 @@ exports.AutoReconnect = function(opts) {
       while(1) {
         hold(waitTime);
         waitTime = waitTime * backoff;
+        logging.debug("AutoReconnect: attempting reconnect");
         if (connection.reconnect()) return;
       }
     } or {
       hold(timeout);
+      logging.debug("AutoReconnect timed out");
     }
   };
 }
