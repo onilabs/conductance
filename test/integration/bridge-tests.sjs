@@ -4,14 +4,16 @@ var bridge = require('mho:rpc/bridge');
 var http = require('sjs:http');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
+var { each } = require('sjs:sequence');
+var { contains } = require('sjs:string');
 
 var apiUrl = -> helper.url('test/integration/fixtures/bridge.api');
 
 context('bridge error handling') {||
-  var apiName = Url.parse(apiUrl()).relative;
   var apiid;
 
   test.beforeAll {|s|
+    var apiName = Url.parse(apiUrl()).relative;
     var response = http.json([helper.url(apiName), {format:"json"}]);
     apiid = response.apiid;
     assert.ok(apiid);
@@ -33,6 +35,15 @@ context('bridge error handling') {||
     };
   }
 
+  test('includes server-side stacktrace') {||
+    //XXX should be able to disable this if server filesystem layout is sensitive
+    assert.raises({filter: e -> !bridge.isConnectionError(e) && e.toString() .. /at module file:\/\/.*fixtures\/bridge.api:\d+/.test()}) {||
+      bridge.connectWith(helper.getRoot(), apiid) {|connection|
+        connection.api.callme(function() { throw new Error('Some client error'); });
+      }
+    };
+  }
+
   test('throws connection errors') {||
     var log = [];
     assert.raises({filter: e -> bridge.isConnectionError}) {||
@@ -48,9 +59,10 @@ context('bridge error handling') {||
 }
 
 context('api loader') {||
-  var url = apiUrl();
+  var url;
 
   test.beforeAll {||
+    url = apiUrl();
     var path = Url.parse(url).relative;
     var prefix = path.slice(0, path.indexOf('test/'));
     require('mho:rpc/aat-client').setServerPrefix(prefix);

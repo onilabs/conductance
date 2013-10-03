@@ -7,7 +7,10 @@ var { isBrowser } = require('sjs:test/suite');
 var host = null;
 var prefix = isBrowser ? (Url.normalize('../', module.id) .. Url.parse()).path : '/';
 
-exports.getRoot = -> Url.normalize(prefix, host);
+exports.getRoot = function() {
+  if(!host) throw new Error("Host not yet set");
+  return Url.normalize(prefix, host);
+};
 exports.setHost = h -> host = h;
 
 exports.url = u -> Url.normalize(u, exports.getRoot());

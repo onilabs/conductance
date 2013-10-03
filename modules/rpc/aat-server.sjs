@@ -39,6 +39,7 @@
 var sjcl    = require('sjs:sjcl');
 var fs      = require('sjs:nodejs/fs');
 var logging = require('sjs:logging');
+var cutil   = require('sjs:cutil');
 var buffer  = require('nodejs:buffer');
 
 var { each, map, toArray } = require('sjs:sequence');
@@ -76,7 +77,7 @@ function defaultTransportSink(transport) {
 // transports indexed by transport id:
 var transports = {};
 
-function createTransport() {
+function createTransport(finish) {
 
   var send_q = [];
   var receive_q = [];
@@ -213,6 +214,9 @@ function createTransport() {
       or {
         hold(REAP_INTERVAL);
         break;
+      } or {
+        finish.wait();
+        break;
       }
     }
     // ok, we've been reaped; clean up transport:
@@ -236,6 +240,7 @@ function createTransport() {
 */
 function createTransportHandler(transportSink) {
   if (!transportSink) transportSink = defaultTransportSink;
+  var finish = cutil.Condition();
 
   function handler_func(req, matches) {
     logging.debug("AAT request", matches);
@@ -246,7 +251,7 @@ function createTransportHandler(transportSink) {
     
     if (command == 'send') {
       // message is arriving via a new transport -> create one:
-      var transport = createTransport();
+      var transport = createTransport(finish);
       
       transportSink(transport);
       
@@ -323,7 +328,8 @@ function createTransportHandler(transportSink) {
 
   return {
     "GET": handler_func,
-    "POST": handler_func
+    "POST": handler_func,
+    __finally__: -> finish.set(),
   }
 }
 exports.createTransportHandler = createTransportHandler;

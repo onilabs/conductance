@@ -129,9 +129,9 @@ function marshall(value, connection) {
     }
     else if (value instanceof Error) {
       var props = {};
-      props.message = value.toString(); // we want toString() to get callstack
+      props.message = value.message;
       ownPropertyPairs(value) .. each {|[name, val]|
-        if(name.charAt(0) === '_' || !val .. isFunction() || name === 'toString') continue;
+        if(val .. isFunction()) continue;
         props[name] = prepare(val);
       }
       value = { __oni_type: 'error', props: props };

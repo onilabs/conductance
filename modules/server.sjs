@@ -193,6 +193,9 @@ exports.run = function(config, block) {
     }
   }
   logging.print("\nOni Conductance finished");
+  servers .. each {|[_, _, routes]|
+    routes .. each(r -> r.__finally__());
+  }
 };
 
 
@@ -284,6 +287,10 @@ HostProto._init = func.seq(HostProto._init, function(hostName, routes) {
   this.routes = flatten(routes);
 });
 
+HostProto.__finally__ = function() {
+  this.routes .. each(r -> r.__finally__());
+};
+
 HostProto._clone = function() {
   var rv = Object.create(HostProto);
   rv._initClone(this);
@@ -352,6 +359,13 @@ RouteProto._init = func.seq(RouteProto._init, function(matcher, handlers) {
     this._handle = this._handleDirect;
   }
 });
+RouteProto.__finally__ = function() {
+  if(Array.isArray(this.handlers)) {
+    this.handlers .. each(h -> h.__finally__());
+  } else {
+    this.handlers.__finally__ && this.handlers.__finally__();
+  }
+}
 
 RouteProto._clone = function() {
   var rv = Object.create(RouteProto);
