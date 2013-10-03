@@ -2,7 +2,7 @@ var { propertyPairs, keys } = require('sjs:object');
 var { each, map, Stream, transform, join, buffer, unpack, slice, reduce, filter, indexed, toArray, at, zip, consume } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { unbatched } = require('sjs:function');
-var { instantiate, isSimpleType, IdToKey, cotraverse } = require('./schema');
+var { instantiate, isSimpleType, IdToKey, KeyToId, cotraverse } = require('./schema');
 var { Context } = require('./gcd/backend');
 var { ChangeBuffer } = require('./helpers');
 
@@ -148,6 +148,7 @@ function JSEntityToGCDEntity(js_entity, schemas) {
   var schema = schemas[js_entity.schema];
   if (!schema) throw new Error("Unknown schema #{js_entity.schema}");
   var key = js_entity.id;
+  var primary;
   var gcd_entity = { property:[] };
 
   js_entity.data .. cotraverse(schema) {
@@ -165,6 +166,11 @@ function JSEntityToGCDEntity(js_entity, schemas) {
       if (key && node.value !== key) 
         throw new Error("Google Cloud Datastore: Inconsistent key values in data ('#{key}' != '#{node.value}')");
       key = node.value;
+    }
+    else if (descriptor.type === 'primary') {
+      if (node.value === undefined) throw new Error("Google Cloud Datastore: primary property without value");
+      if (primary !== undefined && node.value !== primary) throw new Error("Google Cloud Datastore: Inconsistent values for primary property ('#{primary}' != '#{node.value}')");
+      primary = node.value;
     }
     else if (descriptor.type === 'array') {
       if (node.parent_state.arr_ctx)
@@ -204,6 +210,14 @@ function JSEntityToGCDEntity(js_entity, schemas) {
   if (!key) {
     key = schema.__parent ? schema.__parent + '/' : '';
     key += js_entity.schema;
+  }
+
+  if (primary !== undefined) {
+    var id = KeyToId(key);
+    if (!id) 
+      key += ':'+primary;
+    else if (id != primary)
+      throw new Error("Google Cloud Datastore: Primary property inconsistent with key ('#{primary}' != '#{id}')");
   }
 
   gcd_entity.key = { pathElement: keyToGCDKey(key) };
@@ -280,13 +294,13 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
   }
 
   // now go through schema and pick up special properties (such as
-  // __key), check if required properties are there, and fill in default properties
+  // __key), check if required properties are there, (and fill in default properties?)
   propertyPairs(schema) .. each {
     |[name, descriptor]|
     if (js_data[name]) continue; // already there
     var base_val;
     switch (descriptor.__type) {
-    case 'id':
+    case 'primary':
       base_val = GCDKeyToId(gcd_entity.key.pathElement);
       break;
     case 'key':
@@ -357,9 +371,11 @@ function GoogleCloudDatastore(attribs) {
         // UPSERT 
         entity = JSEntityToGCDEntity(entity, schemas);
         
-        // check if the entity has a full key path, or if we need to create an autoid
-        // XXX we don't check for `id` in the js entity, because an id might have 
-        // been constructed according to the schema (from a primary field).
+        // check if the entity has a full key path, or if we need to
+        // create an autoid XXX we don't check for `id` in the js
+        // entity, because it might be incomplete. An id might have
+        // been constructed according to the schema (from a primary
+        // field).
         var last = entity.key.pathElement[entity.key.pathElement.length-1];
         var has_path = (last.id || last.name);
         if (has_path) {
@@ -376,7 +392,7 @@ function GoogleCloudDatastore(attribs) {
       else if (entity.id)
         throw new Error("Cannot write entity #{entity.id}: Missing 'data' field");
       else
-        throw new Error("Malformed entity");
+        throw new Error("Malformed entity '#{require('sjs:debug').inspect(entity)}'");
     }
     
     // we've now got our entities sorted into `deletes`,
@@ -417,7 +433,7 @@ function GoogleCloudDatastore(attribs) {
       if (upserts.length) mutation.upsert = upserts;
       
       var result = context.blindWrite({mutation: mutation});
-      
+
       if (autoid_inserts.length) {
         // splice auto ids into return array
         var auto_id_index = 0;
