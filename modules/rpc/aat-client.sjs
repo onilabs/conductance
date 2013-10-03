@@ -39,6 +39,7 @@ var http = require('sjs:http');
 var url  = require('sjs:url');
 var { each } = require('sjs:sequence');
 var func = require('sjs:function');
+var { ConnectionError } = require('./error');
 
 var AAT_VERSION   = '2';
 var SERVER_PATH   = '__aat_bridge';
@@ -75,6 +76,9 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
    @summary To be documented
 
    @function Transport.close
+   @summary To be documented
+
+   @function Transport.reconnect
    @summary To be documented
 */
 
@@ -138,24 +142,35 @@ function openTransport(server) {
   var transport = {
     active: true,
 
+    reconnect: function() {
+      var t = openTransport(server);
+      t.ping();
+      return t;
+    },
+
     send: func.unbatched(function(messages) {
       // XXX we actually don't want to use 'unbatched' here, because
       // we don't need to map the return value. We want some async
       // equivalent to 'unbatched'
       //console.log(messages);
-      if (!this.active) throw new Error("inactive transport");
+      if (!this.active) throw ConnectionError("inactive transport");
 
       try {
-        var result = http.request(
-          [server, SERVER_PATH, AAT_VERSION,
-           {
-             cmd: "send#{transport_id_suffix}"
-           }
-          ],
-          { method: 'POST', 
-            headers: {'Content-Type': 'text/plain; charset=utf-8'},
-            body: JSON.stringify(messages)
-          });
+        var result;
+        try {
+          result = http.request(
+            [server, SERVER_PATH, AAT_VERSION,
+            {
+              cmd: "send#{transport_id_suffix}"
+            }
+            ],
+            { method: 'POST', 
+              headers: {'Content-Type': 'text/plain; charset=utf-8'},
+              body: JSON.stringify(messages)
+            });
+        } catch(e) {
+          throw new ConnectionError(e.message);
+        }
         
         result = JSON.parse(result);
         
@@ -196,7 +211,7 @@ function openTransport(server) {
 
     // XXX factor out common code between send() and sendData()
     sendData: function(header, data) {
-      if (!this.active) throw new Error("inactive transport");
+      if (!this.active) throw ConnectionError("inactive transport");
 
       try {
         var result = http.request(
@@ -249,7 +264,7 @@ function openTransport(server) {
     },
 
     receive: func.sequential(function() {
-      if (!this.active) throw new Error("inactive transport");
+      if (!this.active) throw ConnectionError("inactive transport");
 
       if (!receive_q.length) {
         waitfor(var e) {
@@ -263,14 +278,21 @@ function openTransport(server) {
 
       return receive_q.pop();
     }),
+
+    ping: function() {
+      http.post([ server, SERVER_PATH, AAT_VERSION, { cmd: "ping" } ]);
+    },
+
     close: function() {
       if (!this.closed) {
         this.closed = true;
-        try {
-          http.post([
-            server, SERVER_PATH, AAT_VERSION,
-            { cmd: "close#{transport_id_suffix}" } ]);
-        } catch (e) { /* close is a courtesy; ignore errors */ }
+        if (transport_id_suffix.length) {
+          try {
+            http.post([
+              server, SERVER_PATH, AAT_VERSION,
+              { cmd: "close#{transport_id_suffix}" } ]);
+          } catch (e) { /* close is a courtesy; ignore errors */ }
+        }
         this.active = false;
         if (poll_stratum) poll_stratum.abort();
         if (resume_receive) spawn(resume_receive(new Error('transport closed')));

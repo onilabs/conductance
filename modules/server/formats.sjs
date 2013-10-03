@@ -76,7 +76,10 @@ function apiimport(src, dest, aux) {
   dest.write("\
 var server = require('builtin:apollo-sys').hostenv !== 'xbrowser' ? #{JSON.stringify(serverRoot)};
 var bridge = require('mho:rpc/bridge');
-module.exports = bridge.connectWith(server, '#{aux.apiid}').api;
+var connection = bridge.connectWith(server, '#{aux.apiid}');
+module.exports = connection.api;
+module.exports.__connection = connection;
+connection.handleDisconnect(bridge.AutoReconnect());
 ");
 }
 

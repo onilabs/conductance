@@ -68,12 +68,27 @@ context('api loader') {||
     require('mho:rpc/aat-client').setServerPrefix(prefix);
   }
 
-  test('returns API') {||
-    require(url).ping() .. assert.eq('pong');
-    require(url).hostenv() .. assert.eq('nodejs');
+  test.beforeEach {|s|
+    s.apis = [];
+    s.require = function(url) {
+      var api = require(url);
+      s.apis.push(api);
+      return api;
+    }
   }
 
-  test('exposes connection object') {||
-    require(url).__connection .. assert.ok();
-  }.skip("Not yet implemented");
+  test.afterEach {|s|
+    s.apis .. each {|api|
+      spawn(api.__connection.__finally__());
+    }
+  }
+
+  test('returns API') {|s|
+    s.require(url).ping() .. assert.eq('pong');
+    s.require(url).hostenv() .. assert.eq('nodejs');
+  }
+
+  test('exposes connection object') {|s|
+    s.require(url).__connection .. assert.ok();
+  }
 }
