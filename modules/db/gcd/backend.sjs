@@ -299,13 +299,14 @@ function Context(attribs) {
       content = Buffer.concat(content);
       
       if (response.statusCode !== 200) {
-        if (response.statusCode >= 500 && retries < max_retries) {
+        // XXX 409 is 'too much contention' -> is it ok to retry?
+        if ((response.statusCode >= 500 || response.statusCode == 409) && retries < max_retries) {
           console.log("google-cloud-datastore backend #{response.statusCode}; retrying");
           // xxx should we have some backoff?
           ++retries;
           continue;
         }
-        throw new DatastoreError(api_func, response, content);
+        throw new DatastoreError(api_func, response, content, req_body);
       }
       
       return response_schema ? response_schema.parse(content);
@@ -320,7 +321,7 @@ exports.Context = Context;
    @class DatastoreError
    @inherits Error
 */
-function DatastoreError(func, response, content) {
+function DatastoreError(func, response, content, req_body) {
   /**
      @var DatastoreError.func
   */
@@ -344,7 +345,7 @@ function DatastoreError(func, response, content) {
   */
   this.content = content;
 
-  this.message = " Google Cloud Datastore #{this.type} failure calling '#{this.func}'. HTTP(#{this.statusCode}): #{this.content}";
+  this.message = " Google Cloud Datastore #{this.type} failure calling '#{this.func}'. HTTP(#{this.statusCode}): #{this.content} (request body size: #{(req_body||'').length/1024}kB)";
 }
 DatastoreError.prototype = new Error();
 exports.DatastoreError = DatastoreError;
