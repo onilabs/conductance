@@ -109,7 +109,7 @@ exports.isSimpleType = isSimpleType;
 // gcd specific?
 
 function KeyToId(path) {
-  var matches = /\.([^\.\/]+)$/.exec(path);
+  var matches = /\:([^\:\/]+)$/.exec(path);
   return matches ? matches[1] : null;
 }
 exports.KeyToId = KeyToId;
