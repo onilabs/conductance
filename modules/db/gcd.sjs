@@ -440,7 +440,7 @@ function GoogleCloudDatastore(attribs) {
         query.push({pathElement: keyToGCDKey(entity.id)})
       }
       catch (e) {
-        entities[i] = e;
+        entities[i] = new Error("Invalid Key '#{entity.id}'");
       }
     }
     var results = (transaction || context).lookup({
@@ -685,7 +685,9 @@ function GoogleCloudDatastore(attribs) {
 
           query: function(entities) { 
             return queryInner(entities, transaction_context) 
-          }
+          },
+
+          withTransaction: function() { throw new Error("GCD doesn't support nested transactions"); }
 
         });
         
