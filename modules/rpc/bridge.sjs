@@ -54,6 +54,7 @@ Protocol:
 
 var logging = require('sjs:logging');
 var { each, toArray, map, filter, transform, isStream, Stream, at } = require('sjs:sequence');
+var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
 var { isString } = require('sjs:string');
@@ -112,9 +113,14 @@ function Blob(obj) {
 }
 exports.Blob = Blob;
 
-function marshall(value, connection) {
 
-  var blobs = [];
+var isNodeJSBuffer;
+if (hostenv === 'nodejs')
+  isNodeJSBuffer = value -> Buffer.isBuffer(value);
+else
+  isNodeJSBuffer = -> false;
+
+function marshall(value, connection) {
 
   // XXX we can't use JSON.stringify(., replacer), because certain
   // values (such as Dates) will have been converted to strings by the
@@ -170,6 +176,10 @@ function marshall(value, connection) {
         var id = ++connection.sent_blob_counter;
         connection.sendBlob(id, value.obj);
         value = { __oni_type: 'blob', id:id };
+      }
+      else if (isNodeJSBuffer(value)) {
+        //XXX
+        throw new Error("Cannot serialize nodejs buffers across the bridge yet");
       }
       else {
         // a normal object -> traverse it
