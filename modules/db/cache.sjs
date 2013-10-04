@@ -1,6 +1,39 @@
 var { makeCache } = require('sjs:lru-cache');
-var { each, map } = require('sjs:sequence');
+var { each, map, makeIterator, Stream } = require('sjs:sequence');
+var { exclusive } = require('sjs:function');
 var { ChangeBuffer } = require('./helpers');
+
+//----------------------------------------------------------------------
+// sequence module backfill
+
+// XXX implement finalization
+function MemoizedStream(s) {
+  var memoized_results = [], done = false;
+  var iterator = makeIterator(s);
+  var next = exclusive(function() {
+    if (!iterator.hasMore())
+      done = true;
+    else
+      memoized_results.push(iterator.next());
+  }, true);
+
+  var rv = Stream(function(receiver) {
+    var i=0;
+    while (true) {
+      while (i< memoized_results.length)
+        receiver(memoized_results[i++]);
+      if (done) return;
+      next();
+    }
+  });
+
+  // XXX can we use this?
+//  rv.destroy = iterator.destroy();
+
+  return rv;
+}
+
+//----------------------------------------------------------------------
 
 // XXX need to figure out API for lifecycle - see https://app.asana.com/0/882077202919/7740493937036
 exports.Cache = function(size, upstream) {
@@ -28,14 +61,25 @@ exports.Cache = function(size, upstream) {
       
       var entry = items.get(entity.id);
       if (!entry) {
+        try {
         items.put(entity.id, entry = upstream.read(entity));
+        }
+        catch (e) { console.log("CACHE:  caught #{e} in cache"); throw e; }
       }
       return entry;
     },
     query: function(entity) {
-      return upstream.query(entity);
+      // XXX expulsion; finalization
+      var key = JSON.stringify(entity);
+      var entry = items.get(key);
+      if (entry) console.log("Query cache hit!");
+      if (!entry) {
+        items.put(key, entry = MemoizedStream(upstream.query(entity)));
+      }
+      return entry;
     },
     withTransaction: function(options, block) {
+      // for consistency, we need to have transactions handled directly by the backend:
       upstream.withTransaction(options, block);
     },
     watch: function(f) {
