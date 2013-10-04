@@ -146,7 +146,7 @@ exports.run = function(config, block) {
       } or {
         server.eachRequest {
           |req|
-          logging.info("#{req.request.method} #{req.url}");
+          logging.verbose("#{req.request.method} #{req.url}");
 
           // set standard headers:
           req.response.setHeader("Server", "Conductance"); // XXX version

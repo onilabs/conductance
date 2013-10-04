@@ -46,6 +46,7 @@ var { each, map, toArray } = require('sjs:sequence');
 var { ownValues } = require('sjs:object');
 var { startsWith } = require('sjs:string');
 var { createID } = require('../server/random');
+var { TransportError } = require('./error');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
 var PING_INTERVAL = 1000*40; // 40 seconds
@@ -138,35 +139,43 @@ function createTransport(finish) {
       }
     },
 
+    connectionReset: function() {
+      // called when a connection dropped out but has been reconnected.
+      // HTTP polling in progress should be discarded but higher-level
+      // messages (outstanding calls, APIs, etc) are still valid
+      if (resume_poll) resume_poll(false);
+    },
+
     pollMessages: function(in_messages, out_messages) {
 //      console.log('polling...');
       // assert(this.active)
       if (in_messages.length) {
         // XXX we don't support messages in poll yet
         out_messages.push('error_unsupported_poll');
-      }
-      else if (resume_poll) {
+        return;
+      } else if (resume_poll) {
         logging.warn('multiple poll');
         // Can only have one active poll
         out_messages.push('error_poll_in_progress');
+        return;
       }
-      else {
-        // give messages a small time to accumulate:
-        hold(POLL_ACCU_INTERVAL);
-        if (!send_q.length) {
-          waitfor {
-            waitfor(var e) { resume_poll = resume; }
-            finally { resume_poll = undefined; }
-            if (e) { throw e; } // XXX is this the right thing to do; or send error?
-          }
-          or {
-            hold(PING_INTERVAL);
-          }
-          
+
+      // give messages a small time to accumulate:
+      hold(POLL_ACCU_INTERVAL);
+      if (!send_q.length) {
+        waitfor {
+          waitfor(var e) { resume_poll = resume; }
+          finally { resume_poll = undefined; }
+          if (e === false) return; // cancelled
+          if (e) { throw e; } // XXX is this the right thing to do; or send error?
         }
-        transport.exchangeMessages([], out_messages);
-        out_messages.unshift('ok');
+        or {
+          hold(PING_INTERVAL);
+        }
+        
       }
+      transport.exchangeMessages([], out_messages);
+      out_messages.unshift('ok');
     },
 
     // external API:
@@ -198,7 +207,7 @@ function createTransport(finish) {
       }
       if (resume_receive)
         resume_receive(new Error('transport closed'));
-      logging.info("#{this.id} closed");
+      logging.info("aat transport #{this.id} closed");
     }
   };
 
@@ -317,6 +326,7 @@ function createTransportHandler(transportSink) {
       var transport = transports[id];
       if(transport) {
         logging.info("transport", id, "reconnected");
+        transport.connectionReset();
         out_messages.unshift('ok');
       } else {
         logging.info("attempt to reconnect missing transport", id, "- creating new");

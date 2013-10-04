@@ -2,9 +2,11 @@
 
 var { SystemRoutes,
       ExecutableDirectory,
+      Filter,
     } = require('mho:server/routes');
 var { Port, Route } = require('mho:server');
 var url = require('sjs:url');
+var logging = require('sjs:logging');
 var helper = require('./helper');
 
 //----------------------------------------------------------------------
@@ -16,22 +18,41 @@ var port = require('./conf/server.js').port;
 var serverConfig = {
   address: Port(port),
   routes: [
-    /* override bridge route to inject transport instance into server-side module */
-    Route(
-      /^__aat_bridge\/(2)$/,
-      require('mho:rpc/aat-server').createTransportHandler(
-        function(transport) {
-          require('mho:rpc/bridge').accept(
-            function(apiid) {
-              var api = apiRegistry.getAPIbyAPIID(apiid);
-              //console.log("got API ", api, "for ID ", apiid);
-              api.obj._transport = transport;
-              return api;
-            },
-            transport);
+    /* So that .api modules can:
+     *  - shutdown the current bridge transport
+     *  - send HTTP errors for the current polling request
+     *
+     * We override the default bridge routes, and inject
+     * the relevant objects into each loaded API.
+     */
+    (function() {
+      var currentAPI;
+      return Route(
+        /^__aat_bridge\/(2)$/,
+        require('mho:rpc/aat-server').createTransportHandler(
+          function(transport) {
+            require('mho:rpc/bridge').accept(
+              function(apiid) {
+                var api = apiRegistry.getAPIbyAPIID(apiid);
+                //logging.warn("got API ", api, "for ID ", apiid);
+                currentAPI = api.obj;
+                api.obj._transport = transport;
+                return api;
+              },
+              transport);
+          }
+        )
+      ) .. Filter(function(req, block) {
+        var cmd = req.url.params()['cmd'];
+        if (!currentAPI || cmd.indexOf("poll_") != 0) return block();
+        currentAPI._poll_request = req;
+        try {
+          block();
+        } finally {
+          currentAPI._poll_request = null;
         }
-      )
-    ),
+      });
+    })(),
     SystemRoutes(),
     ExecutableDirectory(process.cwd()),
   ]

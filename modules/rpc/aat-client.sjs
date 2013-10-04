@@ -39,6 +39,7 @@ var http = require('sjs:http');
 var url  = require('sjs:url');
 var { each } = require('sjs:sequence');
 var func = require('sjs:function');
+var logging = require('sjs:logging');
 var { TransportError } = require('./error');
 
 var AAT_VERSION   = '2';
@@ -131,12 +132,14 @@ function openTransport(server) {
       }
     }
     catch (e) {
-      transport.close();
-      throw e;
+      transport.closed = true;
+      if(resume_receive) resume_receive(e);
+      // if resume_receive is not set, an error will still be thrown by the next receive()
+      // because the transport is inactive
     }
   }
 
-  function sendCommand(url, opts) {
+  function sendCommand(url, opts, default_id) {
     if (!this.active) throw TransportError("inactive transport");
     var result;
     try {
@@ -152,12 +155,13 @@ function openTransport(server) {
       if (!result[0] || result[0].indexOf('ok') != 0)
         throw TransportError("response is not ok: #{result[0]}");
 
-      if (!transport_id_suffix.length) {
+      if (!transport_id_suffix) {
         // we're expecting an id
-        if (result[0].indexOf('ok_') != 0)
+        transport_id_suffix = result[0].substr(2) || default_id || "";
+        if (!transport_id_suffix)
           throw TransportError("Missing transport ID");
+        
         // ok, all good, we've got an id:
-        transport_id_suffix = result[0].substr(2);
         this.id = transport_id_suffix.substr(1);
         
         // start our polling loop:
@@ -187,9 +191,10 @@ function openTransport(server) {
     active: true,
 
     reconnect: function() {
+      this.closed = true; // mark this transport as dead; preventing server-side cleanup
+      this.__finally__();
       var t = openTransport(server);
-      t._reconnect(this.id);
-      return [t, t.id === this.id];
+      return [t, t._reconnect(transport_id_suffix)];
     },
 
     send: func.unbatched(function(messages) {
@@ -241,11 +246,12 @@ function openTransport(server) {
       return receive_q.pop();
     }),
 
-    _reconnect: function(id) {
-      if(!id) throw new Error("can't reconnect - transport ID is empty");
+    _reconnect: function(id_suffix) {
+      if(!id_suffix) throw new Error("can't reconnect - transport ID is empty");
       sendCommand.call(this, [
-        server, SERVER_PATH, AAT_VERSION, { cmd: "reconnect_#{id}" }
-      ]);
+        server, SERVER_PATH, AAT_VERSION, { cmd: "reconnect#{id_suffix}" }
+      ], undefined, id_suffix);
+      return id_suffix === transport_id_suffix;
     },
 
     close: function() {
@@ -258,10 +264,10 @@ function openTransport(server) {
               { cmd: "close#{transport_id_suffix}" } ]);
           } catch (e) { /* close is a courtesy; ignore errors */ }
         }
-        this.active = false;
-        if (poll_stratum) poll_stratum.abort();
-        if (resume_receive) spawn(resume_receive(new Error('transport closed')));
       }
+      this.active = false;
+      if (poll_stratum) poll_stratum.abort();
+      if (resume_receive) spawn(resume_receive(new Error('transport closed')));
     }
   };
 

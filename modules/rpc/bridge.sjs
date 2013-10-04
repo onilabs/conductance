@@ -315,36 +315,40 @@ function BridgeConnection(transport, opts) {
   // returns on success, throws on failure
   var disconnectHandler;
   var attemptReconnect = exclusive(function (err) {
-    if(closed) return;
-    logging.debug("rpc/bridge: connection lost,", disconnectHandler ? "attempting reconnect" : "no disconnectHandler");
-    err = err || TransportError("transport disconnected");
-    if (!disconnectHandler) throw err;
-    setStatusProp('connected', false);
-    setStatusProp('connecting', false);
-    var t = transport;
-    if(t) {
-      _lastTransport = t;
-      transport = null;
-      t.__finally__();
-    }
-
-    var finish = function(err) {
-      logging.debug("rpc/bridge: reconnect #{err ? "failed" : "succeeded"}");
-      if (err) {
-        sessionLost.emit(err);
-        throw err;
-      }
-    }
-
     try {
-      disconnectHandler(connection, err, statusObs);
-      if(!transport) throw err; // disconnectHandler didn't reconnect
-    } catch(e) {
-      finish(e);
-    } retract {
-      finish(err);
+      if(transport) {
+        _lastTransport = transport;
+        transport = null;
+      }
+
+      if(closed) return;
+      logging.debug("rpc/bridge: connection lost,", disconnectHandler ? "attempting reconnect" : "no disconnectHandler");
+      err = err || TransportError("transport disconnected");
+      if (!disconnectHandler) throw err;
+      setStatusProp('connected', false);
+      setStatusProp('connecting', false);
+
+      var finish = function(err) {
+        logging.debug("rpc/bridge: reconnect #{err ? "failed" : "succeeded"}");
+        _lastTransport.__finally__();
+        if (err) {
+          sessionLost.emit(err);
+          throw err;
+        }
+      }
+
+      try {
+        disconnectHandler(connection, err, statusObs);
+        if(!transport) throw err; // disconnectHandler didn't reconnect
+      } catch(e) {
+        finish(e);
+      } retract {
+        finish(err);
+      }
+      finish();
+    } finally {
+      if (_lastTransport) _lastTransport.__finally__();
     }
-    finish();
   }, true);
 
   var connection = {
@@ -507,15 +511,13 @@ function BridgeConnection(transport, opts) {
             isException = true;
           }
 
+          var args = marshall(["return#{isException? '_exception':''}", call_no, rv], connection);
           try {
-            transport.send(
-              marshall(["return#{isException? '_exception':''}", call_no, rv],
-              connection)
-            );
+            transportRetry(t -> t.send(args));
           }
           catch (e) {
-            // transport closed -> ignore
-            // XXX can we attempt reconnect here?
+            // ignore - we already tried to reconnect in `transportRetry`
+            logging.debug("transport closed");
           }
         } or {
           sessionLost.wait();

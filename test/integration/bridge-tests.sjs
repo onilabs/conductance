@@ -45,21 +45,24 @@ context('bridge error handling') {||
     };
   }
 
-  test('throws connection errors') {||
-    var log = [];
-    assert.raises({filter: isTransportError}) {||
-      bridge.connectWith(helper.getRoot(), apiid) {|connection|
-        log.push(connection.api.ping());
-        connection.api.dieAfter(50);
-        hold(100);
-        log.push(connection.api.ping());
-      }
+  var destroyMethods = ['destroyConnection', 'breakConnection'];
+  destroyMethods .. each {|method|
+    test("throws connection error from #{method}") {||
+      var log = [];
+      assert.raises({filter: isTransportError}) {||
+        bridge.connectWith(helper.getRoot(), apiid) {|connection|
+          log.push(connection.api.ping());
+          connection.api[method](50);
+          hold(100);
+          log.push(connection.api.ping());
+        }
+      };
+      log .. assert.eq([ 'pong' ]);
     };
-    log .. assert.eq([ 'pong' ]);
-  }
+  };
 }
 
-context('api loader') {||
+context('api importer') {||
   var url;
 
   test.beforeAll {||
@@ -104,7 +107,7 @@ context('api loader') {||
 
     waitfor {
       ping();
-      api.dieAfter(50);
+      api.destroyConnection(50);
       hold(100);
       assert.raises({filter: isTransportError}, -> ping());
       // after the above disconnect, the API should be reconnected
@@ -121,5 +124,35 @@ context('api loader') {||
       'ping', 'pong',
       'ping', 'disconnected', 'connected', /* no pong; it was aborted */
       'ping', 'pong']);
+  }
+
+  test('resumes in-progress calls') {|s|
+    var log = [];
+    var api = s.require(url);
+    var status = api.__connection.status();
+    waitfor {
+      log.push(api.callme(function() {
+        log.push("+callback");
+        hold(500);
+        log.push("-callback");
+        return "result";
+      }));
+    } or {
+      api.breakConnection(50);
+      hold();
+    } or {
+      var state = undefined;
+      status.observe {|val|
+        if (val.connected === state) continue;
+        state = val.connected;
+        log.push(state ? "connected" : "disconnected");
+      }
+    }
+    log .. assert.eq([
+      '+callback',
+      'disconnected',
+      '-callback',
+      'connected',
+      'result']);
   }
 }
