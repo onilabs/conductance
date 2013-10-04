@@ -145,13 +145,7 @@ function marshall(value, connection) {
       value = { __oni_type: 'date', val: value.getTime() };
     }
     else if (value instanceof Error) {
-      var props = {};
-      props.message = value.message;
-      ownPropertyPairs(value) .. each {|[name, val]|
-        if(val .. isFunction()) continue;
-        props[name] = prepare(val);
-      }
-      value = { __oni_type: 'error', props: props };
+      value = { __oni_type: 'error', message: value.toString() };
     }
     else if (isArrayLike(value)) {
       value = value .. map(prepare);
@@ -244,13 +238,8 @@ function unmarshallBlob(obj, connection) {
   return blob;
 }
 
-function unmarshallError(props, connection) {
-  var err = new Error(props.message);
-  props .. ownPropertyPairs .. each {|[name, val]|
-    if (name === 'message') continue;
-    err[name] = unmarshallComplexTypes(val);
-  }
-  return err;
+function unmarshallError(message, connection) {
+  return new Error(message);
 }
 
 function unmarshallAPI(obj, connection) {
