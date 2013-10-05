@@ -219,7 +219,7 @@ var ContextProto = {
    @function Context
    @param {Object} [settings]
    @setting {String} [dataset] Identifies the dataset.
-   @setting {Boolean} [devel=false] Use the local development server, with host and dataset taken from the environment, see [here](https://developers.google.com/datastore/docs/tools/devserver). *dataset*, *email*, *key*, *keyFile* and *delegatioEmail* will be ignored. 
+   @setting {Boolean} [devel=false] Use the local development server, with host and dataset taken from the environment, see [here](https://developers.google.com/datastore/docs/tools/devserver). *dataset*, *email*, *key*, *keyFile* and *delegationEmail* will be ignored. 
    @setting {String} [email] The email address of the service account (required). This information is obtained via the API console.
    @setting {String} [key] Cryptographic key (contents of PEM file). The key will be used to sign the JWT for validation by Google OAuth. One of *key* or *keyFile* is required.
    @setting {String} [keyFile] Path to the PEM file to use for the cryptographic key. Ignored if *key* is also given. If *devel* is not set, One of *key* or *keyFile* is required.
@@ -236,6 +236,7 @@ function Context(attribs) {
     if (!dataset) 
       throw new Error("Couldn't find DATASTORE_DATASET environment variable");
     req_base = process.env.DATASTORE_HOST || 'http://localhost:8080';
+    console.log("Google Cloud Datastore backend running from #{req_base}, dataset: #{dataset}");
 
     req_f = request;
   }
@@ -250,8 +251,9 @@ function Context(attribs) {
       }
       if (err) throw new Error("Google Cloud Datastore Authentication Error: #{err}");
       opts.headers.authorization = "Bearer #{token}";
+      opts.agent = keepaliveAgent;
       return request(url, opts);
-    }
+    };
     req_base = 'https://www.googleapis.com/';
     var jwt = {
       email: undefined,
@@ -274,6 +276,7 @@ function Context(attribs) {
   rv._request = function(api_func, req_body, response_schema) {  
     var max_retries = 5; // make configurable
     var retries = 0;
+    console.log("#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}");
     while (true) {
       var response = req_f(
         "#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}",
@@ -286,7 +289,6 @@ function Context(attribs) {
           body: req_body,
           jwt: jwt,
           response: 'raw',
-          agent: keepaliveAgent,
           throwing: false
         }
       );
