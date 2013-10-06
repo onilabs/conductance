@@ -58,12 +58,11 @@ other. On the client side, this is pretty straightforward:
 #endif // STEP1_ONLY || STEP2_ONLY
 <!-- file: chat.app -->
 
-    @ = require('mho:stdlib');
+    @ = require.merge('mho:stdlib');
 #ifdef STEP3
     $hl_3
-    // TODO: need to make this:
-    // { @Bootstrap, @Container } = require('mho:surface/bootstrap');
-    var { Bootstrap, Container } = require('mho:surface/bootstrap'); @Bootstrap = Bootstrap, @Container = Container;
+    var { @Bootstrap, @Container } = require('mho:surface/bootstrap');
+    var { @Input } = require('mho:surface/html');
     $hl_off
 #endif // STEP3
 
