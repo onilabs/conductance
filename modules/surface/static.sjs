@@ -1,4 +1,4 @@
-var html  = require('./html');
+var html  = require('./base');
 var { values, propertyPairs, keys } = require('sjs:object');
 var { sanitize } = require('sjs:string');
 var { map, join, each } = require('sjs:sequence');

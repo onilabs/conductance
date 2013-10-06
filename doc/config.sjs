@@ -1,6 +1,6 @@
 var { Widget, withWidget, Mechanism, Style, OnClick } = require('mho:surface');
 var { Observable, Computed, Map } = require('mho:observable');
-var { Input, Form, Button } = require('mho:surface/widgets');
+var { Input, Form, Button } = require('mho:surface/html');
 var { each, map } = require('sjs:sequence');
 var events = require('sjs:events');
 var assert = require('sjs:assert');

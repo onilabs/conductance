@@ -1,5 +1,5 @@
-var { Widget, RequireStyle, Mechanism, Class, Attrib }  = require('./html');
-var widgets  = require('./widgets');
+var { Widget, RequireStyle, Mechanism, Class, Attrib }  = require('./base');
+var html  = require('./html');
 var { map, join, each } = require('sjs:sequence');
 
 // theme->styles cache; we want to cache these, because each
@@ -91,7 +91,7 @@ exports.Label = (title, type) ->
 /**
    @function Submit
 */
-exports.Submit = (title, type) -> widgets.Submit(title, {'class':"btn"});
+exports.Submit = (title, type) -> html.Submit(title, {'class':"btn"});
 
 /**
    @Accordion

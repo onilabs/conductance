@@ -2,7 +2,7 @@
 
 var modules = [
   {id:'sjs:object', exclude: ['get']},
-  'sjs:array', 
+  'sjs:array',
   'sjs:sequence',
   'sjs:compare',
   'sjs:debug',
@@ -18,7 +18,6 @@ var modules = [
   {id:'mho:observable', exclude: ['at']},
   {id:'mho:surface'},
   {id:'mho:surface/bootstrap', exclude: ['Label', 'Submit']},
-  {id:'mho:surface/widgets', exclude: ['Map', 'Style']}
 ];
 
 if (@hostenv === 'nodejs') {

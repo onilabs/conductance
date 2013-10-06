@@ -1,7 +1,7 @@
 var { Observable, ObservableArray, Computed } = require('mho:observable');
 var s = require('mho:surface');
-var { Attrib, OnClick, Class, Widget, Mechanism, Button, appendWidget, Id, Style } = require('mho:surface');
-var { Select } = require('mho:surface/widgets');
+var { Attrib, OnClick, Class, Widget, Mechanism, appendWidget, Id, Style } = require('mho:surface');
+var { Select, Button } = require('mho:surface/html');
 var events = require('sjs:events');
 var logging = require('sjs:logging');
 var cutil = require('sjs:cutil');
