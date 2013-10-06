@@ -144,9 +144,6 @@ function marshall(value, connection) {
     else if (value instanceof Date) {
       value = { __oni_type: 'date', val: value.getTime() };
     }
-    else if (value instanceof Error) {
-      value = { __oni_type: 'error', message: value.toString() };
-    }
     else if (isArrayLike(value)) {
       value = value .. map(prepare);
     }
@@ -155,6 +152,9 @@ function marshall(value, connection) {
       if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
         value = prepare(descriptor.wrapLocal(value));
         value = { __oni_type: 'custom_marshalled', proxy: value, wrap: descriptor.wrapRemote };
+      }
+      else if (value instanceof Error) {
+        value = { __oni_type: 'error', message: value.message, stack: value.__oni_stack };
       }
       else if (value.__oni_type == 'api') {
         // publish on the connection:
@@ -215,7 +215,7 @@ function unmarshallComplexTypes(obj, connection) {
     return new Date(obj.val);
   }
   else if (obj.__oni_type == 'error') {
-    return unmarshallError(obj.props, connection);
+    return unmarshallError(obj, connection);
   }
   else if (obj.__oni_type == 'custom_marshalled') {
     return require(obj.wrap[0])[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
@@ -238,8 +238,10 @@ function unmarshallBlob(obj, connection) {
   return blob;
 }
 
-function unmarshallError(message, connection) {
-  return new Error(message);
+function unmarshallError(props, connection) {
+  var err = new Error(props.message);
+  err.__oni_stack = props.stack;
+  return err;
 }
 
 function unmarshallAPI(obj, connection) {
