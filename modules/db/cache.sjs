@@ -61,10 +61,7 @@ exports.Cache = function(size, upstream) {
       
       var entry = items.get(entity.id);
       if (!entry) {
-        try {
         items.put(entity.id, entry = upstream.read(entity));
-        }
-        catch (e) { console.log("CACHE:  caught #{e} in cache"); throw e; }
       }
       return entry;
     },
@@ -72,7 +69,6 @@ exports.Cache = function(size, upstream) {
       // XXX expulsion; finalization
       var key = JSON.stringify(entity);
       var entry = items.get(key);
-      if (entry) console.log("Query cache hit!");
       if (!entry) {
         items.put(key, entry = MemoizedStream(upstream.query(entity)));
       }
