@@ -276,7 +276,7 @@ function Context(attribs) {
   rv._request = function(api_func, req_body, response_schema) {  
     var max_retries = 5; // make configurable
     var retries = 0;
-    console.log("#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}");
+    //console.log("#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}");
     while (true) {
       var response = req_f(
         "#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}",
