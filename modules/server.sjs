@@ -164,7 +164,7 @@ exports.run = function(config, block) {
                 if(!req.response.headersSent) {
                   e.writeTo(req);
                 } else {
-                  logging.warn("HTTPError #{e.code} thrown after headersSent; ignoring");
+                  logging.verbose("HTTPError #{e.code} thrown after headersSent; ignoring");
                 }
               }
             } else {
