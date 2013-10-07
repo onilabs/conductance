@@ -1,4 +1,4 @@
-#comment vim: syntax=markdown:
+#comment vim: syntax=markdown ts=2 sts=2 sw=2:
 #define TITLE_1 Part 1: Simple Display
 #define TITLE_2 Part 2: Derived Values
 
@@ -7,6 +7,10 @@
 #else
   #define TUTORIAL_FOOTER <a href="./">&laquo; Back to tutorial</a>
 #endif // DOC
+
+#ifdef STEP4
+#define USES_API
+#endif
 
 ## Part $STEPNO: $TITLE
 
@@ -55,6 +59,17 @@ It's time to invite the rest of the world in. Rather than an array in your brows
 we need to store messages on the server, so that multiple clients can chat to each
 other. On the client side, this is pretty straightforward:
 
+#elif defined STEP5_ONLY
+
+If your network dropped out (or the server stopped) when running the previous example,
+you wouldn't have a very good experience. Conductance automatically tries to reconnect
+after a brief network outage or error, but this isn't always possible, at which point
+you'll just get error messages.
+
+Of course, showing your users stacktraces is rarely a user-friendly thing to be doing.
+Let's add some logic for dealing with errors, as well as some UI
+for notifying the user when the network connection drops out.
+
 #endif // STEP1_ONLY || STEP2_ONLY
 <!-- file: chat.app -->
 
@@ -62,7 +77,7 @@ other. On the client side, this is pretty straightforward:
 #ifdef STEP3
     $hl_3
     var { @Bootstrap, @Container } = require('mho:surface/bootstrap');
-    var { @Input } = require('mho:surface/html');
+    @html = require('mho:surface/html');
     $hl_off
 #endif // STEP3
 
@@ -71,10 +86,80 @@ other. On the client side, this is pretty straightforward:
 #else // step4 and beyond
     $hl_4
     var api = require('./chat.api');
+#ifdef STEP4_ONLY
     var messages = api.getMessages();
+#endif
     $hl_off
 #endif
     
+
+#ifdef STEP5
+    @bridge = require('mho:rpc/bridge');
+
+    // configure the api connection to reconnect indefinitely
+    var api = require('./chat.api');
+    var connection = api.__connection;
+    connection.handleDisconnect(@bridge.AutoReconnect({ timeout: null }));
+    @connectionStatus = require('./connection-status');
+
+    // Make chatContent a function which takes the messages object,
+    // in case we get reconnected with a different server session
+    var chatContent = function(messages) {
+      var input = @html.Input(null, {type: "text"}) .. @Mechanism(function(elem) {
+        elem.focus();
+        elem .. @when('keydown') { |ev|
+          if (ev.keyCode !== 13) continue;
+          messages.push(elem.value);
+          elem.value = '';
+        }
+      });
+
+      return `
+        <h1>Oni Labs Chat Demo</h1>
+        <ul>
+          ${messages .. @Map(msg -> `<li>$msg</li>`)}
+        </ul>
+        <hr>
+        <div>Say something: $input</div>$TUTORIAL_FOOTER`;
+    }
+
+    // create a bootstrap container:
+    var container = document.body .. @appendWidget(@html.Div() .. @Container() .. @Bootstrap());
+
+    // add a persistent connection status indicator:
+    container .. @appendWidget(@connectionStatus.Indicator(connection));
+
+    while(true) {
+      // we run the following code branches in parallel. The first
+      // just listens for uncaught errors on `window`, the other
+      // displays the chat UI.
+
+      var errorMessage;
+      waitfor {
+        var error = window .. @wait('error', null, e -> e.preventDefault());
+        errorMessage = error.message.split('\n')[0]; // show only first line
+        // console.error("WINDOW error triggered:", error.message);
+      } or {
+        container .. @withWidget(chatContent(api.getMessages()), -> hold());
+      } catch(e) {
+        console.log("Exception caught: #{e}");
+        errorMessage = e.message;
+      }
+
+      // The above branches only end in the case of an uncaught error.
+      // When the above code is aborted, the `withWidget` code is interrupted
+      // and the chat UI is automatically removed.
+
+      container .. @withWidget(`
+        <h1>Oops!</h1>
+        <p>An error has occurred: ${errorMessage}. <a href="#">Click to retry</a></p>`) {
+        |elem|
+        elem.querySelector('a') .. @wait('click');
+      }
+    }
+
+#else // !STEP5
+
 #ifdef STEP2
     $hl_2
     var messageView = messages .. @Map(msg -> `<li>$msg</li>`);
@@ -83,7 +168,7 @@ other. On the client side, this is pretty straightforward:
 #endif
 #ifdef STEP3
     $hl_3
-    var input = @Input(null, {type: "text"}) .. @Mechanism(function(elem) {
+    var input = @html.Input(null, {type: "text"}) .. @Mechanism(function(elem) {
       elem.focus();
       elem .. @when('keydown') { |ev|
         if (ev.keyCode !== 13) continue;
@@ -117,9 +202,12 @@ other. On the client side, this is pretty straightforward:
     $TUTORIAL_FOOTER`);
 #endif // STEP3
     
+#if !defined USES_API
     messages.push('hey');
     hold(1000);
     messages.push('how are you?');
+#endif // !USES_API
+#endif //!STEP5
 
 #ifdef STEP1_ONLY
 
@@ -215,16 +303,15 @@ as HTML (if it were a plain string, it would instead be escaped).
 
 #elif defined STEP4_ONLY
 
-#include res/api-files.html
-
 That was easy, because `getMessages()` will return us an observable array, just like before.
 Only this time, the object is stored on the server - we just get a proxy to it.
 This means that when the server modifies this array, the UI on _every_
 connected client will be updated.
 
-Of course, it won't do much good without the corresponding server-side code.
-Conductance uses the `.api` extension for code that will always be run on the server,
-but the syntax is still the same:
+We also took out the calls to `messages.push()` at the bottom of the file, since
+we don't want to spam the server with messages every time we load the page.
+
+Of course, this won't do much without implementing the server-side module that it uses.
 
 #ifdef DOC
 #include chat.api.md
@@ -232,7 +319,13 @@ but the syntax is still the same:
 
 #endif // STEPn_ONLY
 
+### Run it
+
+#ifndef USES_API
 Refresh your browser after modifying `chat.app`, or [run this version online](./chat.app).
+#else
+Refresh your browser after restarting conductance, or [run this version online](./chat.app).
+#endif
 
 #if defined STEP3_ONLY
 
@@ -245,7 +338,16 @@ function. This treats event emissions as an (infinite) sequence, and runs the
 provided blocklambda for each event. Inside the blocklambda we use the
 `continue` statement to skip an event, just like you would in a `while` or `for` loop.
 
-#endif // STEP1_ONLY || STEP2_ONLY
+#elif defined STEP4_ONLY
+
+Now that the messages are stored on the server, you can open multiple browser windows / tabs
+of the same page - messages sent to the server will appear in every tab.
+
+Of course, adding server-side communication means that a connection error can now
+cause an error in any function that is implemented on the server, at any time. We'll
+show you how to deal with this in the next step.
+
+#endif // STEPn_ONLY
 
 #ifdef NEXT_STEPNO
 ### Onwards:

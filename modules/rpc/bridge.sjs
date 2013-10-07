@@ -282,8 +282,9 @@ function BridgeConnection(transport, opts) {
   var statusObs;
   var _lastTransport = transport;
 
+  var disconnected = Emitter(); // emitted once a dropout is detected
   var sessionLost = Emitter(); // session has been lost (may be dead, or reconnected with a different session)
-  var reconnected = Emitter(); // reconnected after a dropout
+  var reconnected = Emitter(); // emitted when establishing a new session after a dropout
 
   if (opts.publish)
     published_apis[0] = opts.publish;
@@ -316,6 +317,7 @@ function BridgeConnection(transport, opts) {
   // returns on success, throws on failure
   var disconnectHandler;
   var attemptReconnect = exclusive(function (err) {
+    disconnected.emit();
     try {
       if(transport) {
         _lastTransport = transport;
@@ -355,6 +357,9 @@ function BridgeConnection(transport, opts) {
   var connection = {
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
     received_blobs: {},
+    disconnected: disconnected,
+    reconnected: reconnected,
+    sessionLost: sessionLost,
     sendBlob: function(id, obj) {
       return transportRetry(function(t) {
         t.sendData(id, obj);
@@ -495,6 +500,7 @@ function BridgeConnection(transport, opts) {
         cb(message[2], true);
       break;
     case 'call':
+      if (executing_calls[message[1]]) break; // duplicate call
       executing_calls[message[1]] = spawn (function(call_no, api_id, method, args) {
         // xxx asynchronize, so that executing_calls[call_no] will be filled in:
         hold(0);
@@ -635,14 +641,14 @@ exports.AutoReconnect = function(opts) {
     logging.debug("AutoReconnect start");
     var waitTime = (opts.initialDelay || 1) * 1000;
     waitfor {
-      if(status) {
-        var now = new Date();
-        var s = status.get() || {};
-        s.nextAttempt=new Date(now.getTime() + waitTime);
-        status.set(s);
-      }
-
       while(1) {
+        if(status) {
+          var now = new Date();
+          var s = status.get() || {};
+          s.nextAttempt=new Date(now.getTime() + waitTime);
+          status.set(s);
+        }
+
         hold(waitTime);
         waitTime = waitTime * backoff;
         logging.debug("AutoReconnect: attempting reconnect");
@@ -651,6 +657,12 @@ exports.AutoReconnect = function(opts) {
     } or {
       hold(timeout);
       logging.debug("AutoReconnect timed out");
+    } finally {
+      if(status) {
+        var s = status.get() || {};
+        delete s.nextAttempt;
+        status.set(s);
+      }
     }
   };
 }

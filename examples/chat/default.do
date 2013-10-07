@@ -42,6 +42,7 @@ var stepTitles = [
 	"Derived Values",
 	"User Input",
 	"Multiple Users",
+	"Dealing With Errors",
 ];
 assert.ok(stepTitles[stepno], "step #{stepno} is not defined (update default.do)");
 
