@@ -53,7 +53,7 @@ assert.ok(stepTitles[stepno], "step #{stepno} is not defined (update default.do)
  */
 var HIGHLIGHT_ON='//hl_on', HIGHLIGHT_OFF='//hl_off', HIGHLIGHT_NOOP='//hl_noop';
 var highlight = (function() {
-	run('redo-ifchange', ['node_modules/ace']);
+	run('redo-ifchange', ['../node_modules/ace']);
 	require("amd-loader");
 	// load jsdom, which is required by Ace
 	require("nodejs:ace/lib/ace/test/mockdom");
