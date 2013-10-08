@@ -37,7 +37,7 @@ exports.Widget = base.Widget;
 exports.Class = base.Class;
 exports.Attrib = base.Attrib;
 exports.Id = base.Id;
-exports.Unescaped = base.Unescaped;
+exports.RawHTML = base.RawHTML;
 exports.Markdown = base.Markdown;
 exports.RequireExternalScript = base.RequireExternalScript;
 

@@ -603,11 +603,11 @@ exports.Id = (widget, id) -> Attrib(widget, 'id', id);
 
 //----------------------------------------------------------------------
 
-exports.Unescaped = (str) -> Quasi([str]);
+exports.RawHTML = (str) -> Quasi([str]);
 
 //----------------------------------------------------------------------
 
-exports.Markdown = (str, settings) -> exports.Unescaped(require('sjs:marked').convert(str, settings));
+exports.Markdown = (str, settings) -> exports.RawHTML(require('sjs:marked').convert(str, settings));
 
 //----------------------------------------------------------------------
 

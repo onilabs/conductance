@@ -1,7 +1,7 @@
 var { parseModuleDocs } = require('sjs:docutil');
 // XXX get rid of bootstrap dependency
 var { Bootstrap, FluidContainer, Label, Accordion, Span, Icon } = require('../surface/bootstrap');
-var { Attrib, Style, Unescaped } = require('../surface');
+var { Attrib, Style, RawHTML } = require('../surface');
 var { values } = require('sjs:object');
 var { transform, filter, intersperse, find, join } = require('sjs:sequence');
 var { convert } = require('sjs:marked');
@@ -40,7 +40,7 @@ function resolveLinks(html) {
 var DocsMarkdown = txt -> 
   convert(txt, {escapeCode:false}) .. 
   resolveLinks ..
-  Unescaped;
+  RawHTML;
 
 //----------------------------------------------------------------------
 // Style
@@ -58,7 +58,7 @@ var DefvalStyle = Style('{font-style:italic}');
 var type = (ts) -> 
   (ts||'').split('|') .. 
   transform(t -> t.trim() .. resolveLink) .. 
-  intersperse(' | ') .. join .. Unescaped;
+  intersperse(' | ') .. join .. RawHTML;
 
 //----------------------------------------------------------------------
 // function signature for the given function symbol `f` and (possibly undefined) class `cls`:
