@@ -3,7 +3,7 @@ var { Constructor } = require('sjs:object');
 var assert = require('sjs:assert');
 var { sanitize } = require('sjs:string');
 var { mapQuasi } = require('sjs:quasi');
-var { collapseHtmlFragment } = require('../surface/html');
+var { collapseHtmlFragment } = require('../surface/base');
 
 var HttpErrorProto = new Error();
 HttpErrorProto._init = function(code, statusText, description) {
