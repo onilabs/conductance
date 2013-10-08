@@ -20,6 +20,74 @@ exports.instantiate = instantiate;
 //----------------------------------------------------------------------
 
 /**
+   @function traverse
+*/
+function traverse(schema, block) {
+  function inner(schema, schema_path) {
+    var type = schema ? schema.__type;
+    if (!type) {
+      if (isArrayLike(schema)) 
+        type = 'array';
+      else if (typeof schema === 'object')
+        type = 'object';
+      else
+        throw new Error("Schema error: unknown type '#{schema}' (path: '#{schema_path}')");
+    }
+    
+    var descriptor = {
+      type:          type,
+      value:         schema, 
+      path:          schema_path
+    };
+    
+    block(descriptor);
+    
+    switch (type) {
+    case 'object':
+      propertyPairs(schema) .. 
+        filter([name] -> name.indexOf('__') !== 0) ..
+        each { 
+          |[name, subschema]|
+          inner(subschema, 
+                schema_path==='' ? name : schema_path + '.' + name);
+        }
+      break;
+    case 'array':
+      var arr_elem_schema = isArrayLike(schema) ? schema[0] : schema.__elems;
+      inner(arr_elem_schema, 
+            schema_path + '.[]');
+      break;
+    }
+  }
+  inner(schema, '');
+}
+exports.traverse = traverse;
+
+/**
+   @function getAttribute
+*/
+exports.getAttribute = function(schema, attr) {
+  traverse(schema) {
+    |descriptor|
+    if (descriptor.value[attr]) return descriptor.value[attr];
+  }
+  return undefined;
+};
+
+/**
+   @function containsType
+*/
+exports.containsType = function(schema, type) {
+  traverse(schema) {
+    |descriptor|
+    if (descriptor.type == type) return true;
+  }
+  return false;
+};
+
+//----------------------------------------------------------------------
+
+/**
    @function cotraverse
 */
 function cotraverse(obj, schema, block) {
