@@ -1,5 +1,6 @@
 var { makeCache } = require('sjs:lru-cache');
 var { each, map, makeIterator, Stream } = require('sjs:sequence');
+var { override } = require('sjs:object');
 var { exclusive } = require('sjs:function');
 var { ChangeBuffer } = require('./helpers');
 
@@ -36,16 +37,20 @@ function MemoizedStream(s) {
 //----------------------------------------------------------------------
 
 // XXX need to figure out API for lifecycle - see https://app.asana.com/0/882077202919/7740493937036
-exports.Cache = function(size, upstream) {
+exports.Cache = function(upstream, options) {
 
-  var items = makeCache(size);
+  options = {
+    maxsize: 10000
+  } .. override(options);
+
+  var items = makeCache(options.maxsize);
 
   var CHANGE_BUFFER_SIZE = 100; // XXX should this be configurable?
   var change_buffer = ChangeBuffer(CHANGE_BUFFER_SIZE);
 
   var updater_stratum = spawn upstream.watch {
     |changes|
-    changes .. each { |id| console.log("discard #{id}"); items.discard(id) }
+    changes .. each { |{id}| console.log("discard #{id}"); items.discard(id) }
     change_buffer.addChanges(changes);
   };
 

@@ -192,3 +192,10 @@ function IdToKey(id, schema) {
   return key;
 }
 exports.IdToKey = IdToKey;
+
+function KeyToKind(key) {
+  var parts = key.split('/');
+  var matches = /^([^\:]+)\:/.exec(parts[parts.length-1]);
+  return matches ? matches[1] : null;
+}
+exports.KeyToKind = KeyToKind;

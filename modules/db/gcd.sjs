@@ -2,7 +2,7 @@ var { propertyPairs, keys } = require('sjs:object');
 var { each, map, Stream, transform, join, buffer, unpack, slice, reduce, filter, indexed, toArray, at, zip, consume } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { unbatched } = require('sjs:function');
-var { instantiate, isSimpleType, IdToKey, KeyToId, cotraverse } = require('./schema');
+var { instantiate, isSimpleType, IdToKey, KeyToId, KeyToKind, cotraverse } = require('./schema');
 var { Context } = require('./gcd/backend');
 var { ChangeBuffer } = require('./helpers');
 
@@ -162,7 +162,7 @@ function JSEntityToGCDEntity(js_entity, schemas) {
       if (node.state.arr_ctx && node.value === undefined)
         throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
     }
-    else if (descriptor.type === 'key') {
+    else if (descriptor.type === 'key' && node.value !== undefined) {
       if (key && node.value !== key) 
         throw new Error("Google Cloud Datastore: Inconsistent key values in data ('#{key}' != '#{node.value}')");
       key = node.value;
@@ -357,7 +357,7 @@ function GoogleCloudDatastore(attribs) {
     // feed them through to the corresponding `write` call. ATM we
     // just fail the whole batch if one entity errors.
 
-    var ids = [];
+    var written = [];
     var deletes = [], autoid_inserts = [], upserts = [];
     
     entities .. each {
@@ -365,7 +365,7 @@ function GoogleCloudDatastore(attribs) {
       if (entity.data === null && entity.id) {
         // DELETE
         deletes.push({pathElement: keyToGCDKey(entity.id)});
-        ids.push(entity.id);
+        written.push({id: entity.id, schema: KeyToKind(entity.id)});
       }
       else if (entity.data) {
         // UPSERT 
@@ -380,13 +380,14 @@ function GoogleCloudDatastore(attribs) {
         var has_path = (last.id || last.name);
         if (has_path) {
           upserts.push(entity);
-          ids.push(entity.key.pathElement .. GCDKeyToKey);
+          written.push({id:entity.key.pathElement .. GCDKeyToKey, 
+                        schema: GCDKeyToKind(entity.key.pathElement)});
         }
         else {
           // need to generate autoids
           autoid_inserts.push(entity);
           // id needs to be resolved later:
-          ids.push(null);
+          written.push(null);
         }
       }
       else if (entity.id)
@@ -406,12 +407,15 @@ function GoogleCloudDatastore(attribs) {
       if (autoid_inserts.length) {
         var req = { key: autoid_inserts .. map({key} -> key) };
         var results = context.allocateIds(req);
-        // splice results into ids
+        // splice results into 'written'
         results.key .. consume {
           |next_id|
-          for (var i=0;i<ids.length; ++i) {
-            if (ids[i] === null)
-              ids[i] = next_id().pathElement .. GCDKeyToKey;
+          for (var i=0;i<written.length; ++i) {
+            if (written[i] === null) {
+              var id = next_id().pathElement;
+              written[i] = { id: id .. GCDKeyToKey,
+                             schema: id .. GCDKeyToKind }; 
+            }
           }
         }
         
@@ -423,7 +427,7 @@ function GoogleCloudDatastore(attribs) {
         
         upserts = upserts.concat(autoid_inserts);
       }
-      return { ids: ids, deletes: deletes, upserts: upserts };
+      return { written: written, deletes: deletes, upserts: upserts };
     }
     else {
       // blind write
@@ -437,13 +441,17 @@ function GoogleCloudDatastore(attribs) {
       if (autoid_inserts.length) {
         // splice auto ids into return array
         var auto_id_index = 0;
-        for (var i=0; i<ids.length; ++i) {
-          if (ids[i] !== null) continue;
-          ids[i] = result.mutationResult.insertAutoIdKey[auto_id_index++].pathElement .. GCDKeyToKey;
+        for (var i=0; i<written.length; ++i) {
+          if (written[i] !== null) continue;
+          var key = result.mutationResult.insertAutoIdKey[auto_id_index++].pathElement;
+          written[i] = {
+            id:  key .. GCDKeyToKey,
+            schema: key .. GCDKeyToKind
+          };
         }
       }
-      change_buffer.addChanges(ids);
-      return ids;
+      change_buffer.addChanges(written);
+      return written;
     }
   }
 
@@ -602,7 +610,7 @@ function GoogleCloudDatastore(attribs) {
     /**
        @function GoogleCloudDatastore.write
        @param {Array} [entities] [datastore::Entity] objects to create/update/delete
-       @return {Array} Array of ids of changed entities
+       @return {Array} Array of `{id, schema}` descriptors of changed entities
        @summary Create/update/delete entities in the datastore
        @desc
           If `entity` is of the form
@@ -687,8 +695,8 @@ function GoogleCloudDatastore(attribs) {
             var result = writeInner(entities, transaction_context);
 
             // make sure we didn't attempt to mutate entities before
-            result.ids .. each { 
-              |id|
+            result.written .. each { 
+              |{id}|
               if (mutated_ids[id]) throw new Error("Cannot mutate entity multiple times within a transaction (#{id})");
               mutated_ids[id] = true;
             }
@@ -696,7 +704,7 @@ function GoogleCloudDatastore(attribs) {
             deletes = deletes.concat(result.deletes);
             upserts = upserts.concat(result.upserts);
 
-            return result.ids;
+            return result.written;
           }),
 
           query: function(entities) { 
@@ -713,15 +721,15 @@ function GoogleCloudDatastore(attribs) {
         if (upserts.length) mutation.upsert = upserts;
            
         transaction_context.commit({mutation: mutation});
-        change_buffer.addChanges(keys(mutated_ids) .. toArray);
+        change_buffer.addChanges(keys(mutated_ids) .. map(id -> { id: id, schema: id .. KeyToKind }));
       }
     },
 
     /**
        @function GoogleCloudDatastore.watch
-       @altsyntax gcd.watch { |changed_ids| ... }
-       @param {Function} [watcher] Function which will be called with arrays of ids that have changed.
-       @summary Watch for changes to entities.
+       @altsyntax gcd.watch { |changed_items| ... }
+       @param {Function} [watcher] Function which will be called with arrays of `{id, kind}` descriptors of records that have changed.
+       @summary Watch for changes to records.
     */
     watch: function(f) {
       var start_revision = change_buffer.revision, current_revision;
