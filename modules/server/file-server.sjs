@@ -223,6 +223,7 @@ function generateFile(req, filePath, format, settings) {
   var genPath = filePath + ".gen";
   try {
     var stat = fs.stat(genPath);
+    genPath = fs.realpath(genPath);
   }
   catch (e) {
     return false;
