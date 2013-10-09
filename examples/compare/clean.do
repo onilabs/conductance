@@ -1,0 +1,1 @@
+rm -i $(cat .gitignore)

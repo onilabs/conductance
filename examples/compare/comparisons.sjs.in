@@ -1,0 +1,296 @@
+# Wait for first of multiple actions
+
+```sjs
+function doUpdate(updateUrl) {
+  waitfor {
+    var update = http.get(updateUrl);
+  } or {
+    cancelButton .. wait('click');
+    return;
+  }
+  processUpdate(update);
+}
+```
+
+```js
+function doUpdate(updateUrl, cb) {
+  var cancelled = false;
+  var request = http.request(updateUrl,
+      function(err, response)
+  {
+    request = null;
+    if (err) return cb(err);
+    if (!cancelled) {
+      processUpdate(update, cb);
+    }
+  });
+  cancelButton.on('click', function() {
+    cancelled = true;
+    if (request) {
+      request.cancel();
+    }
+    cb();
+  });
+}
+```
+
+# Wait for multiple concurrent actions
+
+```sjs
+function getConnections(user) {
+  var user = db.lookupUser();
+  waitfor {
+    var friends = facebook.getConnections(
+      user.facebookId);
+  } and {
+    var colleagues = linkedIn.getConnections(
+      user.linkedInId);
+  }
+  return [friends, colleagues];
+}
+```
+
+```js
+function getConnections(user, done) {
+  db.lookupUser(function(err, user) {
+    if(err) return done(err);
+    var remaining = 2;
+    var friends, colleagues;
+    var _done = function() {
+      if (--remaining === 0) {
+        done(null, friends, colleagues);
+      }
+    }
+
+    facebook.getConnections(user, function(err, result) {
+      if(err) return done(err);
+      friends = result;
+      _done();
+    });
+
+    linkedIn.getConnections(user, function(err, result) {
+      if(err) return done(err);
+      colleagues = result;
+      _done();
+    });
+  });
+}
+```
+
+
+# Processing a list using some asynchronous operation
+
+```sjs
+var process = (items) -> items .. map(processItem);
+
+// .. and if we didn't already have `map`:
+function process(items) {
+  var results = [];
+  for (var i=0; i<items.length; i++) {
+    results[i] = processItem(items[i]);
+  }
+  return results;
+}
+```
+
+```js
+function process(items, done) {
+  var results = [];
+  var next = function(i) {
+    if (i>= items.length) return done(results);
+    processItem(items[i], function(err, val) {
+      if(err) return done(err);
+      result[i] = val;
+      next(i+1);
+    }
+  };
+  next(0);
+}
+```
+
+# Processing a list of items <em>in parallel</em> using some asynchronous operation
+
+
+```sjs
+var processPar = items -> items .. map.par(processItem);
+
+// `map.par` is not hiding much,
+// we could approximate it with:
+function processPar(items) {
+  var strata = items .. map(
+    item -> spawn(processItem(item))
+  );
+  return strata .. map(s -> s.waitforValue());
+}
+```
+
+```js
+function processPar(items, done) {
+  var results = [];
+  var outstanding = items.length;
+  var failed = false;
+
+  var processOne = function(i) {
+    processItem(items[i], function(err, val) {
+      if (failed) return;
+      if(err) {
+        failed = true;
+        return done(err);
+      }
+      result[i] = val;
+      if(--outstanding === 0) {
+        done(results);
+      }
+    }
+  };
+
+  for (var i=0; i<items.length; i++) {
+    processOne(i);
+  }
+}
+```
+
+# Show a modal dialog box
+
+```sjs
+var confirm = function(container, message) {
+  var dialog = Div(`
+      <p>$message</p>
+      <div class="dialogButtons">
+        <input type="button" name="ok">OK</input>
+        <input type="button" name="cancel">Cancel</input>
+      </div>
+    ` .. Class('dialog');
+
+  container .. withWidget(dialog) {|elem|
+    waitfor {
+      elem .. wait('keydown',
+        ev -> ev.which === ESCAPE,
+        ev -> ev.preventDefault());
+      return false;
+    } or {
+      var buttons = elem.querySelectorAll(
+        'input[type=button]');
+      var ev = buttons .. wait('click');
+      return ev.target.getAttribute('name') === 'ok';
+    }
+  };
+```
+
+```js
+// (assuming jQuery)
+var confirm = function(container, message, done) {
+  var dialogContents = (
+    '<div class="dialog">'+
+      '<p>' + escapeHtml(message) + '</p>'+
+      '<div class="dialogButtons">'+
+        '<input type="button" name="ok">OK</input>'+
+        '<input type="button" name="cancel">Cancel</input>'+
+      '</div>'+
+    '</div>');
+
+  var dialog = $(dialogContents);
+  $(container).append(dialog);
+
+  var buttons = $('input[type=button]', dialog);
+
+  var _done = function(result) {
+    dialog.off('key');
+    buttons.off('click');
+    container.removeChildNode(dialog);
+    done(result);
+  }
+
+  $(dialog).on('keydown', function(ev) {
+    if (ev.which === ESCAPE) {
+      ev.preventDefault();
+      _done(false);
+    }
+  });
+
+  $(buttons).on('click', function(ev) {
+    _done(ev.target.getAttribute('name') === 'ok');
+  });
+}
+```
+
+# Complex resource management (cancellation, rollback-on-error)
+
+```sjs
+function transact(db, block) {
+  var transaction = db.beginTransaction();
+  try {
+    block(transaction);
+  } catch(e) {
+    transaction.rollback();
+    throw e;
+  } retract {
+    transaction.rollback();
+  }
+  transaction.commit();
+}
+
+// sample use:
+function update(key) {
+  waitfor {
+    hold(2000);
+    console.log("failed to complete update in 2s");
+  } or {
+    db .. transact {|transaction|
+      var item = transaction.find(key);
+      item.count++;
+      transaction.save(data);
+      console.log("Updated item: #{key}");
+    }
+  }
+}
+```
+
+```js
+function transact(db, done, block) {
+  db.beginTransaction(function(err, transaction) {
+    if(err) return done(err);
+    block(transaction, function(err) {
+      if (err) {
+        return transaction.rollback(function() {
+          done(err);
+        }
+      }
+      transaction.commit(done);
+    });
+  });
+}
+
+// sample use:
+function update(key, done) {
+  var endTx = done;
+  var cancelled = false;
+  var timer = setTimeout(function() {
+    cancelled = true;
+    console.log("failed to complete update in 2s");
+    endTx("timeout");
+  }, 2000);
+
+  var _done = function(err) {
+    if (!cancelled) {
+      clearTimeout(timer);
+    }
+    done(err);
+  };
+
+  transact(db, _done, function(transaction, _endTx) {
+    if (cancelled) return;
+    endTx = _endTx;
+    transaction.find(key, function(err, item) {
+      if (cancelled) return;
+      if(err) return endTx(err);
+      item.count++;
+      transaction.save(function(err) {
+        if (cancelled) return;
+        if (!err) console.log("updated item: " + key);
+        return endTx(err)
+      });
+    });
+  });
+}
+```
