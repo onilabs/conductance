@@ -3,7 +3,7 @@ table {
 }
 td {
 	vertical-align:top;
-	padding-left:1em;
+	padding-left:0.3em;
 }
 td:first-child {
 	padding-left:0;

@@ -9,13 +9,21 @@
 		</style>
 		<script src="/__sjs/stratified.js"></script>
 		<script type="text/sjs">
+			var events = require('sjs:events');
+			spawn(window .. events.when('error') {|e|
+				alert(e.message);
+			});
 			require.hubs.unshift(['mho:', '/__mho/']);
-			var {displayComparisons, displayUISamples} = require('./lib');
-			var comparisons = require('./comparisons.sjs');
-			comparisons .. displayComparisons(document.getElementById('code-compare'));
 
-			var samples = require('./ui-samples.sjs');
-			samples .. displayUISamples(document.getElementById('ui-sample'));
+			var {displayComparisons, displayUISamples} = require('./lib');
+
+			waitfor {
+				var comparisons = require('./comparisons.sjs');
+				comparisons .. displayComparisons(document.getElementById('code-compare'));
+			} or {
+				var samples = require('./ui-samples.sjs');
+				samples .. displayUISamples(document.getElementById('ui-sample'));
+			}
 		</script>
 	</head>
 	<body>
