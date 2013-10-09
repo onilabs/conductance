@@ -62,8 +62,8 @@ var codeInput = Widget("pre",
 	[
 		s.RequireExternalScript("./ace-editor/ace.js"),
 		s.RequireExternalScript("./ace-editor/mode-javascript.js"),
+		s.RequireExternalScript("./ace-editor/mode-sjs.js"),
 		s.RequireExternalScript("./ace-editor/theme-chrome.js"),
-		s.RequireExternalScript("./mode-sjs.js"),
 		getEditorContents()
 	],
 	{id: "code-input"})
@@ -88,7 +88,6 @@ var codeInput = Widget("pre",
 				dom.importCssString = _old;
 			}
 
-			console.log(args);
 			args[0] = CSS.scope(args[0], 'codePanel');
 			dom.importCssString.apply(dom, args);
 			editor.setTheme(name);
