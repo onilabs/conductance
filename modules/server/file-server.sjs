@@ -198,7 +198,7 @@ function serveFile(req, filePath, format, settings) {
     return false;
   }
 
-  if (settings.allowApis && extension == 'api') {
+  if (settings.allowApis && extension == 'api' && format.name == 'json') {
     apiid = require('./api-registry').registerAPI(filePath);
     logging.info("registered API #{filePath} -> #{apiid}");
   }

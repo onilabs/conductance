@@ -70,22 +70,22 @@ function gen_moduledocs_html(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates import sjs for an api:
 function apiimport(src, dest, aux) {
-  if (!aux.apiid)
-    throw new Error("API access not enabled");
   var serverRoot = Url.normalize('/', aux.request.url);
   dest.write("\
 var server = require('builtin:apollo-sys').hostenv !== 'xbrowser' ? #{JSON.stringify(serverRoot)};
 waitfor {
-var bridge = require('mho:rpc/bridge');
+  var bridge = require('mho:rpc/bridge');
 } and {
-var http = require('sjs:http');
+  var http = require('sjs:http');
+} and {
+  var object = require('sjs:object');
 }
 exports.connect = function(opts, block) {
   if (arguments.length == 1) {
     block = opts;
     opts = {};
   }
-  opts = require('sjs:object').merge(opts, {server: server});
+  opts = object.merge(opts, {server: server});
   if (!opts.disconnectHandler) {
     opts.disconnectHandler = bridge.AutoReconnect();
   }
