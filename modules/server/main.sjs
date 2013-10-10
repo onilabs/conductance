@@ -33,6 +33,7 @@ var printBanner = -> console.log(banner);
 
 exports.run = function(args) {
   args = args || sys.argv();
+  var initial_argv = process.argv.slice(); // used for nodemon
   var actions = [
     {
       name: 'serve',
@@ -41,6 +42,7 @@ exports.run = function(args) {
        -r, --autorestart - Restart the server whenever any
                            file changes (using `nodemon`)\n',
       fn: exports.serve,
+      defaultVerbosity: -1, // WARN
     },
     {
       name: 'exec',
@@ -55,6 +57,13 @@ exports.run = function(args) {
         printBanner();
         global.__oni_altns = Object.create(require('mho:stdlib'));
         require('sjs:nodejs/repl', {main:true});
+      }
+    },
+    {
+      name: 'bundle',
+      desc: 'Create a module bundle',
+      fn: function() {
+        require('sjs:bundle', {main:true});
       }
     },
     {
@@ -87,42 +96,51 @@ exports.run = function(args) {
   }
 
   var usage = function() {
-    console.log("Usage: conductance [-v|--verbose] [<file>|<action>] ...");
-    console.log();
+    console.warn("Usage: conductance [-v|--verbose|-q|--quiet] [<file>|<action>] ...");
+    console.warn();
     actions .. each {|a|
       var args = a.args ? a.args : "";
-      console.log("#{a.name .. str.padLeft(10)} #{args .. str.padRight(13)} : #{a.desc}");
+      console.warn("#{a.name .. str.padLeft(10)} #{args .. str.padRight(13)} : #{a.desc}");
     }
-    console.log("\nRun `conductance <action> --help` for more specific help.\n");
+    console.warn("\nRun `conductance <action> --help` for more specific help.\n");
     return process.exit(1);
   }
 
   var command;
   var verbosity = 0;
   while (command = args.shift()) {
+    // canonicalize --verbose / --quiet args
+    if (command === '--quiet') command='-q';
+    else if (command == '--verbose') command='-v';
+
     if(command == '-h' || command == '--help') {
       printBanner();
       return usage();
-    } else if (command == '--verbose') {
-      verbosity++;
     } else if (/^-v+$/.test(command)) {
       verbosity += command.length - 1;
+    } else if (/^-q+$/.test(command)) {
+      verbosity -= command.length - 1;
     } else {
       // stop at first non-option arg
       break;
     }
   }
 
-  switch(verbosity) {
-    case 0  : logging.setLevel(logging.WARN);    break;
-    case 1  : logging.setLevel(logging.INFO);    break;
-    case 2  : logging.setLevel(logging.VERBOSE); break;
-    default : logging.setLevel(logging.DEBUG);   break;
+  var action = actions .. find(a -> a.name == command);
+  verbosity += (action ? action.defaultVerbosity) || 0;
+
+  if (verbosity < 0) {
+    logging.setLevel(logging.ERROR);
+  } else {
+    switch(verbosity) {
+      case -1 : logging.setLevel(logging.WARN);    break;
+      case 0  : logging.setLevel(logging.INFO);    break;
+      case 1  : logging.setLevel(logging.VERBOSE); break;
+      default : logging.setLevel(logging.DEBUG);   break;
+    }
   }
 
-  logging.info("Log level: #{logging.levelNames[logging.getLevel()]}");
-
-  var action = actions .. find(a -> a.name == command);
+  logging.verbose("Log level: #{logging.levelNames[logging.getLevel()]}");
 
   // shortcut (required for shebang lines):
   // if run as: `conductance <filename> [...]`,
@@ -138,7 +156,8 @@ exports.run = function(args) {
     }
     return usage();
   }
-  action.fn(args);
+  process.argv = [env.executable, command].concat(args);
+  action.fn(args, initial_argv);
 };
 
 exports.exec = function(args) {
@@ -150,7 +169,7 @@ exports.exec = function(args) {
   require(url, {main:true});
 }
 
-exports.serve = function(args) {
+exports.serve = function(args, initial_argv) {
   var configfile = _config.defaultConfig();
 
   //----------------------------------------------------------------------
@@ -158,6 +177,7 @@ exports.serve = function(args) {
   
   var arg = args[0];
   if(arg === '-r' || arg === '--autorestart') {
+    process.argv = initial_argv;
     process.argv .. remove(arg);
     // nodemon has no API - it just takes over as soon as it's imported.
     // we need to modify the original ARGV:
