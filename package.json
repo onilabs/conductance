@@ -18,9 +18,6 @@
   },
   "dependencies": {
     "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#87aa24467f88541003738f4abe423c11223fa40b",
-    "nodemon": ">=0.7.0",
-    "protobuf": ">=0.8.6",
-    "google-oauth-jwt": ">=0.0.7",
-    "agentkeepalive": ">=0.1.5"
+    "nodemon": ">=0.7.0"
   }
 }
