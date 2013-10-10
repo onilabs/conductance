@@ -12,8 +12,6 @@
   "main": "conductance",
   "bin": { "conductance": "conductance" },
   "devDependencies": {
-    "jsdom": "*",
-    "amd-loader": "*",
     "karma-sjs-adapter": "~0.1.0"
   },
   "dependencies": {
