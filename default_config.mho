@@ -20,12 +20,6 @@ exports.serve = function(args) {
         type: 'bool',
       },
       {
-        names: ['production'],
-        type: 'bool',
-        help: 'disable development mode features',
-        'default': process.env['NODE_ENV'] === 'production',
-      },
-      {
         names: ['host'],
         type: 'string',
         help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
@@ -69,7 +63,8 @@ exports.serve = function(args) {
         ExecutableDirectory(process.cwd()),
       ] .. LogRequests(logging.INFO);
 
-  if (!opts.production) {
+  if (process.env.NODE_ENV !== 'production') {
+    // show stacktraces
     routes = routes .. DeveloperMode();
   }
 
