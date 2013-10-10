@@ -34,14 +34,14 @@ exports.serve = function(args) {
       {
         names: ['port'],
         type: 'number',
-        help: 'serve on port (default: "7075")',
+        help: 'serve on port (default: 7075)',
         'default': 7075,
       },
       {
         names: ['ssl'],
         type: 'bool',
         help: 'serve over https (NOTE: uses the default conductance certificate, use for testing only)',
-        'default': 7075,
+        'default': false,
       },
     ]
   });
