@@ -16,13 +16,13 @@ context('bridge error handling') {||
   test.beforeAll {|s|
     var apiName = Url.parse(apiUrl()).relative;
     var response = http.json([helper.url(apiName), {format:"json"}]);
-    apiid = response.apiid;
+    apiid = response.id;
     assert.ok(apiid);
   }
 
   test('propagates server-side errors') {||
     assert.raises({filter: e -> !isTransportError(e) && e.message == "Some error"}) {||
-      bridge.connectWith(helper.getRoot(), apiid) {|connection|
+      bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.throwError('Some error');
       }
     };
@@ -30,7 +30,7 @@ context('bridge error handling') {||
 
   test('re-throws client-side errors') {||
     assert.raises({filter: e -> !isTransportError(e) && e.message == "Some client error"}) {||
-      bridge.connectWith(helper.getRoot(), apiid) {|connection|
+      bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.callme(function() { throw new Error('Some client error'); });
       }
     };
@@ -39,7 +39,7 @@ context('bridge error handling') {||
   test('includes server-side stacktrace') {||
     //XXX should be able to disable this if server filesystem layout is sensitive
     assert.raises({filter: e -> !isTransportError(e) && e.toString() .. /at module file:\/\/.*fixtures\/bridge.api:\d+/.test()}) {||
-      bridge.connectWith(helper.getRoot(), apiid) {|connection|
+      bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.callme(function() { throw new Error('Some client error'); });
       }
     };
@@ -50,7 +50,7 @@ context('bridge error handling') {||
     test("throws connection error from #{method}") {||
       var log = [];
       assert.raises({filter: isTransportError}) {||
-        bridge.connectWith(helper.getRoot(), apiid) {|connection|
+      bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
           log.push(connection.api.ping());
           connection.api[method](50);
           hold(100);
@@ -62,7 +62,7 @@ context('bridge error handling') {||
   };
 }
 
-context('api importer') {||
+context('api.connect()') {||
   var url;
 
   test.beforeAll {||
@@ -72,52 +72,37 @@ context('api importer') {||
     require('mho:rpc/aat-client').setServerPrefix(prefix);
   }
 
-  test.beforeAll {|s|
-    s.apis = [];
-    s.require = function(url) {
-      var api = require(url);
-      s.apis.push(api);
-      return api;
-    }
+  test('returns API') {||
+    require(url).connect(a -> a.ping()) .. assert.eq('pong');
   }
 
-  test.afterAll {|s|
-    s.apis .. each {|api|
-      //logging.info("cleaning up API connection in test.afterEach");
-      api.__connection.__finally__();
-    }
+  test('exposes connection object') {||
+    require(url).connect((a, c) -> c.reconnect .. assert.ok());
   }
 
-  test('returns API') {|s|
-    s.require(url).ping() .. assert.eq('pong');
-  }
-
-  test('exposes connection object') {|s|
-    s.require(url).__connection .. assert.ok();
-  }
-
-  test('fails in-progress calls when connection is lost, but reestablishes connection') {|s|
+  test('reestablishes connection') {||
     var log = [];
-    var api = s.require(url);
-    var status = api.__connection.status();
-    var ping = function() {
-      log.push('ping');
-      log.push(api.ping());
-    }
+    require(url).connect({status:true}) {|api, connection|
+      var status = connection.status;
+      var ping = function() {
+        log.push('ping');
+        log.push(api.ping());
+      }
 
-    waitfor {
-      ping();
-      api.destroyConnection(50);
-      hold(100);
-      assert.raises({filter: isTransportError}, -> ping());
-      // after the above disconnect, the API should be reconnected
-      ping();
-    } or {
-      var state = undefined;
-      status.observe {|val|
-        if (val.connected === state) continue;
-        state = val.connected;
-        log.push(state ? "connected" : "disconnected");
+      waitfor {
+        ping();
+        api.destroyConnection(50);
+        hold(100);
+        assert.raises({filter: isTransportError}, -> ping());
+        // after the above disconnect, the API should be reconnected
+        ping();
+      } or {
+        var state = undefined;
+        status.observe {|val|
+          if (val.connected === state) continue;
+          state = val.connected;
+          log.push(state ? "connected" : "disconnected");
+        }
       }
     }
     log .. assert.eq([
@@ -126,26 +111,27 @@ context('api importer') {||
       'ping', 'pong']);
   }
 
-  test('resumes in-progress calls') {|s|
+  test('resumes in-progress calls') {||
     var log = [];
-    var api = s.require(url);
-    var status = api.__connection.status();
-    waitfor {
-      log.push(api.callme(function() {
-        log.push("+callback");
-        hold(500);
-        log.push("-callback");
-        return "result";
-      }));
-    } or {
-      api.breakConnection(50);
-      hold();
-    } or {
-      var state = undefined;
-      status.observe {|val|
-        if (val.connected === state) continue;
-        state = val.connected;
-        log.push(state ? "connected" : "disconnected");
+    require(url).connect({status:true}) {|api, connection|
+      var status = connection.status;
+      waitfor {
+        log.push(api.callme(function() {
+          log.push("+callback");
+          hold(500);
+          log.push("-callback");
+          return "result";
+        }));
+      } or {
+        api.breakConnection(50);
+        hold();
+      } or {
+        var state = undefined;
+        status.observe {|val|
+          if (val.connected === state) continue;
+          state = val.connected;
+          log.push(state ? "connected" : "disconnected");
+        }
       }
     }
     log .. assert.eq([

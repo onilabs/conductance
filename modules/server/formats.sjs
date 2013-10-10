@@ -75,11 +75,26 @@ function apiimport(src, dest, aux) {
   var serverRoot = Url.normalize('/', aux.request.url);
   dest.write("\
 var server = require('builtin:apollo-sys').hostenv !== 'xbrowser' ? #{JSON.stringify(serverRoot)};
+waitfor {
 var bridge = require('mho:rpc/bridge');
-var connection = bridge.connectWith(server, '#{aux.apiid}');
-module.exports = connection.api;
-module.exports.__connection = connection;
-connection.handleDisconnect(bridge.AutoReconnect());
+} and {
+var http = require('sjs:http');
+}
+exports.connect = function(opts, block) {
+  if (arguments.length == 1) {
+    block = opts;
+    opts = {};
+  }
+  opts = require('sjs:object').merge(opts, {server: server});
+  if (!opts.disconnectHandler) {
+    opts.disconnectHandler = bridge.AutoReconnect();
+  }
+  var apiid = http.json([module.id, {format:'json'}]).id;
+  bridge.connect(apiid, opts) {|connection|
+    var api = connection.api;
+    return block(api, connection);
+  }
+};
 ");
 }
 
@@ -87,7 +102,7 @@ connection.handleDisconnect(bridge.AutoReconnect());
 function apiinfo(src, dest, aux) {
   if (!aux.apiid)
     throw new Error("API access not enabled");
-  dest.write(JSON.stringify({apiid: aux.apiid}));
+  dest.write(JSON.stringify({id: aux.apiid}));
 }
 
 //----------------------------------------------------------------------

@@ -55,7 +55,7 @@ Protocol:
 var logging = require('sjs:logging');
 var { each, toArray, map, filter, transform, isStream, Stream, at } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
-var { pairsToObject, ownPropertyPairs, ownValues } = require('sjs:object');
+var { pairsToObject, ownPropertyPairs, ownValues, merge } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
 var { isString } = require('sjs:string');
 var { isFunction, exclusive } = require('sjs:function');
@@ -279,8 +279,9 @@ function BridgeConnection(transport, opts) {
   var published_func_counter = 0;
   var closed = false;
   var throwing = opts.throwing !== false;
-  var statusObs;
+  var statusObs = opts.status ? require('mho:observable').Observable({connected: true});
   var _lastTransport = transport;
+  var disconnectHandler = opts.disconnectHandler;
 
   var disconnected = Emitter(); // emitted once a dropout is detected
   var sessionLost = Emitter(); // session has been lost (may be dead, or reconnected with a different session)
@@ -315,7 +316,6 @@ function BridgeConnection(transport, opts) {
 
   // attempt reconnect (or wait for an existing attempt to complete).
   // returns on success, throws on failure
-  var disconnectHandler;
   var attemptReconnect = exclusive(function (err) {
     disconnected.emit();
     try {
@@ -360,14 +360,12 @@ function BridgeConnection(transport, opts) {
     disconnected: disconnected,
     reconnected: reconnected,
     sessionLost: sessionLost,
+    status: statusObs,
     sendBlob: function(id, obj) {
       return transportRetry(function(t) {
         t.sendData(id, obj);
         return id;
       });
-    },
-    handleDisconnect: function(f) {
-      disconnectHandler = this.disconnectHandler = f;
     },
     reconnect: exclusive(function(f) {
       // reconnects to the server, returning bool (true = success)
@@ -397,12 +395,6 @@ function BridgeConnection(transport, opts) {
       }
       return true;
     }, true),
-    status: function() {
-      if (!statusObs) {
-        statusObs = require('../observable').Observable({connected: !!transport});
-      }
-      return statusObs;
-    },
     makeCall: function(api, method, args) {
       var call_no = ++call_counter;
       waitfor {
@@ -461,7 +453,7 @@ function BridgeConnection(transport, opts) {
           var packet = transport.receive();
         } catch(e) {
           if(closed || !throwing) break;
-          logging.debug("transport error in receive()");
+          logging.debug("transport error in receive(): #{e}");
           attemptReconnect(TransportError(e.message || String(e)));
           continue; // above code will throw() if it can't reconnect
         }
@@ -557,39 +549,28 @@ function BridgeConnection(transport, opts) {
 /**
    @function connect
    @summary To be documented
-   @param {String} [api_name]
+   @param {String} [api_name] API id
+   @param {Settings} [settings]
    @param {optional Function} [block]
-   @return {::BridgeConnection}
-   @desc
-     **Note**: connecting to a server-side API does a require() on the
-     module in the server's process. Currently there is no way to
-     force the server to reload the module other than restarting the
-     server process.
+   @setting {String} [server] Server address
+   @setting {Transport} [transport] An existing transport to use
+   @setting {Function} [disconnectHandler] Disconnect handler, e.g produced by [::AutoReconnect]
+   @setting {Boolean} [status] Maintain an observable `connection.status` property
+   @return {::BridgeConnection} if block is not given
 */
-exports.connect = function(api_name, block) {
-  return exports.connectWith(null, api_name, block);
-};
-
-/**
-   @function connectWith
-   @summary To be documented
-   @param {optional Transport|String} [transport|server] A transport object or server address
-   @param {String} [api_name]
-   @param {Function} [block]
-   @return {::BridgeConnection}
-*/
-exports.connectWith = function(transport, api_name, block) {
-  if (!transport || typeof transport != 'object') {
-    transport = require('./aat-client').openTransport(transport);
+exports.connect = function(api_name, opts, block) {
+  var transport = opts.transport;
+  if (!transport) {
+    transport = require('./aat-client').openTransport(opts.server);
   }
-  var connection = BridgeConnection(transport, {throwing:true, api:api_name});
+  var connection = BridgeConnection(transport, opts .. merge({throwing:true, api:api_name}));
 
   if (block) {
     using(connection) {
       waitfor {
-        return block(connection);
-      } or {
         connection.stratum.waitforValue();
+      } or {
+        return block(connection);
       }
     }
   }
