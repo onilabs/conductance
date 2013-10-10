@@ -137,6 +137,7 @@ exports.run = function(config, block) {
     // run a http(s) server on the port:
     http.withServer(port_config) {
       |server|
+      logging.print("Conductance serving address:", port_config.address);
       if (--unstartedServers == 0) {
         ready.set();
       }
@@ -168,7 +169,7 @@ exports.run = function(config, block) {
                 }
               }
             } else {
-              console.log("Unknown error handling request: #{e}");
+              logging.warn("Unknown error handling request: #{e}");
             }
           }
         }

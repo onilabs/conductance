@@ -16,7 +16,7 @@ exports.loadConfig = function(path) {
 
   logging.info("Loading config from #{configfile}");
   var config = require(configfile);
-  env.init({config: {path:configfile, module: config}});
+  env.set('config', {path:configfile, module: config});
   return config;
 }
 
