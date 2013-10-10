@@ -1,7 +1,28 @@
+/**
+  // metadata for sjs:bundle:
+  @require sjs:object
+  @require sjs:array
+  @require sjs:sequence
+  @require sjs:compare
+  @require sjs:debug
+  @require sjs:function
+  @require sjs:cutil
+  @require sjs:quasi
+  @require sjs:assert
+  @require sjs:logging
+  @require sjs:string
+  @require sjs:events
+  @require sjs:sys
+  @require sjs:url
+
+  @require mho:observable
+  @require mho:surface
+  @require mho:surface/bootstrap
+*/
 @ = require.merge('sjs:object', 'sjs:sys');
 
 var modules = [
-  {id:'sjs:object', exclude: ['get']},
+  {id:'sjs:object'},
   'sjs:array',
   'sjs:sequence',
   'sjs:compare',
@@ -16,7 +37,8 @@ var modules = [
   {id:'sjs:sys', exclude: ['executable']},
   {id:'sjs:url', name: 'url'},
   
-  {id:'mho:observable', exclude: ['at']},
+  {id:'mho:observable', exclude: ['at', 'get']},
+  {id:'mho:observable', name: 'observable'},
   {id:'mho:surface'},
   {id:'mho:surface/bootstrap', exclude: ['Label', 'Submit']},
 ];
