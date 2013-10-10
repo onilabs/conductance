@@ -1,23 +1,41 @@
+//TODO: use require.merge()
+waitfor {
 var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
+} and {
 var {RequireStyle, OnClick, Class, Mechanism, Widget, prependWidget, removeElement, appendWidget, Style, withWidget} = require('mho:surface');
+} and {
 var {Bootstrap} = require('mho:surface/bootstrap');
+} and {
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, join } = seq;
+} and {
 var array = require('sjs:array');
+} and {
 var events = require('sjs:events');
+} and {
 var cutil = require('sjs:cutil');
+} and {
 var str = require('sjs:string');
+} and {
 var {ownPropertyPairs, ownValues, hasOwn} = require('sjs:object');
+} and {
 var logging = require('sjs:logging');
+} and {
 var http = require('sjs:http');
+} and {
 var Url = require('sjs:url');
-
+} and {
 var assert = require('sjs:assert');
+} and {
+var ui = require('./ui');
+} and {
+var Library = require('./library');
+} and {
+var Symbol = require('./symbol');
+}
+
 logging.setLevel(logging.DEBUG);
 
-var ui = require('./ui');
-var Library = require('./library');
-var Symbol = require('./symbol');
 
 var mainStyle   = RequireStyle(Url.normalize('css/main.css', module.id))
 var docsStyle   = RequireStyle(Url.normalize('css/docs.css', module.id))
