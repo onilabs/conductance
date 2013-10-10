@@ -17,7 +17,7 @@
     "karma-sjs-adapter": "~0.1.0"
   },
   "dependencies": {
-    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#87aa24467f88541003738f4abe423c11223fa40b",
+    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#ca4b2372b80618b8c39790128ec9e088e3784ae9",
     "nodemon": ">=0.7.0"
   }
 }

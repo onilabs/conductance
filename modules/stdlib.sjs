@@ -25,7 +25,11 @@ if (@hostenv === 'nodejs') {
   modules = modules.concat([
     'sjs:nodejs/fs',
     {id:'sjs:nodejs/child-process', exclude: ['wait']},
-    'mho:server/env'
+    {id:'mho:server/env', name:'env'},
+    {id:'mho:server', include:['Host', 'Route', 'Port']},
+    {id:'mho:server', name:'server'},
+    {id:'mho:server/routes', name:'routes'},
+    'mho:server/response',
   ]);
 }
 

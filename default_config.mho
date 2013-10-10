@@ -31,6 +31,18 @@ exports.serve = function(args) {
         help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
         'default': 'localhost',
       },
+      {
+        names: ['port'],
+        type: 'number',
+        help: 'serve on port (default: "7075")',
+        'default': 7075,
+      },
+      {
+        names: ['ssl'],
+        type: 'bool',
+        help: 'serve over https (NOTE: uses the default conductance certificate, use for testing only)',
+        'default': 7075,
+      },
     ]
   });
   try {
@@ -63,20 +75,21 @@ exports.serve = function(args) {
 
 
   var host = opts.host == 'any' ? null : opts.host;
+  var port = opts.port;
+  var ssl = opts.ssl;
 
-  server.run([
-    {
-      address: Port(7075, host),
-      routes: routes,
-    },
-    {
-      address: Port(7076, host).ssl({
-        key: readFile("#{conductanceRoot}ssl/insecure-localhost.key"),
-        cert: readFile("#{conductanceRoot}ssl/insecure-localhost.crt")
-      }),
-      routes: routes
-    },
-  ]);
+  var address = Port(port, host);
+  if (opts.ssl) {
+    address = address.ssl({
+      key: readFile("#{conductanceRoot}ssl/insecure-localhost.key"),
+      cert: readFile("#{conductanceRoot}ssl/insecure-localhost.crt")
+    });
+  }
+
+  server.run({
+    address: address,
+    routes: routes,
+  });
 };
 
 exports.systemd = function() {

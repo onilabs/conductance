@@ -4,6 +4,10 @@ var sys = require("sjs:sys");
 var path = require("nodejs:path");
 var url = require("sjs:url");
 var { stat } = require('sjs:nodejs/fs');
+var { Registry } = require('sjs:service');
+var { ownPropertyPairs } = require("sjs:object");
+var { each } = require("sjs:sequence");
+
 var sjsRoot = path.dirname(sys.executable);
 var conductanceRoot = url.normalize('../../', module.id) .. url.toPath();
 var conductanceVersion = "1-#{
@@ -12,19 +16,23 @@ var conductanceVersion = "1-#{
                               )).getTime()
                             }";
 
-var env_vars;
-exports.init = function(vars) {
-  env_vars = vars;
+var e = module.exports = Registry();
+var predefined = {
+  executable         : path.join(conductanceRoot, 'conductance'),
+  conductanceRoot    : conductanceRoot,
+  sjsRoot            : sjsRoot,
+  conductanceVersion : -> conductanceVersion,
+  config             : -> e.get('config', undefined),
+  configPath         : -> e.get('config', {}).path, // TODO: remove
+  configRoot         : function() { var p = e.configPath(); return p ? url.normalize('./', p); }, // TODO: remove
 };
 
-exports.update = function(key, val) {
-  env_vars[key] = val;
+predefined .. ownPropertyPairs .. each {|[key, val]|
+  if (e[val]) throw new Error("Duplicate: #{key}");
+  e[key] = val;
+  if (typeof(val) === 'function') {
+    e.factory(key, val);
+  } else {
+    e.value(key, val);
+  }
 }
-
-exports.executable         = path.join(conductanceRoot, 'conductance');
-exports.conductanceRoot    = conductanceRoot;
-exports.sjsRoot            = sjsRoot
-exports.conductanceVersion = -> conductanceVersion;
-exports.config          = -> env_vars && env_vars.config;
-exports.configPath      = -> env_vars && env_vars.config.path; // TODO: remove
-exports.configRoot      = -> env_vars && url.normalize('./', env_vars.config.path); // TODO: remove
