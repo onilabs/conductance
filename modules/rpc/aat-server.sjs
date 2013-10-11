@@ -38,6 +38,7 @@
 
 var logging = require('sjs:logging');
 var cutil   = require('sjs:cutil');
+var events   = require('sjs:events');
 
 var { each, map, toArray } = require('sjs:sequence');
 var { ownValues } = require('sjs:object');
@@ -89,50 +90,61 @@ function createTransport(finish) {
   var transport = {
     id: createID(),
     active: true,
-    exchangeMessages: function(in_messages, out_messages) {
+    exchangeMessages: function(in_messages, flush) {
       // assert(this.active)
 
-      // put new incoming messages into our receive_q:      
+      // put new incoming messages into our receive_q:
       in_messages .. each {
         |mes|
         receive_q.unshift(mes);
       }
 
-      if (exchange_in_progress) { 
+      if (exchange_in_progress) {
         // Reentrant call to exchangeMessages
         // we're not going to wait for outgoing messages; there is
         // already an exchange in progress that will pick those up
         if (in_messages.length && resume_receive) {
           resume_receive();
-        }        
+        }
         return;
       }
 
       try {
-        exchange_in_progress = true;
-        
-        // now resume our receiver; this might lead to 
-        // re-entrant calls to send(), which is good, because then 
-        // we can flush out the given messages immediately
-        if (in_messages.length && resume_receive) {
-          resume_receive();
-          // wait a little bit for outgoing messages:
-          hold(EXCHANGE_ACCU_INTERVAL);
+        var out_messages = [];
+        try {
+          exchange_in_progress = true;
+          
+          // now resume our receiver; this might lead to
+          // re-entrant calls to send(), which is good, because then
+          // we can flush out the given messages immediately
+          if (in_messages.length && resume_receive) {
+            resume_receive();
+            // wait a little bit for outgoing messages:
+            hold(EXCHANGE_ACCU_INTERVAL);
+          }
+          
+          // flush our send_q:
+          send_q .. each {
+            |mes|
+            out_messages.unshift(mes);
+          }
+          send_q = [];
+          
+          // reset our reaper:
+          if (reset_reaper)
+            reset_reaper();
         }
-        
-        // flush our send_q:
-        send_q .. each {
-          |mes|
-          out_messages.unshift(mes);
+        finally {
+          exchange_in_progress = false;
         }
-        send_q = [];
-        
-        // reset our reaper:
-        if (reset_reaper)
-          reset_reaper();
-      }
-      finally {
-        exchange_in_progress = false;
+
+        flush(out_messages);
+      } retract {
+        // out_messages didn't actually make it - re-queue them
+        // for the next response.
+        if(out_messages.length) {
+          send_q = out_messages.concat(send_q);
+        }
       }
     },
 
@@ -143,18 +155,16 @@ function createTransport(finish) {
       if (resume_poll) resume_poll(false);
     },
 
-    pollMessages: function(in_messages, out_messages) {
+    pollMessages: function(in_messages) {
 //      console.log('polling...');
       // assert(this.active)
       if (in_messages.length) {
         // XXX we don't support messages in poll yet
-        out_messages.push('error_unsupported_poll');
-        return;
+        return 'unsupported_poll';
       } else if (resume_poll) {
         logging.warn('multiple poll');
         // Can only have one active poll
-        out_messages.push('error_poll_in_progress');
-        return;
+        return 'poll_in_progress';
       }
 
       // give messages a small time to accumulate:
@@ -171,8 +181,6 @@ function createTransport(finish) {
         }
         
       }
-      transport.exchangeMessages([], out_messages);
-      out_messages.unshift('ok');
     },
 
     // external API:
@@ -252,7 +260,13 @@ function createTransportHandler(transportSink) {
   function handler_func(req, matches) {
     logging.debug("AAT request", matches);
 
-    var out_messages = [];
+    // ok_code is just used for additional info (e.g transport ID)
+    // if neither ok_code or error_code is set, the response is just "ok"
+    var ok_code = null;
+    var error_code = null;
+
+    // incoming messages
+    var in_messages;
 
     var command = req.url.params().cmd;
     
@@ -262,31 +276,26 @@ function createTransportHandler(transportSink) {
       
       transportSink(transport);
       
-      var in_messages = 
+      in_messages = 
         (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) .. 
         map(mes -> { type: 'message', data: mes}) .. toArray;
 
       logging.debug("messages: ", in_messages);
       
-      transport.exchangeMessages(in_messages, out_messages);
       logging.info("new transport #{transport.id}");
-      out_messages.unshift("ok_#{transport.id}");
+      ok_code = transport.id;
     }
     else if (command .. startsWith('send_')) {
       // find the transport:
       var transport = transports[command.substr(5)];
       if (!transport) {
         logging.warn("#{command}: transport not found");
-        out_messages.push('error_id');
+        error_code = 'id';
       }
       else {
-        var in_messages = 
+        in_messages = 
           (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) ..
           map(mes -> { type: 'message', data: mes}) .. toArray;
-        
-        transport.exchangeMessages(in_messages, 
-                                   out_messages);
-        out_messages.unshift('ok');
       }
     }
     else if (command .. startsWith('data_')) {
@@ -294,16 +303,14 @@ function createTransportHandler(transportSink) {
       var transport = transports[command.substr(5)];
       if (!transport) {
         logging.warn("#{command}: transport not found");
-        out_messages.push('error_id');
+        error_code = 'id';
       }
       else {
-        transport.exchangeMessages([
+        in_messages = [
           { type: 'data', 
             header: JSON.parse(req.url.params().header),
             data: req.body
-          }], 
-          out_messages);
-        out_messages.unshift('ok');
+          }]; 
       }
     }
     else if (command .. startsWith('poll_')) {
@@ -311,11 +318,12 @@ function createTransportHandler(transportSink) {
       var transport = transports[command.substr(5)];
       if (!transport) {
         logging.warn("#{command}: transport not found");
-        out_messages.push('error_id');
+        error_code = 'id';
       }
       else {
-        transport.pollMessages(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], 
-                               out_messages);
+        error_code = transport.pollMessages(
+          req.body.length ? JSON.parse(req.body.toString('utf8')) : []
+        );
       }
     }
     else if (command .. startsWith('reconnect_')) {
@@ -324,28 +332,36 @@ function createTransportHandler(transportSink) {
       if(transport) {
         logging.info("transport", id, "reconnected");
         transport.connectionReset();
-        out_messages.unshift('ok');
       } else {
         logging.info("attempt to reconnect missing transport", id, "- creating new");
         transport = createTransport(finish);
         transportSink(transport);
-        out_messages.unshift("ok_#{transport.id}");
+        ok_code = transport.id;
       }
-      transport.exchangeMessages([], out_messages);
     }
     else if (command .. startsWith('close_')) {
       var transport = transports[command.substr(6)];
       if (transport) transport.__finally__();
+      req.response.end("");
+      return;
     }
     else if (command == 'poll') {
       // XXX poll without id not supported yet
       // we expect client to always perform a 'send' first
-      out_messages.push('error_unsupported_poll');
+      error_code = 'unsupported_poll';
     }
     else
-      out_messages.push("error_unknown_message");
+      error_code = 'unknown_message';
     
-    req.response.end(JSON.stringify(out_messages));
+    if (error_code) {
+      req.response.end(JSON.stringify(["error_#{error_code}"]));
+    } else {
+      transport.exchangeMessages(in_messages || []) {|out_messages|
+        out_messages = out_messages.slice();
+        out_messages.unshift(ok_code ? "ok_#{ok_code}" : "ok");
+        req.response.end(JSON.stringify(out_messages));
+      }
+    }
   }
 
   return {

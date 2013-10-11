@@ -61,6 +61,9 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
 
  // this returns "immediately" (equivalent to 'send'):
  ['poll', MES*] -> ['ok_'+ID, MES*] | ['error_xx']
+
+ // this returns "immediately" (reestablish connection):
+ ['reconnect_'+ID] -> ['ok'] | ['ok_'+NEW_CONN_ID] | ['error_xx']
 */
 
 /**
