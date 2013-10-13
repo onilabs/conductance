@@ -106,6 +106,7 @@ function createTransport(finish) {
         if (in_messages.length && resume_receive) {
           resume_receive();
         }
+        flush([]);
         return;
       }
 
