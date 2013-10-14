@@ -153,7 +153,7 @@ function marshall(value, connection) {
         value = prepare(descriptor.wrapLocal(value));
         value = { __oni_type: 'custom_marshalled', proxy: value, wrap: descriptor.wrapRemote };
       }
-      else if (value instanceof Error) {
+      else if (value instanceof Error || value._oniE) {
         value = { __oni_type: 'error', message: value.message, stack: value.__oni_stack };
       }
       else if (value.__oni_type == 'api') {
