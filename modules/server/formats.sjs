@@ -85,24 +85,26 @@ exports.connect = function(opts, block) {
     block = opts;
     opts = {};
   }
-  opts = object.merge(opts, {server: server});
-  if (!opts.disconnectHandler) {
-    opts.disconnectHandler = bridge.AutoReconnect();
+  opts = object.clone(opts);
+
+  if (!opts.server) opts.server = server;
+  if (!opts.disconnectHandler) opts.disconnectHandler = bridge.AutoReconnect();
+  var apiinfo = http.json([module.id, {format:'json'}]);
+  if (apiinfo.error) throw new Error(apiinfo.error);
+  var rv;
+  bridge.connect(apiinfo.id, opts) {|connection|
+    rv = block(connection.api, connection);
   }
-  var apiid = http.json([module.id, {format:'json'}]).id;
-  bridge.connect(apiid, opts) {|connection|
-    var api = connection.api;
-    return block(api, connection);
-  }
+  return rv;
 };
 ");
 }
 
 // filter that generates JSON info about api endpoint:
 function apiinfo(src, dest, aux) {
-  if (!aux.apiid)
+  if (!aux.apiinfo)
     throw new Error("API access not enabled");
-  dest.write(JSON.stringify({id: aux.apiid}));
+  dest.write(JSON.stringify(aux.apiinfo));
 }
 
 //----------------------------------------------------------------------

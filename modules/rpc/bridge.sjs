@@ -342,7 +342,7 @@ function BridgeConnection(transport, opts) {
 
       try {
         disconnectHandler(connection, err, statusObs);
-        if(!transport) throw err; // disconnectHandler didn't reconnect
+        if(!transport) throw new Error("Failed to automatically reconnect bridge");
       } catch(e) {
         finish(e);
       } retract {

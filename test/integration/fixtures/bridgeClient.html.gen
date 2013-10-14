@@ -1,0 +1,21 @@
+Url = require('sjs:url');
+exports.content = function(params) {
+  var root = params.root;
+  if (!root) throw new Error("root param required");
+  return "
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='#{root}__sjs/stratified.js' asyc='true'></script>
+    <script type='text/sjs'>
+      require.hubs.push(['mho:', '#{root}__mho/']);
+      window.stdlib = {
+        http: require('sjs:http'),
+        api: require('./bridge.api'),
+      };
+    </script>
+  </head>
+  <body></body>
+</html>
+".trim();;
+};

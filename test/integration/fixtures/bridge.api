@@ -1,5 +1,6 @@
 var { setStatus } = require('mho:server/response');
 var logging = require('sjs:logging');
+var { ObservableArray } = require('mho:observable');
 
 exports.throwError = function(msg) { throw new Error(msg); }
 
@@ -34,6 +35,17 @@ exports.breakConnection = function(timeout) {
     pollRequest().response.end("this request intentionally left broken");
   }());
 }
+
+var sharedVariable;
+exports.withSharedVariable = function(block) {
+  try {
+    sharedVariable = ObservableArray();
+    block();
+  } finally {
+    sharedVariable = null;
+  }
+};
+exports.sharedVariable = -> sharedVariable;
 
 exports.ping = -> "pong";
 exports.hostenv = -> require('sjs:sys').hostenv;

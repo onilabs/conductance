@@ -22,9 +22,9 @@ var { setStatus, writeRedirectResponse, HttpError, NotFound } = require('./respo
 //  - format
 // Optionally:
 //  - etag:  etag of the input stream
-//  - apiid: (for api files; only if settings.allowApis == true)
+//  - apiinfo: (for api files; only if settings.allowApis == true)
 function formatResponse(req, item, settings) {
-  var { input, extension, format, apiid } = item;
+  var { input, extension, format, apiinfo } = item;
 
   var notAcceptable = HttpError(406, 'Not Acceptable',
                                 'Could not find an appropriate representation');
@@ -91,7 +91,7 @@ function formatResponse(req, item, settings) {
         var cache_entry = formatdesc.cache.get(req.request.url);
         if (!cache_entry || cache_entry.etag != etag) {
           var data_stream = new (stream.WritableStringStream);
-          formatdesc.filter(input(), data_stream, { request: req, apiid: apiid });
+          formatdesc.filter(input(), data_stream, { request: req, apiinfo: apiinfo });
           cache_entry = { etag: etag, data: data_stream.data };
           info("populating cache #{req.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(req.request.url, cache_entry, cache_entry.data.length);
@@ -101,7 +101,7 @@ function formatResponse(req, item, settings) {
         stream.pump(new (stream.ReadableStringStream)(cache_entry.data), req.response);
       }
       else // no cache or no etag -> filter straight to response
-        formatdesc.filter(input(), req.response, { request: req, apiid: apiid });
+        formatdesc.filter(input(), req.response, { request: req, apiinfo: apiinfo });
     }
   } 
   else {
@@ -192,15 +192,20 @@ function serveFile(req, filePath, format, settings) {
   }
   if (!stat.isFile()) return false;
   
-  var apiid;
+  var apiinfo;
   var extension = path.extname(filePath).slice(1);
   if (settings.allowGenerators && extension == 'gen') {
     return false;
   }
 
   if (settings.allowApis && extension == 'api' && format.name == 'json') {
-    apiid = require('./api-registry').registerAPI(filePath);
-    logging.info("registered API #{filePath} -> #{apiid}");
+    try {
+      var apiid = require('./api-registry').registerAPI(filePath);
+      logging.info("registered API #{filePath} -> #{apiid}");
+      apiinfo = {id: apiid};
+    } catch(e) {
+      apiinfo = {error: String(e) }
+    }
   }
 
   formatResponse(
@@ -209,7 +214,7 @@ function serveFile(req, filePath, format, settings) {
               // XXX hmm, might need to destroy this somewhere
               nodefs.createReadStream(filePath, opts),
       length: stat.size,
-      apiid: apiid,
+      apiinfo: apiinfo,
       extension: extension,
       format: format,
       etag: stat.mtime.getTime()

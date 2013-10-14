@@ -8,7 +8,7 @@ var host = null;
 var prefix = isBrowser ? (Url.normalize('../', module.id) .. Url.parse()).path : '/';
 
 exports.getRoot = function() {
-  if(!host) throw new Error("Host not yet set");
+  if(!host && !isBrowser) throw new Error("Host not yet set");
   return Url.normalize(prefix, host);
 };
 exports.setHost = h -> host = h;
