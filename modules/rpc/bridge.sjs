@@ -177,7 +177,8 @@ function marshall(value, connection) {
       }
       else {
         // a normal object -> traverse it
-        value = propertyPairs(value) .. 
+        value = propertyPairs(value) ..
+          filter([name,_] -> name != 'toString') ..
           transform([name, val] -> [name, prepare(val)]) ..
           pairsToObject;
       }
