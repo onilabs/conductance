@@ -399,7 +399,11 @@ function Map(arr, f) {
   rv.at     = index -> f(arr .. at(index));
   rv.length = -> arr .. length;
 
-  rv.observe = function(o) { arr.observe(o) };
+  rv.observe = function(o) {
+    arr.observe(function(val, change) {
+      o(val .. map(f), change);
+    })
+  };
 
   return rv;
 }
