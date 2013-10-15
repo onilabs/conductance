@@ -119,10 +119,10 @@ __js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
 
 // helper mechanism for making observable content dynamic:
 function ObservableContentMechanism(ft, obs) {
+  var dyn = require('./dynamic');
   return ft .. Mechanism(function(node) {
-    obs.observe { ||
-      if (node.parentNode)
-        (node .. require('./dynamic').replaceElement(obs));
+    obs.observe { |val|
+      node .. dyn.replaceContent(collapseHtmlFragment(val));
     }
   });
 }
@@ -147,7 +147,9 @@ function appendFragmentTo(target, ft, tag) {
     // observables are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
-    (ensureWidget(ft.get()) .. ObservableContentMechanism(ft)).appendTo(target);
+    // XXX can we make this more efficient by not going through Widget?
+    ft = Widget('surface-ui') .. ObservableContentMechanism(ft);
+    ft.appendTo(target, tag);
   }
   else if (Array.isArray(ft) || isStream(ft)) {
     ft .. each(p -> appendFragmentTo(target, p, tag));

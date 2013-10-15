@@ -68,14 +68,15 @@ ObservableProto.set = function(/* [path], */ v) {
 
 ObservableProto.observe = function(o) {
   var lastrev, val;
+  var change = NonSpecificChange;
   while(true) {
-    var change = this.emitter.wait();
     while(lastrev !== this.revision) {
       lastrev = this.revision;
       o(this.val, change);
       // missed updates have no specific change information
       change = NonSpecificChange;
     }
+    change = this.emitter.wait();
   }
 };
 
