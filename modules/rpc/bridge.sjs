@@ -337,6 +337,7 @@ function BridgeConnection(transport, opts) {
         _lastTransport.__finally__();
         if (err) {
           sessionLost.emit(err);
+          connection.__finally__();
           throw err;
         }
       }
@@ -386,13 +387,14 @@ function BridgeConnection(transport, opts) {
         setStatusProp('connecting', false);
       }
       transport = t;
-      // execute getAPI outside of try/catch, as an error here usually means the API is no longer available (unrecoverable)
       setStatusProp('connected', true);
       reconnected.emit();
       if (!sameSession) {
+        logging.warn("session lost");
+        // if getAPI fails, we kill the connection because the server no longer
+        // provides this API ID (it was probably restarted)
+        getAPI();
         sessionLost.emit();
-        getAPI(); // XXX we assume the API will be the same (and discard it),
-                  // as we're requesting the same ID
       }
       return true;
     }, true),
@@ -569,7 +571,12 @@ exports.connect = function(api_name, opts, block) {
   if (block) {
     using(connection) {
       waitfor {
-        connection.stratum.waitforValue();
+        try {
+          connection.stratum.waitforValue();
+        } catch(e) {
+          logging.warn("Bridge connection lost: #{e}");
+          throw new Error("Bridge connection lost");
+        }
       } or {
         return block(connection);
       }

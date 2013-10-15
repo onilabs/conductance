@@ -24,6 +24,8 @@ exports.registerAPI = function(moduleid) {
 };
 
 exports.getAPIbyAPIID = function(apiid) {
-  return api_by_apiid[apiid];
+  var rv = api_by_apiid[apiid];
+  if (!rv) throw new Error("API ID not registered");
+  return rv;
 };
 
