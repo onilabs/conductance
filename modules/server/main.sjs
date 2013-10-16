@@ -191,7 +191,8 @@ exports.serve = function(args, initial_argv) {
     //
     process.argv.splice(1, 1, require.resolve('nodejs:nodemon').path, '--exec', process.argv[1]);
     // console.log(process.argv);
-    require('nodejs:nodemon');
+    var url = require('sjs:url');
+    require("nodejs:#{url.normalize('../../tools/nodemon/nodemon.js', module.id) .. url.toPath}");
     return;
   }
 
