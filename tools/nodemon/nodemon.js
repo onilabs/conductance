@@ -2,6 +2,8 @@
 
 "use strict";
 
+var DEFAULT_EXTENSIONS = ['.js', '.sjs', '.api', '.mho'];
+
 var fs = require('fs'),
     util = require('util'),
     childProcess = require('child_process'),
@@ -554,6 +556,9 @@ function getNodemonArgs() {
       options.stdin = false;
     } else if (arg === '--ext' || arg === '-e') {
       options.ext = args.shift();
+    } else if (arg === '--') {
+      appargs = appargs.concat(args.slice(1));
+      break;
     } else {
       // Remaining args are node arguments
       appargs.push(arg);
@@ -823,7 +828,7 @@ exists(ignoreFilePath, function (exist) {
           if (ext) {
             addIgnoreRule('^((?!' + ext + '$).)*$', true);
           } else {
-            addIgnoreRule('^((?!\.js$|\.coffee|\.litcoffee$).)*$', true); // ignores everything except JS
+            addIgnoreRule('^((?!' + DEFAULT_EXTENSIONS.map(function(ext) { return ext.replace('.','\\.') + '$'; }).join('|') + ').)*$', true);
           }
         }
       }
