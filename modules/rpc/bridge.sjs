@@ -336,8 +336,8 @@ function BridgeConnection(transport, opts) {
         logging.debug("rpc/bridge: reconnect #{err ? "failed" : "succeeded"}");
         _lastTransport.__finally__();
         if (err) {
-          sessionLost.emit(err);
           connection.__finally__();
+          sessionLost.emit(err);
           throw err;
         }
       }
@@ -424,6 +424,8 @@ function BridgeConnection(transport, opts) {
         }
       } or {
         var err = sessionLost.wait();
+        this.__finally__(); // XXX this should be a recoverable error, but we kill the connection
+                            // for now as a workaround for mechanisms that drop unhandled errors
         throw err || TransportError("session lost");
       }
       
