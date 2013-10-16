@@ -129,15 +129,11 @@ exports.run = function(args) {
   var action = actions .. find(a -> a.name == command);
   verbosity += (action ? action.defaultVerbosity) || 0;
 
-  if (verbosity < 0) {
-    logging.setLevel(logging.ERROR);
-  } else {
-    switch(verbosity) {
-      case -1 : logging.setLevel(logging.WARN);    break;
-      case 0  : logging.setLevel(logging.INFO);    break;
-      case 1  : logging.setLevel(logging.VERBOSE); break;
-      default : logging.setLevel(logging.DEBUG);   break;
-    }
+  switch(verbosity) {
+    case -1 : logging.setLevel(logging.WARN);    break;
+    case 0  : logging.setLevel(logging.INFO);    break;
+    case 1  : logging.setLevel(logging.VERBOSE); break;
+    default : logging.setLevel(verbosity < 0 ? logging.ERROR : logging.DEBUG);   break;
   }
 
   logging.verbose("Log level: #{logging.levelNames[logging.getLevel()]}");
