@@ -131,6 +131,21 @@ h1 {
 	opacity: 0.5;
 }
 
+.header {
+	min-height: 60px;
+	padding: 0 20px;
+	margin:0;
+	background: rgb(127, 197, 255);
+}
+.header h1 {
+	color: rgba(0,0,0,0.7);
+}
+.header:before, .header:after {
+	content:'';
+	line-height:0;
+	display:table;
+}
+
 #sidebar .active {
 	background: rgba(53, 58, 63, 0.37);
 	color: white;

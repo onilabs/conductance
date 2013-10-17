@@ -83,14 +83,14 @@ exports.run = function() {
 
 	var toolbar = Widget("div", `
 			<div class="trigger">
-				<button class="btn search"><i class="icon-search"></i></button>
 				<button class="btn config"><i class="icon-cog"></i></button>
+				<button class="btn search"><i class="icon-search"></i></button>
 			</div>
 		`)
 		.. Style("{ position: relative; top:1.1em}")
 		.. Class("popupContainer")
 		.. Mechanism(function(elem) {
-			var [searchButton, configureButton] = elem.getElementsByTagName("button");
+			var [configureButton, searchButton] = elem.getElementsByTagName("button");
 
 			var buttonContainer = elem.getElementsByTagName("div")[0];
 
@@ -108,10 +108,11 @@ exports.run = function() {
 			};
 
 
-			using (var searchClick = searchButton .. events.HostEmitter('click')) {
-				using (var searchShortcut = document.body .. events.HostEmitter('keypress', FORWARD_SLASH)) {
-					using (var configClick = configureButton .. events.HostEmitter('click')) {
-						using (var configShortcut = document.body .. events.HostEmitter('keypress', PLUS)) {
+			var preventDefault = e -> e.preventDefault();
+			using (var searchClick = searchButton .. events.HostEmitter('click', null, preventDefault)) {
+				using (var searchShortcut = document.body .. events.HostEmitter('keypress', FORWARD_SLASH, preventDefault)) {
+					using (var configClick = configureButton .. events.HostEmitter('click', null, preventDefault)) {
+						using (var configShortcut = document.body .. events.HostEmitter('keypress', PLUS, preventDefault)) {
 							while(true) {
 								var action;
 								waitfor {
@@ -143,18 +144,20 @@ exports.run = function() {
 		});
 
 	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. docsStyle;
-	var toplevel = Widget("div", `
-		<div class="header navbar-inner">
-			$toolbar
-			<h1>Conductance docs</h1>
-		</div>
-		$breadcrumbs
-		$sidebar
-		$mainDisplay
-		$loadingWidget
-	`)
+	var header = Widget("div", [
+		toolbar,
+		`<h1>Conductance docs</h1>`
+	])
+		.. Class("header");
+
+	var toplevel = Widget("div", [
+		header,
+		breadcrumbs,
+		sidebar,
+		mainDisplay,
+		loadingWidget,
+	])
 	.. Bootstrap()
-	.. Class("navbar navbar-inverted")
 	.. mainStyle
 	.. searchStyle;
 

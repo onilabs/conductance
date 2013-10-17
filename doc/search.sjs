@@ -247,7 +247,7 @@ exports.run = (function() {
 
 			elem .. withWidget(widget) {|elem|
 				var input = elem.querySelector('input');
-				input.focus();
+				input.select();
 				if (onReady) onReady();
 				search(lastQuery, true);
 				waitfor {
