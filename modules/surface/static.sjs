@@ -51,6 +51,7 @@ exports.Document = function(content, settings) {
     require.hubs.push(['mho:', '/__mho/']);
     require.hubs.push(['\u2127:', 'mho:']);
   ";
+  if(userInit) bootScript += "\n" + userInit;
   
   // keep static & dynamic worlds from colliding; see comment at top of html.sjs
   bootScript += html._getDynOniSurfaceInit()
@@ -77,7 +78,6 @@ exports.Document = function(content, settings) {
     ";
   }
 
-  if(userInit) bootScript += "\n" + userInit;
   if(mainModule) bootScript += "\nrequire(\"#{sanitize(mainModule)}\", {main: true});";
 
   return "\
