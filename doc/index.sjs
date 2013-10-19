@@ -107,12 +107,21 @@ exports.run = function() {
 				require('./config').run(elem, libraries, defaultHubs, ui.LOADING.dec);
 			};
 
+      
+      // chainable preventDefault filter
+			function preventDefault(f) {
+        return function(e) {
+          var rv = f ? f(e) : true;
+          if (rv)
+            e.preventDefault();
+          return rv;
+        }
+      }
 
-			var preventDefault = e -> e.preventDefault();
-			using (var searchClick = searchButton .. events.HostEmitter('click', null, preventDefault)) {
-				using (var searchShortcut = document.body .. events.HostEmitter('keypress', FORWARD_SLASH, preventDefault)) {
-					using (var configClick = configureButton .. events.HostEmitter('click', null, preventDefault)) {
-						using (var configShortcut = document.body .. events.HostEmitter('keypress', PLUS, preventDefault)) {
+			using (var searchClick = searchButton .. events.HostEmitter('click', preventDefault())) {
+				using (var searchShortcut = document.body .. events.HostEmitter('keypress', FORWARD_SLASH .. preventDefault)) {
+					using (var configClick = configureButton .. events.HostEmitter('click', preventDefault())) {
+						using (var configShortcut = document.body .. events.HostEmitter('keypress', PLUS .. preventDefault)) {
 							while(true) {
 								var action;
 								waitfor {
