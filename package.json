@@ -12,7 +12,8 @@
   "main": "conductance",
   "bin": { "conductance": "conductance" },
   "devDependencies": {
-    "karma-sjs-adapter": "~0.1.0"
+    "karma-sjs-adapter": "~0.1.0",
+    "recess": "~1.1.9"
   },
   "dependencies": {
     "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#de319c39c1867e0eb1514f09e1d8fb2f168f951f"

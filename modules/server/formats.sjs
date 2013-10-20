@@ -2,6 +2,7 @@ var { conductanceVersion } = require('./env');
 var { pump, readAll } = require('sjs:nodejs/stream');
 var { map, each, toArray } = require('sjs:sequence');
 var { clone, merge, ownPropertyPairs } = require('sjs:object');
+var { matches } = require('sjs:regexp');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
 
@@ -24,7 +25,7 @@ function json2jsonp(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that compiles sjs into '__oni_compiled_sjs_1' format:
 function sjscompile(src, dest, aux) {
-  src = readAll(src);
+  if (typeof src !== 'string') src = readAll(src);
   try {
     src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
   }
@@ -44,11 +45,45 @@ function sjscompile(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates the html boilerplate for *.app files:
 function gen_app_html(src, dest, aux) {
-  var app_name = aux.request.url.file || "index.app";
-  var { Document } = require('../surface');
-  dest.write(
-    Document(null, {init: "require(\"#{app_name}!sjs\");"})
-  );
+  try {
+    var app_name = aux.request.url.file || "index.app";
+
+    var metadata = {};
+    require('sjs:docutil').parseSource(readAll(src)) {
+      |comment|
+      // strip "/*" & "*/"
+      if (/^\/\*/.test(comment))
+        comment = comment.substring(2, comment.length-2);
+      // match simple 'key = value' lines
+      comment .. matches(/^\s*([^=\n\r ]+)[ \t]*=[ \t]*((?:[ \t]*\S)*)[ \t]*(?:\n|$)/gm) .. each {
+        |[,key,val]|
+        metadata[key] = val;
+      } 
+      
+      // we only extract metadata from the first comment; break out of
+      // the block:
+      break;
+    }
+console.log("TEMPLATE: #{metadata.template}");
+    var { Document } = require('../surface');
+    dest.write(
+      Document(null, {init: "require(\"#{app_name}!sjs\");", 
+                      template: metadata.template || 'default'})
+    );
+  }
+  catch (e) {
+    // XXX better error handling
+    dest.write(e.toString());
+  }
+}
+
+//----------------------------------------------------------------------
+// filter that generates the sjs for *.app files:
+function gen_app_sjs(src, dest, aux) {
+  src = readAll(src);
+  // inherit '@' from global '@' symbol, so that we can set it in the template:
+  src = "@=window.__oni_altns;"+src;
+  return sjscompile(src, dest, aux);
 }
 
 //----------------------------------------------------------------------
@@ -237,7 +272,7 @@ var Executable = (base) -> base
                         filter: gen_app_html
                         },
                  sjs  : { mime: "text/plain",
-                          filter: sjscompile,
+                          filter: gen_app_sjs,
                           filterETag: -> conductanceVersion(),
                           cache: SJSCache
                         },

@@ -1,0 +1,11 @@
+{
+  /* Version number which will be inserted into all files under modules/
+     : */
+  "version" : "0.1.0-1-development",
+
+  /* Version number which will be inserted into package.json: */
+  "npm": {
+    "version": "0.1.0-1-development",
+    "private": true
+  }
+}

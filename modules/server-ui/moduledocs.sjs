@@ -1,9 +1,6 @@
+@ = require.merge('mho:stdlib', {id:'mho:surface/bootstrap/html', exclude:['Map','Style'] });
+
 var { parseModuleDocs } = require('sjs:docutil');
-// XXX get rid of bootstrap dependency
-var { Bootstrap, FluidContainer, Label, Accordion, Span, Icon } = require('../surface/bootstrap');
-var { Attrib, Style, RawHTML } = require('../surface');
-var { values } = require('sjs:object');
-var { transform, filter, intersperse, find, join } = require('sjs:sequence');
 var { convert } = require('sjs:marked');
 
 //----------------------------------------------------------------------
@@ -40,51 +37,53 @@ function resolveLinks(html) {
 var DocsMarkdown = txt -> 
   convert(txt, {escapeCode:false}) .. 
   resolveLinks ..
-  RawHTML;
+  @RawHTML;
 
 //----------------------------------------------------------------------
 // Style
 
 // style overrides applying to all our docs:
-var DocsStyle   = Style('
-  td > p   { margin:0 }
+var DocsStyle   = @Style('
+  @global  { 
+    body { padding-top: 70px; }
+  } 
 ');
 
-var OptArgStyle = Style('{color:#888}');
-var DefvalStyle = Style('{font-style:italic}');
+var OptArgStyle = @Style('{color:#888}');
+var DefvalStyle = @Style('{font-style:italic}');
 
 //----------------------------------------------------------------------
 // function to markup types:
 var type = (ts) -> 
   (ts||'').split('|') .. 
-  transform(t -> t.trim() .. resolveLink) .. 
-  intersperse(' | ') .. join .. RawHTML;
+  @transform(t -> t.trim() .. resolveLink) .. 
+  @intersperse(' | ') .. @join .. @RawHTML;
 
 //----------------------------------------------------------------------
 // function signature for the given function symbol `f` and (possibly undefined) class `cls`:
-var signature = (f, cls) -> 
-  `<h2>${f.type=='ctor'&&!f.nonew? 'new '}${cls? cls.toLowerCase()+'.'}${f.name}($paramlist(f.param||[]))${
-      f['return']? ` $Icon('arrow-right') $type(f['return'].valtype)`
+var signature = (name, f, cls) -> 
+  `<div class='panel-heading'><h4>${f.type=='ctor'&&!f.nonew? 'new '}${cls? cls.toLowerCase()+'.'}${name}($paramlist(f.param||[]))${
+      f['return']? `<div class='pull-right'>$@Icon('arrow-right') $type(f['return'].valtype)</div>`
     }${
-      f.altsyntax? f.altsyntax .. transform(s -> `<br>${s}`)
-      }</h2>`;
+      f.altsyntax? f.altsyntax .. @transform(s -> `<br>${s}`)
+      }</h4></div>`;
 var paramlist = (ps) -> 
   ps .. 
-  transform(function(p) {
+  @transform(function(p) {
     var rv = p.name || '.';
     if (p.valtype && p.valtype.indexOf('optional')!=-1)
-      rv = Span(`[$rv]`) .. OptArgStyle;
+      rv = @Span(`[$rv]`) .. OptArgStyle;
     return rv;
   }) ..
-  intersperse(', ');
+  @intersperse(', ');
    
 //---------------------------------------------------------------------- 
 // table of function parameters:
 var paramtable = (ps) ->
-  `<h3>Parameters:</h3>
+  `<h5>Parameters:</h5>
    <table class='table table-striped table-bordered'>
      <tbody>
-      ${ps .. transform(paramrow)}
+      ${ps .. @transform(paramrow)}
      </tbody>
    </table>`;
 
@@ -98,17 +97,17 @@ var paramrow = (p) ->
 //----------------------------------------------------------------------
 // table of settings:
 var settingtable = (ss) ->
-  `<h3>Settings:</h3>
+  `<h5>Settings:</h5>
    <table class='table table-striped table-bordered'>
      <tbody>
-       ${ss .. transform(paramrow)}
+       ${ss .. @transform(paramrow)}
      </tbody>
    </table>`;
 
 //----------------------------------------------------------------------
 // return value details:
 var returnvalue = (rv) ->
-  `<h3>Return Value:</h3>
+  `<h5>Return Value:</h5>
    <table class='table table-striped table-bordered'>
      <tbody>
        <trow>
@@ -120,34 +119,41 @@ var returnvalue = (rv) ->
 //----------------------------------------------------------------------
 // list of functions constructed from the hash 'symbols'
 
-var functionslist = (symbols, cls, ftype) -> Accordion(values(symbols) .. 
-    filter({type} -> type==ftype) ..
-    transform(symbol -> 
-              [`<a id='${ftype=='ctor'? symbol.name+'::'}${cls? cls+'::'}${symbol.name}'></a>$signature(symbol, cls)
-                ${symbol.summary? DocsMarkdown(symbol.summary)}`,
-               `${symbol.param ? paramtable(symbol.param)}
-                ${symbol['return'] ? returnvalue(symbol['return'])}
-                ${symbol.setting ? settingtable(symbol.setting)}
-                ${symbol.desc? DocsMarkdown(symbol.desc)}`
-              ]));
+var functionslist = (symbols, cls, ftype) -> @Div(@propertyPairs(symbols) .. 
+    @filter([,{type}] -> type==ftype) ..
+    @transform([name, symbol] ->
+               `<div class='panel panel-default'>
+                  <a id='${ftype=='ctor'? name+'::'}${cls? cls+'::'}${name}'></a>$signature(name, symbol, cls)
+                  <div class='panel-body'>
+                    ${symbol.summary? DocsMarkdown(symbol.summary)}
+                    ${symbol.param ? paramtable(symbol.param)}
+                    ${symbol['return'] ? returnvalue(symbol['return'])}
+                    ${symbol.setting ? settingtable(symbol.setting)}
+                    ${symbol.desc? DocsMarkdown(symbol.desc)}
+                  </div>
+                </div>`));
 
 //----------------------------------------------------------------------
 // list of classes constructed from the hash 'classes'
 
-var classlist = classes -> Accordion(values(classes) ..
-    transform(cls ->
-              [`<a id='${cls.name}'></a><h2>${cls.name}</h2>
-                ${cls.summary? DocsMarkdown(cls.summary)}`,
+var classlist = symbols -> @Div(@propertyPairs(symbols) ..
+    @filter([,{type}] -> type=='class') ..
+    @transform([name, cls] ->
+               `<div class='panel panel-default'>
+                  <a id='${name}'></a><div class='panel-heading'><h4>${name}</h4></div>
+                  <div class='panel-body'>
+                    ${cls.summary? DocsMarkdown(cls.summary)}
+                    <h5>Constructor:</h5>
+                    ${cls.children? functionslist(cls.children, undefined, 'ctor')}
+                    <hr>
+                    <h5>Methods:</h5>
+                    ${cls.children? functionslist(cls.children, name, 'function')}
+                    <hr>
+                    ${cls.desc? DocsMarkdown(cls.desc)}
+                  </div>
+                </div>
                `
-               <h3>Constructor:</h3>
-               ${cls.symbols? functionslist(cls.symbols, undefined, 'ctor')}
-               <hr>
-               <h3>Methods:</h3>
-               ${cls.symbols? functionslist(cls.symbols, cls.name, 'function')}
-               <hr>
-               ${cls.desc? DocsMarkdown(cls.desc)}
-               `
-              ]));
+              ));
 
 //----------------------------------------------------------------------
 //
@@ -170,9 +176,9 @@ exports.generateModuleDocs = function(name, src) {
       <pre>$src</pre>`;
   }    
 
-  return Bootstrap([     
-    `<div class='navbar navbar-static-top'><div class='navbar-inner'></div></div>`,
-    FluidContainer(
+  return [     
+    `<nav class='navbar navbar-default navbar-fixed-top' role='navigation'></nav>`,
+    @Container(
     `
       <div class='page-header'>
         <h1>${docs.module ? `The ${docs.module} module` : name}
@@ -180,22 +186,22 @@ exports.generateModuleDocs = function(name, src) {
         </h1>
 
       ${docs.hostenv ? 
-        `<p>$Label('warning', 'Note') This module only works in the '${docs.hostenv}' host environment.</p>`
+        `<p>$@Label('Note', {type:'warning'}) This module only works in the '${docs.hostenv}' host environment.</p>`
        }
 
       ${docs.desc ? DocsMarkdown(docs.desc) }
       <hr>
       <h2>Functions:</h2>
-      $functionslist(docs.symbols, undefined, 'function')
+      $functionslist(docs.children, undefined, 'function')
       <hr>
       <h2>Classes:</h2>
-      $classlist(docs.classes)
+      $classlist(docs.children)
       <hr>
       <h2>Source code:</h2>
       <pre>$src</pre>
       <hr>
       <h3>Output from docs parsing (just temporarily for debugging):</h3>
       <pre>${require('sjs:debug').inspect(docs, false, 6)}</pre>
-    `)]) .. DocsStyle;
+    `)] .. DocsStyle;
 };
 

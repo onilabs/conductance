@@ -4,8 +4,6 @@ var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
 } and {
 var {RequireStyle, OnClick, Class, Mechanism, Widget, prependWidget, removeElement, appendWidget, Style, withWidget} = require('mho:surface');
 } and {
-var {Bootstrap} = require('mho:surface/bootstrap');
-} and {
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, join } = seq;
 } and {
@@ -83,8 +81,8 @@ exports.run = function() {
 
 	var toolbar = Widget("div", `
 			<div class="trigger">
-				<button class="btn config"><i class="icon-cog"></i></button>
-				<button class="btn search"><i class="icon-search"></i></button>
+				<button class="btn config"><span class="glyphicon glyphicon-cog"></span></button>
+				<button class="btn search"><span class="glyphicon glyphicon-search"></span></button>
 			</div>
 		`)
 		.. Style("{ position: relative; top:1.1em}")
@@ -166,7 +164,6 @@ exports.run = function() {
 		mainDisplay,
 		loadingWidget,
 	])
-	.. Bootstrap()
 	.. mainStyle
 	.. searchStyle;
 

@@ -1,6 +1,4 @@
-// XXX get rid of bootstrap dependency
-var { Bootstrap, Container, Label, Accordion, Span, Icon } = require('../surface/bootstrap');
-var { Markdown, Attrib, Style } = require('../surface');
+@ = require.merge('mho:stdlib', {id:'mho:surface/bootstrap/html', exclude:['Map','Style'] });
 
 //----------------------------------------------------------------------
 //
@@ -13,13 +11,12 @@ var { Markdown, Attrib, Style } = require('../surface');
 exports.generateMarkdown = function(src) {
 
   try {
-    return Bootstrap(Container(Markdown(src, {sanitize:true})));
+    return @Markdown(src, {sanitize:true});
   }
   catch (e) {
     return `
-      <p>Error parsing markdown file</p>
+      <p>Error parsing markdown file (${e})</p>
       <pre>$src</pre>`;
 
   }    
 };
-

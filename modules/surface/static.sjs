@@ -19,6 +19,7 @@ exports.CSSDocument = function(content, parent_class) {
   @setting {../surface::FragmentTree} [head] Additional HTML content to appear in the document's <head> (before SJS is initialized)
   @setting {String} [init] SJS source code to run on the client once SJS is initialized
   @setting {String} [main] SJS module URL to run on the client
+  @setting {String} [template] Document template
   @desc
     **Note:** the `head` and `title` settings can be any [../surface::FragmentTree] type,
     but since they're used for customising the HTML <head> before SJS is initialized, only the
@@ -28,18 +29,36 @@ exports.Document = function(content, settings) {
 
   content = html.collapseHtmlFragment(content || undefined);
 
-  var headContent, userInit, title, mainModule;
+  var headContent, userInit, title, mainModule, template;
   if(settings) {
     title = settings.title;
     headContent = settings.head;
     userInit = settings.init;
     mainModule = settings.main;
+    template = settings.template;
   }
+
+  template = template || 'default';
 
   headContent = headContent ? html.collapseHtmlFragment(headContent).getHtml() : "";
   if (title) {
     headContent += html.collapseHtmlFragment(`<title>$title</title>`).getHtml();
   }
+
+  headContent += keys(content.getExternalScripts()) ..
+    map(url -> "<script src=\"#{sanitize(url)}\"></script>") ..
+    join('\n');
+
+  headContent += values(content.getStyleDefs()) ..
+      map([ref_count,def] -> def.getHtml()) ..
+    join('\n');
+
+  headContent += "<script src='/__sjs/stratified.js' asyc='true'></script>";
+
+  headContent += "<script type='text/sjs'>
+    require.hubs.push(['mho:', '/__mho/']);
+    require.hubs.push(['\u2127:', 'mho:']);
+  </script>";
 
   var mechanisms = propertyPairs(content.getMechanisms()) ..
     map(function([id, code]) {
@@ -47,11 +66,9 @@ exports.Document = function(content, settings) {
         throw new Error('Static surface code cannot contain mechanisms with function objects');
       return "mechs[#{id}] = function(){ #{code} };"
     });
-  var bootScript = "
-    require.hubs.push(['mho:', '/__mho/']);
-    require.hubs.push(['\u2127:', 'mho:']);
-  ";
-  if(userInit) bootScript += "\n" + userInit;
+
+  var bootScript = "";
+  if (userInit) bootScript += "\n" + userInit;
   
   // keep static & dynamic worlds from colliding; see comment at top of html.sjs
   bootScript += html._getDynOniSurfaceInit()
@@ -80,26 +97,24 @@ exports.Document = function(content, settings) {
 
   if(mainModule) bootScript += "\nrequire(\"#{sanitize(mainModule)}\", {main: true});";
 
-  return "\
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    #{
-      headContent
-    }#{
-      keys(content.getExternalScripts()) ..
-      map(url -> "<script src=\"#{sanitize(url)}\"></script>") ..
-      join('\n')
-    }#{
-      values(content.getStyleDefs()) ..
-      map([ref_count,def] -> def.getHtml()) ..
-      join('\n')
-    }
-    <script src='/__sjs/stratified.js' asyc='true'></script>
-    <script type='text/sjs'>#{ html.escapeForTag(bootScript, 'script') }</script>
-  </head>
-  <body>#{content.getHtml()}</body>
-</html>";
+
+  bootScript = "<script type='text/sjs'>#{ html.escapeForTag(bootScript, 'script') }</script>";
+
+
+  if (/^\w+$/.test(template)) {
+    // template is relative to ./doctemplates/
+    template = './doctemplates/'+template;
+  }
+
+  try { 
+    var template_module = require(template);
+  }
+  catch(e) {
+    throw new Error("Document Template #{template} not found");
+  }
+
+  return require(template).Document({ head: headContent,
+                                      script: bootScript,
+                                      body: content.getHtml()
+                                    });
 };

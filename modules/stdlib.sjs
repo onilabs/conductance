@@ -39,8 +39,7 @@ var modules = [
   
   {id:'mho:observable', exclude: ['at', 'get']},
   {id:'mho:observable', name: 'observable'},
-  {id:'mho:surface'},
-  {id:'mho:surface/bootstrap', exclude: ['Label', 'Submit']},
+  {id:'mho:surface'}
 ];
 
 if (@hostenv === 'nodejs') {

@@ -53,7 +53,7 @@ var { isObservable, isObservableArray, isMutatable, Computed, get, Map, at } = r
   'P','Hr','Pre', 'BlockQuote', 'Ol', 'Ul', 'Li','Dl','Dt','Dd','Figure','FigCaption','Div',
   'A','Em','Strong','Small','S','Cite','Q','Dfn','Abbr','Data', 'Time', 'Code', 'Var',
   'Samp', 'Kbd', 'Sub', 'Sup', 'I', 'B', 'U', 'Mark', 'Ruby', 'Rt', 'Rp',
-  'Bdi', 'Bdo', 'Br', 'Wbr',
+  'Bdi', 'Bdo', 'Span', 'Br', 'Wbr',
   'Ins', 'Del',
   'Img', 'Iframe', 'Embed', 'Object', 'Param', 'Video', 'Audio', 'Source', 'Track',
   'Canvas', 'Map', 'Area', 'Svg', 'Math',

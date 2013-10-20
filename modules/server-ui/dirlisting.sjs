@@ -1,7 +1,4 @@
-// XXX get rid of bootstrap dependency
-var { Bootstrap, Container, Label, Icon } = require('../surface/bootstrap');
-var { transform } = require('sjs:sequence');
-var url = require('sjs:url');
+@ = require.merge('mho:stdlib', {id:'mho:surface/bootstrap/html', exclude:['Map','Style'] });
 
 // helper to format file sizes:
 function formatBytes(size) {
@@ -22,28 +19,20 @@ function formatBytes(size) {
 exports.generateDirListing = function(dir) {
 
   var folders = dir.directories .. 
-    transform(d -> `<div>$Icon('folder-close-alt') <a href="${url.encode(d)}/">$d/</a></div>`);
+    @transform(d -> `<div>$@Icon('folder-close') <a href="${@url.encode(d)}/">$d/</a></div>`);
   
   var files = dir.files ..
-    transform(f -> `<div>$Icon('file') <a href="${url.encode(f.name)}">${f.name}</a>
+    @transform(f -> `<div>$@Icon('file') <a href="${@url.encode(f.name)}">${f.name}</a>
                         (${f.generated ? 
                            'generated' :
                            formatBytes(f.size)})
                     </div>`);
 
-  return Bootstrap(Container(
-    `
-      <h1>$Icon('folder-open-alt') ${dir.path}</h1>
+  return  `
+      $@H1(`$@Icon('folder-open')&nbsp;${dir.path}`)
       <hr>
-      <div class='row'>
-        <div class='span6'>
-          $folders
-        </div>
-        <div class='span6'>
-          $files
-        </div>
-      </div>
+      $@Row([@ColSm(6, folders), @ColSm(6, files)])
       <hr>
       <p class='text-right'><small>℧ oni labs conductance server</small></p>
-    `));
+    `;
 };
