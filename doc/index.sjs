@@ -82,7 +82,7 @@ exports.run = function() {
 	var toolbar = Widget("div", `
 			<div class="trigger">
 				<button class="btn config"><span class="glyphicon glyphicon-cog"></span></button>
-				<button class="btn search"><span class="glyphicon glyphicon-search"></span></button>
+				<button class="btn search" title="Shortcut: /"><span class="glyphicon glyphicon-search"></span></button>
 			</div>
 		`)
 		.. Style("{ position: relative; top:1.1em}")
