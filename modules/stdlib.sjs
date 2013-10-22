@@ -17,7 +17,6 @@
 
   @require mho:observable
   @require mho:surface
-  @require mho:surface/bootstrap
 */
 @ = require.merge('sjs:object', 'sjs:sys');
 
