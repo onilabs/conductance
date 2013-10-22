@@ -2,7 +2,7 @@ body {
 	font-family: sans-serif;
 	margin:0;
 	padding:0;
-	padding-left:281px;
+	padding-left:280px;
 }
 
 #sidebar {
@@ -75,8 +75,11 @@ h1 {
 
 .trigger button {
 	font-size:1.2em;
-	line-height: 1.4em;
 	padding: 0.2em 0.75em;
+}
+
+.trigger button * {
+	line-height: 1.4em;
 }
 
 .overlay {
@@ -132,13 +135,13 @@ h1 {
 }
 
 .header {
-	min-height: 60px;
 	padding: 0 20px;
 	margin:0;
 	background: rgb(127, 197, 255);
 }
 .header h1 {
 	color: rgba(0,0,0,0.7);
+	padding: 15px 0;
 }
 .header:before, .header:after {
 	content:'';
