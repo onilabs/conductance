@@ -122,7 +122,7 @@ exports.run = function(config, block) {
     logging.verbose("Adopting #{fdCount} $LISTEN_FDS");
     var nextFD=3;
     servers .. each {|[app, address, routes]|
-      address.config = merge(address.config, {fd: nextFD++});
+      address.useOpenFileDescriptor(nextFD++);
     }
   }
 
@@ -474,6 +474,11 @@ PortProto._init = function(port, address) {
 PortProto.ssl = function(opts) {
   assert.is(this.sslConfig, null, "SSL already set");
   this.sslConfig = merge(opts, {ssl:true});
+  return this;
+};
+
+PortProto.useOpenFileDescriptor = function(fd) {
+  this._config.fd = fd;
   return this;
 };
 

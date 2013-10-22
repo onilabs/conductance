@@ -106,8 +106,8 @@ exports.Document = function(content, settings) {
     template = './doctemplates/'+template;
   }
 
-  try { 
-    var template_module = require(template);
+  try {
+    require.resolve(template);
   }
   catch(e) {
     throw new Error("Document Template #{template} not found");

@@ -36,8 +36,7 @@ GroupProto._init = function(name, units) {
 /**
   @class Group
   @function Group
-  @param {optional String} [name]
-  @default "conductance"
+  @param {optional String} [name="conductance"]
   @param {Object} [units]
   @desc
     Creates a group of systemd services.
@@ -63,7 +62,7 @@ GroupProto._init = function(name, units) {
                 Environment: [
                   'NODE_ENV=production',
                 ],
-                'ExecStart': ConductanceArgs.concat('run', env.config().path),
+                'ExecStart': ConductanceArgs.concat('serve', env.config().path),
               },
               // use socket activation
               Socket: {
