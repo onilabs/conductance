@@ -86,23 +86,3 @@ exports.serve = function(args) {
     routes: routes,
   });
 };
-
-exports.systemd = function() {
-  var systemd = require('mho:server/systemd');
-  var url = require('sjs:url');
-  return {
-    master: {
-      Service: {
-        Restart: 'always',
-        User: 'conductance',
-        Group: 'conductance',
-        Environment: {'NODE_ENV': 'production'},
-        ExecStart: systemd.ConductanceArgs.concat('run', module.id .. url.toPath),
-      },
-      // use socket activation
-      Socket: {
-        Listen: ports,
-      },
-    }
-  }
-};

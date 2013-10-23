@@ -418,6 +418,27 @@ Unit.prototype._write = function(f) {
 
 Unit.prototype.path = -> path.join(this.base, this.name);
 
+var loadGroup = function(configPath) {
+	var config = conductance.loadConfig(configPath);
+	var group = config.systemd;
+	if (!group) {
+		fail("No systemd config for #{configPath}");
+	}
+	
+	// allow lazy definitions
+	if (group instanceof(Function)) group = group();
+
+	if (!GroupProto.isPrototypeOf(group)) {
+		throw new Error("exports.systemd should be (or return) a systemd.Group");
+	}
+	return group;
+};
+
+var defaultConfig = function() {
+	var config = conductance.defaultConfig();
+	return config;
+};
+
 var install = function(opts) {
 	var base = opts.dest;
 	var mkunit = (name) -> new Unit(opts.dest, name);
@@ -425,8 +446,7 @@ var install = function(opts) {
 
 	var configFiles = opts._args;
 	if (configFiles.length == 0) {
-		configFiles = [conductance.defaultConfig()];
-		logging.warn("Using default config: #{configFiles[0]}");
+		configFiles = [defaultConfig()];
 	}
 
 	var namespaces = {};
@@ -438,18 +458,7 @@ var install = function(opts) {
 	};
 
 	configFiles .. each {|configPath|
-		var config = conductance.loadConfig(configPath);
-		var group = config.systemd;
-		if (!group) {
-			fail("No systemd config for #{configPath}");
-		}
-		
-		// allow lazy definitions
-		if (group instanceof(Function)) group = group();
-
-		if (!GroupProto.isPrototypeOf(group)) {
-			throw new Error("exports.systemd should be (or return) a systemd.Group");
-		}
+		var group = loadGroup(configPath);
 
 		var namespace = group.name;
 		var groupTarget = "#{namespace}.target";
@@ -598,9 +607,16 @@ exports.main = function(args) {
 
 	var groupOptions = [
 		{
+			names: ['config','c'],
+			type: 'arrayOfString',
+			help: "Act on groups defined in FILE (defaults to \"#{conductance.defaultConfig()}\")",
+			'default': [],
+			'helpvar':'FILE',
+		},
+		{
 			names: ['group','g'],
 			type: 'arrayOfString',
-			help: "Specify group to act on (if not given, the default of \"#{DEFAULT_GROUP}\" is used)",
+			help: "Specify group name to act on",
 			'default': [],
 		},
 	]
@@ -706,8 +722,7 @@ Commands:
     status:     Run systemctl status on conductance group(s).
     log:        Run journalctl on conductance group(s).
 
-  Actions that act on group(s) accept `--group/-g` multiple times,
-  and default to #{DEFAULT_GROUP} if no groups are specified.
+  Actions that act on groups accept `--config` or `--group` multiple times.
 
 Global options:\n#{dashdash.createParser({ options: commonOptions }).help({indent:2})}
 
@@ -715,12 +730,26 @@ Pass `--help` after a valid command to show command-specific help.");
 			break;
 	}
 	var opts = parseArgs(command, options, args);
-	if (opts.group && opts.group.length === 0) {
-		opts.groups = [DEFAULT_GROUP];
-	} else {
-		opts.groups = opts.group;
+
+	if (opts.group) {
+		if (opts.group.length > 0 && opts.config.length > 0) {
+			throw new Error("Use either --group or --config, not both.");
+		}
+
+		if (opts.group.length === 0 && opts.config.length === 0) {
+			opts.config = [defaultConfig()];
+		}
+
+		if (opts.config.length > 0) {
+			opts.groups = opts.config .. map(conf -> loadGroup(conf).name);
+		} else {
+			opts.groups = opts.group;
+		}
 		delete opts.group;
+		delete opts.config;
+		logging.info("Groups: #{opts.groups .. join(", ")}");
 	}
+
 	action(opts);
 }
 
