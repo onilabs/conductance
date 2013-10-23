@@ -95,6 +95,11 @@ div.mb-summary {
     font-style:italic;
 }
 
+div.mb-class-desc {
+    margin-left:4em;
+    margin-bottom:6em;
+}
+
 span.mb-arglist {
     color: #555;
 }
