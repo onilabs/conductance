@@ -79,14 +79,6 @@ function gen_app_html(src, dest, aux) {
 }
 
 //----------------------------------------------------------------------
-// filter that generates the sjs for *.app files:
-function gen_app_sjs(src, dest, aux) {
-  src = readAll(src);
-
-  return sjscompile(src, dest, aux);
-}
-
-//----------------------------------------------------------------------
 // filter that generates html for a directory listing:
 function gen_dir_html(src, dest, aux) {
   var listing = require('../server-ui/dirlisting').generateDirListing(JSON.parse(readAll(src)));
@@ -272,7 +264,7 @@ var Executable = (base) -> base
                         filter: gen_app_html
                         },
                  sjs  : { mime: "text/plain",
-                          filter: gen_app_sjs,
+                          filter: sjscompile,
                           filterETag: -> conductanceVersion(),
                           cache: SJSCache
                         },
