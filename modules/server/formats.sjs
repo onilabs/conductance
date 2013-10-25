@@ -82,8 +82,7 @@ function gen_app_html(src, dest, aux) {
 // filter that generates the sjs for *.app files:
 function gen_app_sjs(src, dest, aux) {
   src = readAll(src);
-  // inherit '@' from global '@' symbol, so that we can set it in the template:
-  src = "@=window.__oni_altns;"+src;
+
   return sjscompile(src, dest, aux);
 }
 
