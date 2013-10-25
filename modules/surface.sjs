@@ -25,6 +25,7 @@ if (require('sjs:sys').hostenv === 'xbrowser') {
 
   exports.CSSDocument = stat.CSSDocument;
   exports.Document = stat.Document;
+  exports.loadTemplate = stat.loadTemplate;
 }
 
 //----------------------------------------------------------------------

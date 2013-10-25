@@ -64,11 +64,12 @@ function gen_app_html(src, dest, aux) {
       // the block:
       break;
     }
-console.log("TEMPLATE: #{metadata.template}");
-    var { Document } = require('../surface');
+    var { Document, loadTemplate } = require('../surface');
     dest.write(
-      Document(null, {init: "require(\"#{app_name}!sjs\");", 
-                      template: metadata.template || 'default'})
+      Document(null, {
+        init: "require(\"#{app_name}!sjs\");",
+        template: loadTemplate(metadata.template || 'default', aux.request.url.source)
+      })
     );
   }
   catch (e) {
