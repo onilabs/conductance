@@ -7,11 +7,6 @@ exports.Document = settings ->
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <link rel='stylesheet' href='/__mho/surface/bootstrap/bootstrap-vanilla-3.css' media='screen'>
     #{ settings.head }
-    <script type='text/sjs'>
-      @ = require.merge('mho:stdlib', 
-                        {id:'mho:surface/bootstrap/html', exclude:['Map','Style']});
-      @body = document.body.firstChild;
-    </script>
     #{ settings.script }
   </head>
   <body>#{settings.body}</body>
