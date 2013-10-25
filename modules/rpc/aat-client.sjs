@@ -2,7 +2,7 @@
  * 'rpc/aat-client' module
  * Asymmetric AJAX Transport Client
  *
- * Version: 'unstable'
+ * Version: '0.1.0-1-development'
  * http://onilabs.com
  *
  * (c) 2012-2013 Oni Labs, http://onilabs.com
@@ -219,7 +219,7 @@ function openTransport(server) {
     }),
 
     sendData: function(header, data) {
-      sendCommand.call(this
+      sendCommand.call(this,
         [server, SERVER_PATH, AAT_VERSION,
         {
           cmd: "data#{transport_id_suffix}",
