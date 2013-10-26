@@ -145,7 +145,7 @@ Library.prototype.loadModuleDocs = function(path) {
 	if (!this.moduleCache .. hasOwn(path)) {
 		var docs = null;
 		try {
-			if (path .. str.endsWith('/')) {
+			if (!path.length || path .. str.endsWith('/')) {
 				docs = docutil.parseSJSLibDocs(this.loadFile(path + "sjs-lib-index.txt"));
 			} else {
 				docs = docutil.parseModuleDocs(this.loadFile(path + ".sjs?format=src"));
