@@ -50,7 +50,7 @@ var resourceRegistry = {
   },
   unuseStyle: function(id) {
     var desc = stylesInstalled[id];
-    if (!desc) console.log("Warning: Trying to unuse unknown style #{id}")
+    if (!desc) { console.log("Warning: Trying to unuse unknown style #{id}"); return; }
     if (--desc.ref_count === 0) {
       if (desc.elem.__oni_mech) {
         desc.elem.__oni_mech.abort();
