@@ -31,6 +31,7 @@ var modules = [
   'sjs:quasi',
   {id:'sjs:assert', name:'assert'},
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
+  {id:'sjs:logging', name:'logging'},
   {id:'sjs:string', exclude: ['contains']},
   {id:'sjs:events', exclude: ['Stream', 'Queue']},
   {id:'sjs:sys', exclude: ['executable']},
@@ -43,8 +44,9 @@ var modules = [
 
 if (@hostenv === 'nodejs') {
   modules = modules.concat([
-    'sjs:nodejs/fs',
-    {id:'sjs:nodejs/child-process', exclude: ['wait']},
+    {id:'nodejs:path', name: 'path'},
+    {id:'sjs:nodejs/fs', name: 'fs'},
+    {id:'sjs:nodejs/child-process', name: 'childProcess'},
     {id:'mho:server/env', name:'env'},
     {id:'mho:server', include:['Host', 'Route', 'Port']},
     {id:'mho:server', name:'server'},
