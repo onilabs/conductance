@@ -140,6 +140,7 @@ var SystemCtl = function(opts) {
 };
 
 SystemCtl.prototype._run = function(args, opts, quiet) {
+	if (this.opts.files_only) return null;
 	if (!opts) opts = {};
 	var _args = [];
 	// TODO: add --user option if opts.user
@@ -149,6 +150,7 @@ SystemCtl.prototype._run = function(args, opts, quiet) {
 };
 
 SystemCtl.prototype._run_output = function(args) {
+	if (this.opts.files_only) return '';
 	return this._run(args, {stdio: [process.stdin, 'pipe', process.stderr]}, true).stdout;
 }
 
@@ -218,6 +220,8 @@ SystemCtl.prototype._unitProperties = function(unit, propertyNames) {
 };
 
 SystemCtl.prototype._runningUnits = function() {
+	if (this.opts.files_only) return [];
+
 	var output = this._run_output(['list-units', '--no-legend', '--no-pager', '--full']);
 	output = output.split('\n')
 	.. filter(line -> line.trim())
@@ -483,8 +487,6 @@ var install = function(opts) {
 			service = object.merge({
 				// fully qualify both `node` and `sjs` executables to ensure we get the right runtime
 				'ExecStart': exports.ConductanceArgs.concat('run', env.configPath()),
-				'User': 'nobody',
-				'Group': 'nobody',
 				'SyslogIdentifier': fqn,
 				'StandardOutput': 'syslog',
 			}, service);
@@ -602,6 +604,11 @@ exports.main = function(args) {
 			names: ['interactive', 'i'],
 			type: 'bool',
 			help: 'Prompt for confirmation before changing anything'
+		},
+		{
+			name: 'files-only',
+			type: 'bool',
+			help: "Create / update systemd files but don't notify systemd of changes",
 		},
 	];
 
