@@ -45,37 +45,31 @@ function sjscompile(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates the html boilerplate for *.app files:
 function gen_app_html(src, dest, aux) {
-  try {
-    var app_name = aux.request.url.file || "index.app";
+  var app_name = aux.request.url.file || "index.app";
 
-    var metadata = {};
-    require('sjs:docutil').parseSource(readAll(src)) {
-      |comment|
-      // strip "/*" & "*/"
-      if (/^\/\*/.test(comment))
-        comment = comment.substring(2, comment.length-2);
-      // match simple 'key = value' lines
-      comment .. matches(/^\s*([^=\n\r ]+)[ \t]*=[ \t]*((?:[ \t]*\S)*)[ \t]*(?:\n|$)/gm) .. each {
-        |[,key,val]|
-        metadata[key] = val;
-      } 
-      
-      // we only extract metadata from the first comment; break out of
-      // the block:
-      break;
-    }
-    var { Document, loadTemplate } = require('../surface');
-    dest.write(
-      Document(null, {
-        init: "require(\"#{app_name}!sjs\");",
-        template: loadTemplate(metadata.template || 'default', aux.request.url.source)
-      })
-    );
+  var metadata = {};
+  require('sjs:docutil').parseSource(readAll(src)) {
+    |comment|
+    // strip "/*" & "*/"
+    if (/^\/\*/.test(comment))
+      comment = comment.substring(2, comment.length-2);
+    // match simple 'key = value' lines
+    comment .. matches(/^\s*([^=\n\r ]+)[ \t]*=[ \t]*((?:[ \t]*\S)*)[ \t]*(?:\n|$)/gm) .. each {
+      |[,key,val]|
+      metadata[key] = val;
+    } 
+    
+    // we only extract metadata from the first comment; break out of
+    // the block:
+    break;
   }
-  catch (e) {
-    // XXX better error handling
-    dest.write(e.toString());
-  }
+  var { Document, loadTemplate } = require('../surface');
+  dest.write(
+    Document(null, {
+      init: "require(\"#{app_name}!sjs\");",
+      template: loadTemplate(metadata.template || 'default', aux.request.url.source)
+    })
+  );
 }
 
 //----------------------------------------------------------------------
