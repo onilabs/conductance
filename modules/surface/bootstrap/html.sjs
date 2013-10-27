@@ -33,3 +33,6 @@ exports.ColSm = (n, content, attribs) -> @Widget('div', content, attribs) .. @Cl
 exports.Container = (content, attribs) -> @Widget('div', content, attribs) .. @Class('container');
 
 exports.Label = (content, attribs) -> @Widget('label', content, attribs) .. @Class("label #{attribs.type ? "label-#{attribs.type}" : ''}");
+
+exports.PageHeader = (content, attribs) -> @Widget('div', `<h1>$content</h1>`, attribs) .. @Class('page-header');
+
