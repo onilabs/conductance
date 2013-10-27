@@ -172,6 +172,7 @@ exports.DeveloperMode = function(responder) {
     try {
       block();
     } catch(e) {
+      var originalError = e;
       var desc = String(e);
       var additional;
       if (!isHttpError(e)) {
@@ -189,9 +190,9 @@ exports.DeveloperMode = function(responder) {
             <h3>Stack trace:</h3>
             <pre>${String(desc)}</pre>
           `);
-        } catch(ee) { /* ignore */ }
+        } catch(_e) { /* ignore */ }
       }
-      throw e;
+      throw originalError;
     }
   });
 };
