@@ -17,20 +17,20 @@ var { setStatus, writeRedirectResponse, HttpError, NotFound } = require('./respo
 // response, or, if no suitable representation is found, writes an error response
 //
 // An item must contain the following keys:
-//  - extension
+//  - filetype (usually the extension of the file being served, but can be overridden for *.gen files)
 //  - input (a stream of data)
 //  - format
 // Optionally:
 //  - etag:  etag of the input stream
 //  - apiinfo: (for api files; only if settings.allowApis == true)
 function formatResponse(req, item, settings) {
-  var { input, extension, format, apiinfo } = item;
+  var { input, filetype, format, apiinfo } = item;
 
   var notAcceptable = HttpError(406, 'Not Acceptable',
                                 'Could not find an appropriate representation');
-  var filedesc = settings.formats[extension] || settings.formats["*"];
+  var filedesc = settings.formats[filetype] || settings.formats["*"];
   if (!filedesc) {
-    verbose("Don't know how to serve item with extension '#{extension}'");
+    verbose("Don't know how to serve item of type '#{filetype}'");
     throw notAcceptable;
   }
 
@@ -38,7 +38,7 @@ function formatResponse(req, item, settings) {
   if (!formatdesc && !format.mandatory)
     formatdesc = filedesc["none"];
   if (!formatdesc) {
-    verbose("Can't serve item with extension '#{extension}' in format '#{format.name}'");
+    verbose("Can't serve item of type '#{filetype}' in format '#{format.name}'");
     throw notAcceptable;
   }
 
@@ -172,7 +172,7 @@ function listDirectory(req, root, branch, format, settings) {
   formatResponse(
     req,
     { input: -> new stream.ReadableStringStream(listingJson, true),
-      extension: "/",
+      filetype: "/",
       format: format
     },
     settings);
@@ -215,7 +215,7 @@ function serveFile(req, filePath, format, settings) {
               nodefs.createReadStream(filePath, opts),
       length: stat.size,
       apiinfo: apiinfo,
-      extension: extension,
+      filetype: extension,
       format: format,
       etag: stat.mtime.getTime()
     },
@@ -259,7 +259,7 @@ function generateFile(req, filePath, format, settings) {
   formatResponse(
     req,
     { input: -> response,
-      extension: path.extname(filePath).slice(1),
+      filetype: generator.filetype ? generator.filetype : path.extname(filePath).slice(1),
       format: format,
 //      length: generator.content().length,
       etag: "#{generator_file_mtime}-#{etag ? etag.call(req, params) : Date.now()}",
