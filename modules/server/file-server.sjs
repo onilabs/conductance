@@ -251,14 +251,17 @@ function generateFile(req, filePath, format, settings) {
   require.modules[resolved_path].etag = generator_file_mtime;
 
   var params = req.url.params();
-  var response = generator.content.call(req, params);
-  if (response .. isString() || !response.read) {
-    response = new stream.ReadableStringStream(response, true);
-  }
 
   formatResponse(
     req,
-    { input: -> response,
+    { 
+      input: function() {
+        var rv = generator.content.call(req, params);
+        if (rv .. isString() || !rv.read)
+          rv = new stream.ReadableStringStream(rv, true);
+        return rv;
+      },
+      
       filetype: generator.filetype ? generator.filetype : path.extname(filePath).slice(1),
       format: format,
 //      length: generator.content().length,
