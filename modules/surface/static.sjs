@@ -43,7 +43,7 @@ exports.Document = function(content, settings) {
 
   content = html.collapseHtmlFragment(content || undefined);
 
-  var headContent, userInit, title, mainModule, template, templateData;
+  var headContent, userInit, title, mainModule, template, templateData, externalScripts;
   if(settings) {
     title = settings.title;
     headContent = settings.head;
@@ -51,6 +51,7 @@ exports.Document = function(content, settings) {
     mainModule = settings.main;
     template = settings.template;
     templateData = settings.templateData;
+    externalScripts = settings.externalScripts;
   }
 
   template = template || 'default';
@@ -64,8 +65,8 @@ exports.Document = function(content, settings) {
   var scriptTag = url -> "<script src=\"#{sanitize(url)}\"></script>";
   headContent += keys(content.getExternalScripts()) .. map(scriptTag) .. join('\n');
 
-  if(settings.externalScripts)
-    headContent += settings.externalScripts .. map(scriptTag) .. join('\n');
+  if(externalScripts)
+    headContent += externalScripts .. map(scriptTag) .. join('\n');
 
   headContent += values(content.getStyleDefs()) ..
       map([ref_count,def] -> def.getHtml()) ..
