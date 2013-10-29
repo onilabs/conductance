@@ -17,6 +17,7 @@
 
   @require mho:observable
   @require mho:surface
+  @require mho:client/env
 */
 @ = require.merge('sjs:object', 'sjs:sys');
 
@@ -52,6 +53,10 @@ if (@hostenv === 'nodejs') {
     {id:'mho:server', name:'server'},
     {id:'mho:server/routes', name:'routes'},
     'mho:server/response',
+  ]);
+} else {
+  modules = modules.concat([
+    {id: 'mho:client/env', name: 'env'}
   ]);
 }
 
