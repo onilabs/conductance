@@ -3,6 +3,7 @@ var { pump, readAll } = require('sjs:nodejs/stream');
 var { map, each, toArray } = require('sjs:sequence');
 var { clone, merge, ownPropertyPairs } = require('sjs:object');
 var { matches } = require('sjs:regexp');
+var { startsWith } = require('sjs:string');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
 
@@ -48,27 +49,37 @@ function gen_app_html(src, dest, aux) {
   var app_name = aux.request.url.file || "index.app";
 
   var metadata = {};
-  require('sjs:docutil').parseSource(readAll(src)) {
-    |comment|
-    // strip "/*" & "*/"
-    if (/^\/\*/.test(comment))
-      comment = comment.substring(2, comment.length-2);
-    // match simple 'key = value' lines
-    comment .. matches(/^\s*([^=\n\r ]+)[ \t]*=[ \t]*((?:[ \t]*\S)*)[ \t]*(?:\n|$)/gm) .. each {
-      |[,key,val]|
-      metadata[key] = val;
-    } 
-    
-    // we only extract metadata from the first comment; break out of
-    // the block:
-    break;
-  }
+  var documentSettings = {
+    init: "require(\"#{app_name}!sjs\");",
+  };
+  var template = 'default';
+  require('sjs:docutil').parseModuleDocs(readAll(src))
+    .. ownPropertyPairs
+    .. each {|[key, val]|
+      if (key === 'template') {
+        template = val;
+      } else if (key === 'bundle') {
+        if (val === 'true') {
+          // use self URL as bundle
+          val = Url.build(aux.request.url.source, {'format':'bundle'});
+        }
+        documentSettings.externalScripts = [val];
+      } else if (key .. startsWith('template-')) {
+        metadata[key.slice(9)] = val;
+      }
+    };
+
+  var externalScripts = metadata.externalScript;
+  if(externalScripts && !Array.isArray(externalScripts))
+    externalScripts = [externalScripts];
+
   var { Document, loadTemplate } = require('../surface');
   dest.write(
-    Document(null, {
-      init: "require(\"#{app_name}!sjs\");",
-      template: loadTemplate(metadata.template || 'default', aux.request.url.source)
-    })
+    Document(null, documentSettings .. merge({
+      template: loadTemplate(template || 'default', aux.request.url.source),
+      templateData: metadata,
+      title: metadata.title,
+    }))
   );
 }
 

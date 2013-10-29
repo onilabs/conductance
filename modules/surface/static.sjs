@@ -1,5 +1,5 @@
 var html  = require('./base');
-var { values, propertyPairs, keys } = require('sjs:object');
+var { values, propertyPairs, keys, merge } = require('sjs:object');
 var { sanitize, isString } = require('sjs:string');
 var { map, join, each } = require('sjs:sequence');
 var url = require('sjs:url');
@@ -20,6 +20,8 @@ exports.CSSDocument = function(content, parent_class) {
   @setting {../surface::FragmentTree} [head] Additional HTML content to appear in the document's <head> (before SJS is initialized)
   @setting {String} [init] SJS source code to run on the client once SJS is initialized
   @setting {String} [main] SJS module URL to run on the client
+  @setting {Array}  [externalScripts] Array of Javascript script URLs to add to the page
+  @setting {Object} [templateData] object which will be be passed through to the template function
   @setting {Function|String} [template="default"] Document template
   @desc
     **Note:** the `head` and `title` settings can be any [../surface::FragmentTree] type,
@@ -41,13 +43,14 @@ exports.Document = function(content, settings) {
 
   content = html.collapseHtmlFragment(content || undefined);
 
-  var headContent, userInit, title, mainModule, template;
+  var headContent, userInit, title, mainModule, template, templateData;
   if(settings) {
     title = settings.title;
     headContent = settings.head;
     userInit = settings.init;
     mainModule = settings.main;
     template = settings.template;
+    templateData = settings.templateData;
   }
 
   template = template || 'default';
@@ -58,9 +61,11 @@ exports.Document = function(content, settings) {
     headContent += html.collapseHtmlFragment(`<title>$title</title>`).getHtml();
   }
 
-  headContent += keys(content.getExternalScripts()) ..
-    map(url -> "<script src=\"#{sanitize(url)}\"></script>") ..
-    join('\n');
+  var scriptTag = url -> "<script src=\"#{sanitize(url)}\"></script>";
+  headContent += keys(content.getExternalScripts()) .. map(scriptTag) .. join('\n');
+
+  if(settings.externalScripts)
+    headContent += settings.externalScripts .. map(scriptTag) .. join('\n');
 
   headContent += values(content.getStyleDefs()) ..
       map([ref_count,def] -> def.getHtml()) ..
@@ -81,10 +86,10 @@ exports.Document = function(content, settings) {
     });
 
   var bootScript = "";
-  if (userInit) bootScript += "\n" + userInit;
-  
   // keep static & dynamic worlds from colliding; see comment at top of html.sjs
   bootScript += html._getDynOniSurfaceInit()
+
+  if (userInit) bootScript += userInit + '\n';
 
   if (mechanisms.length > 0) {
     bootScript += "
@@ -116,7 +121,8 @@ exports.Document = function(content, settings) {
   return template({ head: headContent,
                     script: bootScript,
                     body: content.getHtml()
-                  });
+                  },
+                  templateData || {});
 };
 
 /**
