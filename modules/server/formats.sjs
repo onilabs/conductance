@@ -1,6 +1,6 @@
-var { conductanceVersion } = require('./env');
+var env = require('./env');
 var { pump, readAll } = require('sjs:nodejs/stream');
-var { map, each, toArray } = require('sjs:sequence');
+var { map, each, toArray, join } = require('sjs:sequence');
 var { clone, merge, ownPropertyPairs } = require('sjs:object');
 var { matches } = require('sjs:regexp');
 var { startsWith } = require('sjs:string');
@@ -48,30 +48,22 @@ function sjscompile(src, dest, aux) {
 function gen_app_html(src, dest, aux) {
   var app_name = aux.request.url.file || "index.app";
 
-  var metadata = {};
   var documentSettings = {
     init: "require(\"#{app_name}!sjs\");",
+    externalScripts: [],
   };
-  var template = 'default';
-  require('sjs:docutil').parseModuleDocs(readAll(src))
-    .. ownPropertyPairs
-    .. each {|[key, val]|
-      if (key === 'template') {
-        template = val;
-      } else if (key === 'bundle') {
-        if (val === 'true') {
-          // use self URL as bundle
-          val = Url.build(aux.request.url.source, {'format':'bundle'});
-        }
-        documentSettings.externalScripts = [val];
-      } else if (key .. startsWith('template-')) {
-        metadata[key.slice(9)] = val;
-      }
-    };
-
-  var externalScripts = metadata.externalScript;
-  if(externalScripts && !Array.isArray(externalScripts))
-    externalScripts = [externalScripts];
+  var docutil = require('sjs:docutil');
+  var docs = docutil.parseModuleDocs(readAll(src));
+  var [template, metadata] = docutil.getPrefixedProperties('template');
+  if (!template) template = 'default';
+  var externalScripts = metadata['externalScript'];
+  if (externalScripts) {
+    if (Array.isArray(externalScripts)) {
+      documentSettings.externalScripts = documentSettings.externalScripts.concat(externalScripts);
+    } else {
+      documentSettings.externalScripts.push(externalScripts);
+    }
+  }
 
   var { Document, loadTemplate } = require('../surface');
   dest.write(
@@ -81,6 +73,30 @@ function gen_app_html(src, dest, aux) {
       title: metadata.title,
     }))
   );
+}
+
+//----------------------------------------------------------------------
+// filter that generates a .js bundle from a source module
+function gen_sjs_bundle(src, dest, aux) {
+  var defaultSettings = {
+    resources: [
+      // Assume relative paths are co-located.
+      // This will not work if .app files import paths from their parent,
+      // but we can't handle that in the general case without deep knowledge of routes.
+      [Url.normalize('./', src.path .. Url.fileURL), Url.normalize('./', aux.request.url.source)],
+    ],
+    skipFailed: true,
+  };
+  var appSettings = env.get('bundleSettings', defaultSettings);
+  var docutil = require('sjs:docutil');
+
+  var [_, sourceSettings] = readAll(src)
+    .. docutil.parseModuleDocs()
+    .. docutil.getPrefixedProperties('bundle');
+
+  var settings = appSettings .. merge(sourceSettings, { sources: [src.path] });
+  logging.verbose("Generating bundle with settings:", settings);
+  require('sjs:bundle').create(settings) .. each(line -> dest.write(line + '\n'));
 }
 
 //----------------------------------------------------------------------
@@ -214,7 +230,7 @@ var Code = (base) -> base
                         // filterETag() returns a tag that will be added onto
                         // the base file's modification date to derive an etag for
                         // the filtered file.
-                        filterETag: -> conductanceVersion(),
+                        filterETag: -> env.conductanceVersion(),
                         // cache is an lru-cache object which caches requests to filtered
                         // files (requires presence of filterETag() ):
                         cache: SJSCache
@@ -270,8 +286,14 @@ var Executable = (base) -> base
                         },
                  sjs  : { mime: "text/plain",
                           filter: sjscompile,
-                          filterETag: -> conductanceVersion(),
+                          filterETag: -> env.conductanceVersion(),
                           cache: SJSCache
+                        },
+                 bundle:{ mime: "text/javascript",
+                          filter: gen_sjs_bundle,
+                          //XXX: add these:
+                          //filterETag: -> env.conductanceVersion(),
+                          //cache: SJSCache
                         },
                  src  : { mime: "text/plain" }
                },
