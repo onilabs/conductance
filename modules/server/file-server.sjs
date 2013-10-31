@@ -247,6 +247,8 @@ function generateFile(req, filePath, format, settings) {
   }
 
   var generator = require(resolved_path);
+  if (!generator.content) throw new Error("Generator #{filePath} has no `content` method");
+
   var etag = generator.etag;
   require.modules[resolved_path].etag = generator_file_mtime;
 
