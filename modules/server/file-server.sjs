@@ -10,6 +10,11 @@ var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
 var { setStatus, writeRedirectResponse, HttpError, NotFound } = require('./response');
 
+function checkEtag(t) {
+  if (!isString(t)) throw new Error("non-string etag: #{t}");
+  return t;
+}
+
 //----------------------------------------------------------------------
 // formatResponse:
 // takes a `ServerRequest`, an `item` and a `settings` object
@@ -46,9 +51,9 @@ function formatResponse(req, item, settings) {
   var etag;
   if (item.etag) {
     if (formatdesc.filter && formatdesc.filterETag)
-      etag = "\"#{formatdesc.filterETag()}-#{item.etag}\"";
+      etag = "\"#{formatdesc.filterETag() .. checkEtag}-#{item.etag .. checkEtag}\"";
     else if (!formatdesc.filter)
-      etag = "\"#{item.etag}\"";
+      etag = "\"#{item.etag .. checkEtag}\"";
   }
 
   // check for etag match
@@ -217,7 +222,7 @@ function serveFile(req, filePath, format, settings) {
       apiinfo: apiinfo,
       filetype: extension,
       format: format,
-      etag: stat.mtime.getTime()
+      etag: stat.mtime.getTime() .. String
     },
     settings);
   return true;
