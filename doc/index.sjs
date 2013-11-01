@@ -39,7 +39,7 @@ var mainStyle   = RequireStyle(Url.normalize('css/main.css', module.id))
 var docsStyle   = RequireStyle(Url.normalize('css/docs.css', module.id))
 var searchStyle = RequireStyle(Url.normalize('css/search.css', module.id));
 
-exports.run = function() {
+exports.run = function(root) {
 	var libraries = Library.Collection();
 	var defaultHubs = ['sjs:','mho:'];
 
@@ -158,16 +158,16 @@ exports.run = function() {
 		.. Class("header");
 
 	var toplevel = Widget("div", [
+		sidebar,
 		header,
 		breadcrumbs,
-		sidebar,
 		mainDisplay,
 		loadingWidget,
-	])
+	], {'class':'documentationRoot'})
 	.. mainStyle
 	.. searchStyle;
 
-	document.body .. withWidget(toplevel) {|elem|
+	root .. withWidget(toplevel) {|elem|
 		if(window.rainbow) window.rainbow.hide();
 		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
 			while(true) {
@@ -179,7 +179,7 @@ exports.run = function() {
 };
 
 
-exports.main = function() {
+exports.main = function(root) {
 	// wraps `run` with error handling
 	var error = cutil.Condition();
 	window.onerror = function(e) {
@@ -190,7 +190,7 @@ exports.main = function() {
 		var e = error.wait();
 		logging.error(String(e));
 		ui.withOverlay("error") {|bg|
-			document.body .. withWidget(Widget("div",
+			root .. withWidget(Widget("div",
 				`<h1>:-(</h1>
 				<h3>There was an error: </h3>
 						<pre>${e.toString()}</pre>
@@ -215,11 +215,13 @@ exports.main = function() {
 		document.location.reload();
 	} and {
 		try {
-			exports.run();
+			exports.run(root);
 		} catch(e) {
 			error.set(e);
 		}
 	}
 };
 
-exports.main();
+if (require.main === module) {
+	exports.main(document.body);
+}

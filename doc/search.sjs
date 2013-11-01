@@ -246,6 +246,7 @@ exports.run = (function() {
 			};
 
 			elem .. withWidget(widget) {|elem|
+				window.scrollTo(0,0);
 				var input = elem.querySelector('input');
 				input.select();
 				if (onReady) onReady();

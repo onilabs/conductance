@@ -1,8 +1,13 @@
-body {
+.documentationRoot {
 	font-family: sans-serif;
 	margin:0;
 	padding:0;
 	padding-left:280px;
+	position:relative;
+}
+
+body {
+	background: white;
 }
 
 #sidebar {
@@ -27,7 +32,7 @@ body {
 	#sidebar {
 		width:25%;
 	}
-	body {
+	.documentationRoot {
 		padding-left:25%;
 	}
 }
@@ -36,7 +41,7 @@ body {
 	#sidebar {
 		display:none;
 	}
-	body {
+	.documentationRoot {
 		padding-left:0;
 	}
 }

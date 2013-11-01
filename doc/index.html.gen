@@ -2,10 +2,17 @@ var Url = require('sjs:url');
 var logging = require('sjs:logging');
 var {readFile} = require('sjs:nodejs/fs');
 var {join} = require('sjs:sequence');
+var { Document, Widget } = require('mho:surface');
 
 exports.content = function() {
-  var { Document, Widget } = require('mho:surface');
+  return Document(null, {
+    title: "Conductance Documentation Browser",
+    main: 'index.sjs',
+    head: exports.head(),
+  });
+};
 
+exports.head = function() {
   var head = [
     Widget("script", [
       // loading script
@@ -21,9 +28,5 @@ exports.content = function() {
     logging.info("Skipping bundle - developer mode");
   }
 
-  return Document(null, {
-    title: "Conductance Documentation Browser",
-    main: 'index.sjs',
-    head: head,
-  });
+  return head;
 };
