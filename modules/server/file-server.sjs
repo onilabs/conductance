@@ -29,7 +29,7 @@ function checkEtag(t) {
 //  - etag:  etag of the input stream
 //  - apiinfo: (for api files; only if settings.allowApis == true)
 function formatResponse(req, item, settings) {
-  var { input, filetype, format, apiinfo } = item;
+  var { input, filePath, filetype, format, apiinfo } = item;
 
   var notAcceptable = HttpError(406, 'Not Acceptable',
                                 'Could not find an appropriate representation');
@@ -51,7 +51,7 @@ function formatResponse(req, item, settings) {
   var etag;
   if (item.etag) {
     if (formatdesc.filter && formatdesc.filterETag)
-      etag = "\"#{formatdesc.filterETag() .. checkEtag}-#{item.etag .. checkEtag}\"";
+      etag = "\"#{formatdesc.filterETag(req, filePath) .. checkEtag}-#{item.etag .. checkEtag}\"";
     else if (!formatdesc.filter)
       etag = "\"#{item.etag .. checkEtag}\"";
   }
@@ -218,6 +218,7 @@ function serveFile(req, filePath, format, settings) {
     { input: opts ->
               // XXX hmm, might need to destroy this somewhere
               nodefs.createReadStream(filePath, opts),
+      filePath: filePath,
       length: stat.size,
       apiinfo: apiinfo,
       filetype: extension,
@@ -261,7 +262,7 @@ function generateFile(req, filePath, format, settings) {
 
   formatResponse(
     req,
-    { 
+    {
       input: function() {
         var rv = generator.content.call(req, params);
         if (rv .. isString() || !rv.read)

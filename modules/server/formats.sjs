@@ -4,11 +4,17 @@ var { map, each, toArray, join } = require('sjs:sequence');
 var { clone, merge, ownPropertyPairs } = require('sjs:object');
 var { matches } = require('sjs:regexp');
 var { startsWith } = require('sjs:string');
+var func = require('sjs:function');
 var logging = require('sjs:logging');
+var assert = require('sjs:assert');
 var Url = require('sjs:url');
+var fs = require('sjs:nodejs/fs');
+var { CachedBundle } = require('./generator');
+var lruCache = require('sjs:lru-cache');
 
 // XXX this should be configurable separately somewhere
-var SJSCache = require('sjs:lru-cache').makeCache(10*1000*1000); // 10MB
+var SJSCache = lruCache.makeCache(10*1000*1000); // 10MB
+var bundleCache = lruCache.makeCache(10*1000*1000); // 10MB
 
 //----------------------------------------------------------------------
 // filters XXX these should maybe go in their own module
@@ -77,27 +83,64 @@ function gen_app_html(src, dest, aux) {
 
 //----------------------------------------------------------------------
 // filter that generates a .js bundle from a source module
-function gen_sjs_bundle(src, dest, aux) {
-  var defaultSettings = {
-    resources: [
-      // Assume relative paths are co-located.
-      // This will not work if .app files import paths from their parent,
-      // but we can't handle that in the general case without deep knowledge of routes.
-      [Url.normalize('./', src.path .. Url.fileURL), Url.normalize('./', aux.request.url.source)],
-    ],
-    skipFailed: true,
+var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
+  function getSettings(path, url) {
+    var defaultSettings = {
+      resources: [
+        // Assume relative paths are co-located.
+        // This will not work if .app files import paths from their parent,
+        // but we can't handle that in the general case without deep knowledge of routes.
+        [Url.normalize('./', path .. Url.fileURL), Url.normalize('./', url.source)],
+      ],
+      skipFailed: true,
+    };
+    var appSettings = env.get('bundleSettings', defaultSettings);
+    var docutil = require('sjs:docutil');
+
+    var [_, sourceSettings] = fs.readFile(path)
+      .. docutil.parseModuleDocs()
+      .. docutil.getPrefixedProperties('bundle');
+
+    var settings = appSettings .. merge(sourceSettings, { sources: [path] });
+    return settings;
   };
-  var appSettings = env.get('bundleSettings', defaultSettings);
-  var docutil = require('sjs:docutil');
 
-  var [_, sourceSettings] = readAll(src)
-    .. docutil.parseModuleDocs()
-    .. docutil.getPrefixedProperties('bundle');
+  var bundleAccessor = function(path) {
+    assert.ok(path);
+    var get = bundleCache.get(path);
+    if (!get) {
+      // serialize requests for the given path, as we don't
+      // want to regenerate the same bundle in parallel
+      get = (function() {
+        var b;
+        return func.sequential(function(url) {
+          if (!b) {
+            b = CachedBundle(getSettings(path, url));
+          } else if (b.isStale()) {
+            b.modifySettings(getSettings(path, url));
+          }
+          return b;
+        });
+      }());
+      bundleCache.put(path, get, 0);
+    }
+    return get;
+  };
 
-  var settings = appSettings .. merge(sourceSettings, { sources: [src.path] });
-  logging.verbose("Generating bundle with settings:", settings);
-  require('sjs:bundle').create(settings) .. each(line -> dest.write(line + '\n'));
-}
+  return {
+    gen_sjs_bundle: function(src, dest, aux) {
+      var getBundle = bundleAccessor(src.path);
+      var bundle = getBundle(aux.request.url);
+      var content = bundle.content();
+      // overwrite cache entry each time to update cache length
+      bundleCache.put(src.path, getBundle, content.length);
+      dest.write(content);
+    },
+    gen_sjs_bundle_etag: function(request, filePath) {
+      return bundleAccessor(filePath)(request.url).etag();
+    },
+  };
+})();
 
 //----------------------------------------------------------------------
 // filter that generates html for a directory listing:
@@ -236,6 +279,10 @@ var Code = (base) -> base
                         cache: SJSCache
                       },
            src      : { mime: "text/plain" },
+          bundle    : { mime: "text/javascript",
+                        filter: gen_sjs_bundle,
+                        filterETag: gen_sjs_bundle_etag,
+                      },
          },
   });
 exports.Code = Code;
@@ -291,9 +338,7 @@ var Executable = (base) -> base
                         },
                  bundle:{ mime: "text/javascript",
                           filter: gen_sjs_bundle,
-                          //XXX: add these:
-                          //filterETag: -> env.conductanceVersion(),
-                          //cache: SJSCache
+                          filterETag: gen_sjs_bundle_etag,
                         },
                  src  : { mime: "text/plain" }
                },

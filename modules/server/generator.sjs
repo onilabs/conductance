@@ -10,11 +10,19 @@ exports.moduleTimestamp = function() {
   return -> t;
 }
 
-var CachedBundle = function(settings) {
+var CachedBundle = exports.CachedBundle = function(settings) {
+  var self = {};
   var _cache = null;
+  var _stale = true;
+  var isStale = self.isStale = function() {
+    // sets _stale, which short-circuits future calls until
+    // it's cleared by refresh()
+    _stale = _stale || !_cache || maxMtime(_cache.sources) > _cache.mtime;
+    return _stale;
+  };
+
   var refresh = @func.sequential(function() {
-    var needsRefresh = (!_cache || maxMtime(_cache.sources) > _cache.mtime);
-    if (needsRefresh) {
+    if (isStale()) {
       var curr = { generated: new Date() };
       @logging.verbose("bundle.findDependencies: ", settings);
       var deps = curr.deps = @bundle.findDependencies(settings.sources, settings);
@@ -24,6 +32,7 @@ var CachedBundle = function(settings) {
         .. @map(mod -> mod.path .. @url.toPath);
       curr.mtime = maxMtime(curr.sources);
       _cache = curr;
+      _stale = false;
     }
     return _cache;
   });
@@ -37,9 +46,9 @@ var CachedBundle = function(settings) {
     return max;
   };
 
-  this.etag = -> refresh().mtime .. String();
+  self.etag = -> refresh().mtime .. String();
 
-  this.content = @func.sequential(function() {
+  self.content = @func.sequential(function() {
     var curr = refresh();
     if (!curr.content) {
       var content = @bundle.generateBundle(curr.deps, settings);
@@ -49,10 +58,17 @@ var CachedBundle = function(settings) {
     }
     return curr.content;
   });
+
+  self.modifySettings = function(s) {
+    settings = s;
+    _cache = null;
+  }
+
+  return self;
 };
 
 var BundleGenerator = exports.BundleGenerator = function(settings) {
-  var bundle = new CachedBundle(settings);
+  var bundle = CachedBundle(settings);
   return {
     content: -> bundle.content(),
     etag: -> bundle.etag(),
