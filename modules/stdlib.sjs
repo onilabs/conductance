@@ -19,7 +19,7 @@
   @require mho:surface
   @require mho:client/env
 */
-@ = require.merge('sjs:object', 'sjs:sys');
+@ = require(['sjs:object', 'sjs:sys']);
 
 var modules = [
   {id:'sjs:object'},
@@ -61,5 +61,5 @@ if (@hostenv === 'nodejs') {
   ]);
 }
 
-exports .. @extend(require.merge.apply(require, modules));
+exports .. @extend(require(modules));
 

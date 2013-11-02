@@ -1,4 +1,4 @@
-@ = require.merge('sjs:object', '../../surface');
+@ = require(['sjs:object', '../../surface']);
 
 var base_html = require('../html');
 

@@ -1,4 +1,4 @@
-@ = require.merge('sjs:object', 'sjs:sequence');
+@ = require(['sjs:object', 'sjs:sequence']);
 @func = require('sjs:function');
 @bundle = require('sjs:bundle');
 @logging = require('sjs:logging');

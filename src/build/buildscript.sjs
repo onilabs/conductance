@@ -5,7 +5,7 @@
   Like SCons, but simpler, smaller, concurrent (== faster).
 
 */
-@ = require.merge('sjs:nodejs/fs', 'sjs:object', 'sjs:sequence', 'sjs:sys', 'sjs:url');
+@ = require(['sjs:nodejs/fs', 'sjs:object', 'sjs:sequence', 'sjs:sys', 'sjs:url']);
 
 //----------------------------------------------------------------------
 // BUILD DEPENDENCIES

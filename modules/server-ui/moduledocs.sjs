@@ -1,4 +1,4 @@
-@ = require.merge('mho:stdlib', {id:'mho:surface/bootstrap/html', exclude:['Map','Style'] });
+@ = require(['mho:stdlib', {id:'mho:surface/bootstrap/html', exclude:['Map','Style'] }]);
 
 var { parseModuleDocs } = require('sjs:docutil');
 var { convert } = require('sjs:marked');

@@ -1,4 +1,4 @@
-//TODO: use require.merge()
+//TODO: use merging require([.])
 waitfor {
 var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
 } and {
