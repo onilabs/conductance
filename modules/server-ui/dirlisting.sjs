@@ -10,6 +10,16 @@ function formatBytes(size) {
     return `${Math.round(size/1024/1024*10)/10} MB`;
 }
 
+// helper to make a breadcrumbs trail out of the given path:
+function Crumbs(path) {
+  var link = '';
+  return path.split('/') .. 
+    @map(function(elem) {
+      link += "/#{elem}";
+      return `<a href='$link'>$elem</a>`;
+    }) .. @intersperse(`&nbsp;/&nbsp;`);
+}
+
 
 /**
    @function generateDirListing
@@ -28,11 +38,11 @@ exports.generateDirListing = function(dir) {
                            formatBytes(f.size)})
                     </div>`);
 
-  return  `
-      $@H1(`$@Icon('folder-open')&nbsp;${dir.path}`)
-      <hr>
-      $@Row([@ColSm(6, folders), @ColSm(6, files)])
-      <hr>
-      <p class='text-right'><small>℧ oni labs conductance server</small></p>
-    `;
+  return @Container(
+      `$@H1(`<a href='/'>$@Icon('folder-open')</a>&nbsp;/&nbsp;${dir.path .. Crumbs}`)
+       <hr>
+       $@Row([@ColSm(6, folders), @ColSm(6, files)])
+       <hr>
+       <p class='text-right'><small>℧ oni labs conductance server</small></p>
+      `);
 };
