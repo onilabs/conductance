@@ -60,7 +60,8 @@ function gen_app_html(src, dest, aux) {
   };
   var docutil = require('sjs:docutil');
   var docs = docutil.parseModuleDocs(readAll(src));
-  var [template, metadata] = docutil.getPrefixedProperties('template');
+
+  var [template, metadata] = docutil.getPrefixedProperties(docs, 'template');
   if (!template) template = 'default';
   var externalScripts = metadata['externalScript'];
   if (externalScripts) {
