@@ -75,7 +75,7 @@ exports.Document = function(content, settings) {
   headContent += "<script src='/__sjs/stratified.js' asyc='true'></script>";
 
   headContent += "<script type='text/sjs'>
-    require.hubs.push(['mho:', '/__mho/']);
+    require.hubs.push(['mho:', document.location.origin + '/__mho/']);
     require.hubs.push(['\u2127:', 'mho:']);
   </script>";
 
@@ -134,17 +134,19 @@ exports.Document = function(content, settings) {
     Loads a template module by name or URL and returns its
     Document property (which should be a function).
 
-    If `name` is a single word (i.e no path separators), it's assumed to name a builtin
+    If `name` does not contain path separators it is assumed to name a builtin
     template, which are currently:
 
      - default
      - plain
+     - app-default
+     - app-plain
 
     Otherwise, `name` is normalized against `base` (using [sjs:url::normalize]). If
     you do not pass a `base` argument, `name` must be an absolute URL.
 */
 exports.loadTemplate = function(name, base) {
-  if (/^\w+$/.test(name)) {
+  if (/^[^\:\/]+$/.test(name)) {
     // name is relative to ./doctemplates/
     name = './doctemplates/'+name;
   } else {

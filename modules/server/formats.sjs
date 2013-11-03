@@ -62,7 +62,7 @@ function gen_app_html(src, dest, aux) {
   var docs = docutil.parseModuleDocs(readAll(src));
 
   var [template, metadata] = docutil.getPrefixedProperties(docs, 'template');
-  if (!template) template = 'default';
+  if (!template) template = 'app-default';
   var externalScripts = metadata['externalScript'];
   if (externalScripts) {
     if (Array.isArray(externalScripts)) {
@@ -75,7 +75,7 @@ function gen_app_html(src, dest, aux) {
   var { Document, loadTemplate } = require('../surface');
   dest.write(
     Document(null, documentSettings .. merge({
-      template: loadTemplate(template || 'default', aux.request.url.source),
+      template: loadTemplate(template, aux.request.url.source),
       templateData: metadata,
       title: metadata.title,
     }))
