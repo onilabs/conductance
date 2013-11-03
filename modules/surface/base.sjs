@@ -302,7 +302,7 @@ __js {
 
 // Style classes
 
-__js var InternalStyleDefProto = {
+__js var InternalStyleDefProto = { 
   getHtml: -> "<style type='text/css'>#{escapeForTag(this.content, 'style')}</style>",
   createElement: function() {
     // xbrowser env only
@@ -413,7 +413,8 @@ __js var ExternalStyleDefProto = {
     elem.setAttribute('rel', 'stylesheet');
     elem.setAttribute('href', this.url);
     return elem;
-  }
+  },
+  waitforLoading: true // This causes dynamic html code to wait for the css file to load before displaying; sometimes this is what we want, sometimes it isn't. XXX we might want to make this configurable.
 };
 
 __js function ExternalStyleDef(url, parent_class) {

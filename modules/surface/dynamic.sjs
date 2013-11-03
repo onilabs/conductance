@@ -26,15 +26,17 @@ var resourceRegistry = {
         if (desc.mechanism) {
           desc.elem.__oni_mech = spawn(desc.mechanism.call(desc.elem, desc.elem));
         }
-        // wait for stylesheet to load for an arbitrary maximum of 2s; 
-        // display warning in console if it hasn't loaded by then.
-        // XXX we should refactor the code to allow loading of stylesheets in parallel!
-        waitfor {
-          desc.elem .. wait('load');
-        }
-        or {
-          hold(2000);
-          console.log("Warning: Stylesheet #{def} taking long to load");
+        if (def.waitforLoading) {
+          // wait for stylesheet to load for an arbitrary maximum of 2s; 
+          // display warning in console if it hasn't loaded by then.
+          // XXX we should refactor the code to allow loading of stylesheets in parallel!
+          waitfor {
+            desc.elem .. wait('load');
+          }
+          or {
+            hold(2000);
+            console.log("Warning: Stylesheet #{def} taking long to load");
+          }
         }
       }
       else {
