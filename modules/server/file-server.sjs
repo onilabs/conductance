@@ -155,7 +155,7 @@ function listDirectory(req, root, branch, format, settings) {
   };
   
   // add ".." unless we're listing the root
-  if(branch != '/') {
+  if(branch && branch !== '/') {
     listing.directories.push("..");
   }
 
