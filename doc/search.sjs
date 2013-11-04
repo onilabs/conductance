@@ -101,7 +101,7 @@ exports.run = (function() {
 						}
 					}
 				} or {
-					using(var key = events.HostEmitter(input, 'keydown')) {
+					using(var key = events.HostEmitter(input, 'keydown', {handle:null})) {
 						while(true) {
 							var e = key.wait();
 							//logging.debug("KEY", e);
@@ -144,10 +144,10 @@ exports.run = (function() {
 							.. Class("selected", highlighted)
 							.. Mechanism(function(elem) {
 								waitfor {
-									elem .. events.wait('click', -> done.set());
+									elem .. events.wait('click', {handle: -> done.set()});
 								} and {
 									while (true) {
-										elem .. events.wait('mouseover', -> selectedMatch.set(m.id));
+										elem .. events.wait('mouseover', {handle:-> selectedMatch.set(m.id)});
 									}
 								}
 							});
