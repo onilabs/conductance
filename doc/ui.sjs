@@ -446,7 +446,7 @@ exports.renderer = function(libraries, rootSymbol) {
 					// add a "source" link where possible
 					var link = symbol.library.root + (symbol.relativeModulePath .. join());
 					if (!link .. endsWith('/')) link += '.sjs';
-					view = [view, Widget("div", `Source: <a href="$link?format=src">$link</a>`, {"class":"mb-canonical-url"})];
+					view = [view, Widget("div", `Source: <a href="$link">$link</a>`, {"class":"mb-canonical-url"})];
 				}
 			} catch(e) {
 				if (e instanceof SymbolMissing)
