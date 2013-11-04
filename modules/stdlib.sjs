@@ -58,7 +58,9 @@ if (@hostenv === 'nodejs') {
   ]);
 } else {
   modules = modules.concat([
-    {id: 'mho:client/env', name: 'env'}
+    {id: 'mho:client/env', name: 'env'},
+    {id: 'sjs:xbrowser/dom', name: 'dom'},
+    {id: 'sjs:xbrowser/dom', include: ['preventDefault','stopEvent', 'eventTarget']},
   ]);
 }
 
@@ -319,10 +321,6 @@ exports .. @extend(require(modules));
 @alias sjs:events::Emitter
 @class HostEmitter
 @alias sjs:events::HostEmitter
-@function preventDefault
-@alias sjs:events::preventDefault
-@function stopPropagation
-@alias sjs:events::stopPropagation
 @function wait
 @alias sjs:events::wait
 @function when
@@ -343,40 +341,70 @@ exports .. @extend(require(modules));
 @alias mho:observable
 @function read
 @alias sjs:nodejs/stream::read
+@hostenv nodejs
 @function readAll
 @alias sjs:nodejs/stream::readAll
+@hostenv nodejs
 @function write
 @alias sjs:nodejs/stream::write
+@hostenv nodejs
 @function pump
 @alias sjs:nodejs/stream::pump
+@hostenv nodejs
 @class ReadableStringStream
 @alias sjs:nodejs/stream::ReadableStringStream
+@hostenv nodejs
 @class WritableStringStream
 @alias sjs:nodejs/stream::WritableStringStream
+@hostenv nodejs
 @variable path
 @alias nodejs:path
+@hostenv nodejs
 @variable fs
 @alias sjs:nodejs/fs
+@hostenv nodejs
 @variable childProcess
 @alias sjs:nodejs/child-process
+@hostenv nodejs
 @variable env
-@alias mho:server/env
+@summary Exports either [::server/env] or [::client/env] depending on whether the current hostenv is nodejs or xbrowser, respectively.
 @class Host
 @alias mho:server::Host
+@hostenv nodejs
 @class Route
 @alias mho:server::Route
+@hostenv nodejs
 @class Port
 @alias mho:server::Port
+@hostenv nodejs
 @variable server
 @alias mho:server
+@hostenv nodejs
 @variable routes
 @alias mho:server/routes
+@hostenv nodejs
 @class HttpError
 @alias mho:server/response::HttpError
+@hostenv nodejs
 @function isHttpError
 @alias mho:server/response::isHttpError
+@hostenv nodejs
 @function NotFound
 @alias mho:server/response::NotFound
+@hostenv nodejs
 @function ServerError
 @alias mho:server/response::ServerError
+@hostenv nodejs
+@variable dom
+@alias sjs:xbrowser/dom
+@hostenv xbrowser
+@function preventDefault
+@alias sjs:xbrowser/dom::preventDefault
+@hostenv xbrowser
+@function stopEvent
+@alias sjs:xbrowser/dom::stopEvent
+@hostenv xbrowser
+@function eventTarget
+@alias sjs:xbrowser/dom::eventTarget
+@hostenv xbrowser
 */

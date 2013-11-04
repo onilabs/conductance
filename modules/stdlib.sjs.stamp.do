@@ -9,32 +9,68 @@ var stdlibContents = @fs.readFile('stdlib.sjs', 'utf-8');
 var @docutil = require('sjs:docutil');
 @logging.setLevel(process.env['REDO_XTRACE'] ? @logging.VERBOSE : @logging.WARN);
 
-var requiredModules = [];
 var realRequire = require('builtin:apollo-sys').require;
 @assert.ok(realRequire);
-var mockRequire = function(modules) {
-  if (Array.isArray(modules)) {
-    requiredModules = @toArray(modules);
-  }
-  return realRequire.apply(null, arguments);
-};
+
 
 // eval stdlib with a mocked-out `require()`
-var exports = {};
-global.require = mockRequire;
-exports = @eval("(
-function(exports, require) {
-  #{stdlibContents};
-  return exports;
-})")(exports,mockRequire);
+var hostModules = {};
+HOSTENVS = ['nodejs', 'xbrowser'];
+HOSTENVS .. @each {|hostenv|
+  var mockRequire = function(modules) {
+    if (modules .. @eq(['sjs:object', 'sjs:sys'])) {
+      // bootstrap part - return actual result
+      var result = realRequire.apply(null, arguments);
+      result.hostenv = hostenv;
+      return result;
+    }
+
+    if (Array.isArray(modules)) {
+      hostModules[hostenv] = @toArray(modules);
+    }
+    return {}; // we don't actually use the results
+  };
+  global.require = mockRequire;
+
+  var exports = {};
+  @eval("(
+  function(exports, require) {
+    #{stdlibContents};
+    return exports;
+  })")(exports,mockRequire);
+}
+
+var requiredModulesUnion = @concat(HOSTENVS .. @map(h -> hostModules[h]));
+// build a list of [mod, hostenvs] from both hostenv sets:
+var requiredModules = [];
+requiredModulesUnion .. @each {|mod|
+
+  // skip duplicates:
+  if (requiredModules .. @find([m, env] -> @eq(m, mod))) continue;
+
+  // find number of occurences for this module
+  var hostenvs = HOSTENVS .. @filter(h -> hostModules[h] .. @find(m -> m .. @eq(mod))) .. @toArray;
+  requiredModules.push([mod, hostenvs]);
+}
 
 
 var docs = [];
 var moduleSource = {};
-requiredModules .. @each {|mod|
+
+
+requiredModules .. @each {|[mod, hostenvs]|
   if (@isString(mod)) mod = { id: mod };
 
   var claim = function(sym, moduleDocs) {
+    // XXX hack: we know that `env` is defined twice, depending on hostenv:
+    if (sym === 'env') {
+      if (moduleSource[sym]) return; //already done
+      moduleSource[sym] = 'MANUAL';
+      docs.push("@variable env");
+      docs.push("@summary Exports either [::server/env] or [::client/env] depending on whether the current hostenv is nodejs or xbrowser, respectively.");
+      return;
+    }
+
     if (!sym) throw new Error("can't claim symbol: #{sym}");
     if (moduleSource[sym]) throw new Error("conflict: #{sym}");
     moduleSource[sym] = mod.id;
@@ -44,6 +80,11 @@ requiredModules .. @each {|mod|
     } else {
       docs.push("@variable #{mod.name}");
       docs.push("@alias #{mod.id}");
+    }
+    if (hostenvs.length < HOSTENVS.length) {
+      hostenvs .. @each {|env|
+        docs.push("@hostenv #{env}");
+      }
     }
   };
   var claimAll = function(syms, moduleDocs) {
