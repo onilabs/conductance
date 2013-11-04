@@ -180,7 +180,6 @@ exports.run = (function() {
 				var disabled = Observable(false);
 				var enabledWidget = Checkbox(lib.searchEnabled) .. Attrib("disabled", disabled);
 				libraryStatus.push(Widget("li", `${enabledWidget} <span class="hub">${lib.name}</span> ${loaded}`, {"class":"libraryStatus"}));
-				console.log("loading lib:" , lib.name);
 				var idx = lib.loadIndex();
 				if (idx === null) {
 					loaded.set("No search index");
