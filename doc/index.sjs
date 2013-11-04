@@ -11,6 +11,8 @@ var array = require('sjs:array');
 } and {
 var events = require('sjs:events');
 } and {
+var {preventDefault} = require('sjs:xbrowser/dom');
+} and {
 var cutil = require('sjs:cutil');
 } and {
 var str = require('sjs:string');
@@ -105,10 +107,10 @@ exports.run = function(root) {
 				require('./config').run(elem, libraries, defaultHubs, ui.LOADING.dec);
 			};
 
-			using (var searchClick = searchButton .. events.HostEmitter('click')) {
-				using (var searchShortcut = document.body .. events.HostEmitter('keypress', {filter: FORWARD_SLASH})) {
-					using (var configClick = configureButton .. events.HostEmitter('click')) {
-						using (var configShortcut = document.body .. events.HostEmitter('keypress', {filter: PLUS})) {
+			using (var searchClick = searchButton .. events.HostEmitter('click', {handle: preventDefault})) {
+				using (var searchShortcut = document.body .. events.HostEmitter('keypress', {filter: FORWARD_SLASH, handle: preventDefault})) {
+					using (var configClick = configureButton .. events.HostEmitter('click', {handle: preventDefault})) {
+						using (var configShortcut = document.body .. events.HostEmitter('keypress', {filter: PLUS, handle: preventDefault})) {
 							while(true) {
 								var action;
 								waitfor {

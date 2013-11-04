@@ -144,10 +144,12 @@ exports.run = (function() {
 							.. Class("selected", highlighted)
 							.. Mechanism(function(elem) {
 								waitfor {
-									elem .. events.wait('click', {handle: -> done.set()});
+									elem .. events.wait('click');
+									done.set();
 								} and {
 									while (true) {
-										elem .. events.wait('mouseover', {handle:-> selectedMatch.set(m.id)});
+										elem .. events.wait('mouseover');
+										selectedMatch.set(m.id);
 									}
 								}
 							});
