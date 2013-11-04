@@ -64,7 +64,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
         waitfor {
           e = elem.getElementsByTagName('button')[0] .. events.wait('click');
         } or {
-          e = elem .. events.wait('submit', -> true);
+          e = elem .. events.wait('submit');
         }
         e.preventDefault();
         var [name, url] = elem.getElementsByTagName('input') .. map(i -> i.value);

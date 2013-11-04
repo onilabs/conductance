@@ -39,9 +39,9 @@ var withOverlay = exports.withOverlay = (function() {
 			waitfor {
 				return block(elem);
 			} or {
-				elem .. events.wait('click', e -> e.target === elem);
+				elem .. events.wait('click', {filter: e -> e.target === elem});
 			} or {
-				document.body .. events.wait('keydown', e -> e.which == ESCAPE);
+				document.body .. events.wait('keydown', {filter: e -> e.which == ESCAPE});
 			}
 		} finally {
 			removeElement(elem);

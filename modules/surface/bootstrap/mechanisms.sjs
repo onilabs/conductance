@@ -31,17 +31,20 @@ var transitionEndEvent =
 
 exports.dropdowns = function(parent) {
   var ignore = false;
-  using (var Q = events.Queue(events.HostEmitter(parent, 'click', function (e){
-    if ((e.node = domFindData('toggle', 'dropdown', e.target, parent))) {
-      dom.stopEvent(e);
-      if (ignore) { // see explanation below
-        ignore = false;
+  // TODO: replace with events.when()
+  using (var Q = events.Queue(events.HostEmitter(parent, 'click', {filter:
+    function (e){
+      if ((e.node = domFindData('toggle', 'dropdown', e.target, parent))) {
+        dom.stopEvent(e);
+        if (ignore) { // see explanation below
+          ignore = false;
+          return false;
+        }
+        return true;
+      }
+      else
         return false;
-      }          
-      return true;
     }
-    else
-      return false;
   }))) {
     while (1) {
       var ev = Q.get();
@@ -51,7 +54,7 @@ exports.dropdowns = function(parent) {
         ev = events.wait(window, '!click');
         if (domFindData('toggle', 'dropdown', ev.target, parent) == current) {
           // we could stop the event here, to prevent the dropdown from reappearing, 
-          // but that is bad form: there might be other capturing listenern that 
+          // but that is bad form: there might be other capturing listeners that 
           // clear some state, so we should *never* stop events during the capturing
           // phase
           // dom.stopEvent(ev);
@@ -71,13 +74,16 @@ exports.dropdowns = function(parent) {
 // implements the logic for dismissing alerts
 
 exports.dismissAlerts = function(parent) {
-  using (var Q = events.Queue(events.HostEmitter(parent, 'click', function(e) {
-    if (e.node = domFindData('dismiss', 'alert', e.target, parent)) {
-      dom.stopEvent(e);
-      return true;
+  // TODO: replace with events.when()
+  using (var Q = events.Queue(events.HostEmitter(parent, 'click', {filter:
+    function(e) {
+      if (e.node = domFindData('dismiss', 'alert', e.target, parent)) {
+        dom.stopEvent(e);
+        return true;
+      }
+      else
+        return false;
     }
-    else 
-      return false;
   }))) {
     while (1) {
       var ev = Q.get();
@@ -93,13 +99,16 @@ exports.dismissAlerts = function(parent) {
 // handles tabbing in tabs & pills
 
 exports.tabbing = function(parent) {
-  using (var Q = events.Queue(events.HostEmitter(parent, 'click', function(e) {
-    if (domFindData('toggle', ['tab','pill'], e.target, parent)) {
-      dom.stopEvent(e);
-      return true;
+  // TODO: replace with events.when()
+  using (var Q = events.Queue(events.HostEmitter(parent, 'click', {filter:
+    function(e) {
+      if (domFindData('toggle', ['tab','pill'], e.target, parent)) {
+        dom.stopEvent(e);
+        return true;
+      }
+      else
+        return false;
     }
-    else
-      return false;
   }))) {
     while (1) {
       var ev = Q.get();
@@ -222,7 +231,7 @@ function ensureHashLinkVisible(parent) {
 exports.accordion = function(parent) {
   waitfor {
     // handle clicks on accordion headers:
-    events.HostEmitter(parent, 'click', function(e) { 
+    events.HostEmitter(parent, 'click', {filter: function(e) {
       // filter out clicks outside of accordions & clicks on links
       // with href's
       if (domFindData('toggle', 'accordion', e.target, parent) &&
@@ -232,7 +241,7 @@ exports.accordion = function(parent) {
       }
       else 
         return false;
-    }) ..
+    }}) ..
     events.Stream ..
     each {
       |ev|
