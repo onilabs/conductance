@@ -23,11 +23,11 @@
 
 var modules = [
   {id:'sjs:object'},
-  'sjs:array',
+  {id:'sjs:array', exclude: ['contains']},
   'sjs:sequence',
   'sjs:compare',
   'sjs:debug',
-  'sjs:function',
+  {id: 'sjs:function', name:'fn'},
   'sjs:cutil',
   'sjs:quasi',
   {id:'sjs:assert', name:'assert'},
