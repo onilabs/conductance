@@ -56,21 +56,10 @@ requiredModulesUnion .. @each {|mod|
 
 var docs = [];
 var moduleSource = {};
-
-
 requiredModules .. @each {|[mod, hostenvs]|
   if (@isString(mod)) mod = { id: mod };
 
   var claim = function(sym, moduleDocs) {
-    // XXX hack: we know that `env` is defined twice, depending on hostenv:
-    if (sym === 'env') {
-      if (moduleSource[sym]) return; //already done
-      moduleSource[sym] = 'MANUAL';
-      docs.push("@variable env");
-      docs.push("@summary Exports either [::server/env] or [::client/env] depending on whether the current hostenv is nodejs or xbrowser, respectively.");
-      return;
-    }
-
     if (!sym) throw new Error("can't claim symbol: #{sym}");
     if (moduleSource[sym]) throw new Error("conflict: #{sym}");
     moduleSource[sym] = mod.id;

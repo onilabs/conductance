@@ -17,7 +17,7 @@
 
   @require mho:observable
   @require mho:surface
-  @require mho:client/env
+  @require mho:env
 */
 @ = require(['sjs:object', 'sjs:sys']);
 
@@ -38,6 +38,7 @@ var modules = [
   {id:'sjs:sys', exclude: ['executable']},
   {id:'sjs:url', name: 'url'},
   
+  {id:'mho:env', name:'env'},
   {id:'mho:observable', exclude: ['at', 'get']},
   {id:'mho:observable', name: 'observable'},
   {id:'mho:surface'}
@@ -49,7 +50,6 @@ if (@hostenv === 'nodejs') {
     {id:'nodejs:path', name: 'path'},
     {id:'sjs:nodejs/fs', name: 'fs'},
     {id:'sjs:nodejs/child-process', name: 'childProcess'},
-    {id:'mho:server/env', name:'env'},
     {id:'mho:server', include:['Host', 'Route', 'Port']},
     {id:'mho:server', name:'server'},
     {id:'mho:server/routes', name:'routes'},
@@ -58,7 +58,6 @@ if (@hostenv === 'nodejs') {
   ]);
 } else {
   modules = modules.concat([
-    {id: 'mho:client/env', name: 'env'},
     {id: 'sjs:xbrowser/dom', name: 'dom'},
     {id: 'sjs:xbrowser/dom', include: ['preventDefault','stopEvent', 'eventTarget']},
   ]);
@@ -337,6 +336,8 @@ exports .. @extend(require(modules));
 @alias sjs:sys::argv
 @variable url
 @alias sjs:url
+@variable env
+@alias mho:env
 @variable observable
 @alias mho:observable
 @function read
@@ -366,8 +367,6 @@ exports .. @extend(require(modules));
 @variable childProcess
 @alias sjs:nodejs/child-process
 @hostenv nodejs
-@variable env
-@summary Exports either [::server/env] or [::client/env] depending on whether the current hostenv is nodejs or xbrowser, respectively.
 @class Host
 @alias mho:server::Host
 @hostenv nodejs
