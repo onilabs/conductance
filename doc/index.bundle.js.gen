@@ -9,5 +9,7 @@ module.exports = require('mho:server/generator').BundleGenerator({
       'mho:surface',
       Url.normalize('index.sjs', module.id),
     ],
-    resources: [Url.normalize("./", module.id), '/__mho/doc/'],
+    resources: [
+        [Url.normalize("./", module.id), '/__mho/doc/']
+    ],
 });
