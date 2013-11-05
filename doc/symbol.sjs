@@ -109,7 +109,6 @@ RootSymbol.prototype.docs = function() {
 		lib: 'Available hubs',
 		children: this.libraries.get() .. ownValues .. map(v -> [v.name, v.loadModuleDocs()]) .. pairsToObject
 	};
-	console.log(rv);
 	return rv;
 }
 RootSymbol.prototype.link = -> ['', 'All modules'];
@@ -130,8 +129,6 @@ exports.resolveLink = function(link, libraries) {
 	assert.ok(match, "Invalid path: #{link}");
 	var [_, moduleUrl, symbolPath] = match;
 	symbolPath = symbolPath ? symbolPath.slice(2).split('::') : [];
-	console.log("moduleUrl", moduleUrl);
-	console.log("symbolPath", symbolPath);
 
 	try {
 		var [library, relativeModulePath] = libraries.resolveModule(moduleUrl);

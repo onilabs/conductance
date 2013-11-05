@@ -14,7 +14,7 @@ var CollectionProto = {};
 CollectionProto._init = function() {
 	this.val = ObservableArray([]);
 	this._libraryCache = {};
-	this._libraries = Computed(this.val, this._computeLibraries.bind(this));
+	this._libraries = Computed.Cached(this.val, this._computeLibraries.bind(this));
 };
 
 CollectionProto._computeLibraries = function(hubs) {

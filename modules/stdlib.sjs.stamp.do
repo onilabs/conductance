@@ -68,7 +68,7 @@ requiredModules .. @each {|[mod, hostenvs]|
       docs.push("@alias #{mod.id}::#{sym}");
     } else {
       docs.push("@variable #{mod.name}");
-      docs.push("@alias #{mod.id}");
+      docs.push("@alias #{mod.id}::");
     }
     if (hostenvs.length < HOSTENVS.length) {
       hostenvs .. @each {|env|

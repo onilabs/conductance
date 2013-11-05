@@ -4,7 +4,7 @@ var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
      reduce, reverse, join, find} = require('sjs:sequence');
 var string = require('sjs:string');
-var {split, startsWith, endsWith} = string;
+var {split, startsWith, endsWith, strip} = string;
 var {Quasi} = require('sjs:quasi');
 var array = require('sjs:array');
 var events = require('sjs:events');
@@ -93,8 +93,8 @@ exports.renderer = function(libraries, rootSymbol) {
 
 	function makeSummaryHTML(docs, symbol) {
 		var rv = [];
-		rv.push(markup(docs.summary, symbol));
 
+		// apply notes from the original docs, before alias resolution
 		if (docs.deprecated)
 			rv.push(`
 				<div class="note">
@@ -105,6 +105,36 @@ exports.renderer = function(libraries, rootSymbol) {
 			rv.push(`<div class='note'>
 					<b>Note:</b> This ${docs.type} only works in the '${docs.hostenv}' version of StratifiedJS.
 				</div>`);
+
+
+		if (docs.alias) {
+			var dest = resolveLink(docs.alias, symbol);
+			var destDesc = docs.alias .. strip(':');
+			var destDocs, destSymbol;
+			var destLink = `<code>${destDesc}</code>`;
+			if (dest) {
+				var url = dest[0];
+				var Symbol = require('./symbol.sjs');
+				try {
+					destSymbol = Symbol.resolveLink(url, libraries);
+					destLink = Link(url, destDesc);
+					//destDocs = destSymbol.docs();
+				} catch(e) {
+					logging.warn("Failed to load docs for #{docs.alias}: #{e}");
+				}
+			}
+			if (destDocs) {
+				// supplant own docs with dest docs
+				docs = destDocs;
+				symbol = destSymbol;
+				rv.unshift(`<em>(Alias of $destLink)</em>`);
+			} else {
+				rv.unshift(`Alias of $destLink`);
+			}
+		};
+
+		console.log(docs.summary);
+		rv.unshift(markup(docs.summary, symbol));
 
 		return rv;
 	}
@@ -214,7 +244,9 @@ exports.renderer = function(libraries, rootSymbol) {
 		}
 		else if (leadingComponent .. string.contains(":")) {
 			// leadingComponent has hub / protocol: treat it as an absolute link
-			[url, desc] = Symbol.resolveLink(dest, libraries).link();
+			var dest = Symbol.resolveLink(dest, libraries);
+			if (!dest.link) return null;
+			[url, desc] = dest.link();
 		} else {
 			logging.info("Assuming library-relative link for #{dest}");
 			url = symbol.library.name + dest;
