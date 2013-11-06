@@ -25,7 +25,7 @@ var banner = "
             |          |         \\ \\_____/ /
             (___----___)          \\_______/
                                              
-             http://onilabs.com/conductance
+                  http://conductance.io
 
 ";
 
