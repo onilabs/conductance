@@ -16,9 +16,11 @@ var modules = path.join(root, 'node_modules');
 var packageInfo = require(path.join(root, 'package.json'));
 var deps = packageInfo.dependencies;
 
-// merge devDependencies
-for (var k in packageInfo.devDependencies) {
-	deps[k] = packageInfo.devDependencies[k];
+if (process.env['NODE_ENV'] != 'production') {
+	// merge devDependencies
+	for (var k in packageInfo.devDependencies) {
+		deps[k] = packageInfo.devDependencies[k];
+	}
 }
 
 var packageNames = Object.keys(deps);
