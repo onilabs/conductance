@@ -1,7 +1,7 @@
 var { ownValues, get } = require('sjs:object');
 var { at } = require('sjs:sequence');
 var logging = require('sjs:logging');
-var {collapseHtmlFragment} = require('mho:surface/html');
+var {collapseHtmlFragment} = require('mho:surface/base');
 var {Widget, Style, Document} = require('mho:surface');
 
 var templates = {

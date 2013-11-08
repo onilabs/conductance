@@ -7,7 +7,7 @@ var { Emitter } = require('sjs:events');
 var { Condition } = require('sjs:cutil');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
-var { each, at } = require('sjs:sequence');
+var { each, at, all, contains:arrayContains } = require('sjs:sequence');
 var { contains, startsWith } = require('sjs:string');
 
 var apiUrl = -> helper.url('test/integration/fixtures/bridge.api');
@@ -225,18 +225,32 @@ context('api modules') {||
                 logStatusChanges(client.log, connection.status);
               } or {
                 var v = api.sharedVariable();
+                var observeReady = Condition();
                 waitfor {
                   v.observe {|val|
-                    logging.info("#{client.id}: observed #{val}");
+                    logging.info("client #{client.id}: observed #{val}");
                     client.log.push(val.join('|'));
                     client.gotValue.set();
+                    observeReady.set();
                   }
                 } and {
-                  hold(1000); // XXX Hack to make sure observe() has been set up
+                  observeReady.wait();
                   client.push = v.push.bind(v);
                   client.ready.set();
                 }
               }
+            }
+          };
+
+          var waitForLog = function(log) {
+            [c1, c2] .. each {|client|
+              while (! client.log .. arrayContains(log)) {
+                logging.debug("waiting for client #{client.id} to see log: #{log}");
+                client.gotValue.clear();
+                client.gotValue.wait();
+              }
+              logging.debug("client #{client.id} has now seen log: #{log}");
+              client.gotValue.clear();
             }
           };
 
@@ -251,16 +265,11 @@ context('api modules') {||
               c2.ready.wait();
             }
 
-            c1.push('1.1');
-            waitfor {
-              c1.gotValue.wait();
-              c1.gotValue.clear();
-            } and {
-              c2.gotValue.wait();
-              c2.gotValue.clear();
-            }
+            c1.log .. assert.eq(['connected', '']);
+            c2.log .. assert.eq(['connected', '']);
 
-            c2.ready.wait();
+            c1.push('1.1');
+            waitForLog('1.1');
 
             logging.info("Awaiting disconnect");
             waitfor {
@@ -284,23 +293,19 @@ context('api modules') {||
                 c2.gotValue.wait();
                 c2.gotValue.clear();
               }
-              c2.log .. assert.eq(['1.1', '1.1|2.1']);
-              c1.log .. assert.eq(['1.1', 'disconnected']);
+              c2.log .. assert.eq(['connected', '', '1.1', '1.1|2.1']);
+              c1.log .. assert.eq(['connected', '', '1.1', 'disconnected']);
               hold(1000);
               logging.info("allowing reconnect");
               disconnected.clear();
             }
 
-            // c1 is awaiting two values, since it needs to catch up
-            c1.gotValue.wait();
-            c1.gotValue.clear();
-            c1.gotValue.wait();
-
-            c2.gotValue.wait();
+            // wait until both have seen final event
+            waitForLog('1.1|2.1|1.2');
           }
         }
-        c2.log .. assert.eq(['1.1', '1.1|2.1', '1.1|2.1|1.2']);
-        c1.log .. assert.eq(['1.1', 'disconnected', 'connected', '1.1|2.1', '1.1|2.1|1.2']);
+        c2.log .. assert.eq(['connected', '', '1.1', '1.1|2.1', '1.1|2.1|1.2']);
+        c1.log .. assert.eq(['connected', '', '1.1', 'disconnected', 'connected', '1.1|2.1', '1.1|2.1|1.2']);
       }
     }
   }.browserOnly().timeout(15);
