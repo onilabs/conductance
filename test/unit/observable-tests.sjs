@@ -20,6 +20,7 @@ context("Observable") {||
 		}
 
 		log .. assert.eq([
+			["a0", "b0", "c0"],
 			["a1", "b0", "c0"],
 			["a1", "b0", "c1"],
 		]);
@@ -127,6 +128,25 @@ context("Property") {||
 }.timeout(2);
 
 context("Computed.Cached") {||
+	test("emits initial value") {||
+		var log = [];
+		var a = Observable('a0');
+
+		var c = Computed.Cached(a, function(_a) {
+			return _a + " val";
+		});
+
+		waitfor {
+			c.observe {|val|
+				log.push(val);
+			}
+		} or {
+			a.set("a1");
+		}
+
+		log .. assert.eq(['a0 val', 'a1 val']);
+	}
+
 	test("is only recomputed minimally") {||
 		var log = [];
 		var a = Observable('a0');
@@ -158,20 +178,20 @@ context("Computed.Cached") {||
 		waitfor {
 			c.observe(_c -> log.push(_c));
 		} or {
-			log .. assert.eq([]);
+			log .. assert.eq(['a0 b0 c0']);
 			c.get() .. assert.eq('a0 b0 c0');
 			c.get() .. assert.eq('a0 b0 c0');
-			log .. assert.eq([]);
+			log .. assert.eq(['a0 b0 c0']);
 			a.set("a1");
-			log .. assert.eq(["a1 b0 c1"]);
+			log .. assert.eq(['a0 b0 c0', 'a1 b0 c1']);
 			b.set("b1");
-			log .. assert.eq(["a1 b0 c1", "a1 b1 c2"]);
+			log .. assert.eq(['a0 b0 c0', 'a1 b0 c1', 'a1 b1 c2']);
 			c.get() .. assert.eq('a1 b1 c2');
 		}
 	}
 
 	test("keeps emitting new values while inputs have changed") {||
-		var a = Observable();
+		var a = Observable("a0");
 		var count = 1;
 		var c = Computed.Cached(a, _a -> _a + " result");
 		var log = [];
@@ -182,7 +202,7 @@ context("Computed.Cached") {||
 				hold(0);
 			}
 		} or {
-			a.set("a0");
+			a.set("a1");
 			hold(500);
 		}
 
@@ -224,6 +244,22 @@ context("Computed.Cached") {||
 }.timeout(2);
 
 context("Computed") {||
+	test("emits initial value") {||
+		var log = [];
+		var a = Observable(0);
+		var c = Computed(a, _a -> _a + 1);
+
+		waitfor {
+			c.observe {|val|
+				log.push(val);
+			}
+		} or {
+			a.set(1);
+		}
+
+		log .. assert.eq([1, 2]);
+	}
+
 	test("is recomputed each time it's accessed") {||
 		var count = 0;
 		var c = Computed(-> count++);

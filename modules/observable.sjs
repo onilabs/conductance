@@ -266,23 +266,13 @@ ComputedProto.set = function() { throw new Error("Cannot set a computed observab
 ComputedProto.observe = function(o) {
   try {
     if (++this._observers == 1)
-      this._observeStratum =
-        spawn this._deps .. each.par { |d| d.observe { |change| this._emitter.emit() } };
+      this._observeStratum = spawn this._deps .. each.par { |d| d.observe(=> this._emitter.emit())};
     
-    var changed = false;
-    while (true) {
-      this._emitter.wait();
+    while(true) {
       waitfor {
-        while (true) {
-          // collect change events while other branch is running
-          changed = true;
-          this._emitter.wait();
-        }
-      } or {
-        while(changed) {
-          changed = false;
-          o(this.get(), NonSpecificChange);
-        }
+        this._emitter.wait();
+      } and {
+        o(this.get(), NonSpecificChange);
       }
     }
   }
