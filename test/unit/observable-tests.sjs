@@ -42,7 +42,7 @@ context("Observable") {||
 			hold(100);
 		}
 
-		log .. assert.eq(["a1","a4"]);
+		log .. assert.eq(["a0","a4"]);
 	}
 
 	test("can suppress updates by adding a filter function") {||
@@ -84,6 +84,7 @@ context("Observable") {||
 		obj.get().parent.child .. assert.is(child);
 
 		changes .. assert.eq([
+			{"type":"set"}, // initial value
 			{"type":"update", "path": ["parent"]},
 			{"type":"update", "path": ["parent", "child"]},
 		]);
@@ -120,7 +121,7 @@ context("Property") {||
 			hold(10);
 		}
 		
-		log .. assert.eq(["d", "c"]);
+		log .. assert.eq(["c", "d", "c"]);
 	}
 
 }.timeout(2);
