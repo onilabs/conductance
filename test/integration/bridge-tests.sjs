@@ -62,7 +62,7 @@ context('bridge error handling') {||
   destroyMethods .. each {|method|
     test("throws connection error from #{method}") {||
       var log = [];
-      assert.raises({filter: isTransportError}) {||
+      assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
           log.push(connection.api.ping());
           connection.api[method](50);
@@ -118,7 +118,7 @@ context('api modules') {||
       'ping', 'pong',
       'ping', 'disconnected', 'connected', /* no pong; it was aborted */
       'ping', 'pong']);
-  }
+  }.skip("Currently aborts entire connection, to err on safe side (workaround for uncaught errors in strata)");
 
   test('resumes in-progress calls') {||
     var log = [];
@@ -139,6 +139,7 @@ context('api modules') {||
       }
     }
     log .. assert.eq([
+      'connected',
       '+callback',
       'disconnected',
       '-callback',
