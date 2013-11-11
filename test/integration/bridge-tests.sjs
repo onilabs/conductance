@@ -7,7 +7,7 @@ var { Emitter } = require('sjs:events');
 var { Condition } = require('sjs:cutil');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
-var { each, at, all, contains:arrayContains } = require('sjs:sequence');
+var { each, at, all, hasElem } = require('sjs:sequence');
 var { contains, startsWith } = require('sjs:string');
 
 var apiUrl = -> helper.url('test/integration/fixtures/bridge.api');
@@ -244,7 +244,7 @@ context('api modules') {||
 
           var waitForLog = function(log) {
             [c1, c2] .. each {|client|
-              while (! client.log .. arrayContains(log)) {
+              while (! client.log .. hasElem(log)) {
                 logging.debug("waiting for client #{client.id} to see log: #{log}");
                 client.gotValue.clear();
                 client.gotValue.wait();

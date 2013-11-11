@@ -22,9 +22,10 @@
 @ = require(['sjs:object', 'sjs:sys']);
 
 var modules = [
-  {id:'sjs:object'},
-  {id:'sjs:array', exclude: ['contains']},
+  'sjs:object',
+  'sjs:array',
   'sjs:sequence',
+  'sjs:string',
   'sjs:compare',
   'sjs:debug',
   {id: 'sjs:function', name:'fn'},
@@ -33,7 +34,6 @@ var modules = [
   {id:'sjs:assert', name:'assert'},
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
   {id:'sjs:logging', name:'logging'},
-  {id:'sjs:string', exclude: ['contains']},
   {id:'sjs:events', exclude: ['Stream', 'Queue']},
   {id:'sjs:sys', exclude: ['executable']},
   {id:'sjs:url', name: 'url'},
@@ -196,8 +196,8 @@ exports .. @extend(require(modules));
 @alias sjs:sequence::reduce1
 @function find
 @alias sjs:sequence::find
-@function contains
-@alias sjs:sequence::contains
+@function hasElem
+@alias sjs:sequence::hasElem
 @function all
 @alias sjs:sequence::all
 @function any
@@ -222,6 +222,46 @@ exports .. @extend(require(modules));
 @alias sjs:sequence::all.par
 @function any.par
 @alias sjs:sequence::any.par
+@function isString
+@alias sjs:string::isString
+@function sanitize
+@alias sjs:string::sanitize
+@function supplant
+@alias sjs:string::supplant
+@function startsWith
+@alias sjs:string::startsWith
+@function endsWith
+@alias sjs:string::endsWith
+@function contains
+@alias sjs:string::contains
+@function strip
+@alias sjs:string::strip
+@function lstrip
+@alias sjs:string::lstrip
+@function rstrip
+@alias sjs:string::rstrip
+@function split
+@alias sjs:string::split
+@function rsplit
+@alias sjs:string::rsplit
+@function padRight
+@alias sjs:string::padRight
+@function padLeft
+@alias sjs:string::padLeft
+@function padBoth
+@alias sjs:string::padBoth
+@function unindent
+@alias sjs:string::unindent
+@function capitalize
+@alias sjs:string::capitalize
+@function utf16ToUtf8
+@alias sjs:string::utf16ToUtf8
+@function utf8ToUtf16
+@alias sjs:string::utf8ToUtf16
+@function octetsToBase64
+@alias sjs:string::octetsToBase64
+@function base64ToOctets
+@alias sjs:string::base64ToOctets
 @function equals
 @alias sjs:compare::equals
 @function eq
@@ -278,44 +318,6 @@ exports .. @extend(require(modules));
 @alias sjs:logging::error
 @variable logging
 @alias sjs:logging::
-@function isString
-@alias sjs:string::isString
-@function sanitize
-@alias sjs:string::sanitize
-@function supplant
-@alias sjs:string::supplant
-@function startsWith
-@alias sjs:string::startsWith
-@function endsWith
-@alias sjs:string::endsWith
-@function strip
-@alias sjs:string::strip
-@function lstrip
-@alias sjs:string::lstrip
-@function rstrip
-@alias sjs:string::rstrip
-@function split
-@alias sjs:string::split
-@function rsplit
-@alias sjs:string::rsplit
-@function padRight
-@alias sjs:string::padRight
-@function padLeft
-@alias sjs:string::padLeft
-@function padBoth
-@alias sjs:string::padBoth
-@function unindent
-@alias sjs:string::unindent
-@function capitalize
-@alias sjs:string::capitalize
-@function utf16ToUtf8
-@alias sjs:string::utf16ToUtf8
-@function utf8ToUtf16
-@alias sjs:string::utf8ToUtf16
-@function octetsToBase64
-@alias sjs:string::octetsToBase64
-@function base64ToOctets
-@alias sjs:string::base64ToOctets
 @class Emitter
 @alias sjs:events::Emitter
 @class HostEmitter

@@ -1,7 +1,6 @@
 var seq = require('sjs:sequence');
-var {each, join, at, toArray, map, sortBy} = seq;
+var {each, join, at, toArray, map, sortBy, hasElem} = seq;
 var assert = require('sjs:assert');
-var array = require('sjs:array');
 var Library = require('./library');
 var logging = require('sjs:logging');
 var {ownValues, pairsToObject, ownPropertyPairs} = require('sjs:object');
@@ -59,7 +58,7 @@ Symbol.prototype.link = function() {
 
 Symbol.prototype.childLink = function(name, info) {
 	var [href] = this.link();
-	if (!(['lib','module'] .. array.contains(info.type))) {
+	if (!(['lib','module'] .. hasElem(info.type))) {
 		href += '::'
 	}
 	return [href + name, name];

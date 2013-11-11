@@ -2,11 +2,10 @@ var {Widget, Mechanism, Style, Class, prependWidget, removeElement} = require('m
 var {Observable} = require('mho:observable');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
-     reduce, reverse, join, find} = require('sjs:sequence');
+     reduce, reverse, join, find, hasElem} = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, startsWith, endsWith, strip} = string;
 var {Quasi} = require('sjs:quasi');
-var array = require('sjs:array');
 var events = require('sjs:events');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
@@ -67,6 +66,9 @@ LOADING.block = function(b) {
 	}
 };
 
+var encodeFilenames = function(path) {
+	return path.split('/') .. map(encodeURIComponent) .. join('/');
+}
 
 exports.renderer = function(libraries, rootSymbol) {
 	// we keep `libraries` and `rootSymbol` in scope, to prevent passing it around to everything
@@ -144,6 +146,10 @@ exports.renderer = function(libraries, rootSymbol) {
 	}
 
 	function makeRequireSnippet(fullModulePath, name) {
+		if(fullModulePath .. find(p -> p .. startsWith('#'))) {
+			// documentation URL - not actually importable
+			return undefined;
+		}
 		return Widget("div", `<code>require('${fullModulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
 	};
 
@@ -163,7 +169,7 @@ exports.renderer = function(libraries, rootSymbol) {
 
 		var params = (docs.param||[]) .. map(function(p) {
 			var name = p.name || '.';
-			if (p.valtype && p.valtype .. array.contains("optional"))
+			if (p.valtype && p.valtype .. hasElem("optional"))
 				name = `<span class="mb-optarg">${name}</span>`;
 			return name;
 		}) .. intersperse(", ");
@@ -369,6 +375,30 @@ exports.renderer = function(libraries, rootSymbol) {
 		);
 	};
 
+	function makeDocView(docs, symbol) {
+		var rv = [];
+		rv.push(`<h2>${docs.name}</h2>`);
+
+		rv.push(Widget("h2", makeSummaryHTML(docs, symbol)));
+
+		rv.push(Widget("div", docs.desc ? `${markup(docs.desc, symbol)}`, {"class":"desc"}));
+
+		var collector = docs.type === 'doclib' ? collectLibChildren : collectModuleChildren;
+		// collect modules & dirs:
+		var children = collector(docs, symbol);
+		// XXX `lib` and `module` are obviously overloaded here
+		rv.push(
+			Widget("div", [
+				children['lib'] .. then(HeaderTable("Sections")),
+				children['module'] .. then(HeaderTable("Topics")),
+				children['function'] .. then(HeaderTable("Functions")),
+				children['variable'] .. then(HeaderTable("Variables")),
+				children['class']    .. then(HeaderTable("Classes")),
+			] .. filter .. toArray,
+			{"class": "symbols"}));
+		return rv;
+	}
+
 	function makeModuleView(docs, symbol) {
 		var rv = [];
 		rv.push(`<h2>The ${symbol.relativeModulePath ..join('')} module</h2>`);
@@ -469,14 +499,19 @@ exports.renderer = function(libraries, rootSymbol) {
 					case 'lib':
 						view = makeLibView(docs, symbol);
 						break;
+					case 'doclib':
+					case 'doc':
+						view = makeDocView(docs, symbol);
+						break;
 					default:
+						logging.debug("defaulting to symbol view for docs", docs);
 						view = makeSymbolView(docs, symbol);
 						break;
 				}
 
 				if (symbol.library && symbol.library.root) {
 					// add a "source" link where possible
-					var link = symbol.library.root + (symbol.relativeModulePath .. join());
+					var link = symbol.library.root + (symbol.relativeModulePath .. join() .. encodeFilenames());
 					if (!link .. endsWith('/')) link += '.sjs';
 					view = [view, Widget("div", `Source: <a href="$link">$link</a>`, {"class":"mb-canonical-url"})];
 				}

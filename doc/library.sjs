@@ -136,8 +136,11 @@ function Library(url, name) {
 	this.searchEnabled = Observable(true);
 }
 
-Library.prototype.loadFile = function(path) {
-	return http.get(this.root + path);
+Library.prototype.loadFile = function(path, params) {
+	return http.get([
+		this.root,
+		path.split('/') .. map(encodeURIComponent) .. join('/'),
+	params]);
 };
 
 Library.prototype.loadModuleDocs = function(path) {
@@ -148,7 +151,7 @@ Library.prototype.loadModuleDocs = function(path) {
 			if (!path.length || path .. str.endsWith('/')) {
 				docs = docutil.parseSJSLibDocs(this.loadFile(path + "sjs-lib-index.txt"));
 			} else {
-				docs = docutil.parseModuleDocs(this.loadFile(path + ".sjs?format=src"));
+				docs = docutil.parseModuleDocs(this.loadFile(path + ".sjs", {format:"src"}));
 			}
 		} catch(e) {
 			if (e.status != 404) throw e;
