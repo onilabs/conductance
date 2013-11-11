@@ -1,0 +1,5 @@
+@name Conductance features
+@type doclib
+@desc
+  This section documents the various features of conductance that
+  aren't covered by API documentation.

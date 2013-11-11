@@ -135,7 +135,6 @@ exports.renderer = function(libraries, rootSymbol) {
 			}
 		};
 
-		console.log(docs.summary);
 		rv.unshift(markup(docs.summary, symbol));
 
 		return rv;
@@ -399,6 +398,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			Widget("div", [
 				children['lib'] .. then(HeaderTable("Sections")),
 				children['module'] .. then(HeaderTable("Topics")),
+				children['syntax']   .. then(HeaderTable("Syntax")),
 				children['function'] .. then(HeaderTable("Functions")),
 				children['variable'] .. then(HeaderTable("Variables")),
 				children['class']    .. then(HeaderTable("Classes")),
