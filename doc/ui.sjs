@@ -308,31 +308,39 @@ exports.renderer = function(libraries, rootSymbol) {
 		if (docs.type == "function" || docs.type == "ctor") {
 			rv.push(makeFunctionHtml(docs, symbol));
 			rv.push(makeDescriptionHTML(docs, symbol));
-		} else if (docs.type == "class") {
-			rv.push(`<h3>Class ${symbol.name}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h3>`);
-			rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+		} else {
+			var summary = Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"});
+			if (docs.type == "class") {
+				rv.push(`<h3>Class ${symbol.name}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h3>`);
+				rv.push(summary);
 
-			if (docs.desc) {
-				rv.push(Widget("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
+				if (docs.desc) {
+					rv.push(Widget("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
+				}
+
+				var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor');
+				if (constructor) {
+					var [name, child] = constructor;
+					var childSymbol = symbol.child(name);
+					rv.push(makeFunctionHtml(child, childSymbol));
+					rv.push(makeDescriptionHTML(child, childSymbol));
+				}
+
+				var children = collectModuleChildren(docs, symbol);
+				rv.push(
+					Widget("div", [
+						children['proto']           .. then(Table),
+						children['static-function'] .. then(HeaderTable("Static Functions")),
+						children['function']        .. then(HeaderTable("Methods")),
+						children['variable']        .. then(HeaderTable("Member Variables")),
+					] .. filter .. toArray,
+					{"class": "symbols"}));
+			} else {
+				// probably a variable
+				rv.push(`<h3>${symbol.name}</h3>`);
+				rv.push(summary);
+				rv.push(makeDescriptionHTML(docs, symbol));
 			}
-
-			var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor');
-			if (constructor) {
-				var [name, child] = constructor;
-				var childSymbol = symbol.child(name);
-				rv.push(makeFunctionHtml(child, childSymbol));
-				rv.push(makeDescriptionHTML(child, childSymbol));
-			}
-
-			var children = collectModuleChildren(docs, symbol);
-			rv.push(
-				Widget("div", [
-					children['proto']           .. then(Table),
-					children['static-function'] .. then(HeaderTable("Static Functions")),
-					children['function']        .. then(HeaderTable("Methods")),
-					children['variable']        .. then(HeaderTable("Member Variables")),
-				] .. filter .. toArray,
-				{"class": "symbols"}));
 		}
 
 
