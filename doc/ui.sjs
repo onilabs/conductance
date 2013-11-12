@@ -11,6 +11,7 @@ var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
 var {merge, ownValues, ownPropertyPairs, getPath} = require('sjs:object');
 var { SymbolMissing, LibraryMissing } = require('./library');
+var { encodeNonSlashes, encodeFragment } = require('./url-util');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
@@ -66,10 +67,6 @@ LOADING.block = function(b) {
 	}
 };
 
-var encodeFilenames = function(path) {
-	return path.split('/') .. map(encodeURIComponent) .. join('/');
-}
-
 exports.renderer = function(libraries, rootSymbol) {
 	// we keep `libraries` and `rootSymbol` in scope, to prevent passing it around to everything
 
@@ -88,9 +85,9 @@ exports.renderer = function(libraries, rootSymbol) {
 		return Quasi([Marked.convert(text, {sanitize:true})]);
 	}
 
-	function Link(href, text) {
+	function FragmentLink(href, text) {
 		if (Array.isArray(href)) [href, text] = href;
-		return Widget("a", text, {"href": '#' + href});
+		return Widget("a", text, {"href": '#' + encodeFragment(href)});
 	}
 
 	function makeSummaryHTML(docs, symbol) {
@@ -119,7 +116,7 @@ exports.renderer = function(libraries, rootSymbol) {
 				var Symbol = require('./symbol.sjs');
 				try {
 					destSymbol = Symbol.resolveLink(url, libraries);
-					destLink = Link(url, destDesc);
+					destLink = FragmentLink(url, destDesc);
 					//destDocs = destSymbol.docs();
 				} catch(e) {
 					logging.warn("Failed to load docs for #{docs.alias}: #{e}");
@@ -270,7 +267,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			var resolved = resolveLink(type.replace('optional ',''), symbol);
 			if (resolved) {
 				var [url, desc] = resolved;
-				type = `${type.indexOf('optional') != -1 ? "optional "}${Link(url, desc)}`;
+				type = `${type.indexOf('optional') != -1 ? "optional "}${FragmentLink(url, desc)}`;
 			}
 			return type;
 		});
@@ -363,7 +360,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		return accumulateByType(obj.children, (name, child) -> `
 			<tr>
 				<td class="mb-td-symbol">
-					${Link("#{symbolLink}::#{name}", name)}
+					${FragmentLink("#{symbolLink}::#{name}", name)}
 				</td>
 				<td>${makeSummaryHTML(child, symbol)}</td>
 			</tr>`
@@ -375,7 +372,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		return accumulateByType(obj.children, (name, child) -> `
 				<tr>
 					<td class='mb-td-symbol'>
-						${Link(modulePath + name, name)}
+						${FragmentLink(modulePath + name, name)}
 					</td>
 					<td>${makeSummaryHTML(child, symbol)}</td>
 				</tr>`
@@ -467,7 +464,7 @@ exports.renderer = function(libraries, rootSymbol) {
 					}
 					return [Widget("li", name, {"class":"active"}) .. centerView, children];
 				} else {
-					return Widget("li", Widget("a", name, {href: '#' + href}));
+					return Widget("li", FragmentLink(href, name));
 				}
 			});
 	};
@@ -477,7 +474,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		ancestors.unshift(['', `&#x21aa;`]);
 		var links = listChildren(parent, symbol);
 		links = ancestors .. reverse .. reduce(links, function(children, [href, name]) {
-			return Widget("li", [Widget("a", name, {href: '#' + href}), Widget("ul", children)]);
+			return Widget("li", [FragmentLink(href, name), Widget("ul", children)]);
 		});
 		return Widget("ul", links);
 	};
@@ -519,9 +516,11 @@ exports.renderer = function(libraries, rootSymbol) {
 
 				if (symbol.library && symbol.library.root) {
 					// add a "source" link where possible
-					var link = symbol.library.root + (symbol.relativeModulePath .. join() .. encodeFilenames());
-					if (!link .. endsWith('/')) link += '.sjs';
-					view = [view, Widget("div", `Source: <a href="$link">$link</a>`, {"class":"mb-canonical-url"})];
+					var root = symbol.library.root;
+					var path = symbol.relativeModulePath .. join();
+					if (!path .. endsWith('/')) path += '.sjs';
+					var pathURI = path .. encodeNonSlashes();
+					view = [view, Widget("div", `<a href="${root}${pathURI}">[source]</a>`, {"class":"mb-canonical-url"})];
 				}
 			} catch(e) {
 				if (e instanceof SymbolMissing)
@@ -550,13 +549,12 @@ exports.renderer = function(libraries, rootSymbol) {
 		},
 
 		renderBreadcrumbs: function(symbol) {
-			var ret = [];
 			var prefix = '#';
 			var sep = Widget("span", ` &raquo; `, {"class": "sep"});
-			if (symbol) {
-				ret = symbol.parentLinks().slice(0, -1) .. map([href, name] -> Widget("a", name, {href: prefix + href}));
-				ret.push(Widget('span', symbol.name, {"class":"leaf"}));
-			}
+
+			var ret = symbol.parentLinks().slice(0, -1) .. map(FragmentLink);
+			ret.push(Widget('span', symbol.name, {"class":"leaf"}));
+
 			var crumbs = ret .. intersperse(sep);
 			var content = [crumbs];
 

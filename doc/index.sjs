@@ -32,6 +32,8 @@ var ui = require('./ui');
 var Library = require('./library');
 } and {
 var Symbol = require('./symbol');
+} and {
+var { encodeFragment } = require('./url-util');
 }
 
 logging.setLevel(logging.DEBUG);
@@ -98,7 +100,7 @@ exports.run = function(root) {
 				ui.LOADING.inc();
 				var newLocation = require('./search').run(elem, libraries, ui.LOADING.dec);
 				if (newLocation) {
-					document.location.hash = newLocation;
+					document.location.hash = encodeFragment(newLocation);
 				}
 			};
 
@@ -162,7 +164,7 @@ exports.run = function(root) {
 		if(window.rainbow) window.rainbow.hide();
 		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
 			while(true) {
-				locationHash.set(document.location.hash.slice(1));
+				locationHash.set(decodeURIComponent(document.location.hash.slice(1)));
 				hashChange.wait();
 			}
 		}
