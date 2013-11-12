@@ -101,6 +101,7 @@ var RootSymbol = exports.RootSymbol = function(libraries) {
 };
 
 RootSymbol.prototype.relativeModulePath = [];
+RootSymbol.prototype.name = "index";
 RootSymbol.prototype.parent = -> null;
 RootSymbol.prototype.docs = function() {
 	var rv = {
