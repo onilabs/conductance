@@ -3,6 +3,7 @@ var {each, join, at, toArray, map, sortBy, hasElem} = seq;
 var assert = require('sjs:assert');
 var Library = require('./library');
 var logging = require('sjs:logging');
+var { endsWith } = require('sjs:string');
 var {ownValues, pairsToObject, ownPropertyPairs} = require('sjs:object');
 
 var ui = require('./ui');
@@ -13,6 +14,7 @@ var Symbol = exports.Symbol = function(libraries, library, relativeModulePath, s
 	this.className = symbolPath.length == 2 ? symbolPath[0];
 	this.relativeModulePath = relativeModulePath;
 	this.fullModulePath = [this.library.name].concat(this.relativeModulePath);
+	this.isDirectory = this.fullModulePath .. at(-1) .. endsWith('/');
 	this.symbolPath = symbolPath;
 	this.path = this.fullModulePath.concat(this.symbolPath);
 	this.name = this.path .. at(-1);
@@ -48,6 +50,15 @@ Symbol.prototype.parent = function() {
 
 Symbol.prototype.moduleLink = function() {
 	return [this.fullModulePath.join(''), this.relativeModulePath.join('')];
+}
+
+Symbol.prototype.basePath = function() {
+	// returns the containing directory for a symbol, or the full module path for a lib
+	var p = this.fullModulePath;
+	if(!this.isDirectory) {
+		p = p.slice(0, -1);
+	}
+	return p;
 }
 
 Symbol.prototype.link = function() {

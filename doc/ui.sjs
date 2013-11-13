@@ -79,7 +79,7 @@ exports.renderer = function(libraries, rootSymbol) {
 				var resolved = resolveLink(dest, symbol);
 				if (!resolved) return orig;
 				var [link, dest] = resolved;
-				return "[#{dest}](##{link})";
+				return "[#{dest}](##{encodeFragment(link)})";
 			});
 		}
 		return Quasi([Marked.convert(text, {sanitize:true})]);
@@ -231,16 +231,18 @@ exports.renderer = function(libraries, rootSymbol) {
 		if (leadingComponent == "") {
 			// absolute link within our module (eg "::Semaphore::acquire", or "::foo")
 			[url] = symbol.moduleLink();
-			url += dest;
+			logging.debug("absolute link within module #{url}");
+			url += symbol.isDirectory ? dest.slice(2) : dest;
 		}
 		else if (leadingComponent .. string.startsWith(".")) {
 			// relative link
-			var [moduleUrl] = symbol.moduleLink();
-			var base = symbol.fullModulePath.slice(0, -1);
+			var base = symbol.basePath();
 			logging.debug("relativizing #{dest} against #{base}");
-			while(dest .. startsWith('../')) {
-				dest = dest.slice(3);
-				base.pop();
+			var match;
+			while(match = /^(\.{1,2})\//.exec(dest)) {
+				var dots = match[1];
+				dest = dest.slice(dots.length + 1);
+				if (dots.length === 2) base.pop();
 			}
 			url = (base .. join('')) + dest;
 		}
@@ -394,7 +396,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		rv.push(
 			Widget("div", [
 				children['lib'] .. then(HeaderTable("Sections")),
-				children['module'] .. then(HeaderTable("Topics")),
+				children['module'] .. then(HeaderTable("Sub-Topics")),
 				children['syntax']   .. then(HeaderTable("Syntax")),
 				children['function'] .. then(HeaderTable("Functions")),
 				children['variable'] .. then(HeaderTable("Variables")),
