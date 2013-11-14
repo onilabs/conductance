@@ -37,7 +37,9 @@ var modules = [
   {id:'sjs:events', exclude: ['Stream', 'Queue']},
   {id:'sjs:sys', exclude: ['executable']},
   {id:'sjs:url', name: 'url'},
-  
+  {id:'sjs:http', name: 'http'},
+  {id:'sjs:regexp', name: 'regexp'},
+
   {id:'mho:env', name:'env'},
   {id:'mho:observable', exclude: ['at', 'get']},
   {id:'mho:observable', name: 'observable'},
@@ -74,6 +76,8 @@ exports .. @extend(require(modules));
 @alias sjs:object::getOwn
 @function getPath
 @alias sjs:object::getPath
+@function setPath
+@alias sjs:object::setPath
 @function has
 @alias sjs:object::has
 @function hasOwn
@@ -214,6 +218,8 @@ exports .. @extend(require(modules));
 @alias sjs:sequence::map.par
 @function transform.par
 @alias sjs:sequence::transform.par
+@function transform.par.unordered
+@alias sjs:sequence::transform.par.unordered
 @function find.par
 @alias sjs:sequence::find.par
 @function filter.par
@@ -338,6 +344,14 @@ exports .. @extend(require(modules));
 @alias sjs:sys::argv
 @variable url
 @alias sjs:url::
+@variable http
+@alias sjs:http::
+@function isRegExp
+@alias sjs:regexp::isRegExp
+@function escape
+@alias sjs:regexp::escape
+@function matches
+@alias sjs:regexp::matches
 @variable env
 @alias mho:env::
 @variable observable
