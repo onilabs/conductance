@@ -167,6 +167,13 @@ function apiimport(src, dest, aux) {
   // we'll make sure that the client makes all future access to the api 
   // module directly to our server:
   var moduleURL = "#{aux.request.url.protocol}://#{aux.request.url.authority}#{aux.request.url.path}";
+  // XXX In addition to the `connect` function, we're currently also
+  // exporting the `server` URL to the client. This is so that we can
+  // correctly address keyhole files on a redirected server, which is
+  // a bit of a hack. (The keyhole module need some redesigning; it
+  // should itself be able to give full urls - but that would probably
+  // require strata-local storage for communicating the request
+  // downstream).
   var serverRoot = Url.normalize('/', aux.request.url);
   dest.write("\
 var serverURL = #{JSON.stringify(serverRoot)};
@@ -178,6 +185,7 @@ waitfor {
 } and {
   var object = require('sjs:object');
 }
+exports.server = serverURL;
 exports.connect = function(opts, block) {
   if (arguments.length == 1) {
     block = opts;
