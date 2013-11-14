@@ -49,6 +49,10 @@ exports.AllowCORS = AllowCORS;
 
 //----------------------------------------------------------------------
 
+/**
+   @function SimpleRedirect
+   @summary XXX To be documented
+*/
 function SimpleRedirect(path, new_base, status) {
   status = status || 302;
   return Route(path, {
@@ -58,6 +62,23 @@ function SimpleRedirect(path, new_base, status) {
   });
 }
 exports.SimpleRedirect = SimpleRedirect;
+
+//----------------------------------------------------------------------
+
+/**
+   @function PortRedirect
+   @summary XXX To be documented
+*/
+function PortRedirect(path, port) {
+  return Route(path, {
+    '*': function(req) {
+      var url = "#{req.url.protocol}://#{req.url.host}:#{port}#{req.url.relative ? req.url.relative : ''}";
+      console.log("redirect #{req.url.toString()} to #{url}"); 
+      req .. writeRedirectResponse(url, 302);
+    }
+  });
+}
+exports.PortRedirect = PortRedirect;
 
 //----------------------------------------------------------------------
 
@@ -76,21 +97,79 @@ function createDirectoryMapper(settings) {
   }
 };
 
+/**
+   @function ExecutableDirectory
+   @param {optional RexExp|String} [path] Path to match
+   @param {String} [root] Directory on local filesystem
+   @returns {../server::Route}
+   @summary Creates a [../server::Route] that serves executable, code and static files from the local filesystem
+   @desc
+      - Serves the given directory with [./formats::StaticFormatMap] as well as the [./format::Code] and [./formats::Executable] extensions.
+
+      - `path` can be a regexp or a string, as described in
+        [../server::Route]. If `path` is ommited it defaults to the
+        empty string (i.e. all requests will be matched by the route).
+
+      - The file to be served is determined by stripping the prefix
+        matched by `path` from the request path, and appending the
+        remainder to `root`.
+
+      - It doesn't matter if `root` contains a '/' at the end or
+        not. `ExecutableDirectory('foo/', '/Users/oni/bar/')` and
+        `ExecutableDirectory('foo/', '/Users/oni/bar')` are equivalent.
+
+      - If supplied, `path` should contain a '/' at the end. Note that
+        a mapping of the form `ExecutableDirectory('foo/',
+        '/Users/oni/bar')` will only map urls that contain `'foo/'`,
+        e.g. `http://MYSERVER/foo/` (which would map to
+        `/Users/oni/bar/`) or `http://MYSERVER/foo/baz.txt` (which
+        would map to `/Users/oni/bar/baz.txt`). If you also want to
+        map `http://MYSERVER/foo`, set `path` to a regexp like
+        `/foo\/?/`. This will result in `http://MYSERVER/foo` being
+        automatically redirected to `http://MYSERVER/foo/`.
+
+*/
 var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
   allowGenerators: true,
   allowApis:       true,
   formats: formats.StaticFormatMap .. formats.Code() .. formats.Executable(),
 });
 
+/**
+   @function CodeDirectory
+   @param {optional RexExp|String} [path] Path to match
+   @param {String} [root] Directory on local filesystem
+   @returns {../server::Route}
+   @summary Creates a [../server::Route] that serves code and static files from the local filesystem
+   @desc
+      - Serves the given directory with [./formats::StaticFormatMap] as well as the [./format::Code] extension.
+
+      - See the description for [::ExecutableDirectory] for details on how to specifiy `path` and `root`.
+*/
 var CodeDirectory = exports.CodeDirectory = createDirectoryMapper({
   formats: formats.StaticFormatMap .. formats.Code(),
 });
 
+/**
+   @function StaticDirectory
+   @param {optional RexExp|String} [path] Path to match
+   @param {String} [root] Directory on local filesystem
+   @returns {../server::Route}
+   @summary Creates a [../server::Route] that serves static files from the local filesystem
+   @desc
+      - Serves the given directory with [./formats::StaticFormatMap].
+
+      - See the description for [::ExecutableDirectory] for details on how to specifiy `path` and `root`.
+*/
 exports.StaticDirectory = createDirectoryMapper({});
 
 
 //----------------------------------------------------------------------
 
+/**
+   @function SystemRoutes
+   @summary XXX To be documented
+*/
 function SystemRoutes() {
   return [
     CodeDirectory('__sjs/', "#{sjsRoot}"),
