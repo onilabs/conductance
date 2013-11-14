@@ -155,7 +155,7 @@ function appendFragmentTo(target, ft, tag) {
     ft .. each(p -> appendFragmentTo(target, p, tag));
   }
   else {
-    if (ft !== undefined)
+    if (ft != null)
       target.content += escapeForTag(ft, tag);
   }
 }

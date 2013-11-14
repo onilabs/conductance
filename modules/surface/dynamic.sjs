@@ -3,10 +3,10 @@
 // if hostenv == xbrowser
 
 var { ensureWidget, Mechanism, collapseHtmlFragment } = require('./base');
-var { propertyPairs, keys } = require('sjs:object');
+var { propertyPairs, keys, merge } = require('sjs:object');
 var { Stream, toArray, map, filter, each, reverse, concat } = require('sjs:sequence');
 var { split } = require('sjs:string');
-var { wait } = require('sjs:events');
+var { wait, when } = require('sjs:events');
 var { isObservable, get } = require('../observable');
 
 //----------------------------------------------------------------------
@@ -368,16 +368,17 @@ exports.Prop = Prop;
 
 // set an event handler:
 
-var OnEvent = (html, event, f) -> html .. Mechanism(function(node) {
-  // xxx should use queue
-  while (1) {
-    var ev = node .. wait(event);
-    f(ev);
+var OnEvent = (html, event, opts, f) -> html .. Mechanism(function(node) {
+  if (!f) {
+    // opts not given
+    f = opts;
+    opts = {};
   }
+  node .. when(event, {queue: true} .. merge(opts), f);
 });
 exports.OnEvent = OnEvent;
 
-var OnClick = (html, f) -> html .. OnEvent('click', f);
+var OnClick = (html, opts, f) -> html .. OnEvent('click', opts, f);
 exports.OnClick = OnClick;
 
 
