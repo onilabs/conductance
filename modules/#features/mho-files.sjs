@@ -24,6 +24,9 @@
   If your server does *not* accept arguments, you should fail when `args`
   is not empty.
 
+  Typically, your `serve` function will call [server::run],
+  which runs a conductance HTTP server until it is cancelled.
+
 @variable exports.systemd
 @summary sytemd configuration for your application
 @desc
