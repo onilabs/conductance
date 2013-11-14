@@ -416,7 +416,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
     that aren't explicitly mentioned.
 
     Each property value of `handlers` should be a function which will be called with
-    `req` (a [sjs:nodejs/http/ServerRequest]) and `matches`, which is the result of `path.exec(requestPath)`
+    `req` (a [sjs:nodejs/http::ServerRequest]) and `matches`, which is the result of `path.exec(requestPath)`
     when `path` is a regular expression. If `path` is a string, then `match` is
     the match object you would get if `path` were `new RegExp(/^#{regexp.escape(path)}$/)`
     (i.e a RegExp matching the exact `path` string).
