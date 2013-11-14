@@ -162,9 +162,15 @@ function gen_moduledocs_html(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates import sjs for an api:
 function apiimport(src, dest, aux) {
+  // To facilitate redirecting apis, as in e.g.:
+  //   @PortRedirect(/^database\/.*\.api/,  8082),
+  // we'll make sure that the client makes all future access to the api 
+  // module directly to our server:
+  var moduleURL = "#{aux.request.url.protocol}://#{aux.request.url.authority}#{aux.request.url.path}";
   var serverRoot = Url.normalize('/', aux.request.url);
   dest.write("\
-var server = require('builtin:apollo-sys').hostenv !== 'xbrowser' ? #{JSON.stringify(serverRoot)};
+var serverURL = #{JSON.stringify(serverRoot)};
+var moduleURL = #{JSON.stringify(moduleURL)};
 waitfor {
   var bridge = require('mho:rpc/bridge');
 } and {
@@ -179,9 +185,9 @@ exports.connect = function(opts, block) {
   }
   opts = object.clone(opts);
 
-  if (!opts.server) opts.server = server;
+  if (!opts.server) opts.server = serverURL;
   if (!opts.disconnectHandler) opts.disconnectHandler = bridge.AutoReconnect();
-  var apiinfo = http.json([module.id, {format:'json'}]);
+  var apiinfo = http.json([moduleURL, {format:'json'}]);
   if (apiinfo.error) throw new Error(apiinfo.error);
   var rv;
   bridge.connect(apiinfo.id, opts) {|connection|
@@ -210,7 +216,7 @@ function gen_markdown_html(src, dest, aux) {
 
 /**
   @variable StaticFormatMap
-  @summary a format map appropriate for serving untrusted, static files.
+  @summary a [::FormatMap] appropriate for serving untrusted, static files.
 */
 exports.StaticFormatMap = {
   "/"  : { none : { mime: "text/html",
@@ -258,11 +264,21 @@ var withFormats = function(map, extensions) {
 
 /**
   @function Code
+  @altsyntax base .. Code
+  @param {::FormatMap} [base]
   @summary return a copy of `base` with mappings for serving application code
+  @return {::FormatMap}
   @desc
-    This function enables:
-     - server-side compilation of .sjs files
-     - serving .sjs files as HTML module documentation content
+    This function adds the following mappings in the returned [::FormatMap]:
+
+      - server-side compilation of .sjs files
+      - serving .sjs files as HTML module documentation content
+      - .app, as SJS apps executed on the client
+      - .md, for rendering as HTML
+
+    Note that the source of .app files is accessible via the `src` format.
+
+
 */
 var Code = (base) -> base
   .. withFormats({
@@ -285,45 +301,6 @@ var Code = (base) -> base
                         filterETag: gen_sjs_bundle_etag,
                       },
          },
-  });
-exports.Code = Code;
-
-/**
-  @function Jsonp
-  @summary return a copy of `base` with mappings for serving JSON files via jsonp
-*/
-var Jsonp = (base) -> base
-  .. withFormats({
-    json: {
-      jsonp    : { mime: "text/javascript", filter: json2jsonp }
-    }
-  });
-exports.Jsonp = Jsonp;
-
-
-/**
-  @function Executable
-  @summary return a copy of `base` with mappings for serving trusted files
-  @desc
-    Adds:
-       - .api, for SJS modules that are run only on the server and exported to the client
-       - .app, as SJS apps executed on the client
-       - .md, for rendering as HTML
-
-    Note that the source of .api files is accessible via the `src` format.
-
-    You should never use these filters for locations containing untrusted or
-    user-submitted content, as they enable arbitrary code execution on the server.
-*/
-var Executable = (base) -> base
-  .. withFormats({
-    api      : { none : { mime: "text/plain",
-                          filter: apiimport
-                        },
-                 json : { mime: "application/json",
-                          filter: apiinfo
-                        }
-               },
     md       : { none : { mime: "text/html",
                           filter: gen_markdown_html
                         },
@@ -342,6 +319,49 @@ var Executable = (base) -> base
                           filterETag: gen_sjs_bundle_etag,
                         },
                  src  : { mime: "text/plain" }
+               },
+
+  });
+exports.Code = Code;
+
+/**
+  @function Jsonp
+  @base .. Jsonp
+  @param {::FormatMap} [base]
+  @summary return a copy of `base` with mappings for serving JSON files via jsonp
+  @return {::FormatMap}
+  @deprecated
+*/
+var Jsonp = (base) -> base
+  .. withFormats({
+    json: {
+      jsonp    : { mime: "text/javascript", filter: json2jsonp }
+    }
+  });
+exports.Jsonp = Jsonp;
+
+
+/**
+  @function Executable
+  @altsyntax base .. Executable
+  @param {::FormatMap} [base]
+  @summary return a copy of `base` with mappings for serving trusted files
+  @desc
+    This function adds the following mappings in the returned [::FormatMap]:
+
+       - .api, for SJS modules that are run only on the server and exported to the client
+
+    You should never use these filters for locations containing untrusted or
+    user-submitted content, as they enable arbitrary code execution on the server.
+*/
+var Executable = (base) -> base
+  .. withFormats({
+    api      : { none : { mime: "text/plain",
+                          filter: apiimport
+                        },
+                 json : { mime: "application/json",
+                          filter: apiinfo
+                        }
                },
   });
 exports.Executable = Executable;
