@@ -1,5 +1,9 @@
 // conductance server environment
 // server-side only
+/**
+  @nodoc
+  (documented as mho:env)
+*/
 var sys = require("sjs:sys");
 var path = require("nodejs:path");
 var url = require("sjs:url");
