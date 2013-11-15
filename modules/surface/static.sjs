@@ -1,3 +1,9 @@
+/**
+  @nodoc
+  @noindex
+  (documented as mho:surface)
+*/
+
 var html  = require('./base');
 var { values, propertyPairs, keys, merge } = require('sjs:object');
 var { sanitize, isString } = require('sjs:string');

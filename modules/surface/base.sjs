@@ -1,6 +1,7 @@
 /**
- * @nodoc
- * (documented as mho:surface)
+  @nodoc
+  @noindex
+  (documented as mho:surface)
  */
 
 var { isQuasi, Quasi } = require('sjs:quasi');

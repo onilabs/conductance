@@ -1,3 +1,9 @@
+/**
+  @nodoc
+  @noindex
+  (documented as mho:surface)
+ */
+
 //----------------------------------------------------------------------
 // dynamic surface:
 // if hostenv == xbrowser
