@@ -1,9 +1,15 @@
 
 /* ------------------------------------ *
- * NOTE:                                *
- *   This file is auto-generated        *
- *   any manual edits will be LOST      *
- * ------------------------------------ */
+* NOTE:                                *
+*   This file is auto-generated        *
+*   any manual edits will be LOST      *
+* ------------------------------------ */
+
+/* ------------------------------------ *
+* NOTE:                                *
+*   This file is auto-generated        *
+*   any manual edits will be LOST      *
+* ------------------------------------ */
 /**
   // metadata for sjs:bundle:
   @require sjs:object
@@ -89,19 +95,21 @@ module.exports = require(modules);
 @noindex
 @summary Common functionality for conductance applications
 @desc
+  
   This module combines commonly-used functionality from the
-  [mho:] and [sjs:] standard libraries.
-
+  Conductance and StratifiedJS standard libraries. It includes
+  everything from the [sjs:std::] SJS module, plus functionality
+  available only to conductance applications.
+  
   Typically, conductance applications and scripts will use this
   module to access common functionality in a single line:
-
+  
       @ = require('mho:stdlib');
-
+  
   (see also: [sjs:#language/syntax::@altns])
-
+  
   Below are a list of the symbols exposed in this module, with
   links to the symbol's original module.
-
   ### From the [sjs:object::] module:
    - **get**: (function [sjs:object::get])
    - **getOwn**: (function [sjs:object::getOwn])
@@ -299,4 +307,5 @@ module.exports = require(modules);
    - **preventDefault**: (function [sjs:xbrowser/dom::preventDefault])
    - **stopEvent**: (function [sjs:xbrowser/dom::stopEvent])
    - **eventTarget**: (function [sjs:xbrowser/dom::eventTarget])
+
 */
