@@ -1,3 +1,9 @@
+
+/* ------------------------------------ *
+ * NOTE:                                *
+ *   This file is auto-generated        *
+ *   any manual edits will be LOST      *
+ * ------------------------------------ */
 /**
   // metadata for sjs:bundle:
   @require sjs:object
@@ -14,13 +20,9 @@
   @require sjs:events
   @require sjs:sys
   @require sjs:url
-
-  @require mho:observable
-  @require mho:surface
-  @require mho:env
 */
-@ = require(['sjs:object', 'sjs:sys']);
 
+var hostenv = require('builtin:apollo-sys').hostenv;
 var modules = [
   'sjs:object',
   'sjs:array',
@@ -35,28 +37,19 @@ var modules = [
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
   {id:'sjs:logging', name:'logging'},
   {id:'sjs:events', exclude: ['Stream', 'Queue']},
-  {id:'sjs:sys', exclude: ['executable']},
-  {id:'sjs:url', name: 'url'},
+  {id:'sjs:sys', include: ['argv', 'eval']},
+  {id:'sjs:sys', name: 'sys'},
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
-
-  {id:'mho:env', name:'env'},
-  {id:'mho:observable', exclude: ['at', 'get']},
-  {id:'mho:observable', name: 'observable'},
-  {id:'mho:surface'}
+  {id:'sjs:url', name: 'url'},
 ];
 
-if (@hostenv === 'nodejs') {
+if (hostenv === 'nodejs') {
   modules = modules.concat([
     'sjs:nodejs/stream',
     {id:'nodejs:path', name: 'path'},
     {id:'sjs:nodejs/fs', name: 'fs'},
     {id:'sjs:nodejs/child-process', name: 'childProcess'},
-    {id:'mho:server', include:['Host', 'Route', 'Port']},
-    {id:'mho:server', name:'server'},
-    {id:'mho:server/routes', name:'routes'},
-    'mho:server/response',
-    'mho:server/generator',
   ]);
 } else {
   modules = modules.concat([
@@ -65,361 +58,245 @@ if (@hostenv === 'nodejs') {
   ]);
 }
 
-exports .. @extend(require(modules));
 
-// GENERATED DOCS: (do not edit below this line)
+/**
+  // metadata for sjs:bundle:
+  @require mho:observable
+  @require mho:surface
+  @require mho:env
+*/
+
+modules = modules.concat([
+  {id:'mho:env', name:'env'},
+  {id:'mho:observable', exclude: ['at', 'get']},
+  {id:'mho:observable', name: 'observable'},
+  {id:'mho:surface'}
+]);
+
+if (hostenv === 'nodejs') {
+  modules = modules.concat([
+    {id:'mho:server', include:['Host', 'Route', 'Port']},
+    {id:'mho:server', name:'server'},
+    {id:'mho:server/routes', name:'routes'},
+    'mho:server/response',
+    'mho:server/generator',
+  ]);
+}
+
+module.exports = require(modules);
+
 /**
 @noindex
-@function get
-@alias sjs:object::get
-@function getOwn
-@alias sjs:object::getOwn
-@function getPath
-@alias sjs:object::getPath
-@function setPath
-@alias sjs:object::setPath
-@function has
-@alias sjs:object::has
-@function hasOwn
-@alias sjs:object::hasOwn
-@function keys
-@alias sjs:object::keys
-@function ownKeys
-@alias sjs:object::ownKeys
-@function values
-@alias sjs:object::values
-@function ownValues
-@alias sjs:object::ownValues
-@function propertyPairs
-@alias sjs:object::propertyPairs
-@function ownPropertyPairs
-@alias sjs:object::ownPropertyPairs
-@function pairsToObject
-@alias sjs:object::pairsToObject
-@function extend
-@alias sjs:object::extend
-@function merge
-@alias sjs:object::merge
-@function clone
-@alias sjs:object::clone
-@function override
-@alias sjs:object::override
-@function construct
-@alias sjs:object::construct
-@function Constructor
-@alias sjs:object::Constructor
-@function isArrayLike
-@alias sjs:array::isArrayLike
-@function remove
-@alias sjs:array::remove
-@function cycle
-@alias sjs:array::cycle
-@function flatten
-@alias sjs:array::flatten
-@function union
-@alias sjs:array::union
-@function difference
-@alias sjs:array::difference
-@function haveCommonElements
-@alias sjs:array::haveCommonElements
-@function cmp
-@alias sjs:array::cmp
-@class Sequence
-@alias sjs:sequence::Sequence
-@class Stream
-@alias sjs:sequence::Stream
-@function toStream
-@alias sjs:sequence::toStream
-@function isStream
-@alias sjs:sequence::isStream
-@function isSequence
-@alias sjs:sequence::isSequence
-@function generate
-@alias sjs:sequence::generate
-@function each
-@alias sjs:sequence::each
-@function consume
-@alias sjs:sequence::consume
-@function toArray
-@alias sjs:sequence::toArray
-@class SequenceExhausted
-@alias sjs:sequence::SequenceExhausted
-@function first
-@alias sjs:sequence::first
-@function at
-@alias sjs:sequence::at
-@function slice
-@alias sjs:sequence::slice
-@function join
-@alias sjs:sequence::join
-@function sort
-@alias sjs:sequence::sort
-@function sortBy
-@alias sjs:sequence::sortBy
-@function reverse
-@alias sjs:sequence::reverse
-@function count
-@alias sjs:sequence::count
-@function take
-@alias sjs:sequence::take
-@function takeWhile
-@alias sjs:sequence::takeWhile
-@function skip
-@alias sjs:sequence::skip
-@function skipWhile
-@alias sjs:sequence::skipWhile
-@function filter
-@alias sjs:sequence::filter
-@function partition
-@alias sjs:sequence::partition
-@function map
-@alias sjs:sequence::map
-@function transform
-@alias sjs:sequence::transform
-@function concat
-@alias sjs:sequence::concat
-@function pack
-@alias sjs:sequence::pack
-@function unpack
-@alias sjs:sequence::unpack
-@function combine
-@alias sjs:sequence::combine
-@function groupBy
-@alias sjs:sequence::groupBy
-@function zip
-@alias sjs:sequence::zip
-@function zipLongest
-@alias sjs:sequence::zipLongest
-@function indexed
-@alias sjs:sequence::indexed
-@function intersperse
-@alias sjs:sequence::intersperse
-@function reduce
-@alias sjs:sequence::reduce
-@function reduce1
-@alias sjs:sequence::reduce1
-@function find
-@alias sjs:sequence::find
-@function hasElem
-@alias sjs:sequence::hasElem
-@function all
-@alias sjs:sequence::all
-@function any
-@alias sjs:sequence::any
-@function integers
-@alias sjs:sequence::integers
-@function fib
-@alias sjs:sequence::fib
-@function buffer
-@alias sjs:sequence::buffer
-@function each.par
-@alias sjs:sequence::each.par
-@function map.par
-@alias sjs:sequence::map.par
-@function transform.par
-@alias sjs:sequence::transform.par
-@function transform.par.unordered
-@alias sjs:sequence::transform.par.unordered
-@function find.par
-@alias sjs:sequence::find.par
-@function filter.par
-@alias sjs:sequence::filter.par
-@function all.par
-@alias sjs:sequence::all.par
-@function any.par
-@alias sjs:sequence::any.par
-@function isString
-@alias sjs:string::isString
-@function sanitize
-@alias sjs:string::sanitize
-@function supplant
-@alias sjs:string::supplant
-@function startsWith
-@alias sjs:string::startsWith
-@function endsWith
-@alias sjs:string::endsWith
-@function contains
-@alias sjs:string::contains
-@function strip
-@alias sjs:string::strip
-@function lstrip
-@alias sjs:string::lstrip
-@function rstrip
-@alias sjs:string::rstrip
-@function split
-@alias sjs:string::split
-@function rsplit
-@alias sjs:string::rsplit
-@function padRight
-@alias sjs:string::padRight
-@function padLeft
-@alias sjs:string::padLeft
-@function padBoth
-@alias sjs:string::padBoth
-@function unindent
-@alias sjs:string::unindent
-@function capitalize
-@alias sjs:string::capitalize
-@function utf16ToUtf8
-@alias sjs:string::utf16ToUtf8
-@function utf8ToUtf16
-@alias sjs:string::utf8ToUtf16
-@function octetsToBase64
-@alias sjs:string::octetsToBase64
-@function base64ToOctets
-@alias sjs:string::base64ToOctets
-@function equals
-@alias sjs:compare::equals
-@function eq
-@alias sjs:compare::eq
-@function shallowEquals
-@alias sjs:compare::shallowEquals
-@function shallowEq
-@alias sjs:compare::shallowEq
-@function describeEquals
-@alias sjs:compare::describeEquals
-@function inspect
-@alias sjs:debug::inspect
-@function prompt
-@alias sjs:debug::prompt
-@variable fn
-@alias sjs:function::
-@class StratumAborted
-@alias sjs:cutil::StratumAborted
-@function waitforAll
-@alias sjs:cutil::waitforAll
-@function waitforFirst
-@alias sjs:cutil::waitforFirst
-@class Semaphore
-@alias sjs:cutil::Semaphore
-@class Condition
-@alias sjs:cutil::Condition
-@class Queue
-@alias sjs:cutil::Queue
-@function breaking
-@alias sjs:cutil::breaking
-@class Quasi
-@alias sjs:quasi::Quasi
-@function isQuasi
-@alias sjs:quasi::isQuasi
-@function joinQuasis
-@alias sjs:quasi::joinQuasis
-@function mapQuasi
-@alias sjs:quasi::mapQuasi
-@function toQuasi
-@alias sjs:quasi::toQuasi
-@variable assert
-@alias sjs:assert::
-@function print
-@alias sjs:logging::print
-@function debug
-@alias sjs:logging::debug
-@function verbose
-@alias sjs:logging::verbose
-@function info
-@alias sjs:logging::info
-@function warn
-@alias sjs:logging::warn
-@function error
-@alias sjs:logging::error
-@variable logging
-@alias sjs:logging::
-@class Emitter
-@alias sjs:events::Emitter
-@class HostEmitter
-@alias sjs:events::HostEmitter
-@function wait
-@alias sjs:events::wait
-@function when
-@alias sjs:events::when
-@variable hostenv
-@alias sjs:sys::hostenv
-@function getGlobal
-@alias sjs:sys::getGlobal
-@function eval
-@alias sjs:sys::eval
-@variable version
-@alias sjs:sys::version
-@function argv
-@alias sjs:sys::argv
-@variable url
-@alias sjs:url::
-@variable http
-@alias sjs:http::
-@function isRegExp
-@alias sjs:regexp::isRegExp
-@function escape
-@alias sjs:regexp::escape
-@function matches
-@alias sjs:regexp::matches
-@variable env
-@alias mho:env::
-@variable observable
-@alias mho:observable::
-@function read
-@alias sjs:nodejs/stream::read
-@hostenv nodejs
-@function readAll
-@alias sjs:nodejs/stream::readAll
-@hostenv nodejs
-@function write
-@alias sjs:nodejs/stream::write
-@hostenv nodejs
-@function pump
-@alias sjs:nodejs/stream::pump
-@hostenv nodejs
-@class ReadableStringStream
-@alias sjs:nodejs/stream::ReadableStringStream
-@hostenv nodejs
-@class WritableStringStream
-@alias sjs:nodejs/stream::WritableStringStream
-@hostenv nodejs
-@variable path
-@alias nodejs:path::
-@hostenv nodejs
-@variable fs
-@alias sjs:nodejs/fs::
-@hostenv nodejs
-@variable childProcess
-@alias sjs:nodejs/child-process::
-@hostenv nodejs
-@class Host
-@alias mho:server::Host
-@hostenv nodejs
-@class Route
-@alias mho:server::Route
-@hostenv nodejs
-@class Port
-@alias mho:server::Port
-@hostenv nodejs
-@variable server
-@alias mho:server::
-@hostenv nodejs
-@variable routes
-@alias mho:server/routes::
-@hostenv nodejs
-@class HttpError
-@alias mho:server/response::HttpError
-@hostenv nodejs
-@function isHttpError
-@alias mho:server/response::isHttpError
-@hostenv nodejs
-@function NotFound
-@alias mho:server/response::NotFound
-@hostenv nodejs
-@function ServerError
-@alias mho:server/response::ServerError
-@hostenv nodejs
-@variable dom
-@alias sjs:xbrowser/dom::
-@hostenv xbrowser
-@function preventDefault
-@alias sjs:xbrowser/dom::preventDefault
-@hostenv xbrowser
-@function stopEvent
-@alias sjs:xbrowser/dom::stopEvent
-@hostenv xbrowser
-@function eventTarget
-@alias sjs:xbrowser/dom::eventTarget
-@hostenv xbrowser
+@summary Common functionality for conductance applications
+@desc
+  This module combines commonly-used functionality from the
+  [mho:] and [sjs:] standard libraries.
+
+  Typically, conductance applications and scripts will use this
+  module to access common functionality in a single line:
+
+      @ = require('mho:stdlib');
+
+  (see also: [sjs:#language/syntax::@altns])
+
+  Below are a list of the symbols exposed in this module, with
+  links to the symbol's original module.
+
+  ### From the [sjs:object::] module:
+   - **get**: (function [sjs:object::get])
+   - **getOwn**: (function [sjs:object::getOwn])
+   - **getPath**: (function [sjs:object::getPath])
+   - **setPath**: (function [sjs:object::setPath])
+   - **has**: (function [sjs:object::has])
+   - **hasOwn**: (function [sjs:object::hasOwn])
+   - **keys**: (function [sjs:object::keys])
+   - **ownKeys**: (function [sjs:object::ownKeys])
+   - **values**: (function [sjs:object::values])
+   - **ownValues**: (function [sjs:object::ownValues])
+   - **propertyPairs**: (function [sjs:object::propertyPairs])
+   - **ownPropertyPairs**: (function [sjs:object::ownPropertyPairs])
+   - **pairsToObject**: (function [sjs:object::pairsToObject])
+   - **extend**: (function [sjs:object::extend])
+   - **merge**: (function [sjs:object::merge])
+   - **clone**: (function [sjs:object::clone])
+   - **override**: (function [sjs:object::override])
+   - **construct**: (function [sjs:object::construct])
+   - **Constructor**: (function [sjs:object::Constructor])
+  ### From the [sjs:array::] module:
+   - **isArrayLike**: (function [sjs:array::isArrayLike])
+   - **remove**: (function [sjs:array::remove])
+   - **cycle**: (function [sjs:array::cycle])
+   - **flatten**: (function [sjs:array::flatten])
+   - **union**: (function [sjs:array::union])
+   - **difference**: (function [sjs:array::difference])
+   - **cmp**: (function [sjs:array::cmp])
+  ### From the [sjs:sequence::] module:
+   - **Sequence**: (class [sjs:sequence::Sequence])
+   - **Stream**: (class [sjs:sequence::Stream])
+   - **toStream**: (function [sjs:sequence::toStream])
+   - **isStream**: (function [sjs:sequence::isStream])
+   - **isSequence**: (function [sjs:sequence::isSequence])
+   - **generate**: (function [sjs:sequence::generate])
+   - **each**: (function [sjs:sequence::each])
+   - **consume**: (function [sjs:sequence::consume])
+   - **toArray**: (function [sjs:sequence::toArray])
+   - **SequenceExhausted**: (class [sjs:sequence::SequenceExhausted])
+   - **first**: (function [sjs:sequence::first])
+   - **at**: (function [sjs:sequence::at])
+   - **slice**: (function [sjs:sequence::slice])
+   - **join**: (function [sjs:sequence::join])
+   - **sort**: (function [sjs:sequence::sort])
+   - **sortBy**: (function [sjs:sequence::sortBy])
+   - **reverse**: (function [sjs:sequence::reverse])
+   - **count**: (function [sjs:sequence::count])
+   - **take**: (function [sjs:sequence::take])
+   - **takeWhile**: (function [sjs:sequence::takeWhile])
+   - **skip**: (function [sjs:sequence::skip])
+   - **skipWhile**: (function [sjs:sequence::skipWhile])
+   - **filter**: (function [sjs:sequence::filter])
+   - **partition**: (function [sjs:sequence::partition])
+   - **map**: (function [sjs:sequence::map])
+   - **transform**: (function [sjs:sequence::transform])
+   - **concat**: (function [sjs:sequence::concat])
+   - **pack**: (function [sjs:sequence::pack])
+   - **unpack**: (function [sjs:sequence::unpack])
+   - **combine**: (function [sjs:sequence::combine])
+   - **groupBy**: (function [sjs:sequence::groupBy])
+   - **zip**: (function [sjs:sequence::zip])
+   - **zipLongest**: (function [sjs:sequence::zipLongest])
+   - **indexed**: (function [sjs:sequence::indexed])
+   - **intersperse**: (function [sjs:sequence::intersperse])
+   - **reduce**: (function [sjs:sequence::reduce])
+   - **reduce1**: (function [sjs:sequence::reduce1])
+   - **find**: (function [sjs:sequence::find])
+   - **hasElem**: (function [sjs:sequence::hasElem])
+   - **all**: (function [sjs:sequence::all])
+   - **any**: (function [sjs:sequence::any])
+   - **integers**: (function [sjs:sequence::integers])
+   - **fib**: (function [sjs:sequence::fib])
+   - **buffer**: (function [sjs:sequence::buffer])
+   - **each.par**: (function [sjs:sequence::each.par])
+   - **map.par**: (function [sjs:sequence::map.par])
+   - **transform.par**: (function [sjs:sequence::transform.par])
+   - **transform.par.unordered**: (function [sjs:sequence::transform.par.unordered])
+   - **find.par**: (function [sjs:sequence::find.par])
+   - **filter.par**: (function [sjs:sequence::filter.par])
+   - **all.par**: (function [sjs:sequence::all.par])
+   - **any.par**: (function [sjs:sequence::any.par])
+  ### From the [sjs:string::] module:
+   - **isString**: (function [sjs:string::isString])
+   - **sanitize**: (function [sjs:string::sanitize])
+   - **supplant**: (function [sjs:string::supplant])
+   - **startsWith**: (function [sjs:string::startsWith])
+   - **endsWith**: (function [sjs:string::endsWith])
+   - **contains**: (function [sjs:string::contains])
+   - **strip**: (function [sjs:string::strip])
+   - **lstrip**: (function [sjs:string::lstrip])
+   - **rstrip**: (function [sjs:string::rstrip])
+   - **split**: (function [sjs:string::split])
+   - **rsplit**: (function [sjs:string::rsplit])
+   - **padRight**: (function [sjs:string::padRight])
+   - **padLeft**: (function [sjs:string::padLeft])
+   - **padBoth**: (function [sjs:string::padBoth])
+   - **unindent**: (function [sjs:string::unindent])
+   - **capitalize**: (function [sjs:string::capitalize])
+   - **utf16ToUtf8**: (function [sjs:string::utf16ToUtf8])
+   - **utf8ToUtf16**: (function [sjs:string::utf8ToUtf16])
+   - **octetsToBase64**: (function [sjs:string::octetsToBase64])
+   - **base64ToOctets**: (function [sjs:string::base64ToOctets])
+  ### From the [sjs:compare::] module:
+   - **equals**: (function [sjs:compare::equals])
+   - **eq**: (function [sjs:compare::eq])
+   - **shallowEquals**: (function [sjs:compare::shallowEquals])
+   - **shallowEq**: (function [sjs:compare::shallowEq])
+   - **describeEquals**: (function [sjs:compare::describeEquals])
+  ### From the [sjs:debug::] module:
+   - **inspect**: (function [sjs:debug::inspect])
+   - **prompt**: (function [sjs:debug::prompt])
+  ### From the [sjs:function::] module:
+   - **fn**: (module [sjs:function::])
+  ### From the [sjs:cutil::] module:
+   - **StratumAborted**: (class [sjs:cutil::StratumAborted])
+   - **waitforAll**: (function [sjs:cutil::waitforAll])
+   - **waitforFirst**: (function [sjs:cutil::waitforFirst])
+   - **Semaphore**: (class [sjs:cutil::Semaphore])
+   - **Condition**: (class [sjs:cutil::Condition])
+   - **Queue**: (class [sjs:cutil::Queue])
+   - **breaking**: (function [sjs:cutil::breaking])
+  ### From the [sjs:quasi::] module:
+   - **Quasi**: (class [sjs:quasi::Quasi])
+   - **isQuasi**: (function [sjs:quasi::isQuasi])
+   - **joinQuasis**: (function [sjs:quasi::joinQuasis])
+   - **mapQuasi**: (function [sjs:quasi::mapQuasi])
+   - **toQuasi**: (function [sjs:quasi::toQuasi])
+  ### From the [sjs:assert::] module:
+   - **assert**: (module [sjs:assert::])
+  ### From the [sjs:logging::] module:
+   - **print**: (function [sjs:logging::print])
+   - **debug**: (function [sjs:logging::debug])
+   - **verbose**: (function [sjs:logging::verbose])
+   - **info**: (function [sjs:logging::info])
+   - **warn**: (function [sjs:logging::warn])
+   - **error**: (function [sjs:logging::error])
+   - **logging**: (module [sjs:logging::])
+  ### From the [sjs:events::] module:
+   - **Emitter**: (class [sjs:events::Emitter])
+   - **HostEmitter**: (class [sjs:events::HostEmitter])
+   - **wait**: (function [sjs:events::wait])
+   - **when**: (function [sjs:events::when])
+  ### From the [sjs:sys::] module:
+   - **argv**: (function [sjs:sys::argv])
+   - **eval**: (function [sjs:sys::eval])
+   - **sys**: (module [sjs:sys::])
+  ### From the [sjs:http::] module:
+   - **http**: (module [sjs:http::])
+  ### From the [sjs:regexp::] module:
+   - **regexp**: (module [sjs:regexp::])
+  ### From the [sjs:url::] module:
+   - **url**: (module [sjs:url::])
+  ### From the [sjs:nodejs/stream::] module:
+  *(when in the nodejs environment)*
+   - **read**: (function [sjs:nodejs/stream::read])
+   - **readAll**: (function [sjs:nodejs/stream::readAll])
+   - **write**: (function [sjs:nodejs/stream::write])
+   - **pump**: (function [sjs:nodejs/stream::pump])
+   - **ReadableStringStream**: (class [sjs:nodejs/stream::ReadableStringStream])
+   - **WritableStringStream**: (class [sjs:nodejs/stream::WritableStringStream])
+  ### From the [nodejs:path](http://nodejs.org/api/path.html) module:
+  *(when in the nodejs environment)*
+   - **path**: (module [nodejs:path](http://nodejs.org/api/path.html))
+  ### From the [sjs:nodejs/fs::] module:
+  *(when in the nodejs environment)*
+   - **fs**: (module [sjs:nodejs/fs::])
+  ### From the [sjs:nodejs/child-process::] module:
+  *(when in the nodejs environment)*
+   - **childProcess**: (module [sjs:nodejs/child-process::])
+  ### From the [mho:env::] module:
+   - **env**: (module [mho:env::])
+  ### From the [mho:observable::] module:
+   - **observable**: (module [mho:observable::])
+  ### From the [mho:surface::] module:
+  ### From the [mho:server::] module:
+  *(when in the nodejs environment)*
+   - **Host**: (class [mho:server::Host])
+   - **Route**: (class [mho:server::Route])
+   - **Port**: (class [mho:server::Port])
+   - **server**: (module [mho:server::])
+  ### From the [mho:server/routes::] module:
+  *(when in the nodejs environment)*
+   - **routes**: (module [mho:server/routes::])
+  ### From the [mho:server/response::] module:
+  *(when in the nodejs environment)*
+   - **HttpError**: (class [mho:server/response::HttpError])
+   - **isHttpError**: (function [mho:server/response::isHttpError])
+   - **NotFound**: (function [mho:server/response::NotFound])
+   - **ServerError**: (function [mho:server/response::ServerError])
+  ### From the [mho:server/generator::] module:
+  *(when in the nodejs environment)*
+  ### From the [sjs:xbrowser/dom::] module:
+  *(when in the xbrowser environment)*
+   - **dom**: (module [sjs:xbrowser/dom::])
+   - **preventDefault**: (function [sjs:xbrowser/dom::preventDefault])
+   - **stopEvent**: (function [sjs:xbrowser/dom::stopEvent])
+   - **eventTarget**: (function [sjs:xbrowser/dom::eventTarget])
 */
