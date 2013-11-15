@@ -22,7 +22,6 @@ var predefined = {
   conductanceRoot    : conductanceRoot,
   sjsRoot            : sjsRoot,
   conductanceVersion : -> conductanceVersion,
-  config             : -> e.get('config', undefined),
   configPath         : -> e.get('config', {}).path, // TODO: remove
   configRoot         : function() { var p = e.configPath(); return p ? url.normalize('./', p); }, // TODO: remove
 };
@@ -36,3 +35,5 @@ predefined .. ownPropertyPairs .. each {|[key, val]|
     e.value(key, val);
   }
 }
+
+e.config = -> e.get('config', undefined);
