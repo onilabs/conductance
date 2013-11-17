@@ -241,19 +241,21 @@ module.exports = require(modules);
   ### From the [sjs:assert::] module:
    - **assert**: (module [sjs:assert::])
   ### From the [sjs:logging::] module:
+   - **logging**: (module [sjs:logging::])
    - **print**: (function [sjs:logging::print])
    - **debug**: (function [sjs:logging::debug])
    - **verbose**: (function [sjs:logging::verbose])
    - **info**: (function [sjs:logging::info])
    - **warn**: (function [sjs:logging::warn])
    - **error**: (function [sjs:logging::error])
-   - **logging**: (module [sjs:logging::])
   ### From the [sjs:events::] module:
    - **Emitter**: (class [sjs:events::Emitter])
    - **HostEmitter**: (class [sjs:events::HostEmitter])
    - **wait**: (function [sjs:events::wait])
    - **when**: (function [sjs:events::when])
   ### From the [sjs:sys::] module:
+   - **argv**: (function [sjs:sys::argv])
+   - **eval**: (function [sjs:sys::eval])
    - **sys**: (module [sjs:sys::])
   ### From the [sjs:http::] module:
    - **http**: (module [sjs:http::])
@@ -269,10 +271,6 @@ module.exports = require(modules);
    - **pump**: (function [sjs:nodejs/stream::pump])
    - **ReadableStringStream**: (class [sjs:nodejs/stream::ReadableStringStream])
    - **WritableStringStream**: (class [sjs:nodejs/stream::WritableStringStream])
-  ### From the [sjs:sys::] module:
-  *(when in the nodejs environment)*
-   - **argv**: (function [sjs:sys::argv])
-   - **eval**: (function [sjs:sys::eval])
   ### From the [nodejs:path](http://nodejs.org/api/path.html) module:
   *(when in the nodejs environment)*
    - **path**: (module [nodejs:path](http://nodejs.org/api/path.html))
@@ -308,10 +306,10 @@ module.exports = require(modules);
    - **loadTemplate**: (function [mho:surface::loadTemplate])
   ### From the [mho:server::] module:
   *(when in the nodejs environment)*
+   - **server**: (module [mho:server::])
    - **Host**: (class [mho:server::Host])
    - **Route**: (class [mho:server::Route])
    - **Port**: (class [mho:server::Port])
-   - **server**: (module [mho:server::])
   ### From the [mho:server/routes::] module:
   *(when in the nodejs environment)*
    - **routes**: (module [mho:server/routes::])
@@ -323,13 +321,11 @@ module.exports = require(modules);
    - **ServerError**: (function [mho:server/response::ServerError])
   ### From the [mho:server/generator::] module:
   *(when in the nodejs environment)*
-  ### From the [sjs:sys::] module:
-  *(when in the xbrowser environment)*
   ### From the [sjs:xbrowser/dom::] module:
   *(when in the xbrowser environment)*
-   - **dom**: (module [sjs:xbrowser/dom::])
    - **preventDefault**: (function [sjs:xbrowser/dom::preventDefault])
    - **stopEvent**: (function [sjs:xbrowser/dom::stopEvent])
    - **eventTarget**: (function [sjs:xbrowser/dom::eventTarget])
+   - **dom**: (module [sjs:xbrowser/dom::])
 
 */
