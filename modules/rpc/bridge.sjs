@@ -29,9 +29,9 @@
  *
  */
 /**
-   @module  server/rpc/bridge
-   @summary API bridge: High-level API remoting. Work in progress
-   @home    mho:server/rpc/bridge
+  @module  server/rpc/bridge
+  @summary API bridge: High-level API remoting
+  @home    mho:server/rpc/bridge
 */
 
 
@@ -67,7 +67,7 @@ var { keys, propertyPairs } = require('sjs:object');
   @function isTransportError
   @param {Error} [err]
   @return Boolean
-  @summary Returns whether `err` is a bridge connection error
+  @summary Returns whether `err` is a [::TransportError]
 */
 var { isTransportError, TransportError } = require('./error');
 exports.isTransportError = isTransportError;
@@ -76,8 +76,32 @@ exports.isTransportError = isTransportError;
 // marshalling
 
 /**
-   @function setMarshallingDescriptor
-   @summary XXX
+  @function setMarshallingDescriptor
+  @summary set the marshalling descriptor for a given object / prototype
+  @param {Object} [obj] object or prototype
+  @param {Function} [desc] marshalling descriptor
+  @desc
+
+    Typically `obj` will be an object prototype, so that all objects
+    inheriting from it will be serialized consistently. But
+    `setMarshallingDescriptor` can also be used on individual objects.
+
+    If called on an object prototype, all objects inherited from that
+    prototype will use this marshalling descriptor.
+
+    `descr` must be an object with the following properties:
+
+     - wrapLocal: A method accepting a single `localObject` argument,
+       and returning a serializable object. This return value can
+       be any serializable object, including nested properties,
+       functions and any other types that are supported by bridge.
+
+     - wrapRemote: An array of `[modulename, functionName]`. After
+       the serialized object is sent over the bridge, the named function
+       will be called (on the receiver) with this sertialized object
+       as an argument. This function should return some object that
+       will act as a proxy for the original remote object.
+
 */
 function setMarshallingDescriptor(obj, descr) {
   obj.__oni_marshalling_descriptor = descr;
@@ -269,7 +293,52 @@ function unmarshallFunction(obj, connection) {
 //----------------------------------------------------------------------
 
 /**
-   @class BridgeConnection
+  @class BridgeConnection
+  @summary A connection to a remote conductance API
+  @desc
+    The bridge connection handles all serializing and deserializing of
+    data types and function calls across an RPC transport.
+
+    `BridgeConnection` instances cannot be constructed directly, see [::connect].
+
+    Depeding on the `disconnectHandler` function supplied, a `BridgeConnection`
+    object may be able to reconnect and recover from small network outages.
+
+    If this happens, calls made and values returned during the outage will be
+    sent once connectivity is restored. If connectivity cannot be restored,
+    [::BridgeConnection.sessionLost] wil be emitted, and any outstanding or
+    new RPC calls made on the bridge will rase a [::TransportError].
+
+  @variable BridgeConnection.status
+  @type observable:Observable::
+  @summary The current connection status
+  @desc
+    `status` is an [observable::Observable] object with the following properties:
+
+      - connected (boolean): Whether the connection is active
+      - connecting (boolean): Whether this connection is currently
+        attempting to reconnect
+
+    The disconnect handler may additionally set properties on this object, for
+    example an [::AutoReconnect] handler will set the `nextAttempt`
+    property.
+
+    **Note:** If `opts.status` is not `true`, this property will not be set or updated.
+
+  @variable BridgeConnection.disconnected
+  @type sjs:events::Emitter
+  @summary Disconnect event
+
+  @variable BridgeConnection.reconnected
+  @type sjs:events::Emitter
+  @summary Successful reconnect event
+
+  @variable BridgeConnection.sessionLost
+  @type sjs:events::Emitter
+  @summary Reconnection failed
+
+  @function BridgeConnection.__finally__
+  @summary Terminate connection
 */
 function BridgeConnection(transport, opts) {
   var pending_calls  = {}; // calls in progress, made to the other side
@@ -553,7 +622,7 @@ function BridgeConnection(transport, opts) {
 
 /**
    @function connect
-   @summary To be documented
+   @summary Connect to a remote API
    @param {String} [api_name] API id
    @param {Settings} [settings]
    @param {optional Function} [block]
@@ -588,11 +657,10 @@ exports.connect = function(api_name, opts, block) {
 }
 
 /**
-   @function accept
-   @summary To be documented
-   @param {Function} [getAPI]
-   @param {Transport} [transport]
-   @return {::BridgeConnection}
+  @function accept
+  @param {Function} [getAPI]
+  @param {Transport} [transport]
+  @return {::BridgeConnection}
 */
 exports.accept = function(getAPI, transport) {
   var connection = BridgeConnection(transport, {publish: {getAPI:getAPI}, throwing:false});
@@ -601,6 +669,7 @@ exports.accept = function(getAPI, transport) {
 
 /**
   @function AutoReconnect
+  @summary Create a custom disconnect handler for a bridge connection
   @param {Settings} [opts]
   @setting {Number} [initialDelay=1] Initial delay time (in seconds)
   @setting {Number} [backoff=1.5] Amount to multiply the delay by between successive failed connection attempts.
@@ -617,9 +686,10 @@ exports.accept = function(getAPI, transport) {
 
     After `timeout` seconds have passed, the handler will give up.
 
-    If the connection has a status observable, it will be updated with
+    If the connection has a [::BridgeConnection.status], it will be updated with
     the `nextAttempt` property set to the Date object when the next
-    connection attempt will be made.
+    connection attempt will be made. This property will be deleted
+    when no further attempts are planned.
 */
 
 exports.AutoReconnect = function(opts) {
