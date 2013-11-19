@@ -1,4 +1,4 @@
 *~
-.redo/
 *.stamp
 .DS_Store
+.gup/

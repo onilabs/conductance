@@ -1,0 +1,5 @@
+update-directory:
+	modules
+	node_modules
+	test
+	tools/install

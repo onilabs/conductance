@@ -1,3 +1,2 @@
-share/boot.js
-.redo/
-.do_built*
+/dist/
+/tmp/

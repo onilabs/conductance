@@ -1,0 +1,6 @@
+make-archive.sjs:
+	dist/*.zip
+	dist/*.tar.gz
+
+tmp/make-tree.sjs:
+	tmp/*

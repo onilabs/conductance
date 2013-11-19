@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eu
+gup -u docs-changed
+sjs sjs:compile/doc .

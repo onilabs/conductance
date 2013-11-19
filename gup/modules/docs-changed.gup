@@ -1,0 +1,8 @@
+#!/bin/bash
+set -eu
+gup --always
+(
+	files="$(find . -type f -name '*.sjs' -o -name 'sjs-lib-index.txt')"
+	echo $files
+	echo "$files" | tr '\n' '\0' | xargs -0 grep '^[ *]*@'
+) | gup --contents

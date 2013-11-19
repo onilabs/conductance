@@ -45,7 +45,7 @@ hosts.systems .. each {|system|
 		var exportProxy = 'export CONDUCTANCE_FORCE_HTTP=1 http_proxy='+host.proxy+'; ';
 
 		test.beforeAll {||
-			childProcess.run('redo-ifchange', [conductanceHead, bundle], {'stdio':'inherit'});
+			childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
 
 			if (!proxyStrata) {
 				proxyStrata = cutil.breaking {|brk|

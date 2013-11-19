@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eu
+gup --always
+find unit integration -name '*-tests.sjs' > "$1"
+

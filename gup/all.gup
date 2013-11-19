@@ -1,0 +1,5 @@
+#!bash
+gup -u \
+	node_modules \
+	modules \
+	test

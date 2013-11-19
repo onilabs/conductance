@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eu
+gup --always
+git rev-parse HEAD | tee "$1" | gup --contents

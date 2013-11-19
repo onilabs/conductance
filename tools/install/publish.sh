@@ -3,7 +3,7 @@ set -eu
 cd "$(dirname "$0")"
 [ "$#" = 1 ] || (echo "Usage: publish.sh DEST"; exit 1)
 dest="$1"
-redo all
+../gup all
 . ./env.do.sh
 set -x
 cp -v --dereference $platform_bundles manifest*.json install.sh "$dest/"
