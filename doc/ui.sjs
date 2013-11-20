@@ -258,6 +258,8 @@ exports.renderer = function(libraries, rootSymbol) {
 
 		logging.debug("resolved to #{url}");
 		if (!url) return null;
+		// escape markdown characters that might be present in a symbol name
+		desc = desc.replace(/([_\*#])/g, '\\$1');
 		return [url, desc];
 	}
 

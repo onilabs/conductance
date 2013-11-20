@@ -104,6 +104,13 @@ function createDirectoryMapper(settings) {
    @returns {../server::Route}
    @summary Creates a [../server::Route] that serves executable, code and static files from the local filesystem
    @desc
+
+      It is hopefully obvious from the name, but you should **only** ever use
+      this route type for *trusted content* that you control. Serving any user-generated files
+      using this route can trivially lead to users executing arbitrary SJS code
+      on your server. You should instead server user-generated files using the
+      [::StaticDirectory] route type.
+
       - Serves the given directory with [./formats::StaticFormatMap] as well as the [./format::Code] and [./formats::Executable] extensions.
 
       - `path` can be a regexp or a string, as described in

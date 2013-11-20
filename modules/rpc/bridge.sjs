@@ -32,6 +32,44 @@
   @module  server/rpc/bridge
   @summary API bridge: High-level API remoting
   @home    mho:server/rpc/bridge
+  @desc
+    The RPC bridge is used for bidirectional communication between client
+    and server. It can serialize (send / receive) the following types:
+
+    Primitive types
+
+     - String
+     - Number
+     - Null
+     - Date
+
+    Complex types:
+
+     - Array (containing serializable types)
+     - Object
+       - only "own" properties are serialized (no inherited properties)
+       - the prototype chain is *not* preserved
+     - Function
+     - Error
+     - [sjs:sequence::Stream]
+     - All [../observable::] types
+     - [::API]
+
+    ### Wrapped functions
+
+    Functions wrapped by the bridge are wrapped into function proxies on the receiving end.
+    When invoked, all arguments are serialized and sent over the bridge to the
+    original function. After executing the function (where it was originally defined),
+    the return value is sent across the bridge and returned to the caller as if it
+    were a regular (suspending) function call.
+    
+    This means that all argument and return values for functions exposed over a
+    bridge must themselves be serializable.
+
+    ### Custom types:
+
+    For custom object types where the default `Object` serialization does
+    not suffice, you can implement custom serialization using [::setMarshallingDescriptor].
 */
 
 
@@ -70,6 +108,11 @@ var { keys, propertyPairs } = require('sjs:object');
   @summary Returns whether `err` is a [::TransportError]
 */
 var { isTransportError, TransportError } = require('./error');
+
+/**
+  @class TransportError
+  @summary The error type raised by connection errors in a [::BridgeConnection]
+*/
 exports.isTransportError = isTransportError;
 
 //----------------------------------------------------------------------
@@ -115,6 +158,7 @@ exports.setMarshallingDescriptor = setMarshallingDescriptor;
    @param {Object} [obj] 
    @return {Object} 
 */
+
 var api_counter = 1;
 function API(obj, isBaseAPI) {
   return { __oni_type: 'api', 
@@ -299,7 +343,8 @@ function unmarshallFunction(obj, connection) {
     The bridge connection handles all serializing and deserializing of
     data types and function calls across an RPC transport.
 
-    `BridgeConnection` instances cannot be constructed directly, see [::connect].
+    `BridgeConnection` instances cannot be constructed directly, see [::connect] or
+    [#features/api-modules].
 
     Depeding on the `disconnectHandler` function supplied, a `BridgeConnection`
     object may be able to reconnect and recover from small network outages.
@@ -325,6 +370,10 @@ function unmarshallFunction(obj, connection) {
 
     **Note:** If `opts.status` is not `true`, this property will not be set or updated.
 
+  @function BridgeConnection.reconnect
+  @summary Attempt to reconnect
+  @return {Boolean} whether the attempt succeeded
+
   @variable BridgeConnection.disconnected
   @type sjs:events::Emitter
   @summary Disconnect event
@@ -338,7 +387,7 @@ function unmarshallFunction(obj, connection) {
   @summary Reconnection failed
 
   @function BridgeConnection.__finally__
-  @summary Terminate connection
+  @summary Terminate and clean up this connection
 */
 function BridgeConnection(transport, opts) {
   var pending_calls  = {}; // calls in progress, made to the other side
@@ -621,16 +670,56 @@ function BridgeConnection(transport, opts) {
 }
 
 /**
-   @function connect
-   @summary Connect to a remote API
-   @param {String} [api_name] API id
-   @param {Settings} [settings]
-   @param {optional Function} [block]
-   @setting {String} [server] Server address
-   @setting {Transport} [transport] An existing transport to use
-   @setting {Function} [disconnectHandler] Disconnect handler, e.g produced by [::AutoReconnect]
-   @setting {Boolean} [status] Maintain an observable `connection.status` property
-   @return {::BridgeConnection} if block is not given
+  @function connect
+  @summary Connect to a remote API
+  @param {String} [api_name] API id
+  @param {Settings} [settings]
+  @param {optional Function} [block]
+  @setting {String} [server] Server address
+  @setting {Transport} [transport] An existing transport to use
+  @setting {Function} [disconnectHandler] Disconnect handler, e.g produced by [::AutoReconnect]
+  @setting {Boolean} [status] Maintain an observable `connection.status` property
+  @return {::BridgeConnection} if block is not given
+  @desc
+    If `block` is given, it will be called with a single [::BridgeConnection]
+    argument. This block will be retracted automatically when the connection
+    throws an exception (e.g the connection is disconnected and cannot reconnect).
+
+    When the block finishes execution (either normally or via an exception), the
+    connection object will be closed automatically.
+
+    It is recommended to pass a `block` argument, rather than relying on
+    `connect` to return the connection, since using a return value means that
+    you will need to monitor the connection's [::BridgeConnection.sessionLost]
+    event yourself and:
+
+     - close the connection (using [::BridgeConnection::__finally__] or a
+       [sjs:#language/syntax::using] block)
+     - abort any code that relies upon the (now dead) connection.
+
+    ### disconnectHandler
+
+    The disconnectHandler option is an optional function which will be invoked
+    when the connection to the server encounters an error (e.g the client or
+    server goes offline).
+
+    When a connection error occurs, `disconnectHandler` will be called with
+    the following arguments:
+
+     - connection (the [::BridgeConnection])
+     - error (the error that caused the disconnection)
+     - status (the [::BridgeConnection.status] object)
+
+    This function typically makes multiple attempts to call
+    `connection.reconnect()`, waiting some time between attempts.
+    Once `connection.reconnect()` succeeds, this function should return.
+
+    To "give up", this function can simply return without successfully
+    reconenecting.
+
+    Disconnect handlers produced by [::AutoReconnect] attempt to
+    reconnect with progressively longer pauses between attempts, and
+    a configurable time after which they will give up entirely.
 */
 exports.connect = function(api_name, opts, block) {
   var transport = opts.transport;
