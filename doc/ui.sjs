@@ -398,6 +398,7 @@ exports.renderer = function(libraries, rootSymbol) {
 				children['lib'] .. then(HeaderTable("Sections")),
 				children['module'] .. then(HeaderTable("Sub-Topics")),
 				children['syntax']   .. then(HeaderTable("Syntax")),
+				children['feature']   .. then(HeaderTable("Features")),
 				children['function'] .. then(HeaderTable("Functions")),
 				children['variable'] .. then(HeaderTable("Variables")),
 				children['class']    .. then(HeaderTable("Classes")),
