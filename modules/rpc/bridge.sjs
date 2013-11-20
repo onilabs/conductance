@@ -153,6 +153,15 @@ function setMarshallingDescriptor(obj, descr) {
 exports.setMarshallingDescriptor = setMarshallingDescriptor;
 
 /**
+   @class API
+   @summary Remotable
+   @desc
+    The API class is a (transparent) wrapper around a module's exports,
+    for the purpose of remoting.
+
+    It is used internally by conductance to provide remote API
+    access (see [#features/api-module::]).
+
    @function API
    @summary Wrap an object into a remotable API
    @param {Object} [obj] 

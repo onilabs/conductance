@@ -194,7 +194,7 @@ exports.connect = function(opts, block) {
   opts = object.clone(opts);
 
   if (!opts.server) opts.server = serverURL;
-  if (!opts.disconnectHandler) opts.disconnectHandler = bridge.AutoReconnect();
+  if (!opts .. object.has('disconnectHandler')) opts.disconnectHandler = bridge.AutoReconnect();
   var apiinfo = http.json([moduleURL, {format:'json'}]);
   if (apiinfo.error) throw new Error(apiinfo.error);
   var rv;

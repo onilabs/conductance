@@ -37,7 +37,7 @@
   `require('./module.api')` will not return the API module directly, but will
   instead return a stub module with a single `connect` method.
 
-  Since connections to remote servers can drop out, this allows you to
+  Since connections to remote servers can fail, this allows you to
   explicitly request a new connection, and it allows the `connect` method
   to retract the block passed to it if the connection fails.
 
