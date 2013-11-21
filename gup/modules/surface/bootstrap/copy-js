@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eu
+src=../../../src/deps/bootstrap/dist/js/"$2"
+gup -u "$src"
+cp "$src" "$1"

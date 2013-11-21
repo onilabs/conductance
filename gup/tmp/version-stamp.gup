@@ -1,0 +1,49 @@
+#!/usr/bin/env sjs
+// vim: syntax=sjs:
+
+@ = require("sjs:std");
+@run = (cmd, args) -> @childProcess.run(cmd, args, {stdio:'inherit'});
+
+var [ stamp, _ ] = @argv();
+
+var configFile = '../src/config.json';
+@run('gup', ['-u', configFile]);
+var config = require('sjs:docutil').parseCommentedJSON(@fs.readFile(configFile));
+
+function replacements_from_config(target) {
+  var src = @fs.readFile(target).toString();
+  var repl = src.replace(/Version: '[^']*'/g, "Version: '"+config.version+"'")
+                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm.version+'"')
+                .replace(/"private"\s*:\s*[^,]*/, '"private" : '+config.npm['private']+'')
+                .replace(/Conductance '[^']*' Standard Module Library/g,
+                          "Conductance '"+config.version+"' Standard Module Library");
+
+  if (repl != src) {
+    console.warn("Updating #{target}");
+    @fs.writeFile(target, repl);
+  }
+}
+
+function walkdir(path, cb) {
+  var files = @fs.readdir(path);
+  files .. @each {
+    |f|
+    if (@fs.isDirectory(path+"/"+f))
+      walkdir(path+"/"+f, cb);
+    else
+      cb(path+"/"+f);
+  };
+}
+
+walkdir("../modules", function(m) {
+  if (
+    @path.basename(m) != 'sjs-lib-index.json' &&
+    /.+\.(sjs|txt|json|mho)$/.test(m)
+  ) {
+    replacements_from_config(m);
+  }
+});
+
+replacements_from_config("../package.json");
+
+@fs.writeFile(stamp, config.version);

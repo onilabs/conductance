@@ -2,7 +2,7 @@
  * 'rpc/bridge' module
  * API bridge
  *
- * Version: 'unstable'
+ * Version: '0.1.0-1-development'
  * http://onilabs.com
  *
  * (c) 2012-2013 Oni Labs, http://onilabs.com

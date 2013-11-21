@@ -1,5 +1,0 @@
-#!/bin/bash
-
-BUILDSCRIPT=`dirname $0`/buildscript.sjs
-SJS_HOME=`dirname $0`/../../node_modules/stratifiedjs
-$SJS_HOME/sjs $BUILDSCRIPT "$@"

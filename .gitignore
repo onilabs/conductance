@@ -2,3 +2,4 @@
 *.stamp
 .DS_Store
 .gup/
+/tmp/

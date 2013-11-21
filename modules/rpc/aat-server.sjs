@@ -2,7 +2,7 @@
  * 'rpc/aat-server' module
  * Asymmetric AJAX Transport Server
  *
- * Version: 'unstable'
+ * Version: '0.1.0-1-development'
  * http://onilabs.com
  *
  * (c) 2012 Oni Labs, http://onilabs.com

@@ -1,5 +1,6 @@
 #!bash
 gup -u \
-	node_modules \
-	modules \
-	test
+	node_modules/all \
+	modules/all \
+	test/all \
+	tmp/version-stamp
