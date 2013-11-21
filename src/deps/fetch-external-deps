@@ -4,9 +4,10 @@ var dirname = require('path').dirname;
 var fs      = require('sjs:nodejs/fs');
 var exec    = require('sjs:nodejs/child-process').exec;
 var read    = require('sjs:nodejs/stream').read;
+var argv    = require('sjs:sys').argv;
 
 // make sure we're in the right directory
-process.chdir(dirname(process.argv[0]));
+process.chdir(dirname(argv()[0]));
 
 var sources = getSources();
 for (var i=0; i<sources.length; ++i) {
