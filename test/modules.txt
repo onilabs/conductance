@@ -1,6 +1,7 @@
 unit/server/routes-tests.sjs
 unit/observable-tests.sjs
 unit/surface/dynamic-tests.sjs
+integration/documentation-tests.sjs
 integration/bridge-tests.sjs
 integration/fs-tests.sjs
 integration/injection-tests.sjs

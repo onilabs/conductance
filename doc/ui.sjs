@@ -12,6 +12,7 @@ var Marked = require('sjs:marked');
 var {merge, ownValues, ownPropertyPairs, getPath} = require('sjs:object');
 var { SymbolMissing, LibraryMissing } = require('./library');
 var { encodeNonSlashes, encodeFragment } = require('./url-util');
+var Symbol = require('./symbol');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
@@ -75,9 +76,9 @@ exports.renderer = function(libraries, rootSymbol) {
 		logging.debug("Rendering: ", text);
 		if (symbol) {
 			// try to linkify everything that looks like a doc reference
-			text = text.replace(/\[([^ \]]+)\](?![\[\(])/g, function(orig, dest) {
-				var resolved = resolveLink(dest, symbol);
-				if (!resolved) return orig;
+			text = text .. Symbol.replaceInternalMarkdownLinks(function(dest) {
+				var resolved = symbol.resolveLink(dest);
+				if (!resolved) return;
 				var [link, dest] = resolved;
 				return "[#{dest}](##{encodeFragment(link)})";
 			});
@@ -107,15 +108,14 @@ exports.renderer = function(libraries, rootSymbol) {
 
 
 		if (docs.alias) {
-			var dest = resolveLink(docs.alias, symbol);
+			var dest = symbol.resolveLink(docs.alias);
 			var destDesc = docs.alias .. strip(':');
 			var destDocs, destSymbol;
 			var destLink = `<code>${destDesc}</code>`;
 			if (dest) {
 				var url = dest[0];
-				var Symbol = require('./symbol.sjs');
 				try {
-					destSymbol = Symbol.resolveLink(url, libraries);
+					destSymbol = Symbol.resolveSymbol(url, libraries);
 					destLink = FragmentLink(url, destDesc);
 					//destDocs = destSymbol.docs();
 				} catch(e) {
@@ -219,56 +219,12 @@ exports.renderer = function(libraries, rootSymbol) {
 		return rv;
 	};
 
-	function resolveLink(dest, symbol) {
-		if (dest.indexOf("::") == -1) return null; // ids we care about contain '::'
-		logging.info("resolving link: #{dest}");
-		var Symbol = require('./symbol.sjs');
-
-		dest = dest .. string.rstrip(':');
-		var url, desc = dest.replace(/^[\/\.:]+/g, '');
-
-		var leadingComponent = dest.split("::", 1)[0];
-		if (leadingComponent == "") {
-			// absolute link within our module (eg "::Semaphore::acquire", or "::foo")
-			[url] = symbol.moduleLink();
-			logging.debug("absolute link within module #{url}");
-			url += symbol.isDirectory ? dest.slice(2) : dest;
-		}
-		else if (leadingComponent .. string.startsWith(".")) {
-			// relative link
-			var base = symbol.basePath();
-			logging.debug("relativizing #{dest} against #{base}");
-			var match;
-			while(match = /^(\.{1,2})\//.exec(dest)) {
-				var dots = match[1];
-				dest = dest.slice(dots.length + 1);
-				if (dots.length === 2) base.pop();
-			}
-			url = (base .. join('')) + dest;
-		}
-		else if (leadingComponent .. string.contains(":")) {
-			// leadingComponent has hub / protocol: treat it as an absolute link
-			var dest = Symbol.resolveLink(dest, libraries);
-			if (!dest.link) return null;
-			[url, desc] = dest.link();
-		} else {
-			logging.info("Assuming library-relative link for #{dest}");
-			url = symbol.library.name + dest;
-		}
-
-		logging.debug("resolved to #{url}");
-		if (!url) return null;
-		// escape markdown characters that might be present in a symbol name
-		desc = desc.replace(/([_\*#])/g, '\\$1');
-		return [url, desc];
-	}
-
 	function makeTypeHTML(types, symbol) {
 		if (!types) return [];
 		types = types.split("|");
 		var rv = [];
 		types = types .. transform(function(type) {
-			var resolved = resolveLink(type.replace('optional ',''), symbol);
+			var resolved = symbol.resolveLink(type.replace('optional ',''));
 			if (resolved) {
 				var [url, desc] = resolved;
 				type = `${type.indexOf('optional') != -1 ? "optional "}${FragmentLink(url, desc)}`;

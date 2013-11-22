@@ -17,7 +17,7 @@
   access to all exported symbols in the `.api` module.
 
   Note that functions in an `.api` module are *always* executed on the server.
-  Calls made from clients make use of the [rpc:bridge::] to wrap
+  Calls made from clients make use of the [rpc/bridge::] to wrap
   api modules as locally callable, but the actual code execution happens on
   the server.
   
@@ -64,7 +64,7 @@
 
   To provide users with feedback about intermittent connection errors (which
   will delay API calls), it is recommended to pass `true` for `opts.status`, and to
-  use the connection's [rpc/bridge::BridgeConnection.status]
+  use the connection's [rpc/bridge::BridgeConnection::status]
   property to display UI notification the user when the connection is
   temporarily unavailable.
 

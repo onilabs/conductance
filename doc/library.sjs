@@ -9,7 +9,7 @@ var logging = require('sjs:logging');
 
 var assert = require('sjs:assert');
 
-var CollectionProto = {};
+var CollectionProto = exports.CollectionProto = {};
 
 CollectionProto._init = function() {
 	this.val = ObservableArray([]);
@@ -21,13 +21,13 @@ CollectionProto._computeLibraries = function(hubs) {
 	logging.debug(`hub change: ${hubs}`);
 	hubs .. each {|hub|
 		var [name, url] = hub;
-		var cached = this._cacheUrl(url);
+		var cached = this._cacheUrl(url, name);
 		cached.name = name;
 	}
 	return this._libraryCache;
 };
 
-CollectionProto._cacheUrl = function(url) {
+CollectionProto._cacheUrl = function(url, name) {
 	if (! this._libraryCache .. hasOwn(url)) {
 		this._libraryCache[url] = new Library(url, name);
 	}
@@ -81,7 +81,7 @@ CollectionProto.add = function(name, url) {
 	if (this.val.get() .. find([n, u] -> u === url || n === name)) {
 		throw new Error("Library already added");
 	}
-	this._cacheUrl(url);
+	this._cacheUrl(url, name);
 	this.val.push([name,url]);
 };
 
@@ -92,6 +92,10 @@ CollectionProto.remove = function(name) {
 	var found = current .. find([n,url] -> n == name);
 	current .. remove(found) .. assert.ok("Item not found: #{name}");
 	this.val.set(current);
+};
+
+CollectionProto.toString = function() {
+	return "[object Collection]";
 };
 
 exports.Collection = function() {

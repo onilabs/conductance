@@ -3,14 +3,29 @@ var {each, join, at, toArray, map, sortBy, hasElem} = seq;
 var assert = require('sjs:assert');
 var Library = require('./library');
 var logging = require('sjs:logging');
-var { endsWith } = require('sjs:string');
+var { startsWith, endsWith, rstrip, contains } = require('sjs:string');
 var {ownValues, pairsToObject, ownPropertyPairs} = require('sjs:object');
+var { inspect } = require('sjs:debug')
 
-var ui = require('./ui');
+// parameterized to prevent (recursive) dependency on `ui`
+// Gets set to ui.LOADING.block by index.sjs once both
+// modules are loaded
+var loadingIndicator = (block) -> block();
+exports.setLoadingIndicator = f -> loadingIndicator = f;
+
+var INTERNAL_LINK_RE = /\[([^ \]]+)\](?![\[\(])/g;
+exports.replaceInternalMarkdownLinks = function(text, replacer) {
+	return text.replace(INTERNAL_LINK_RE, function(orig, dest) {
+		var resolved = replacer(dest);
+		if (!resolved) return orig;
+		return resolved;
+	});
+};
 
 var Symbol = exports.Symbol = function(libraries, library, relativeModulePath, symbolPath) {
 	this.libraries = libraries;
 	this.library = library;
+	if (!library) throw new Library.SymbolMissing();
 	this.className = symbolPath.length == 2 ? symbolPath[0];
 	this.relativeModulePath = relativeModulePath;
 	this.fullModulePath = [this.library.name].concat(this.relativeModulePath);
@@ -26,14 +41,14 @@ Symbol.prototype._new = function(relativeModulePath, symbolPath) {
 };
 
 Symbol.prototype.docs = function() {
-	ui.LOADING.block { ||
+	loadingIndicator { ||
 		return this.library.loadDocs(this.relativeModulePath, this.symbolPath)
 	}
 };
 
 Symbol.prototype.skeletonDocs = function() {
 	// like docs(), but can be satisfied from index (if present)
-	ui.LOADING.block { ||
+	loadingIndicator { ||
 		return this.library.loadIndexFor(this.relativeModulePath.concat(this.symbolPath))
 		    || this.library.loadDocs(this.relativeModulePath, this.symbolPath);
 	}
@@ -75,9 +90,17 @@ Symbol.prototype.childLink = function(name, info) {
 	return [href + name, name];
 }
 
-Symbol.prototype.child = function(name) {
-	// TODO: do we ever need this for sub-modules?
-	return this._new(this.relativeModulePath, this.symbolPath.concat([name]));
+Symbol.prototype.child = function(name, type) {
+	var mod = this.relativeModulePath;
+	var sym = this.symbolPath;
+	switch(type) {
+		case 'lib':
+		case 'module':
+		case 'moduledocs':
+			return this._new(mod.concat([name]), sym);
+		default:
+			return this._new(mod, sym.concat([name]));
+	}
 }
 
 Symbol.prototype.parentLinks = function() {
@@ -95,7 +118,50 @@ Symbol.prototype.parentLinks = function() {
 	return rv;
 };
 
-Symbol.prototype.toString = -> require('sjs:debug').inspect([this.fullModulePath, this.symbolPath]);
+Symbol.prototype.resolveLink = function(dest) {
+	if (dest.indexOf("::") == -1) return null; // ids we care about contain '::'
+	logging.debug("resolving link: #{dest}");
+
+	dest = dest .. rstrip(':');
+	var url, desc = dest.replace(/^[\/\.:]+/g, '');
+
+	var leadingComponent = dest.split("::", 1)[0];
+	if (leadingComponent == "") {
+		// absolute link within our module (eg "::Semaphore::acquire", or "::foo")
+		[url] = this.moduleLink();
+		logging.debug("absolute link within module #{url}");
+		url += this.isDirectory ? dest.slice(2) : dest;
+	}
+	else if (leadingComponent .. startsWith(".")) {
+		// relative link
+		var base = this.basePath();
+		logging.debug("relativizing #{dest} against #{base}");
+		var match;
+		while(match = /^(\.{1,2})\//.exec(dest)) {
+			var dots = match[1];
+			dest = dest.slice(dots.length + 1);
+			if (dots.length === 2) base.pop();
+		}
+		url = (base .. join('')) + dest;
+	}
+	else if (leadingComponent .. contains(":")) {
+		// leadingComponent has hub / protocol: treat it as an absolute link
+		var dest = resolveSymbol(this.libraries, dest);
+		if (!dest.link) return null;
+		[url, desc] = dest.link();
+	} else {
+		logging.debug("Assuming library-relative link for #{dest}");
+		url = this.library.name + dest;
+	}
+
+	logging.debug("resolved to #{url}");
+	if (!url) return null;
+	// escape markdown characters that might be present in a symbol name
+	desc = desc.replace(/([_\*#])/g, '\\$1');
+	return [url, desc];
+}
+
+Symbol.prototype.toString = -> "<#Symbol(#{inspect(this.path)}>";
 
 var UnresolvedSymbol = exports.UnresolvedSymbol = function(moduleUrl, symbolPath) {
 	this.moduleUrl = moduleUrl;
@@ -105,6 +171,7 @@ var UnresolvedSymbol = exports.UnresolvedSymbol = function(moduleUrl, symbolPath
 UnresolvedSymbol.prototype.toString = -> "Symbol #{this.symbolPath .. join("::")} of missing module #{this.moduleUrl}";
 UnresolvedSymbol.prototype.parent = function() { throw new Library.SymbolMissing(); };
 UnresolvedSymbol.prototype.docs = function() { throw new Library.SymbolMissing(); };
+UnresolvedSymbol.prototype.resolveLink = function() { throw new Library.SymbolMissing(); };
 UnresolvedSymbol.prototype.parentLinks = -> [];
 
 var RootSymbol = exports.RootSymbol = function(libraries) {
@@ -112,6 +179,7 @@ var RootSymbol = exports.RootSymbol = function(libraries) {
 };
 
 RootSymbol.prototype.relativeModulePath = [];
+RootSymbol.prototype.path = [];
 RootSymbol.prototype.name = "index";
 RootSymbol.prototype.parent = -> null;
 RootSymbol.prototype.docs = function() {
@@ -130,9 +198,24 @@ RootSymbol.prototype.skeletonDocs = function() {
 	}
 };
 RootSymbol.prototype.childLink = (name) -> [name, name];
+RootSymbol.prototype.child = function(name, type) {
+	return new Symbol(
+		this.libraries,
+		this.libraries.get(name),
+		[], []);
+};
+
+RootSymbol.prototype.resolveLink = function(dest) {
+	return _resolveLink(this.libraries, dest);
+};
+
+RootSymbol.prototype.toString = function() {
+	return '[object RootSymbol]';
+};
 
 
-exports.resolveLink = function(link, libraries) {
+var resolveSymbol = exports.resolveSymbol = function(libraries, link) {
+	assert.ok(Library.CollectionProto.isPrototypeOf(libraries), "not a library collection");
 	if (!link) {
 		return new RootSymbol(libraries);
 	}
@@ -150,3 +233,4 @@ exports.resolveLink = function(link, libraries) {
 
 	return new Symbol(libraries, library, relativeModulePath, symbolPath);
 };
+

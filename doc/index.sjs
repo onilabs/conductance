@@ -29,15 +29,15 @@ var assert = require('sjs:assert');
 } and {
 var ui = require('./ui');
 } and {
-var Library = require('./library');
-} and {
 var Symbol = require('./symbol');
+} and {
+var Library = require('./library');
 } and {
 var { encodeFragment } = require('./url-util');
 }
 
 logging.setLevel(logging.DEBUG);
-
+Symbol.setLoadingIndicator(ui.LOADING.block);
 
 var mainStyle   = RequireStyle(Url.normalize('css/main.css', module.id))
 var docsStyle   = RequireStyle(Url.normalize('css/docs.css', module.id))
@@ -52,7 +52,7 @@ exports.run = function(root) {
 	var currentSymbol = Computed(locationHash, libraries.val, function(h) {
 		logging.debug("Location hash: #{h}");
 		if (h === undefined) return undefined; // undefined: "not yet loaded"
-		return Symbol.resolveLink(h, libraries);
+		return Symbol.resolveSymbol(libraries, h);
 	});
 
 	var renderer = ui.renderer(libraries, new Symbol.RootSymbol(libraries));
