@@ -359,7 +359,7 @@ function unmarshallFunction(obj, connection) {
 
     If this happens, calls made and values returned during the outage will be
     sent once connectivity is restored. If connectivity cannot be restored,
-    [::BridgeConnection.sessionLost] wil be emitted, and any outstanding or
+    [::BridgeConnection::sessionLost] wil be emitted, and any outstanding or
     new RPC calls made on the bridge will rase a [::TransportError].
 
   @variable BridgeConnection.status
@@ -698,7 +698,7 @@ function BridgeConnection(transport, opts) {
 
     It is recommended to pass a `block` argument, rather than relying on
     `connect` to return the connection, since using a return value means that
-    you will need to monitor the connection's [::BridgeConnection.sessionLost]
+    you will need to monitor the connection's [::BridgeConnection::sessionLost]
     event yourself and:
 
      - close the connection (using [::BridgeConnection::__finally__] or a
@@ -716,7 +716,7 @@ function BridgeConnection(transport, opts) {
 
      - connection (the [::BridgeConnection])
      - error (the error that caused the disconnection)
-     - status (the [::BridgeConnection.status] object)
+     - status (the [::BridgeConnection::status] object)
 
     This function typically makes multiple attempts to call
     `connection.reconnect()`, waiting some time between attempts.
@@ -773,8 +773,8 @@ exports.accept = function(getAPI, transport) {
   @setting {Number} [timeout=30] Time (in seconds) after which to give up. Pass `null` for inifinite retry.
   @return {Function}
   @desc
-    The returned disconnect handler is apropriate for passing to
-    [::BridgeConnection::handleDisconnect].
+    The returned disconnect handler is intended to be used for a
+    [::BridgeConnection]'s `disconnectHandler` setting.
 
     The function will wait for `initialDelay` seconds before
     attempting to reconnect. After each failed reconnect attempt,
@@ -783,7 +783,7 @@ exports.accept = function(getAPI, transport) {
 
     After `timeout` seconds have passed, the handler will give up.
 
-    If the connection has a [::BridgeConnection.status], it will be updated with
+    If the connection has a [::BridgeConnection::status], it will be updated with
     the `nextAttempt` property set to the Date object when the next
     connection attempt will be made. This property will be deleted
     when no further attempts are planned.

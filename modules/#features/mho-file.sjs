@@ -30,8 +30,8 @@
 @variable exports.systemd
 @summary sytemd configuration for your application
 @desc
-  `exports.systemd` may be a [mho:systemd::Group] object, or a function which (when
-  invoked with no arguments) returns a [mho:systemd::Group] object.
+  `exports.systemd` may be a [server/systemd::Group] object, or a function which (when
+  invoked with no arguments) returns a [server/systemd::Group] object.
 
   The various subcommands of `conductance systemd` will use this object
   to determine the systemd name of your application its the units, etc.

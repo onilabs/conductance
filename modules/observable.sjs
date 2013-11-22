@@ -549,12 +549,12 @@ exports.Computed.Cached = CachedComputed;
   @param {::Observable} [input ...]
   @param {Function} [observer]
   @desc
-    This function acts like [::Observable>>observe], but calls `observer`
+    This function acts like [::ObservableBase::observe], but calls `observer`
     whenever any of the inputs changes.
 
     The arguments passed to `observer` are the current values of each `input`,
     followed by a final `change` argument (as in the second argument to a
-    regular [::Observable::observe] call).
+    regular [::ObservableBase::observe] call).
 */
 exports.observe = function(/* var1, ... , f */) {
   // TODO: this could be done without creating a dummy Computed value
