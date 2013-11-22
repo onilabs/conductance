@@ -31,7 +31,6 @@
 /**
    @module  server/rpc/aat-client
    @summary Asymmetric AJAX Transport Client v2 for modern browsers
-   @home    mho:server/rpc/aat-client
    @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
 */
 

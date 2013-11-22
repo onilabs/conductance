@@ -31,7 +31,6 @@
 /**
    @module  server/rpc/aat-server
    @summary Asymmetric AJAX Transport Server
-   @home    mho:server/rpc/aat-server
    @hostenv nodejs
    @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
 */

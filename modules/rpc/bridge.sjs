@@ -31,7 +31,6 @@
 /**
   @module  server/rpc/bridge
   @summary API bridge: High-level API remoting
-  @home    mho:server/rpc/bridge
   @desc
     The RPC bridge is used for bidirectional communication between client
     and server. It can serialize (send / receive) the following types:

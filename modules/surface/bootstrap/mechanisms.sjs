@@ -1,5 +1,8 @@
 //----------------------------------------------------------------------
 // Mechanisms similar to the bootstrap js plugins (+ some enhancements)
+/**
+  @hostenv xbrowser
+*/
 
 
 var dom    = require('sjs:xbrowser/dom');
