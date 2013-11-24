@@ -10,7 +10,7 @@
 
 var { ensureWidget, Mechanism, collapseHtmlFragment } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
-var { Stream, toArray, map, filter, each, reverse, concat } = require('sjs:sequence');
+var { Stream, toArray, map, filter, each, reverse, concat, first } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait, when } = require('sjs:events');
 var { isObservable, get } = require('../observable');
@@ -114,14 +114,19 @@ exports.resourceRegistry = resourceRegistry;
 
 // helpers
 
-function stopMechanisms(elems) {
-  elems .. each {
-    |elem|
-    (elem.__oni_mechs || []) .. each {
+function stopMechanisms(parent, include_parent) {
+  var nodes = concat(parent.querySelectorAll('._oni_mech_'), StreamNodes(parent));
+  if (include_parent)
+    nodes = concat([parent], nodes);
+
+  nodes .. each {
+    |node|
+    if (!node.__oni_mechs) continue;
+    node.__oni_mechs .. each {
       |stratum|
       stratum.abort();
     }
-    delete elem.__oni_mechs;
+    delete node.__oni_mechs;
   }
 }
 
@@ -135,6 +140,23 @@ function unuseStyles(elems) {
       resourceRegistry.unuseStyle(matches[1]);
     }
   }
+}
+
+// XXX DOM module backfill?
+// returns a stream of comment nodes:
+function CommentNodes(node) {
+  return Stream(function(r) {
+    var walker = document.createTreeWalker(
+      node, NodeFilter.SHOW_COMMENT, null, false);
+    while (walker.nextNode()) {
+      r(walker.currentNode);
+    }
+  });
+}
+
+function StreamNodes(elem) {
+  return CommentNodes(elem) .. 
+    filter({nodeValue} -> nodeValue.indexOf('surface_stream')!== -1);
 }
 
 function runMechanisms(elem, content_only) {
@@ -151,6 +173,13 @@ function runMechanisms(elem, content_only) {
           elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
         }
     }
+
+  // start streams:
+  StreamNodes(elem) .. each { 
+    |node| 
+    var [,mech] = node.nodeValue.split("|");
+    node.__oni_mechs = [spawn mechanismsInstalled[mech].func.call(node, node)];
+  }
 }
 
 function insertHtml(html, doInsertHtml) {
@@ -205,7 +234,7 @@ function nodes(parent, before_node, after_node) {
 */
 function replaceContent(parent_node, html) {
   insertHtml(html, function(html) {
-    parent_node.querySelectorAll('._oni_mech_') .. stopMechanisms();
+    stopMechanisms(parent_node);
     parent_node.querySelectorAll('._oni_style_') .. unuseStyles();
 
     parent_node.innerHTML = html.getHtml();
@@ -220,14 +249,16 @@ exports.replaceContent = replaceContent;
 */
 function replaceElement(old_elem, html) {
   var inserted_nodes = nodes(old_elem.parentNode, old_elem.previousSibling, old_elem.nextSibling);
+  var rv;
   insertHtml(html, function(html) {
-    concat([old_elem], old_elem.querySelectorAll('._oni_mech_')) .. stopMechanisms();
+    stopMechanisms(old_elem, true);
     concat([old_elem], old_elem.querySelectorAll('._oni_style_')) .. unuseStyles();
     
     old_elem.outerHTML = html.getHtml();
-    
+    rv = inserted_nodes .. first(null);
     inserted_nodes .. each(runMechanisms);
   });
+  return rv;
 }
 exports.replaceElement = replaceElement;
 
@@ -235,11 +266,19 @@ exports.replaceElement = replaceElement;
    @function appendContent
 */
 function appendContent(parent_node, html) {
+  var rv;
+  
   insertHtml(html, function(html) {
     var inserted_nodes = nodes(parent_node, parent_node.lastChild, null);
+
     parent_node.insertAdjacentHTML('beforeend', html.getHtml());
+    
+    rv = inserted_nodes .. first(null);
+
     inserted_nodes .. each(runMechanisms);
   });
+
+  return rv;
 }
 exports.appendContent = appendContent;
 
@@ -259,11 +298,17 @@ exports.prependContent = prependContent;
    @function insertBefore
 */
 function insertBefore(sibling, html) {
+  var rv;
+
   var inserted_nodes = nodes(sibling.parentNode, sibling.previousSibling, sibling);
   insertHtml(html, function(html) {
     sibling.insertAdjacentHTML('beforebegin', html.getHtml());
+
+    rv = inserted_nodes .. first(null);
     inserted_nodes .. each(runMechanisms);
   });
+
+  return rv;
 }
 exports.insertBefore = insertBefore;
 
@@ -285,8 +330,7 @@ exports.insertAfter = insertAfter;
 */
 function removeElement(elem) {
   // stop our mechanism and all mechanisms below us
-  concat([elem], elem.querySelectorAll('._oni_mech_')) ..
-    stopMechanisms();
+  stopMechanisms(elem, true);
   if (elem.parentNode)
     elem.parentNode.removeChild(elem);
   

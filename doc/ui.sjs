@@ -168,7 +168,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			if (p.valtype && p.valtype .. hasElem("optional"))
 				name = `<span class="mb-optarg">${name}</span>`;
 			return name;
-		}) .. intersperse(", ");
+		}) .. intersperse(", ") .. toArray();
 
 		signature.push(`(<span class="mb-arglist">$params</span>)`);
 
@@ -516,7 +516,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			var ret = symbol.parentLinks().slice(0, -1) .. map(FragmentLink);
 			ret.push(Widget('span', symbol.name, {"class":"leaf"}));
 
-			var crumbs = ret .. intersperse(sep);
+			var crumbs = ret .. intersperse(sep) .. toArray();
 			var content = [crumbs];
 
 			if (symbol.library) {

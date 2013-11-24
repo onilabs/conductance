@@ -17,7 +17,7 @@ function Crumbs(path) {
     @map(function(elem) {
       link += "/#{elem}";
       return `<a href='$link'>$elem</a>`;
-    }) .. @intersperse(`&nbsp;/&nbsp;`);
+    }) .. @intersperse(`&nbsp;/&nbsp;`) .. @toArray;
 }
 
 
@@ -29,10 +29,10 @@ function Crumbs(path) {
 exports.generateDirListing = function(dir) {
 
   var folders = dir.directories .. 
-    @transform(d -> `<div>$@Icon('folder-close') <a href="${@url.encode(d)}/">$d/</a></div>`);
+    @map(d -> `<div>$@Icon('folder-close') <a href="${@url.encode(d)}/">$d/</a></div>`);
   
   var files = dir.files ..
-    @transform(f -> `<div>$@Icon('file') <a href="${@url.encode(f.name)}">${f.name}</a>
+    @map(f -> `<div>$@Icon('file') <a href="${@url.encode(f.name)}">${f.name}</a>
                         (${f.generated ? 
                            'generated' :
                            formatBytes(f.size)})

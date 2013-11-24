@@ -6,7 +6,7 @@
 
 var { isQuasi, Quasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
-var { each, indexed, reduce, map, join, isStream } = require('sjs:sequence');
+var { each, indexed, reduce, map, join, isStream, first } = require('sjs:sequence');
 var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
@@ -128,6 +128,62 @@ function ObservableContentMechanism(ft, obs) {
   });
 }
 
+// helper for streaminging content:
+var gSentinelCounter = 0;
+
+function isSentinelNode(node, sentinel) {
+  // nodeType '8' is a comment node
+  if (node.nodeType !== 8 || node.nodeValue.indexOf('surface_sentinel') == -1) return false;
+  var [,id] = node.nodeValue.split('|');
+  return id == sentinel; 
+}
+
+function StreamingContent(stream) {
+  var dyn = require('./dynamic');
+  
+  function mechanism(node) {
+    var sentinel = ++gSentinelCounter, have_inserted = false;
+    try {
+      stream .. each { 
+        |val|
+        if (have_inserted) {
+          // remove previously inserted content between `node` and the sentinel
+          do {
+            var inserted = node.nextSibling;
+            inserted.remove();
+          } while (!(inserted .. isSentinelNode(sentinel)));
+        }
+        else
+          have_inserted = true;
+        var anchor = node.nextElementSibling;
+        if (anchor) {
+          // we've got an anchor for 'insertBefore'
+          anchor .. dyn.insertBefore([val,`<!-- surface_sentinel |$sentinel| -->`]);
+        }
+        else {
+          // we're appending to the end
+          node.parentNode .. dyn.appendContent([val, `<!-- surface_sentinel |$sentinel| -->`]);
+        }
+      }
+    }
+    retract {
+      if (have_inserted) {
+        // remove previously inserted content between `node` and the sentinel
+        do {
+          var inserted = node.nextSibling;
+          inserted.remove();
+        } while (!(inserted .. isSentinelNode(sentinel)));
+      }
+//      console.log("STREAMING CONTENT MECHANISM RETRACTED");
+    }
+  }
+
+  var ft = CollapsedFragment(), id = ++gMechanismCounter;
+  ft.content = "<!-- surface_stream |#{id}| -->";
+  ft.mechanisms[id] = mechanism;
+  return ft;
+}
+
 // internal function used by collapseHtmlFragment()
 function appendFragmentTo(target, ft, tag) { 
   if (isQuasi(ft)) {
@@ -152,7 +208,14 @@ function appendFragmentTo(target, ft, tag) {
     ft = Widget('surface-ui') .. ObservableContentMechanism(ft);
     ft.appendTo(target, tag);
   }
-  else if (Array.isArray(ft) || isStream(ft)) {
+  else if (isStream(ft)) { 
+    // streams are only allowed in the dynamic world; if the user
+    // tries to use the generated content with e.g. static::Document,
+    // an error will be thrown.
+    ft = StreamingContent(ft);
+    ft.appendTo(target, tag);
+  }
+  else if (Array.isArray(ft)) {
     ft .. each(p -> appendFragmentTo(target, p, tag));
   }
   else {
