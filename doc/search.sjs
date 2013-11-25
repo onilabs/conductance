@@ -202,7 +202,9 @@ exports.run = (function() {
 			var widget = Widget("div", `
 				<input type="text" value="${lastQuery ? lastQuery}"></input>
 				<a class="reset" style="position:absolute; top:0; right:5px;">&#x2A2F;</a>
-				${resultWidget}
+				<div>
+					${resultWidget}
+				</div>
 				</div>
 			`) .. Class("searchWidget");
 
