@@ -19,13 +19,13 @@ context("observable widget content") {||
       elems.length .. assert.eq(widgets.length);
 
       elems .. each {|elem|
-        elem.innerText.split(' ') .. at(-1) .. assert.eq("second");
+        elem.textContent.split(' ') .. at(-1) .. assert.eq("second");
       }
 
       content.set("third");
 
       elems .. each {|elem|
-        elem.innerText.split(' ') .. at(-1) .. assert.eq("third");
+        elem.textContent.split(' ') .. at(-1) .. assert.eq("third");
       }
     };
   }

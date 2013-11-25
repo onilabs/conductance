@@ -48,13 +48,13 @@ context("static file generation") {||
 	test("encodes data inside a regular html tag") {|s|
 		s.navigate(Url.build([rel('injection'), {template: 'div', value: payloadString}]));
 		var injected = waitforCondition(-> s.document().getElementById("content"));
-		injected.innerText .. assert.eq(payloadString);
+		injected.textContent .. assert.eq(payloadString);
 	}
 
 	test("encodes data inside a <pre>") {|s|
 		s.navigate(Url.build([rel('injection'), {template: 'div', value: payloadString}]));
 		var injected = waitforCondition(-> s.document().getElementById("content"));
-		injected.innerText .. assert.eq(payloadString);
+		injected.textContent .. assert.eq(payloadString);
 	}
 
 	test("encodes data inside a <script>") {|s|
@@ -80,7 +80,7 @@ context("dynamic content generation") {||
 
 	test("encodes data inside a regular html tag") {||
 		document.body .. withWidget(Widget("div", payloadString)) {|elem|
-			elem.innerText .. assert.eq(payloadString);
+			elem.textContent .. assert.eq(payloadString);
 		}
 	}
 
@@ -96,11 +96,11 @@ context("dynamic content generation") {||
 
 	test("encodes data inside a <pre>") {|s|
 		document.body .. withWidget(Widget("pre", payloadString)) {|elem|
-			elem.innerText .. assert.eq(payloadString);
+			elem.textContent .. assert.eq(payloadString);
 		}
 
 		document.body .. withWidget(Widget("div", `<pre>$payloadString</pre>`)) {|elem|
-			elem.childNodes[0].innerText .. assert.eq(payloadString);
+			elem.childNodes[0].textContent .. assert.eq(payloadString);
 		}
 	}
 
