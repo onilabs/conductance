@@ -18,7 +18,7 @@ exports.registerAPI = function(moduleid) {
   }
 
   var apiid = module_desc.apiid = createID(4);
-  api_by_apiid[apiid] = API(module_desc.exports);
+  api_by_apiid[apiid] = module_desc.exports;
 
   return apiid;
 };
