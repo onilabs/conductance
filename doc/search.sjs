@@ -4,8 +4,9 @@ var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter} = seq;
 var events = require('sjs:events');
+var dom = require('sjs:xbrowser/dom');
 var cutil = require('sjs:cutil');
-var {ownPropertyPairs, ownValues} = require('sjs:object');
+var {ownPropertyPairs, ownValues, hasOwn} = require('sjs:object');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
 var http = require('sjs:http');
@@ -91,35 +92,25 @@ exports.run = (function() {
 
 			var inputWorker = function(input) {
 				waitfor {
-					// keyup for entry (i.e after it's been pressed)
-					using(var key = events.HostEmitter(input, ['keyup'])) {
-						while(true) {
-							var e = key.wait();
-							hold(0);
-							//logging.debug('queueing query:', input.value);
-							query.put(input.value.trim().toLowerCase());
-						}
-					}
+					events.when(input, 'input', {handle: dom.stopPropagation}) {|e|
+						query.put(input.value.trim().toLowerCase());
+					};
 				} or {
-					using(var key = events.HostEmitter(input, 'keydown', {handle:null})) {
-						while(true) {
-							var e = key.wait();
-							//logging.debug("KEY", e);
-							if (e.which == ui.RETURN) {
-								return highlightedMatch.get();
-							} else if (e.keyIdentifier == 'Down') {
-								changeSelected(+1);
-								e.preventDefault();
-							} else if (e.keyIdentifier == 'Up') {
-								changeSelected(-1);
-								e.preventDefault();
-							} else if (e.keyIdentifier == 'PageDown') {
-								changeSelected(0, results.get().length - 1);
-								e.preventDefault();
-							} else if (e.keyIdentifier == 'PageUp') {
-								changeSelected(0, 0);
-								e.preventDefault();
-							}
+					var bindings = {
+						'Down':     -> changeSelected(+1),
+						'Up':       -> changeSelected(-1),
+						'PageDown': -> changeSelected(0, results.get().length - 1),
+						'PageUp':   -> changeSelected(0, 0),
+					};
+
+					events.when(input, 'keydown', {
+						filter: e -> e.which == ui.RETURN || bindings .. hasOwn(e.keyIdentifier),
+						handle: dom.preventDefault,
+					}) {|e|
+						if (e.which == ui.RETURN) {
+							return highlightedMatch.get();
+						} else {
+							bindings[e.keyIdentifier]();
 						}
 					}
 				}
