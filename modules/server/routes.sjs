@@ -111,7 +111,7 @@ function createDirectoryMapper(settings) {
       on your server. You should instead server user-generated files using the
       [::StaticDirectory] route type.
 
-      - Serves the given directory with [./formats::StaticFormatMap] as well as the [./format::Code] and [./formats::Executable] extensions.
+      - Serves the given directory with [./formats::StaticFormatMap] as well as the [./formats::Code] and [./formats::Executable] extensions.
 
       - `path` can be a regexp or a string, as described in
         [../server::Route]. If `path` is ommited it defaults to the
@@ -149,7 +149,7 @@ var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
    @returns {../server::Route}
    @summary Creates a [../server::Route] that serves code and static files from the local filesystem
    @desc
-      - Serves the given directory with [./formats::StaticFormatMap] as well as the [./format::Code] extension.
+      - Serves the given directory with [./formats::StaticFormatMap] as well as the [./formats::Code] extension.
 
       - See the description for [::ExecutableDirectory] for details on how to specifiy `path` and `root`.
 */

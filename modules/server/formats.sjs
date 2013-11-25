@@ -223,8 +223,16 @@ function gen_markdown_html(src, dest, aux) {
 //----------------------------------------------------------------------
 
 /**
+  @class FormatMap
+  @summary File-type configuration for the conductance file-server
+*/
+
+/**
   @variable StaticFormatMap
   @summary a [::FormatMap] appropriate for serving untrusted, static files.
+  @desc
+    A [::StaticFormatMap] will not execute .api modules, nor will it compile
+    .sjs modules. It is safe for serving untrusted content.
 */
 exports.StaticFormatMap = {
   "/"  : { none : { mime: "text/html",
@@ -285,7 +293,6 @@ var withFormats = function(map, extensions) {
       - .md, for rendering as HTML
 
     Note that the source of .app files is accessible via the `src` format.
-
 
 */
 var Code = (base) -> base

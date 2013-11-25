@@ -71,7 +71,7 @@ var { isObservable, isObservableArray, isMutatable, Computed, get, Map, at } = r
  @function TextInput
  @summary A plain HTML 'input' widget
  @param  {String|../observable::Observable} [value] Value.
- @return {html::Widget}
+ @return {surface::Widget}
 */
 var TextInput = (value, attrs) ->
   Widget('input', null, {'type':'text'} .. merge(attrs||{})) ..
@@ -104,7 +104,7 @@ exports.TextInput = TextInput;
  @function Checkbox
  @summary A HTML 'checkbox' widget
  @param  {Boolean|../observable::Observable} [value] Value.
- @return {html::Widget}
+ @return {surface::Widget}
 */
 var Checkbox = value ->
   Widget('input') ..
@@ -138,7 +138,7 @@ exports.Checkbox = Checkbox;
  @param  {Object} [settings] Widget settings
  @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
  @setting {Array|../observable::Observable} [items] Selectable items
- @return {html::Widget}
+ @return {surface::Widget}
 */
 
 
@@ -280,7 +280,7 @@ var _map = function(items, fn) {
  @function UnorderedList
  @param {Array} [items]
  @param {optional Object} [attrs]
- @return {html::Widget}
+ @return {surface::Widget}
  @summary Crate a `<ul>` widget, wrapping each element of`items` in a `<li>`
 */
 exports.UnorderedList = (items, attrs) -> exports.Ul(items .. _map(exports.Li), attrs);
@@ -288,16 +288,16 @@ exports.UnorderedList = (items, attrs) -> exports.Ul(items .. _map(exports.Li), 
  @function OrderedList
  @param {Array} [items]
  @param {optional Object} [attrs]
- @return {html::Widget}
+ @return {surface::Widget}
  @summary Crate a `<ol>` widget, wrapping each element of`items` in a `<li>`
 */
 exports.OrderedList = (items, attrs) -> exports.Ol(items .. _map(exports.Li), attrs);
 
 /**
  @function Submit
- @param {../html::HtmlFragment} [content]
+ @param {surface::HtmlFragment} [content]
  @param {optional Object} [attrs]
- @return {html::Widget}
+ @return {surface::Widget}
  @summary Crate an `<input type="submit">` widget.
 */
 exports.Submit = (content, attr) -> Widget('input', null, (attr || {}) .. merge({type:'submit', value: content}));

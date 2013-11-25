@@ -44,8 +44,8 @@ exports._getDynOniSurfaceInit = ->
      ARRAY              : "[" FRAGMENT_TREE_LIST? "]"
      FRAGMENT_TREE_LIST : HTML_FRAGMENT | FRAGMENT_TREE_LIST "," HTML_FRAGMENT  
      UNSAFE_TXT         : '"' STRING '"'
-     OBSERVABLE         : an instance of [../observable::Observable] whose
-                          value is a HtmlFragment
+     OBSERVABLE         : an instance of [observable::ObservableBase] whose
+                          value is a [::HtmlFragment]
      LITERAL_TXT        : STRING
      CFRAGMENT          : an instance of class [::CollapsedFragment]
 

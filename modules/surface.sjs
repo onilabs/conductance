@@ -20,8 +20,8 @@ module.exports = require(modules);
   ARRAY              : "[" FRAGMENT_TREE_LIST? "]"
   FRAGMENT_TREE_LIST : HTML_FRAGMENT | FRAGMENT_TREE_LIST "," HTML_FRAGMENT  
   UNSAFE_TXT         : '"' STRING '"'
-  OBSERVABLE         : an instance of [../observable::Observable] whose
-                       value is a HtmlFragment
+  OBSERVABLE         : an instance of [observable::ObservableBase] whose
+                       value is a [::HtmlFragment]
   LITERAL_TXT        : STRING
   CFRAGMENT          : an instance of class [::CollapsedFragment]
 
@@ -70,17 +70,17 @@ module.exports = require(modules);
 @function withWidget
 
 @function Document
-@param {../surface::FragmentTree} [content] Document content
+@param {surface::HtmlFragment} [content] Document content
 @param {Settings} [settings]
-@setting {../surface::FragmentTree} [title] Document title
-@setting {../surface::FragmentTree} [head] Additional HTML content to appear in the document's <head> (before SJS is initialized)
+@setting {surface::HtmlFragment} [title] Document title
+@setting {surface::HtmlFragment} [head] Additional HTML content to appear in the document's <head> (before SJS is initialized)
 @setting {String} [init] SJS source code to run on the client once SJS is initialized
 @setting {String} [main] SJS module URL to run on the client
 @setting {Array}  [externalScripts] Array of Javascript script URLs to add to the page
 @setting {Object} [templateData] object which will be be passed through to the template function
 @setting {Function|String} [template="default"] Document template
 @desc
-  **Note:** the `head` and `title` settings can be any [../surface::FragmentTree] type,
+  **Note:** the `head` and `title` settings can be any [surface::HtmlFragment] type,
   but since they're used for customising the HTML <head> before SJS is initialized, only the
   raw HTML value be used (i.e any mechanisms and other non-html content on these objects will be ignored).
 
