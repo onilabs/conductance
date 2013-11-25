@@ -10,7 +10,7 @@
 
 var { ensureWidget, Mechanism, collapseHtmlFragment } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
-var { Stream, toArray, map, filter, each, reverse, concat, first } = require('sjs:sequence');
+var { Stream, toArray, map, filter, each, reverse, concat, first, take, indexed } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait, when } = require('sjs:events');
 var { isObservable, get } = require('../observable');
@@ -160,25 +160,32 @@ function StreamNodes(elem) {
 }
 
 function runMechanisms(elem, content_only) {
-  elem.querySelectorAll('[data-oni-mechanisms]') ..
-    concat((!content_only && elem.hasAttribute('data-oni-mechanisms')) ? [elem] : []) ..
-    reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
-    each {
-      |elem|
-      elem.__oni_mechs = [];
-      elem.getAttribute('data-oni-mechanisms').split(' ') ..
-        filter .. // only truthy elements
-        each {
-          |mech|
-          elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
-        }
+  if (elem.nodeType == 1) {
+    elem.querySelectorAll('[data-oni-mechanisms]') ..
+      concat((!content_only && elem.hasAttribute('data-oni-mechanisms')) ? [elem] : []) ..
+      reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
+      each {
+        |elem|
+        elem.__oni_mechs = [];
+        elem.getAttribute('data-oni-mechanisms').split(' ') ..
+          filter .. // only truthy elements
+          each {
+            |mech|
+            elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
+          }
+      }
+    
+    // start streams:
+    StreamNodes(elem) .. each { 
+      |node| 
+      var [,mech] = node.nodeValue.split("|");
+      node.__oni_mechs = [spawn mechanismsInstalled[mech].func.call(node, node)];
     }
-
-  // start streams:
-  StreamNodes(elem) .. each { 
-    |node| 
-    var [,mech] = node.nodeValue.split("|");
-    node.__oni_mechs = [spawn mechanismsInstalled[mech].func.call(node, node)];
+  }
+  else if (elem.nodeValue.indexOf('surface_stream') !== -1) {
+    // we assume nodetype == 8 (comment node)
+    var [,mech] = elem.nodeValue.split("|");
+    elem.__oni_mechs = [spawn mechanismsInstalled[mech].func.call(elem,elem)];
   }
 }
 
@@ -210,19 +217,26 @@ function insertHtml(html, doInsertHtml) {
   }
 }
 
-// generate a stream of nodes between the two boundary points
+// generate a stream of element & comment nodes between the two
+// boundary points. The stream will be used to start mechanisms on
 function nodes(parent, before_node, after_node) {
 
   // make sure we have stable reference points; text nodes get
   // collected together when we insert something
-  while (before_node && before_node.nodeType != 1) before_node = before_node.previousSibling;
-  while (after_node && after_node.nodeType != 1) after_node = after_node.nextSibling;
+  while (before_node && 
+         before_node.nodeType != 1 && 
+         before_node.nodeType != 8)
+    before_node = before_node.previousSibling;
+  while (after_node && 
+         after_node.nodeType != 1 &&
+         after_node.nodeType != 8) 
+    after_node = after_node.nextSibling;
 
   return Stream(function(r) {
     var node = before_node ? before_node.nextSibling :
       parent.firstChild;
     while (node != after_node) {
-      if (node.nodeType == 1) r(node);
+      if (node.nodeType == 1 || node.nodeType == 8) r(node);
       node = node.nextSibling;
     }
   });
@@ -274,7 +288,6 @@ function appendContent(parent_node, html) {
     parent_node.insertAdjacentHTML('beforeend', html.getHtml());
     
     rv = inserted_nodes .. first(null);
-
     inserted_nodes .. each(runMechanisms);
   });
 
