@@ -90,7 +90,7 @@ Protocol:
 */
 
 var logging = require('sjs:logging');
-var { each, toArray, map, filter, transform, isStream, Stream, at } = require('sjs:sequence');
+var { each, toArray, map, filter, transform, isStream, Stream, at, Observable } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
@@ -352,7 +352,7 @@ function unmarshallFunction(obj, connection) {
     data types and function calls across an RPC transport.
 
     `BridgeConnection` instances cannot be constructed directly, see [::connect] or
-    [#features/api-modules].
+    [#features/api-modules::].
 
     Depeding on the `disconnectHandler` function supplied, a `BridgeConnection`
     object may be able to reconnect and recover from small network outages.
@@ -363,10 +363,10 @@ function unmarshallFunction(obj, connection) {
     new RPC calls made on the bridge will rase a [::TransportError].
 
   @variable BridgeConnection.status
-  @type observable:Observable::
+  @type sjs:sequence:Observable::
   @summary The current connection status
   @desc
-    `status` is an [observable::Observable] object with the following properties:
+    `status` is an [sjs:sequence::Observable] object with the following properties:
 
       - connected (boolean): Whether the connection is active
       - connecting (boolean): Whether this connection is currently
@@ -406,7 +406,7 @@ function BridgeConnection(transport, opts) {
   var published_func_counter = 0;
   var closed = false;
   var throwing = opts.throwing !== false;
-  var statusObs = opts.status ? require('mho:observable').Observable({connected: true});
+  var statusObs = opts.status ? Observable({connected: true});
   var _lastTransport = transport;
   var disconnectHandler = opts.disconnectHandler;
 
