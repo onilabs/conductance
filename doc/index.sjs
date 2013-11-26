@@ -80,9 +80,6 @@ exports.run = function(root) {
 	});
 	var hubDisplay = Widget("pre", hubDebug);
 
-	var FORWARD_SLASH = (e) -> e.which == 47;
-	var PLUS = (e) -> e.which == 43 && e.shiftKey;
-
 	var toolbar = Widget("div", `
 			<div class="trigger">
 				<button class="btn config"><span class="glyphicon glyphicon-cog"></span></button>
@@ -109,12 +106,16 @@ exports.run = function(root) {
 				require('./config').run(elem, libraries, defaultHubs, ui.LOADING.dec);
 			};
 
+			// we ignore keyboard shortcuts while we're performing an action
+			var action;
+			var FORWARD_SLASH = (e) -> !action && e.which == 47;
+			var PLUS = (e) -> !action && e.which == 43 && e.shiftKey;
+
 			using (var searchClick = searchButton .. events.HostEmitter('click', {handle: preventDefault})) {
 				using (var searchShortcut = document.body .. events.HostEmitter('keypress', {filter: FORWARD_SLASH, handle: preventDefault})) {
 					using (var configClick = configureButton .. events.HostEmitter('click', {handle: preventDefault})) {
 						using (var configShortcut = document.body .. events.HostEmitter('keypress', {filter: PLUS, handle: preventDefault})) {
 							while(true) {
-								var action;
 								waitfor {
 									waitfor {
 										searchClick.wait();
@@ -134,6 +135,7 @@ exports.run = function(root) {
 								try {
 									action();
 								} finally {
+									action = null;
 									buttonContainer.classList.remove('hidden');
 								}
 							}
