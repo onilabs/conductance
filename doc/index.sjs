@@ -1,11 +1,9 @@
 //TODO: use merging require([.])
 waitfor {
-var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
-} and {
 var {RequireStyle, OnClick, Class, Mechanism, Widget, prependWidget, removeElement, appendWidget, Style, withWidget} = require('mho:surface');
 } and {
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, join } = seq;
+var {map, indexed, find, each, join, Observable, ObservableTuple, transform } = seq;
 } and {
 var array = require('sjs:array');
 } and {
@@ -49,33 +47,34 @@ exports.run = function(root) {
 
 	var locationHash = Observable(undefined);
 
-	var currentSymbol = Computed(locationHash, libraries.val, function(h) {
-		logging.debug("Location hash: #{h}");
-		if (h === undefined) return undefined; // undefined: "not yet loaded"
-		return Symbol.resolveSymbol(libraries, h);
-	});
+  var currentSymbol = ObservableTuple(locationHash, libraries.val) ..
+    transform(function([h]) {
+      logging.debug("Location hash: #{h}");
+      if (h === undefined) return undefined; // undefined: "not yet loaded"
+      return Symbol.resolveSymbol(libraries, h);
+    });
 
 	var renderer = ui.renderer(libraries, new Symbol.RootSymbol(libraries));
-	var symbolDocs = Computed(currentSymbol, function(sym) {
+	var symbolDocs = currentSymbol .. transform(function(sym) {
 		return sym !== undefined ? renderer.renderSymbol(sym);
 	});
 
-	var breadcrumbs = Computed(currentSymbol, function(sym) {
+	var breadcrumbs = currentSymbol .. transform(function(sym) {
 		return sym !== undefined ? renderer.renderBreadcrumbs(sym);
 	});
 
-	var sidebar = Computed(currentSymbol, function(sym) {
+	var sidebar = currentSymbol .. transform(function(sym) {
 		return sym !== undefined ? renderer.renderSidebar(sym);
 	});
 
 	defaultHubs .. each(h -> libraries.add(h));
 
-	var loadingText = ui.LOADING .. Computed(l -> "#{l} item#{l != 1 ? "s" : ""}");
+	var loadingText = ui.LOADING .. transform(l -> "#{l} item#{l != 1 ? "s" : ""}");
 	var loadingWidget = Widget("div", `Loading ${loadingText}...`)
 			.. Class("loading")
-			.. Class("hidden", Computed(ui.LOADING, l -> l == 0));
+			.. Class("hidden", ui.LOADING .. transform(l -> l == 0));
 
-	var hubDebug = Computed(libraries.val, function(hubs) {
+	var hubDebug = libraries.val .. transform(function(hubs) {
 		return JSON.stringify(hubs, null, '  ');
 	});
 	var hubDisplay = Widget("pre", hubDebug);

@@ -1,8 +1,7 @@
-var {Map, Computed, Observable, ObservableArray} = require('mho:observable');
 var {RequireStyle, Class, Mechanism, Widget, Style, withWidget, Checkbox, Attrib} = require('mho:surface');
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, toArray, filter} = seq;
+var {map, indexed, find, each, toArray, filter, Observable, ObservableTuple, transform, first} = seq;
 var events = require('sjs:events');
 var dom = require('sjs:xbrowser/dom');
 var cutil = require('sjs:cutil');
@@ -53,9 +52,9 @@ exports.run = (function() {
 
 		return ui.withOverlay {||
 			var libraryStatus = [];
-			var index = ObservableArray([]);
+			var index = Observable([]);
 			var query = cutil.Queue();
-			var results = ObservableArray([]);
+			var results = Observable([]);
 			var selectedMatch = Observable(null);
 
 			var search = function(query, force) {
@@ -76,7 +75,7 @@ exports.run = (function() {
 
 			var searchWorker = function() {
 				waitfor {
-					index.observe( -> search(lastQuery, true));
+					index .. each( -> search(lastQuery, true));
 				} or {
 					var q = query.get();
 					while(true) {
@@ -108,7 +107,7 @@ exports.run = (function() {
 						handle: dom.preventDefault,
 					}) {|e|
 						if (e.which == ui.RETURN) {
-							return highlightedMatch.get();
+							return highlightedMatch .. first();
 						} else {
 							bindings[e.keyIdentifier]();
 						}
@@ -117,16 +116,16 @@ exports.run = (function() {
 			};
 
 
-			var highlightedMatch = Computed(selectedMatch, results, function(sel, results) {
+			var highlightedMatch = ObservableTuple(selectedMatch, results) .. transform(function([sel, results]) {
 				if (sel) return sel;
 				return results[0] && results[0].id;
 			});
 
-			var resultWidget = Computed(results, function(res) {
+			var resultWidget = results .. transform(function(res) {
 				var rv = [];
 				if (res.length > 0) {
 					rv = res.map(function(m) {
-						var highlighted = Computed(highlightedMatch, h -> h == m.id);
+						var highlighted = highlightedMatch .. transform(h -> h == m.id);
 						var textBlock = [i, t] -> i % 2 ? `<strong>$t</strong>` : `<span>$t</span>`;
 						var textWidgets = m.text .. indexed .. map(textBlock);
 						var hubWidget = `<span class="hub">${m.hub}</span>`;
@@ -188,7 +187,7 @@ exports.run = (function() {
 
 			var indexUpdate = function() {
 				libraries.get() .. ownValues .. each.par {|lib|
-					lib.searchEnabled.observe {|val|
+					lib.searchEnabled .. each {|val|
 						if (val) {
 							// add to index
 							index.set(index.get() .. indexWith(lib) .. toArray);
@@ -213,7 +212,7 @@ exports.run = (function() {
         if (res.length === 0) return;
 				if (newIndex === undefined) {
 					// use offset
-					var current = highlightedMatch.get();
+					var current = highlightedMatch .. first();
 					var found = -1;
 					for (var i=0; i<res.length; i++) {
 						if (res[i].id == current) {

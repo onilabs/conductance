@@ -674,6 +674,22 @@ function ObservableClassMechanism(ft, cls, current) {
   });
 }
 
+function StreamClassMechanism(ft, cls, current) {
+  return ft .. Mechanism(function(node) {
+    cls .. each { 
+      |clsname|
+      __js {  
+        if (clsname === current) continue;
+        if (current !== undefined) 
+          node.classList.remove(current);
+        if ((current = clsname) !== undefined) 
+          node.classList.add(current); 
+      }
+    }
+  });
+}
+
+
 function setAttribValue(widget, name, v) {
   if (typeof v === 'boolean') {
     if (v) widget.attribs[name] = 'true';
@@ -765,18 +781,27 @@ function Class(widget, clsname, val) {
   __js  var classes = widget._normalizeClasses();
   if (isObservable(clsname)) {
     __js    if (arguments.length > 2)
-      throw new Error('Class(.) argument error: Cannot have a boolean toggle in conmbination with an observable class name');
+      throw new Error('Class(.) argument error: Cannot have a boolean toggle in combination with an observable class name');
     classes.push(clsname .. get);
     widget = widget .. ObservableClassMechanism(clsname, clsname .. get);
   }
+  else if (isStream(clsname)) {
+    __js    if (arguments.length > 2)
+      throw new Error('Class(.) argument error: Cannot have a boolean toggle in combination with an observable class name');
+    var current = clsname .. first;
+    classes.push(current);
+    widget = widget .. StreamClassMechanism(clsname, current);
+  }
   else {
-    // !isObservable(clsname)
+    // !isObservable/isStream(clsname)
     if (arguments.length > 2) {
       // val is provided, treat it as a boolean toggle
-      if (get(val)) classes.push(clsname);
-      else classes .. array.remove(clsname);
       
       if (isObservable(val)) {
+        if (get(val)) 
+          classes.push(clsname);
+        else 
+          classes .. array.remove(clsname);
         widget = widget .. Mechanism {
           |elem|
           var cl = elem.classList;
@@ -785,6 +810,27 @@ function Class(widget, clsname, val) {
                        else cl.remove(clsname);
                       }
         }
+      }
+      else if (isStream(val)) {
+        if (val .. first)
+          classes.push(clsname);
+        else
+          classes .. array.remove(clsname);
+        widget = widget .. Mechanism {
+          |elem|
+          var cl = elem.classList;
+          val .. each {
+            |v|
+            if (v) cl.add(clsname);
+            else cl.remove(clsname);
+          }
+        }
+      }
+      else {
+        if (val) 
+          classes.push(clsname);
+        else 
+          classes .. array.remove(clsname);
       }
     } else {
       classes.push(clsname);

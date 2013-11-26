@@ -1,7 +1,6 @@
 var { Widget, withWidget, Mechanism, Style, OnClick } = require('mho:surface');
-var { Observable, Computed, Map } = require('mho:observable');
 var { Input, Form, Button } = require('mho:surface/html');
-var { each, map } = require('sjs:sequence');
+var { each, map, Observable, ObservableTuple, transform } = require('sjs:sequence');
 var events = require('sjs:events');
 var assert = require('sjs:assert');
 var { remove } = require('sjs:array');
@@ -10,7 +9,7 @@ var ui = require('./ui');
 exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
   var libraries = libraryCollection.val;
   ui.withOverlay() {||
-    var currentLibraryEntries = libraries .. Map(function(lib) {
+    var currentLibraryEntries = libraries .. transform(list -> list.map(function(lib) {
       var removeButton = Button('remove') .. OnClick( -> libraryCollection.remove(lib));
       var [name, url] = lib;
       return `
@@ -20,14 +19,14 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
           <span>${url}</span>
         </li>
       `;
-    });
+    }));
 
-    currentLibraries = Computed(currentLibraryEntries, (entries) -> entries.length ? `
+    currentLibraries = currentLibraryEntries .. transform((entries) -> entries.length ? `
       <h2>Current hubs</h2>
       <ul>$entries</ul>
     `);
 
-    var disabledLibraries = Computed(libraries, function(libs) {
+    var disabledLibraries = libraries .. transform(function(libs) {
       var missing = defaultHubs.slice();
       libs .. each {|lib|
         missing .. remove(lib[0]);

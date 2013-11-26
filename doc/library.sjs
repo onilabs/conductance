@@ -1,6 +1,5 @@
 var str = require('sjs:string');
-var {Observable, Computed, ObservableArray} = require('mho:observable');
-var {find, each, filter, map, at, join} = require('sjs:sequence');
+var {find, each, filter, map, at, join, Observable, transform, first} = require('sjs:sequence');
 var {remove} = require('sjs:array');
 var {ownValues, hasOwn, get, clone, merge} = require('sjs:object');
 var docutil = require('sjs:docutil');
@@ -12,9 +11,9 @@ var assert = require('sjs:assert');
 var CollectionProto = exports.CollectionProto = {};
 
 CollectionProto._init = function() {
-	this.val = ObservableArray([]);
+	this.val = Observable([]);
 	this._libraryCache = {};
-	this._libraries = Computed.Cached(this.val, this._computeLibraries.bind(this));
+	this._libraries = this.val .. transform(this._computeLibraries.bind(this));
 };
 
 CollectionProto._computeLibraries = function(hubs) {
@@ -63,7 +62,7 @@ CollectionProto.resolveModule = function(url) {
 
 CollectionProto.get = function(name) {
 	if (arguments.length === 0) {
-		return this._libraries.get();
+		return this._libraries .. first();
 	}
 	var lib = this.get() .. ownValues .. find(l -> l.name == name);
 	assert.ok(lib, "library not found: #{name}");
@@ -82,7 +81,9 @@ CollectionProto.add = function(name, url) {
 		throw new Error("Library already added");
 	}
 	this._cacheUrl(url, name);
-	this.val.push([name,url]);
+  var val = this.val.get();
+  val.push([name,url])
+	this.val.set(val);
 };
 
 CollectionProto.remove = function(name) {

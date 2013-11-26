@@ -1,8 +1,8 @@
 var {Widget, Mechanism, Style, Class, prependWidget, removeElement} = require('mho:surface');
-var {Observable} = require('mho:observable');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
-     reduce, reverse, join, find, hasElem} = require('sjs:sequence');
+     reduce, reverse, join, find, hasElem,
+     Observable} = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, startsWith, endsWith, strip} = string;
 var {Quasi} = require('sjs:quasi');
