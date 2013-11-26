@@ -51,7 +51,6 @@
 
   function checkAllTypeReferences(obj, symbol) {
     if (!Object.prototype.isPrototypeOf(obj)) {
-      @info("Skipping non-object #{obj}");
       return;
     }
 

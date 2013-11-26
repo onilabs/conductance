@@ -13,6 +13,7 @@ if (contentEnd != -1) {
   contents = contents.slice(0, contentEnd);
 }
 var modules = ['surface/base.sjs', 'surface/dynamic.sjs', 'surface/static.sjs'];
+@childProcess.run('gup', ['-u'].concat(modules), {stdio:'inherit'});
 
 var unindent = (s) -> s.replace(/^\n+/, '') .. @unindent;
 
@@ -33,7 +34,4 @@ var output = contents + MARKER + "
 ";
 @fs.writeFile(outputFile, output);
 
-var proc = @childProcess.launch('gup', ['--contents'], {'stdio':['pipe', null, null]});
-proc.stdin .. @write(output);
-proc.stdin.end();
-proc .. @childProcess.wait();
+@childProcess.run('gup', ['--contents', outputFile], {stdio:'inherit'});
