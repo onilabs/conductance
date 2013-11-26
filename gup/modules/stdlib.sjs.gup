@@ -16,15 +16,12 @@ var baseStdlibContents = @fs.readFile(stdlibPath, 'utf-8').replace(/module\.expo
 var stdlibContents = (baseStdlibContents + "
 /**
   // metadata for sjs:bundle:
-  @require mho:observable
   @require mho:surface
   @require mho:env
 */
 
 modules = modules.concat([
   {id:'mho:env', name:'env'},
-  {id:'mho:observable', exclude: ['at', 'get']},
-  {id:'mho:observable', name: 'observable'},
   {id:'mho:surface'}
 ]);
 

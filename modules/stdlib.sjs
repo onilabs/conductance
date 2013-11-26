@@ -68,15 +68,12 @@ if (hostenv === 'nodejs') {
 
 /**
   // metadata for sjs:bundle:
-  @require mho:observable
   @require mho:surface
   @require mho:env
 */
 
 modules = modules.concat([
   {id:'mho:env', name:'env'},
-  {id:'mho:observable', exclude: ['at', 'get']},
-  {id:'mho:observable', name: 'observable'},
   {id:'mho:surface'}
 ]);
 
@@ -192,6 +189,8 @@ module.exports = require(modules);
    - **filter.par**: (function [sjs:sequence::filter.par])
    - **all.par**: (function [sjs:sequence::all.par])
    - **any.par**: (function [sjs:sequence::any.par])
+   - **Observable**: (function [sjs:sequence::Observable])
+   - **ObservableTuple**: (function [sjs:sequence::ObservableTuple])
   ### From the [sjs:string::] module:
    - **isString**: (function [sjs:string::isString])
    - **sanitize**: (function [sjs:string::sanitize])
@@ -282,20 +281,6 @@ module.exports = require(modules);
    - **childProcess**: (module [sjs:nodejs/child-process::])
   ### From the [mho:env::] module:
    - **env**: (module [mho:env::])
-  ### From the [mho:observable::] module:
-   - **observable**: (module [mho:observable::])
-   - **ObservableBase**: (class [mho:observable::ObservableBase])
-   - **Observable.setPath**: (function [mho:observable::Observable.setPath])
-   - **Observable**: (class [mho:observable::Observable])
-   - **isObservable**: (function [mho:observable::isObservable])
-   - **isMutatable**: (function [mho:observable::isMutatable])
-   - **ObservableArray**: (class [mho:observable::ObservableArray])
-   - **isObservableArray**: (function [mho:observable::isObservableArray])
-   - **Computed**: (class [mho:observable::Computed])
-   - **Computed.Cached**: (class [mho:observable::Computed.Cached])
-   - **observe**: (function [mho:observable::observe])
-   - **Map**: (function [mho:observable::Map])
-   - **Property**: (class [mho:observable::Property])
   ### From the [mho:surface::] module:
    - **HtmlFragment**: (class [mho:surface::HtmlFragment])
    - **CollapsedFragment**: (class [mho:surface::CollapsedFragment])
