@@ -102,7 +102,7 @@ __js var prefixWith = function(selectorStr, prefixes) {
   return rv;
 };
 
-function scope(css, parent_class) {
+__js function scope(css, parent_class) {
   var prefixes;
   if (parent_class)
     prefixes = [".#{parent_class}"];
