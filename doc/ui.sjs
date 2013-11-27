@@ -522,7 +522,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			if (symbol.library) {
 				var docs = symbol.library.loadSkeletonDocs();
 				if(docs && docs.version) {
-					content.unshift(Widget("span", "#{symbol.library.name}#{docs.version}", {"class":"version"}));
+					content.push(Widget("div", "#{symbol.library.name}#{docs.version}", {"class":"version"}));
 				}
 			}
 			return Widget("div", content, {"class":"breadcrumbs"});

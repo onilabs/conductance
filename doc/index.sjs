@@ -72,7 +72,7 @@ exports.run = function(root) {
 	var loadingText = ui.LOADING .. transform(l -> "#{l} item#{l != 1 ? "s" : ""}");
 	var loadingWidget = Widget("div", `Loading ${loadingText}...`)
 			.. Class("loading")
-			.. Class("hidden", ui.LOADING .. transform(l -> l == 0));
+			.. Class("hidden", ui.LOADING .. transform(l -> l == 0 ? true : (hold(300), false))); // the hold(300) is to avoid showing the indicator for actions that just take very little time
 
 	var hubDebug = libraries.val .. transform(function(hubs) {
 		return JSON.stringify(hubs, null, '  ');
@@ -85,7 +85,7 @@ exports.run = function(root) {
 				<button class="btn search" title="Shortcut: /"><span class="glyphicon glyphicon-search"></span></button>
 			</div>
 		`)
-		.. Style("{ position: relative; top:1.1em}")
+		.. Style("{ position: relative; top:25px}")
 		.. Class("popupContainer")
 		.. Mechanism(function(elem) {
 			var [configureButton, searchButton] = elem.getElementsByTagName("button");
@@ -147,16 +147,27 @@ exports.run = function(root) {
 	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. docsStyle;
 	var header = Widget("div", [
 		toolbar,
-		`<h1>Conductance docs</h1>`
+//		`<h1>Conductance docs</h1>`
 	])
 		.. Class("header");
 
+  var hint;
+  if (!window.localStorage || !window.localStorage['search-hint-shown'])
+    hint =  `<div class='alert alert-warning'>Hint: You can press '/' to search the reference<a class='close' href='#'>&times;</a></div>` .. Mechanism(function(node) {
+    node.querySelector('a') .. events.wait('click');
+    if (window.localStorage) 
+      window.localStorage['search-hint-shown'] = true;
+    node.remove();
+  });
+
+
 	var toplevel = Widget("div", [
 		sidebar,
+    hint,
 		header,
 		breadcrumbs,
 		mainDisplay,
-		loadingWidget,
+		loadingWidget
 	], {'class':'documentationRoot'})
 	.. mainStyle
 	.. searchStyle;
@@ -193,8 +204,8 @@ exports.main = function(root) {
 					To try again, reload the page or start over:
 				</p>
 				<p>
-					<button class="reload">Reload page</button>
-					<button class="restart">Start over</button>
+					<button class="reload btn">Reload page</button>
+					<button class="restart btn">Start over</button>
 				</p>
 			`, {"class":"error-contents"})) {|elem|
 				window.scrollTo(0,0);

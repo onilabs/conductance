@@ -199,8 +199,8 @@ exports.run = (function() {
 			};
 
 			var widget = Widget("div", `
-				<input type="text" value="${lastQuery ? lastQuery}"></input>
-				<a class="reset" style="position:absolute; top:0; right:5px;">&#x2A2F;</a>
+				<input type="text" class='form-control' value="${lastQuery ? lastQuery}"></input>
+				<a class="reset" style="position:absolute; top:0; right:10px;">&times;</a>
 				<div>
 					${resultWidget}
 				</div>
