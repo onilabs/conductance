@@ -1,4 +1,4 @@
-var { map, join, toArray } = require('sjs:sequence');
+var { each, map, join, toArray } = require('sjs:sequence');
 
 /*
 A coarse CSS parser, parsing into an array BLOCK, which takes elements:
@@ -77,55 +77,71 @@ __js function parseCSSBlocks(src) {
 //----------------------------------------------------------------------
 // scope: Apply a parent selector to a block of css
 
-__js function scope(css, parent_class) {
-  if (parent_class) 
-    parent_class = ".#{parent_class}";
+__js var prefixWith = function(selectorStr, prefixes) {
+  selectorStr = selectorStr.trim();
+  var rv = [];
+
+  selectorStr.split(",") .. each(function(sel) {
+    sel = sel.trim();
+    if (sel.length === 0) return;
+    if (prefixes.length) {
+      prefixes .. each(function(prefix) {
+        // fold prefixes into selector; if selector starts with
+        // '&' append without space (e.g. a class selector that
+        // should apply to the top-level)
+        if(sel.charAt(0) === '&') {
+          rv.push("#{prefix}#{sel.substr(1)}");
+        } else {
+          rv.push("#{prefix} #{sel}");
+        }
+      });
+    } else {
+      rv.push(sel);
+    }
+  });
+  return rv;
+};
+
+function scope(css, parent_class) {
+  var prefixes;
+  if (parent_class)
+    prefixes = [".#{parent_class}"];
   else
-  parent_class = '';
+    prefixes = [];
 
   var blocks = parseCSSBlocks(css);
 
-  function processBlock(block, lvl, prefix) {
+  function processBlock(block, prefixes) {
     return block .. map(function(elem) {
-      if (!Array.isArray(elem))
-        return elem; // a decl
-      else {
-        if (lvl)
-          throw new Error("Invalid CSS: invalid nesting of '#{elem[0]}{#{elem[1].join(' ')}}'");
-
+      if (!Array.isArray(elem)) {
+        return "#{prefixes .. join(", ")} { #{elem} }"; // a decl
+      } else {
         if (elem[0].charAt(0) != '@') {
-          // fold prefix into selector; if selector starts with
-          // '&' append without space (e.g. a class selector that
-          // should apply to the top-level)
-          elem[0] = elem[0].split(',') ..
-            map(s -> /\s*\&/.test(s) ? 
-                "#{prefix}#{s.trim().substr(1)}" :
-                "#{prefix} #{s}") ..
-            join(',');
-          return "#{elem[0]} { #{processBlock(elem[1], lvl+1, prefix)} }";
+          var childPrefixes = elem[0] .. prefixWith(prefixes);
+          return processBlock(elem[1], childPrefixes);
         }
         else if (elem[0].indexOf('@global') === 0) {
           // apply style globally (i.e. don't fold in prefix
-          return processBlock(elem[1], lvl, '');
+          return processBlock(elem[1], []);
         }
         else if (elem[0].indexOf('keyframes') !== -1) {
           //@keyframes or similar .. don't apply prefix
-          return "#{elem[0]} { #{processBlock(elem[1], lvl, prefix)} }";
+          return "#{elem[0]} { #{processBlock(elem[1], prefixes)} }";
         }
         else {
           // generic '@'-rule (maybe a media query)
-          return "#{elem[0]} { #{processBlock(elem[1], lvl, prefix)} }";
+          return "#{elem[0]} { #{processBlock(elem[1], prefixes)} }";
         }
       }
     }) .. join('\n');
   }
 
-  return processBlock(blocks, 0, parent_class);
+  return processBlock(blocks, prefixes);
 }
 exports.scope = scope;
 
 //----------------------------------------------------------------------
-// color arithmetic 
+// color arithmetic
 
 // partially derived from code by the less.js project (http://lesscss.org/), which
 // is licensed under the Apache License V 2.0

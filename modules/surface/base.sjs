@@ -440,7 +440,7 @@ __js function InternalStyleDef(content, parent_class, mech) {
             }
 
       - A scope prefixed with `&` will be rolled into the
-        root selector - e.g the following will add a border
+        parent selector - e.g the following will add a border
         to the root element only when it also has the `border` class.
 
             &.border {
@@ -454,6 +454,24 @@ __js function InternalStyleDef(content, parent_class, mech) {
             @global {
               img {
                 border: none;
+              }
+            }
+
+      - indented blocks will be flattened, much like [LESS](http://lesscss.org/)
+        e.g:
+      
+            .post {
+              // applies to ".post"
+              position: relative;
+
+              h1 {
+                // flattened to ".post h1"
+                font-weight: 20pt;
+              }
+
+              p, pre {
+                // flattened to ".post p, .post pre"
+                margin: 0 20px;
               }
             }
 
