@@ -535,7 +535,12 @@ function BridgeConnection(transport, opts) {
           }
           retract {
             //logging.debug("call #{call_no} (#{method}) retracted");
-            if(transport) spawn transport.send(marshall(['abort', call_no], connection));
+            if(transport) spawn (function() { 
+              try {
+                transport.send(marshall(['abort', call_no], connection));
+              }
+              catch(e) { /* ignore; transport is dead */ }
+            })();
           }
           finally {
             //logging.debug("deleting call responder #{call_no} (#{method})");
