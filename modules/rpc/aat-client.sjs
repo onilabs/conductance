@@ -260,11 +260,13 @@ function openTransport(server) {
       if (!this.closed) {
         this.closed = true;
         if (transport_id_suffix.length) {
-          try {
-            http.post([
-              server, SERVER_PATH, AAT_VERSION,
-              { cmd: "close#{transport_id_suffix}" } ]);
-          } catch (e) { /* close is a courtesy; ignore errors */ }
+          spawn (function() {
+            try {
+              http.post([
+                server, SERVER_PATH, AAT_VERSION,
+                { cmd: "close#{transport_id_suffix}" } ]);
+            } catch (e) { /* close is a courtesy; ignore errors */ }
+          })();
         }
       }
       this.active = false;
