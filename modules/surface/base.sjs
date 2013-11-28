@@ -303,11 +303,11 @@ __js WidgetProto._normalizeClasses = function() {
 __js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : String(val);
 
 WidgetProto.appendTo = function(target) {
-  target.content += "<#{this.tag} #{
-            propertyPairs(this.attribs) ..
-            map([key,val] -> "#{key}=\"#{flattenAttrib(val).replace(/\"/g, '&quot;')}\"") ..
-            join(' ')
-          }>";
+  var attribs = propertyPairs(this.attribs)
+    .. map([key,val] -> "#{key}=\"#{flattenAttrib(val).replace(/\"/g, '&quot;')}\"")
+    .. join(' ');
+
+  target.content += "<#{this.tag} #{attribs}>";
   this._appendInner(target);
   target.content += "</#{this.tag}>";
 };

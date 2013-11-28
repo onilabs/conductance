@@ -53,6 +53,91 @@ module.exports = require(modules);
 @inherit ::CollapsedFragment
 @summary A [::HtmlFragment] rooted in a single HTML element
 
+@function Widget
+@param {String} [tag]
+@param {::HtmlFragment} [content]
+@param {optional Object} [attributes]
+@return {::Widget}
+
+@function isWidget
+@param {Object} [widget]
+@return {Boolean}
+
+@function ensureWidget
+@param {::HtmlFragment}
+@return {::Widget}
+@summary Wrap a [::HtmlFragment] in a [::Widget], if it isn't already one.
+
+@function cloneWidget
+@param {::Widget} [widget]
+@return {::Widget}
+@summary Clone `widget`
+
+@function Style
+@param {optional ::Widget} [widget]
+@param {String} [style]
+@return {::Widget|Function}
+@summary Add CSS style to a widget
+@desc
+  Style should be a CSS string, which will be automatically
+  scoped to all instances of the given widget.
+
+  The following additional syntax is supported:
+
+    - A non-scoped block will apply to the root element
+      of this widget. e.g:
+      
+          {
+            position: absolute;
+          }
+
+    - A scope prefixed with `&` will be rolled into the
+      parent selector - e.g the following will add a border
+      to the root element only when it also has the `border` class.
+
+          &.border {
+            border: 10px solid red;
+          }
+
+    - A `@global` block applies the given rules globally,
+      rather than scoping them to this widget.
+      e.g :
+        
+          @global {
+            img {
+              border: none;
+            }
+          }
+
+    - indented blocks will be flattened, much like [LESS](http://lesscss.org/)
+      e.g:
+    
+          .post {
+            // applies to ".post"
+            position: relative;
+
+            h1 {
+              // flattened to ".post h1"
+              font-weight: 20pt;
+            }
+
+            p, pre {
+              // flattened to ".post p, .post pre"
+              margin: 0 20px;
+            }
+          }
+
+  If `style` is an Observable (or a [sjs:quasi::Quasi] containing
+  any observable values), the style will be recomputed and updated
+  whenever any of the composite observable values changes.
+
+  If `widget` is not provided, `Style` will
+  return a cached style function which can later be
+  called on a [::Widget] to apply the given style.
+  When reusing styles, it is more efficient to create an
+  intermediate `Style` function in this way, because it
+  ensures that underlying <style> elements are re-used.
+
 @function RequireStyle
 @param {::Widget} [widget]
 @param {String} [url]
