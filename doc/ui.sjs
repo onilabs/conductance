@@ -68,6 +68,8 @@ LOADING.block = function(b) {
 	}
 };
 
+var propertySortKey = ([key, value]) -> key.toLowerCase();
+
 exports.renderer = function(libraries, rootSymbol) {
 	// we keep `libraries` and `rootSymbol` in scope, to prevent passing it around to everything
 
@@ -305,7 +307,7 @@ exports.renderer = function(libraries, rootSymbol) {
 
 	function accumulateByType(obj, mapFn) {
 		var rv = {};
-		obj .. ownPropertyPairs .. each {
+		obj .. ownPropertyPairs .. sortBy(propertySortKey) .. each {
 			|[name, val]|
 			var type = val.type;
 			if (val['static']) type = 'static-'+type;
@@ -414,7 +416,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		return docs.children
 		.. ownPropertyPairs
 		.. filter(prop -> getType(prop) != 'ctor')
-		.. sortBy(getType)
+		.. sortBy(propertySortKey)
 		.. map(function([name, val]) {
 				var [href, name] = parent.childLink(name, val);
 				if (symbol && name == symbol.name) {
