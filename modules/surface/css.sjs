@@ -1,4 +1,4 @@
-var { each, map, join, toArray } = require('sjs:sequence');
+var { transform, each, map, join, toArray } = require('sjs:sequence');
 
 /*
 A coarse CSS parser, parsing into an array BLOCK, which takes elements:
@@ -77,67 +77,118 @@ __js function parseCSSBlocks(src) {
 //----------------------------------------------------------------------
 // scope: Apply a parent selector to a block of css
 
-__js var prefixWith = function(selectorStr, prefixes) {
-  selectorStr = selectorStr.trim();
-  var rv = [];
+__js var scope = (function() {
+  var prefixWith = function(selectorStr, prefixes) {
+    selectorStr = selectorStr.trim();
+    if (!selectorStr.length) return prefixes;
+    var rv = [];
 
-  selectorStr.split(",") .. each(function(sel) {
-    sel = sel.trim();
-    if (sel.length === 0) return;
-    if (prefixes.length) {
-      prefixes .. each(function(prefix) {
-        // fold prefixes into selector; if selector starts with
-        // '&' append without space (e.g. a class selector that
-        // should apply to the top-level)
-        if(sel.charAt(0) === '&') {
-          rv.push("#{prefix}#{sel.substr(1)}");
-        } else {
-          rv.push("#{prefix} #{sel}");
-        }
-      });
-    } else {
-      rv.push(sel);
-    }
-  });
-  return rv;
-};
-
-__js function scope(css, parent_class) {
-  var prefixes;
-  if (parent_class)
-    prefixes = [".#{parent_class}"];
-  else
-    prefixes = [];
-
-  var blocks = parseCSSBlocks(css);
-
-  function processBlock(block, prefixes) {
-    return block .. map(function(elem) {
-      if (!Array.isArray(elem)) {
-        return "#{prefixes .. join(", ")} { #{elem} }"; // a decl
+    selectorStr.split(",") .. each(function(sel) {
+      sel = sel.trim();
+      if (sel.length === 0) return;
+      if (prefixes.length) {
+        prefixes .. each(function(prefix) {
+          // fold prefixes into selector; if selector starts with
+          // '&' append without space (e.g. a class selector that
+          // should apply to the top-level)
+          if(sel.charAt(0) === '&') {
+            rv.push("#{prefix}#{sel.substr(1)}");
+          } else {
+            rv.push("#{prefix} #{sel}");
+          }
+        });
       } else {
-        if (elem[0].charAt(0) != '@') {
-          var childPrefixes = elem[0] .. prefixWith(prefixes);
-          return processBlock(elem[1], childPrefixes);
-        }
-        else if (elem[0].indexOf('@global') === 0) {
-          // apply style globally (i.e. don't fold in prefix
-          return processBlock(elem[1], []);
-        }
-        else if (elem[0].indexOf('keyframes') !== -1) {
-          //@keyframes or similar .. don't apply prefix
-          return "#{elem[0]} { #{processBlock(elem[1], prefixes)} }";
-        }
-        else {
-          // generic '@'-rule (maybe a media query)
-          return "#{elem[0]} { #{processBlock(elem[1], prefixes)} }";
-        }
+        rv.push(sel);
       }
-    }) .. join('\n');
+    });
+    return rv;
+  };
+
+  var addRule = function(parent, rule) {
+    if (!parent.rules)
+      throw new Error("Unexpected CSS rule: #{rule}");
+    parent.rules.push(rule);
   }
 
-  return processBlock(blocks, prefixes);
-}
+  var addBlock = function(parent, selectors) {
+    var rv = {
+      selectors: selectors,
+      rules: [],
+    }
+    parent.children.push(rv);
+    return rv;
+  }
+
+  var addScope = function(root, prefix) {
+    var rv = {
+      prefix: prefix,
+      selectors: root.selectors,
+      children: [],
+    };
+    root.children.push(rv);
+    return rv;
+  }
+
+  var format = function(scope) {
+    if (scope.rules) {
+      // plain block
+      if (!scope.rules.length) return "";
+      return "#{scope.selectors .. join(", ")} {\n#{scope.rules .. join("\n")}\n}";
+    }
+    
+    // otherwise: scope with nested children
+    if (!scope.children.length) return "";
+    var content = scope.children .. transform(format) .. join("\n");
+    if (scope.prefix) {
+      content = "#{scope.prefix} {\n#{content}\n}";
+    }
+    return content;
+  };
+
+  return function(css, parent_class) {
+    var blocks = parseCSSBlocks(css);
+    var toplevel = {
+      selectors: [],
+      children: []
+    };
+
+    var parent = toplevel;
+    if (parent_class)
+      parent = toplevel .. addBlock([".#{parent_class}"]);
+
+    function processBlock(block, parent, root) {
+      // parent is the logical parent block or scope
+      // (in terms of the source), while
+      // scope is the actual resulting CSS scope
+      // (generally this is toplevel, unless we're in
+      // an actual CSS block like @media etc).
+      var prefixes = parent.selectors || [];
+      block .. each(function(elem) {
+        if (!Array.isArray(elem)) {
+          parent .. addRule(elem);
+        } else {
+          if (elem[0].charAt(0) != '@') {
+            var selectors = elem[0] .. prefixWith(parent.selectors)
+            if (!selectors.length) throw new Error("unscoped CSS block");
+            processBlock(elem[1], root .. addBlock(selectors), root);
+          }
+          else if (elem[0].indexOf('@global') === 0) {
+            // apply style globally (i.e. don't include parent selectors
+            processBlock(elem[1], toplevel, root);
+          }
+          else {
+            // @keyframes or generic '@'-rule (maybe a media query)
+            // don't modify selectors, just scope it:
+            var childScope = root .. addScope(elem[0]);
+            processBlock(elem[1], parent, childScope);
+          }
+        }
+      });
+    };
+    processBlock(blocks, parent, toplevel);
+    return format(toplevel);
+  }
+})();
 exports.scope = scope;
 
 //----------------------------------------------------------------------
