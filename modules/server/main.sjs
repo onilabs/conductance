@@ -95,7 +95,7 @@ exports.run = function(args) {
     });
   }
 
-  var usage = function() {
+  var usage = function(exitcode) {
     console.warn("Usage: conductance [-v|--verbose|-q|--quiet] [<file>|<action>] ...");
     console.warn();
     actions .. each {|a|
@@ -103,7 +103,7 @@ exports.run = function(args) {
       console.warn("#{a.name .. str.padLeft(10)} #{args .. str.padRight(13)} : #{a.desc}");
     }
     console.warn("\nRun `conductance <action> --help` for more specific help.\n");
-    return process.exit(1);
+    return process.exit(exitcode === undefined ? 1 : exitcode);
   }
 
   var command;
@@ -115,7 +115,7 @@ exports.run = function(args) {
 
     if(command == '-h' || command == '--help') {
       printBanner();
-      return usage();
+      return usage(0);
     } else if (/^-v+$/.test(command)) {
       verbosity += command.length - 1;
     } else if (/^-q+$/.test(command)) {
@@ -148,7 +148,7 @@ exports.run = function(args) {
   if (!action) {
     printBanner();
     if (command) {
-      console.error("Unknown command: " + command + "\n");
+      logging.error("Unknown command: " + command + "\n");
     }
     return usage();
   }

@@ -104,8 +104,8 @@ var parseArgs = function(command, options, args) {
 	var parser = dashdash.createParser({ options: options });
 	var opts = parser.parse(args);
 	if (opts.help) {
-		logging.error("Usage: conductance systemd #{command} [OPTIONS]\nOPTIONS:\n#{parser.help()}");
-		throw new Error();
+		logging.print("Usage: conductance systemd #{command} [OPTIONS]\nOPTIONS:\n#{parser.help()}");
+		process.exit(0);
 	}
 	if (!opts.dest) {
 		// default to system location
@@ -710,9 +710,7 @@ exports.main = function(args) {
 			break;
 
 		default:
-			var msg = command ? "Unknown command: #{command}" : "No command given";
-			fail("#{msg}\n
-Commands:
+			var usage = "Commands:
   SYSTEM MODIFICATION:
     install:    Install units from one or more .mho config files.
                 Also removes previously-installed units that are
@@ -733,7 +731,15 @@ Commands:
 
 Global options:\n#{dashdash.createParser({ options: commonOptions }).help({indent:2})}
 
-Pass `--help` after a valid command to show command-specific help.");
+Pass `--help` after a valid command to show command-specific help.";
+
+			if (command == "--help" || command == "-h") {
+				logging.print(usage);
+				process.exit(0);
+			} else {
+				var msg = command ? "Unknown command: #{command}" : "No command given";
+				fail("#{msg}\n\n#{usage}");
+			}
 			break;
 	}
 	var opts = parseArgs(command, options, args);
