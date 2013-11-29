@@ -6,12 +6,18 @@
 */
 
 @ = require('sjs:std');
-var { @generateDocDescription } = require('sjs:../tools/document-stdlib');
+var documentStdlibModule = require.resolve('sjs:../tools/document-stdlib').path;
+var stdlibPath = require.resolve('sjs:std').path .. @url.toPath;
 
+@childProcess.run('gup', ['-u',
+  stdlibPath,
+  documentStdlibModule .. @url.toPath,
+  'surface.sjs',
+], {'stdio':'inherit'});
+
+var { @generateDocDescription } = require(documentStdlibModule);
 var [outputFile,] = @argv();
 
-var stdlibPath = require.resolve('sjs:std').path .. @url.toPath;
-@childProcess.run('gup', ['-u', stdlibPath, 'surface.sjs'], {'stdio':'inherit'});
 var baseStdlibContents = @fs.readFile(stdlibPath, 'utf-8').replace(/module\.exports *=(.|[\n\r])*/g, '');
 var stdlibContents = (baseStdlibContents + "
 /**
@@ -53,9 +59,6 @@ module to access common functionality in a single line:
     @ = require('mho:stdlib');
 
 (see also: [sjs:#language/syntax::@altns])
-
-Below are a list of the symbols exposed in this module, with
-links to the symbol's original module.
 ");
 
 var output = "
