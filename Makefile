@@ -6,11 +6,9 @@ all: phony ${GUP}
 %: phony ${GUP}
 	@+${GUP} $@
 
-${GUP}: phony
-	@+${GUP} -q -u ${GUP}
-
-# remove explicit Makefile rule
+# remove rules that would otherwise be recursive:
 Makefile: ;
+${GUP}: ;
 
 # hacky target to list all known targets
 # (doesn't count wildcard targets, but you don't usually make those manually)

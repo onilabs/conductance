@@ -59,10 +59,10 @@ class _ColorFilter(logging.Filter):
 
 _log_color_filter = _ColorFilter()
 
-TRACE = 5
+TRACE_LVL = 5
 def _log_trace(_self, message, *args, **kws):
-	_self.log(TRACE, message, *args, **kws)
-logging.addLevelName(TRACE, "TRACE")
+	_self.log(TRACE_LVL, message, *args, **kws)
+logging.addLevelName(TRACE_LVL, "TRACE")
 logging.Logger.trace = _log_trace
 
 def getLogger(*a):
@@ -73,8 +73,10 @@ def getLogger(*a):
 
 
 ## --- var.py --- ##
-import os
+import os, sys
 import time
+
+IS_WINDOWS = sys.platform.startswith('win')
 
 INDENT = os.environ.get('GUP_INDENT', '')
 os.environ['GUP_INDENT'] = INDENT + '  '
@@ -92,10 +94,10 @@ def init_root(is_root):
 
 init_root('GUP_ROOT' not in os.environ)
 
-TRACE = os.environ.get('GUP_XTRACE', '0') == '1'
+XTRACE = os.environ.get('GUP_XTRACE', '0') == '1'
 def set_trace():
-	global TRACE
-	TRACE = True
+	global XTRACE
+	XTRACE = True
 	os.environ['GUP_XTRACE'] = '1'
 
 DEFAULT_VERBOSITY = int(os.environ.get('GUP_VERBOSE', '0'))
@@ -125,7 +127,6 @@ class Unbuildable(SafeError):
 import os
 import errno
 import logging
-log = getLogger('gup.main')
 
 
 def mkdirp(p):
@@ -152,370 +153,423 @@ def try_remove(path):
 	except OSError as e:
 		if e.errno != errno.ENOENT: raise
 
-def close_on_exec(fd, yes):
+try:
+	samefile = os.path.samefile
+except AttributeError:
+	# Windows
+	def samefile(path1, path2):
+		return os.path.normcase(os.path.normpath(path1)) == \
+		       os.path.normcase(os.path.normpath(path2))
+
+if IS_WINDOWS:
+	def rename(src, dest):
+		assert not os.path.isdir(dest)
+		if os.path.exists(dest):
+			os.remove(dest)
+		os.rename(src, dest)
+else:
+	rename = os.rename
+
+## --- parallel.py --- ##
+_parallel_log = getLogger('gup.parallel')
+
+try:
 	import fcntl
-	fl = fcntl.fcntl(fd, fcntl.F_GETFD)
-	fl &= ~fcntl.FD_CLOEXEC
-	if yes:
-		fl |= fcntl.FD_CLOEXEC
-	fcntl.fcntl(fd, fcntl.F_SETFD, fl)
+except ImportError:
+	_parallel_log.debug("fcntl not available - falling back to serial execution mode")
+	jwack_fallback = True
+	def _setup_jobserver(maxjobs): pass
+	def _start_job(jobfunc, donefunc):
+		# execute immediately
+		jobfunc()
+		donefunc(0)
+	def _wait_all(): pass
+	def _extend_build_env(env): pass
+
+	class NoopContext:
+		def __enter__(self): pass
+		def __exit__(self, type, value, traceback): pass
+	_noop_context = NoopContext()
+
+	class _Lock(object):
+		def __init__(self, name): pass
+		def read(self): return _noop_context
+		def write(self): return _noop_context
+
+	#XXX workaround for pychecker complaining
+	# about symbol redefinition even though they're
+	# in a separate if / else branch
+	globs = globals()
+	globs['setup_jobserver'] = _setup_jobserver
+	globs['start_job'] = _start_job
+	globs['wait_all'] = _wait_all
+	globs['extend_build_env'] = _extend_build_env
+	globs['Lock'] = _Lock
+else:
+	jwack_fallback = False
+	import os, errno, select, signal
+
+	_toplevel = 0
+	_mytokens = 1
+	_fds = None
+	_waitfds = {}
+	_makeflags = None
 
 
+	def _close_on_exec(fd, yes):
+		fl = fcntl.fcntl(fd, fcntl.F_GETFD)
+		fl &= ~fcntl.FD_CLOEXEC
+		if yes:
+			fl |= fcntl.FD_CLOEXEC
+		fcntl.fcntl(fd, fcntl.F_SETFD, fl)
 
-## --- jwack.py --- ##
-import os, errno, select, fcntl, signal
-
-_jwack_toplevel = 0
-_jwack_mytokens = 1
-_jwack_fds = None
-_jwack_waitfds = {}
-_jwack_makeflags = None
-
-def atoi(v):
-    try:
-        return int(v or 0)
-    except ValueError:
-        return 0
-
-
-def _jwack_debug(s):
-    if 0:
-        import sys
-        sys.stderr.write('jwack#%d: %s\n' % (os.getpid(),s))
-
-
-def _jwack_release(n):
-    global _jwack_mytokens
-    _jwack_debug('release(%d)' % n)
-    _jwack_mytokens += n
-    if _jwack_mytokens > 1:
-        os.write(_jwack_fds[1], 't' * (_jwack_mytokens-1))
-        _jwack_mytokens = 1
-
-
-def _jwack_release_mine():
-    global _jwack_mytokens
-    assert(_jwack_mytokens >= 1)
-    os.write(_jwack_fds[1], 't')
-    _jwack_mytokens -= 1
-
-
-def _jwack_timeout(sig, frame):
-    pass
-
-
-def _jwack_make_pipe(startfd):
-    (a,b) = os.pipe()
-    fds = (fcntl.fcntl(a, fcntl.F_DUPFD, startfd),
-            fcntl.fcntl(b, fcntl.F_DUPFD, startfd+1))
-    os.close(a)
-    os.close(b)
-    return fds
-
-
-def _jwack_try_read(fd, n):
-    # using djb's suggested way of doing non-blocking reads from a blocking
-    # socket: http://cr.yp.to/unix/nonblock.html
-    # We can't just make the socket non-blocking, because we want to be
-    # compatible with GNU Make, and they can't handle it.
-    r,w,x = select.select([fd], [], [], 0)
-    if not r:
-        return ''  # try again
-    # ok, the socket is readable - but some other process might get there
-    # first.  We have to set an alarm() in case our read() gets stuck.
-    oldh = signal.signal(signal.SIGALRM, _jwack_timeout)
-    try:
-        signal.alarm(1)  # emergency fallback
-        try:
-            b = os.read(_jwack_fds[0], 1)
-        except OSError, e:
-            if e.errno in (errno.EAGAIN, errno.EINTR):
-                # interrupted or it was nonblocking
-                return ''  # try again
-            else:
-                raise
-    finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, oldh)
-    return b and b or None  # None means EOF
-
-
-def extend_build_env(env):
-    if _jwack_makeflags:
-        _jwack_debug("setting MAKEFLAGS=%s" % (_jwack_makeflags,))
-        env['MAKEFLAGS'] = _jwack_makeflags
-    else:
-        _jwack_debug('extend_env: no MAKEFLAGS!')
-
-def setup_jobserver(maxjobs):
-    "Start the job server"
-    global _jwack_fds, _jwack_toplevel, _jwack_makeflags
-    if _jwack_fds:
-        _jwack_debug("already set up")
-        return  # already set up
-    _jwack_debug('setup_jobserver(%d)' % maxjobs)
-    flags = ' ' + os.getenv('MAKEFLAGS', '') + ' '
-    FIND = ' --jobserver-fds='
-    ofs = flags.find(FIND)
-    if ofs >= 0:
-        s = flags[ofs+len(FIND):]
-        (arg,junk) = s.split(' ', 1)
-        (a,b) = arg.split(',', 1)
-        a = atoi(a)
-        b = atoi(b)
-        if a <= 0 or b <= 0:
-            raise ValueError('invalid --jobserver-fds: %r' % arg)
-        try:
-            fcntl.fcntl(a, fcntl.F_GETFL)
-            fcntl.fcntl(b, fcntl.F_GETFL)
-        except IOError, e:
-            if e.errno == errno.EBADF:
-                log.debug("--jobserver-fds error (flags=%r, a=%r, b=%r)", flags, a, b, exc_info=True)
-                raise ValueError('broken --jobserver-fds from make; prefix your Makefile rule with a "+"')
-            else:
-                raise
-        _jwack_fds = (a,b)
-    if maxjobs and not _jwack_fds:
-        # need to start a new server
-        _jwack_debug("new jobserver! %s" % (maxjobs))
-        _jwack_toplevel = maxjobs
-        _jwack_fds = _jwack_make_pipe(100)
-        _jwack_release(maxjobs-1)
-        _jwack_makeflags = (
-            '%s --jobserver-fds=%d,%d -j'
-            % (os.getenv('MAKEFLAGS'), _jwack_fds[0], _jwack_fds[1]))
-
-
-def wait(want_token):
-    rfds = _jwack_waitfds.keys()
-    if _jwack_fds and want_token:
-        rfds.append(_jwack_fds[0])
-    assert(rfds)
-    r,w,x = select.select(rfds, [], [])
-    _jwack_debug('_jwack_fds=%r; wfds=%r; readable: %r' % (_jwack_fds, _jwack_waitfds, r))
-    for fd in r:
-        if _jwack_fds and fd == _jwack_fds[0]:
-            pass
-        else:
-            pd = _jwack_waitfds[fd]
-            _jwack_debug("done: %r" % pd.name)
-            _jwack_release(1)
-            os.close(fd)
-            del _jwack_waitfds[fd]
-            rv = os.waitpid(pd.pid, 0)
-            assert(rv[0] == pd.pid)
-            _jwack_debug("done1: rv=%r" % (rv,))
-            rv = rv[1]
-            if os.WIFEXITED(rv):
-                pd.rv = os.WEXITSTATUS(rv)
-            else:
-                pd.rv = -os.WTERMSIG(rv)
-            _jwack_debug("done2: rv=%d" % pd.rv)
-            pd.donefunc(pd.name, pd.rv)
-
-
-def _jwack_has_token():
-    "Return True if we have one or more tokens available"
-    if _jwack_mytokens >= 1:
-        return True
-
-
-def _jwack_get_token(reason):
-    "Ensure we have one token available."
-    global _jwack_mytokens
-    assert(_jwack_mytokens <= 1)
-    setup_jobserver(1)
-    while 1:
-        if _jwack_mytokens >= 1:
-            _jwack_debug("_jwack_mytokens is %d" % _jwack_mytokens)
-            assert(_jwack_mytokens == 1)
-            _jwack_debug('(%r) used my own token...' % reason)
-            break
-        assert(_jwack_mytokens < 1)
-        _jwack_debug('(%r) waiting for tokens...' % reason)
-        wait(want_token=1)
-        if _jwack_mytokens >= 1:
-            break
-        assert(_jwack_mytokens < 1)
-        if _jwack_fds:
-            b = _jwack_try_read(_jwack_fds[0], 1)
-            if b == None:
-                raise Exception('unexpected EOF on token read')
-            if b:
-                _jwack_mytokens += 1
-                _jwack_debug('(%r) got a token (%r).' % (reason, b))
-                break
-    assert(_jwack_mytokens <= 1)
-
-
-def _jwack_running():
-    "Tell if jobs are running"
-    return len(_jwack_waitfds)
-
-
-def wait_all():
-    "Wait for all jobs to be finished"
-    _jwack_debug("wait_all")
-    while _jwack_running():
-        while _jwack_mytokens >= 1:
-            _jwack_release_mine()
-        _jwack_debug("wait_all: wait()")
-        wait(want_token=0)
-    _jwack_debug("wait_all: empty list")
-    _jwack_get_token('self')  # get my token back
-    if _jwack_toplevel:
-        bb = ''
-        while 1:
-            b = _jwack_try_read(_jwack_fds[0], 8192)
-            bb += b
-            if not b: break
-        if len(bb) != _jwack_toplevel-1:
-            raise Exception('on exit: expected %d tokens; found only %r'
-                            % (_jwack_toplevel-1, len(bb)))
-        os.write(_jwack_fds[1], bb)
-
-
-def _jwack_force_return_tokens():
-    n = len(_jwack_waitfds)
-    if n:
-        _jwack_debug('%d tokens left in force_return_tokens' % n)
-    _jwack_debug('returning %d tokens' % n)
-    for k in _jwack_waitfds.keys():
-        del _jwack_waitfds[k]
-    if _jwack_fds:
-        _jwack_release(n)
-
-
-def _jwack_pre_job(r, w, pfn):
-    os.close(r)
-    if pfn:
-        pfn()
-
-
-class Job:
-    def __init__(self, name, pid, donefunc):
-        self.name = name
-        self.pid = pid
-        self.rv = None
-        self.donefunc = donefunc
-
-    def __repr__(self):
-        return 'Job(%s,%d)' % (self.name, self.pid)
-
-
-def start_job(reason, jobfunc, donefunc):
-    """
-    Start a job
-    jobfunc:  executed in the child process
-    doncfunc: executed in the parent process during a wait or wait_all call
-    """
-    global _jwack_mytokens
-    assert(_jwack_mytokens <= 1)
-    _jwack_get_token(reason)
-    assert(_jwack_mytokens >= 1)
-    assert(_jwack_mytokens == 1)
-    _jwack_mytokens -= 1
-    r,w = _jwack_make_pipe(50)
-    pid = os.fork()
-    if pid == 0:
-        # child
-        os.close(r)
-        rv = 201
-        #TODO: remove logging handlers when run in tests
-        try:
-            try:
-                rv = jobfunc() or 0
-                _jwack_debug('jobfunc completed (%r, %r)' % (jobfunc,rv))
-            except SafeError as e:
-                log.error("%s" % (str(e),))
-                rv = SafeError.exitcode
-            except KeyboardInterrupt:
-                rv = SafeError.exitcode
-            except Exception:
-                import traceback
-                traceback.print_exc()
-                rv = UNKNOWN_ERROR_CODE
-        finally:
-            _jwack_debug('exit: %d' % rv)
-            os._exit(rv)
-    close_on_exec(r, True)
-    os.close(w)
-    pd = Job(reason, pid, donefunc)
-    _jwack_waitfds[r] = pd
-
-## --- lock.py --- ##
-import os, errno, fcntl
-import logging
-
-debug = log.trace
-
-class LockHelper:
-	def __init__(self, lock, kind):
-		self.lock = lock
-		self.kind = kind
-
-	def __enter__(self):
-		self.oldkind = self.lock.owned
-		if self.kind != self.oldkind:
-			self.lock.waitlock(self.kind)
-
-	def __exit__(self, type, value, traceback):
-		if self.kind == self.oldkind:
-			pass
-		elif self.oldkind:
-			self.lock.waitlock(self.oldkind)
-		else:
-			self.lock.unlock()
-
-LOCK_EX = fcntl.LOCK_EX
-LOCK_SH = fcntl.LOCK_SH
-
-class Lock:
-	def __init__(self, name):
-		self.owned = False
-		self.name  = name
-		self.lockfile = os.open(self.name, os.O_RDWR | os.O_CREAT, 0666)
-		close_on_exec(self.lockfile, True)
-		self.shared = fcntl.LOCK_SH
-		self.exclusive = fcntl.LOCK_EX
-
-	def __del__(self):
-		if self.owned:
-			self.unlock()
-		os.close(self.lockfile)
-
-	def read(self):
-		return LockHelper(self, fcntl.LOCK_SH)
-
-	def write(self):
-		return LockHelper(self, fcntl.LOCK_EX)
-
-	def trylock(self, kind=fcntl.LOCK_EX):
-		assert(self.owned != kind)
+	def atoi(v):
 		try:
-			fcntl.lockf(self.lockfile, kind|fcntl.LOCK_NB, 0, 0)
-		except IOError, e:
-			if e.errno in (errno.EAGAIN, errno.EACCES):
-				debug("%s lock failed", self.name)
-				pass  # someone else has it locked
-			else:
-				raise
+			return int(v or 0)
+		except ValueError:
+			return 0
+
+
+	def _debug(s):
+		if 0:
+			import sys
+			sys.stderr.write('jwack#%d: %s\n' % (os.getpid(),s))
+
+
+	def _release(n):
+		global _mytokens
+		_debug('release(%d)' % n)
+		_mytokens += n
+		if _mytokens > 1:
+			os.write(_fds[1], 't' * (_mytokens-1))
+			_mytokens = 1
+
+
+	def _release_mine():
+		global _mytokens
+		assert(_mytokens >= 1)
+		os.write(_fds[1], 't')
+		_mytokens -= 1
+
+
+	def _timeout(sig, frame):
+		pass
+
+
+	def _make_pipe(startfd):
+		(a,b) = os.pipe()
+		fds = (fcntl.fcntl(a, fcntl.F_DUPFD, startfd),
+				fcntl.fcntl(b, fcntl.F_DUPFD, startfd+1))
+		os.close(a)
+		os.close(b)
+		return fds
+
+
+	def _try_read(fd, n):
+		# using djb's suggested way of doing non-blocking reads from a blocking
+		# socket: http://cr.yp.to/unix/nonblock.html
+		# We can't just make the socket non-blocking, because we want to be
+		# compatible with GNU Make, and they can't handle it.
+		r,w,x = select.select([fd], [], [], 0)
+		if not r:
+			return ''  # try again
+		# ok, the socket is readable - but some other process might get there
+		# first.  We have to set an alarm() in case our read() gets stuck.
+		oldh = signal.signal(signal.SIGALRM, _timeout)
+		try:
+			signal.alarm(1)  # emergency fallback
+			try:
+				b = os.read(_fds[0], 1)
+			except OSError, e:
+				if e.errno in (errno.EAGAIN, errno.EINTR):
+					# interrupted or it was nonblocking
+					return ''  # try again
+				else:
+					raise
+		finally:
+			signal.alarm(0)
+			signal.signal(signal.SIGALRM, oldh)
+		return b and b or None	# None means EOF
+
+
+	def extend_build_env(env):
+		if _makeflags:
+			_debug("setting MAKEFLAGS=%s" % (_makeflags,))
+			env['MAKEFLAGS'] = _makeflags
 		else:
-			debug("%s lock (try)", self.name)
+			_debug('extend_env: no MAKEFLAGS!')
+
+	def setup_jobserver(maxjobs):
+		"Start the job server"
+		global _fds, _toplevel, _makeflags
+		if _fds:
+			_debug("already set up")
+			return	# already set up
+		_debug('setup_jobserver(%d)' % maxjobs)
+		flags = ' ' + os.getenv('MAKEFLAGS', '') + ' '
+		FIND = ' --jobserver-fds='
+		ofs = flags.find(FIND)
+		if ofs >= 0:
+			s = flags[ofs+len(FIND):]
+			(arg,junk) = s.split(' ', 1)
+			(a,b) = arg.split(',', 1)
+			a = atoi(a)
+			b = atoi(b)
+			if a <= 0 or b <= 0:
+				raise ValueError('invalid --jobserver-fds: %r' % arg)
+			try:
+				fcntl.fcntl(a, fcntl.F_GETFL)
+				fcntl.fcntl(b, fcntl.F_GETFL)
+			except IOError, e:
+				if e.errno == errno.EBADF:
+					_parallel_log.debug("--jobserver-fds error (flags=%r, a=%r, b=%r)", flags, a, b, exc_info=True)
+					raise ValueError('broken --jobserver-fds from make; prefix your Makefile rule with a "+"')
+				else:
+					raise
+			_fds = (a,b)
+		if maxjobs and not _fds:
+			# need to start a new server
+			_debug("new jobserver! %s" % (maxjobs))
+			_toplevel = maxjobs
+			_fds = _make_pipe(100)
+			_release(maxjobs-1)
+			_makeflags = (
+				'%s --jobserver-fds=%d,%d -j'
+				% (os.getenv('MAKEFLAGS'), _fds[0], _fds[1]))
+
+
+	def wait(want_token):
+		rfds = _waitfds.keys()
+		if _fds and want_token:
+			rfds.append(_fds[0])
+		assert(rfds)
+		r,w,x = select.select(rfds, [], [])
+		_debug('_fds=%r; wfds=%r; readable: %r' % (_fds, _waitfds, r))
+		for fd in r:
+			if _fds and fd == _fds[0]:
+				pass
+			else:
+				pd = _waitfds[fd]
+				_debug("done: %r" % pd.name)
+				_release(1)
+				os.close(fd)
+				del _waitfds[fd]
+				rv = os.waitpid(pd.pid, 0)
+				assert(rv[0] == pd.pid)
+				_debug("done1: rv=%r" % (rv,))
+				rv = rv[1]
+				if os.WIFEXITED(rv):
+					pd.rv = os.WEXITSTATUS(rv)
+				else:
+					pd.rv = -os.WTERMSIG(rv)
+				_debug("done2: rv=%d" % pd.rv)
+				pd.donefunc(pd.rv)
+
+
+	def _has_token():
+		"Return True if we have one or more tokens available"
+		if _mytokens >= 1:
+			return True
+
+
+	def _get_token(reason):
+		"Ensure we have one token available."
+		global _mytokens
+		assert(_mytokens <= 1)
+		setup_jobserver(1)
+		while 1:
+			if _mytokens >= 1:
+				_debug("_mytokens is %d" % _mytokens)
+				assert(_mytokens == 1)
+				_debug('(%r) used my own token...' % reason)
+				break
+			assert(_mytokens < 1)
+			_debug('(%r) waiting for tokens...' % reason)
+			wait(want_token=1)
+			if _mytokens >= 1:
+				break
+			assert(_mytokens < 1)
+			if _fds:
+				b = _try_read(_fds[0], 1)
+				if b == None:
+					raise Exception('unexpected EOF on token read')
+				if b:
+					_mytokens += 1
+					_debug('(%r) got a token (%r).' % (reason, b))
+					break
+		assert(_mytokens <= 1)
+
+
+	def _running():
+		"Tell if jobs are running"
+		return len(_waitfds)
+
+
+	def wait_all():
+		"Wait for all jobs to be finished"
+		_debug("wait_all")
+		while _running():
+			while _mytokens >= 1:
+				_release_mine()
+			_debug("wait_all: wait()")
+			wait(want_token=0)
+		_debug("wait_all: empty list")
+		_get_token('self')	# get my token back
+		if _toplevel:
+			bb = ''
+			while 1:
+				b = _try_read(_fds[0], 8192)
+				bb += b
+				if not b: break
+			if len(bb) != _toplevel-1:
+				raise Exception('on exit: expected %d tokens; found only %r'
+								% (_toplevel-1, len(bb)))
+			os.write(_fds[1], bb)
+
+
+	def _force_return_tokens():
+		n = len(_waitfds)
+		if n:
+			_debug('%d tokens left in force_return_tokens' % n)
+		_debug('returning %d tokens' % n)
+		for k in _waitfds.keys():
+			del _waitfds[k]
+		if _fds:
+			_release(n)
+
+
+	def _pre_job(r, w, pfn):
+		os.close(r)
+		if pfn:
+			pfn()
+
+
+	class Job:
+		def __init__(self, name, pid, donefunc):
+			self.name = name
+			self.pid = pid
+			self.rv = None
+			self.donefunc = donefunc
+
+		def __repr__(self):
+			return 'Job(%s,%d)' % (self.name, self.pid)
+
+
+	def start_job(jobfunc, donefunc):
+		"""
+		Start a job
+		jobfunc:  executed in the child process
+		doncfunc: executed in the parent process during a wait or wait_all call
+		"""
+		reason = 'build'
+		global _mytokens
+		assert(_mytokens <= 1)
+		_get_token(reason)
+		assert(_mytokens >= 1)
+		assert(_mytokens == 1)
+		_mytokens -= 1
+		r,w = _make_pipe(50)
+		pid = os.fork()
+		if pid == 0:
+			# child
+			os.close(r)
+			rv = 201
+			#TODO: remove logging handlers when run in tests
+			try:
+				try:
+					rv = jobfunc() or 0
+					_debug('jobfunc completed (%r, %r)' % (jobfunc,rv))
+				except SafeError as e:
+					_parallel_log.error("%s" % (str(e),))
+					rv = SafeError.exitcode
+				except KeyboardInterrupt:
+					rv = SafeError.exitcode
+				except Exception:
+					import traceback
+					traceback.print_exc()
+					rv = UNKNOWN_ERROR_CODE
+			finally:
+				_debug('exit: %d' % rv)
+				os._exit(rv)
+		_close_on_exec(r, True)
+		os.close(w)
+		pd = Job(reason, pid, donefunc)
+		_waitfds[r] = pd
+
+
+
+	# FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
+	# doesn't do the lockdata structure in a portable way, so we have to use
+	# fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
+	# ok, but it doesn't have F_GETLK, so we can't report which pid owns the lock.
+	# The makes debugging a bit harder.  When we someday port to C, we can do that.
+	class LockHelper:
+		def __init__(self, lock, kind):
+			self.lock = lock
+			self.kind = kind
+
+		def __enter__(self):
+			self.oldkind = self.lock.owned
+			if self.kind != self.oldkind:
+				self.lock.waitlock(self.kind)
+
+		def __exit__(self, type, value, traceback):
+			if self.kind == self.oldkind:
+				pass
+			elif self.oldkind:
+				self.lock.waitlock(self.oldkind)
+			else:
+				self.lock.unlock()
+
+	LOCK_EX = fcntl.LOCK_EX
+	LOCK_SH = fcntl.LOCK_SH
+
+	class Lock:
+		def __init__(self, name):
+			self.owned = False
+			self.name  = name
+			self.lockfile = os.open(self.name, os.O_RDWR | os.O_CREAT, 0666)
+			_close_on_exec(self.lockfile, True)
+			self.shared = fcntl.LOCK_SH
+			self.exclusive = fcntl.LOCK_EX
+
+		def __del__(self):
+			if self.owned:
+				self.unlock()
+			os.close(self.lockfile)
+
+		def read(self):
+			return LockHelper(self, fcntl.LOCK_SH)
+
+		def write(self):
+			return LockHelper(self, fcntl.LOCK_EX)
+
+		def trylock(self, kind=fcntl.LOCK_EX):
+			assert(self.owned != kind)
+			try:
+				fcntl.lockf(self.lockfile, kind|fcntl.LOCK_NB, 0, 0)
+			except IOError, e:
+				if e.errno in (errno.EAGAIN, errno.EACCES):
+					_parallel_log.trace("%s lock failed", self.name)
+					pass  # someone else has it locked
+				else:
+					raise
+			else:
+				_parallel_log.trace("%s lock (try)", self.name)
+				self.owned = kind
+
+		def waitlock(self, kind=fcntl.LOCK_EX):
+			assert(self.owned != kind)
+			_parallel_log.trace("%s lock (wait)", self.name)
+			fcntl.lockf(self.lockfile, kind, 0, 0)
 			self.owned = kind
 
-	def waitlock(self, kind=fcntl.LOCK_EX):
-		assert(self.owned != kind)
-		debug("%s lock (wait)", self.name)
-		fcntl.lockf(self.lockfile, kind, 0, 0)
-		self.owned = kind
-
-	def unlock(self):
-		if not self.owned:
-			raise Exception("can't unlock %r - we don't own it" % self.name)
-		fcntl.lockf(self.lockfile, fcntl.LOCK_UN, 0, 0)
-		debug("%s unlock", self.name)
-		self.owned = False
+		def unlock(self):
+			if not self.owned:
+				raise Exception("can't unlock %r - we don't own it" % self.name)
+			fcntl.lockf(self.lockfile, fcntl.LOCK_UN, 0, 0)
+			_parallel_log.trace("%s unlock", self.name)
+			self.owned = False
 
 ## --- gupfile.py --- ##
 import os
@@ -523,6 +577,7 @@ from os import path
 import re
 import itertools
 
+_gupfile_log = getLogger('gup.gupfile')
 
 def _gupfile_default_gup_files(filename):
 	l = filename.split('.')
@@ -532,7 +587,7 @@ def _gupfile_default_gup_files(filename):
 		yield ("default%s.gup" % ext), ext
 
 def _gupfile_up_path(n):
-	return '/'.join(itertools.repeat('..',n))
+	return os.path.sep.join(itertools.repeat('..',n))
 
 GUPFILE = 'Gupfile'
 
@@ -577,13 +632,13 @@ class BuildCandidate(object):
 		if not os.path.exists(path):
 			return None
 		if os.path.isdir(path):
-			log.trace("skipping directory: %s", path)
+			_gupfile_log.trace("skipping directory: %s", path)
 			return None
 
-		log.trace("candidate exists: %s" % (path,))
+		_gupfile_log.trace("candidate exists: %s" % (path,))
 
 		target_base = os.path.join(*self._base_parts(False))
-		log.trace("target_base: %s" % (target_base,))
+		_gupfile_log.trace("target_base: %s" % (target_base,))
 
 		if not self.indirect:
 			return Builder(path, self.target, target_base)
@@ -591,7 +646,7 @@ class BuildCandidate(object):
 			target_name = os.path.basename(self.target)
 			if target_name == GUPFILE or os.path.splitext(target_name)[1].lower() == '.gup':
 				# gupfiles cannot be built by implicit targets
-				log.debug("indirect build not supported for target %s", target_name)
+				_gupfile_log.debug("indirect build not supported for target %s", target_name)
 				return None
 
 		with open(path) as f:
@@ -600,10 +655,15 @@ class BuildCandidate(object):
 			except AssertionError as e:
 				reason = " (%s)" % (e.message,) if e.message else ""
 				raise SafeError("Invalid %s: %s%s" % (GUPFILE, path, reason))
-			log.trace("Parsed gupfile: %r" % rules)
+			_gupfile_log.trace("Parsed gupfile: %r" % rules)
+
+		match_target = self.target
+		# always use `/` as path sep in gupfile patterns
+		if os.path.sep != '/':
+			match_target = self.target.replace(os.path.sep, '/')
 
 		for script, ruleset in rules:
-			if ruleset.match(self.target):
+			if ruleset.match(match_target):
 				base = os.path.join(target_base, os.path.dirname(script))
 				script_path = os.path.join(os.path.dirname(path), script)
 				if not os.path.exists(script_path):
@@ -686,13 +746,13 @@ def possible_gup_files(p):
 	'''
 	# we need an absolute path to tell how far up the tree we should go
 	dirname,filename = os.path.split(p)
-	dirparts = os.path.normpath(os.path.join(os.getcwd(), dirname)).split('/')
+	dirparts = os.path.normpath(os.path.join(os.getcwd(), dirname)).split(os.path.sep)
 	dirdepth = len(dirparts)
 
 	# find direct match for `{target}.gup` in all possible `/gup` dirs
 	yield BuildCandidate(dirname, None, False, filename)
 	for i in xrange(0, dirdepth):
-		suff = '/'.join(dirparts[dirdepth - i:])
+		suff = os.path.sep.join(dirparts[dirdepth - i:])
 		base = path.join(dirname, _gupfile_up_path(i))
 		yield BuildCandidate(base, suff, False, filename)
 
@@ -701,13 +761,13 @@ def possible_gup_files(p):
 		# of how specific the path is - least fuzzy wins.
 		#
 		# As `up` increments, we discard a folder on the base path.
-		base_suff = '/'.join(dirparts[dirdepth - up:])
+		base_suff = os.path.sep.join(dirparts[dirdepth - up:])
 		parent_base = path.join(dirname, _gupfile_up_path(up))
 		target_id = os.path.join(base_suff, filename)
 		yield BuildCandidate(parent_base, None, True, target_id)
 		for i in xrange(0, dirdepth - up):
 			# `i` is how far up the directory tree we're looking for the gup/ directory
-			suff = '/'.join(dirparts[dirdepth - i - up:dirdepth - up])
+			suff = os.path.sep.join(dirparts[dirdepth - i - up:dirdepth - up])
 			base = path.join(parent_base, _gupfile_up_path(i))
 			yield BuildCandidate(base, suff, True, target_id)
 
@@ -796,9 +856,9 @@ class MatchRule(object):
 					raise ValueError("Invalid pattern: %s" % (self.text))
 		regexp += '$'
 		regexp = re.compile(regexp)
-		log.trace("Compiled %r -> %r" % (self.text, regexp.pattern))
+		_gupfile_log.trace("Compiled %r -> %r" % (self.text, regexp.pattern))
 		def match(f):
-			log.trace("Matching %r against %r" % (f, regexp.pattern))
+			_gupfile_log.trace("Matching %r against %r" % (f, regexp.pattern))
 			return bool(regexp.match(f))
 		self.match = match
 		return self.match(f)
@@ -816,6 +876,7 @@ import os
 import logging
 import errno
 
+_state_log = getLogger('gup.state')
 
 META_DIR = '.gup'
 
@@ -831,6 +892,9 @@ class TargetState(object):
 
 	def __init__(self, p):
 		self.path = p
+
+	def __repr__(self):
+		return 'TargetState(%r)' % (self.path,)
 
 	@staticmethod
 	def built_targets(dir):
@@ -868,7 +932,7 @@ class TargetState(object):
 			else:
 				with f:
 					rv = Dependencies(self.path, f)
-		log.trace("Loaded serialized state: %r" % (rv,))
+		_state_log.trace("Loaded serialized state: %r" % (rv,))
 		return rv
 
 	def create_lock(self):
@@ -877,7 +941,7 @@ class TargetState(object):
 
 	def add_dependency(self, dep):
 		lock = Lock(self.meta_path('deps2.lock'))
-		log.debug('add dep: %s -> %s' % (self.path, dep))
+		_state_log.debug('add dep: %s -> %s' % (self.path, dep))
 		with lock.write():
 			with open(self.meta_path('deps2'), 'a') as f:
 				dep.append_to(f)
@@ -890,7 +954,7 @@ class TargetState(object):
 				checksum=None,
 				mtime=get_mtime(exe))
 
-			log.trace("created dep %s from builder %r" % (builder_dep, exe))
+			_state_log.trace("created dep %s from builder %r" % (builder_dep, exe))
 			temp = self._ensure_meta_path('deps2')
 			with open(temp, 'w') as f:
 				Dependencies.init_file(f)
@@ -907,7 +971,7 @@ class TargetState(object):
 					if built_time is not None:
 						with open(temp, 'a') as f:
 							BuildTime(built_time).append_to(f)
-					os.rename(temp, self.meta_path('deps'))
+					rename(temp, self.meta_path('deps'))
 				return built
 
 class Dependencies(object):
@@ -922,7 +986,7 @@ class Dependencies(object):
 			self.rules.append(NeverBuilt())
 		else:
 			version_line = file.readline().strip()
-			log.trace("version_line: %s" % (version_line,))
+			_state_log.trace("version_line: %s" % (version_line,))
 			if not version_line.startswith('version:'): raise ValueError("Invalid file")
 			_, file_version = version_line.split(' ')
 			if int(file_version) != self.FORMAT_VERSION:
@@ -944,7 +1008,7 @@ class Dependencies(object):
 	def is_dirty(self, builder, built):
 		assert isinstance(builder, Builder)
 		if not os.path.exists(self.path):
-			log.debug("DIRTY: %s (target does not exist)", self.path)
+			_state_log.debug("DIRTY: %s (target does not exist)", self.path)
 			return True
 
 		base = os.path.dirname(self.path)
@@ -955,13 +1019,13 @@ class Dependencies(object):
 		for rule in self.rules:
 			d = rule.is_dirty(dirty_args)
 			if d is True:
-				log.trace('DIRTY: %s (from rule %r)', self.path, rule)
+				_state_log.trace('DIRTY: %s (from rule %r)', self.path, rule)
 				return True
 			elif d is False:
 				continue
 			else:
 				unknown_states.append(d)
-		log.trace('is_dirty: %s returning %r', self.path, unknown_states or False)
+		_state_log.trace('is_dirty: %s returning %r', self.path, unknown_states or False)
 		return unknown_states or False
 
 	def already_built(self):
@@ -985,7 +1049,7 @@ class Dependency(object):
 	recursive = False
 	@staticmethod
 	def parse(line):
-		log.trace("parsing line: %s" % (line,))
+		_state_log.trace("parsing line: %s" % (line,))
 		for candidate in [
 				FileDependency,
 				BuilderDependency,
@@ -1012,7 +1076,7 @@ class Dependency(object):
 class NeverBuilt(object):
 	fields = []
 	def is_dirty(self, args):
-		log.debug('DIRTY: never built')
+		_state_log.debug('DIRTY: never built')
 		return True
 	def append_to(self, file): pass
 
@@ -1021,7 +1085,7 @@ class AlwaysRebuild(Dependency):
 	num_fields = 0
 	fields = []
 	def is_dirty(self, _):
-		log.debug('DIRTY: always rebuild')
+		_state_log.debug('DIRTY: always rebuild')
 		return True
 
 class UnknownState(object):
@@ -1070,25 +1134,25 @@ class FileDependency(Dependency):
 		self._target = path
 
 		if self.checksum is not None:
-			log.trace("%s: comparing using checksum", self.path)
+			_state_log.trace("%s: comparing using checksum", self.path)
 			# use checksum only
 			state = TargetState(path)
 			deps = state.deps()
 			checksum = deps and deps.checksum
 			if checksum != self.checksum:
-				log.debug("DIRTY: %s (stored checksum is %s, current is %s)", self.path, self.checksum, deps.checksum)
+				_state_log.debug("DIRTY: %s (stored checksum is %s, current is %s)", self.path, self.checksum, deps.checksum)
 				return True
 			if built:
 				return False
 			# if not built, we don't actually know whether this dep is dirty
-			log.trace("%s: might be dirty - returning %r", self.path, state)
+			_state_log.trace("%s: might be dirty - returning %r", self.path, state)
 			return state
 
 		else:
 			# use mtime only
 			current_mtime = get_mtime(path)
 			if current_mtime != self.mtime:
-				log.debug("DIRTY: %s (stored mtime is %r, current is %r)" % (self.path, self.mtime, current_mtime))
+				_state_log.debug("DIRTY: %s (stored mtime is %r, current is %r)" % (self.path, self.mtime, current_mtime))
 				return True
 			return False
 
@@ -1102,7 +1166,7 @@ class BuilderDependency(FileDependency):
 		assert not os.path.isabs(builder_path)
 		assert not os.path.isabs(self.path)
 		if builder_path != self.path:
-			log.debug("DIRTY: builder changed from %s -> %s" % (self.path, builder_path))
+			_state_log.debug("DIRTY: builder changed from %s -> %s" % (self.path, builder_path))
 			return True
 		return super(BuilderDependency, self).is_dirty(args)
 
@@ -1157,10 +1221,10 @@ class BuildTime(Dependency):
 		mtime = get_mtime(path)
 		assert mtime is not None
 		if mtime != self.value:
-			log_method = log.warn
+			log_method = _state_log.warn
 			if os.path.isdir(path):
 				# dirs are modified externally for various reasons, not worth warning
-				log_method = log.debug
+				log_method = _state_log.debug
 			log_method("%s was externally modified - rebuilding" % (path,))
 			return True
 		return False
@@ -1188,6 +1252,7 @@ import subprocess
 import logging
 import shutil
 
+_builder_log = getLogger('gup.builder')
 
 try:
 	from pipes import quote
@@ -1196,7 +1261,7 @@ except ImportError:
 
 def prepare_build(p):
 	builder = Builder.for_target(p)
-	log.trace('prepare_build(%r) -> %r' % (p, builder))
+	_builder_log.trace('prepare_build(%r) -> %r' % (p, builder))
 	if builder is not None:
 		return Target(builder)
 	return None
@@ -1214,41 +1279,40 @@ def _builder_is_dirty(state):
 			# not a target
 			return False
 		else:
-			log.debug("DIRTY: %s (is buildable but has no stored deps)", state.path)
+			_builder_log.debug("DIRTY: %s (is buildable but has no stored deps)", state.path)
 			return True
 
 	if deps.already_built():
-		log.trace("CLEAN: %s has already been built in this invocation", state.path)
+		_builder_log.trace("CLEAN: %s has already been built in this invocation", state.path)
 		return False
 
 	dirty = deps.is_dirty(builder, built = False)
+	_builder_log.trace("deps.is_dirty(%r) -> %r", state.path, dirty)
 
 	if dirty is True:
-		log.trace("deps.is_dirty(%r) -> True", state.path)
 		return True
+
+	if isinstance(dirty, list):
+		for target in dirty:
+			_builder_log.trace("MAYBE_DIRTY: %s (unknown state - building it to find out)", target.path)
+			target = prepare_build(target.path)
+			if target is None:
+				_builder_log.trace("%s turned out not to be a target - skipping", target)
+				continue
+			target.build(update=True)
+
+		dirty = deps.is_dirty(builder, built = True)
+		assert dirty in (True, False)
+		_builder_log.trace("after rebuilding unknown targets, deps.is_dirty(%r) -> %r", state.path, dirty)
 
 	if dirty is False:
 		# not directly dirty - recurse children
 		for path in deps.children():
-			log.trace("Recursing over dependency: %s", path)
+			_builder_log.trace("Recursing over dependency: %s", path)
 			child = TargetState(path)
 			if _builder_is_dirty(child):
-				log.trace("_builder_is_dirty(%r) -> True", child.path)
+				_builder_log.trace("_builder_is_dirty(%r) -> True", child.path)
 				return True
-		return False
-
-	assert isinstance(dirty, list)
-	for target in dirty:
-		log.trace("MAYBE_DIRTY: %s (unknown state - building it to find out)", target.path)
-		target = prepare_build(target.path)
-		if target is None:
-			log.trace("%s turned out not to be a target - skipping", target)
-			continue
-		target.build(update=True)
-
-	dirty = deps.is_dirty(builder, built = True)
-	assert dirty in (True, False)
-	log.trace("after rebuilding unknown targets, deps.is_dirty(%r) -> %r", state.path, dirty)
 	return dirty
 
 class Target(object):
@@ -1271,7 +1335,7 @@ class Target(object):
 		assert os.path.exists(self.builder.path)
 		if update:
 			if not _builder_is_dirty(self.state):
-				log.trace("no build needed")
+				_builder_log.trace("no build needed")
 				return False
 		exe_path = self.builder.path
 
@@ -1290,7 +1354,7 @@ class Target(object):
 		MOVED = False
 		try:
 			args = [os.path.abspath(exe_path), output_file, self.builder.target]
-			log.info(target_relative_to_cwd)
+			_builder_log.info(target_relative_to_cwd)
 			mtime = get_mtime(self.path)
 
 			exe = _builder_guess_executable(exe_path)
@@ -1298,12 +1362,12 @@ class Target(object):
 			if exe is not None:
 				args = exe + args
 
-			if TRACE:
-				log.info(' # %s'% (os.path.abspath(basedir),))
-				log.info(' + ' + ' '.join(map(quote, args)))
+			if XTRACE:
+				_builder_log.info(' # %s'% (os.path.abspath(basedir),))
+				_builder_log.info(' + ' + ' '.join(map(quote, args)))
 			else:
-				log.trace(' from cwd: %s'% (os.path.abspath(basedir),))
-				log.trace('executing: ' + ' '.join(map(quote, args)))
+				_builder_log.trace(' from cwd: %s'% (os.path.abspath(basedir),))
+				_builder_log.trace('executing: ' + ' '.join(map(quote, args)))
 
 			try:
 				ret = self._run_process(args, cwd = basedir, env = env)
@@ -1313,19 +1377,19 @@ class Target(object):
 
 			new_mtime = get_mtime(self.path)
 			if mtime != new_mtime:
-				log.trace("old_mtime=%r, new_mtime=%r" % (mtime, new_mtime))
+				_builder_log.trace("old_mtime=%r, new_mtime=%r" % (mtime, new_mtime))
 				if not os.path.isdir(self.path):
 					# directories often need to be created directly
-					log.warn("%s modified %s directly" % (exe_path, self.path))
+					_builder_log.warn("%s modified %s directly" % (exe_path, self.path))
 			if ret == 0:
 				if os.path.exists(output_file):
 					if os.path.isdir(self.path):
-						log.trace("calling rmtree() on previous %s", self.path)
+						_builder_log.trace("calling rmtree() on previous %s", self.path)
 						shutil.rmtree(self.path)
-					os.rename(output_file, self.path)
+					rename(output_file, self.path)
 				MOVED = True
 			else:
-				log.trace("builder exited with status %s" % (ret,))
+				_builder_log.trace("builder exited with status %s" % (ret,))
 				raise TargetFailed(target_relative_to_cwd, ret)
 		finally:
 			if not MOVED:
@@ -1356,6 +1420,7 @@ def _builder_guess_executable(p):
 ## --- task.py --- ##
 import os
 
+_task_log = getLogger('gup.task')
 
 class Task(object):
 	'''
@@ -1400,8 +1465,8 @@ class Task(object):
 			dep = FileDependency.relative_to_target(self.parent_target, mtime=mtime, path=target_path, checksum=checksum)
 			TargetState(self.parent_target).add_dependency(dep)
 
-	def handle_result(self, _, rv):
-		log.trace("build process exited with status: %r" % (rv,))
+	def handle_result(self, rv):
+		_task_log.trace("build process exited with status: %r" % (rv,))
 		if rv == 0:
 			return
 		if rv == SafeError.exitcode:
@@ -1412,9 +1477,9 @@ class Task(object):
 
 	def report_nobuild(self):
 		if IS_ROOT:
-			log.info("%s: up to date", self.target_path)
+			_task_log.info("%s: up to date", self.target_path)
 		else:
-			log.trace("%s: up to date", self.target_path)
+			_task_log.trace("%s: up to date", self.target_path)
 
 
 class TaskRunner(object):
@@ -1427,7 +1492,7 @@ class TaskRunner(object):
 	def run(self):
 		while self.tasks:
 			task = self.tasks.pop(0)
-			start_job('build', task.build, task.handle_result)
+			start_job(task.build, task.handle_result)
 		wait_all()
 
 
@@ -1438,6 +1503,7 @@ import optparse
 import os
 
 
+_cmd_log = getLogger('gup.cmd')
 
 def _cmd_init_logging(verbosity):
 	lvl = logging.INFO
@@ -1448,11 +1514,11 @@ def _cmd_init_logging(verbosity):
 	elif verbosity == 1:
 		lvl = logging.DEBUG
 	elif verbosity > 1:
-		fmt = '%(color)sgup[%(process)s %(name)-11s %(levelname)-5s]  ' + INDENT + '%(bold)s%(message)s' + PLAIN
-		lvl = TRACE
+		fmt = '%(color)sgup[%(process)s %(name)-12s %(levelname)-5s]  ' + INDENT + '%(bold)s%(message)s' + PLAIN
+		lvl = TRACE_LVL
 
 	if 'GUP_IN_TESTS' in os.environ:
-		lvl = logging.DEBUG
+		lvl = TRACE_LVL
 		fmt = fmt = '%(color)s' + INDENT + '%(bold)s%(message)s' + PLAIN
 
 	# persist for child processes
@@ -1467,28 +1533,32 @@ def _cmd_init_logging(verbosity):
 
 def _cmd_bin_init():
 	'''
-	Ensude `gup` is present on $PATH
+	Ensure `gup` is present on $PATH
 	'''
 	progname = sys.argv[0]
-	log.trace('run as: %s' % (progname,))
+	_cmd_log.trace('run as: %s' % (progname,))
 	if os.path.sep in progname and os.environ.get('GUP_IN_PATH', '0') != '1':
 		# gup may have been run as a relative / absolute script - check
 		# whether our directory is in $PATH
-		path_entries = os.environ.get('PATH', '').split(os.pathsep)
-		here = os.path.dirname(__file__)
-		for entry in path_entries:
-			if not entry: continue
-			try:
-				if os.path.samefile(entry, here):
-					log.trace('found `gup` in $PATH')
-					# ok, we're in path
-					break
-			except OSError: pass
+		here, filename = os.path.split(__file__)
+		if filename.startswith('cmd.py'):
+			# we're being run in-place
+			_cmd_log.trace("Run from gup/ package - assuming gup in $PATH")
 		else:
-			# not found
-			here = os.path.abspath(here)
-			log.trace('`gup` not in $PATH - adding %s' % (here,))
-			os.environ['PATH'] = os.pathsep.join([here] + path_entries)
+			path_entries = os.environ.get('PATH', '').split(os.pathsep)
+			for entry in path_entries:
+				if not entry: continue
+				try:
+					if samefile(entry, here):
+						_cmd_log.trace('found `gup` in $PATH')
+						# ok, we're in path
+						break
+				except OSError: pass
+			else:
+				# not found
+				here = os.path.abspath(here)
+				_cmd_log.trace('`gup` not in $PATH - adding %s' % (here,))
+				os.environ['PATH'] = os.pathsep.join([here] + path_entries)
 
 		# don't bother checking next time
 		os.environ['GUP_IN_PATH'] = '1'
@@ -1548,7 +1618,7 @@ def _cmd_main(argv):
 	_cmd_init_logging(verbosity)
 	_cmd_bin_init()
 
-	log.trace('argv: %r, action=%r', argv, action)
+	_cmd_log.trace('argv: %r, action=%r', argv, action)
 	args = [arg.rstrip(os.path.sep) for arg in args]
 	action(opts, args)
 
@@ -1634,7 +1704,6 @@ def _cmd_build(opts, targets):
 
 	if len(targets) == 0:
 		targets = ['all']
-	assert len(targets) > 0
 
 	parent_target = _cmd_get_parent_target()
 
@@ -1666,7 +1735,7 @@ def main():
 		sys.exit(1)
 	except SafeError as e:
 		if e.message is not None:
-			log.error("%s" % (str(e),))
+			_cmd_log.error("%s" % (str(e),))
 		sys.exit(1)
 
 if __name__ == '__main__':
