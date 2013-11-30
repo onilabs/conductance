@@ -279,8 +279,7 @@ function unmarshallComplexTypes(obj, connection) {
     return unmarshallFunction(obj, connection);
   }
   else if (obj.__oni_type == 'stream') {
-    // XXX we want to batch up streams
-    return Stream(unmarshallFunction(obj, connection));
+    return unmarshallStream(obj, connection);
   }
   else if (obj.__oni_type == 'api') {
     return unmarshallAPI(obj, connection);
@@ -341,6 +340,38 @@ function unmarshallFunction(obj, connection) {
     return connection.makeCall(-1, obj.id, arguments);
   };
 }
+
+function unmarshallStream(obj, connection) {
+  // Blocklambda return/break don't work across spawn boundaries
+  // (yet), but many stream primitives (such as `first`) depend on
+  // them. 
+  // To fix this, we introduce an intermediate `getter` function:
+
+  return Stream(
+    function(receiver) {
+      var have_val, want_val;
+      function getter(x) {
+        waitfor {
+          waitfor() { want_val = resume; }
+        }
+        and {
+          have_val(x);
+        }
+      }
+
+      waitfor {
+        while (1) {
+          waitfor(var val) { have_val = resume }
+          receiver(val);
+          want_val();
+        }
+      }
+      or {
+        connection.makeCall(-1, obj.id, [getter]);
+      }
+    });
+}
+
 
 //----------------------------------------------------------------------
 
