@@ -521,12 +521,14 @@ exports.renderer = function(libraries, rootSymbol) {
 			var crumbs = ret .. intersperse(sep) .. toArray();
 			var content = [crumbs];
 
+			var version = Widget("div", `Conductance documentation browser`, {"class":"version"});
 			if (symbol.library) {
 				var docs = symbol.library.loadSkeletonDocs();
 				if(docs && docs.version) {
-					content.push(Widget("div", "#{symbol.library.name}#{docs.version}", {"class":"version"}));
+					version = Widget("div", "#{symbol.library.name}#{docs.version}", {"class":"version"});
 				}
 			}
+			content.push(version);
 			return Widget("div", content, {"class":"breadcrumbs"});
 		},
 	}

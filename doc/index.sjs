@@ -85,7 +85,6 @@ exports.run = function(root) {
 				<button class="btn search" title="Shortcut: /"><span class="glyphicon glyphicon-search"></span></button>
 			</div>
 		`)
-		.. Style("{ position: relative; top:25px}")
 		.. Class("popupContainer")
 		.. Mechanism(function(elem) {
 			var [configureButton, searchButton] = elem.getElementsByTagName("button");
@@ -164,9 +163,9 @@ exports.run = function(root) {
 
 	var toplevel = Widget("div", [
 		sidebar,
-    hint,
 		header,
 		breadcrumbs,
+    hint,
 		mainDisplay,
 		loadingWidget
 	], {'class':'documentationRoot'})

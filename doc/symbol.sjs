@@ -180,7 +180,7 @@ var RootSymbol = exports.RootSymbol = function(libraries) {
 
 RootSymbol.prototype.relativeModulePath = [];
 RootSymbol.prototype.path = [];
-RootSymbol.prototype.name = "index";
+RootSymbol.prototype.name = "Library index";
 RootSymbol.prototype.parent = -> null;
 RootSymbol.prototype.docs = function() {
 	var rv = {

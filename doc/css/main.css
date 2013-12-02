@@ -21,8 +21,9 @@ body {
 		rgb(112, 112, 112) 0%, rgb(122, 125, 129) 7%, rgb(122, 125, 129) 100%
 	);
   */
-  /* background-color: #e43636; */
-  background-color: #993131;
+  background-color: #292C31;
+  background-color: #4F5153;
+  /* background-color: #993131; */
 
 	width: 280px;
 	font-size: 14pt;
@@ -80,6 +81,8 @@ h1 {
 
 .popupContainer {
 	z-index: 5;
+	position: relative;
+	top:10px;
 }
 
 .trigger button {
@@ -117,13 +120,13 @@ h1 {
 }
 
 .breadcrumbs {
-  margin-top: 20px;
+  /* margin-top: 5px; */
 	font-size: 2em;
 	line-height: 1.2em;
 	min-height:1.2em;
 	padding: 5px 15px;
-	color: #e43636;
-	/* background: #e43636; */
+	color: white;
+	background: #e43636;
 }
 
 .breadcrumbs .leaf {
@@ -134,12 +137,11 @@ h1 {
 	/* float:right; */
 	font-size:0.5em;
   color: #e43636;
-	/* color: rgba(255, 255, 255, 0.77); */
+	color: rgba(255, 255, 255, 0.77);
 }
 
 .breadcrumbs a {
-    color: #e43636;
-	/* color: rgba(255, 255, 255, 0.9) !important; */
+	color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .breadcrumbs .sep {
@@ -163,7 +165,12 @@ h1 {
 }
 
 .header button {
-	background-color:rgb(201, 201, 201);
+	background-color:rgba(0, 0, 0, 0.25);
+	color:white !important;
+}
+
+.header button:hover {
+	background-color:rgba(0, 0, 0, 0.5);
 }
 
 #sidebar .active {
@@ -205,6 +212,11 @@ h1 {
 {
   border-radius:10px;
   background: rgba(255, 255, 255, 0.4);
+}
+
+#sidebar::-webkit-scrollbar-corner
+{
+  background: transparent;
 }
 
 .alert {
