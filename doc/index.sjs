@@ -152,13 +152,14 @@ exports.run = function(root) {
 		.. Class("header");
 
   var hint;
-  if (!window.localStorage || !window.localStorage['search-hint-shown'])
+  if (!window.localStorage || !window.localStorage['search-hint-shown']) {
     hint =  `<div class='alert alert-warning'>Hint: You can press '/' to search the reference<a class='close' href='#'>&times;</a></div>` .. Mechanism(function(node) {
-    node.querySelector('a') .. events.wait('click');
-    if (window.localStorage) 
-      window.localStorage['search-hint-shown'] = true;
-    node.remove();
-  });
+      node.querySelector('a') .. events.wait('click', {handle: preventDefault});
+      if (window.localStorage)
+        window.localStorage['search-hint-shown'] = true;
+      node.remove();
+    });
+  }
 
 
 	var toplevel = Widget("div", [
