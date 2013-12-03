@@ -148,13 +148,6 @@ function createTransport(finish) {
       }
     },
 
-    connectionReset: function() {
-      // called when a connection dropped out but has been reconnected.
-      // HTTP polling in progress should be discarded but higher-level
-      // messages (outstanding calls, APIs, etc) are still valid
-      if (resume_poll) resume_poll(false);
-    },
-
     pollMessages: function(in_messages) {
 //      console.log('polling...');
       // assert(this.active)
@@ -324,19 +317,6 @@ function createTransportHandler(transportSink) {
         error_code = transport.pollMessages(
           req.body.length ? JSON.parse(req.body.toString('utf8')) : []
         );
-      }
-    }
-    else if (command .. startsWith('reconnect_')) {
-      var id = command.substr(10);
-      var transport = transports[id];
-      if(transport) {
-        logging.info("transport", id, "reconnected");
-        transport.connectionReset();
-      } else {
-        logging.info("attempt to reconnect missing transport", id, "- creating new");
-        transport = createTransport(finish);
-        transportSink(transport);
-        ok_code = transport.id;
       }
     }
     else if (command .. startsWith('close_')) {

@@ -46,6 +46,11 @@ var SERVER_PATH   = '__aat_bridge';
 var SERVER_PREFIX = '/';
 exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
 
+// The maximum time that the server will take to answer our poll
+// requests + a little grace period. Coordinated with
+// aat-server::PING_INTERVAL.
+var SERVER_PING_INTERVAL = 1000*(40+5); 
+
 /*
 
  2 messages: send, poll
@@ -61,8 +66,6 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
  // this returns "immediately" (equivalent to 'send'):
  ['poll', MES*] -> ['ok_'+ID, MES*] | ['error_xx']
 
- // this returns "immediately" (reestablish connection):
- ['reconnect_'+ID] -> ['ok'] | ['ok_'+NEW_CONN_ID] | ['error_xx']
 */
 
 /**
@@ -79,9 +82,6 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
    @summary To be documented
 
    @function Transport.close
-   @summary To be documented
-
-   @function Transport.reconnect
    @summary To be documented
 */
 
@@ -106,15 +106,22 @@ function openTransport(server) {
     try {
       while (1) {
         // assert(transport_id_suffix)
-        var messages = http.request(
-          [server, SERVER_PATH, AAT_VERSION,
-           {
-             cmd: "poll#{transport_id_suffix}"
-           }
-          ],
-          { method: 'POST',
-            headers: {'Content-Type': 'text/plain; charset=utf-8'}
-          });
+        waitfor {
+          var messages = http.request(
+            [server, SERVER_PATH, AAT_VERSION,
+             {
+               cmd: "poll#{transport_id_suffix}"
+             }
+            ],
+            { method: 'POST',
+              headers: {'Content-Type': 'text/plain; charset=utf-8'}
+            });
+        }
+        or {
+          hold(SERVER_PING_INTERVAL);
+          throw TransportError("server poll timeout");
+        }
+
         messages = JSON.parse(messages);
         
         // check for error response:
@@ -192,18 +199,10 @@ function openTransport(server) {
   var transport = {
     active: true,
 
-    reconnect: function() {
-      this.closed = true; // mark this transport as dead; preventing server-side cleanup
-      this.__finally__();
-      var t = openTransport(server);
-      return [t, t._reconnect(transport_id_suffix)];
-    },
-
     send: func.unbatched(function(messages) {
       // XXX we actually don't want to use 'unbatched' here, because
       // we don't need to map the return value. We want some async
       // equivalent to 'unbatched'
-      //console.log(messages);
       sendCommand.call(this,
         [server, SERVER_PATH, AAT_VERSION,
         {
@@ -247,14 +246,6 @@ function openTransport(server) {
 
       return receive_q.pop();
     }),
-
-    _reconnect: function(id_suffix) {
-      if(!id_suffix) throw new Error("can't reconnect - transport ID is empty");
-      sendCommand.call(this, [
-        server, SERVER_PATH, AAT_VERSION, { cmd: "reconnect#{id_suffix}" }
-      ], undefined, id_suffix);
-      return id_suffix === transport_id_suffix;
-    },
 
     close: function() {
       if (!this.closed) {

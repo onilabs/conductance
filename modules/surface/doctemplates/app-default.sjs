@@ -14,6 +14,11 @@ exports.Document = settings ->
       rainbow.config({barColors:['#e91100']});
     </script>
     <script type='text/sjs' module='app:std.sjs'>
+
+
+      //----------------------------------------------------------------------
+      // BUSY INDICATOR 
+
       var busy_indicator_refcnt = 0, busy_indicator_stratum;
 
       function showBusyIndicator(delay) {
@@ -55,6 +60,100 @@ exports.Document = settings ->
         }
       }
 
+      //----------------------------------------------------------------------
+      // API IMPORTING
+
+      var _connectionIndicatorStyle;
+      function ConnectionIndicatorStyle(ft) {
+        if(!_connectionIndicatorStyle)
+          _connectionIndicatorStyle = exports.Style('
+            {
+              position: fixed;
+              top:1em;
+              left:0;
+              right:0;
+              height:0;
+              text-align: center;
+            }
+            .alert {
+              display: inline-block;
+              text-align:left;
+              color:black;
+              padding: 3px;
+              border-radius: 0;
+            }
+          ');
+        return _connectionIndicatorStyle(ft);
+      }
+
+      function Countdown(seconds) {
+        return exports.Span(seconds) .. exports.Mechanism(function(node) {
+          while (seconds > 0) {
+            hold(1000);
+            node.innerHTML = --seconds;
+          }
+        });
+      }
+
+      function withAPI(api, block) {
+        var delay = 1000;
+        var { isTransportError, connect } = require('mho:rpc/bridge');
+
+        while (1) {
+          try {
+            connect(api, {
+              connectionMonitor: {
+                ||
+                hold(300); // small delay before showing ui feedback
+                document.body .. exports.withWidget(
+                  exports.Div(`<div class='alert alert-warning'>Connecting...</div>`) .. ConnectionIndicatorStyle()) {
+                  ||
+                  hold();
+                }
+              }
+            }) {
+              |connection|
+              // we're connected; reset connection delay
+              delay = 1000;
+              try {
+                exports.mainContent.style.opacity = '1';
+                block(connection.api);
+              }
+              finally {
+                exports.mainContent.style.opacity = '.5';
+              }
+            }
+          }
+          catch(e) {
+            if (isTransportError(e)) {
+              hold(300); // small delay before showing ui feedback
+              document.body .. exports.withWidget(
+              exports.Div(`<div class='alert alert-warning'>Not connected. Reconnect in ${Countdown(Math.round(delay/1000))}s. ${exports.A(`Try Now`, {href:'#'})}</div>`) .. ConnectionIndicatorStyle()
+        ) {
+              |ui|
+               waitfor { 
+                hold(delay); 
+                delay *= 1.5;
+                if (delay > 60*1000*10) // cap at 10 minutes
+                  delay = 60*1000*10;
+            
+               } 
+               or { 
+                 ui.querySelector('a') .. exports.wait('click', {handle:exports.preventDefault}); 
+               }
+             }
+             continue;
+           }
+           else
+             throw e;
+          }
+          break;
+        }
+      }
+
+
+      //----------------------------------------------------------------------
+
       withBusyIndicator {
         ||
 
@@ -74,6 +173,7 @@ exports.Document = settings ->
         exports.body = document.body;
         exports.mainContent = document.body.firstChild;
         exports.withBusyIndicator = withBusyIndicator;
+        exports.withAPI = withAPI;
       }
     </script>
     #{ settings.head }

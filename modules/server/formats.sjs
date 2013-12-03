@@ -178,30 +178,25 @@ function apiimport(src, dest, aux) {
   dest.write("\
 var serverURL = #{JSON.stringify(serverRoot)};
 var moduleURL = #{JSON.stringify(moduleURL)};
-waitfor {
-  var bridge = require('mho:rpc/bridge');
-} and {
-  var http = require('sjs:http');
-} and {
-  var object = require('sjs:object');
-}
+var bridge = require('mho:rpc/bridge'); 
 exports.server = serverURL;
-exports.connect = function(opts, block) {
-  if (arguments.length == 1) {
-    block = opts;
-    opts = {};
-  }
-  opts = object.clone(opts);
 
-  if (!opts.server) opts.server = serverURL;
-  if (!opts .. object.has('disconnectHandler')) opts.disconnectHandler = bridge.AutoReconnect();
-  var apiinfo = http.json([moduleURL, {format:'json'}]);
-  if (apiinfo.error) throw new Error(apiinfo.error);
-  var rv;
-  bridge.connect(apiinfo.id, opts) {|connection|
-    rv = block(connection.api, connection);
+exports.connect = function(connect_monitor, block) {
+  if (arguments.length === 1) {
+    block = connect_monitor;
+    connect_monitor = undefined;
   }
-  return rv;
+
+  if (block) { 
+    bridge.connect(moduleURL, 
+                  {server:serverURL, 
+                   connectMonitor: connect_monitor}) {
+      |connection|
+      block(connection.api);
+    }
+  }
+  else
+    return bridge.connect(moduleURL, {server:serverURL}).api;
 };
 ");
 }

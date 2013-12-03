@@ -98,7 +98,7 @@ var { isString } = require('sjs:string');
 var { isFunction, exclusive } = require('sjs:function');
 var { Emitter } = require('sjs:events');
 var { keys, propertyPairs } = require('sjs:object');
-
+var http = require('sjs:http');
 
 /**
   @function isTransportError
@@ -113,6 +113,8 @@ var { isTransportError, TransportError } = require('./error');
   @summary The error type raised by connection errors in a [::BridgeConnection]
 */
 exports.isTransportError = isTransportError;
+
+exports.TransportError = TransportError;
 
 //----------------------------------------------------------------------
 // marshalling
@@ -263,7 +265,6 @@ function marshall(value, connection) {
   }
 
   var rv = value .. prepare .. JSON.stringify;
-  //console.log(require('sjs:debug').inspect(rv));
   return rv;
 }
 
@@ -327,7 +328,6 @@ function unmarshallAPI(obj, connection) {
   obj.methods .. each {
     |m| 
     proxy[m] = function() { 
-//      console.log("making call to #{obj.id}:#{m}"); 
       return connection.makeCall(obj.id, m, arguments);
     };
   }
@@ -385,45 +385,9 @@ function unmarshallStream(obj, connection) {
     `BridgeConnection` instances cannot be constructed directly, see [::connect] or
     [#features/api-modules::].
 
-    Depeding on the `disconnectHandler` function supplied, a `BridgeConnection`
-    object may be able to reconnect and recover from small network outages.
-
-    If this happens, calls made and values returned during the outage will be
-    sent once connectivity is restored. If connectivity cannot be restored,
-    [::BridgeConnection::sessionLost] wil be emitted, and any outstanding or
-    new RPC calls made on the bridge will rase a [::TransportError].
-
-  @variable BridgeConnection.status
-  @type sjs:sequence:Observable::
-  @summary The current connection status
-  @desc
-    `status` is an [sjs:sequence::Observable] object with the following properties:
-
-      - connected (boolean): Whether the connection is active
-      - connecting (boolean): Whether this connection is currently
-        attempting to reconnect
-
-    The disconnect handler may additionally set properties on this object, for
-    example an [::AutoReconnect] handler will set the `nextAttempt`
-    property.
-
-    **Note:** If `opts.status` is not `true`, this property will not be set or updated.
-
-  @function BridgeConnection.reconnect
-  @summary Attempt to reconnect
-  @return {Boolean} whether the attempt succeeded
-
-  @variable BridgeConnection.disconnected
-  @type sjs:events::Emitter
-  @summary Disconnect event
-
-  @variable BridgeConnection.reconnected
-  @type sjs:events::Emitter
-  @summary Successful reconnect event
-
   @variable BridgeConnection.sessionLost
   @type sjs:events::Emitter
-  @summary Reconnection failed
+  @summary The session has been lost
 
   @function BridgeConnection.__finally__
   @summary Terminate and clean up this connection
@@ -437,124 +401,22 @@ function BridgeConnection(transport, opts) {
   var published_func_counter = 0;
   var closed = false;
   var throwing = opts.throwing !== false;
-  var statusObs = opts.status ? Observable({connected: true});
   var _lastTransport = transport;
   var disconnectHandler = opts.disconnectHandler;
 
-  var disconnected = Emitter(); // emitted once a dropout is detected
-  var sessionLost = Emitter(); // session has been lost (may be dead, or reconnected with a different session)
-  var reconnected = Emitter(); // emitted when establishing a new session after a dropout
+  var sessionLost = Emitter(); // session has been lost
 
   if (opts.publish)
     published_apis[0] = opts.publish;
 
-  var setStatusProp = function(key, val) {
-    if(!statusObs) return;
-    var s = statusObs.get() || {};
-    s[key] = val;
-    statusObs.set(s);
-  }
-
-  var transportRetry = function(block) {
-    var count=0;
-    while(count++<3) {
-      if (!transport) {
-        // transport is known to be down - just wait for it to come back
-        reconnected.wait();
-      }
-      try {
-        return block(transport);
-      } catch(e) {
-        if (!isTransportError(e)) throw e;
-        attemptReconnect();
-        continue;
-      }
-    }
-  }
-
-  // attempt reconnect (or wait for an existing attempt to complete).
-  // returns on success, throws on failure
-  var attemptReconnect = exclusive(function (err) {
-    disconnected.emit();
-    try {
-      if(transport) {
-        _lastTransport = transport;
-        transport = null;
-      }
-
-      if(closed) return;
-      logging.debug("rpc/bridge: connection lost,", disconnectHandler ? "attempting reconnect" : "no disconnectHandler");
-      err = err || TransportError("transport disconnected");
-      if (!disconnectHandler) throw err;
-      setStatusProp('connected', false);
-      setStatusProp('connecting', false);
-
-      var finish = function(err) {
-        logging.debug("rpc/bridge: reconnect #{err ? "failed" : "succeeded"}");
-        _lastTransport.__finally__();
-        if (err) {
-          connection.__finally__();
-          sessionLost.emit(err);
-          throw err;
-        }
-      }
-
-      try {
-        disconnectHandler(connection, err, statusObs);
-        if(!transport) throw new Error("Failed to automatically reconnect bridge");
-      } catch(e) {
-        finish(e);
-      } retract {
-        finish(err);
-      }
-      finish();
-    } finally {
-      if (_lastTransport) _lastTransport.__finally__();
-    }
-  }, true);
-
   var connection = {
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
     received_blobs: {},
-    disconnected: disconnected,
-    reconnected: reconnected,
     sessionLost: sessionLost,
-    status: statusObs,
     sendBlob: function(id, obj) {
-      return transportRetry(function(t) {
-        t.sendData(id, obj);
-        return id;
-      });
+      transport.sendData(id, obj);
+      return id;
     },
-    reconnect: exclusive(function(f) {
-      // reconnects to the server, returning bool (true = success)
-      // On success, `transport` will be set
-      // to the connected transport
-      var t;
-      if (!_lastTransport.reconnect) throw new Error("transport does not support reconnections");
-      logging.debug("rpc/bridge: reconnecting ...");
-      setStatusProp('connecting', true);
-      var sameSession;
-      try {
-        [t, sameSession] = _lastTransport.reconnect();
-      } catch(e) {
-        logging.debug("rpc/bridge: transport.reconnect() failed");
-        return false;
-      } finally {
-        setStatusProp('connecting', false);
-      }
-      transport = t;
-      setStatusProp('connected', true);
-      reconnected.emit();
-      if (!sameSession) {
-        logging.warn("session lost");
-        // if getAPI fails, we kill the connection because the server no longer
-        // provides this API ID (it was probably restarted)
-        getAPI();
-        sessionLost.emit();
-      }
-      return true;
-    }, true),
     makeCall: function(api, method, args) {
       var call_no = ++call_counter;
       waitfor {
@@ -582,7 +444,7 @@ function BridgeConnection(transport, opts) {
         and {
           // make the call.
           var args = marshall(['call', call_no, api, method, toArray(args)], connection);
-          transportRetry(t -> t.send(args));
+          transport.send(args);
         }
       } or {
         var err = sessionLost.wait();
@@ -590,7 +452,6 @@ function BridgeConnection(transport, opts) {
                             // for now as a workaround for mechanisms that drop unhandled errors
         throw err || TransportError("session lost");
       }
-      
       if (isException) throw rv;
       return rv;
     },
@@ -605,7 +466,7 @@ function BridgeConnection(transport, opts) {
     },
     __finally__: function() {
       closed = true;
-      spawn(this.stratum.abort());
+      this.stratum.abort();
       if (transport) {
         transport.__finally__();
         transport = null;
@@ -615,28 +476,25 @@ function BridgeConnection(transport, opts) {
 
   function receiver() {
     while (1) {
-      waitfor {
-        try {
-          var packet = transport.receive();
-        } catch(e) {
-          if(closed || !throwing) break;
-          logging.debug("transport error in receive(): #{e}");
-          attemptReconnect(TransportError(e.message || String(e)));
-          continue; // above code will throw() if it can't reconnect
-        }
-        logging.debug("received packet", packet);
-        if (packet.type == 'message')
-          receiveMessage(packet);
-        else if (packet.type == 'data')
-          receiveData(packet);
-        else {
-          logging.warn("Unknown packet '#{packet.type}' received");
-        }
-      } or {
-        // restart the loop when reconnected (no point in
-        // listening to a stale transport
-        reconnected.wait();
+      try {
+        var packet = transport.receive();
       }
+      catch (e) {
+        if (!throwing) break;
+        throw e;
+      }
+      logging.debug("received packet", packet);
+      if (packet.type == 'message')
+        receiveMessage(packet);
+      else if (packet.type == 'data')
+        receiveData(packet);
+      else {
+        logging.warn("Unknown packet '#{packet.type}' received");
+      }
+      // XXX this asynchronisation is necessary because the
+      // `this.stratum.abort()` call in __finally_ above happens
+      // reentrantly, but the stratum doesn't abort until blocking
+      hold(0);
     }
   }
 
@@ -646,7 +504,6 @@ function BridgeConnection(transport, opts) {
 
   function receiveMessage(packet) {
     var message = unmarshall(packet.data, connection);
-//    console.log(message);
     switch (message[0]) {
     case 'return':
       var cb = pending_calls[message[1]];
@@ -676,14 +533,12 @@ function BridgeConnection(transport, opts) {
             rv = e;
             isException = true;
           }
-
           var args = marshall(["return#{isException? '_exception':''}", call_no, rv], connection);
           try {
-            transportRetry(t -> t.send(args));
+            transport.send(args);
           }
           catch (e) {
-            // ignore - we already tried to reconnect in `transportRetry`
-            logging.debug("transport closed");
+            // ignore exception; transport will be closed
           }
         } or {
           sessionLost.wait();
@@ -696,7 +551,6 @@ function BridgeConnection(transport, opts) {
     case 'abort':
       var executing_call = executing_calls[message[1]];
       if (executing_call) {
-//        console.log("ABORTING PENDING CALL");
         executing_call.abort();
       }
       break;
@@ -706,7 +560,7 @@ function BridgeConnection(transport, opts) {
   // XXX we want the api_name to be relative to the current app's base; not
   // sure how that's going to work from the server-side (sys:resolve??)
   var getAPI = -> connection.makeCall(0, 'getAPI', [opts.api]);
-  
+
   connection.stratum = spawn receiver();
   if (opts.api)
     connection.api = getAPI();
@@ -720,11 +574,18 @@ function BridgeConnection(transport, opts) {
   @param {Settings} [settings]
   @param {optional Function} [block]
   @setting {String} [server] Server address
-  @setting {Transport} [transport] An existing transport to use
-  @setting {Function} [disconnectHandler] Disconnect handler, e.g produced by [::AutoReconnect]
-  @setting {Boolean} [status] Maintain an observable `connection.status` property
+  @setting {Transport} [transport] Optional existing transport to use
+  @setting {Function} [connectMonitor] Optional function to run while connecting
   @return {::BridgeConnection} if block is not given
   @desc
+    Throws a [::TransportError] if the connection attempt fails.
+
+    If a `connectMonitor` function is given, it will be called before a
+    connection attempt is being made, and retracted upon a
+    successful or unsuccessful connection. If `connectMonitor` returns
+    before a connection is established, the pending connection attempt
+    will be aborted and connect will throw a [::TransportError].
+
     If `block` is given, it will be called with a single [::BridgeConnection]
     argument. This block will be retracted automatically when the connection
     throws an exception (e.g the connection is disconnected and cannot reconnect).
@@ -740,37 +601,35 @@ function BridgeConnection(transport, opts) {
      - close the connection (using [::BridgeConnection::__finally__] or a
        [sjs:#language/syntax::using] block)
      - abort any code that relies upon the (now dead) connection.
-
-    ### disconnectHandler
-
-    The disconnectHandler option is an optional function which will be invoked
-    when the connection to the server encounters an error (e.g the client or
-    server goes offline).
-
-    When a connection error occurs, `disconnectHandler` will be called with
-    the following arguments:
-
-     - connection (the [::BridgeConnection])
-     - error (the error that caused the disconnection)
-     - status (the [::BridgeConnection::status] object)
-
-    This function typically makes multiple attempts to call
-    `connection.reconnect()`, waiting some time between attempts.
-    Once `connection.reconnect()` succeeds, this function should return.
-
-    To "give up", this function can simply return without successfully
-    reconenecting.
-
-    Disconnect handlers produced by [::AutoReconnect] attempt to
-    reconnect with progressively longer pauses between attempts, and
-    a configurable time after which they will give up entirely.
 */
 exports.connect = function(api_name, opts, block) {
   var transport = opts.transport;
-  if (!transport) {
-    transport = require('./aat-client').openTransport(opts.server);
+  waitfor {
+    waitfor {
+      try {
+        var apiinfo = http.json([api_name, {format:'json'}]);
+      }
+      catch(e) {
+        throw TransportError(e);
+      }
+      // catch syntax errors in the api module; don't throw as transport errors:
+      if (apiinfo.error) throw new Error(apiinfo.error);
+    }
+    and {
+      if (!transport) {
+        transport = require('./aat-client').openTransport(opts.server);
+      }
+    }
+    var connection = BridgeConnection(transport, opts .. merge({throwing:true, api:apiinfo.id}));
   }
-  var connection = BridgeConnection(transport, opts .. merge({throwing:true, api:api_name}));
+  or {
+    if (opts.connectMonitor) { 
+      opts.connectMonitor();
+      throw TransportError("connect monitor abort");
+    }
+    else
+      hold();
+  }
 
   if (block) {
     using(connection) {
@@ -779,7 +638,7 @@ exports.connect = function(api_name, opts, block) {
           connection.stratum.waitforValue();
         } catch(e) {
           logging.warn("Bridge connection lost: #{e}");
-          throw new Error("Bridge connection lost");
+          throw TransportError("Bridge connection lost");
         }
       } or {
         return block(connection);
@@ -800,63 +659,3 @@ exports.accept = function(getAPI, transport) {
   return connection;
 };
 
-/**
-  @function AutoReconnect
-  @summary Create a custom disconnect handler for a bridge connection
-  @param {Settings} [opts]
-  @setting {Number} [initialDelay=1] Initial delay time (in seconds)
-  @setting {Number} [backoff=1.5] Amount to multiply the delay by between successive failed connection attempts.
-  @setting {Number} [timeout=30] Time (in seconds) after which to give up. Pass `null` for inifinite retry.
-  @return {Function}
-  @desc
-    The returned disconnect handler is intended to be used for a
-    [::BridgeConnection]'s `disconnectHandler` setting.
-
-    The function will wait for `initialDelay` seconds before
-    attempting to reconnect. After each failed reconnect attempt,
-    the current delay will be multiplied by `backoff` (so backoff
-    should be greater than 1).
-
-    After `timeout` seconds have passed, the handler will give up.
-
-    If the connection has a [::BridgeConnection::status], it will be updated with
-    the `nextAttempt` property set to the Date object when the next
-    connection attempt will be made. This property will be deleted
-    when no further attempts are planned.
-*/
-
-exports.AutoReconnect = function(opts) {
-  opts = opts || {};
-  var backoff = opts.backoff || 1.5;
-  var timeout;
-  if(opts.timeout !== null)
-    timeout = (opts.timeout || 30) * 1000;
-  return function(connection, err, status) {
-    logging.debug("AutoReconnect start");
-    var waitTime = (opts.initialDelay || 1) * 1000;
-    waitfor {
-      while(1) {
-        if(status) {
-          var now = new Date();
-          var s = status.get() || {};
-          s.nextAttempt=new Date(now.getTime() + waitTime);
-          status.set(s);
-        }
-
-        hold(waitTime);
-        waitTime = waitTime * backoff;
-        logging.debug("AutoReconnect: attempting reconnect");
-        if (connection.reconnect()) return;
-      }
-    } or {
-      hold(timeout);
-      logging.debug("AutoReconnect timed out");
-    } finally {
-      if(status) {
-        var s = status.get() || {};
-        delete s.nextAttempt;
-        status.set(s);
-      }
-    }
-  };
-}
