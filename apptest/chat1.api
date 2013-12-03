@@ -1,0 +1,9 @@
+@ = require('mho:std');
+
+var messages = exports.messages = @Observable([]);
+
+exports.writeMessage = function(name, msg) {
+  var current = messages.get();
+  current.push({name:name, msg:msg});
+  messages.set(current);
+};
