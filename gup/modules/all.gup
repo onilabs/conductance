@@ -1,5 +1,5 @@
 #!/bin/bash
 gup -u \
-	stdlib.sjs \
+	std.sjs \
 	surface.sjs \
 	sjs-lib-index.json

@@ -5,8 +5,8 @@ exports.Document = settings ->
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <script type='text/sjs' module='app:std.sjs'>
-      @ = require('mho:stdlib');
-      exports .. @extend(require(['mho:stdlib', 
+      @ = require('mho:std');
+      exports .. @extend(require(['mho:std',
                                   {id:'mho:surface/html',
                                    exclude: ['Style', 'Map']
                                   }

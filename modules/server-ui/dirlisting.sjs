@@ -1,4 +1,4 @@
-@ = require(['mho:stdlib', {id:'mho:surface/bootstrap/html', exclude:['Map','Style'] }]);
+@ = require(['mho:std', {id:'mho:surface/bootstrap/html', exclude:['Map','Style'] }]);
 
 // helper to format file sizes:
 function formatBytes(size) {

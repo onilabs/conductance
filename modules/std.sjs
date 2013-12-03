@@ -102,7 +102,7 @@ module.exports = require(modules);
   Typically, conductance applications and scripts will use this
   module to access common functionality in a single line:
   
-      @ = require('mho:stdlib');
+      @ = require('mho:std');
   
   (see also: [sjs:#language/syntax::@altns])
   
@@ -130,6 +130,13 @@ module.exports = require(modules);
    - **Host**: (class [mho:server::Host])
    - **Port**: (class [mho:server::Port])
    - **Route**: (class [mho:server::Route])
+  
+  
+  ### Symbols from the [mho:server/generator](#mho%3Aserver%2Fgenerator) module:
+  *(when in the nodejs environment)*
+  
+   - **BundleGenerator**: (function [mho:server/generator::BundleGenerator])
+   - **moduleTimestamp**: (function [mho:server/generator::moduleTimestamp])
   
   
   ### Symbols from the [mho:server/response](#mho%3Aserver%2Fresponse) module:

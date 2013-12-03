@@ -56,7 +56,7 @@ available only to conductance applications.
 Typically, conductance applications and scripts will use this
 module to access common functionality in a single line:
 
-    @ = require('mho:stdlib');
+    @ = require('mho:std');
 
 (see also: [sjs:#language/syntax::@altns])
 ");

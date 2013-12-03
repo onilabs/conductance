@@ -58,13 +58,13 @@ exports.Document = settings ->
       withBusyIndicator {
         ||
 
-        @ = require('mho:stdlib');
+        @ = require('mho:std');
 
         //----------------------------------------------------------------------
         // export symbols for app:std
 
         // general app vocabulary:
-        exports .. @extend(require(['mho:stdlib', 
+        exports .. @extend(require(['mho:std', 
                                     {id:'mho:surface/bootstrap/html',
                                      exclude: ['Style', 'Map']
                                     }
