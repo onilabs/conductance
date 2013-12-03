@@ -5,6 +5,27 @@
 @fs = require('sjs:nodejs/fs');
 @url = require('sjs:url');
 
+/**
+  @summary Utilities for generator (`.gen`) modules
+*/
+
+/**
+  @function moduleTimestamp
+  @summary Generates a function that always returns the current date
+  @return {Function}
+  @desc
+    It can be difficult to create a correct etag for a given
+    generator (e.g because it has a lot of dependencies). In this case it's often
+    easier to use the module import time as an etag. This ensures that the contents
+    of a generator will be cached for the lifetime of the module,
+    but will be re-generated when the module is reloaded (or the server process is
+    restarted).
+
+    ### Example:
+
+        exports.etag = @moduleTimestamp();
+*/
+    
 exports.moduleTimestamp = function() {
   var t = new Date().getTime().toString();
   return -> t;
@@ -67,6 +88,28 @@ var CachedBundle = exports.CachedBundle = function(settings) {
   return self;
 };
 
+/**
+  @function BundleGenerator
+  @summary Create a generator for an SJS bundle
+  @param {Object} [settings] bundle settings
+  @return {Object}
+  @desc
+    A BundleGenerator implements a server-side generator for
+    serving a compiled bundle based on `settings`, on demand. 
+    See [sjs:bundle::create] for a description of possible settings.
+
+    ### Example:
+
+        # bundle.js.gen
+        module.exports = @BundleGenerator({
+          sources: [ "./main.sjs" ],
+          compile: true,
+        });
+
+    The returned object implements `content` and `etag` methods,
+    to ensure that the bundle is cached where possible, but is
+    regenerated when _any_ file in the bundle is modified.
+*/
 var BundleGenerator = exports.BundleGenerator = function(settings) {
   var bundle = CachedBundle(settings);
   return {
