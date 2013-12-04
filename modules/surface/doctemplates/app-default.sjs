@@ -122,24 +122,23 @@ exports.Document = settings ->
             if (isTransportError(e)) {
               hold(300); // small delay before showing ui feedback
               document.body .. exports.withWidget(
-              exports.Div(`<div class='alert alert-warning'>Not connected. Reconnect in ${Countdown(Math.round(delay/1000))}s. ${exports.A(`Try Now`, {href:'#'})}</div>`) .. ConnectionIndicatorStyle()
-        ) {
-              |ui|
-               waitfor { 
-                hold(delay); 
-                delay *= 1.5;
-                if (delay > 60*1000*10) // cap at 10 minutes
-                  delay = 60*1000*10;
-            
-               } 
-               or { 
-                 ui.querySelector('a') .. exports.wait('click', {handle:exports.preventDefault}); 
-               }
-             }
-             continue;
-           }
-           else
-             throw e;
+                exports.Div(`<div class='alert alert-warning'>Not connected. Reconnect in ${Countdown(Math.floor(delay/1000))}s. ${exports.A(`Try Now`, {href:'#'})}</div>`) .. ConnectionIndicatorStyle()
+              ) { |ui|
+                waitfor {
+                  hold(delay);
+                  delay *= 1.5;
+                  if (delay > 60*1000*10) // cap at 10 minutes
+                    delay = 60*1000*10;
+              
+                }
+                or {
+                  ui.querySelector('a') .. exports.wait('click', {handle:exports.preventDefault});
+                }
+              }
+              continue;
+            }
+            else
+              throw e;
           }
           break;
         }
