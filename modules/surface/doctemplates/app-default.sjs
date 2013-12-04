@@ -115,13 +115,7 @@ exports.Document = settings ->
               |connection|
               // we're connected; reset connection delay
               delay = 1000;
-              try {
-                exports.mainContent.style.opacity = '1';
-                block(connection.api);
-              }
-              finally {
-                exports.mainContent.style.opacity = '.5';
-              }
+              block(connection.api);
             }
           }
           catch(e) {
