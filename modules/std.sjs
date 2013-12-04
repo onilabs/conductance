@@ -74,7 +74,8 @@ if (hostenv === 'nodejs') {
 
 modules = modules.concat([
   {id:'mho:env', name:'env'},
-  {id:'mho:surface'}
+  {id:'mho:surface'},
+  {id:'mho:observable'},
 ]);
 
 if (hostenv === 'nodejs') {
@@ -123,6 +124,12 @@ module.exports = require(modules);
    - **server**: (module [mho:server](#mho%3Aserver))
    - **sys**: (module [sjs:sys](#sjs%3Asys))
    - **url**: (module [sjs:url](#sjs%3Aurl))
+  
+  ### Symbols from the [mho:observable](#mho%3Aobservable) module:
+  
+   - **Computed**: (class [mho:observable::Computed])
+   - **Observable**: (function [mho:observable::Observable])
+  
   
   ### Symbols from the [mho:server](#mho%3Aserver) module:
   *(when in the nodejs environment)*
@@ -309,8 +316,6 @@ module.exports = require(modules);
    - **join**: (function [sjs:sequence::join])
    - **map**: (function [sjs:sequence::map])
    - **map.par**: (function [sjs:sequence::map.par])
-   - **Observable**: (function [sjs:sequence::Observable])
-   - **ObservableTuple**: (function [sjs:sequence::ObservableTuple])
    - **pack**: (function [sjs:sequence::pack])
    - **partition**: (function [sjs:sequence::partition])
    - **reduce**: (function [sjs:sequence::reduce])
