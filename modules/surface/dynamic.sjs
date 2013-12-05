@@ -10,10 +10,9 @@
 
 var { ensureWidget, Mechanism, collapseHtmlFragment } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
-var { Stream, toArray, map, filter, each, reverse, concat, first, take, indexed } = require('sjs:sequence');
+var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait, when } = require('sjs:events');
-var { isObservable, get } = require('../observable');
 
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
@@ -412,14 +411,25 @@ exports.withWidget = withWidget;
 //----------------------------------------------------------------------
 
 // set a property on a widget
+/**
+  @function Prop
+  @summary Add a javascript property to a widget
+  @param {::Widget} [widget]
+  @param {String} [name] Property name
+  @param {String|sjs:sequence::Stream} [value] Property value
+  @return {::Widget}
+  @desc
+    Sets a javascript property
+    on the widget's root node once it is inserted into the document.
+
+    See also [::Attrib].
+*/
 function Prop(html, name, value) {
   return html .. Mechanism(function(node) {
-    if (!isObservable(value))
+    if (!isStream(value))
       node[name] = value;
     else {
-      node[name] = value.get();
-      value.observe {
-        |v|
+      value .. each { |v|
         node[name] = v;
       }
     }

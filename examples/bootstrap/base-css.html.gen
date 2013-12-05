@@ -1,5 +1,4 @@
 var { Document } = require('mho:surface');
-var { Bootstrap } = require('mho:surface/bootstrap');
 
 exports.content = function(pars) {
 return Document(
@@ -2157,5 +2156,5 @@ For example, &lt;code&gt;&amp;lt;section&amp;gt;&lt;/code&gt; should be wrapped 
         </ul>
       </div>
     </footer>
- ` .. Bootstrap());
+ `);
 }

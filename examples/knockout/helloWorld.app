@@ -1,7 +1,8 @@
 // Conductance version of http://knockoutjs.com/examples/helloWorld.html
 
 var { Observable } = require('mho:observable');
-var { appendContent, TextInput } = require('mho:surface');
+var { appendContent } = require('mho:surface');
+var { TextInput } = require('mho:surface/html');
 
 //----------------------------------------------------------------------
 
@@ -9,8 +10,8 @@ var firstName = Observable("Planet");
 var lastName  = Observable("Earth");
 
 document.body .. appendContent(
-    `     
-     <p>First name: $TextInput(firstName)</p> 
+    `
+     <p>First name: $TextInput(firstName)</p>
      <p>Last name:  $TextInput(lastName) </p>
      <h2>Hello, $firstName $lastName!</h2>
     `

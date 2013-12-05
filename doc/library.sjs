@@ -1,5 +1,6 @@
 var str = require('sjs:string');
-var {find, each, filter, map, at, join, Observable, transform, first} = require('sjs:sequence');
+var {find, each, filter, map, at, join, transform, first} = require('sjs:sequence');
+var {Observable} = require('mho:observable');
 var {remove} = require('sjs:array');
 var {ownValues, hasOwn, get, clone, merge} = require('sjs:object');
 var docutil = require('sjs:docutil');

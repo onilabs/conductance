@@ -2,18 +2,24 @@ var {test, context, assert} = require('sjs:test/suite');
 context("dynamic") {||
 
 var {withWidget, Widget} = require('mho:surface');
+var { Select } = require('mho:surface/html');
 var {Observable, Computed} = require('mho:observable');
-var {each, at} = require('sjs:sequence');
+var {each, at, map} = require('sjs:sequence');
+var driver = require('sjs:xbrowser/driver');
+
+var click = function(elem) {
+  elem .. driver.trigger('click');
+  elem .. driver.trigger('change');
+}
 
 context("observable widget content") {||
   test("should reflect changes made before & after insertion") {||
     var content = Observable("first");
     var observableWidget = Widget("div", content);
-    var cachedComputedWidget = Widget("div", Computed.Cached(content, c -> 'cached computed ' + c));
-    var computedWidget = Widget("div", Computed(content, c -> 'always computed ' + c));
+    var computedWidget = Widget("div", Computed(content, c -> 'computed ' + c));
     content.set("second");
 
-    var widgets = [observableWidget, cachedComputedWidget, computedWidget];
+    var widgets = [observableWidget, computedWidget];
     document.body .. withWidget(widgets) {|parent|
       var elems = parent.childNodes;
       elems.length .. assert.eq(widgets.length);
@@ -28,6 +34,126 @@ context("observable widget content") {||
         elem.textContent.split(' ') .. at(-1) .. assert.eq("third");
       }
     };
+  }
+}
+
+context("select widget") {||
+  var selectionMap = node -> node.childNodes .. map(e -> e.selected);
+  var withSelect = (settings, block) ->
+      document.body .. withWidget(Select(settings), block);
+
+  var commonTests = function() {
+    test("should reflect static selections") {|s|
+      var selection = Observable("one");
+      withSelect({
+        items: s.items,
+        selected: "one",
+      }) {|elem|
+        elem .. selectionMap .. assert.eq([true, false, false]);
+      }
+    }
+
+    test("should read selection object changes") {|s|
+      var selection = Observable("one");
+      withSelect({
+        items: s.items,
+        selected: selection,
+      }) {|elem|
+        elem .. selectionMap .. assert.eq([true, false, false], "initial");
+        selection.set("two");
+        elem .. selectionMap .. assert.eq([false, true, false]);
+      }
+
+      selection.set(["one", "two"]);
+      withSelect({
+        items: s.items,
+        multiple: true,
+        selected: selection,
+      }) {|elem|
+        elem .. selectionMap .. assert.eq([true, true, false], "initial");
+        selection.set(["two", "three"]);
+        elem .. selectionMap .. assert.eq([false, true, true]);
+      }
+    }
+
+    test("should store selection object changes") {|s|
+      var selection = Observable("one");
+      withSelect({
+        items: s.items,
+        selected: selection,
+      }) {|elem|
+        elem .. selectionMap .. assert.eq([true, false, false], "initial");
+        elem.childNodes[1] .. click();
+        selection.get() .. assert.eq("two");
+        elem .. selectionMap .. assert.eq([false, true, false]);
+      }
+
+      selection.set(["one", "two"]);
+      withSelect({
+        items: s.items,
+        multiple: true,
+        selected: selection,
+      }) {|elem|
+        elem .. selectionMap .. assert.eq([true, true, false], "initial");
+        elem.childNodes[1] .. click();
+        elem .. selectionMap .. assert.eq([true, false, false]);
+        selection.get() .. assert.eq(['one']);
+      }
+    }
+  };
+
+  context("plain items") {||
+    test.beforeEach {|s|
+      s.items = ["one", "two", "three"];
+    }
+    commonTests();
+  }
+
+  context("observable collection") {||
+    test.beforeEach {|s|
+      s.items = Observable(["one", "two", "three"]);
+    }
+    commonTests();
+
+    test("should maintain single selection on item change") {|s|
+      var selection = Observable("one");
+      withSelect({
+        items: s.items,
+        selected: selection,
+      }) {|elem|
+        elem .. selectionMap .. assert.eq([true, false, false], "initial");
+        s.items.set(["zero", "one"]);
+        elem .. selectionMap .. assert.eq([false, true]);
+      }
+    }
+
+    test("should maintain multiple selection on item change") {|s|
+      var selection = Observable(["one", "two"]);
+      withSelect({
+        items: s.items,
+        selected: selection,
+        multiple: true,
+      }) {|elem|
+        elem .. selectionMap .. assert.eq([true, true, false], "initial");
+        s.items.set(["zero", "one", "two", "three"]);
+        elem .. selectionMap .. assert.eq([false, true, true, false]);
+      }
+    }
+
+    test("should use latest selection on item change if selection is observable") {|s|
+      var selection = Observable(["one", "two"]);
+      withSelect({
+        items: s.items,
+        selected: selection,
+        multiple: true,
+      }) {|elem|
+        elem .. selectionMap .. assert.eq([true, true, false], "initial");
+        selection.set(["zero"]);
+        elem .. selectionMap .. assert.eq([false, false, false], "initial");
+        s.items.set(["zero", "one"]);
+        elem .. selectionMap .. assert.eq([true, false]);
+      }
+    }
   }
 }
 

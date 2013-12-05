@@ -1,11 +1,11 @@
 var { Widget, Mechanism, Attrib } = require('./base');
 var { replaceContent, appendContent, prependContent, Prop, removeElement, insertBefore } = require('./dynamic');
 var { HostEmitter, Stream } = require('sjs:events');
-var { integers, each, map, indexed, filter, sort, slice } = require('sjs:sequence');
+var { Stream:makeStream, isStream, integers, each, map, indexed, filter, sort, slice, any } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { shallowEq } = require('sjs:compare');
 var { override, merge } = require('sjs:object');
-var { isObservable, isObservableArray, isMutatable, Computed, get, Map, at } = require('../observable');
+var { Computed } = require('../observable');
 
 /**
   @desc
@@ -68,32 +68,31 @@ var { isObservable, isObservableArray, isMutatable, Computed, get, Map, at } = r
 
 //----------------------------------------------------------------------
 /**
- @function TextInput
- @summary A plain HTML 'input' widget
- @param  {String|../observable::Observable} [value] Value.
- @return {surface::Widget}
+  @function TextInput
+  @summary A plain HTML 'input' widget
+  @param  {String|sjs:sequence::Stream} [value] Value.
+  @return {surface::Widget}
 */
 var TextInput = (value, attrs) ->
   Widget('input', null, {'type':'text'} .. merge(attrs||{})) ..
   Mechanism(function(node) {
     value = value || "";
-    node.value = get(value);
-    if (isObservable(value)) {
+    if (isStream(value)) {
       waitfor {
-        value.observe {
-          |val|
+        value .. each {|val|
           if (node.value !== val)
             node.value = val;
         }
       }
       and {
-        if (isMutatable(value)) {
-          HostEmitter(node, 'input') .. Stream .. each {
-            |ev|
+        if (value.set) {
+          HostEmitter(node, 'input') .. Stream .. each { |ev|
             value.set(node.value);
           }
         }
       }
+    } else {
+      node.value = value;
     }
   });
 exports.TextInput = TextInput;
@@ -101,54 +100,51 @@ exports.TextInput = TextInput;
 
 //----------------------------------------------------------------------
 /**
- @function Checkbox
- @summary A HTML 'checkbox' widget
- @param  {Boolean|../observable::Observable} [value] Value.
- @return {surface::Widget}
+  @function Checkbox
+  @summary A HTML 'checkbox' widget
+  @param  {Boolean|sjs:sequence::Stream} [value] Value.
+  @return {surface::Widget}
 */
 var Checkbox = value ->
   Widget('input') ..
   Attrib("type", "checkbox") ..
   Mechanism(function(node) {
-    node.checked = Boolean(get(value));
-    if (isObservable(value)) {
+    if (isStream(value)) {
       waitfor {
-        value.observe {
-          |current|
+        value .. each { |current|
           current = Boolean(current);
           if (node.checked !== current) node.checked = current;
         }
       }
       and {
-        if (isMutatable(value)) {
-          HostEmitter(node, 'change') .. Stream .. each {
-            |ev|
+        if (value.set) {
+          HostEmitter(node, 'change') .. Stream .. each { |ev|
             value.set(node.checked);
           }
         }
       }
+    } else {
+      node.checked = Boolean(value);
     }
   });
 exports.Checkbox = Checkbox;
 
 //----------------------------------------------------------------------
 /**
- @function Select
- @summary A plain HTML 'select' widget
- @param  {Object} [settings] Widget settings
- @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
- @setting {Array|../observable::Observable} [items] Selectable items
- @return {surface::Widget}
+  @function Select
+  @summary A plain HTML 'select' widget
+  @param  {Object} [settings] Widget settings
+  @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
+  @setting {Array|sjs:sequence::Stream} [items] Selectable items
+  @return {surface::Widget}
 */
 
 
 function selectedIndices(items, selection) {
-  items = get(items);
   var rv = {};
-  var selection_arr = get(selection);
-  if (!isArrayLike(selection_arr)) 
-    selection_arr = [selection_arr];
-  selection_arr .. 
+  if (!isArrayLike(selection))
+    selection = [selection];
+  selection ..
     map(selected_item -> items.indexOf(selected_item)) .. each {
       |index|
       rv[index] = true;
@@ -156,77 +152,58 @@ function selectedIndices(items, selection) {
   return rv;
 }
 
-function updateSelectionHtml(node, items, selection) {
-  var select_map = selectedIndices(items, selection);
-  node.querySelectorAll('option') ..
-  indexed .. each {
-    |[index, elem]|
-    elem.selected = select_map[index];
-  }
-}
-
-function SelectOptionsObserverMechanism(ft, items, selection) {
+function SelectObserverMechanism(ft, state, updateSelected) {
   return ft .. Mechanism(function(node) {
-    items.observe {
-      |_items, change|
-      switch (change.type) {
-      case 'splice':
-        if (change.removed) {
-          node.querySelectorAll('option') .. 
-            slice(change.index, change.index + change.removed) .. 
-            each { |elem| elem .. removeElement }
+    var lastSelection;
+    waitfor {
+      var lastItems;
+      state .. each {|[items, selection]|
+        var nodes = node.querySelectorAll('option');
+        var select_map;
+        if (selection === undefined) {
+          select_map = {};
+          nodes .. indexed .. each {|[i,n]|
+            if (n.selected) select_map[i] = true;
+          }
+        } else {
+          select_map = selectedIndices(items, selection);
         }
-        if (change.added) {
-          var new_html = integers(change.index, change.index + change.added - 1) ..
-            map(i -> _items[i] .. Computed(item -> `<option>$item</option>`));
-          if (change.appending)
-            node .. appendContent(new_html);
-          else {
-            var anchor = node.querySelectorAll('option')[change.index];
-            anchor .. insertBefore(new_html);
+
+        if (lastItems !== items) {
+          /* update content */
+          node ..
+            replaceContent(
+              items
+              .. indexed
+              .. map([idx, item] -> Widget("option", item, {selected: select_map[idx]}))
+            );
+        } else {
+          /* update selections */
+          nodes .. indexed .. each {
+            |[index, elem]|
+            elem.selected = select_map[index];
           }
         }
-        break;
-      default:
-        node .. 
-          replaceContent(_items .. 
-                         Map(item -> `<option>$item</option>`));
-        updateSelectionHtml(node, items, selection);
+
+        lastSelection = selection;
+        lastItems = items;
+      }
+    } and {
+      if (updateSelected) {
+        HostEmitter(node, 'change') .. Stream .. each {
+          |ev|
+          if (!lastItems) continue;
+          var new_selection = node.querySelectorAll('option') ..
+            indexed ..
+            filter(([idx,elem]) -> elem.selected) ..
+            map([idx,] -> lastItems[idx]);
+
+          updateSelected(new_selection);
+        }
       }
     }
   });
-}
-
-function SelectSelectionMechanism(ft, items, selection) {
-  return ft .. Mechanism(function(node) {
-    updateSelectionHtml(node, items, selection);
-    waitfor {
-     if (isObservable(selection)) {
-       selection.observe {
-         ||
-         updateSelectionHtml(node, items, selection);
-       }
-     }
-    }
-    and {
-      if (isMutatable(selection)) {
-        HostEmitter(node, 'change') .. Stream .. each {
-          |ev|
-          var new_selection = node.querySelectorAll('option') .. 
-            indexed .. 
-            filter(([idx,elem]) -> elem.selected) ..
-            map(([idx,]) -> items.at(idx));
-          if (isObservableArray(selection)) {
-            if (!shallowEq(selection, new_selection))
-              selection.set(new_selection);
-          }
-          else if (selection.get() !== new_selection[0])
-            selection.set(new_selection[0]);
-        }
-      }
-    }
-  })
-}
+};
 
 function Select(settings) {
   settings = {
@@ -235,69 +212,74 @@ function Select(settings) {
     selected: undefined
   } .. override(settings);
 
-  if (settings.multiple && !settings.selected)
-    settings.selected = [];
-
   var dom_attribs = {};
   if (settings.multiple)
     dom_attribs.multiple = true;
 
-  // <option> doesn't take arbitrary html content. we need to treat
-  // observables a bit specially below
-  var rv = Widget('select',
-                  settings.items .. 
-                  Map(item -> isObservable(item) ? 
-                      Computed(item, function(item_content) {
-                        var rv = Widget('option', item_content);
-                        var selection_arr = get(settings.selected);
-                        if (!isArrayLike(selection_arr))
-                          selection_arr = [selection_arr];
-                        if (selection_arr.indexOf(this[0]) !== -1)
-                          rv = rv .. Prop('selected', true);
-                        return rv;
-                      }) :
-                      `<option>$item</option>`
-                     ),
-                  dom_attribs);
+  var ensureStream = o -> isStream(o) ? o: makeStream(function(emit) { emit(o); hold(); });
+  var state = [settings.items, settings.selected];
+  var computedState = null;
+  if (state .. any(isStream)) {
+    var { ObservableTuple } = require('../observable');
+    // make a single observable encapsulating the entire state
+    computedState = ObservableTuple.apply(null, state .. map(ensureStream));
+  }
 
-  if (isObservable(settings.items)) 
-    rv = rv .. SelectOptionsObserverMechanism(settings.items, settings.selected);
+  if (computedState) {
+    var updateSelected;
+    if (isStream(settings.selected) && settings.selected.set) {
+      if (settings.multiple) {
+        updateSelected = (sels) -> settings.selected.set(sels);
+      } else {
+        updateSelected = (sels) -> settings.selected.set(sels[0]);
+      }
+    }
+    return Widget('select', null, dom_attribs)
+    .. SelectObserverMechanism(computedState, updateSelected);
+  }
 
-  rv = rv .. SelectSelectionMechanism(settings.items, settings.selected);
+  // else: statically apply selections, no mechanism needed
+  // <option> doesn't take arbitrary html content, so we don't
+  // support observable item elements (only a whole observable array)
+  var selectedStream = ensureStream(settings.selected);
+  var select_map = selectedIndices(settings.items, settings.selection);
+  var options = settings.items .. indexed .. map([idx, item] ->
+    Widget('option', item, {selected: select_map[idx]})
+  );
 
-  return rv;
+  return Widget('select',  options, dom_attribs);
 }
 exports.Select = Select;
 
-
-// create an Observable.Map of the inputs if they are an ObservableArray, else
+// map each value of a stream of input if it is an Observable / Stream, else
 // just `map` them.
 var _map = function(items, fn) {
-  var m = isObservable(items) ? Map : map;
-  return m(items, fn);
+  if (isStream(items))
+    return items .. transform(val -> map(val, fn));
+  return map(val, fn)
 }
 /**
- @function UnorderedList
- @param {Array} [items]
- @param {optional Object} [attrs]
- @return {surface::Widget}
- @summary Crate a `<ul>` widget, wrapping each element of`items` in a `<li>`
+  @function UnorderedList
+  @param {Array} [items]
+  @param {optional Object} [attrs]
+  @return {surface::Widget}
+  @summary Crate a `<ul>` widget, wrapping each element of`items` in a `<li>`
 */
 exports.UnorderedList = (items, attrs) -> exports.Ul(items .. _map(exports.Li), attrs);
 /**
- @function OrderedList
- @param {Array} [items]
- @param {optional Object} [attrs]
- @return {surface::Widget}
- @summary Crate a `<ol>` widget, wrapping each element of`items` in a `<li>`
+  @function OrderedList
+  @param {Array} [items]
+  @param {optional Object} [attrs]
+  @return {surface::Widget}
+  @summary Crate a `<ol>` widget, wrapping each element of`items` in a `<li>`
 */
 exports.OrderedList = (items, attrs) -> exports.Ol(items .. _map(exports.Li), attrs);
 
 /**
- @function Submit
- @param {surface::HtmlFragment} [content]
- @param {optional Object} [attrs]
- @return {surface::Widget}
- @summary Crate an `<input type="submit">` widget.
+  @function Submit
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attrs]
+  @return {surface::Widget}
+  @summary Crate an `<input type="submit">` widget.
 */
 exports.Submit = (content, attr) -> Widget('input', null, (attr || {}) .. merge({type:'submit', value: content}));

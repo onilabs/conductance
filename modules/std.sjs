@@ -128,7 +128,11 @@ module.exports = require(modules);
   ### Symbols from the [mho:observable](#mho%3Aobservable) module:
   
    - **Computed**: (class [mho:observable::Computed])
-   - **Observable**: (function [mho:observable::Observable])
+   - **ConflictError**: (class [mho:observable::ConflictError])
+   - **isConflictError**: (function [mho:observable::isConflictError])
+   - **Observable**: (class [mho:observable::Observable])
+   - **ObservableTuple**: (function [mho:observable::ObservableTuple])
+   - **observe**: (function [mho:observable::observe])
   
   
   ### Symbols from the [mho:server](#mho%3Aserver) module:
@@ -176,6 +180,7 @@ module.exports = require(modules);
    - **Mechanism**: (function [mho:surface::Mechanism])
    - **prependContent**: (function [mho:surface::prependContent])
    - **prependWidget**: (function [mho:surface::prependWidget])
+   - **Prop**: (function [mho:surface::Prop])
    - **RawHTML**: (function [mho:surface::RawHTML])
    - **removeElement**: (function [mho:surface::removeElement])
    - **replaceContent**: (function [mho:surface::replaceContent])

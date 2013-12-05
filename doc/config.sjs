@@ -1,6 +1,7 @@
 var { Widget, withWidget, Mechanism, Style, OnClick } = require('mho:surface');
-var { Input, Form, Button } = require('mho:surface/html');
-var { each, map, Observable, ObservableTuple, transform } = require('sjs:sequence');
+var { Input, Form, Button } = require('mho:surface/bootstrap/html');
+var { each, map, transform } = require('sjs:sequence');
+var { Observable } = require('mho:observable');
 var events = require('sjs:events');
 var assert = require('sjs:assert');
 var { remove } = require('sjs:array');
@@ -56,7 +57,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
       <div>
         <label>URL: </label><input/>
       </div>
-      <button>Add</button>
+      $Button("Add")
     `) .. Mechanism(function(elem) {
       while(true) {
         var e;
@@ -79,7 +80,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
     }) .. Style("
       input, label { display:inline-block; }
       label { min-width: 5em; }
-      button { margin-left:5em; margin-top:0.2em; }
+      button { margin-left:5em; }
     ");
 
     var widget = Widget("div", `
@@ -109,6 +110,10 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
 
       li button {
         margin-right: 1em;
+      }
+      
+      button {
+        margin-top:0.2em;
       }
     ");
     elem .. withWidget(widget) {|elem|

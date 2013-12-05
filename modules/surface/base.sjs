@@ -10,7 +10,6 @@ var { each, indexed, reduce, map, join, isStream, first } = require('sjs:sequenc
 var { clone, propertyPairs, extend } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
-var { isObservable, get, observe } = require('../observable');
 var array = require('sjs:array');
 var func = require('sjs:function');
 
@@ -50,27 +49,29 @@ exports._getDynOniSurfaceInit = ->
            // with the text "Hello, John"
 
      - Any [::CollapsedFragment] (e.g any [::Widget])
-     - An [observable::Observable] whose value is a [::HtmlFragment]
      - An `Array` of [::HtmlFragment]s.
      - A `String`, which will be automatically escaped (see [::RawHTML] for
        inserting a String as HTML).
+     - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
+       to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
+       Typically, this will be an [observable::Observable] or a Stream derived from one.
 
     Any other types will be coerced to a String wherever a HtmlFragment
     is required.
 
-    Note: Observables are only allowed for content that will be used in
+    Note: Streams are only allowed for content that will be used in
     the 'dynamic world' (i.e. client-side). Attempting to add
-    an observable to in a [::Document] will raise an error.
+    a stream to in a [::Document] will raise an error.
 */
 /*
     HTML_FRAGMENT      : QUASI | CFRAGMENT | ARRAY | UNSAFE_TXT | 
-                         OBSERVABLE
+                         STREAM
     QUASI              : "`" QUASI_COMPONENT* "`"
     QUASI_COMPONENT    : LITERAL_TXT | "${" HTML_FRAGMENT "}"
     ARRAY              : "[" FRAGMENT_TREE_LIST? "]"
     FRAGMENT_TREE_LIST : HTML_FRAGMENT | FRAGMENT_TREE_LIST "," HTML_FRAGMENT  
     UNSAFE_TXT         : '"' STRING '"'
-    OBSERVABLE         : an instance of [observable::ObservableBase] whose
+    STREAM             : an instance of [sjs:sequence::Stream] whose
                          value is a [::HtmlFragment]
     LITERAL_TXT        : STRING
     CFRAGMENT          : an instance of class [::CollapsedFragment]
@@ -138,11 +139,11 @@ __js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
   @return {::CollapsedFragment}
 */
 
-// helper mechanism for making observable content dynamic:
-function ObservableContentMechanism(ft, obs) {
+// helper mechanism for making stream content dynamic:
+function StreamContentMechanism(ft, obs) {
   var dyn = require('./dynamic');
   return ft .. Mechanism(function(node) {
-    obs.observe { |val|
+    obs .. each { |val|
       node .. dyn.replaceContent(collapseHtmlFragment(val));
     }
   });
@@ -220,12 +221,12 @@ function appendFragmentTo(target, ft, tag) {
   else if (isFragment(ft)) {
     return ft.appendTo(target, tag);
   }
-  else if (isObservable(ft)) {
-    // observables are only allowed in the dynamic world; if the user
+  else if (isStream(ft)) {
+    // streams are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
     // XXX can we make this more efficient by not going through Widget?
-    ft = Widget('surface-ui') .. ObservableContentMechanism(ft);
+    ft = Widget('surface-ui') .. StreamContentMechanism(ft);
     ft.appendTo(target, tag);
   }
   else if (isStream(ft)) { 
@@ -300,11 +301,17 @@ __js WidgetProto._normalizeClasses = function() {
   return classes;
 };
 
-__js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : String(val);
+__js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : val;
 
 WidgetProto.appendTo = function(target) {
   var attribs = propertyPairs(this.attribs)
-    .. map([key,val] -> "#{key}=\"#{flattenAttrib(val).replace(/\"/g, '&quot;')}\"")
+    .. map(function([key,val]) {
+      if (typeof(val) === 'undefined') return "";
+      if (typeof(val) === 'boolean') {
+        return val ? key : "";
+      }
+      return "#{key}=\"#{String(flattenAttrib(val)).replace(/\"/g, '&quot;')}\"";
+    })
     .. join(' ');
 
   target.content += "<#{this.tag} #{attribs}>";
@@ -475,9 +482,9 @@ __js function InternalStyleDef(content, parent_class, mech) {
               }
             }
 
-    If `style` is an Observable (or a [sjs:quasi::Quasi] containing
-    any observable values), the style will be recomputed and updated
-    whenever any of the composite observable values changes.
+    If `style` is a [sjs:sequence::Stream] (or a [sjs:quasi::Quasi] containing
+    any stream values), the style will be recomputed and updated
+    whenever any of the composite stream values changes.
 
     If `widget` is not provided, `Style` will
     return a cached style function which can later be
@@ -514,15 +521,15 @@ __js {
     var content = arguments.length == 1 ? arguments[0] : arguments[1];
     if (content .. isQuasi) {
       var q = content;
-      var render = function(observables) {
-        var rv = "";
+      var render = function(collectObservables, values) {
+        var rv = "", obsIdx=0;
         for (var i=0; i<q.parts.length; i++) {
           var p = q.parts[i];
           if (i%2) {
-            // XXX: are there general escaping rules we can use for CSS attribs?
-            if (isObservable(p)) {
-              if(observables) observables.push(p);
-              rv += String(p.get());
+            if (isStream(p)) {
+              if(collectObservables) collectObservables.push(p);
+              // XXX: are there general escaping rules we can use for CSS attribs?
+              else rv += String(values[obsIdx++]);
             } else {
               rv += String(p);
             }
@@ -532,11 +539,12 @@ __js {
       }
       var observables = [];
       content = render(observables);
-      // if render found any observables, set up a mechanism:
+      // if render collected any observables, set up a mechanism:
       if (observables.length) {
+        content = ""; // leave blank until we have observable values
         styleMechanism = function(elem) {
-          var onChange = function() {
-            var content = render();
+          var onChange = function(values) {
+            var content = render(null, values);
             if (elem.styleSheet) {
               // IE
               elem.styleSheet.cssText = content;
@@ -544,7 +552,7 @@ __js {
               elem.lastChild.nodeValue = content;
             }
           }
-          observe.apply(null, observables.concat(onChange));
+          ObservableTuple.apply(null, observables) .. each(onChange);
         };
       }
     } else {
@@ -678,35 +686,20 @@ __js {
 //----------------------------------------------------------------------
 
 // helper mechanism for making observable classes dynamic:
-function ObservableClassMechanism(ft, cls, current) {
-  return ft .. Mechanism(function(node) {
-    cls.observe { 
-      ||
-      __js {      
-        if (current !== undefined) 
-          node.classList.remove(current);
-        if ((current = get(cls)) !== undefined) 
-          node.classList.add(current); 
-      }
-    }
-  });
-}
-
 function StreamClassMechanism(ft, cls, current) {
   return ft .. Mechanism(function(node) {
-    cls .. each { 
+    cls .. each {
       |clsname|
-      __js {  
+      __js {
         if (clsname === current) continue;
-        if (current !== undefined) 
+        if (current !== undefined)
           node.classList.remove(current);
-        if ((current = clsname) !== undefined) 
-          node.classList.add(current); 
+        if ((current = clsname) !== undefined)
+          node.classList.add(current);
       }
     }
   });
 }
-
 
 function setAttribValue(widget, name, v) {
   if (typeof v === 'boolean') {
@@ -718,9 +711,9 @@ function setAttribValue(widget, name, v) {
   }
 }
 
-function ObservableAttribMechanism(ft, name, obs) {
+function StreamAttribMechanism(ft, name, obs) {
   return ft .. Mechanism(function(node) {
-    obs.observe {
+    obs .. each {
       |v|
       if (typeof v == 'boolean') {
         if (v)
@@ -737,34 +730,33 @@ function ObservableAttribMechanism(ft, name, obs) {
 
 /**
   @function Attrib
-  @summary Add an attribute to a widget
+  @summary Add a HTML attribute to a widget
   @param {::Widget} [widget]
   @param {String} [name] Attribute name
-  @param {String|observable::Observable} [value] Attribute value
+  @param {String|sjs:sequence::Stream} [value] Attribute value
   @return {::Widget}
   @desc
-    `value` can be an [observable::Observable], but only in a
-    dynamic (xbrowser) context; if `val` is an observable and
+    `value` can be an [sjs:sequence::Stream], but only in a
+    dynamic (xbrowser) context; if `val` is a Stream and
     this widget is used in a static [::Document], an error will
     be thrown.
+
+    See also [::Prop].
 */
 function Attrib(widget, name, value) {
-  var widget = cloneWidget(widget);
-  if (isObservable(value)) {
-    setAttribValue(widget, name, value.get());
-    return widget .. ObservableAttribMechanism(name, value);
+  if (isStream(value)) {
+    return widget .. StreamAttribMechanism(name, value);
   }
-  else {
-    setAttribValue(widget, name, value);
-    return widget;
-  }
+  widget = cloneWidget(widget);
+  setAttribValue(widget, name, value);
+  return widget;
 }
 exports.Attrib = Attrib;
 
 /**
   @function Id
   @param {::Widget} [widget]
-  @param {String|observable::Observable} [id]
+  @param {String|sjs:sequence::Stream} [id]
   @summary Add an `id` attribute to a widget
   @return {::Widget}
 */
@@ -775,19 +767,19 @@ exports.Id = (widget, id) -> Attrib(widget, 'id', id);
   @function Class
   @summary Add a `class` to a widget
   @param {::Widget} [widget]
-  @param {String|observable::Observable} [class]
-  @param {optional Boolean|observable::Observable} [flag]
+  @param {String|sjs:sequence::Stream} [class]
+  @param {optional Boolean|sjs:sequence::Stream} [flag]
   @return {::Widget}
   @desc
     Returns a copy of `widget` widget with `class`
-    added to the widget's class list. If `class` is an
-    observable, changes to `class` will be reflected
+    added to the widget's class list. If `class` is a
+    stream, changes to `class` will be reflected
     in this widget.
 
     If `flag` is provided, it is treated as a boolean -
     the `class` is added if `flag` is `true`, otherwise
     it is removed. This is often useful with an
-    [observable::Computed] boolean value, to toggle
+    observable boolean value, to toggle
     the presence of a class based on some logical condition.
 
     To replace the `class` attribute entirely rather
@@ -795,15 +787,8 @@ exports.Id = (widget, id) -> Attrib(widget, 'id', id);
 */
 function Class(widget, clsname, val) {
   __js  var widget = cloneWidget(widget);
-  
   __js  var classes = widget._normalizeClasses();
-  if (isObservable(clsname)) {
-    __js    if (arguments.length > 2)
-      throw new Error('Class(.) argument error: Cannot have a boolean toggle in combination with an observable class name');
-    classes.push(clsname .. get);
-    widget = widget .. ObservableClassMechanism(clsname, clsname .. get);
-  }
-  else if (isStream(clsname)) {
+  if (isStream(clsname)) {
     __js    if (arguments.length > 2)
       throw new Error('Class(.) argument error: Cannot have a boolean toggle in combination with an observable class name');
     var current = clsname .. first;
@@ -811,29 +796,10 @@ function Class(widget, clsname, val) {
     widget = widget .. StreamClassMechanism(clsname, current);
   }
   else {
-    // !isObservable/isStream(clsname)
+    // !isStream(clsname)
     if (arguments.length > 2) {
       // val is provided, treat it as a boolean toggle
-      
-      if (isObservable(val)) {
-        if (get(val)) 
-          classes.push(clsname);
-        else 
-          classes .. array.remove(clsname);
-        widget = widget .. Mechanism {
-          |elem|
-          var cl = elem.classList;
-          val.observe {|v|
-                       if (v) cl.add(clsname);
-                       else cl.remove(clsname);
-                      }
-        }
-      }
-      else if (isStream(val)) {
-        if (val .. first)
-          classes.push(clsname);
-        else
-          classes .. array.remove(clsname);
+      if (isStream(val)) {
         widget = widget .. Mechanism {
           |elem|
           var cl = elem.classList;

@@ -1,15 +1,27 @@
 var cutil = require('sjs:cutil');
-var { Stream, toArray, slice, integers, each } = require('sjs:sequence');
+var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequence');
 
 /**
-   @function Observable
-   @param {Object} [val] Initial value
-   @return {sjs:sequence::Stream} Stream object with additional `get` and `set` methods.
-   @summary Create a value which can be modified and watched for changes.
-   @desc
-      TO BE WRITTEN
+  @class Observable
+  @inherit Stream
+  @summary A value which can be modified and watched for changes.
+
+  @function Observable
+  @param {Object} [val] Initial value
+  @desc
+    TO BE WRITTEN
+
+  @function Observable.get
+  @summary TODO
+
+  @function Observable.set
+  @summary TODO
+
+  @function Observable.modify
+  @summary TODO
 */
 
+var unchanged = {};
 function Observable(val) {
   var rev = 1;
   var change = Object.create(cutil._Waitable);
@@ -35,10 +47,43 @@ function Observable(val) {
     change.emit(++rev);
   };
 
+  rv.modify = function(f) {
+    var newval;
+    waitfor {
+      change.wait();
+      collapse;
+      throw ConflictError("value changed during modification");
+    } or {
+      newval = f(val, unchanged);
+    }
+    if (newval !== unchanged) this.set(newval);
+  };
+
   rv.get = -> val;
   return rv;
 }
 exports.Observable = Observable;
+
+/**
+  @class ConflictError
+  @inherits Error
+  @summary The error raised by [::Observable::modify] in the case of a conflict
+*/
+var ConflictErrorProto = new Error();
+var ConflictError = exports.ConflictError = function(msg) {
+  var rv = Object.create(ConflictErrorProto);
+  rv.message = msg;
+};
+
+/**
+  @function isConflictError
+  @inherits Error
+  @return {Boolean}
+  @summary Return whether `e` is a [::ConflictError]
+*/
+exports.isConflictError = function(ex) {
+  return Object.prototype.isPrototypeOf.call(ConflictErrorProto, ex);
+};
 
 
 /**
@@ -95,7 +140,19 @@ exports.Observable = Observable;
 function Computed(/* var1, ...*/) {
   var deps = arguments .. slice(0,-1) .. toArray;
   var f = arguments[arguments.length-1];
+  return ObservableTuple.apply(null, deps) .. transform(args -> f.apply(null, args));
+}
+exports.Computed = Computed;
 
+/**
+   @function ObservableTuple
+   @param {Stream} [input ...]
+   @summary Create a stream of tuples with 'Observable semantics'.
+   @desc
+      TO BE WRITTEN
+*/
+var ObservableTuple = exports.ObservableTuple = function() {
+  var deps = arguments;
   return Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
     var change = Object.create(cutil._Waitable);
@@ -108,7 +165,7 @@ function Computed(/* var1, ...*/) {
         if (primed < deps.length) continue;
         while (current_rev < rev) {
           current_rev = rev;
-          receiver(f.apply(null, inputs));
+          receiver(inputs.slice());
         }
       }
     }
@@ -132,4 +189,22 @@ function Computed(/* var1, ...*/) {
     }
   });
 }
-exports.Computed = Computed;
+
+/**
+  @function observe
+  @summary `observe()` multiple [sjs:sequence::Stream] objects at once
+  @param {sjs:sequence::Stream} [input ...]
+  @param {Function} [block]
+  @desc
+    This function acts like [sjs:sequence::each] does on a single Observable,
+    except that `block` is called whenever any of the inputs changes.
+
+    The arguments passed to `observer` are the current values of each `input`.
+*/
+exports.observe = function() {
+  var len = arguments.length;
+  var items = Array.prototype.slice.call(arguments, 0, len-1);
+  var block = arguments[len-1];
+  return ObservableTuple.apply(null, items) .. each(args -> block.apply(null, args));
+}
+

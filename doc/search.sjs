@@ -1,7 +1,8 @@
 var {RequireStyle, Class, Mechanism, Widget, Style, withWidget, Checkbox, Attrib} = require('mho:surface');
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, toArray, filter, Observable, ObservableTuple, transform, first} = seq;
+var {map, indexed, find, each, toArray, filter, transform, first} = seq;
+var { Observable, Computed } = require('mho:observable');
 var events = require('sjs:events');
 var dom = require('sjs:xbrowser/dom');
 var cutil = require('sjs:cutil');
@@ -116,7 +117,7 @@ exports.run = (function() {
 			};
 
 
-			var highlightedMatch = ObservableTuple(selectedMatch, results) .. transform(function([sel, results]) {
+			var highlightedMatch = Computed(selectedMatch, results, function(sel, results) {
 				if (sel) return sel;
 				return results[0] && results[0].id;
 			});

@@ -27,17 +27,19 @@ module.exports = require(modules);
          // with the text "Hello, John"
 
    - Any [::CollapsedFragment] (e.g any [::Widget])
-   - An [observable::Observable] whose value is a [::HtmlFragment]
    - An `Array` of [::HtmlFragment]s.
    - A `String`, which will be automatically escaped (see [::RawHTML] for
      inserting a String as HTML).
+   - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
+     to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
+     Typically, this will be an [observable::Observable] or a Stream derived from one.
 
   Any other types will be coerced to a String wherever a HtmlFragment
   is required.
 
-  Note: Observables are only allowed for content that will be used in
+  Note: Streams are only allowed for content that will be used in
   the 'dynamic world' (i.e. client-side). Attempting to add
-  an observable to in a [::Document] will raise an error.
+  a stream to in a [::Document] will raise an error.
 
 @class CollapsedFragment
 @summary Internal class representing a collapsed [::HtmlFragment]
@@ -127,9 +129,9 @@ module.exports = require(modules);
             }
           }
 
-  If `style` is an Observable (or a [sjs:quasi::Quasi] containing
-  any observable values), the style will be recomputed and updated
-  whenever any of the composite observable values changes.
+  If `style` is a [sjs:sequence::Stream] (or a [sjs:quasi::Quasi] containing
+  any stream values), the style will be recomputed and updated
+  whenever any of the composite stream values changes.
 
   If `widget` is not provided, `Style` will
   return a cached style function which can later be
@@ -164,39 +166,41 @@ module.exports = require(modules);
   to that element will be aborted.
 
 @function Attrib
-@summary Add an attribute to a widget
+@summary Add a HTML attribute to a widget
 @param {::Widget} [widget]
 @param {String} [name] Attribute name
-@param {String|observable::Observable} [value] Attribute value
+@param {String|sjs:sequence::Stream} [value] Attribute value
 @return {::Widget}
 @desc
-  `value` can be an [observable::Observable], but only in a
-  dynamic (xbrowser) context; if `val` is an observable and
+  `value` can be an [sjs:sequence::Stream], but only in a
+  dynamic (xbrowser) context; if `val` is a Stream and
   this widget is used in a static [::Document], an error will
   be thrown.
 
+  See also [::Prop].
+
 @function Id
 @param {::Widget} [widget]
-@param {String|observable::Observable} [id]
+@param {String|sjs:sequence::Stream} [id]
 @summary Add an `id` attribute to a widget
 @return {::Widget}
 
 @function Class
 @summary Add a `class` to a widget
 @param {::Widget} [widget]
-@param {String|observable::Observable} [class]
-@param {optional Boolean|observable::Observable} [flag]
+@param {String|sjs:sequence::Stream} [class]
+@param {optional Boolean|sjs:sequence::Stream} [flag]
 @return {::Widget}
 @desc
   Returns a copy of `widget` widget with `class`
-  added to the widget's class list. If `class` is an
-  observable, changes to `class` will be reflected
+  added to the widget's class list. If `class` is a
+  stream, changes to `class` will be reflected
   in this widget.
 
   If `flag` is provided, it is treated as a boolean -
   the `class` is added if `flag` is `true`, otherwise
   it is removed. This is often useful with an
-  [observable::Computed] boolean value, to toggle
+  observable boolean value, to toggle
   the presence of a class based on some logical condition.
 
   To replace the `class` attribute entirely rather
@@ -260,6 +264,18 @@ module.exports = require(modules);
 @function prependWidget
 
 @function withWidget
+
+@function Prop
+@summary Add a javascript property to a widget
+@param {::Widget} [widget]
+@param {String} [name] Property name
+@param {String|sjs:sequence::Stream} [value] Property value
+@return {::Widget}
+@desc
+  Sets a javascript property
+  on the widget's root node once it is inserted into the document.
+
+  See also [::Attrib].
 
 @function Document
 @param {surface::HtmlFragment} [content] Document content

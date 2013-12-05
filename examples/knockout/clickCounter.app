@@ -1,7 +1,8 @@
 // Conductance version of http://knockoutjs.com/examples/clickCounter.html
 
 var { Observable, Computed } = require('mho:observable');
-var { appendContent, Attrib, Button, OnClick } = require('mho:surface');
+var { appendContent, Attrib, OnClick } = require('mho:surface');
+var { Button } = require('mho:surface/html');
 
 //----------------------------------------------------------------------
 
@@ -13,7 +14,7 @@ function resetClicks()   { numberOfClicks.set(0) }
 
 var clickedTooManyTimesWarning = Computed(
   hasClickedTooManyTimes,
-  x -> x ? 
+  x -> x ?
     `<div>
        That's too many clicks! Please stop before you wear out your fingers.
        ${ Button('Reset clicks') .. OnClick(resetClicks) }
@@ -22,8 +23,8 @@ var clickedTooManyTimesWarning = Computed(
 document.body .. appendContent(
     `
       <div>You've clicked $numberOfClicks times</div>
-      ${ Button('Click me') .. 
-         OnClick(registerClick) .. 
+      ${ Button('Click me') ..
+         OnClick(registerClick) ..
          Attrib('disabled', hasClickedTooManyTimes) }
       $clickedTooManyTimesWarning
     `

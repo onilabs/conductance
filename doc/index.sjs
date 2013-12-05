@@ -3,7 +3,9 @@ waitfor {
 var {RequireStyle, OnClick, Class, Mechanism, Widget, prependWidget, removeElement, appendWidget, Style, withWidget} = require('mho:surface');
 } and {
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, join, Observable, ObservableTuple, transform } = seq;
+var {map, indexed, find, each, join, transform } = seq;
+} and {
+var { Observable, Computed } = require('mho:observable');
 } and {
 var array = require('sjs:array');
 } and {
@@ -47,12 +49,11 @@ exports.run = function(root) {
 
 	var locationHash = Observable(undefined);
 
-  var currentSymbol = ObservableTuple(locationHash, libraries.val) ..
-    transform(function([h]) {
-      logging.debug("Location hash: #{h}");
-      if (h === undefined) return undefined; // undefined: "not yet loaded"
-      return Symbol.resolveSymbol(libraries, h);
-    });
+	var currentSymbol = Computed(locationHash, libraries.val, function(h) {
+		logging.debug("Location hash: #{h}");
+		if (h === undefined) return undefined; // undefined: "not yet loaded"
+		return Symbol.resolveSymbol(libraries, h);
+	});
 
 	var renderer = ui.renderer(libraries, new Symbol.RootSymbol(libraries));
 	var symbolDocs = currentSymbol .. transform(function(sym) {

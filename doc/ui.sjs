@@ -1,8 +1,8 @@
 var {Widget, Mechanism, Style, Class, prependWidget, removeElement} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
-     reduce, reverse, join, find, hasElem,
-     Observable} = require('sjs:sequence');
+     reduce, reverse, join, find, hasElem
+     } = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, startsWith, endsWith, strip} = string;
 var {Quasi} = require('sjs:quasi');
@@ -13,6 +13,7 @@ var {merge, ownValues, ownPropertyPairs, getPath} = require('sjs:object');
 var { SymbolMissing, LibraryMissing } = require('./library');
 var { encodeNonSlashes, encodeFragment } = require('./url-util');
 var Symbol = require('./symbol');
+var { Observable } = require('mho:observable');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;

@@ -2,6 +2,59 @@
 @ .. @extend(require('mho:observable'));
 
 @context("Observable") {||
+	@test("observe multiple values at once") {||
+		var log = [];
+		var a = @Observable("a0");
+		var b = @Observable("b0");
+		var c = @Observable("c0");
+
+		waitfor {
+			@observe(a, b, c) {|_a, _b, _c|
+				log.push([_a, _b, _c]);
+				if (_c === "c1") {
+					break;
+				}
+			};
+		} or {
+			a.set("a1");
+			c.set("c1");
+			c.set("c2");
+		}
+
+		log .. @assert.eq([
+			["a0", "b0", "c0"],
+			["a1", "b0", "c0"],
+			["a1", "b0", "c1"],
+		]);
+	}
+
+	@test("combine multiple observables") {||
+		var log = [];
+		var a = @Observable("a0");
+		var b = @Observable("b0");
+		var c = @Observable("c0");
+		var obs = @ObservableTuple(a,b,c);
+
+		waitfor {
+			obs .. @each {|[_a, _b, _c]|
+				log.push([_a, _b, _c]);
+				if (_c === "c1") {
+					break;
+				}
+			};
+		} or {
+			a.set("a1");
+			c.set("c1");
+			c.set("c2");
+		}
+
+		log .. @assert.eq([
+			["a0", "b0", "c0"],
+			["a1", "b0", "c0"],
+			["a1", "b0", "c1"],
+		]);
+	}
+
 	@test("only ever skips intermediate events events when observing") {||
 		var log = [];
 		var a = @Observable("a0");

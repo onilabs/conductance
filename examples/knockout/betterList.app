@@ -1,21 +1,27 @@
 // Conductance version of http://knockoutjs.com/examples/betterList.html
 
-var { Observable, ObservableArray, Computed } = require('mho:observable');
-var { appendContent, Attrib, Prop, Button, Form, TextInput, Select, Style, OnClick } = require('mho:surface');
+var { Observable, Computed } = require('mho:observable');
+var { appendContent, Attrib, Prop, Style, OnClick } = require('mho:surface');
 var { difference } = require('sjs:array');
+var { Button, Form, TextInput, Select } = require('mho:surface/html');
 
 
 //----------------------------------------------------------------------
 
-var allItems      = ObservableArray(["Fries", "Eggs Benedict", "Ham", "Cheese"]);
-var selectedItems = ObservableArray(["Ham"]);
+var allItems      = Observable(["Fries", "Eggs Benedict", "Ham", "Cheese"]);
+var selectedItems = Observable(["Ham"]);
 var itemToAdd     = Observable('');
 
 function addItem(ev) {
   ev.preventDefault();
-  // prevent blanks and duplicates
-  if (itemToAdd.get().length && allItems.get().indexOf(itemToAdd.get()) == -1)
-    allItems.push(itemToAdd.get());
+  var newItem = itemToAdd.get();
+  allItems.modify(function(allItems, unchanged) {
+    // prevent blanks and duplicates
+    if (!newItem.length && allItems.indexOf(newItem) != -1) {
+      return unchanged;
+    }
+    return allItems.concat([itemToAdd]);
+  });
   itemToAdd.set(''); // clear text box
 }
 
