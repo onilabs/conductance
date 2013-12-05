@@ -87,19 +87,19 @@ exports.isConflictError = function(ex) {
 
 
 /**
-  @class Computed
-  @inherit ::ObservableBase
-  @summary A stream of values derived from one or more [sjs:sequence::Stream] inputs (including [::Observable]s).
+  @function Computed
+  @return [sjs:sequence::Stream]
+  @summary Create stream of values derived from one or more [sjs:sequence::Stream] inputs (including [::Observable]s).
 
   @param {Function} [compute]
   @desc
-    Computed objects allow you to represent computed values of observables
-    directly. When they are constructed, you pass in any number of [::Observable]
+    Computed objects allow you to represent computed values of observables / streams
+    directly. When they are constructed, you pass in any number of [sjs:sequence::Stream]
     inputs, followed by a final argument which is the `compute` function.
 
-    When the returned stream it being iterated, the `compute` function will be called
+    When the returned stream is being iterated, the `compute` function will be called
     to generate the current value whenever one of the inputs changes.
-    `compute` is passed the current value of all input observables, in the same order
+    `compute` is passed the most recent value of all inputs, in the same order
     they were passed to the `Computed` constructor.
 
     For example, you might want to compute a deriverd property
@@ -115,9 +115,9 @@ exports.isConflictError = function(ex) {
         });
 
     When `person` changes, `fullName` will be recomputed automatically, and
-    any code observing `fullName` will see the new value immediately.
+    any code iterating over `fullName` will see the new value immediately.
 
-    You can create a Computed observable from multiple source observables:
+    You can create a Computed stream from multiple source streams:
 
         var runner = Observable({
           firstName: "John",

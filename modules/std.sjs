@@ -127,7 +127,7 @@ module.exports = require(modules);
   
   ### Symbols from the [mho:observable](#mho%3Aobservable) module:
   
-   - **Computed**: (class [mho:observable::Computed])
+   - **Computed**: (function [mho:observable::Computed])
    - **ConflictError**: (class [mho:observable::ConflictError])
    - **isConflictError**: (function [mho:observable::isConflictError])
    - **Observable**: (class [mho:observable::Observable])
