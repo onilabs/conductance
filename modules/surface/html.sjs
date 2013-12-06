@@ -256,7 +256,7 @@ exports.Select = Select;
 var _map = function(items, fn) {
   if (isStream(items))
     return items .. transform(val -> map(val, fn));
-  return map(val, fn)
+  return items .. map(fn);
 }
 /**
   @function UnorderedList
