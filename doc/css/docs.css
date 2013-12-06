@@ -16,16 +16,40 @@
 }
 
 .mb-top h2 {
-    color: #222;
-    font-size: 20px;
+    color: #4c4f55;
+    font-size: 24px;
     font-weight: normal;
-    margin: 0 0 10px 0;
+    margin: 15px 0 10px 0;
 }
 
 .mb-top h3 {
+    color: #4c4f55;
+    font-family: sans-serif;
     font-weight: normal;
-    font-size: 17px;
-    margin:17px 0 0px 0;
+    font-size: 18px;
+    margin:25px 0 15px 0;
+}
+
+.mb-signature {
+    font-family: Monaco,Menlo,Consolas,"Courier New",monospace !important;
+    font-size:16px !important;
+    color:black !important;
+    padding: 5px 0 12px 0;
+    xborder: 1px solid #e12020;
+    border-bottom: 2px solid #e12020;
+    xbackground-color: #fadbdb;
+    xxmargin:55px 0 85px 0 !important;
+}
+
+.mb-signature span.mb-type {
+    margin-left: 0px;
+    color: #555;
+}
+
+.mb-signature > br {
+    display: block;
+    margin: 5px 0;
+    content: " ";
 }
 
 .mb-top h4 {
@@ -63,7 +87,7 @@
 }
 
 .mb-top a {
-    color: #444;
+/*    color: #444; */
 }
 
 .mb-top a > code {
@@ -89,10 +113,11 @@ div.mb-canonical-url {
 }
 
 div.mb-summary {
+    padding-top:10px;
     margin-bottom: 20px;
     color: #777;
     font-size: 1.2em;
-    font-style:italic;
+    /* font-style:italic; */
 }
 
 div.mb-class-desc {
@@ -105,7 +130,9 @@ span.mb-arglist {
 }
 
 span.mb-rv {
+    font-family: sans-serif;
     float: right;
+    color: #777;
 }
 
 span.mb-type {
@@ -136,7 +163,9 @@ span.mb-optarg {
 }
 
 .mb-top td {
-    border-top: 1px solid #ddd;
+    xbackground-color: #f4f4f4;
+    border-top: 1px solid #f7c7c7;
+    border-bottom: 1px solid #f7c7c7;
     padding: 10px 0 8px 0;
     vertical-align: top;
 }
@@ -145,11 +174,11 @@ td.mb-td-symbol {
     width: 30%;
 }
 
-.mb-top tr:nth-child(odd) {background: #fbfbfb; }
+/* .mb-top tr:nth-child(even) { background: #f8f8f8; } */
 
 .mb-top code {
   white-space: pre;
-  border: 1px solid #eaeaea; background: #fdfdfd; 
+  border: 1px solid #f7c7c7; background: #f8f8f8; 
   padding-left: 2px;
   padding-right: 2px;
 }
@@ -161,10 +190,19 @@ td.mb-td-symbol {
 
 .mb-top pre {
   line-height: 1.3em;
-  border: 1px solid #eaeaea; background: #fdfdfd; 
+  border: 1px solid #f7c7c7; background: #f8f8f8; 
   display: block;
   white-space: pre;
   padding: 10px 10px 10px 15px;
   margin: 15px 0 15px 0;
 }
 
+.mb-require, .mb-require > code {
+  border: none;
+  background-color: white;
+  color: #aaa;
+  line-height:1.3em;
+  font-size: 14px;
+  padding: 0;
+  margin: 0;
+}

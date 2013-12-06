@@ -21,8 +21,9 @@ body {
 		rgb(112, 112, 112) 0%, rgb(122, 125, 129) 7%, rgb(122, 125, 129) 100%
 	);
   */
-  background-color: #292C31;
-  background-color: #4F5153;
+  /* background-color: #292C31; */
+  /* background-color: #4F5153; */
+  background-color: #4c4f55;
   /* background-color: #993131; */
 
 	width: 280px;
@@ -120,37 +121,43 @@ h1 {
 }
 
 .breadcrumbs {
+  font-family: "PT Serif";
   /* margin-top: 5px; */
-	font-size: 2em;
+	font-size: 36px;
 	line-height: 1.2em;
 	min-height:1.2em;
 	padding: 5px 15px;
-	color: white;
-	background: #e43636;
+	/* color: white; */
+	/* background: #e43636; */
 }
 
 .breadcrumbs .leaf {
-	font-weight: bold;
+	/* font-weight: bold; */
+  color: #55606A;
 }
 
 .breadcrumbs .version {
 	/* float:right; */
-	font-size:0.5em;
-  color: #e43636;
-	color: rgba(255, 255, 255, 0.77);
+	font-size:14px;
+  line-height: 1.3em;
+  color: #aaa;
+  font-family: sans-serif;
+	/* color: rgba(255, 255, 255, 0.77); */
 }
 
 .breadcrumbs a {
-	color: rgba(255, 255, 255, 0.9) !important;
+	/* color: rgba(255, 255, 255, 0.9) !important; */
 }
 
 .breadcrumbs .sep {
-	opacity: 0.5;
+	/* opacity: 0.5; */
+  color: #55606A;
 }
 
 .header {
 	padding: 0 15px;
 	margin:0;
+  margin-top: 40px;
 	background: #fff;
 }
 
@@ -165,12 +172,14 @@ h1 {
 }
 
 .header button {
-	background-color:rgba(0, 0, 0, 0.25);
+	/* background-color:rgba(0, 0, 0, 0.25); */
+  background-color: #e43636;
 	color:white !important;
 }
 
 .header button:hover {
-	background-color:rgba(0, 0, 0, 0.5);
+  background-color: #e12020;
+	/* background-color:rgba(0, 0, 0, 0.5); */
 }
 
 #sidebar .active {
@@ -180,7 +189,7 @@ h1 {
 	font-weight:bold;
 }
 #sidebar .active-children {
-	font-size:0.8em;
+	/* font-size:0.8em; */
 	margin: 0.1em 0 1em 1.2em;
 }
 #sidebar .active-children li {

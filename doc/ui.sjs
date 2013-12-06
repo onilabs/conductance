@@ -171,16 +171,16 @@ exports.renderer = function(libraries, rootSymbol) {
 		}
 
 		var params = (docs.param||[]) .. map(function(p) {
-			var name = p.name || '.';
-			if (p.valtype && p.valtype .. hasElem("optional"))
-				name = `<span class="mb-optarg">${name}</span>`;
+			var name = p.name || '.'; 
+			if (p.valtype && p.valtype .. string.contains("optional"))
+				name = `<span class="mb-optarg">[${name}]</span>`;
 			return name;
 		}) .. intersperse(", ") .. toArray();
 
 		signature.push(`(<span class="mb-arglist">$params</span>)`);
 
 		if (docs['return']) {
-			signature.push(` <span class='mb-rv'>returns ${makeTypeHTML(docs['return'].valtype, symbol)}</span>`);
+			signature.push(` <span class='mb-rv'><span class='glyphicon glyphicon-arrow-right'></span> ${makeTypeHTML(docs['return'].valtype, symbol)}</span>`);
 		}
 
 		if (docs.altsyntax) {
@@ -243,8 +243,8 @@ exports.renderer = function(libraries, rootSymbol) {
 
 	function makeFunctionHtml(docs, symbol) {
 		var rv = [];
-		rv.push(Widget("h3", functionSignature(docs, symbol)));
 		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+		rv.push(Widget("h3", functionSignature(docs, symbol), {"class":"mb-signature"}));
 
 		rv.push(functionArgumentDetails(docs, symbol));
 
@@ -264,9 +264,10 @@ exports.renderer = function(libraries, rootSymbol) {
 	function makeSymbolView(docs, symbol) {
 		var rv = [];
 		var [moduleLink, moduleDesc] = symbol.moduleLink();
-		if (!symbol.className && docs.type != 'class') {
+		/* if (!symbol.className && docs.type != 'class') {
 			rv.push(makeRequireSnippet(symbol.fullModulePath, symbol.name));
 		}
+    */
 
 		if (docs.type == "function" || docs.type == "ctor") {
 			rv.push(makeFunctionHtml(docs, symbol));
@@ -274,13 +275,14 @@ exports.renderer = function(libraries, rootSymbol) {
 		} else {
 			var summary = Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"});
 			if (docs.type == "class") {
-				rv.push(`<h3>Class ${symbol.name}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h3>`);
+				rv.push(`<h2>Class ${symbol.name}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h2>`);
 				rv.push(summary);
 
 				if (docs.desc) {
 					rv.push(Widget("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
 				}
 
+        /*
 				var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor');
 				if (constructor) {
 					var [name, child] = constructor;
@@ -288,11 +290,13 @@ exports.renderer = function(libraries, rootSymbol) {
 					rv.push(makeFunctionHtml(child, childSymbol));
 					rv.push(makeDescriptionHTML(child, childSymbol));
 				}
+        */
 
 				var children = collectModuleChildren(docs, symbol);
 				rv.push(
 					Widget("div", [
 						children['proto']           .. then(Table),
+            children['ctor']            .. then(HeaderTable("Constructor")),
 						children['static-function'] .. then(HeaderTable("Static Functions")),
 						children['function']        .. then(HeaderTable("Methods")),
 						children['variable']        .. then(HeaderTable("Member Variables")),
@@ -300,8 +304,8 @@ exports.renderer = function(libraries, rootSymbol) {
 					{"class": "symbols"}));
 			} else {
 				// probably a variable
-				rv.push(`<h3>${symbol.name}</h3>`);
 				rv.push(summary);
+				rv.push(`<h3 class='mb-signature'>${symbol.className ? "#{symbol.className .. toCamelCase()}."}${symbol.name}</h3>`);
 				rv.push(makeDescriptionHTML(docs, symbol));
 			}
 		}
@@ -375,7 +379,7 @@ exports.renderer = function(libraries, rootSymbol) {
 	function makeModuleView(docs, symbol) {
 		var rv = [];
 		rv.push(`<h2>The ${symbol.relativeModulePath ..join('')} module</h2>`);
-		rv.push(makeRequireSnippet(symbol.fullModulePath));
+		/* rv.push(makeRequireSnippet(symbol.fullModulePath)); */
 
 		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		rv.push(makeDescriptionHTML(docs, symbol));
@@ -526,14 +530,33 @@ exports.renderer = function(libraries, rootSymbol) {
 			var crumbs = ret .. intersperse(sep) .. toArray();
 			var content = [crumbs];
 
-			var version = Widget("div", `Conductance documentation browser`, {"class":"version"});
-			if (symbol.library) {
-				var docs = symbol.library.loadSkeletonDocs();
-				if(docs && docs.version) {
-					version = Widget("div", "#{symbol.library.name}#{docs.version}", {"class":"version"});
-				}
-			}
-			content.push(version);
+      var docs = symbol.docs();
+      
+      switch(docs.type) {
+        case 'module':
+          content.push(makeRequireSnippet(symbol.fullModulePath));
+          break;
+        case 'lib':
+        case 'doclib':
+        case 'doc':
+          var version;
+			    if (symbol.library) {
+				    var docs = symbol.library.loadSkeletonDocs();
+				    if(docs && docs.version) {
+					    version = Widget("div", "#{symbol.library.name}#{docs.version}", {"class":"version"});
+				    }
+			    }
+          else
+			      version = Widget("div", `Conductance documentation browser`, {"class":"version"});
+			    content.push(version);
+          break;
+        default:
+          if ((!symbol.className || docs.type == 'ctor') && docs.type !== 'class')
+            content.push(makeRequireSnippet(symbol.fullModulePath, symbol.name));
+          else
+            content.push(Widget("div", `&nbsp;`, {"class":"version"}));
+      }
+
 			return Widget("div", content, {"class":"breadcrumbs"});
 		},
 	}
