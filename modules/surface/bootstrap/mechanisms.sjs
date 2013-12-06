@@ -34,10 +34,11 @@ var transitionEndEvent =
 
 exports.dropdowns = function(parent) {
   var ignore = false;
-  // TODO: replace with events.when()
-  using (var Q = events.Queue(events.HostEmitter(parent, 'click', {filter:
-    function (e){
-      if ((e.node = domFindData('toggle', 'dropdown', e.target, parent))) {
+  events.when(parent, 'click', {
+    queue: true,
+    transform: function(e) { e.node = domFindData('toggle', 'dropdown', e.target, parent); },
+    filter: function (e){
+      if (e.node) {
         dom.stopEvent(e);
         if (ignore) { // see explanation below
           ignore = false;
@@ -48,28 +49,25 @@ exports.dropdowns = function(parent) {
       else
         return false;
     }
-  }))) {
-    while (1) {
-      var ev = Q.get();
-      var current = ev.node;
-      current.parentNode.classList.add('open');
-      try {
-        ev = events.wait(window, '!click');
-        if (domFindData('toggle', 'dropdown', ev.target, parent) == current) {
-          // we could stop the event here, to prevent the dropdown from reappearing, 
-          // but that is bad form: there might be other capturing listeners that 
-          // clear some state, so we should *never* stop events during the capturing
-          // phase
-          // dom.stopEvent(ev);
-          // Instead we set a flag that ignores the next event:
-          ignore = true;
-        }
-      }
-      finally {
-        current.parentNode.classList.remove('open');
+  }) {|ev|
+    var current = ev.node;
+    current.parentNode.classList.add('open');
+    try {
+      ev = events.wait(window, '!click');
+      if (domFindData('toggle', 'dropdown', ev.target, parent) == current) {
+        // we could stop the event here, to prevent the dropdown from reappearing, 
+        // but that is bad form: there might be other capturing listeners that 
+        // clear some state, so we should *never* stop events during the capturing
+        // phase
+        // dom.stopEvent(ev);
+        // Instead we set a flag that ignores the next event:
+        ignore = true;
       }
     }
-  }  
+    finally {
+      current.parentNode.classList.remove('open');
+    }
+  }
 };
 
 //----------------------------------------------------------------------
@@ -77,23 +75,14 @@ exports.dropdowns = function(parent) {
 // implements the logic for dismissing alerts
 
 exports.dismissAlerts = function(parent) {
-  // TODO: replace with events.when()
-  using (var Q = events.Queue(events.HostEmitter(parent, 'click', {filter:
-    function(e) {
-      if (e.node = domFindData('dismiss', 'alert', e.target, parent)) {
-        dom.stopEvent(e);
-        return true;
-      }
-      else
-        return false;
-    }
-  }))) {
-    while (1) {
-      var ev = Q.get();
-      var target = dom.findNode('.alert', ev.node);
-      //target.classList.remove('in');
-      target.parentNode.removeChild(target);
-    }
+  events.when(parent, 'click', {
+    transform: function(e) { e.node = domFindData('dismiss', 'alert', e.target, parent); },
+    filter: e -> e.node,
+    handle: dom.stopEvent,
+  }) { |ev|
+    var target = dom.findNode('.alert', ev.node);
+    //target.classList.remove('in');
+    target.parentNode.removeChild(target);
   }
 };
 
@@ -102,43 +91,33 @@ exports.dismissAlerts = function(parent) {
 // handles tabbing in tabs & pills
 
 exports.tabbing = function(parent) {
-  // TODO: replace with events.when()
-  using (var Q = events.Queue(events.HostEmitter(parent, 'click', {filter:
-    function(e) {
-      if (domFindData('toggle', ['tab','pill'], e.target, parent)) {
-        dom.stopEvent(e);
-        return true;
-      }
-      else
-        return false;
-    }
-  }))) {
-    while (1) {
-      var ev = Q.get();
-      // ev.target is the <a> we want to activate
-      var newTab = dom.findNode('li', ev.target);
-      if (newTab.classList.contains('active')) continue;
-      var tabContainer = dom.findNode('ul:not(.dropdown-menu)', ev.target);
-      // deactivate current tab...
-      var currentTab = tabContainer.querySelector('li.active');
-      currentTab.classList.remove('active');
-      // ... and activate  the new one
-      newTab.classList.add('active');
-      
-      // special case for dropdowns within tabs:
-      var olddropdown = currentTab.querySelector('.dropdown-menu > .active');
-      if (olddropdown) 
-        olddropdown.classList.remove('active');
-      if (newTab.parentNode.classList.contains('dropdown-menu'))
-        dom.findNode('li.dropdown', newTab).classList.add('active');
-      
-      // now switch to new content:
-      var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('data-target') || ev.target.getAttribute('href'));
-      
-      var oldContent = newContent.parentNode.querySelector('.active');
-      oldContent.classList.remove('active');
-      newContent.classList.add('active');
-    }
+  events.when(parent, 'click', {
+    filter: e -> domFindData('toggle', ['tab','pill'], e.target, parent),
+    handle: dom.stopEvent,
+  }) { |ev|
+    // ev.target is the <a> we want to activate
+    var newTab = dom.findNode('li', ev.target);
+    if (newTab.classList.contains('active')) continue;
+    var tabContainer = dom.findNode('ul:not(.dropdown-menu)', ev.target);
+    // deactivate current tab...
+    var currentTab = tabContainer.querySelector('li.active');
+    currentTab.classList.remove('active');
+    // ... and activate  the new one
+    newTab.classList.add('active');
+    
+    // special case for dropdowns within tabs:
+    var olddropdown = currentTab.querySelector('.dropdown-menu > .active');
+    if (olddropdown)
+      olddropdown.classList.remove('active');
+    if (newTab.parentNode.classList.contains('dropdown-menu'))
+      dom.findNode('li.dropdown', newTab).classList.add('active');
+    
+    // now switch to new content:
+    var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('data-target') || ev.target.getAttribute('href'));
+    
+    var oldContent = newContent.parentNode.querySelector('.active');
+    oldContent.classList.remove('active');
+    newContent.classList.add('active');
   }
 };
 
@@ -244,8 +223,7 @@ exports.accordion = function(parent) {
       }
       else 
         return false;
-    }}) ..
-    events.Stream ..
+    }}).stream() ..
     each {
       |ev|
       var selected_group = dom.findNode('.accordion-group', ev.target, parent);
@@ -257,8 +235,7 @@ exports.accordion = function(parent) {
     ensureHashLinkVisible(parent);
     // monitor hashchanges to make sure referenced accordion bodies are
     // open:
-    events.HostEmitter(window, 'hashchange') .. 
-    events.Stream .. 
+    events.HostEmitter(window, 'hashchange').stream() ..
     each(-> ensureHashLinkVisible(parent))
   }
 };

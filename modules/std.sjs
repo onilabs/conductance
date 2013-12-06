@@ -42,7 +42,7 @@ var modules = [
   {id:'sjs:assert', name:'assert'},
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
   {id:'sjs:logging', name:'logging'},
-  {id:'sjs:events', exclude: ['Stream', 'Queue']},
+  'sjs:events',
   {id:'sjs:sys', name: 'sys'},
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
@@ -128,7 +128,6 @@ module.exports = require(modules);
   ### Symbols from the [mho:observable](#mho%3Aobservable) module:
   
    - **Computed**: (function [mho:observable::Computed])
-   - **ConflictError**: (class [mho:observable::ConflictError])
    - **isConflictError**: (function [mho:observable::isConflictError])
    - **Observable**: (class [mho:observable::Observable])
    - **ObservableTuple**: (function [mho:observable::ObservableTuple])
@@ -166,11 +165,9 @@ module.exports = require(modules);
    - **Attrib**: (function [mho:surface::Attrib])
    - **Class**: (function [mho:surface::Class])
    - **cloneWidget**: (function [mho:surface::cloneWidget])
-   - **CollapsedFragment**: (class [mho:surface::CollapsedFragment])
    - **collapseHtmlFragment**: (function [mho:surface::collapseHtmlFragment])
    - **Document**: (function [mho:surface::Document])
    - **ensureWidget**: (function [mho:surface::ensureWidget])
-   - **HtmlFragment**: (class [mho:surface::HtmlFragment])
    - **Id**: (function [mho:surface::Id])
    - **insertAfter**: (function [mho:surface::insertAfter])
    - **insertBefore**: (function [mho:surface::insertBefore])
@@ -218,7 +215,6 @@ module.exports = require(modules);
    - **Condition**: (class [sjs:cutil::Condition])
    - **Queue**: (class [sjs:cutil::Queue])
    - **Semaphore**: (class [sjs:cutil::Semaphore])
-   - **StratumAborted**: (class [sjs:cutil::StratumAborted])
    - **waitforAll**: (function [sjs:cutil::waitforAll])
    - **waitforFirst**: (function [sjs:cutil::waitforFirst])
   
@@ -326,8 +322,6 @@ module.exports = require(modules);
    - **reduce**: (function [sjs:sequence::reduce])
    - **reduce1**: (function [sjs:sequence::reduce1])
    - **reverse**: (function [sjs:sequence::reverse])
-   - **Sequence**: (class [sjs:sequence::Sequence])
-   - **SequenceExhausted**: (class [sjs:sequence::SequenceExhausted])
    - **skip**: (function [sjs:sequence::skip])
    - **skipWhile**: (function [sjs:sequence::skipWhile])
    - **slice**: (function [sjs:sequence::slice])

@@ -152,10 +152,14 @@ exports.renderer = function(libraries, rootSymbol) {
 		return Widget("div", `<code>require('${fullModulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
 	};
 
+	function toCamelCase(str) {
+		return str.replace(/^[A-Z]+/, s -> s.toLowerCase());
+	};
+
 	function functionSignature(docs, symbol) {
 		var signature = [];
 		if (docs.type != 'ctor' && symbol.className && !docs['static'])
-			signature.push(symbol.className.toLowerCase()+"."+symbol.name);
+			signature.push("#{symbol.className .. toCamelCase()}.#{symbol.name}");
 		else {
 			var call = symbol.name;
 			if (docs.type == 'ctor' && !docs.nonew) {

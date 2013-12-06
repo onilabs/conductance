@@ -1,7 +1,7 @@
 var { Widget, Mechanism, Attrib } = require('./base');
 var { replaceContent, appendContent, prependContent, Prop, removeElement, insertBefore } = require('./dynamic');
-var { HostEmitter, Stream } = require('sjs:events');
-var { Stream:makeStream, isStream, integers, each, map, indexed, filter, sort, slice, any } = require('sjs:sequence');
+var { HostEmitter } = require('sjs:events');
+var { Stream, isStream, integers, each, map, indexed, filter, sort, slice, any } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { shallowEq } = require('sjs:compare');
 var { override, merge } = require('sjs:object');
@@ -86,7 +86,7 @@ var TextInput = (value, attrs) ->
       }
       and {
         if (value.set) {
-          HostEmitter(node, 'input') .. Stream .. each { |ev|
+          HostEmitter(node, 'input').stream() .. each { |ev|
             value.set(node.value);
           }
         }
@@ -118,7 +118,7 @@ var Checkbox = value ->
       }
       and {
         if (value.set) {
-          HostEmitter(node, 'change') .. Stream .. each { |ev|
+          HostEmitter(node, 'change').stream() .. each { |ev|
             value.set(node.checked);
           }
         }
@@ -190,7 +190,7 @@ function SelectObserverMechanism(ft, state, updateSelected) {
       }
     } and {
       if (updateSelected) {
-        HostEmitter(node, 'change') .. Stream .. each {
+        HostEmitter(node, 'change').stream() .. each {
           |ev|
           if (!lastItems) continue;
           var new_selection = node.querySelectorAll('option') ..
@@ -216,7 +216,7 @@ function Select(settings) {
   if (settings.multiple)
     dom_attribs.multiple = true;
 
-  var ensureStream = o -> isStream(o) ? o: makeStream(function(emit) { emit(o); hold(); });
+  var ensureStream = o -> isStream(o) ? o: Stream(function(emit) { emit(o); hold(); });
   var state = [settings.items, settings.selected];
   var computedState = null;
   if (state .. any(isStream)) {
