@@ -9,7 +9,8 @@ exports.Document = settings ->
     #{ settings.head }
     #{ settings.script }
   </head>
-  <body>#{settings.body}</body>
-  <script src='/__mho/surface/bootstrap/jquery-1.10.2.min.js'></script>
-  <script src='/__mho/surface/bootstrap/bootstrap.min.js'></script>
+  <body>#{settings.body}
+    <script src='/__mho/surface/bootstrap/jquery-1.10.2.min.js'></script>
+    <script src='/__mho/surface/bootstrap/bootstrap.min.js'></script>
+  </body>
 </html>";
