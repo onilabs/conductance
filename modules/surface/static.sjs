@@ -81,7 +81,7 @@ exports.Document = function(content, settings) {
   headContent += "<script src='/__sjs/stratified.js' asyc='true'></script>";
 
   headContent += "<script type='text/sjs'>
-    require.hubs.push(['mho:', document.location.origin + '/__mho/']);
+    require.hubs.push(['mho:', '/__mho/']);
     require.hubs.push(['\u2127:', 'mho:']);
   </script>";
 
