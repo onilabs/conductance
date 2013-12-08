@@ -80,10 +80,12 @@ exports.Document = function(content, settings) {
 
   headContent += "<script src='/__sjs/stratified.js' asyc='true'></script>";
 
-  headContent += "<script type='text/sjs'>
-    require.hubs.push(['mho:', '/__mho/']);
-    require.hubs.push(['\u2127:', 'mho:']);
-  </script>";
+  headContent += '<script type=\'text/sjs\'>
+    if (!window.location.origin)
+      window.location.origin = "#{window.location.protocol}//#{window.location.hostname}#{window.location.port ? ":#{window.location.port}" : \'\'}";
+    require.hubs.push([\'mho:\', "#{window.location.origin}/__mho/"]);
+    require.hubs.push([\'\u2127:\', \'mho:\']);
+  </script>';
 
   var mechanisms = propertyPairs(content.getMechanisms()) ..
     map(function([id, code]) {
