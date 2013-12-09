@@ -1,4 +1,10 @@
-@ = require(['mho:std', 'app:std']);
+/**
+ @template-show-busy-indicator
+*/
+
+require('mho:app').withBusyIndicator {||
+  @ = require(['mho:std', 'mho:app']);
+}
 
 var name = @Observable('minion');
 
