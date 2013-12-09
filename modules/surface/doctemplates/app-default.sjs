@@ -1,3 +1,10 @@
+/**
+  @summary The default template for ".app" modules
+  @desc
+    This template includes Bootstrap styles, as well as exposing
+    a fully-featured [mho:app::] module.
+*/
+
 var { readFile } = require('sjs:nodejs/fs');
 var { toPath } = require('sjs:url');
 

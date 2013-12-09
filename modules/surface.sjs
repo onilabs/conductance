@@ -298,10 +298,11 @@ module.exports = require(modules);
    - script: initialization, as a <script type="text/sjs"> tag
    - body: the main document content
 
-  `template` must return a String.
-
   If `template` is a string, it will be passed to [::loadTemplate], and the returned
   function will be called as above.
+
+  `template` must return a String.
+
 
 @function loadTemplate
 @param {String} [name] template name or module URL
@@ -310,13 +311,8 @@ module.exports = require(modules);
   Loads a template module by name or URL and returns its
   Document property (which should be a function).
 
-  If `name` does not contain path separators it is assumed to name a builtin
-  template, which are currently:
-
-   - default
-   - plain
-   - app-default
-   - app-plain
+  If `name` does not contain path separators it is assumed to name a module
+  in [./surface/doctemplates/::].
 
   Otherwise, `name` is normalized against `base` (using [sjs:url::normalize]). If
   you do not pass a `base` argument, `name` must be an absolute URL.

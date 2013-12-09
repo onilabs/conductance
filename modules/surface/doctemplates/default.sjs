@@ -1,3 +1,9 @@
+/**
+  @summary The default template for [surface::Document] objects.
+  @desc
+    This template includes twitter Bootstrap and jQuery.
+*/
+
 exports.Document = settings ->
   "\
 <!DOCTYPE html>

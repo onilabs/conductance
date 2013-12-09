@@ -1,1 +1,1 @@
-@nodoc
+@summary Templates for use with [surface::Document]

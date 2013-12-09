@@ -1,3 +1,9 @@
+/**
+  @summary A minimal template for [surface::Document] objects.
+  @desc
+    This template is the most minimal document template - it contains
+    no default CSS styles or additional javascript.
+*/
 exports.Document = settings -> "\
 <!DOCTYPE html>
 <html>
