@@ -6,7 +6,7 @@ var {each, transform, map, filter, indexed,
 var string = require('sjs:string');
 var {split, startsWith, endsWith, strip} = string;
 var {Quasi} = require('sjs:quasi');
-var events = require('sjs:events');
+var event = require('sjs:event');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
 var {merge, ownValues, ownPropertyPairs, getPath} = require('sjs:object');
@@ -41,9 +41,9 @@ var withOverlay = exports.withOverlay = (function() {
 			waitfor {
 				return block(elem);
 			} or {
-				elem .. events.wait('click', {filter: e -> e.target === elem});
+				elem .. event.wait('click', {filter: e -> e.target === elem});
 			} or {
-				document.body .. events.wait('keydown', {filter: e -> e.which == ESCAPE});
+				document.body .. event.wait('keydown', {filter: e -> e.which == ESCAPE});
 			}
 		} finally {
 			removeElement(elem);

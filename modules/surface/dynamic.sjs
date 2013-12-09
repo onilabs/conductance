@@ -12,7 +12,7 @@ var { ensureWidget, Mechanism, collapseHtmlFragment } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed } = require('sjs:sequence');
 var { split } = require('sjs:string');
-var { wait, when } = require('sjs:events');
+var { wait, when } = require('sjs:event');
 
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to

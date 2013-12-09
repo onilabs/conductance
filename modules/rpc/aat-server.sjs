@@ -37,7 +37,7 @@
 
 var logging = require('sjs:logging');
 var cutil   = require('sjs:cutil');
-var events   = require('sjs:events');
+var event   = require('sjs:event');
 
 var { each, map, toArray } = require('sjs:sequence');
 var { ownValues } = require('sjs:object');

@@ -96,7 +96,7 @@ var { pairsToObject, ownPropertyPairs, ownValues, merge } = require('sjs:object'
 var { isArrayLike } = require('sjs:array');
 var { isString } = require('sjs:string');
 var { isFunction, exclusive } = require('sjs:function');
-var { Emitter } = require('sjs:events');
+var { Emitter } = require('sjs:event');
 var { keys, propertyPairs } = require('sjs:object');
 var http = require('sjs:http');
 
@@ -386,7 +386,7 @@ function unmarshallStream(obj, connection) {
     [#features/api-modules::].
 
   @variable BridgeConnection.sessionLost
-  @type sjs:events::Emitter
+  @type sjs:event::Emitter
   @summary The session has been lost
 
   @function BridgeConnection.__finally__

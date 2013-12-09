@@ -3,6 +3,11 @@
   @desc
     This template includes Bootstrap styles, as well as exposing
     a fully-featured [mho:app::] module.
+
+  @require mho:surface/bootstrap/html
+  @require mho:surface
+  @require sjs:xbrowser/dom
+  @require sjs:event
 */
 
 var { readFile } = require('sjs:nodejs/fs');
@@ -194,7 +199,7 @@ exports.Document = function(data, settings) {
                                     }
                                   ]);
         } and {
-          @ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:events']);
+          @ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event']);
         }
 
         // ui entry points:

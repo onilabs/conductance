@@ -6,7 +6,7 @@
 
 
 var dom    = require('sjs:xbrowser/dom');
-var events = require('sjs:events');
+var event  = require('sjs:event');
 var { each, find } = require('sjs:sequence');
 
 //----------------------------------------------------------------------
@@ -34,7 +34,7 @@ var transitionEndEvent =
 
 exports.dropdowns = function(parent) {
   var ignore = false;
-  events.when(parent, 'click', {
+  event.when(parent, 'click', {
     queue: true,
     transform: function(e) { e.node = domFindData('toggle', 'dropdown', e.target, parent); },
     filter: function (e){
@@ -53,11 +53,11 @@ exports.dropdowns = function(parent) {
     var current = ev.node;
     current.parentNode.classList.add('open');
     try {
-      ev = events.wait(window, '!click');
+      ev = event.wait(window, '!click');
       if (domFindData('toggle', 'dropdown', ev.target, parent) == current) {
         // we could stop the event here, to prevent the dropdown from reappearing, 
         // but that is bad form: there might be other capturing listeners that 
-        // clear some state, so we should *never* stop events during the capturing
+        // clear some state, so we should *never* stop event during the capturing
         // phase
         // dom.stopEvent(ev);
         // Instead we set a flag that ignores the next event:
@@ -75,7 +75,7 @@ exports.dropdowns = function(parent) {
 // implements the logic for dismissing alerts
 
 exports.dismissAlerts = function(parent) {
-  events.when(parent, 'click', {
+  event.when(parent, 'click', {
     transform: function(e) { e.node = domFindData('dismiss', 'alert', e.target, parent); },
     filter: e -> e.node,
     handle: dom.stopEvent,
@@ -91,7 +91,7 @@ exports.dismissAlerts = function(parent) {
 // handles tabbing in tabs & pills
 
 exports.tabbing = function(parent) {
-  events.when(parent, 'click', {
+  event.when(parent, 'click', {
     filter: e -> domFindData('toggle', ['tab','pill'], e.target, parent),
     handle: dom.stopEvent,
   }) { |ev|
@@ -148,7 +148,7 @@ function toggleBody(selected_body, parent) {
         old_body.classList.remove('in');
         old_body.style.height = null;
         waitfor {
-          old_body .. events.wait(transitionEndEvent);
+          old_body .. event.wait(transitionEndEvent);
         }
         or {
           // the timeout makes it robust; in case the
@@ -175,7 +175,7 @@ function toggleBody(selected_body, parent) {
           selected_body.style.height = '0px';
           var forceReflow = selected_body.offsetHeight;
           selected_body.style.height = "#{h}px";
-          selected_body .. events.wait(transitionEndEvent);
+          selected_body .. event.wait(transitionEndEvent);
         }
         or {
           // the timeout makes it robust; in case the
@@ -213,7 +213,7 @@ function ensureHashLinkVisible(parent) {
 exports.accordion = function(parent) {
   waitfor {
     // handle clicks on accordion headers:
-    events.HostEmitter(parent, 'click', {filter: function(e) {
+    event.HostEmitter(parent, 'click', {filter: function(e) {
       // filter out clicks outside of accordions & clicks on links
       // with href's
       if (domFindData('toggle', 'accordion', e.target, parent) &&
@@ -235,7 +235,7 @@ exports.accordion = function(parent) {
     ensureHashLinkVisible(parent);
     // monitor hashchanges to make sure referenced accordion bodies are
     // open:
-    events.HostEmitter(window, 'hashchange').stream() ..
+    event.HostEmitter(window, 'hashchange').stream() ..
     each(-> ensureHashLinkVisible(parent))
   }
 };

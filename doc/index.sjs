@@ -9,7 +9,7 @@ var { Observable, Computed } = require('mho:observable');
 } and {
 var array = require('sjs:array');
 } and {
-var events = require('sjs:events');
+var event = require('sjs:event');
 } and {
 var {preventDefault} = require('sjs:xbrowser/dom');
 } and {
@@ -110,10 +110,10 @@ exports.run = function(root) {
 			var FORWARD_SLASH = (e) -> !action && e.which == 47;
 			var PLUS = (e) -> !action && e.which == 43 && e.shiftKey;
 
-			using (var searchClick = searchButton .. events.HostEmitter('click', {handle: preventDefault})) {
-				using (var searchShortcut = document.body .. events.HostEmitter('keypress', {filter: FORWARD_SLASH, handle: preventDefault})) {
-					using (var configClick = configureButton .. events.HostEmitter('click', {handle: preventDefault})) {
-						using (var configShortcut = document.body .. events.HostEmitter('keypress', {filter: PLUS, handle: preventDefault})) {
+			using (var searchClick = searchButton .. event.HostEmitter('click', {handle: preventDefault})) {
+				using (var searchShortcut = document.body .. event.HostEmitter('keypress', {filter: FORWARD_SLASH, handle: preventDefault})) {
+					using (var configClick = configureButton .. event.HostEmitter('click', {handle: preventDefault})) {
+						using (var configShortcut = document.body .. event.HostEmitter('keypress', {filter: PLUS, handle: preventDefault})) {
 							while(true) {
 								waitfor {
 									waitfor {
@@ -154,7 +154,7 @@ exports.run = function(root) {
   var hint;
   if (!window.localStorage || !window.localStorage['search-hint-shown']) {
     hint =  `<div class='alert alert-warning'>Hint: You can press '/' to search the reference<a class='close' href='#'>&times;</a></div>` .. Mechanism(function(node) {
-      node.querySelector('a') .. events.wait('click', {handle: preventDefault});
+      node.querySelector('a') .. event.wait('click', {handle: preventDefault});
       if (window.localStorage)
         window.localStorage['search-hint-shown'] = true;
       node.remove();
@@ -175,7 +175,7 @@ exports.run = function(root) {
 
 	root .. withWidget(toplevel) {|elem|
 		if(window.rainbow) window.rainbow.hide();
-		using (var hashChange = events.HostEmitter(window, 'hashchange')) {
+		using (var hashChange = event.HostEmitter(window, 'hashchange')) {
 			while(true) {
 				locationHash.set(decodeURIComponent(document.location.hash.slice(1)));
 				hashChange.wait();
@@ -211,9 +211,9 @@ exports.main = function(root) {
 			`, {"class":"error-contents"})) {|elem|
 				window.scrollTo(0,0);
 				waitfor {
-					elem.querySelector('button.reload') .. events.wait('click');
+					elem.querySelector('button.reload') .. event.wait('click');
 				} or {
-					elem.querySelector('button.restart') .. events.wait('click');
+					elem.querySelector('button.restart') .. event.wait('click');
 					document.location.hash = "";
 				}
 			}

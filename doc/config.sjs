@@ -2,7 +2,7 @@ var { Widget, withWidget, Mechanism, Style, OnClick } = require('mho:surface');
 var { Input, Form, Button } = require('mho:surface/bootstrap/html');
 var { each, map, transform } = require('sjs:sequence');
 var { Observable } = require('mho:observable');
-var events = require('sjs:events');
+var event = require('sjs:event');
 var assert = require('sjs:assert');
 var { remove } = require('sjs:array');
 var ui = require('./ui');
@@ -62,9 +62,9 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
       while(true) {
         var e;
         waitfor {
-          e = elem.getElementsByTagName('button')[0] .. events.wait('click');
+          e = elem.getElementsByTagName('button')[0] .. event.wait('click');
         } or {
-          e = elem .. events.wait('submit');
+          e = elem .. event.wait('submit');
         }
         e.preventDefault();
         var [name, url] = elem.getElementsByTagName('input') .. map(i -> i.value);
@@ -118,7 +118,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
     ");
     elem .. withWidget(widget) {|elem|
       if (onReady) onReady();
-      elem.getElementsByTagName("button")[0] .. events.wait('click');
+      elem.getElementsByTagName("button")[0] .. event.wait('click');
     }
   }
 };

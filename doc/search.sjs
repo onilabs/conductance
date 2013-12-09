@@ -3,7 +3,7 @@ var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter, transform, first} = seq;
 var { Observable, Computed } = require('mho:observable');
-var events = require('sjs:events');
+var event = require('sjs:event');
 var dom = require('sjs:xbrowser/dom');
 var cutil = require('sjs:cutil');
 var {ownPropertyPairs, ownValues, hasOwn} = require('sjs:object');
@@ -92,7 +92,7 @@ exports.run = (function() {
 
 			var inputWorker = function(input) {
 				waitfor {
-					events.when(input, 'input', {handle: dom.stopPropagation}) {|e|
+					event.when(input, 'input', {handle: dom.stopPropagation}) {|e|
 						query.put(input.value.trim().toLowerCase());
 					};
 				} or {
@@ -103,7 +103,7 @@ exports.run = (function() {
 						'PageUp':   -> changeSelected(0, 0),
 					};
 
-					events.when(input, 'keydown', {
+					event.when(input, 'keydown', {
 						filter: e -> e.which == ui.RETURN || bindings .. hasOwn(e.keyIdentifier),
 						handle: dom.preventDefault,
 					}) {|e|
@@ -135,11 +135,11 @@ exports.run = (function() {
 							.. Class("selected", highlighted)
 							.. Mechanism(function(elem) {
 								waitfor {
-									elem .. events.wait('click');
+									elem .. event.wait('click');
 									done.set();
 								} and {
 									while (true) {
-										elem .. events.wait('mouseover');
+										elem .. event.wait('mouseover');
 										selectedMatch.set(m.id);
 									}
 								}
@@ -229,7 +229,7 @@ exports.run = (function() {
 			};
 
 			var resetWorker = function(reset, input) {
-				using(var click = reset .. events.HostEmitter('click')) {
+				using(var click = reset .. event.HostEmitter('click')) {
 					while(true) {
 						click.wait();
 						input.value = '';
