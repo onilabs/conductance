@@ -1,5 +1,5 @@
 var { conductanceRoot, sjsRoot } = require('./env');
-var { setStatus, writeRedirectResponse, writeErrorResponse, isHttpError, ServerError } = require('./response');
+var { setStatus, writeRedirectResponse, writeErrorResponse, isHttpError, HttpError, ServerError } = require('./response');
 var { flatten } = require('sjs:array');
 var { isString, sanitize } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
@@ -62,6 +62,35 @@ function SimpleRedirect(path, new_base, status) {
   });
 }
 exports.SimpleRedirect = SimpleRedirect;
+
+//----------------------------------------------------------------------
+
+/**
+   @function ErrorResponse
+   @param {optional RegExp|String} [path] Path to match
+   @param {Integer} [code]
+   @param {optional String} [statusText]
+   @param {optional String} [description]
+   @return {../server::Route}
+   @summary Creates a [../server::Route] that responds with a given HTTP status
+*/
+function ErrorResponse(/* path, code, status, descr */) {
+  // untangle args
+  var path, code, status, descr;
+  if (typeof arguments[0] === 'number')
+    [code, status, descr] = arguments;
+  else
+    [path, code, status, descr] = arguments;
+
+  if (typeof code !== 'number') throw new Error("ErrorResponse expects a numeric 'code' argument, but argument '#{code}' has type '#{typeof code}'");
+  
+  return Route(path, {
+    '*': function(req) {
+      throw HttpError(code, status, descr);
+    }
+  });  
+}
+exports.ErrorResponse = ErrorResponse;
 
 //----------------------------------------------------------------------
 
