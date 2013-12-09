@@ -51,7 +51,7 @@ exports.AllowCORS = AllowCORS;
 
 /**
    @function SimpleRedirect
-   @summary XXX To be documented
+   @summary Deprecated
 */
 function SimpleRedirect(path, new_base, status) {
   status = status || 302;
@@ -67,18 +67,120 @@ exports.SimpleRedirect = SimpleRedirect;
 
 /**
    @function PortRedirect
-   @summary XXX To be documented
+   @param {optional RegExp|String} [path] Path to match
+   @param {Integer} [port] Port to redirec to
+   @param {optional Integer} [status=302] HTTP response code
+   @returns {../server::Route}
+   @summary Creates a [../server::Route] that redirects requests to a different port on the same server
 */
-function PortRedirect(path, port) {
+function PortRedirect(/*path, port, status*/) {
+  // untangle args
+  var path, port, status;
+  if (arguments.length >= 3)
+    [path,port,status] = arguments;
+  else if (arguments.length == 2) {
+    if (typeof arguments[0] === 'number')
+      [port,status] = arguments;
+    else
+      [path, port] = arguments;
+  }
+  else 
+    [port] = arguments;
+
+  if (typeof port !== 'number') throw new Error("PortRedirect expects a numeric 'port' argument, but argument '#{port}' has type '#{typeof port}'");
+  status = status || 302;
+
   return Route(path, {
     '*': function(req) {
       var url = "#{req.url.protocol}://#{req.url.host}:#{port}#{req.url.relative ? req.url.relative : ''}";
-      console.log("redirect #{req.url.toString()} to #{url}"); 
-      req .. writeRedirectResponse(url, 302);
+      logging.info("redirect #{req.url.toString()} to #{url}"); 
+      req .. writeRedirectResponse(url, status);
     }
   });
 }
 exports.PortRedirect = PortRedirect;
+
+//----------------------------------------------------------------------
+
+/**
+   @function HostRedirect
+   @param {optional RegExp|String} [path] Path to match
+   @param {String} [host] Fully qualified URL of host to redirect to (without trailing slash)
+   @param {optional Integer} [status=302] HTTP response code
+   @returns {../server::Route}
+   @summary Creates a [../server::Route] that redirects requests to a different host 
+*/
+function HostRedirect(/* path, host, status */) {
+  // untangle args
+  var path, host, status;
+  if (arguments.length >= 3)
+    [path,host,status] = arguments;
+  else if (arguments.length == 2) {
+    if (typeof arguments[1] === 'number')
+      [host,status] = arguments;
+    else
+      [path, host] = arguments;
+  }
+  else 
+    [host] = arguments;
+
+  status = status || 302;
+
+  return Route(path, {
+    '*': function(req) {
+      var url = "#{host}#{req.url.relative ? req.url.relative : ''}";
+      logging.info("redirect #{req.url.toString()} to #{url}"); 
+      req .. writeRedirectResponse(url, status);
+    }
+  });
+}
+exports.HostRedirect = HostRedirect;
+
+//----------------------------------------------------------------------
+
+/**
+   @function Redirect
+   @param {optional RegExp|String} [path] Path to match
+   @param {Function} [rewrite] URL rewriting function
+   @param {optional Integer} [status=302] HTTP response code
+   @returns {../server::Route}
+   @summary Creates a [../server::Route] that redirects requests to a different host 
+   @desc
+     `rewrite` will be called with a request URL encoded as an object by [sjs:url::parse], and needs to return the rewritten URL as a string
+
+     **Example**:
+
+         // redirect to https on port `ssl_port`:
+         Redirect(url -> "https://#{url.host}:#{ssl_port}#{url.relative? url.relative : ''}") 
+*/
+
+function Redirect(/* path, rewrite, status */) {
+  // untangle args
+  var path, rewrite, status;
+  if (arguments.length >= 3)
+    [path,rewrite,status] = arguments;
+  else if (arguments.length == 2) {
+    if (typeof arguments[0] === 'function')
+      [rewrite,status] = arguments;
+    else
+      [path, rewrite] = arguments;
+  }
+  else 
+    [rewrite] = arguments;
+
+  if (typeof rewrite !== 'function') 
+    throw new Error("Redirect expects a functional 'rewrite' argument, but argument '#{rewrite}' has type '#{typeof rewrite}'");
+  status = status || 302;
+
+  return Route(path, {
+    '*': function(req) {
+      var url = rewrite(req.url);
+      logging.info("redirect #{req.url.toString()} to #{url}"); 
+      req .. writeRedirectResponse(url, status);
+    }
+  });
+}
+exports.Redirect = Redirect;
 
 //----------------------------------------------------------------------
 
@@ -99,7 +201,7 @@ function createDirectoryMapper(settings) {
 
 /**
    @function ExecutableDirectory
-   @param {optional RexExp|String} [path] Path to match
+   @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem
    @returns {../server::Route}
    @summary Creates a [../server::Route] that serves executable, code and static files from the local filesystem
@@ -108,7 +210,7 @@ function createDirectoryMapper(settings) {
       It is hopefully obvious from the name, but you should **only** ever use
       this route type for *trusted content* that you control. Serving any user-generated files
       using this route can trivially lead to users executing arbitrary SJS code
-      on your server. You should instead server user-generated files using the
+      on your server. You should instead serve user-generated files using the
       [::StaticDirectory] route type.
 
       - Serves the given directory with [./formats::StaticFormatMap] as well as the [./formats::Code] and [./formats::Executable] extensions.
@@ -144,7 +246,7 @@ var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
 
 /**
    @function CodeDirectory
-   @param {optional RexExp|String} [path] Path to match
+   @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem
    @returns {../server::Route}
    @summary Creates a [../server::Route] that serves code and static files from the local filesystem
@@ -159,7 +261,7 @@ var CodeDirectory = exports.CodeDirectory = createDirectoryMapper({
 
 /**
    @function StaticDirectory
-   @param {optional RexExp|String} [path] Path to match
+   @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem
    @returns {../server::Route}
    @summary Creates a [../server::Route] that serves static files from the local filesystem
