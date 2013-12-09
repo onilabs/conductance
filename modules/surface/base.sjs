@@ -7,7 +7,7 @@
 var { isQuasi, Quasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
 var { each, indexed, reduce, map, join, isStream, first } = require('sjs:sequence');
-var { clone, propertyPairs, extend } = require('sjs:object');
+var { clone, propertyPairs, extend, hasOwn } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
 var array = require('sjs:array');
@@ -279,12 +279,42 @@ exports.collapseHtmlFragment = collapseHtmlFragment;
 */
 __js var WidgetProto = Object.create(FragmentBase);
 
+var voidTags = {
+  // source: http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
+  area: 1,
+  base: 1,
+  br: 1,
+  col: 1,
+  command: 1,
+  embed: 1,
+  hr: 1,
+  img: 1,
+  input: 1,
+  keygen: 1,
+  link: 1,
+  meta: 1,
+  param: 1,
+  source: 1,
+  track: 1,
+  wbr: 1
+};
+
 __js WidgetProto._init = func.seq(WidgetProto._init, function(tag, content, attribs) { 
   this.tag = tag;
   // XXX do we need to copy attribs?
   // probably not here, because we always clone before we modify anything
+  this.isVoid = voidTags[tag] && voidTags .. hasOwn(tag);
+  if (this.isVoid) {
+    if (attribs === undefined && typeof(content) == 'object') {
+      // for void tags, allow Widget(tagname, attrs).
+      // we only do this if `attribs` is undefined,
+      // since Widget(tagname, null, attrs) is perfectly valid.
+      attribs = content;
+      content = null;
+    }
+    if (content != null) throw new Error("#{tag} tag cannot contain content");
+  }
   this.attribs = attribs ? attribs : {};
-//  if (attribs) this.attribs .. extend(attribs);
   this.content = content;
 });
 
@@ -310,11 +340,13 @@ WidgetProto.appendTo = function(target) {
       if (typeof(val) === 'boolean') {
         return val ? key : "";
       }
-      return "#{key}=\"#{String(flattenAttrib(val)).replace(/\"/g, '&quot;')}\"";
+      return " #{key}=\"#{String(flattenAttrib(val)).replace(/\"/g, '&quot;')}\"";
     })
-    .. join(' ');
+    .. join('');
 
-  target.content += "<#{this.tag} #{attribs}>";
+  target.content += "<#{this.tag}#{attribs}>";
+  if (this.isVoid)
+    return;
   this._appendInner(target);
   target.content += "</#{this.tag}>";
 };

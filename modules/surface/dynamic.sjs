@@ -360,7 +360,9 @@ function appendWidget(parent_node, html) {
   html= ensureWidget(html);
   
   var [elem, content] = html.createElement();
-  elem.innerHTML = content.getHtml();
+  var contentHtml = content.getHtml();
+  if(contentHtml)
+    elem.innerHTML = contentHtml;
 
   insertHtml(content, function(fragment) {
     parent_node.appendChild(elem);

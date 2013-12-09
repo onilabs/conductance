@@ -39,6 +39,34 @@ var { Computed } = require('../observable');
         `);
 
         Br();
+
+    ### Void Elements
+
+    Void elements (those which have no closing tag or content) will throw an error if you pass a truthy value
+    as their `content` argument. As a convenience, you can omit the `content` attribute entirely. So the
+    following calls are equivalent since `img` is a void element:
+
+      - `Img(null, {"src": "main.png"})`
+      - `Img({"src": "main.png"})`
+
+    The current list of known void elements is
+    `area`,
+    `base`,
+    `br`,
+    `col`,
+    `command`,
+    `embed`,
+    `hr`,
+    `img`,
+    `input`,
+    `keygen`,
+    `link`,
+    `meta`,
+    `param`,
+    `source`,
+    `track`
+    and `wbr`.
+
 */
 
 // commented-out tag names are those we have advanced bindings for, so we don't want the default

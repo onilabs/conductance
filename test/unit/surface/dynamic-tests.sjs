@@ -12,6 +12,13 @@ var click = function(elem) {
   elem .. driver.trigger('change');
 }
 
+context("void elements") {||
+  test("should throw no errors") {||
+    // testing for IE edge cases, mostly
+    document.body .. withWidget(Widget("img"), ->hold(100));
+  }
+}
+
 context("observable widget content") {||
   test("should reflect changes made before & after insertion") {||
     var content = Observable("first");
