@@ -57,7 +57,7 @@ exports.Document = function(data, settings) {
             \"<div style='#{_fixedIndicatorStyle.replace(/\s+/g, '')}'>\" +
               \"<div class='alert alert-danger' style='#{_fixedIndicatorAlertStyle.replace(/\s+/g, '')}'>\"+
                 \"<strong>Error:</strong>\"+
-                \" An uncaught error occurred, you must reload the page.\"+
+                \" An uncaught error occurred, reload the page to try again.\"+
               \"</div>\"+
             \"</div>\");
         };
