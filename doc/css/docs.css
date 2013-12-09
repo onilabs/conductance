@@ -178,7 +178,6 @@ td.mb-td-symbol {
 
 .mb-top code {
   white-space: pre;
-  border: 1px solid #f7c7c7; background: #f8f8f8; 
   padding-left: 2px;
   padding-right: 2px;
 }
@@ -190,7 +189,6 @@ td.mb-td-symbol {
 
 .mb-top pre {
   line-height: 1.3em;
-  border: 1px solid #f7c7c7; background: #f8f8f8; 
   display: block;
   white-space: pre;
   padding: 10px 10px 10px 15px;
