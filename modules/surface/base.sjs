@@ -345,9 +345,9 @@ WidgetProto.appendTo = function(target) {
     .. join('');
 
   target.content += "<#{this.tag}#{attribs}>";
+  this._appendInner(target);
   if (this.isVoid)
     return;
-  this._appendInner(target);
   target.content += "</#{this.tag}>";
 };
 
