@@ -273,7 +273,7 @@ function generateFile(req, filePath, format, settings) {
       filetype: generator.filetype ? generator.filetype : path.extname(filePath).slice(1),
       format: format,
 //      length: generator.content().length,
-      etag: "#{generator_file_mtime}-#{etag ? etag.call(req, params) : Date.now()}",
+      etag: "#{generator_file_mtime}-#{etag ? checkEtag(etag.call(req, params)) : Date.now()}",
     },
     settings);
   return true;
