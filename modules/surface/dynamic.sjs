@@ -91,17 +91,15 @@ var resourceRegistry = {
     ids .. each {
       |id|
       var desc = mechanismsInstalled[id];
-      --desc.ref_count;
       /*
-        we don't actually want to purge the mechanism immediately... we want 
-        to cache mechanisms for a while
-
-        XXX implement lru caching or something similar
+        XXX: we don't actually want to purge the mechanism immediately... we want
+        to cache mechanisms for a while -
+        implement lru caching or something similar
+      */
 
       if (--desc.ref_count === 0) {
         delete mechanismsInstalled[id];
       }
-      */
     }
   }
 };
