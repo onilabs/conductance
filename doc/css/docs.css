@@ -39,6 +39,7 @@
     border-bottom: 2px solid #e12020;
     xbackground-color: #fadbdb;
     xxmargin:55px 0 85px 0 !important;
+    margin-bottom: 0 !important;
 }
 
 .mb-signature span.mb-type {
@@ -168,6 +169,10 @@ span.mb-optarg {
     border-bottom: 1px solid #f7c7c7;
     padding: 10px 0 8px 0;
     vertical-align: top;
+}
+
+tr.mb-param:first-child td {
+    border-top:none;
 }
 
 td.mb-td-symbol {

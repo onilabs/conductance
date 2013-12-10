@@ -207,7 +207,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			name = name || val.name;
 			var def = val.defval ? `<span class='mb-defval'>Default: ${val.defval}</span>`;
 			return `
-			<tr>
+			<tr class='mb-param'>
 				<td class='mb-td-symbol'>${name}</td>
 				<td>
 					${makeTypeHTML(val.valtype, symbol)}
