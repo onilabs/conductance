@@ -175,6 +175,9 @@ tr.mb-param:first-child td {
     border-top:none;
 }
 
+tr.mb-param td.mb-td-symbol {
+    padding-left:2em;
+}
 td.mb-td-symbol {
     width: 30%;
 }
