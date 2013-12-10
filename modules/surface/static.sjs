@@ -144,15 +144,15 @@ exports.Document = function(content, settings) {
     Document property (which should be a function).
 
     If `name` does not contain path separators it is assumed to name a module
-    in [./surface/doctemplates/::].
+    in [./surface/doc-template/::].
 
     Otherwise, `name` is normalized against `base` (using [sjs:url::normalize]). If
     you do not pass a `base` argument, `name` must be an absolute URL.
 */
 exports.loadTemplate = function(name, base) {
   if (/^[^\:\/]+$/.test(name)) {
-    // name is relative to ./doctemplates/
-    name = './doctemplates/'+name;
+    // name is relative to ./doc-template/
+    name = './doc-template/'+name;
   } else {
     name = url.normalize(name, base);
   }

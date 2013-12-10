@@ -10,7 +10,7 @@
     The default template for documents created with [surface::Document] is
     `default`, which _does not_ provide an `mho:app` module.
 
-    For a list of available template modules, see [surface/doctemplates/::].
+    For a list of available template modules, see [surface/doc-template/::].
 
     ### HTML exports
 
