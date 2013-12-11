@@ -320,7 +320,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			|[name, val]|
 			var type = val.type;
 			if (val['static']) type = 'static-'+type;
-			if (!rv[type])  rv[type] = [];
+			if (!rv .. hasOwn([type])  rv[type] = [];
 			rv[type].push(mapFn(name, val));
 		}
 		return rv;
