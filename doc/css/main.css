@@ -111,9 +111,20 @@ h1 {
 	font-size:1.2em;
 	padding: 2em;
 	padding-top:5em;
-	position: absolute;
+	position: fixed;
 	top:0;
 	left:0;
+	margin: auto auto;
+}
+
+.error-contents h1, .error-contents h2, .error-contents h3 {
+	color: white;
+}
+
+.error-contents pre {
+	background: #444;
+	color: #ccc;
+	border: none;
 }
 
 .mb-main {
