@@ -267,7 +267,7 @@ function replaceElement(old_elem, html) {
     
     old_elem.outerHTML = html.getHtml();
     rv = inserted_nodes .. first(null);
-    inserted_nodes .. each(runMechanisms);
+    inserted_nodes .. toArray .. each(runMechanisms);
   });
   return rv;
 }
@@ -285,7 +285,7 @@ function appendContent(parent_node, html) {
     parent_node.insertAdjacentHTML('beforeend', html.getHtml());
     
     rv = inserted_nodes .. first(null);
-    inserted_nodes .. each(runMechanisms);
+    inserted_nodes .. toArray .. each(runMechanisms);
   });
 
   return rv;
@@ -299,7 +299,7 @@ function prependContent(parent_node, html) {
   var inserted_nodes = nodes(parent_node, null, parent_node.firstChild);
   insertHtml(html, function(html) {
     parent_node.insertAdjacentHTML('afterbegin', html.getHtml());
-    inserted_nodes .. each(runMechanisms);
+    inserted_nodes .. toArray .. each(runMechanisms);
   });
 }
 exports.prependContent = prependContent;
@@ -327,7 +327,7 @@ function insertBefore(sibling, html) {
     }
 
     rv = inserted_nodes .. first(null);
-    inserted_nodes .. each(runMechanisms);
+    inserted_nodes .. toArray .. each(runMechanisms);
   });
 
   return rv;
@@ -341,7 +341,7 @@ function insertAfter(sibling, html) {
   var inserted_nodes = nodes(sibling.parentNode, sibling, sibling.nextSibling);
   insertHtml(html, function(html) {
     sibling.insertAdjacentHTML('afterend', html.getHtml());
-    inserted_nodes .. each(runMechanisms);
+    inserted_nodes .. toArray .. each(runMechanisms);
   });
 }
 exports.insertAfter = insertAfter;
