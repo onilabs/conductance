@@ -9,7 +9,7 @@ var {Quasi} = require('sjs:quasi');
 var event = require('sjs:event');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
-var {merge, ownValues, ownPropertyPairs, getPath} = require('sjs:object');
+var {merge, ownValues, ownPropertyPairs, getPath, hasOwn} = require('sjs:object');
 var { SymbolMissing, LibraryMissing } = require('./library');
 var { encodeNonSlashes, encodeFragment } = require('./url-util');
 var Symbol = require('./symbol');
@@ -320,7 +320,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			|[name, val]|
 			var type = val.type;
 			if (val['static']) type = 'static-'+type;
-			if (!rv .. hasOwn([type])  rv[type] = [];
+			if (!rv .. hasOwn([type])) rv[type] = [];
 			rv[type].push(mapFn(name, val));
 		}
 		return rv;
