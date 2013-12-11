@@ -173,7 +173,7 @@ function runMechanisms(elem, content_only) {
       }
     
     // start streams:
-    StreamNodes(elem) .. each { 
+    StreamNodes(elem) .. toArray .. each { 
       |node| 
       var [,mech] = node.nodeValue.split("|");
       node.__oni_mechs = [spawn mechanismsInstalled[mech].func.call(node, node)];
