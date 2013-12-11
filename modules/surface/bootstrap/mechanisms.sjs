@@ -1,7 +1,6 @@
-//----------------------------------------------------------------------
-// Mechanisms similar to the bootstrap js plugins (+ some enhancements)
 /**
   @hostenv xbrowser
+  @summary Mechanisms similar to the bootstrap JavaScript plugins, with some enhancements
 */
 
 

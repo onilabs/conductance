@@ -98,7 +98,8 @@ var { Computed } = require('../observable');
 /**
   @function TextInput
   @summary A plain HTML 'input' widget
-  @param  {String|sjs:sequence::Stream} [value] Value.
+  @param  {String|sjs:sequence::Stream} [value]
+  @param  {optional Object} [attrs]
   @return {surface::Widget}
 */
 var TextInput = (value, attrs) ->
