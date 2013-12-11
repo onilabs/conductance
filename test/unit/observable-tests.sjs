@@ -13,7 +13,6 @@
 				log.push([_a, _b, _c]);
 				if (_c === "c1") {
 					console.log("breaking");
-					hold(0); // XXX remove
 					break;
 				}
 			};
@@ -42,7 +41,6 @@
 				log.push([_a, _b, _c]);
 				if (_c === "c1") {
 					console.log("breaking");
-					hold(0); // XXX remove
 					break;
 				}
 			};
