@@ -139,16 +139,6 @@ __js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
   @return {::CollapsedFragment}
 */
 
-// helper mechanism for making stream content dynamic:
-function StreamContentMechanism(ft, obs) {
-  var dyn = require('./dynamic');
-  return ft .. Mechanism(function(node) {
-    obs .. each { |val|
-      node .. dyn.replaceContent(collapseHtmlFragment(val));
-    }
-  });
-}
-
 // helper for streaminging content:
 var gSentinelCounter = 0;
 
@@ -171,12 +161,13 @@ function StreamingContent(stream) {
           // remove previously inserted content between `node` and the sentinel
           do {
             var inserted = node.nextSibling;
-            inserted.remove();
+          // inserted.remove() is not IE compatible
+            inserted.parentNode.removeChild(inserted);
           } while (!(inserted .. isSentinelNode(sentinel)));
         }
         else
           have_inserted = true;
-        var anchor = node.nextElementSibling;
+        var anchor = node.nextSibling;
         if (anchor) {
           // we've got an anchor for 'insertBefore'
           anchor .. dyn.insertBefore([val,`<!-- surface_sentinel |$sentinel| -->`]);
@@ -192,7 +183,8 @@ function StreamingContent(stream) {
         // remove previously inserted content between `node` and the sentinel
         do {
           var inserted = node.nextSibling;
-          inserted.remove();
+          // inserted.remove() is not IE compatible
+          inserted.parentNode.removeChild(inserted);
         } while (!(inserted .. isSentinelNode(sentinel)));
       }
 //      console.log("STREAMING CONTENT MECHANISM RETRACTED");
@@ -220,14 +212,6 @@ function appendFragmentTo(target, ft, tag) {
   }
   else if (isFragment(ft)) {
     return ft.appendTo(target, tag);
-  }
-  else if (isStream(ft)) {
-    // streams are only allowed in the dynamic world; if the user
-    // tries to use the generated content with e.g. static::Document,
-    // an error will be thrown.
-    // XXX can we make this more efficient by not going through Widget?
-    ft = Widget('surface-ui') .. StreamContentMechanism(ft);
-    ft.appendTo(target, tag);
   }
   else if (isStream(ft)) { 
     // streams are only allowed in the dynamic world; if the user

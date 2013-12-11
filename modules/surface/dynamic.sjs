@@ -312,7 +312,19 @@ function insertBefore(sibling, html) {
 
   var inserted_nodes = nodes(sibling.parentNode, sibling.previousSibling, sibling);
   insertHtml(html, function(html) {
-    sibling.insertAdjacentHTML('beforebegin', html.getHtml());
+    if (sibling.insertAdjacentHTML)
+      sibling.insertAdjacentHTML('beforebegin', html.getHtml());
+    else {
+      // we're inserting before a non-element node (or on an old browser)
+      // XXX this won't work for table content
+      var container = document.createElementNS('http://www.w3.org/1999/xhtml', '_');
+      container.innerHTML = html.getHtml();
+      var parent = sibling.parentNode;
+      var node;
+      while ((node = container.firstChild)) {
+        parent.insertBefore(node, sibling);
+      }
+    }
 
     rv = inserted_nodes .. first(null);
     inserted_nodes .. each(runMechanisms);
