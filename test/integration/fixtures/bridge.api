@@ -1,6 +1,7 @@
+var { integers } = require('sjs:sequence');
 var { setStatus } = require('mho:server/response');
 var logging = require('sjs:logging');
-var { ObservableArray } = require('mho:observable');
+var { Observable } = require('mho:observable');
 
 exports.throwError = function(msg) { throw new Error(msg); }
 
@@ -39,13 +40,14 @@ exports.breakConnection = function(timeout) {
 var sharedVariable;
 exports.withSharedVariable = function(block) {
   try {
-    sharedVariable = ObservableArray();
-    block();
+    sharedVariable = Observable();
+    block(sharedVariable);
   } finally {
     sharedVariable = null;
   }
 };
 exports.sharedVariable = -> sharedVariable;
+exports.integers = integers;
 
 exports.ping = -> "pong";
 exports.hostenv = -> require('sjs:sys').hostenv;

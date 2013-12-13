@@ -92,12 +92,12 @@ Protocol:
 var logging = require('sjs:logging');
 var { each, toArray, map, filter, transform, isStream, Stream, at, Observable } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
-var { pairsToObject, ownPropertyPairs, ownValues, merge } = require('sjs:object');
+var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
-var { isString } = require('sjs:string');
+var { isString, startsWith } = require('sjs:string');
 var { isFunction, exclusive } = require('sjs:function');
 var { Emitter } = require('sjs:event');
-var { keys, propertyPairs } = require('sjs:object');
+var { ownKeys, keys, propertyPairs } = require('sjs:object');
 var http = require('sjs:http');
 
 /**
@@ -207,32 +207,49 @@ function marshall(value, connection) {
  
   var stringifyable = {};
 
+  function processProperties(value) {
+    return propertyPairs(value) ..
+      filter([name,_] -> name != 'toString' && !name.. startsWith('__oni_')) ..
+      transform([name, val] -> [name, prepare(val)]);
+  }
+
+  function withProperties(dest, value) {
+    var props;
+    processProperties(value) .. each {|[name, val]|
+      if (!props) props = dest.props = {};
+      props[name] = val;
+    }
+    return dest;
+  }
+
   function prepare(value) {
+    var rv = value;
     if (typeof value === 'function') {
       if (isStream(value)) {
         // XXX we want to batch up streams
-        value = { __oni_type: 'stream', id: connection.publishFunction(value) }
+        rv = { __oni_type: 'stream', id: connection.publishFunction(value) };
       }
       else {
         // a normal function
         // XXX we'll be calling the function with the wrong 'this' object
-        value = { __oni_type: 'func', id: connection.publishFunction(value) };
+        rv = { __oni_type: 'func', id: connection.publishFunction(value) };
       }
+      rv = rv .. withProperties(value);
     }
     else if (value instanceof Date) {
-      value = { __oni_type: 'date', val: value.getTime() };
+      rv = { __oni_type: 'date', val: value.getTime() };
     }
     else if (isArrayLike(value)) {
-      value = value .. map(prepare);
+      rv = value .. map(prepare);
     }
     else if (typeof value === 'object' && value !== null) {
       var descriptor;
       if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
-        value = prepare(descriptor.wrapLocal(value));
-        value = { __oni_type: 'custom_marshalled', proxy: value, wrap: descriptor.wrapRemote };
+        rv = prepare(descriptor.wrapLocal(value));
+        rv = { __oni_type: 'custom_marshalled', proxy: rv, wrap: descriptor.wrapRemote };
       }
       else if (value instanceof Error || value._oniE) {
-        value = { __oni_type: 'error', message: value.message, stack: value.__oni_stack };
+        rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack };
       }
       else if (value.__oni_type == 'api') {
         // publish on the connection:
@@ -241,13 +258,13 @@ function marshall(value, connection) {
         var methods = keys(value.obj) .. 
           filter(name -> typeof value.obj[name] === 'function') ..
           toArray;
-        value = { __oni_type:'api', id: value.id, methods: methods};
+        rv = { __oni_type:'api', id: value.id, methods: methods};
       }
       else if (value.__oni_type == 'blob') {
         // send the blob as 'data'
         var id = ++connection.sent_blob_counter;
         connection.sendBlob(id, value.obj);
-        value = { __oni_type: 'blob', id:id };
+        rv = { __oni_type: 'blob', id:id };
       }
       else if (isNodeJSBuffer(value)) {
         //XXX
@@ -255,13 +272,10 @@ function marshall(value, connection) {
       }
       else {
         // a normal object -> traverse it
-        value = propertyPairs(value) ..
-          filter([name,_] -> name != 'toString') ..
-          transform([name, val] -> [name, prepare(val)]) ..
-          pairsToObject;
+        rv = processProperties(value) .. pairsToObject;
       }
     }
-    return value;
+    return rv;
   }
 
   var rv = value .. prepare .. JSON.stringify;
@@ -276,34 +290,42 @@ function unmarshall(str, connection) {
 
 function unmarshallComplexTypes(obj, connection) {
   if (typeof obj != 'object' || obj === null) return obj;
+  var rv;
   if (obj.__oni_type == 'func') {
-    return unmarshallFunction(obj, connection);
+    rv = unmarshallFunction(obj, connection);
   }
   else if (obj.__oni_type == 'stream') {
-    return unmarshallStream(obj, connection);
+    rv = unmarshallStream(obj, connection);
   }
   else if (obj.__oni_type == 'api') {
-    return unmarshallAPI(obj, connection);
+    rv = unmarshallAPI(obj, connection);
   }
   else if (obj.__oni_type == 'blob') {
-    return unmarshallBlob(obj, connection);
+    rv = unmarshallBlob(obj, connection);
   }
   else if (obj.__oni_type == 'date') {
-    return new Date(obj.val);
+    rv = new Date(obj.val);
   }
   else if (obj.__oni_type == 'error') {
-    return unmarshallError(obj, connection);
+    rv = unmarshallError(obj, connection);
   }
   else if (obj.__oni_type == 'custom_marshalled') {
-    return require(obj.wrap[0])[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
+    rv = require(obj.wrap[0])[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
   }
   else {
-    keys(obj) .. each {
+    ownKeys(obj) .. each {
       |key|
       obj[key] = unmarshallComplexTypes(obj[key], connection);
     }
     return obj;
   }
+  if (obj .. hasOwn('props')) {
+    ownKeys(obj.props) .. each {
+      |key|
+      rv[key] = unmarshallComplexTypes(obj.props[key], connection);
+    }
+  }
+  return rv;
 }
 
 function unmarshallBlob(obj, connection) {

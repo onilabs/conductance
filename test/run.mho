@@ -33,11 +33,10 @@ var serverConfig = {
           function(transport) {
             require('mho:rpc/bridge').accept(
               function(apiid) {
-                var api = apiRegistry.getAPIbyAPIID(apiid);
-                //logging.warn("got API ", api, "for ID ", apiid);
-                currentAPI = api.obj;
-                api.obj._transport = transport;
-                return api;
+                currentAPI = apiRegistry.getAPIbyAPIID(apiid);
+                //logging.warn("got API ", currentAPI, "for ID ", apiid);
+                currentAPI._transport = transport;
+                return currentAPI;
               },
               transport);
           }
