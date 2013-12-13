@@ -56,7 +56,7 @@ function Observable(val) {
     } or {
       newval = f(val, unchanged);
     }
-    if (newval !== unchanged) this.set(newval);
+    if (newval !== unchanged) rv.set(newval);
   };
 
   rv.get = -> val;
