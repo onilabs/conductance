@@ -178,25 +178,26 @@ function apiimport(src, dest, aux) {
   dest.write("\
 var serverURL = #{JSON.stringify(serverRoot)};
 var moduleURL = #{JSON.stringify(moduleURL)};
-var bridge = require('mho:rpc/bridge'); 
+var bridge = require('mho:rpc/bridge');
+var {merge} = require('sjs:object');
 exports.server = serverURL;
+var defaultOpts = {server:serverURL};
 
-exports.connect = function(connect_monitor, block) {
-  if (arguments.length === 1) {
-    block = connect_monitor;
-    connect_monitor = undefined;
+exports.connect = function(opts, block) {
+  if (typeof(opts) == 'function') {
+    block = opts;
+    opts = null;
   }
+  opts = opts ? (defaultOpts .. merge(opts)) : defaultOpts;
 
-  if (block) { 
-    bridge.connect(moduleURL, 
-                  {server:serverURL, 
-                   connectMonitor: connect_monitor}) {
+  if (block) {
+    bridge.connect(moduleURL, opts) {
       |connection|
       block(connection.api);
     }
   }
   else
-    return bridge.connect(moduleURL, {server:serverURL}).api;
+    return bridge.connect(moduleURL, opts).api;
 };
 ");
 }

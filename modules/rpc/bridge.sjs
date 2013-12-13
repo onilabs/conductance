@@ -623,7 +623,7 @@ exports.connect = function(api_name, opts, block) {
     var connection = BridgeConnection(transport, opts .. merge({throwing:true, api:apiinfo.id}));
   }
   or {
-    if (opts.connectMonitor) { 
+    if (opts.connectMonitor) {
       opts.connectMonitor();
       throw TransportError("connect monitor abort");
     }
