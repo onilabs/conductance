@@ -1,5 +1,5 @@
 var { Widget, Mechanism, Attrib } = require('./base');
-var { replaceContent, appendContent, prependContent, Prop, removeElement, insertBefore } = require('./dynamic');
+var { replaceContent, appendContent, prependContent, Prop, removeNode, insertBefore } = require('./dynamic');
 var { HostEmitter } = require('sjs:event');
 var { Stream, isStream, integers, each, map, indexed, filter, sort, slice, any } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');

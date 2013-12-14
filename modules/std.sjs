@@ -161,7 +161,6 @@ module.exports = require(modules);
   ### Symbols from the [mho:surface](#mho%3Asurface) module:
   
    - **appendContent**: (function [mho:surface::appendContent])
-   - **appendWidget**: (function [mho:surface::appendWidget])
    - **Attrib**: (function [mho:surface::Attrib])
    - **Class**: (function [mho:surface::Class])
    - **cloneWidget**: (function [mho:surface::cloneWidget])
@@ -176,17 +175,14 @@ module.exports = require(modules);
    - **loadTemplate**: (function [mho:surface::loadTemplate])
    - **Mechanism**: (function [mho:surface::Mechanism])
    - **prependContent**: (function [mho:surface::prependContent])
-   - **prependWidget**: (function [mho:surface::prependWidget])
    - **Prop**: (function [mho:surface::Prop])
    - **RawHTML**: (function [mho:surface::RawHTML])
-   - **removeElement**: (function [mho:surface::removeElement])
+   - **removeNode**: (function [mho:surface::removeNode])
    - **replaceContent**: (function [mho:surface::replaceContent])
-   - **replaceElement**: (function [mho:surface::replaceElement])
    - **RequireExternalScript**: (function [mho:surface::RequireExternalScript])
    - **RequireStyle**: (function [mho:surface::RequireStyle])
    - **Style**: (function [mho:surface::Style])
    - **Widget**: (class [mho:surface::Widget])
-   - **withWidget**: (function [mho:surface::withWidget])
   
   
   ### Symbols from the [sjs:array](#sjs%3Aarray) module:

@@ -1,4 +1,4 @@
-var {Widget, Mechanism, Style, Class, prependWidget, removeElement} = require('mho:surface');
+var {Widget, Mechanism, Style, Class, prependContent, removeNode} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
      reduce, reverse, join, find, hasElem
@@ -36,7 +36,7 @@ var withOverlay = exports.withOverlay = (function() {
 		} else {
 			o = o .. Class('overlay-' + cls);
 		}
-		var elem = document.body .. prependWidget(o);
+		var [elem] = document.body .. prependContent(o);
 		try {
 			waitfor {
 				return block(elem);
@@ -46,7 +46,7 @@ var withOverlay = exports.withOverlay = (function() {
 				document.body .. event.wait('keydown', {filter: e -> e.which == ESCAPE});
 			}
 		} finally {
-			removeElement(elem);
+			removeNode(elem);
 		}
 	};
 })();

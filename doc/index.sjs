@@ -1,6 +1,6 @@
 //TODO: use merging require([.])
 waitfor {
-var {RequireStyle, OnClick, Class, Mechanism, Widget, prependWidget, removeElement, appendWidget, Style, withWidget} = require('mho:surface');
+var {RequireStyle, OnClick, Class, Mechanism, Widget, removeNode, appendContent, Style} = require('mho:surface');
 } and {
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, join, transform } = seq;
@@ -173,7 +173,7 @@ exports.run = function(root) {
 	.. mainStyle
 	.. searchStyle;
 
-	root .. withWidget(toplevel) {|elem|
+	root .. appendContent(toplevel) {|elem|
 		if(window.rainbow) window.rainbow.hide();
 		using (var hashChange = event.HostEmitter(window, 'hashchange')) {
 			while(true) {
@@ -196,7 +196,7 @@ exports.main = function(root) {
 		var e = error.wait();
 		logging.error(String(e));
 		ui.withOverlay("error") {|bg|
-			root .. withWidget(Widget("div",
+			root .. appendContent(Widget("div",
 				`<h1>:-(</h1>
 				<h3>There was an error: </h3>
 						<pre>${e.toString()}</pre>

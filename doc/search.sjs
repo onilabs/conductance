@@ -1,4 +1,4 @@
-var {RequireStyle, Class, Mechanism, Widget, Style, withWidget, Checkbox, Attrib} = require('mho:surface');
+var {RequireStyle, Class, Mechanism, Widget, Style, appendContent, Checkbox, Attrib} = require('mho:surface');
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter, transform, first} = seq;
@@ -239,7 +239,7 @@ exports.run = (function() {
 				}
 			};
 
-			elem .. withWidget(widget) {|elem|
+			elem .. appendContent(widget) {|elem|
 				window.scrollTo(0,0);
 				var input = elem.querySelector('input');
 				input.select();

@@ -1,7 +1,7 @@
 var {test, context, assert} = require('sjs:test/suite');
 context("dynamic") {||
 
-var {withWidget, Widget} = require('mho:surface');
+var {appendContent, Widget} = require('mho:surface');
 var { Select } = require('mho:surface/html');
 var {Observable, Computed} = require('mho:observable');
 var {each, at, map} = require('sjs:sequence');
@@ -15,7 +15,7 @@ var click = function(elem) {
 context("void elements") {||
   test("should throw no errors") {||
     // testing for IE edge cases, mostly
-    document.body .. withWidget(Widget("img"), ->hold(100));
+    document.body .. appendContent(Widget("img"), ->hold(100));
   }
 }
 
@@ -27,7 +27,7 @@ context("observable widget content") {||
     content.set("second");
 
     var widgets = [observableWidget, computedWidget];
-    document.body .. withWidget(widgets) {|parent|
+    document.body .. appendContent(widgets) {|parent|
       var elems = parent.childNodes;
       elems.length .. assert.eq(widgets.length);
 
@@ -47,7 +47,7 @@ context("observable widget content") {||
 context("select widget") {||
   var selectionMap = node -> node.childNodes .. map(e -> e.selected);
   var withSelect = (settings, block) ->
-      document.body .. withWidget(Select(settings), block);
+      document.body .. appendContent(Select(settings), block);
 
   var commonTests = function() {
     test("should reflect static selections") {|s|

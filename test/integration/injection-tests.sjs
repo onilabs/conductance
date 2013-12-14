@@ -76,36 +76,36 @@ context("static file generation") {||
 }
 
 context("dynamic content generation") {||
-	var {Widget, withWidget, Style} = require('mho:surface');
+	var {Widget, appendContent, Style} = require('mho:surface');
 
 	test("encodes data inside a regular html tag") {||
-		document.body .. withWidget(Widget("div", payloadString)) {|elem|
+		document.body .. appendContent(Widget("div", payloadString)) {|elem|
 			elem.textContent .. assert.eq(payloadString);
 		}
 	}
 
 	test("encodes data inside a <script>") {||
-		document.body .. withWidget(Widget("script", "window.tmp = #{JSON.stringify(payloadObject)};")) {|elem|
+		document.body .. appendContent(Widget("script", "window.tmp = #{JSON.stringify(payloadObject)};")) {|elem|
 			window.tmp .. assert.eq(payloadObject);
 		}
 
-		document.body .. withWidget(Widget("script", `window.tmp = ${JSON.stringify(payloadObject)};`)) {|elem|
+		document.body .. appendContent(Widget("script", `window.tmp = ${JSON.stringify(payloadObject)};`)) {|elem|
 			window.tmp .. assert.eq(payloadObject);
 		}
 	}.ignoreLeaks("tmp");
 
 	test("encodes data inside a <pre>") {|s|
-		document.body .. withWidget(Widget("pre", payloadString)) {|elem|
+		document.body .. appendContent(Widget("pre", payloadString)) {|elem|
 			elem.textContent .. assert.eq(payloadString);
 		}
 
-		document.body .. withWidget(Widget("div", `<pre>$payloadString</pre>`)) {|elem|
+		document.body .. appendContent(Widget("div", `<pre>$payloadString</pre>`)) {|elem|
 			elem.childNodes[0].textContent .. assert.eq(payloadString);
 		}
 	}
 
 	test("encodes data inside a CSS block") {|s|
-		document.body .. withWidget(Widget("div", "text") .. Style("{background-image: #{payloadCss} }")) {|elem|
+		document.body .. appendContent(Widget("div", "text") .. Style("{background-image: #{payloadCss} }")) {|elem|
 			// getComputedStyle is not always synchronous
 			waitforSuccess(-> window.getComputedStyle(elem)['background-image'] .. assert.eq(payloadCss));
 		}

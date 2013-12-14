@@ -139,15 +139,16 @@ __js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
   @return {::CollapsedFragment}
 */
 
-// helper for streaminging content:
+// helper for streaming content:
 var gSentinelCounter = 0;
 
-function isSentinelNode(node, sentinel) {
+function isSentinelNode(node, type, sentinel) {
   // nodeType '8' is a comment node
-  if (node.nodeType !== 8 || node.nodeValue.indexOf('surface_sentinel') == -1) return false;
+  if (node.nodeType !== 8 || node.nodeValue.indexOf("surface_sentinel_#{type}") == -1) return false;
   var [,id] = node.nodeValue.split('|');
   return id == sentinel; 
 }
+exports.isSentinelNode = isSentinelNode;
 
 function StreamingContent(stream) {
   var dyn = require('./dynamic');
@@ -161,20 +162,19 @@ function StreamingContent(stream) {
           // remove previously inserted content between `node` and the sentinel
           do {
             var inserted = node.nextSibling;
-          // inserted.remove() is not IE compatible
-            inserted.parentNode.removeChild(inserted);
-          } while (!(inserted .. isSentinelNode(sentinel)));
+            dyn.removeNode(inserted);
+          } while (!(inserted .. isSentinelNode('stream', sentinel)));
         }
         else
           have_inserted = true;
         var anchor = node.nextSibling;
         if (anchor) {
           // we've got an anchor for 'insertBefore'
-          anchor .. dyn.insertBefore([val,`<!-- surface_sentinel |$sentinel| -->`]);
+          anchor .. dyn.insertBefore([val,`<!-- surface_sentinel_stream |$sentinel| -->`]);
         }
         else {
           // we're appending to the end
-          node.parentNode .. dyn.appendContent([val, `<!-- surface_sentinel |$sentinel| -->`]);
+          node.parentNode .. dyn.appendContent([val, `<!-- surface_sentinel_stream |$sentinel| -->`]);
         }
       }
     }
@@ -183,11 +183,9 @@ function StreamingContent(stream) {
         // remove previously inserted content between `node` and the sentinel
         do {
           var inserted = node.nextSibling;
-          // inserted.remove() is not IE compatible
-          inserted.parentNode.removeChild(inserted);
-        } while (!(inserted .. isSentinelNode(sentinel)));
+          dyn.removeNode(inserted);
+        } while (!(inserted .. isSentinelNode('stream', sentinel)));
       }
-//      console.log("STREAMING CONTENT MECHANISM RETRACTED");
     }
   }
 

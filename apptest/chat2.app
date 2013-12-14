@@ -73,5 +73,5 @@ waitfor {
     }
   }
 } or {
-  @mainContent .. @withWidget(ui, -> hold());
+  @mainContent .. @appendContent(ui, -> hold());
 }

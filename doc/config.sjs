@@ -1,4 +1,4 @@
-var { Widget, withWidget, Mechanism, Style, OnClick } = require('mho:surface');
+var { Widget, appendContent, Mechanism, Style, OnClick } = require('mho:surface');
 var { Input, Form, Button } = require('mho:surface/bootstrap/html');
 var { each, map, transform } = require('sjs:sequence');
 var { Observable } = require('mho:observable');
@@ -116,7 +116,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
         margin-top:0.2em;
       }
     ");
-    elem .. withWidget(widget) {|elem|
+    elem .. appendContent(widget) {|elem|
       if (onReady) onReady();
       elem.getElementsByTagName("button")[0] .. event.wait('click');
     }

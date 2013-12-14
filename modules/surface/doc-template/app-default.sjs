@@ -147,7 +147,7 @@ exports.Document = function(data, settings) {
               connectionMonitor: {
                 ||
                 hold(300); // small delay before showing ui feedback
-                document.body .. @withWidget(
+                document.body .. @appendContent(
                   exports.Div(`<div class='alert alert-warning'>Connecting...</div>`) .. ConnectionIndicatorStyle()) {
                   ||
                   hold();
@@ -163,7 +163,7 @@ exports.Document = function(data, settings) {
           catch(e) {
             if (isTransportError(e)) {
               hold(300); // small delay before showing ui feedback
-              document.body .. @withWidget(
+              document.body .. @appendContent(
                 exports.Div(`<div class='alert alert-warning'>Not connected. Reconnect in ${Countdown(Math.floor(delay/1000))}s. ${exports.A(`Try Now`, {href:'#'})}</div>`) .. ConnectionIndicatorStyle()
               ) { |ui|
                 waitfor {

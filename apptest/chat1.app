@@ -15,7 +15,7 @@ var name = @Observable('minion');
 
 function main(api) {
 
-  @mainContent .. @replaceContent(
+  @mainContent .. @appendContent(
     `
     <h1>Oni Labs Chat</h1>
     ${
@@ -24,6 +24,7 @@ function main(api) {
                             @map({name,msg} -> `<div><i>${name}</i>: ${msg}</div>`))
      }
     <hr>
+    <div id='pending' style='color:grey'></div>
     <div class='row'>
       <div class='col-md-2'>
         ${
@@ -51,19 +52,28 @@ function main(api) {
         ${
            // message input
            // XXX clean this up
-           @Input('', {type:'text'}) ..@Mechanism({
-             |node|
-             node.focus();
-             node .. @when('keyup', {filter: ev -> ev.keyCode === 13}) {
-               |ev|
-               api.writeMessage(name.get(), node.value);
-               node.value = '';
-             }
-           })
+           @Input('', {type:'text', id:'message_input'})
          }
       </div>
     </div>
-    `);
-
-  hold();
+    ` .. @Div) {
+    |ui|
+    var input = ui.querySelector('#message_input');
+    var pending = ui.querySelector('#pending');
+    
+    input.focus();
+    input .. @when('keyup', { filter: ev -> ev.keyCode === 13 }) {
+      |ev|
+      var msg = input.value;
+      pending .. @appendContent(`<span>You said: ${msg}</span>`) {
+        ||
+        input.value = '';
+        input.disabled = true;
+        hold(1000);
+        api.writeMessage(name.get(), msg);
+        input.disabled = false;
+      }
+    }
+    
+  }
 }

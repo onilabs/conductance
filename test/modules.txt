@@ -1,10 +1,10 @@
-unit/server/routes-tests.sjs
 unit/observable-tests.sjs
-unit/surface/static-tests.sjs
-unit/surface/dynamic-tests.sjs
+unit/server/routes-tests.sjs
 unit/surface/css-tests.sjs
+unit/surface/dynamic-tests.sjs
+unit/surface/static-tests.sjs
+integration/bridge-tests.sjs
 integration/documentation-link-tests.sjs
 integration/documentation-tests.sjs
-integration/bridge-tests.sjs
 integration/fs-tests.sjs
 integration/injection-tests.sjs

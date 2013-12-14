@@ -246,24 +246,112 @@ module.exports = require(modules);
   (just use `require`).
 
 @function replaceContent
+@altsyntax parent_element .. replaceContent(html)
+@summary Replace the content of a DOM element with a [::HtmlFragment]
+@param {DOMElement} [parent_element] 
+@param {::HtmlFragment} [html] Html to insert
+@desc
+  ### Example:
 
-@function replaceElement
+      document.body .. replaceContent(`<h1>Hello, world</h1>`)
 
 @function appendContent
+@altsyntax parent_element .. appendContent(html) { |node1, node2, ...| ... }
+@summary Append a [::HtmlFragment] to a DOM element's content
+@param {DOMElement} [parent_element] 
+@param {::HtmlFragment} [html] Html to append
+@param {optional Function} [block] Function bounding lifetime of appended content
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+
+@desc
+
+  * If no function `block` is provided, `appendContent` returns an
+    array containing the DOM elements and comment nodes that have
+    been appended. Note that this array does not contain any
+    top-level text that has been inserted.
+
+  * If a function (or blocklambda) `block` is provided, it will be passed as arguments
+    the DOM elements and comment nodes that have been appended. When `block` 
+    exits (normally, by exception or by retraction), the appended nodes will be removed.
+    Any [::Mechanism]s running on the inserted nodes will be aborted.
+
+  * When using the `block`-form of `appendContent`, note that only
+    inserted DOM *elements* and comment nodes will be cleaned up,
+    not text nodes. In particular this means that inserted
+    top-level text content will remain in the document after
+    `block` returns.  E.g. when appending the fragment
+
+        `foo<div>bar</div>baz`
+
+    only the `<div>` will be removed after `block` returns. "foo" and "baz" will 
+    remain in the document. This behaviour might change in future versions of conductance.
+
+  ### Examples:
+
+      document.body .. appendContent(
+        `<div>This will show for only 5 seconds</div>`) {
+        ||
+        hold(5000); // wait 5s
+      }
+
+      document.body .. appendContent(
+        `<button>foo</button>
+         <button>bar</button>`) {
+         |foo_elem, bar_elem|
+         // 'foo_elem' and 'bar_elem' contain the DOM elements of the respective buttons
+         ...
+      }
 
 @function prependContent
+@altsyntax parent_element .. prependContent(html) { |node1, node2, ...| ... }
+@summary Prepend a [::HtmlFragment] to a DOM element's content
+@param {DOMElement} [parent_element] 
+@param {::HtmlFragment} [html] Html to prepend
+@param {optional Function} [block] Function bounding lifetime of prepended content
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+
+@desc
+  * See [::appendContent] for notes on the semantics and return value.
 
 @function insertBefore
+@altsyntax sibling_node .. insertBefore(html) { |node1, node2, ...| ... }
+@summary Insert a [::HtmlFragment] before the given sibling node
+@param {DOMNode} [sibling_node] Sibling before which to insert
+@param {::HtmlFragment} [html] Html to insert
+@param {optional Function} [block] Function bounding lifetime of inserted content
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+
+@desc
+  * `sibling_node` should be a DOM *element* or comment node.
+  * See [::appendContent] for notes on the semantics and return value.
 
 @function insertAfter
+@altsyntax sibling_node .. insertAfter(html) { |node1, node2, ...| ... }
+@summary Insert a [::HtmlFragment] after the given sibling node
+@param {DOMNode} [sibling_node] Sibling before which to insert
+@param {::HtmlFragment} [html] Html to insert
+@param {optional Function} [block] Function bounding lifetime of inserted content
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
 
-@function removeElement
+@desc
+  * `sibling_node` should be a DOM *element* or comment node.
+  * See [::appendContent] for notes on the semantics and return value.
 
-@function appendWidget
+@function removeNode
+@param {DOMNode} [node] Node to remove
+@summary Remove a DOM node from the document
+@desc
+  * This function can be used to remove any DOM node from
+    document - whether it has been inserted using one of the surface
+    module functions ([::appendContent], etc).
 
-@function prependWidget
+  * `removeNode` will abort any [::Mechanism]s running on the node
+    and release any [::Style] references.
 
-@function withWidget
+  * Note that you can remove DOM nodes inserted using surface module functions also
+    using normal DOM operations (e.g. removeChild), however any [::Mechanism]s that might
+    be running on the content will not be aborted, and [::Style] references will not be 
+    released. This might change in future versions of the library.
 
 @function Prop
 @summary Add a javascript property to a widget
