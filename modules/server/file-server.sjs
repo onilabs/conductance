@@ -43,7 +43,7 @@ function formatResponse(req, item, settings) {
   if (!formatdesc && !format.mandatory)
     formatdesc = filedesc["none"];
   if (!formatdesc) {
-    verbose("Can't serve item of type '#{filetype}' in format '#{format.name}'");
+    info("Can't serve item of type '#{filetype}' in format '#{format.name}'");
     throw notAcceptable;
   }
 

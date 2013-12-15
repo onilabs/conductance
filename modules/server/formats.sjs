@@ -265,8 +265,15 @@ exports.StaticFormatMap = {
   md   : { none : { mime: "text/plain" } },
 };
 
-// TODO: export this?
-var withFormats = function(map, extensions) {
+/**
+  @function withFormats
+  @param {Object} [base]
+  @param {Object} [additional]
+  @summary Copies `base` formats object and adds all formats from `additional`.
+  @desc
+    This function returns a new object - neither argument is modififed.
+*/
+var withFormats = exports.withFormats = function(map, extensions) {
   var rv = clone(map);
   extensions .. ownPropertyPairs .. each {|[extension, formats]|
     rv[extension] = merge(rv[extension], formats);

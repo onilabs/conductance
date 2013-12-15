@@ -12,22 +12,9 @@
 
 var { readFile } = require('sjs:nodejs/fs');
 var { toPath } = require('sjs:url');
-
-var _fixedIndicatorStyle = "
-        position: fixed;
-        top:1em;
-        left:0;
-        right:0;
-        height:0;
-        text-align: center;
-";
-var _fixedIndicatorAlertStyle = "
-        display: inline-block;
-        text-align:left;
-        color:black;
-        padding: 8px;
-        border-radius: 3px;
-";
+var { _fixedNoticeStyle, _fixedNoticeAlertStyle } = require('../bootstrap/notice');
+var { sanitize: escapeXML } = require('sjs:string');
+var escapeCssAttr = (style) -> style.replace(/\s+/g, '') .. escapeXML;
 
 exports.Document = function(data, settings) {
   return "\
@@ -54,8 +41,8 @@ exports.Document = function(data, settings) {
           if (errorIndicatorShown) return;
           errorIndicatorShown = true;
           document.body.innerHTML = (
-            \"<div style='#{_fixedIndicatorStyle.replace(/\s+/g, '')}'>\" +
-              \"<div class='alert alert-danger' style='#{_fixedIndicatorAlertStyle.replace(/\s+/g, '')}'>\"+
+            \"<div style='#{_fixedNoticeStyle .. escapeCssAttr}'>\" +
+              \"<div class='alert alert-danger' style='#{_fixedNoticeAlertStyle .. escapeCssAttr}'>\"+
                 \"<strong>Error:</strong>\"+
                 \" An uncaught error occurred, reload the page to try again.\"+
               \"</div>\"+
@@ -65,10 +52,7 @@ exports.Document = function(data, settings) {
         "}
       })();
     </script>
-    <script type='text/sjs' module='mho:app'>
-      //----------------------------------------------------------------------
-      // BUSY INDICATOR
-
+    <script type='text/sjs'>
       var busy_indicator_refcnt = 0, busy_indicator_stratum, busy_indicator_shown = #{settings.showBusyIndicator == 'true' ? 'true' : 'false'};
 
       function showBusyIndicator(delay) {
@@ -110,85 +94,10 @@ exports.Document = function(data, settings) {
           hideBusyIndicator();
         }
       }
+      window.withBusyIndicator = withBusyIndicator;
+    </script>
 
-      //----------------------------------------------------------------------
-      // API IMPORTING
-
-      var _connectionIndicatorStyle;
-      function ConnectionIndicatorStyle(ft) {
-        if(!_connectionIndicatorStyle)
-          _connectionIndicatorStyle = @Style('
-            {
-              #{_fixedIndicatorStyle}
-            }
-            .alert {
-              #{_fixedIndicatorAlertStyle}
-            }
-          ');
-        return _connectionIndicatorStyle(ft);
-      }
-
-      function Countdown(seconds) {
-        return exports.Span(seconds) .. @Mechanism(function(node) {
-          while (seconds > 0) {
-            hold(1000);
-            node.innerHTML = --seconds;
-          }
-        });
-      }
-
-      function withAPI(api, block) {
-        var delay = 1000;
-        var { isTransportError, connect } = require('mho:rpc/bridge');
-
-        while (1) {
-          try {
-            connect(api, {
-              connectionMonitor: {
-                ||
-                hold(300); // small delay before showing ui feedback
-                document.body .. @appendContent(
-                  exports.Div(`<div class='alert alert-warning'>Connecting...</div>`) .. ConnectionIndicatorStyle()) {
-                  ||
-                  hold();
-                }
-              }
-            }) {
-              |connection|
-              // we're connected; reset connection delay
-              delay = 1000;
-              block(connection.api);
-            }
-          }
-          catch(e) {
-            if (isTransportError(e)) {
-              hold(300); // small delay before showing ui feedback
-              document.body .. @appendContent(
-                exports.Div(`<div class='alert alert-warning'>Not connected. Reconnect in ${Countdown(Math.floor(delay/1000))}s. ${exports.A(`Try Now`, {href:'#'})}</div>`) .. ConnectionIndicatorStyle()
-              ) { |ui|
-                waitfor {
-                  hold(delay);
-                  delay *= 1.5;
-                  if (delay > 60*1000*10) // cap at 10 minutes
-                    delay = 60*1000*10;
-              
-                }
-                or {
-                  ui.querySelector('a') .. @wait('click', {handle:@preventDefault});
-                }
-              }
-              continue;
-            }
-            else
-              throw e;
-          }
-          break;
-        }
-      }
-
-
-      //----------------------------------------------------------------------
-
+    <script type='text/sjs' module='mho:app'>
       withBusyIndicator {
         ||
 
@@ -196,6 +105,12 @@ exports.Document = function(data, settings) {
           exports = module.exports = require([
                                     {id:'mho:surface/bootstrap/html',
                                       exclude: ['Style', 'Map']
+                                    },
+                                    {id:'mho:surface/api-connection',
+                                      include: ['withAPI']
+                                    },
+                                    {id:'mho:surface/bootstrap/notice',
+                                      include: ['Notice']
                                     }
                                   ]);
         } and {
@@ -205,7 +120,6 @@ exports.Document = function(data, settings) {
         // ui entry points:
         exports.body = document.body;
         exports.mainContent = document.body.firstChild;
-        exports.withAPI = withAPI;
         exports.withBusyIndicator = withBusyIndicator;
       }
     </script>

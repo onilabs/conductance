@@ -215,7 +215,8 @@ exports.Redirect = Redirect;
 
 var formats = require('./formats');
 
-function createDirectoryMapper(settings) {
+//XXX document
+var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
   return function(path, root) {
     if (arguments.length == 1) {
       root = path;
