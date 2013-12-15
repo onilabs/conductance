@@ -95,7 +95,7 @@ li.libraryStatus input[type='checkbox'] {
 	line-height: 1em;
 	background: #aaa;
 	color: #FFF;
-	font-family: sans-serif;
+	xfont-family: sans-serif;
 	font-size: 0.9em;
 	border-radius: 10em;
 }

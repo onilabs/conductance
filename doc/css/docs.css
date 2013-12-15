@@ -4,7 +4,7 @@
 }
 
 .mb-top, .mb-top table {
-    font: 13px sans-serif;
+    xfont: 13px sans-serif;
     color: #444;
     line-height: 1.8em;
 }
@@ -24,7 +24,7 @@
 
 .mb-top h3 {
     color: #4c4f55;
-    font-family: sans-serif;
+    xfont-family: sans-serif;
     font-weight: normal;
     font-size: 18px;
     margin:25px 0 15px 0;
@@ -35,8 +35,7 @@
     font-size:16px !important;
     color:black !important;
     padding: 5px 0 12px 0;
-    xborder: 1px solid #e12020;
-    border-bottom: 2px solid #e12020;
+    border-bottom: 2px solid #b9090b;
     xbackground-color: #fadbdb;
     xxmargin:55px 0 85px 0 !important;
     margin-bottom: 0 !important;
@@ -131,7 +130,7 @@ span.mb-arglist {
 }
 
 span.mb-rv {
-    font-family: sans-serif;
+    xfont-family: sans-serif;
     float: right;
     color: #777;
 }

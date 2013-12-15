@@ -1,5 +1,5 @@
 .documentationRoot {
-	font-family: sans-serif;
+	font-family: 'Open Sans';
 	margin:0;
 	padding:0;
 	padding-left:280px;
@@ -132,7 +132,7 @@ h1 {
 }
 
 .breadcrumbs {
-  font-family: "PT Serif";
+  font-family: "Montserrat";
   /* margin-top: 5px; */
 	font-size: 36px;
 	line-height: 1.2em;
@@ -152,7 +152,7 @@ h1 {
 	font-size:14px;
   line-height: 1.3em;
   color: #aaa;
-  font-family: sans-serif;
+  font-family: Montserrat;
 	/* color: rgba(255, 255, 255, 0.77); */
 }
 
@@ -184,7 +184,7 @@ h1 {
 
 .header button {
 	/* background-color:rgba(0, 0, 0, 0.25); */
-  background-color: #e43636;
+  background-color: #b9090b;
 	color:white !important;
 }
 
@@ -196,7 +196,8 @@ h1 {
 #sidebar .active {
 	/* background: rgba(53, 58, 63, 0.37); */
   /* background: rgba(0, 0, 0, 0.1); */
-  background: rgba(255, 255, 255, 0.2);
+  /* background: rgba(255, 255, 255, 0.2); */
+  background-color: #b9090b;
 	font-weight:bold;
 }
 #sidebar .active-children {
