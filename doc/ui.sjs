@@ -156,6 +156,13 @@ exports.renderer = function(libraries, rootSymbol) {
 		return str.replace(/^[A-Z]+/, s -> s.toLowerCase());
 	};
 
+	function versionWidget(library) {
+		if (!library) return undefined;
+		var docs = library && library.loadSkeletonDocs();
+		var version = docs && docs.version;
+		return version ? Widget("div", "#{library.name} #{docs.version}", {"class":"version"});
+	};
+
 	function functionSignature(docs, symbol) {
 		var signature = [];
 		if (docs.type != 'ctor' && symbol.className && !docs['static'])
@@ -488,11 +495,19 @@ exports.renderer = function(libraries, rootSymbol) {
 
 				if (symbol.library && symbol.library.root) {
 					// add a "source" link where possible
-					var root = symbol.library.root;
+					var library = symbol.library;
+					var root = library.root;
 					var path = symbol.relativeModulePath .. join();
 					if (!path .. endsWith('/')) path += '.sjs';
 					var pathURI = path .. encodeNonSlashes();
-					view = [view, Widget("div", `<a href="${root}${pathURI}">[source]</a>`, {"class":"mb-canonical-url"})];
+
+					view = [view, Widget("div", [
+						`<p>
+							${versionWidget(library)}
+							<a href="${root}${pathURI}">[source]</a>
+						</p>`,
+					],
+					{"class":"mb-canonical-url"})];
 				}
 			} catch(e) {
 				if (e instanceof SymbolMissing)
@@ -532,31 +547,22 @@ exports.renderer = function(libraries, rootSymbol) {
 
       var docs = symbol.docs();
       
+      var snippet = Widget("div", `&nbsp;`, {"class":"version"});
+
       switch(docs.type) {
         case 'module':
-          content.push(makeRequireSnippet(symbol.fullModulePath));
+          snippet = makeRequireSnippet(symbol.fullModulePath);
           break;
         case 'lib':
         case 'doclib':
         case 'doc':
-          var version;
-			    if (symbol.library) {
-				    var docs = symbol.library.loadSkeletonDocs();
-				    if(docs && docs.version) {
-					    version = Widget("div", "#{symbol.library.name}#{docs.version}", {"class":"version"});
-				    }
-			    }
-          else
-			      version = Widget("div", `Conductance documentation browser`, {"class":"version"});
-			    content.push(version);
           break;
         default:
-          if ((!symbol.className || docs.type == 'ctor') && docs.type !== 'class')
-            content.push(makeRequireSnippet(symbol.fullModulePath, symbol.name));
-          else
-            content.push(Widget("div", `&nbsp;`, {"class":"version"}));
+          if ((!symbol.className || docs.type == 'ctor') && docs.type !== 'class') {
+            snippet = makeRequireSnippet(symbol.fullModulePath, symbol.name);
+          }
       }
-
+      content.push(snippet);
 			return Widget("div", content, {"class":"breadcrumbs"});
 		},
 	}

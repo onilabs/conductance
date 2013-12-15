@@ -104,6 +104,7 @@
 
 div.mb-canonical-url , .mb-canonical-url a{
     color: #999 !important;
+    line-height: 1.3em;
 }
 
 div.mb-canonical-url {
