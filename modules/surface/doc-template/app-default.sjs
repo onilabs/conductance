@@ -19,7 +19,7 @@ exports.Document = function(data, settings) {
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     ${frag.bootstrapCss()}
-    ${settings.showErrorDialog ? frag.errorHandler()}
+    ${settings.showErrorDialog !== 'false' ? frag.errorHandler()}
     ${frag.busyIndicator(settings.showBusyIndicator == 'true')}
     <script type='text/sjs' module='mho:app'>
       withBusyIndicator {

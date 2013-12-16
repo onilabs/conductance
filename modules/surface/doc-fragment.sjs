@@ -56,7 +56,7 @@ var rainbowContents = readFile(require.url('./rainbow.min.js') .. toPath);
 exports.busyIndicator = function(showImmediately, opts) {
   opts = opts || {};
   var color = opts.color || '#e91100';
-  var thickness = opts.thickness === undefined ? 3 : opts.thickness;
+  var thickness = opts.thickness === undefined ? 2 : opts.thickness;
   var shadow = opts.shadow === undefined ? 2 : opts.shadow;
   return [
     @Widget('script', rainbowContents),

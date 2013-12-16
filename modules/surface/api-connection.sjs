@@ -1,4 +1,5 @@
 @ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event']);
+var {@warn} = require('sjs:logging');
 
 /**
   @summary API connection utility
@@ -43,6 +44,7 @@ exports.withAPI = function(api, block) {
       }
     } catch(e) {
       if (@isTransportError(e)) {
+        @warn("Connection error: #{e}");
         hold(300); // small delay before showing ui feedback
 
         document.body .. @appendContent(@Notice(
