@@ -33,7 +33,7 @@
 @summary Use a custom HTML template
 @desc
   To specify a template for a given `.app` file, use the @template
-  directive inside a documentation comment.
+  directive inside a metadata comment.
 
   ### Example:
 
