@@ -27,32 +27,13 @@ function main(api) {
     <div id='pending' style='color:grey'></div>
     <div class='row'>
       <div class='col-md-2'>
-        ${
-           // name input
-           // XXX fix observable-to-value binding
-           @Input('', {type:'text'}) .. @Mechanism({ 
-             |node| 
-             waitfor { 
-               name .. @each {
-                 |val|
-                 if (node.value !== val) node.value = val;
-               }
-             }
-             and {
-               node .. @when('keyup') {
-                 |ev|
-                 name.set(node.value);
-               }
-             }
-           })
-                                                     
-         }
+        $@TextInput(name)
       </div>
       <div class='col-md-10'>
         ${
            // message input
            // XXX clean this up
-           @Input('', {type:'text', id:'message_input'})
+           @Input({type:'text', id:'message_input'})
          }
       </div>
     </div>

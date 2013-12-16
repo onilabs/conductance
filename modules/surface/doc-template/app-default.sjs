@@ -10,93 +10,17 @@
   @require sjs:event
 */
 
-var { readFile } = require('sjs:nodejs/fs');
-var { toPath } = require('sjs:url');
-var { _fixedNoticeStyle, _fixedNoticeAlertStyle } = require('../bootstrap/notice');
-var { sanitize: escapeXML } = require('sjs:string');
-var escapeCssAttr = (style) -> style.replace(/\s+/g, '') .. escapeXML;
+var frag = require('../doc-fragment');
 
 exports.Document = function(data, settings) {
-  return "\
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <link rel='stylesheet' href='/__mho/surface/bootstrap/bootstrap-vanilla-3.css' media='screen'>
-    <script>#{readFile(require.url('../rainbow.min.js') .. toPath)};
-      (function() {
-        var loaded = false;
-        rainbow.config({barColors:['#e91100'], barThickness: 2, shadowBlur: 1});
-        #{settings.showBusyIndicator == 'true' ? "window.onload = function() {
-          loaded = true;
-          rainbow.show();
-        };" : ""}
-
-        #{settings.showErrorDialog == 'false' ? "" :
-        "
-        var errorIndicatorShown = false;
-        function showErrorIndicator(e) {
-          if (loaded) rainbow.hide();
-          if (errorIndicatorShown) return;
-          errorIndicatorShown = true;
-          document.body.innerHTML = (
-            \"<div style='#{_fixedNoticeStyle .. escapeCssAttr}'>\" +
-              \"<div class='alert alert-danger' style='#{_fixedNoticeAlertStyle .. escapeCssAttr}'>\"+
-                \"<strong>Error:</strong>\"+
-                \" An uncaught error occurred, reload the page to try again.\"+
-              \"</div>\"+
-            \"</div>\");
-        };
-        window.onerror = showErrorIndicator;
-        "}
-      })();
-    </script>
-    <script type='text/sjs'>
-      var busy_indicator_refcnt = 0, busy_indicator_stratum, busy_indicator_shown = #{settings.showBusyIndicator == 'true' ? 'true' : 'false'};
-
-      function showBusyIndicator(delay) {
-        delay = delay || 500;
-        if (++busy_indicator_refcnt === 1) {
-          busy_indicator_stratum = spawn (function() {
-            hold(delay);
-            rainbow.show();
-            busy_indicator_shown = true;
-          })();
-        }
-      }
-
-      function hideBusyIndicator() {
-        // we're spawning/holding to get some hysteresis: if someone
-        // calls showBusyIndicator next, we
-        // don't want to stop a currently running indicator
-        spawn (function() {
-          hold(10);
-          if (--busy_indicator_refcnt === 0) {
-            if (busy_indicator_stratum) {
-              busy_indicator_stratum.abort();
-              busy_indicator_stratum = null;
-            }
-            if(busy_indicator_shown) {
-              rainbow.hide();
-              busy_indicator_shown = false;
-            }
-          }
-        })();
-      }
-
-      function withBusyIndicator(block) {
-        try {
-          showBusyIndicator();
-          block();
-        }
-        finally {
-          hideBusyIndicator();
-        }
-      }
-      window.withBusyIndicator = withBusyIndicator;
-    </script>
-
+    ${frag.bootstrapCss()}
+    ${settings.showErrorDialog ? frag.errorHandler()}
+    ${frag.busyIndicator(settings.showBusyIndicator == 'true')}
     <script type='text/sjs' module='mho:app'>
       withBusyIndicator {
         ||
@@ -123,13 +47,13 @@ exports.Document = function(data, settings) {
         exports.withBusyIndicator = withBusyIndicator;
       }
     </script>
-    #{ data.head }
-    #{ data.script }
+
+    ${ data.head }
+    ${ data.script }
   </head>
-  <body><div class='container'>#{data.body}</div>
-    <script src='/__mho/surface/bootstrap/jquery-1.10.2.min.js'></script>
-    <script src='/__mho/surface/bootstrap/bootstrap.min.js'></script>
+  <body><div class='container'>${data.body}</div>
+    ${frag.bootstrapJavascript()}
   </body>
-</html>";
+</html>`;
 }
 

@@ -418,7 +418,7 @@ __js {
 
 // Style classes
 
-__js var InternalStyleDefProto = { 
+__js var InternalStyleDefProto = {
   getHtml: -> "<style type='text/css'>#{escapeForTag(this.content, 'style')}</style>",
   createElement: function() {
     // xbrowser env only

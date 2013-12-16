@@ -43,13 +43,10 @@ exports.CSSDocument = function(content, parent_class) {
     If `template` is a string, it will be passed to [::loadTemplate], and the returned
     function will be called as above.
 
-    `template` must return a String.
+    `template` must return a [sjs:quasi::Quasi].
 
 */
 exports.Document = function(content, settings) {
-
-  content = html.collapseHtmlFragment(content || undefined);
-
   var headContent, userInit, title, mainModule, template, templateData, externalScripts;
   if(settings) {
     title = settings.title;
@@ -61,32 +58,37 @@ exports.Document = function(content, settings) {
     externalScripts = settings.externalScripts;
   }
 
+  content = (content || null) .. html.collapseHtmlFragment();
+
   template = template || 'default';
   if (template .. isString) template = exports.loadTemplate(template);
 
-  headContent = headContent ? html.collapseHtmlFragment(headContent).getHtml() : "";
+  headContent = [headContent];
   if (title) {
-    headContent += html.collapseHtmlFragment(`<title>$title</title>`).getHtml();
+    headContent.push(`<title>$title</title>`);
   }
 
-  var scriptTag = url -> "<script src=\"#{sanitize(url)}\"></script>";
-  headContent += keys(content.getExternalScripts()) .. map(scriptTag) .. join('\n');
+  var scriptTag = url -> `<script src="${url}"></script>`;
+  headContent = headContent.concat(keys(content.getExternalScripts()) .. map(scriptTag));
 
   if(externalScripts)
-    headContent += externalScripts .. map(scriptTag) .. join('\n');
+    headContent = headContent.concat(externalScripts .. map(scriptTag));
 
-  headContent += values(content.getStyleDefs()) ..
-      map([ref_count,def] -> def.getHtml()) ..
-    join('\n');
+  var styleDefs = values(content.getStyleDefs()) ..
+      map([ref_count,def] -> def.getHtml() .. html.RawHTML());
 
-  headContent += "<script src='/__sjs/stratified.js' asyc='true'></script>";
+  headContent = headContent.concat(styleDefs);
 
-  headContent += '<script type=\'text/sjs\'>
-    if (!window.location.origin)
-      window.location.origin = "#{window.location.protocol}//#{window.location.hostname}#{window.location.port ? ":#{window.location.port}" : \'\'}";
-    require.hubs.push([\'mho:\', "#{window.location.origin}/__mho/"]);
-    require.hubs.push([\'\u2127:\', \'mho:\']);
-  </script>';
+  headContent.push(`<script src='/__sjs/stratified.js' asyc='true'></script>`);
+
+  headContent.push(
+    `<script type="text/sjs">
+      if (!window.location.origin)
+        window.location.origin = "#{window.location.protocol}//#{window.location.hostname}#{window.location.port ? ":#{window.location.port}" : \'\'}";
+      require.hubs.push(['mho:', "#{window.location.origin}/__mho/"]);
+      require.hubs.push(['\u2127:', 'mho:']);
+    </script>`
+  );
 
   var mechanisms = propertyPairs(content.getMechanisms()) ..
     map(function([id, code]) {
@@ -125,14 +127,14 @@ exports.Document = function(content, settings) {
 
   if(mainModule) bootScript += "\nrequire(\"#{sanitize(mainModule)}\", {main: true});";
 
+  bootScript = html.Widget('script', bootScript, {type:'text/sjs'});
 
-  bootScript = "<script type='text/sjs'>#{ html.escapeForTag(bootScript, 'script') }</script>";
-
-  return template({ head: headContent,
+  var fragment = template({ head: headContent,
                     script: bootScript,
-                    body: content.getHtml()
+                    body: content
                   },
-                  templateData || {});
+                  templateData || {}) .. html.collapseHtmlFragment();
+  return fragment.getHtml();
 };
 
 /**
