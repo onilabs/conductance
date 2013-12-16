@@ -5,6 +5,8 @@
     a fully-featured [mho:app::] module.
 
   @require mho:surface/bootstrap/html
+  @require mho:surface/bootstrap/notice
+  @require mho:surface/api-connection
   @require mho:surface
   @require sjs:xbrowser/dom
   @require sjs:event
