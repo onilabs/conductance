@@ -298,6 +298,7 @@ var withFormats = exports.withFormats = function(map, extensions) {
     Note that the source of .app files is accessible via the `src` format.
 
 */
+var conductanceVersionEtag = "#{env.conductanceVersion()}-#{env.compilerStamp}";
 var Code = (base) -> base
   .. withFormats({
     sjs: { none     : { mime: "text/html",
@@ -308,7 +309,7 @@ var Code = (base) -> base
                         // filterETag() returns a tag that will be added onto
                         // the base file's modification date to derive an etag for
                         // the filtered file.
-                        filterETag: -> env.conductanceVersion(),
+                        filterETag: -> conductanceVersionEtag,
                         // cache is an lru-cache object which caches requests to filtered
                         // files (requires presence of filterETag() ):
                         cache: SJSCache
@@ -329,7 +330,7 @@ var Code = (base) -> base
                         },
                  sjs  : { mime: "text/plain",
                           filter: sjscompile,
-                          filterETag: -> env.conductanceVersion(),
+                          filterETag: -> conductanceVersionEtag,
                           cache: SJSCache
                         },
                  bundle:{ mime: "text/javascript",

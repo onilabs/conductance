@@ -7,18 +7,18 @@
 var sys = require("sjs:sys");
 var path = require("nodejs:path");
 var url = require("sjs:url");
-var { stat } = require('sjs:nodejs/fs');
+var { stat, readFile } = require('sjs:nodejs/fs');
 var { Registry } = require('sjs:service');
 var { ownPropertyPairs } = require("sjs:object");
 var { each } = require("sjs:sequence");
 
 var sjsRoot = path.dirname(sys.executable);
 var conductanceRoot = url.normalize('../../', module.id) .. url.toPath();
-var conductanceVersion = "1-#{
-                              (new Date(
-                                  stat(require.resolve('sjs:../stratified-node.js').path .. url.toPath(7)).mtime
-                              )).getTime()
-                            }";
+
+var packageInfo = JSON.parse(readFile(path.join(conductanceRoot, 'package.json')));
+var conductanceVersion = packageInfo.version;
+
+var sjsVersionStamp = (new Date(stat(require.resolve('sjs:../stratified-node.js').path .. url.toPath(7)).mtime)).getTime();
 
 var e = module.exports = Registry();
 var predefined = {
@@ -26,6 +26,7 @@ var predefined = {
   conductanceRoot    : conductanceRoot,
   sjsRoot            : sjsRoot,
   conductanceVersion : -> conductanceVersion,
+  compilerStamp      : -> sjsVersionStamp,
   configPath         : -> e.get('config', {}).path, // TODO: remove
   configRoot         : function() { var p = e.configPath(); return p ? url.normalize('./', p); }, // TODO: remove
 };
