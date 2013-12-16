@@ -69,6 +69,23 @@
 
     For custom object types where the default `Object` serialization does
     not suffice, you can implement custom serialization using [::setMarshallingDescriptor].
+
+    ### Limitations
+
+     - `this` value in serialized functions
+
+       Due to javascript semantics, the `this` value for serialized functions will
+       rarely be useful. If you need to use `this` inside a function that is exposed
+       via the bridge, you can use `Function.prototype.bind` to bind `this` ahead of
+       time.
+
+     - mutable object properties
+
+       While object properties are serialized, modifications to object properties
+       (on either side of the bridge) do not cause the same change to occur on
+       remote versions of that object. If you have an object with properties that
+       may change, you should expose them as methods (i.e `getFoo()` and `setFoo(newVal)`).
+
 */
 
 

@@ -1,3 +1,7 @@
+/**
+  @summary A simple floating notice widget
+*/
+
 @ = require('mho:surface');
 
 exports._fixedNoticeStyle = "
@@ -35,6 +39,20 @@ exports.NoticeStyle = function() {
   }
 }();
 
+/**
+  @function Notice
+  @param {surface/HtmlFragment} [content]
+  @param {optional Settings} [settings]
+  @setting {surface/Style} [style]
+  @setting {String} [class] additional class to place on notice
+  @desc
+    The notice contains a default style which sets
+    position:fixed and centers it on-screen.
+
+    `content` is wrapped in a container with the "alert"
+    bootstrap class, so you can turn it into an error
+    alert by passing 'alert-danger' for the `class` setting.
+*/
 exports.Notice = function(content, settings) {
   settings = settings || {};
   var cls = 'alert';

@@ -33,6 +33,24 @@
   @desc
     **Availability:** `app-default` template only.
 
+    **Note:** Because this function is frequently used to wrap
+    the initial `require()` statements in an application, it is
+    pre-loaded as `window.withBusyIndicator`. This means that instead of:
+
+      require('mho:app').withBusyIndicator {||
+        @ = require( <dependencies...> );
+      }
+
+    You should typically use:
+
+      withBusyIndicator {||
+        @ = require( <dependencies...> );
+      }
+
+    Since other parts of `mho:app` may load resources from the server,
+    this second form will ensure the busy indicator is displayed as soon as
+    possible.
+
     `withBusyIndicator` is safe to call concurrently from multiple
     strata - only the first call will show the busy indicator, and
     it will be shown until the last block completes.
@@ -55,16 +73,15 @@
   @function withAPI
   @param {Object} [api] api module
   @param {Function} [block]
-  @summary Connect and use an `.api` module _(app-default)_
+  @summary alias for [surface/api-connection::withAPI] _(app-default)_
   @desc
     **Availability:** `app-default`
 
-    The `withApi` opens a connection to the given API, and invokes
-    `block` with the API's exports.
+  @function Notice
+  @param {surface/HtmlFragment} [content]
+  @param {optional Settings} [settings]
+  @summary alias for [surface/bootstrap/notice::Notice] _(app-default)_
+  @desc
+    **Availability:** `app-default`
 
-    If the API connection is lost, `block` is retracted and
-    a default UI notification is displayed informing the user that
-    the app is disconnected, and displaying the time until the next
-    connection attempt. `withAPI` will keep attempting to reconnect
-    with an exponential backoff capped at 10 minutes.
 */
