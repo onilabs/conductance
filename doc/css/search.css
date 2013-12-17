@@ -113,3 +113,8 @@ li.libraryStatus input[type='checkbox'] {
 	text-decoration: none !important;
 	cursor: pointer;
 }
+
+/* prevent 'x' from showing in search box on IE */
+input::-ms-clear {
+    display: none;
+}
