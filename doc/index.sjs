@@ -1,6 +1,6 @@
 //TODO: use merging require([.])
 waitfor {
-var {RequireStyle, OnClick, Class, Mechanism, Widget, removeNode, appendContent, Style} = require('mho:surface');
+var {RequireStyle, OnClick, Class, Mechanism, Element, removeNode, appendContent, Style} = require('mho:surface');
 } and {
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, join, transform } = seq;
@@ -71,16 +71,16 @@ exports.run = function(root) {
 	defaultHubs .. each(h -> libraries.add(h));
 
 	var loadingText = ui.LOADING .. transform(l -> "#{l} item#{l != 1 ? "s" : ""}");
-	var loadingWidget = Widget("div", `Loading ${loadingText}...`)
+	var loadingWidget = Element("div", `Loading ${loadingText}...`)
 			.. Class("loading")
 			.. Class("hidden", ui.LOADING .. transform(l -> l == 0 ? true : (hold(300), false))); // the hold(300) is to avoid showing the indicator for actions that just take very little time
 
 	var hubDebug = libraries.val .. transform(function(hubs) {
 		return JSON.stringify(hubs, null, '  ');
 	});
-	var hubDisplay = Widget("pre", hubDebug);
+	var hubDisplay = Element("pre", hubDebug);
 
-	var toolbar = Widget("div", `
+	var toolbar = Element("div", `
 			<div class="trigger">
 				<button class="btn config"><span class="glyphicon glyphicon-cog"></span></button>
 				<button class="btn search" title="Shortcut: /"><span class="glyphicon glyphicon-search"></span></button>
@@ -144,8 +144,8 @@ exports.run = function(root) {
 			}
 		});
 
-	var mainDisplay = Widget('div', symbolDocs, {"class":"mb-main mb-top"}) .. docsStyle;
-	var header = Widget("div", [
+	var mainDisplay = Element('div', symbolDocs, {"class":"mb-main mb-top"}) .. docsStyle;
+	var header = Element("div", [
 		toolbar,
 //		`<h1>Conductance docs</h1>`
 	])
@@ -162,7 +162,7 @@ exports.run = function(root) {
   }
 
 
-	var toplevel = Widget("div", [
+	var toplevel = Element("div", [
 		sidebar,
 		header,
 		breadcrumbs,
@@ -196,7 +196,7 @@ exports.main = function(root) {
 		var e = error.wait();
 		logging.error(String(e));
 		ui.withOverlay("error") {|bg|
-			root .. appendContent(Widget("div",
+			root .. appendContent(Element("div",
 				`<h1>:-(</h1>
 				<h3>There was an error: </h3>
 						<pre>${e.toString()}</pre>

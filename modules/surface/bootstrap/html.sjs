@@ -19,8 +19,8 @@ exports .. @extend(base_html);
 // ... and override with bootstrap specializations:
 
 // XXX there has to be a better way to set the classes here
-function wrapWithClass(baseWidget, cls) {
-  return (content, attribs) -> baseWidget(content, attribs) .. @Class(cls);
+function wrapWithClass(baseElement, cls) {
+  return (content, attribs) -> baseElement(content, attribs) .. @Class(cls);
 }
 
 /**
@@ -28,7 +28,7 @@ function wrapWithClass(baseWidget, cls) {
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <button class="btn">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 exports.Button = wrapWithClass(base_html.Button, 'btn');
 
@@ -37,7 +37,7 @@ exports.Button = wrapWithClass(base_html.Button, 'btn');
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <table class="table">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 exports.Table = wrapWithClass(base_html.Table, 'table');
 
@@ -46,7 +46,7 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <input class="form-control">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 exports.Input = wrapWithClass(base_html.Input, 'form-control');
 
@@ -55,7 +55,7 @@ exports.Input = wrapWithClass(base_html.Input, 'form-control');
   @param {String|sjs:sequence::Stream} [value]
   @param {optional Object} [attribs]
   @summary [../html::TextInput] with class "form-control"
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 exports.TextInput = wrapWithClass(base_html.TextInput, 'form-control');
 
@@ -64,7 +64,7 @@ exports.TextInput = wrapWithClass(base_html.TextInput, 'form-control');
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <textarea class="form-control">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
 
@@ -72,7 +72,7 @@ exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
   @function Select
   @param {Object} [settings]
   @summary [../html::Select] with class "form-control"
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 exports.Select = wrapWithClass(base_html.Select, 'form-control');
 
@@ -80,18 +80,18 @@ exports.Select = wrapWithClass(base_html.Select, 'form-control');
   @function Icon
   @param {String} [name]
   @summary <span class="glyphicon glyphicon-{name}">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
-exports.Icon = name -> @Widget('span', '', { 'class': "glyphicon glyphicon-#{name}"});
+exports.Icon = name -> @Element('span', '', { 'class': "glyphicon glyphicon-#{name}"});
 
 /**
   @function Row
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <div class="row">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
-exports.Row = (content, attribs) -> @Widget('div', content, attribs) .. @Class('row');
+exports.Row = (content, attribs) -> @Element('div', content, attribs) .. @Class('row');
 
 /**
   @function ColSm
@@ -99,34 +99,34 @@ exports.Row = (content, attribs) -> @Widget('div', content, attribs) .. @Class('
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <div class="col-sm-{num}">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
-exports.ColSm = (n, content, attribs) -> @Widget('div', content, attribs) .. @Class("col-sm-#{n}");
+exports.ColSm = (n, content, attribs) -> @Element('div', content, attribs) .. @Class("col-sm-#{n}");
 
 /**
   @function Container
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <div class="container">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
-exports.Container = (content, attribs) -> @Widget('div', content, attribs) .. @Class('container');
+exports.Container = (content, attribs) -> @Element('div', content, attribs) .. @Class('container');
 
 /**
   @function Label
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <label class="label [label-{attribs.type}]">
-  @return {surface::Widget}
+  @return {surface::Element}
 */
-exports.Label = (content, attribs) -> @Widget('label', content, attribs) .. @Class("label #{attribs.type ? "label-#{attribs.type}" : ''}");
+exports.Label = (content, attribs) -> @Element('label', content, attribs) .. @Class("label #{attribs.type ? "label-#{attribs.type}" : ''}");
 
 /**
   @function PageHeader
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
   @summary <div class="page-header"><h1>{content}</h1></div>
-  @return {surface::Widget}
+  @return {surface::Element}
 */
-exports.PageHeader = (content, attribs) -> @Widget('div', `<h1>$content</h1>`, attribs) .. @Class('page-header');
+exports.PageHeader = (content, attribs) -> @Element('div', `<h1>$content</h1>`, attribs) .. @Class('page-header');
 

@@ -127,7 +127,7 @@ exports.Document = function(content, settings) {
 
   if(mainModule) bootScript += "\nrequire(\"#{sanitize(mainModule)}\", {main: true});";
 
-  bootScript = html.Widget('script', bootScript, {type:'text/sjs'});
+  bootScript = html.Element('script', bootScript, {type:'text/sjs'});
 
   var fragment = template({ head: headContent,
                     script: bootScript,

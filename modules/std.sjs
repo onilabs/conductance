@@ -163,15 +163,13 @@ module.exports = require(modules);
    - **appendContent**: (function [mho:surface::appendContent])
    - **Attrib**: (function [mho:surface::Attrib])
    - **Class**: (function [mho:surface::Class])
-   - **cloneWidget**: (function [mho:surface::cloneWidget])
-   - **collapseHtmlFragment**: (function [mho:surface::collapseHtmlFragment])
    - **Document**: (function [mho:surface::Document])
-   - **ensureWidget**: (function [mho:surface::ensureWidget])
+   - **Element**: (class [mho:surface::Element])
+   - **ensureElement**: (function [mho:surface::ensureElement])
    - **Id**: (function [mho:surface::Id])
    - **insertAfter**: (function [mho:surface::insertAfter])
    - **insertBefore**: (function [mho:surface::insertBefore])
-   - **isCollapsedFragment**: (function [mho:surface::isCollapsedFragment])
-   - **isWidget**: (function [mho:surface::isWidget])
+   - **isElement**: (function [mho:surface::isElement])
    - **loadTemplate**: (function [mho:surface::loadTemplate])
    - **Mechanism**: (function [mho:surface::Mechanism])
    - **prependContent**: (function [mho:surface::prependContent])
@@ -182,7 +180,6 @@ module.exports = require(modules);
    - **RequireExternalScript**: (function [mho:surface::RequireExternalScript])
    - **RequireStyle**: (function [mho:surface::RequireStyle])
    - **Style**: (function [mho:surface::Style])
-   - **Widget**: (class [mho:surface::Widget])
   
   
   ### Symbols from the [sjs:array](#sjs%3Aarray) module:

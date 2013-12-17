@@ -1,4 +1,4 @@
-var { Widget, Mechanism, Attrib } = require('./base');
+var { Element, Mechanism, Attrib } = require('./base');
 var { replaceContent, appendContent, prependContent, Prop, removeNode, insertBefore } = require('./dynamic');
 var { HostEmitter } = require('sjs:event');
 var { Stream, isStream, integers, each, map, indexed, filter, sort, slice, any } = require('sjs:sequence');
@@ -22,7 +22,7 @@ var { Computed } = require('../observable');
      - H1 ... H6
      - BlockQuote, THead, TBody, FigCaption, DataLost, OptGroup, TextArea, MenuItem, etc
 
-    Each of these tag methods is a shortcut for calling [surface::Widget] with the given tag name - i.e `Widget(<tagName>, ... )`.
+    Each of these tag methods is a shortcut for calling [surface::Element] with the given tag name - i.e `Element(<tagName>, ... )`.
 
     ### Examples:
 
@@ -91,19 +91,19 @@ var { Computed } = require('../observable');
   'Details', 'Summary', 'MenuItem', 'Menu',
 ] .. each {|name|
   var tag = name.toLowerCase();
-  exports[name] = (content, attr) -> Widget(tag, content, attr);
+  exports[name] = (content, attr) -> Element(tag, content, attr);
 }
 
 //----------------------------------------------------------------------
 /**
   @function TextInput
-  @summary A plain HTML 'input' widget
+  @summary A plain HTML 'input' element with type='text'
   @param  {String|sjs:sequence::Stream} [value]
   @param  {optional Object} [attrs]
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 var TextInput = (value, attrs) ->
-  Widget('input', null, {'type':'text'} .. merge(attrs||{})) ..
+  Element('input', null, {'type':'text'} .. merge(attrs||{})) ..
   Mechanism(function(node) {
     value = value || "";
     if (isStream(value)) {
@@ -132,10 +132,10 @@ exports.TextInput = TextInput;
   @function Checkbox
   @summary A HTML 'checkbox' widget
   @param  {Boolean|sjs:sequence::Stream} [value] Value.
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 var Checkbox = value ->
-  Widget('input') ..
+  Element('input') ..
   Attrib("type", "checkbox") ..
   Mechanism(function(node) {
     if (isStream(value)) {
@@ -165,7 +165,7 @@ exports.Checkbox = Checkbox;
   @param  {Object} [settings] Widget settings
   @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
   @setting {Array|sjs:sequence::Stream} [items] Selectable items
-  @return {surface::Widget}
+  @return {surface::Element}
 */
 
 
@@ -204,7 +204,7 @@ function SelectObserverMechanism(ft, state, updateSelected) {
             replaceContent(
               items
               .. indexed
-              .. map([idx, item] -> Widget("option", item, {selected: select_map[idx]}))
+              .. map([idx, item] -> Element("option", item, {selected: select_map[idx]}))
             );
         } else {
           /* update selections */
@@ -263,7 +263,7 @@ function Select(settings) {
         updateSelected = (sels) -> settings.selected.set(sels[0]);
       }
     }
-    return Widget('select', null, dom_attribs)
+    return Element('select', null, dom_attribs)
     .. SelectObserverMechanism(computedState, updateSelected);
   }
 
@@ -273,10 +273,10 @@ function Select(settings) {
   var selectedStream = ensureStream(settings.selected);
   var select_map = selectedIndices(settings.items, settings.selection);
   var options = settings.items .. indexed .. map([idx, item] ->
-    Widget('option', item, {selected: select_map[idx]})
+    Element('option', item, {selected: select_map[idx]})
   );
 
-  return Widget('select',  options, dom_attribs);
+  return Element('select',  options, dom_attribs);
 }
 exports.Select = Select;
 
@@ -291,16 +291,16 @@ var _map = function(items, fn) {
   @function UnorderedList
   @param {Array} [items]
   @param {optional Object} [attrs]
-  @return {surface::Widget}
-  @summary Crate a `<ul>` widget, wrapping each element of`items` in a `<li>`
+  @return {surface::Element}
+  @summary Create a `<ul>` element, wrapping each element of`items` in a `<li>`
 */
 exports.UnorderedList = (items, attrs) -> exports.Ul(items .. _map(exports.Li), attrs);
 /**
   @function OrderedList
   @param {Array} [items]
   @param {optional Object} [attrs]
-  @return {surface::Widget}
-  @summary Crate a `<ol>` widget, wrapping each element of`items` in a `<li>`
+  @return {surface::Element}
+  @summary Create a `<ol>` element, wrapping each element of`items` in a `<li>`
 */
 exports.OrderedList = (items, attrs) -> exports.Ol(items .. _map(exports.Li), attrs);
 
@@ -308,7 +308,7 @@ exports.OrderedList = (items, attrs) -> exports.Ol(items .. _map(exports.Li), at
   @function Submit
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attrs]
-  @return {surface::Widget}
-  @summary Crate an `<input type="submit">` widget.
+  @return {surface::Element}
+  @summary Create an `<input type="submit">` element.
 */
-exports.Submit = (content, attr) -> Widget('input', null, (attr || {}) .. merge({type:'submit', value: content}));
+exports.Submit = (content, attr) -> Element('input', null, (attr || {}) .. merge({type:'submit', value: content}));

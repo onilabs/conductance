@@ -48,7 +48,7 @@ exports.withAPI = function(api, block) {
         hold(300); // small delay before showing ui feedback
 
         document.body .. @appendContent(@Notice(
-          `Not connected. Reconnect in ${@Countdown(Math.floor(delay/1000))}s. ${@Widget('a', "Try Now", {href:'#'})}`,
+          `Not connected. Reconnect in ${@Countdown(Math.floor(delay/1000))}s. ${@Element('a', "Try Now", {href:'#'})}`,
           {'class':'alert-warning'}))
         {|elem|
           waitfor {

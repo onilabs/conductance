@@ -58,7 +58,7 @@ exports.Notice = function(content, settings) {
   var cls = 'alert';
   if (settings['class']) cls += ' ' + settings['class'];
 
-  var ft = @Widget('div', @Widget('div', content, {'class':cls}));
+  var ft = @Element('div', @Element('div', content, {'class':cls}));
   ft = (settings.style || exports.NoticeStyle)(ft);
   return ft;
 };

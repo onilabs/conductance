@@ -1,4 +1,4 @@
-var {RequireStyle, Class, Mechanism, Widget, Style, appendContent, Checkbox, Attrib} = require('mho:surface');
+var {RequireStyle, Class, Mechanism, Element, Style, appendContent, Checkbox, Attrib} = require('mho:surface');
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter, transform, first} = seq;
@@ -130,7 +130,7 @@ exports.run = (function() {
 						var textBlock = [i, t] -> i % 2 ? `<strong>$t</strong>` : `<span>$t</span>`;
 						var textWidgets = m.text .. indexed .. map(textBlock);
 						var hubWidget = `<span class="hub">${m.hub}</span>`;
-						return Widget('li', [hubWidget].concat(textWidgets))
+						return Element('li', [hubWidget].concat(textWidgets))
 							.. Class("result result-#{m.type}")
 							.. Class("selected", highlighted)
 							.. Mechanism(function(elem) {
@@ -150,11 +150,11 @@ exports.run = (function() {
 					}
 				} else { // rv.length == 0
 					if (res.noResults) {
-						rv.push(Widget("li", "No results found"));
+						rv.push(Element("li", "No results found"));
 					}
 				}
 				rv.push([`<li class="sep">Search in:</li>`, libraryStatus]);
-				return Widget("ul", rv) .. Class("results") .. Class("empty", rv.length == 0);
+				return Element("ul", rv) .. Class("results") .. Class("empty", rv.length == 0);
 			});
 
 			var indexWithout = function(idx, lib) {
@@ -172,7 +172,7 @@ exports.run = (function() {
 				var loaded = Observable("loading ...");
 				var disabled = Observable(false);
 				var enabledWidget = Checkbox(lib.searchEnabled) .. Attrib("disabled", disabled);
-				libraryStatus.push(Widget("li", `${enabledWidget} <span class="hub">${lib.name}</span> ${loaded}`, {"class":"libraryStatus"}));
+				libraryStatus.push(Element("li", `${enabledWidget} <span class="hub">${lib.name}</span> ${loaded}`, {"class":"libraryStatus"}));
 				var idx = lib.loadIndex();
 				if (idx === null) {
 					loaded.set("No search index");
@@ -199,7 +199,7 @@ exports.run = (function() {
 				}
 			};
 
-			var widget = Widget("div", `
+			var widget = Element("div", `
 				<input type="text" class='form-control' value="${lastQuery ? lastQuery}"></input>
 				<a class="reset" style="position:absolute; top:0; right:10px;">&times;</a>
 				<div>

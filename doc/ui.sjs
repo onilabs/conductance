@@ -1,4 +1,4 @@
-var {Widget, Mechanism, Style, Class, prependContent, removeNode} = require('mho:surface');
+var {Element, Mechanism, Style, Class, prependContent, removeNode} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
      reduce, reverse, join, find, hasElem
@@ -19,7 +19,7 @@ var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
 
 var withOverlay = exports.withOverlay = (function() {
-	var overlay = Widget("div") .. Style('{
+	var overlay = Element("div") .. Style('{
 		position: fixed;
 		left:0;
 		top:0;
@@ -91,7 +91,7 @@ exports.renderer = function(libraries, rootSymbol) {
 
 	function FragmentLink(href, text) {
 		if (Array.isArray(href)) [href, text] = href;
-		return Widget("a", text, {"href": '#' + encodeFragment(href)});
+		return Element("a", text, {"href": '#' + encodeFragment(href)});
 	}
 
 	function makeSummaryHTML(docs, symbol) {
@@ -141,7 +141,7 @@ exports.renderer = function(libraries, rootSymbol) {
 	}
 
 	function makeDescriptionHTML(docs, symbol) {
-		return Widget("div", docs.desc ? `<h3>Description</h3>${markup(docs.desc, symbol)}`, {"class":"desc"});
+		return Element("div", docs.desc ? `<h3>Description</h3>${markup(docs.desc, symbol)}`, {"class":"desc"});
 	}
 
 	function makeRequireSnippet(fullModulePath, name) {
@@ -149,7 +149,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			// documentation URL - not actually importable
 			return undefined;
 		}
-		return Widget("div", `<code>require('${fullModulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
+		return Element("div", `<code>require('${fullModulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
 	};
 
 	function toCamelCase(str) {
@@ -160,7 +160,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		if (!library) return undefined;
 		var docs = library && library.loadSkeletonDocs();
 		var version = docs && docs.version;
-		return version ? Widget("div", "#{library.name} #{docs.version}", {"class":"version"});
+		return version ? Element("div", "#{library.name} #{docs.version}", {"class":"version"});
 	};
 
 	function functionSignature(docs, symbol) {
@@ -245,13 +245,13 @@ exports.renderer = function(libraries, rootSymbol) {
 			}
 			return type;
 		});
-		return Widget("span", types .. intersperse(" | ") .. toArray, {"class":"mb-type"});
+		return Element("span", types .. intersperse(" | ") .. toArray, {"class":"mb-type"});
 	}
 
 	function makeFunctionHtml(docs, symbol) {
 		var rv = [];
-		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
-		rv.push(Widget("h3", functionSignature(docs, symbol), {"class":"mb-signature"}));
+		rv.push(Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+		rv.push(Element("h3", functionSignature(docs, symbol), {"class":"mb-signature"}));
 
 		rv.push(functionArgumentDetails(docs, symbol));
 
@@ -280,13 +280,13 @@ exports.renderer = function(libraries, rootSymbol) {
 			rv.push(makeFunctionHtml(docs, symbol));
 			rv.push(makeDescriptionHTML(docs, symbol));
 		} else {
-			var summary = Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"});
+			var summary = Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"});
 			if (docs.type == "class") {
 				rv.push(`<h2>Class ${symbol.name}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h2>`);
 				rv.push(summary);
 
 				if (docs.desc) {
-					rv.push(Widget("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
+					rv.push(Element("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
 				}
 
         /*
@@ -301,7 +301,7 @@ exports.renderer = function(libraries, rootSymbol) {
 
 				var children = collectModuleChildren(docs, symbol);
 				rv.push(
-					Widget("div", [
+					Element("div", [
 						children['proto']           .. then(Table),
             children['ctor']            .. then(HeaderTable("Constructor")),
 						children['static-function'] .. then(HeaderTable("Static Functions")),
@@ -361,16 +361,16 @@ exports.renderer = function(libraries, rootSymbol) {
 		var rv = [];
 		rv.push(`<h2>${docs.name}</h2>`);
 
-		rv.push(Widget("h2", makeSummaryHTML(docs, symbol)));
+		rv.push(Element("h2", makeSummaryHTML(docs, symbol)));
 
-		rv.push(Widget("div", docs.desc ? `${markup(docs.desc, symbol)}`, {"class":"desc"}));
+		rv.push(Element("div", docs.desc ? `${markup(docs.desc, symbol)}`, {"class":"desc"}));
 
 		var collector = docs.type === 'doclib' ? collectLibChildren : collectModuleChildren;
 		// collect modules & dirs:
 		var children = collector(docs, symbol);
 		// XXX `lib` and `module` are obviously overloaded here
 		rv.push(
-			Widget("div", [
+			Element("div", [
 				children['lib'] .. then(HeaderTable("Sections")),
 				children['module'] .. then(HeaderTable("Sub-Topics")),
 				children['syntax']   .. then(HeaderTable("Syntax")),
@@ -388,13 +388,13 @@ exports.renderer = function(libraries, rootSymbol) {
 		rv.push(`<h2>The ${symbol.relativeModulePath ..join('')} module</h2>`);
 		/* rv.push(makeRequireSnippet(symbol.fullModulePath)); */
 
-		rv.push(Widget("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
+		rv.push(Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		rv.push(makeDescriptionHTML(docs, symbol));
 	
 		var children = collectModuleChildren(docs, symbol);
 
 		rv.push(
-			Widget("div", [
+			Element("div", [
 				children['function'] .. then(HeaderTable("Functions")),
 				children['variable'] .. then(HeaderTable("Variables")),
 				children['class']    .. then(HeaderTable("Classes")),
@@ -405,12 +405,12 @@ exports.renderer = function(libraries, rootSymbol) {
 	};
 
 	var then = (val, fn) -> val ? fn(val);
-	var Table = (contents) -> Widget("table", contents);
-	var HeaderTable = (header) -> (contents) -> [Widget("h3", header), Table(contents)];
+	var Table = (contents) -> Element("table", contents);
+	var HeaderTable = (header) -> (contents) -> [Element("h3", header), Table(contents)];
 
 	function makeLibView(docs, symbol) {
 		var rv = [];
-		rv.push(Widget("h2", makeSummaryHTML(docs, symbol)));
+		rv.push(Element("h2", makeSummaryHTML(docs, symbol)));
 
 		rv.push(makeDescriptionHTML(docs, symbol));
 
@@ -439,11 +439,11 @@ exports.renderer = function(libraries, rootSymbol) {
 					// currently selected
 					var children = listChildren(symbol);
 					if (children.length) {
-						children = Widget("ul", children) .. Class("active-children");
+						children = Element("ul", children) .. Class("active-children");
 					}
-					return [Widget("li", name, {"class":"active"}) .. centerView, children];
+					return [Element("li", name, {"class":"active"}) .. centerView, children];
 				} else {
-					return Widget("li", FragmentLink(href, name));
+					return Element("li", FragmentLink(href, name));
 				}
 			});
 	};
@@ -453,19 +453,19 @@ exports.renderer = function(libraries, rootSymbol) {
 		ancestors.unshift(['', `&#x21aa;`]);
 		var links = listChildren(parent, symbol);
 		links = ancestors .. reverse .. reduce(links, function(children, [href, name]) {
-			return Widget("li", [FragmentLink(href, name), Widget("ul", children)]);
+			return Element("li", [FragmentLink(href, name), Element("ul", children)]);
 		});
-		return Widget("ul", links);
+		return Element("ul", links);
 	};
 
 	function renderMissing(symbol) {
 		if (symbol.library) {
 			return `
-				${Widget("h1", `No such symbol: ${symbol.link()[0]}`) .. errorText()}
+				${Element("h1", `No such symbol: ${symbol.link()[0]}`) .. errorText()}
 				<p>The link you followed may be broken, or it may be intended for a different version of the library.</p>
 			`;
 		} else {
-			return Widget("h1", "Unknown library: #{symbol.moduleUrl}") .. errorText();
+			return Element("h1", "Unknown library: #{symbol.moduleUrl}") .. errorText();
 		}
 	};
 
@@ -501,7 +501,7 @@ exports.renderer = function(libraries, rootSymbol) {
 					if (!path .. endsWith('/')) path += '.sjs';
 					var pathURI = path .. encodeNonSlashes();
 
-					view = [view, Widget("div", [
+					view = [view, Element("div", [
 						`<p>
 							${versionWidget(library)}
 							<a href="${root}${pathURI}">[source]</a>
@@ -515,7 +515,7 @@ exports.renderer = function(libraries, rootSymbol) {
 				else
 					throw e;
 			}
-			return Widget("div", view);
+			return Element("div", view);
 		},
 
 		renderSidebar: function(symbol) {
@@ -532,22 +532,22 @@ exports.renderer = function(libraries, rootSymbol) {
 				}
 			}
 
-			return Widget("div", view, {"id":"sidebar"});
+			return Element("div", view, {"id":"sidebar"});
 		},
 
 		renderBreadcrumbs: function(symbol) {
 			var prefix = '#';
-			var sep = Widget("span", ` &raquo; `, {"class": "sep"});
+			var sep = Element("span", ` &raquo; `, {"class": "sep"});
 
 			var ret = symbol.parentLinks().slice(0, -1) .. map(FragmentLink);
-			ret.push(Widget('span', symbol.name, {"class":"leaf"}));
+			ret.push(Element('span', symbol.name, {"class":"leaf"}));
 
 			var crumbs = ret .. intersperse(sep) .. toArray();
 			var content = [crumbs];
 
       var docs = symbol.docs();
       
-      var snippet = Widget("div", `&nbsp;`, {"class":"version"});
+      var snippet = Element("div", `&nbsp;`, {"class":"version"});
 
       switch(docs.type) {
         case 'module':
@@ -563,7 +563,7 @@ exports.renderer = function(libraries, rootSymbol) {
           }
       }
       content.push(snippet);
-			return Widget("div", content, {"class":"breadcrumbs"});
+			return Element("div", content, {"class":"breadcrumbs"});
 		},
 	}
 }

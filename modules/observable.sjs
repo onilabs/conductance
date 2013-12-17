@@ -132,7 +132,7 @@ exports.isConflictError = function(ex) {
           return `$(runnerVal.firstName) came #$(rankingVal.indexOf(runner.id)+1) in the last race`;
         });
 
-        // If `personStatus` is displayed in a [surface::Widget], the UI would
+        // If `personStatus` is displayed in a [surface::HtmlFragment], the UI would
         // initially read "John came #3 in the last race", and would update
         // whenever `runner` or `latestRanking` changed.
 

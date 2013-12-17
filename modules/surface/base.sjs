@@ -48,7 +48,7 @@ exports._getDynOniSurfaceInit = ->
            // `html` is a fragment corresponding to a <strong> element
            // with the text "Hello, John"
 
-     - Any [::CollapsedFragment] (e.g any [::Widget])
+     - Any [::CollapsedFragment] (e.g any [::Element])
      - An `Array` of [::HtmlFragment]s.
      - A `String`, which will be automatically escaped (see [::RawHTML] for
        inserting a String as HTML).
@@ -89,7 +89,7 @@ __js var FragmentBase = {
   },
 };
 
-/**
+/* NOT PART OF DOCUMENTED API
   @class CollapsedFragment
   @summary Internal class representing a collapsed [::HtmlFragment]
   @inherit ::HtmlFragment
@@ -126,14 +126,14 @@ __js function CollapsedFragment() {
   return rv;
 }
 
-/**
+/* NOT PART OF DOCUMENTED API
   @function isCollapsedFragment
 */
 __js function isCollapsedFragment(obj) { return CollapsedFragmentProto.isPrototypeOf(obj); }
 __js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
 
 
-/**
+/* NOT PART OF DOCUMENTED API
   @function collapseHtmlFragment
   @param {::HtmlFragment} [ft]
   @return {::CollapsedFragment}
@@ -255,11 +255,11 @@ exports.collapseHtmlFragment = collapseHtmlFragment;
 
 //----------------------------------------------------------------------
 /**
-  @class Widget
-  @inherit ::CollapsedFragment
+  @class Element
+  @__inherit__ CURRENTLY HIDDEN ::CollapsedFragment
   @summary A [::HtmlFragment] rooted in a single HTML element
 */
-__js var WidgetProto = Object.create(FragmentBase);
+__js var ElementProto = Object.create(FragmentBase);
 
 var voidTags = {
   // source: http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
@@ -281,16 +281,16 @@ var voidTags = {
   wbr: 1
 };
 
-__js WidgetProto._init = func.seq(WidgetProto._init, function(tag, content, attribs) { 
+__js ElementProto._init = func.seq(ElementProto._init, function(tag, content, attribs) { 
   this.tag = tag;
   // XXX do we need to copy attribs?
   // probably not here, because we always clone before we modify anything
   this.isVoid = voidTags[tag] && voidTags .. hasOwn(tag);
   if (this.isVoid) {
     if (attribs === undefined && typeof(content) == 'object') {
-      // for void tags, allow Widget(tagname, attrs).
+      // for void tags, allow Element(tagname, attrs).
       // we only do this if `attribs` is undefined,
-      // since Widget(tagname, null, attrs) is perfectly valid.
+      // since Element(tagname, null, attrs) is perfectly valid.
       attribs = content;
       content = null;
     }
@@ -300,11 +300,11 @@ __js WidgetProto._init = func.seq(WidgetProto._init, function(tag, content, attr
   this.content = content;
 });
 
-__js WidgetProto.toString = function() {
-  return "html::Widget[#{this.tag}]";
+__js ElementProto.toString = function() {
+  return "html::Element[#{this.tag}]";
 };
 
-__js WidgetProto._normalizeClasses = function() {
+__js ElementProto._normalizeClasses = function() {
   // ensure the `class` attrib is an array
   var classes = this.attribs['class'];
   if (!Array.isArray(classes)) {
@@ -315,7 +315,7 @@ __js WidgetProto._normalizeClasses = function() {
 
 __js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : val;
 
-WidgetProto.appendTo = function(target) {
+ElementProto.appendTo = function(target) {
   var attribs = propertyPairs(this.attribs)
     .. map(function([key,val]) {
       if (typeof(val) === 'undefined') return "";
@@ -333,14 +333,14 @@ WidgetProto.appendTo = function(target) {
   target.content += "</#{this.tag}>";
 };
 
-WidgetProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
-  // append inner contents (as well as adding this widget's styles, mechanisms, etc)
+ElementProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
+  // append inner contents (as well as adding this element's styles, mechanisms, etc)
   if (this.content != null) {
     appendFragmentTo(target, this.content, this.tag);
   }
 });
 
-WidgetProto.createElement = function() { 
+ElementProto.createElement = function() { 
   // xbrowser env only
   var elem = document.createElement(this.tag);
   propertyPairs(this.attribs) .. each(
@@ -355,63 +355,65 @@ WidgetProto.createElement = function() {
 };
 
 /**
-  @function Widget
+  @function Element
   @param {String} [tag]
   @param {::HtmlFragment} [content]
   @param {optional Object} [attributes]
-  @return {::Widget}
+  @return {::Element}
 */
 __js {
-  function Widget(tag, content, attribs) {
-    var rv = Object.create(WidgetProto);
+  function Element(tag, content, attribs) {
+    var rv = Object.create(ElementProto);
     rv._init.apply(rv, arguments);
     return rv;
   }
-  exports.Widget = Widget;
+  exports.Element = Element;
 }
 
 /**
-  @function isWidget
-  @param {Object} [widget]
+  @function isElement
+  @param {Object} [element]
   @return {Boolean}
 */
 __js {
-  function isWidget(obj) { return WidgetProto.isPrototypeOf(obj); }
-  exports.isWidget = isWidget;
+  function isElement(obj) { return ElementProto.isPrototypeOf(obj); }
+  exports.isElement = isElement;
 }
 
 /**
-  @function ensureWidget
+  @function ensureElement
   @param {::HtmlFragment}
-  @return {::Widget}
-  @summary Wrap a [::HtmlFragment] in a [::Widget], if it isn't already one.
+  @return {::Element}
+  @summary Wrap a [::HtmlFragment] in an [::Element] with tag name 'surface-ui', if it isn't already one.
 */
 __js {
-  function ensureWidget(ft) {
-    if (!isWidget(ft))
-      ft = Widget('surface-ui', ft);
+  function ensureElement(ft) {
+    if (!isElement(ft))
+      ft = Element('surface-ui', ft);
     return ft;
   }
-  exports.ensureWidget = ensureWidget;
+  exports.ensureElement = ensureElement;
 }
 
-/**
-  @function cloneWidget
-  @param {::Widget} [widget]
-  @return {::Widget}
-  @summary Clone `widget`
+/* NOT CURRENTLY PART OF DOCUMENTED API
+  @function cloneElement
+  @param {::HtmlFragment} [element]
+  @return {::element}
+  @summary Clone `element`
+  @desc
+     `element` will automatically be wrapped using [::ensureElement] if it is not an [::Element]
 */
 __js {
-  function cloneWidget(ft) {
-    if (!isWidget(ft)) return ensureWidget(ft);
-    var rv = Object.create(WidgetProto);
+  function cloneElement(ft) {
+    if (!isElement(ft)) return ensureElement(ft);
+    var rv = Object.create(ElementProto);
     rv._init(ft.tag, ft.content, ft.attribs);
     rv.style = clone(ft.style);
     rv.mechanisms = clone(ft.mechanisms);
     rv.externalScripts = clone(ft.externalScripts);
     return rv;
   }
-  exports.cloneWidget = cloneWidget;
+  exports.cloneElement = cloneElement;
 }
 
 //----------------------------------------------------------------------
@@ -443,10 +445,10 @@ __js function InternalStyleDef(content, parent_class, mech) {
 
 /**
   @function Style
-  @param {optional ::Widget} [widget]
+  @param {optional ::HtmlFragment} [element]
   @param {String} [style]
-  @return {::Widget|Function}
-  @summary Add CSS style to a widget
+  @return {::Element|Function}
+  @summary Add CSS style to an element
   @desc
     Style should be a CSS string, which will be automatically
     scoped to all instances of the given widget.
@@ -500,12 +502,15 @@ __js function InternalStyleDef(content, parent_class, mech) {
     any stream values), the style will be recomputed and updated
     whenever any of the composite stream values changes.
 
-    If `widget` is not provided, `Style` will
+    If `element` is not provided, `Style` will
     return a cached style function which can later be
-    called on a [::Widget] to apply the given style.
+    called on a [::HtmlFragment] to apply the given style.
     When reusing styles, it is more efficient to create an
     intermediate `Style` function in this way, because it
     ensures that underlying <style> elements are re-used.
+
+    If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    `element` will automatically be wrapped using [::ensureElement].
 */
 
 __js {
@@ -514,7 +519,7 @@ __js {
     var class_name = "_oni_style#{id}_";
     
     function setStyle(ft) {
-      ft = cloneWidget(ft);
+      ft = cloneElement(ft);
       
       if (!ft.style[id])
         ft.style[id] = [1,styledef];
@@ -604,14 +609,22 @@ __js function ExternalStyleDef(url, parent_class) {
 
 /**
   @function RequireStyle
-  @param {::Widget} [widget]
+  @param {optional ::HtmlFragment} [element]
   @param {String} [url]
-  @summary Add an external stylesheet to a widget
+  @return {::Element|Function}
+  @summary Add an external stylesheet to an element
   @desc
     Note that unlike [::Style], external stylesheets
-    will not b scoped to the widget's root element -
-    they will be applid globally for as long as `widget`
+    will not be scoped to the element -
+    they will be applied globally for as long as `element`
     is present in the document.
+
+    If `element` is not provided, `RequireStyle` will
+    return a cached style function which can later be
+    called on a [::HtmlFragment] to apply the given style.
+
+    If `RequireStyle` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    `element` will automatically be wrapped using [::ensureElement].
 */
 
 function RequireStyle(/* [opt] ft, url */) {
@@ -619,7 +632,7 @@ function RequireStyle(/* [opt] ft, url */) {
   var class_name = "_oni_style#{id}_";
 
   function setStyle(ft) {
-    ft = cloneWidget(ft);
+    ft = cloneElement(ft);
 
     if (!ft.style[id])
       ft.style[id] = [1,styledef];
@@ -651,26 +664,41 @@ exports.RequireStyle = RequireStyle;
 
 /**
   @function Mechanism
-  @param {::Widget} [widget]
-  @param {Function} [mechanism]
-  @summary Add a mechanism to a widget
-  @return {::Widget}
+  @param {optional ::HtmlFragment} [element]
+  @param {Function|String} [mechanism]
+  @summary Add a mechanism to an element
+  @return {::Element|Function}
   @desc
-    Whenever an instance of the returned widget
-    is inserted into the document, `mechanism` will
-    be called with the widget's root element as its
-    first argument.
+    Whenever an instance of the returned element is inserted into the
+    document, `mechanism` will be called with its first argument and
+    `this` pointer both set to `element`s DOM node.
 
-    When a widget's root element is removed from the
-    document, any still-running mechanisms corresponding
-    to that element will be aborted.
+    When `element` is removed from the document using [::RemoveNode],
+    any still-running mechanisms attached to that element will be
+    aborted.
+
+    `mechanism` can be a JS function or String representation of a JS function.
+    The former only works in a dynamic (xbrowser) context; if `mechanism` is a Function and
+    this element is used in a static [::Document], an error will
+    be thrown.
+
+    If `element` is not provided, `cached_mech = Mechanism(f)` will
+    return a cached mechanism function which can later be
+    applied to multiple [::HtmlFragment]s to attach the given mechanism to them.
+    Calling `elem .. cached_mech` for a number of `elem`s is more efficient than 
+    calling `elem .. Mechanism(f)` on each of them. 
+
+    If `Mechanism` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    `element` will automatically be wrapped using [::ensureElement].
+
+ 
 */
 __js {
   function Mechanism(/* [opt] ft, code */) {
     var id = ++gMechanismCounter, code;
     
     function setMechanism(ft) {
-      ft = cloneWidget(ft);
+      ft = cloneElement(ft);
       
       ft.mechanisms[id] = code;
       
@@ -715,13 +743,13 @@ function StreamClassMechanism(ft, cls, current) {
   });
 }
 
-function setAttribValue(widget, name, v) {
+function setAttribValue(element, name, v) {
   if (typeof v === 'boolean') {
-    if (v) widget.attribs[name] = 'true';
+    if (v) element.attribs[name] = 'true';
     // else leave out attribute
   }
   else {
-    widget.attribs[name] = String(v);
+    element.attribs[name] = String(v);
   }
 }
 
@@ -744,51 +772,62 @@ function StreamAttribMechanism(ft, name, obs) {
 
 /**
   @function Attrib
-  @summary Add a HTML attribute to a widget
-  @param {::Widget} [widget]
+  @summary Add a HTML attribute to an element
+  @param {::HtmlFragment} [element]
   @param {String} [name] Attribute name
   @param {String|sjs:sequence::Stream} [value] Attribute value
-  @return {::Widget}
+  @return {::Element}
   @desc
     `value` can be an [sjs:sequence::Stream], but only in a
     dynamic (xbrowser) context; if `val` is a Stream and
-    this widget is used in a static [::Document], an error will
+    this element is used in a static [::Document], an error will
     be thrown.
+
+    If `Attrib` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    `element` will automatically be wrapped using [::ensureElement].
 
     See also [::Prop].
 */
-function Attrib(widget, name, value) {
+function Attrib(element, name, value) {
   if (isStream(value)) {
-    return widget .. StreamAttribMechanism(name, value);
+    return element .. StreamAttribMechanism(name, value);
   }
-  widget = cloneWidget(widget);
-  setAttribValue(widget, name, value);
-  return widget;
+  element = cloneElement(element);
+  setAttribValue(element, name, value);
+  return element;
 }
 exports.Attrib = Attrib;
 
 /**
   @function Id
-  @param {::Widget} [widget]
+  @param {::HtmlFragment} [element]
   @param {String|sjs:sequence::Stream} [id]
-  @summary Add an `id` attribute to a widget
-  @return {::Widget}
+  @summary Add an `id` attribute to an element
+  @return {::Element}
+  @desc
+    `id` can be an [sjs:sequence::Stream], but only in a
+    dynamic (xbrowser) context; if `val` is a Stream and
+    this element is used in a static [::Document], an error will
+    be thrown.
+
+    If `Id` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    `element` will automatically be wrapped using [::ensureElement].
 */
-exports.Id = (widget, id) -> Attrib(widget, 'id', id);
+exports.Id = (element, id) -> Attrib(element, 'id', id);
 
 
 /**
   @function Class
-  @summary Add a `class` to a widget
-  @param {::Widget} [widget]
+  @summary Add a `class` to an element
+  @param {::HtmlFragment} [element]
   @param {String|sjs:sequence::Stream} [class]
   @param {optional Boolean|sjs:sequence::Stream} [flag]
-  @return {::Widget}
+  @return {::Element}
   @desc
-    Returns a copy of `widget` widget with `class`
-    added to the widget's class list. If `class` is a
+    Returns a copy of `element` with `class`
+    added to the element's class list. If `class` is a
     stream, changes to `class` will be reflected
-    in this widget.
+    in this element.
 
     If `flag` is provided, it is treated as a boolean -
     the `class` is added if `flag` is `true`, otherwise
@@ -798,23 +837,26 @@ exports.Id = (widget, id) -> Attrib(widget, 'id', id);
 
     To replace the `class` attribute entirely rather
     than adding to it, use [::Attrib]`('class', newVal)`.
+
+    If `Class` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    `element` will automatically be wrapped using [::ensureElement].
 */
-function Class(widget, clsname, val) {
-  __js  var widget = cloneWidget(widget);
-  __js  var classes = widget._normalizeClasses();
+function Class(element, clsname, val) {
+  __js  var element = cloneElement(element);
+  __js  var classes = element._normalizeClasses();
   if (isStream(clsname)) {
     __js    if (arguments.length > 2)
       throw new Error('Class(.) argument error: Cannot have a boolean toggle in combination with an observable class name');
     var current = clsname .. first;
     classes.push(current);
-    widget = widget .. StreamClassMechanism(clsname, current);
+    element = element .. StreamClassMechanism(clsname, current);
   }
   else {
     // !isStream(clsname)
     if (arguments.length > 2) {
       // val is provided, treat it as a boolean toggle
       if (isStream(val)) {
-        widget = widget .. Mechanism {
+        element = element .. Mechanism {
           |elem|
           var cl = elem.classList;
           val .. each {
@@ -835,7 +877,7 @@ function Class(widget, clsname, val) {
     }
   }
 
-  return widget;
+  return element;
 }
 exports.Class = Class;
 /**

@@ -26,7 +26,7 @@ module.exports = require(modules);
          // `html` is a fragment corresponding to a <strong> element
          // with the text "Hello, John"
 
-   - Any [::CollapsedFragment] (e.g any [::Widget])
+   - Any [::CollapsedFragment] (e.g any [::Element])
    - An `Array` of [::HtmlFragment]s.
    - A `String`, which will be automatically escaped (see [::RawHTML] for
      inserting a String as HTML).
@@ -41,45 +41,30 @@ module.exports = require(modules);
   the 'dynamic world' (i.e. client-side). Attempting to add
   a stream to in a [::Document] will raise an error.
 
-@class CollapsedFragment
-@summary Internal class representing a collapsed [::HtmlFragment]
-@inherit ::HtmlFragment
-
-@function isCollapsedFragment
-
-@function collapseHtmlFragment
-@param {::HtmlFragment} [ft]
-@return {::CollapsedFragment}
-
-@class Widget
-@inherit ::CollapsedFragment
+@class Element
+@__inherit__ CURRENTLY HIDDEN ::CollapsedFragment
 @summary A [::HtmlFragment] rooted in a single HTML element
 
-@function Widget
+@function Element
 @param {String} [tag]
 @param {::HtmlFragment} [content]
 @param {optional Object} [attributes]
-@return {::Widget}
+@return {::Element}
 
-@function isWidget
-@param {Object} [widget]
+@function isElement
+@param {Object} [element]
 @return {Boolean}
 
-@function ensureWidget
+@function ensureElement
 @param {::HtmlFragment}
-@return {::Widget}
-@summary Wrap a [::HtmlFragment] in a [::Widget], if it isn't already one.
-
-@function cloneWidget
-@param {::Widget} [widget]
-@return {::Widget}
-@summary Clone `widget`
+@return {::Element}
+@summary Wrap a [::HtmlFragment] in an [::Element] with tag name 'surface-ui', if it isn't already one.
 
 @function Style
-@param {optional ::Widget} [widget]
+@param {optional ::HtmlFragment} [element]
 @param {String} [style]
-@return {::Widget|Function}
-@summary Add CSS style to a widget
+@return {::Element|Function}
+@summary Add CSS style to an element
 @desc
   Style should be a CSS string, which will be automatically
   scoped to all instances of the given widget.
@@ -133,69 +118,106 @@ module.exports = require(modules);
   any stream values), the style will be recomputed and updated
   whenever any of the composite stream values changes.
 
-  If `widget` is not provided, `Style` will
+  If `element` is not provided, `Style` will
   return a cached style function which can later be
-  called on a [::Widget] to apply the given style.
+  called on a [::HtmlFragment] to apply the given style.
   When reusing styles, it is more efficient to create an
   intermediate `Style` function in this way, because it
   ensures that underlying <style> elements are re-used.
 
+  If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
+
 @function RequireStyle
-@param {::Widget} [widget]
+@param {optional ::HtmlFragment} [element]
 @param {String} [url]
-@summary Add an external stylesheet to a widget
+@return {::Element|Function}
+@summary Add an external stylesheet to an element
 @desc
   Note that unlike [::Style], external stylesheets
-  will not b scoped to the widget's root element -
-  they will be applid globally for as long as `widget`
+  will not be scoped to the element -
+  they will be applied globally for as long as `element`
   is present in the document.
 
-@function Mechanism
-@param {::Widget} [widget]
-@param {Function} [mechanism]
-@summary Add a mechanism to a widget
-@return {::Widget}
-@desc
-  Whenever an instance of the returned widget
-  is inserted into the document, `mechanism` will
-  be called with the widget's root element as its
-  first argument.
+  If `element` is not provided, `RequireStyle` will
+  return a cached style function which can later be
+  called on a [::HtmlFragment] to apply the given style.
 
-  When a widget's root element is removed from the
-  document, any still-running mechanisms corresponding
-  to that element will be aborted.
+  If `RequireStyle` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
+
+@function Mechanism
+@param {optional ::HtmlFragment} [element]
+@param {Function|String} [mechanism]
+@summary Add a mechanism to an element
+@return {::Element|Function}
+@desc
+  Whenever an instance of the returned element is inserted into the
+  document, `mechanism` will be called with its first argument and
+  `this` pointer both set to `element`s DOM node.
+
+  When `element` is removed from the document using [::RemoveNode],
+  any still-running mechanisms attached to that element will be
+  aborted.
+
+  `mechanism` can be a JS function or String representation of a JS function.
+  The former only works in a dynamic (xbrowser) context; if `mechanism` is a Function and
+  this element is used in a static [::Document], an error will
+  be thrown.
+
+  If `element` is not provided, `cached_mech = Mechanism(f)` will
+  return a cached mechanism function which can later be
+  applied to multiple [::HtmlFragment]s to attach the given mechanism to them.
+  Calling `elem .. cached_mech` for a number of `elem`s is more efficient than 
+  calling `elem .. Mechanism(f)` on each of them. 
+
+  If `Mechanism` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
+
+ 
 
 @function Attrib
-@summary Add a HTML attribute to a widget
-@param {::Widget} [widget]
+@summary Add a HTML attribute to an element
+@param {::HtmlFragment} [element]
 @param {String} [name] Attribute name
 @param {String|sjs:sequence::Stream} [value] Attribute value
-@return {::Widget}
+@return {::Element}
 @desc
   `value` can be an [sjs:sequence::Stream], but only in a
   dynamic (xbrowser) context; if `val` is a Stream and
-  this widget is used in a static [::Document], an error will
+  this element is used in a static [::Document], an error will
   be thrown.
+
+  If `Attrib` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
 
   See also [::Prop].
 
 @function Id
-@param {::Widget} [widget]
+@param {::HtmlFragment} [element]
 @param {String|sjs:sequence::Stream} [id]
-@summary Add an `id` attribute to a widget
-@return {::Widget}
+@summary Add an `id` attribute to an element
+@return {::Element}
+@desc
+  `id` can be an [sjs:sequence::Stream], but only in a
+  dynamic (xbrowser) context; if `val` is a Stream and
+  this element is used in a static [::Document], an error will
+  be thrown.
+
+  If `Id` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
 
 @function Class
-@summary Add a `class` to a widget
-@param {::Widget} [widget]
+@summary Add a `class` to an element
+@param {::HtmlFragment} [element]
 @param {String|sjs:sequence::Stream} [class]
 @param {optional Boolean|sjs:sequence::Stream} [flag]
-@return {::Widget}
+@return {::Element}
 @desc
-  Returns a copy of `widget` widget with `class`
-  added to the widget's class list. If `class` is a
+  Returns a copy of `element` with `class`
+  added to the element's class list. If `class` is a
   stream, changes to `class` will be reflected
-  in this widget.
+  in this element.
 
   If `flag` is provided, it is treated as a boolean -
   the `class` is added if `flag` is `true`, otherwise
@@ -205,6 +227,9 @@ module.exports = require(modules);
 
   To replace the `class` attribute entirely rather
   than adding to it, use [::Attrib]`('class', newVal)`.
+
+  If `Class` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
 
 @function RawHTML
 @summary Cast a string into raw HTML
@@ -354,14 +379,14 @@ module.exports = require(modules);
     released. This might change in future versions of the library.
 
 @function Prop
-@summary Add a javascript property to a widget
-@param {::Widget} [widget]
+@summary Add a javascript property to an element
+@param {::HtmlFragment} [element]
 @param {String} [name] Property name
 @param {String|sjs:sequence::Stream} [value] Property value
-@return {::Widget}
+@return {::Element}
 @desc
   Sets a javascript property
-  on the widget's root node once it is inserted into the document.
+  on the element's DOM node once it is inserted into the document.
 
   See also [::Attrib].
 
@@ -389,7 +414,7 @@ module.exports = require(modules);
   If `template` is a string, it will be passed to [::loadTemplate], and the returned
   function will be called as above.
 
-  `template` must return a String.
+  `template` must return a [sjs:quasi::Quasi].
 
 
 @function loadTemplate

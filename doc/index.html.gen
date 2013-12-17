@@ -2,7 +2,7 @@ var Url = require('sjs:url');
 var logging = require('sjs:logging');
 var {readFile} = require('sjs:nodejs/fs');
 var {join} = require('sjs:sequence');
-var { Document, Widget } = require('mho:surface');
+var { Document, Element } = require('mho:surface');
 
 exports.content = function() {
   return Document(null, {
@@ -14,7 +14,7 @@ exports.content = function() {
 
 exports.head = function() {
   var head = [
-    Widget("script", [
+    Element("script", [
       // loading script
       readFile(Url.normalize('rainbow.min.js', module.id) .. Url.toPath),
       readFile(Url.normalize('init.js', module.id) .. Url.toPath),
@@ -23,7 +23,7 @@ exports.head = function() {
 
   //bundle:
   if (!this.development) {
-    head.push(Widget("script", null, {src: 'index.bundle.js'}));
+    head.push(Element("script", null, {src: 'index.bundle.js'}));
   } else {
     logging.info("Skipping bundle - developer mode");
   }

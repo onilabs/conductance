@@ -8,7 +8,7 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
-var { ensureWidget, Mechanism, collapseHtmlFragment, isSentinelNode } = require('./base');
+var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile } = require('sjs:sequence');
 var { split } = require('sjs:string');
@@ -504,17 +504,17 @@ exports.removeNode = removeNode;
 
 //----------------------------------------------------------------------
 
-// set a property on a widget
+// set a property on an element
 /**
   @function Prop
-  @summary Add a javascript property to a widget
-  @param {::Widget} [widget]
+  @summary Add a javascript property to an element
+  @param {::HtmlFragment} [element]
   @param {String} [name] Property name
   @param {String|sjs:sequence::Stream} [value] Property value
-  @return {::Widget}
+  @return {::Element}
   @desc
     Sets a javascript property
-    on the widget's root node once it is inserted into the document.
+    on the element's DOM node once it is inserted into the document.
 
     See also [::Attrib].
 */

@@ -47,7 +47,7 @@ var { TransportError } = require('./error');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
 var PING_INTERVAL = 1000*40; // 40 seconds
-var POLL_ACCU_INTERVAL = 200; // 200 ms
+var POLL_ACCU_INTERVAL = 100; // 200 ms
 var EXCHANGE_ACCU_INTERVAL = 10; // 10ms
 
 //----------------------------------------------------------------------

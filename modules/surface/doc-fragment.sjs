@@ -22,7 +22,7 @@ var escapeCssAttr = (style) -> style.replace(/\s+/g, '') .. escapeXML;
 */
 exports.errorHandler = function() {
   var { _fixedNoticeStyle, _fixedNoticeAlertStyle } = require('./bootstrap/notice');
-  return @Widget("script", "
+  return @Element("script", "
     (function() {
       var errorIndicatorShown = false;
       function showErrorIndicator(e) {
@@ -55,12 +55,12 @@ var rainbowContents = readFile(require.url('./rainbow.min.js') .. toPath);
 */
 exports.busyIndicator = function(showImmediately, opts) {
   opts = opts || {};
-  var color = opts.color || '#e91100';
+  var color = opts.color || '#E12735';
   var thickness = opts.thickness === undefined ? 2 : opts.thickness;
   var shadow = opts.shadow === undefined ? 2 : opts.shadow;
   return [
-    @Widget('script', rainbowContents),
-    @Widget('script', "
+    @Element('script', rainbowContents),
+    @Element('script', "
         (function() {
           rainbow.config({barColors:['#{color}'], barThickness: #{thickness}, shadowBlur: #{shadow}});
           #{showImmediately ? "window.onload = function() {
@@ -68,7 +68,7 @@ exports.busyIndicator = function(showImmediately, opts) {
           };" : ""}
         })();
     "),
-    @Widget('script', "
+    @Element('script', "
       var busy_indicator_refcnt = 0, busy_indicator_stratum, busy_indicator_shown = #{showImmediately ? 'true' : 'false'};
 
       function showBusyIndicator(delay) {
@@ -123,7 +123,7 @@ exports.busyIndicator = function(showImmediately, opts) {
     Place within <head>.
 */
 exports.bootstrapCss = function() {
-  return @Widget("link", null, {
+  return @Element("link", null, {
     rel: 'stylesheet',
     href: "/__mho/surface/bootstrap/bootstrap-vanilla-3.css",
     media: 'screen'
@@ -140,7 +140,7 @@ exports.bootstrapCss = function() {
 */
 exports.bootstrapJavascript = function() {
   return [
-    @Widget('script', null, {src: "/__mho/surface/bootstrap/jquery-1.10.2.min.js"}),
-    @Widget('script', null, {src: "/__mho/surface/bootstrap/bootstrap.min.js"}),
+    @Element('script', null, {src: "/__mho/surface/bootstrap/jquery-1.10.2.min.js"}),
+    @Element('script', null, {src: "/__mho/surface/bootstrap/bootstrap.min.js"}),
   ];
 }

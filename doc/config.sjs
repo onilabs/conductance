@@ -1,4 +1,4 @@
-var { Widget, appendContent, Mechanism, Style, OnClick } = require('mho:surface');
+var { Element, appendContent, Mechanism, Style, OnClick } = require('mho:surface');
 var { Input, Form, Button } = require('mho:surface/bootstrap/html');
 var { each, map, transform } = require('sjs:sequence');
 var { Observable } = require('mho:observable');
@@ -50,7 +50,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
 
     var formError = Observable();
     var addForm = Form(`
-      ${Widget("div", formError) .. ui.errorText}
+      ${Element("div", formError) .. ui.errorText}
       <div>
         <label>Name: </label><input/>
       </div>
@@ -83,7 +83,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
       button { margin-left:5em; }
     ");
 
-    var widget = Widget("div", `
+    var widget = Element("div", `
       ${Button('x') .. Style("{float:right;}")}
       ${currentLibraries}
 
