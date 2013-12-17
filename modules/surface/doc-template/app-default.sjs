@@ -40,7 +40,7 @@ exports.Document = function(data, settings) {
         waitfor {
           exports = module.exports = require([
                                     {id:'mho:surface/bootstrap/html',
-                                      exclude: ['Style', 'Map']
+                                      exclude: ['Style']
                                     },
                                     {id:'mho:surface/api-connection',
                                       include: ['withAPI']

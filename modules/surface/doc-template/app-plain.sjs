@@ -10,7 +10,7 @@ exports.Document = settings ->
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <script type='text/sjs' module='mho:app'>
-      module.exports = require([ {id:'mho:surface/html', exclude: ['Style', 'Map'] } ]);
+      module.exports = require([ {id:'mho:surface/html', exclude: ['Style'] } ]);
       exports.body = document.body;
       exports.mainContent = document.body;
     </script>
