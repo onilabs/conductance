@@ -1,6 +1,6 @@
 /**
 @type doc
-@summary APP modules
+@summary Client-side application modules
 @desc
   The `.app` file format is a module that is intended to form
   the main logic of a client-side application.
@@ -10,7 +10,7 @@
   in a plain HTML document.
 
   In addition to the main (StratifiedJS) content of an `.app` file,
-  conductance will scan metadata comments (those beginning with `/**`)
+  conductance will scan [sjs:#language/metadata::] comments (those beginning with `/**`)
   for certain directives. These directives are documented on this page,
   and allow you to control the HTML boilerplate used.
 
@@ -29,7 +29,7 @@
   not an appropriate place for reusable code. Reusable code
   should typically be placed in separate `.sjs` modules.
 
-@feature template
+@feature @template
 @summary Use a custom HTML template
 @desc
   To specify a template for a given `.app` file, use the @template
@@ -49,7 +49,7 @@
   template module. Custom templates will be loaded via
   [server/formats::loadTemplate].
 
-@feature template-title
+@feature @template-title
 @summary Set the document title
 @desc
   This allows you to set an initial <title> content for
@@ -62,7 +62,7 @@
        *\/
 
 
-@feature template-show-error-dialog
+@feature @template-show-error-dialog
 @summary Enable / disable the default error dialog
 @desc
   By default, the `app-default` template installs a simple
@@ -86,7 +86,7 @@
   Instead of disabling this feature, it's often better to just override
   `window.onerror` once your application is successfully loaded.
 
-@feature template-wrap-content
+@feature @template-wrap-content
 @summary Enable / disable the default <div class="container"> wrapper
 @desc
   By default, the `app-default` template wraps the body of a page in
@@ -98,7 +98,7 @@
         @ template-wrap-content false
        *\/
 
-@feature template-show-busy-indicator
+@feature @template-show-busy-indicator
 @summary Begin the busy indicator on page load
 @desc
   If set, the busy indicator (as shown by
@@ -113,10 +113,25 @@
   If your app does use [app::withBusyIndicator], you should
   generally use this flag as well so that there isn't a gap between
   page load and displaying the busy indicator.
+  test \`backticks
 
   ### Example:
 
       /**
         @template-show-busy-indicator
       *\/
+
+@feature @bundle
+@summary Bundle this module's dependencies
+@desc
+  By default, `.sjs` modules used by an `.app` are loaded
+  individually, on-demand. If you include the `@bundle`
+  directive, Conductance will serve up this app's code as
+  a single file containing all required modules.
+
+  This reduces the number of round-trips, but reduces the
+  opportunity for caching - i.e different bundles will
+  duplicate all common modules, and a change
+  in any file will cause the entire bundle to
+  be re-downloaded).
 */

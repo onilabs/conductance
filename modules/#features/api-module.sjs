@@ -1,6 +1,6 @@
 /**
 @type doc
-@summary API modules
+@summary Server-side API modules
 @desc
   The `.api` file format is used to provide clients transparent access
   to code running on the server.

@@ -1,0 +1,83 @@
+/**
+  @type doc
+  @summary Server-side generator modules
+  @desc
+    A `.gen` module is used to serve generated content from the
+    conductance web server.
+
+    While you can write your own [server/routes] configuration to
+    generate custom content from the server, this is best suited
+    to truly dynamic content (like an API).
+
+    For server-generated documents and other content, `.gen` files
+    are often more convenient.
+
+    `.gen` files are expected to export at least a [::content] method,
+    and they may additionally export the other methods documented below.
+
+    See also the [server/generator::] module, which provides utilities
+    for use in generator modules.
+
+    ### Configuring .gen files
+
+    For conductance to serve your `.gen` module in this way, the
+    module must live within a directory configured as a
+    [server/routes::ExecutableDirectory] in your [./mho-file::] server configuration.
+
+    It is important to only serve *trusted locations* with
+    [server/routes::ExecutableDirectory], as serving user-generated content in
+    this way trivially allows users to execute arbitrary SJS code on your server.
+
+
+  @function content
+  @param {Object} [params] URL parameters
+  @return {String} document content
+  @desc
+    `content` is executed in the context of a request - i.e
+    inside the content function, `this` will refer to a
+    [sjs:nodejs/http::ServerRequest] object.
+
+    The return value must be a string. For generated
+    HTML documents, you will typically use [surface::Document]
+    to generate the content.
+
+  @variable filetype
+  @summary file type (extension)
+  @desc
+    By default, the module name will be used to infer the file
+    type - e.g `index.html.gen` will be served as `text/html` content.
+  
+    If your module name does not contain an extension (or if you wish
+    to override it), You should export `filetype`.
+  
+    ### Example:
+
+      exports.filetype = 'html';
+
+  @fucntion etag
+  @param {Object} [params] URL parameters
+  @return {String} etag
+  @desc
+    So that clients can cache responses, it's recommended to set
+    an `etag` function. This is combined with the module's
+    modification time and the conductance version so that
+    a client will not be re-sent the content for a request
+    when their cached version has an identical etag.
+
+    If a `.gen` module's output depends on another
+    `.sjs` module, conductance will not detect this by
+    default - you will need to export an `etag` function
+    that returns a new value after a dependency has changed.
+    
+    If you do not wish to track dependencies explicitly,
+    you can use the [server/generator::moduleTimestamp] function
+    to generate an etag function that always returns the
+    timestamp of the module's initial import. This will
+    cause a restart of conductance to generate a different
+    etag, while repeated requests to the same conductance
+    instance will be cached.
+
+    ### Example:
+
+        exports.etag = @moduleTimestamp();
+*/
