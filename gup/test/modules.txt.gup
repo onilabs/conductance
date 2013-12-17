@@ -1,5 +1,6 @@
 #!/bin/bash
 set -eu
 gup --always
-find unit integration -name '*-tests.sjs' > "$1"
+find unit        -name '*-tests.sjs' | sort >> "$1"
+find integration -name '*-tests.sjs' | sort >> "$1"
 
