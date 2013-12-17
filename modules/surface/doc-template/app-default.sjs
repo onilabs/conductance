@@ -57,8 +57,6 @@ exports.Document = function(data, settings) {
         exports.body = document.body;
         exports.mainContent = document.body.firstChild;
         exports.withBusyIndicator = withBusyIndicator;
-        exports.showBusyIndicator = showBusyIndicator;
-        exports.hideBusyIndicator = hideBusyIndicator;
       }
     </script>`}
     ${ data.head }

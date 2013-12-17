@@ -93,7 +93,6 @@ exports.busyIndicator = function(showImmediately, opts) {
         // we're spawning/holding to get some hysteresis: if someone
         // calls showBusyIndicator next, we
         // don't want to stop a currently running indicator
-        window.inhibit_auto_busy_indicator = true;
         spawn (function() {
           hold(10);
           if (--busy_indicator_refcnt === 0) {
@@ -109,18 +108,21 @@ exports.busyIndicator = function(showImmediately, opts) {
         })();
       }
 
+      __js var noop = function() {};
       function withBusyIndicator(block) {
+        var done = function() {
+          done = noop; // prevent duplicate calls
+          hideBusyIndicator();
+        }
         try {
           showBusyIndicator();
-          block();
+          return block(done);
         }
         finally {
-          hideBusyIndicator();
+          done();
         }
       }
       window.withBusyIndicator = withBusyIndicator;
-      window.showBusyIndicator = showBusyIndicator;
-      window.hideBusyIndicator = hideBusyIndicator;
     ", {'type': 'text/sjs'}),
   ]
 };

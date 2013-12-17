@@ -60,32 +60,30 @@
     is called immediately after a previous call completes
     (i.e within the same event loop).
 
-  @function showBusyIndicator
-  @summary Show busy indicator
-  @desc
-    **Availability:** `app-default` template only.
+    ### Asymmetrical use:
 
-    You should use [::withBusyIndicator] if possible.
-    Otherwise, you must make sure calls to [::showBusyIndicator]
-    are matched by corresponding calls to [::hideBusyIndicator].
+    In some cases, wrapping an entire block with `withBusyIndicator` does not
+    reflect the boundaries of when your app is "busy" - e.g:
 
-    Like [::withBusyIndicator], this function is preloaded as a property on `window`.
+        withBusyIndicator {||
+          app.run {||
+            // application is done loading here, but `withBusyIndicator`
+            // won't actually return until the app exits
+            mainLoop();
+          }
+        }
 
-  @function hideBusyIndicator
-  @summary Hide busy indicator
-  @desc
-    **Availability:** `app-default` template only.
+    For such cases, `withBusyIndicator` passes a single function to your block.
+    If you invoke it during the block's execution, that will be the point at
+    which the busy indicator completes, rather than when the call to
+    `withBusyIndicator` returns.
 
-    You should use [::withBusyIndicator] if possible.
-    Otherwise, you must make sure calls to [::showBusyIndicator]
-    are matched by corresponding calls to [::hideBusyIndicator].
-
-    Like [::withBusyIndicator], this function is preloaded as a property on `window`.
-
-  @variable body
-  @summary document.body _(app-default, app-plain)_
-  @desc
-    **Availability:** `app-default`, `app-plain`.
+        withBusyIndicator { |doneLoading|
+          app.run {||
+            doneLoading(); // indicator will be hidden here
+            mainLoop();
+          }
+        }
 
   @variable mainContent
   @summary The topmost container element _(app-default, app-plain)_
