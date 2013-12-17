@@ -13,6 +13,7 @@ var { CachedBundle } = require('./generator');
 var lruCache = require('sjs:lru-cache');
 
 // XXX this should be configurable separately somewhere
+// XXX see also the separate *.gen caching in file-server.sjs
 var SJSCache = lruCache.makeCache(10*1000*1000); // 10MB
 var bundleCache = lruCache.makeCache(10*1000*1000); // 10MB
 

@@ -9,11 +9,15 @@ var { each, any } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
 var { setStatus, writeRedirectResponse, HttpError, NotFound } = require('./response');
+var lruCache = require('sjs:lru-cache');
 
 function checkEtag(t) {
   if (!isString(t)) throw new Error("non-string etag: #{t}");
   return t;
 }
+
+// XXX this should be consolidated with the caching in formats.sjs
+var generatorCache = lruCache.makeCache(10*1000*1000); // 10MB
 
 //----------------------------------------------------------------------
 // formatResponse:
@@ -255,8 +259,9 @@ function generateFile(req, filePath, format, settings) {
   var generator = require(resolved_path);
   if (!generator.content) throw new Error("Generator #{filePath} has no `content` method");
 
-  var etag = generator.etag;
   require.modules[resolved_path].etag = generator_file_mtime;
+  var etag = generator.etag;
+  etag = "#{generator_file_mtime}-#{etag ? checkEtag(etag.call(req, params)) : Date.now()}";
 
   var params = req.url.params();
 
@@ -264,16 +269,25 @@ function generateFile(req, filePath, format, settings) {
     req,
     {
       input: function() {
-        var rv = generator.content.call(req, params);
-        if (rv .. isString() || !rv.read)
-          rv = new stream.ReadableStringStream(rv, true);
-        return rv;
+        // check cache: 
+        // XXX this caching functionality should move to formats.sjs
+        var cache_entry = generatorCache.get(req.request.url);
+        if (!cache_entry || cache_entry.etag !== etag) {
+          var data = generator.content.call(req, params);
+          if (!isString(data) && data.read) {
+            data = stream.readAll(data);
+          }
+          cache_entry = { etag: etag, data: data }
+          generatorCache.put(req.request.url, cache_entry, cache_entry.data.length);
+        }
+
+        return new stream.ReadableStringStream(cache_entry.data, true);
       },
       
       filetype: generator.filetype ? generator.filetype : path.extname(filePath).slice(1),
       format: format,
 //      length: generator.content().length,
-      etag: "#{generator_file_mtime}-#{etag ? checkEtag(etag.call(req, params)) : Date.now()}",
+      etag: etag,
     },
     settings);
   return true;
