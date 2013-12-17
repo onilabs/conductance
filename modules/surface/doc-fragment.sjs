@@ -26,6 +26,7 @@ exports.errorHandler = function() {
     (function() {
       var errorIndicatorShown = false;
       function showErrorIndicator(e) {
+        window.inhibit_auto_busy_indicator = true;
         if (typeof(rainbow) !== 'undefined' && rainbow.hide) rainbow.hide();
         if (errorIndicatorShown) return;
         errorIndicatorShown = true;
@@ -64,14 +65,20 @@ exports.busyIndicator = function(showImmediately, opts) {
         (function() {
           rainbow.config({barColors:['#{color}'], barThickness: #{thickness}, shadowBlur: #{shadow}});
           #{showImmediately ? "window.onload = function() {
-            rainbow.show();
-          };" : ""}
+            window.setTimeout(function() {
+              if (window.inhibit_auto_busy_indicator) return;
+              rainbow.show();
+            }, 500);
+          };
+          window.auto_busy_indicator=true;
+          " : ""}
         })();
     "),
     @Element('script', "
       var busy_indicator_refcnt = 0, busy_indicator_stratum, busy_indicator_shown = #{showImmediately ? 'true' : 'false'};
 
       function showBusyIndicator(delay) {
+        window.inhibit_auto_busy_indicator = true;
         delay = delay || 500;
         if (++busy_indicator_refcnt === 1) {
           busy_indicator_stratum = spawn (function() {
@@ -86,6 +93,7 @@ exports.busyIndicator = function(showImmediately, opts) {
         // we're spawning/holding to get some hysteresis: if someone
         // calls showBusyIndicator next, we
         // don't want to stop a currently running indicator
+        window.inhibit_auto_busy_indicator = true;
         spawn (function() {
           hold(10);
           if (--busy_indicator_refcnt === 0) {
@@ -111,6 +119,8 @@ exports.busyIndicator = function(showImmediately, opts) {
         }
       }
       window.withBusyIndicator = withBusyIndicator;
+      window.showBusyIndicator = showBusyIndicator;
+      window.hideBusyIndicator = hideBusyIndicator;
     ", {'type': 'text/sjs'}),
   ]
 };

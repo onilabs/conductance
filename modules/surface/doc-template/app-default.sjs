@@ -13,16 +13,26 @@
 */
 
 var frag = require('../doc-fragment');
+var { toBool } = require('sjs:docutil');
 
 exports.Document = function(data, settings) {
+  var content = data.body;
+  var showErrorDialog = settings.showErrorDialog .. toBool;
+  var showBusyIndicator = settings.showBusyIndicator .. toBool;
+  var wrapContent = settings.wrapContent ..toBool;
+  var appModule = settings.appModule .. toBool;
+
+  if (wrapContent !== false) content = `<div class='container'>${data.body}</div>`;
+
   return `<!DOCTYPE html>
 <html>
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     ${frag.bootstrapCss()}
-    ${settings.showErrorDialog !== 'false' ? frag.errorHandler()}
-    ${frag.busyIndicator(settings.showBusyIndicator == 'true')}
+    ${showErrorDialog !== false ? frag.errorHandler()}
+    ${frag.busyIndicator(settings.showBusyIndicator === true)}
+    ${appModule !== false ? `
     <script type='text/sjs' module='mho:app'>
       withBusyIndicator {
         ||
@@ -47,13 +57,14 @@ exports.Document = function(data, settings) {
         exports.body = document.body;
         exports.mainContent = document.body.firstChild;
         exports.withBusyIndicator = withBusyIndicator;
+        exports.showBusyIndicator = showBusyIndicator;
+        exports.hideBusyIndicator = hideBusyIndicator;
       }
-    </script>
-
+    </script>`}
     ${ data.head }
     ${ data.script }
   </head>
-  <body><div class='container'>${data.body}</div>
+  <body>${content}
     ${frag.bootstrapJavascript()}
   </body>
 </html>`;

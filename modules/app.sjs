@@ -60,6 +60,28 @@
     is called immediately after a previous call completes
     (i.e within the same event loop).
 
+  @function showBusyIndicator
+  @summary Show busy indicator
+  @desc
+    **Availability:** `app-default` template only.
+
+    You should use [::withBusyIndicator] if possible.
+    Otherwise, you must make sure calls to [::showBusyIndicator]
+    are matched by corresponding calls to [::hideBusyIndicator].
+
+    Like [::withBusyIndicator], this function is preloaded as a property on `window`.
+
+  @function hideBusyIndicator
+  @summary Hide busy indicator
+  @desc
+    **Availability:** `app-default` template only.
+
+    You should use [::withBusyIndicator] if possible.
+    Otherwise, you must make sure calls to [::showBusyIndicator]
+    are matched by corresponding calls to [::hideBusyIndicator].
+
+    Like [::withBusyIndicator], this function is preloaded as a property on `window`.
+
   @variable body
   @summary document.body _(app-default, app-plain)_
   @desc

@@ -86,6 +86,18 @@
   Instead of disabling this feature, it's often better to just override
   `window.onerror` once your application is successfully loaded.
 
+@feature template-wrap-content
+@summary Enable / disable the default <div class="container"> wrapper
+@desc
+  By default, the `app-default` template wraps the body of a page in
+  a <div class="container"> element.
+
+  You can disable this with:
+
+      /**
+        @ template-wrap-content false
+       *\/
+
 @feature template-show-busy-indicator
 @summary Begin the busy indicator on page load
 @desc

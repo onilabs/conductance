@@ -52,23 +52,6 @@ var withOverlay = exports.withOverlay = (function() {
 })();
 
 
-var LOADING = exports.LOADING = Observable(0);
-LOADING.inc = -> LOADING.set(LOADING.get()+1);
-LOADING.dec = -> LOADING.set(LOADING.get()-1);
-LOADING.block = function(b) {
-	waitfor {
-		return b();
-	} or {
-		// this branch never taken if result is synchronous
-		LOADING.inc();
-		try {
-			hold();
-		} finally {
-			LOADING.dec();
-		}
-	}
-};
-
 var propertySortKey = ([key, value]) -> key.toLowerCase();
 
 exports.renderer = function(libraries, rootSymbol) {

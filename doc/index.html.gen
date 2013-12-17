@@ -8,25 +8,12 @@ exports.content = function() {
   return Document(null, {
     title: "Conductance Documentation Browser",
     main: 'index.sjs',
-    head: exports.head(),
+    head: Element("script", null, {src: 'index.bundle.js'}),
+    template: 'app-default',
+    templateData: {
+      showBusyIndicator: true,
+      appModule: false,
+      wrapContent: false
+    }
   });
-};
-
-exports.head = function() {
-  var head = [
-    Element("script", [
-      // loading script
-      readFile(Url.normalize('rainbow.min.js', module.id) .. Url.toPath),
-      readFile(Url.normalize('init.js', module.id) .. Url.toPath),
-    ] .. join(';')),
-  ];
-
-  //bundle:
-  if (!this.development) {
-    head.push(Element("script", null, {src: 'index.bundle.js'}));
-  } else {
-    logging.info("Skipping bundle - developer mode");
-  }
-
-  return head;
 };

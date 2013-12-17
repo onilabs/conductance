@@ -7,12 +7,6 @@ var { startsWith, endsWith, rstrip, contains } = require('sjs:string');
 var {ownValues, pairsToObject, ownPropertyPairs} = require('sjs:object');
 var { inspect } = require('sjs:debug')
 
-// parameterized to prevent (recursive) dependency on `ui`
-// Gets set to ui.LOADING.block by index.sjs once both
-// modules are loaded
-var loadingIndicator = (block) -> block();
-exports.setLoadingIndicator = f -> loadingIndicator = f;
-
 var INTERNAL_LINK_RE = /\[([^ \]]+)\](?![\[\(])/g;
 exports.replaceInternalMarkdownLinks = function(text, replacer) {
 	return text.replace(INTERNAL_LINK_RE, function(orig, dest) {
@@ -41,14 +35,14 @@ Symbol.prototype._new = function(relativeModulePath, symbolPath) {
 };
 
 Symbol.prototype.docs = function() {
-	loadingIndicator { ||
+	withBusyIndicator { ||
 		return this.library.loadDocs(this.relativeModulePath, this.symbolPath)
 	}
 };
 
 Symbol.prototype.skeletonDocs = function() {
 	// like docs(), but can be satisfied from index (if present)
-	loadingIndicator { ||
+	withBusyIndicator { ||
 		return this.library.loadIndexFor(this.relativeModulePath.concat(this.symbolPath))
 		    || this.library.loadDocs(this.relativeModulePath, this.symbolPath);
 	}

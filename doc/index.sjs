@@ -37,7 +37,6 @@ var { encodeFragment } = require('./url-util');
 }
 
 logging.setLevel(logging.DEBUG);
-Symbol.setLoadingIndicator(ui.LOADING.block);
 
 var mainStyle   = RequireStyle(Url.normalize('css/main.css', module.id))
 var docsStyle   = RequireStyle(Url.normalize('css/docs.css', module.id))
@@ -70,11 +69,6 @@ exports.run = function(root) {
 
 	defaultHubs .. each(h -> libraries.add(h));
 
-	var loadingText = ui.LOADING .. transform(l -> "#{l} item#{l != 1 ? "s" : ""}");
-	var loadingWidget = Element("div", `Loading ${loadingText}...`)
-			.. Class("loading")
-			.. Class("hidden", ui.LOADING .. transform(l -> l == 0 ? true : (hold(300), false))); // the hold(300) is to avoid showing the indicator for actions that just take very little time
-
 	var hubDebug = libraries.val .. transform(function(hubs) {
 		return JSON.stringify(hubs, null, '  ');
 	});
@@ -93,16 +87,16 @@ exports.run = function(root) {
 			var buttonContainer = elem.getElementsByTagName("div")[0];
 
 			var doSearch = function() {
-				ui.LOADING.inc();
-				var newLocation = require('./search').run(elem, libraries, ui.LOADING.dec);
+				showBusyIndicator();
+				var newLocation = require('./search').run(elem, libraries, hideBusyIndicator);
 				if (newLocation) {
 					document.location.hash = encodeFragment(newLocation);
 				}
 			};
 
 			var doConfig = function() {
-				ui.LOADING.inc();
-				require('./config').run(elem, libraries, defaultHubs, ui.LOADING.dec);
+				showBusyIndicator();
+				require('./config').run(elem, libraries, defaultHubs, hideBusyIndicator);
 			};
 
 			// we ignore keyboard shortcuts while we're performing an action
@@ -168,13 +162,12 @@ exports.run = function(root) {
 		breadcrumbs,
     hint,
 		mainDisplay,
-		loadingWidget
 	], {'class':'documentationRoot'})
 	.. mainStyle
 	.. searchStyle;
 
 	root .. appendContent(toplevel) {|elem|
-		if(window.rainbow) window.rainbow.hide();
+		window.hideBusyIndicator();
 		using (var hashChange = event.HostEmitter(window, 'hashchange')) {
 			while(true) {
 				locationHash.set(decodeURIComponent(document.location.hash.slice(1)));
