@@ -238,8 +238,20 @@ SystemCtl.prototype._runningUnits = function() {
 };
 
 SystemCtl.prototype.restart = function(units) {
-	this._runUnits('restart', units);
-	// restart only has an effect if units are running, so we start them just in case
+	var [socketUnits, nonSocketUnits] = units .. seq.partition(unit -> unit .. string.endsWith('.socket')) .. map(toArray);
+	
+	// non-socket units can't restart cleanly (but will have no
+	// downtime if they are covered by socket unit)
+	logging.debug("stopping units: ", nonSocketUnits);
+
+	if (nonSocketUnits.length > 0) {
+		this.stop(nonSocketUnits);
+	}
+
+	// socket units can restart cleanly
+	if (socketUnits.length > 0) {
+		this._runUnits('restart', socketUnits);
+	}
 	this.start(units);
 }
 
