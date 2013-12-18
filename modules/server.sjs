@@ -487,6 +487,11 @@ PortProto.config = function(conf) {
   return this;
 };
 
+/**
+  @function Port.getAddress
+  @summary Return address (hostname:port) as a string.
+  @return {String}
+*/
 PortProto.getAddress = function() {
   return (this.address == null ? '': this.address + ":") + String(this.port || 0);
 };
