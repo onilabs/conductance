@@ -141,7 +141,7 @@ exports.installGlobally = function(cb) {
 			bins.forEach(function(name) {
 				var src = path.join(conductance_root, "bin", name);
 				var dest = path.join(prefix, name);
-				cmd += "; ln -s '" + src + "' '" + dest + "'";
+				cmd += "; ln -sfn '" + src + "' '" + dest + "'";
 			});
 
 			exports.runCmd('bash', ['-c', cmd], function(err) {
