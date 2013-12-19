@@ -1,6 +1,6 @@
 #!/bin/bash
 # TO install from the web directly, use:
-# curl URL | bash -e
+# bash -e <(curl URL)
 #
 # Or, if your shell doesn't support that syntax:
 # wget -o install URL && bash ./install
