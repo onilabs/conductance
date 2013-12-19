@@ -100,7 +100,7 @@ exports.run = function(args) {
     console.warn();
     actions .. each {|a|
       var args = a.args ? a.args : "";
-      console.warn("#{a.name .. str.padLeft(10)} #{args .. str.padRight(13)} : #{a.desc}");
+      console.warn("#{a.name .. str.padLeft(12)} #{args .. str.padRight(13)} : #{a.desc}");
     }
     console.warn("\nRun `conductance <action> --help` for more specific help.\n");
     return process.exit(exitcode === undefined ? 1 : exitcode);
