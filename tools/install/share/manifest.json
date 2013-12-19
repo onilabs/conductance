@@ -16,7 +16,7 @@
 , "data":
   { "conductance":
     { "id": "0.1-dev"
-    , "href": "https://conductance.io/install/conductance-22baae3a31fba5a1414cc465d18bb403bebd88a1"
+    , "href": "https://conductance.io/install/conductance-42a38acddf4fd290cd8e5898ef558d3ae4f159bf"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
