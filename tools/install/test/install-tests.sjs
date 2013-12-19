@@ -83,7 +83,7 @@ hosts.systems .. each {|system|
 
 		var bashInstallWithInput = function(input) {
 			host.runCmd('rm -rf /tmp/conductance && mkdir -p /tmp/conductance/bin');
-			return host.runCmd(exportProxy + "export PREFIX=/tmp/conductance; curl -s #{installScript} > /tmp/script && echo -e '#{input}' | bash -e /tmp/script");
+			return host.runCmd(exportProxy + "export CONDUCTANCE_HEADLESS=1 PREFIX=/tmp/conductance; curl -s #{installScript} > /tmp/script && echo -e '#{input}' | bash -e /tmp/script");
 		};
 
 		var selfUpdate = function() {

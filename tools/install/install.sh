@@ -1,10 +1,16 @@
 #!/bin/bash
 # TO install from the web directly, use:
-# bash -e <(curl URL)
+# curl URL | bash -e
 #
 # Or, if your shell doesn't support that syntax:
 # wget -o install URL && bash ./install
 set -e
+
+# grab input from /dev/tty, as stdin may be the script itself
+STDIN=/dev/tty
+if [ -n "$CONDUCTANCE_HEADLESS" ]; then
+  STDIN=/dev/fd/0
+fi
 
 function log () {
   echo "$@" >&2
@@ -56,7 +62,7 @@ fi
 if [ -e "$DEST" ]; then
   log "This installer will REMOVE the existing contents at $DEST"
   echo -n "Continue? [y/N] " >&2
-  read res
+  read res <"$STDIN"
   log
   if [ 'y' = "$res" -o Y = "$res" ]; then
     true
@@ -87,5 +93,5 @@ mkdir -p "$DEST"
 tar -xzf "$TMP_TAR" -C "$DEST"
 rm -f "$TMP_TAR"
 trap - EXIT
-exec bash "$DEST/share/install.sh"
+exec bash "$DEST/share/install.sh" <"$STDIN"
 
