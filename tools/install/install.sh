@@ -70,9 +70,9 @@ fi
 log "Installing to $DEST ..."
 
 TARBALL="${PLATFORM}.tar.gz"
-URL="http://onilabs.com/conductance/install/$TARBALL"
+URL="https://conductance.io/install/$TARBALL"
 log "Downloading $URL ..."
-curl -# "$URL" -o "$TMP_TAR"
+curl --progress-bar "$URL" -o "$TMP_TAR"
 
 # dry-run unpacking to /dev/null, to make sure entire file is present
 if tar -xzf "$TMP_TAR" --to-stdout >/dev/null; then
