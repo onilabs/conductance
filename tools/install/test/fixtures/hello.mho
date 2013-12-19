@@ -1,24 +1,14 @@
-exports.ports = [
-  {
-    name: 'insecure',  // name by which port will be referenced
-    address:'0.0.0.0:7079', // address of form 'port' or 'host:port'. If no 'host' is given,
-                    // conductance will listen on all interfaces
-  },
-];
-exports.hosts = [
-  {
-    hostname: /^.*$/,
+@ = require('mho:std');
+exports.serve = function() {
+  @server.run({
+    address: @Port(7079),
     routes: [
-      { path: /^\/ping$/,
-        handler: {
-          "GET": function(matches, req) { req.response.end("Pong!"); spawn(function(){hold(0); process.exit(0);}()); }
-        }
-      },
-      { path: /^\/stop$/,
-        handler: {
-          "GET": function(matches, req) { process.exit(0); }
-        }
-      },
+      @Route(/ping$/, {
+        "GET": function(req, matches) { req.response.end("Pong!"); spawn(function(){hold(0); process.exit(0);}()); }
+      }),
+      @Route(/stop$/, {
+        "GET": function(req, matches) { process.exit(0); }
+      }),
     ]
-  }
-];
+  });
+}

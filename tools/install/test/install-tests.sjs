@@ -45,7 +45,9 @@ hosts.systems .. each {|system|
 		var exportProxy = 'export CONDUCTANCE_FORCE_HTTP=1 http_proxy='+host.proxy+'; ';
 
 		test.beforeAll {||
-			childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
+			if (process.env['GUP_TARGET']) {
+				childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
+			}
 
 			if (!proxyStrata) {
 				proxyStrata = cutil.breaking {|brk|
@@ -65,7 +67,7 @@ hosts.systems .. each {|system|
 		/********************************************************
 		* helpers to setup / destroy conductance install
 		********************************************************/
-		var {assertHealthy, ensureClean, runServer} = require('./util').api(host);
+		var {assertHealthy, ensureClean, runServer, runMhoScript} = require('./util').api(host);
 
 		var manualInstall = function(input) {
 			assert.ok(fs.exists(bundle));
@@ -187,7 +189,7 @@ hosts.systems .. each {|system|
 				}
 
 				var getNodeVersion = function() {
-					return runServer("node_version.mho").split("\n")
+					return runMhoScript("node_version.mho").split("\n")
 						.. seq.find(l -> l .. str.startsWith("NODE VERSION:"));
 				};
 				var initialVersion = getNodeVersion();

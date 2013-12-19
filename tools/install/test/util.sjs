@@ -29,12 +29,24 @@ exports.api = function(host) {
 			host.runCmd("rm -rf $HOME/.conductance");
 		},
 
-		runServer: function(config, conductance_root) {
-			conductance_root = conductance_root || '$HOME/.conductance';
-			host.copyFile(url.normalize("fixtures/#{config}", module.id) .. url.toPath, "/tmp/#{config}");
-			return host.runCmd("#{conductance_root}/bin/conductance run /tmp/#{config}");
+		_copyFixture: function(name) {
+			var dest = "/tmp/#{name}";
+			host.copyFile(url.normalize("fixtures/#{name}", module.id) .. url.toPath, dest);
+			return dest;
 		},
 
+		_runCommand: function(args, conductance_root) {
+			conductance_root = conductance_root || '$HOME/.conductance';
+			return host.runCmd("#{conductance_root}/bin/conductance #{args}");
+		},
+
+		runServer: function(config, conductance_root) {
+			return self._runCommand("serve #{self._copyFixture(config)}", conductance_root);
+		},
+
+		runMhoScript: function(config, conductance_root) {
+			return self._runCommand("exec #{self._copyFixture(config)}", conductance_root);
+		},
 	};
 	return self;
 };

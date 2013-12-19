@@ -1,6 +1,6 @@
 { "format": 1
 , "version": 1
-, "manifest_url": "https://github.com/onilabs/conductance/install/manifest-v1.json"
+, "manifest_url": "https://conductance.io/install/manifest-v1.json"
 , "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from http://onilabs.com/conductance"
 , "wrappers":
   { "node":
@@ -16,7 +16,7 @@
 , "data":
   { "conductance":
     { "id": "0.1-dev"
-    , "href": "https://github.com/onilabs/conductance/tarball/fd6733fddc9daaf425387ad114650c169e3a2850"
+    , "href": "https://github.com/onilabs/conductance/tarball/f1fd401e7a54744775f91012866a566bb11ce78c"
     , "links":
       { "platform_key": ["platform"]
       , "all":
@@ -34,7 +34,7 @@
     }
   , "stratifiedjs":
     { "id": "0.14-dev"
-    , "href": "https://github.com/onilabs/stratifiedjs/tarball/6cd57229540f428c05c1417844f8d70cbb1220b2"
+    , "href": "https://github.com/onilabs/stratifiedjs/tarball/f428d1a146ae6655d29bc7849a5474356c5acfb4"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
@@ -51,7 +51,7 @@
       }
     }
   , "node":
-    { "id":"0.10.12"
+    { "id":"0.10.23"
     , "bootstrap": true
     , "extract":
       { "platform_key": ["platform"]
@@ -60,10 +60,10 @@
       }
     , "href":
       { "platform_key": ["platform", "arch"]
-      , "linux_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-linux-x64.tar.gz"
-      , "windows_x64": "http://nodejs.org/dist/v0.10.12/x64/node.exe"
-      , "windows_x86": "http://nodejs.org/dist/v0.10.12/node.exe"
-      , "darwin_x64": "http://nodejs.org/dist/v0.10.12/node-v0.10.12-darwin-x64.tar.gz"
+      , "linux_x64": "http://nodejs.org/dist/v0.10.23/node-v0.10.23-linux-x64.tar.gz"
+      , "windows_x64": "http://nodejs.org/dist/v0.10.23/x64/node.exe"
+      , "windows_x86": "http://nodejs.org/dist/v0.10.23/node.exe"
+      , "darwin_x64": "http://nodejs.org/dist/v0.10.23/node-v0.10.23-darwin-x64.tar.gz"
       }
     , "links":
       { "platform_key": ["platform"]
