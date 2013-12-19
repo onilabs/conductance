@@ -237,6 +237,7 @@ exports.download = function(href, cb, redirectCount) {
 				file.close();
 				var fileSize = fs.statSync(tmpfile).size;
 				debug("File size: " + expectedLength);
+				if (!_assert(fileSize > 0, "no content in downloaded file")) return;
 				if (expectedLength !== undefined) {
 					if (!_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize)) return;
 				}
