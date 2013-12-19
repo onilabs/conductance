@@ -1,4 +1,2 @@
 # test status markers
-linux
-darwin
-windows
+*.ok
