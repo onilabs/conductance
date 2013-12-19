@@ -225,18 +225,21 @@ exports.download = function(href, cb, redirectCount) {
 		if (!_assert(response.statusCode === 200, "Server returned " + statusCode + " error status")) return;
 		debug("HEADERS:", response.headers);
 		var expectedLength = response.headers['content-length'];
-		if (!_assert(expectedLength, "no content-length given")) return;
 
 		debug("Content-length: " + expectedLength);
-		expectedLength = parseInt(expectedLength, 10);
-		if (!_assert(expectedLength > 0, "content-length = 0")) return;
+		if (expectedLength !== undefined) {
+			expectedLength = parseInt(expectedLength, 10);
+			if (!_assert(expectedLength > 0, "content-length = 0")) return;
+		}
 		response.pipe(file);
 		response.on('end', function() {
 			file.on('finish', function() {
 				file.close();
 				var fileSize = fs.statSync(tmpfile).size;
 				debug("File size: " + expectedLength);
-				if (!_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize)) return;
+				if (expectedLength !== undefined) {
+					if (!_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize)) return;
+				}
 				cb(null, { path: tmpfile, originalName: name});
 			});
 		});
