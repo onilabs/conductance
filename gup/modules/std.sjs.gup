@@ -36,7 +36,7 @@ if (hostenv === 'nodejs') {
   modules = modules.concat([
     {id:'mho:server', include:['Host', 'Route', 'Port']},
     {id:'mho:server', name:'server'},
-    {id:'mho:server/routes', name:'routes'},
+    {id:'mho:server/route', name:'route'},
     'mho:server/response',
     'mho:server/generator',
   ]);

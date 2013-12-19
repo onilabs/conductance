@@ -8,7 +8,7 @@ var LinenumberStyle = @Style("
   a { color: #ccc; }
 ");
 
-exports.generateModuleDocs = function(path, src) {
+exports.generateModuleDoc = function(path, src) {
   return @Container(
     `$@PageHeader(`$path <small class='pull-right'>(<a href='${@url.build(path,{format:"src"})}'>raw source</a>)</small>`)
      <pre><table><tbody>${

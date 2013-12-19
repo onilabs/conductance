@@ -3,7 +3,7 @@
 var { SystemRoutes,
       ExecutableDirectory,
       Filter,
-    } = require('mho:server/routes');
+    } = require('mho:server/route');
 var { Port, Route } = require('mho:server');
 var url = require('sjs:url');
 var logging = require('sjs:logging');

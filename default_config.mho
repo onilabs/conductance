@@ -55,7 +55,7 @@ exports.serve = function(args) {
   var { readFile } = require('sjs:nodejs/fs');
   var { conductanceRoot } = require('mho:server/env');
   var { Port } = server;
-  var { SystemRoutes, ExecutableDirectory, LogRequests, DeveloperMode, AllowCORS } = require('mho:server/routes');
+  var { SystemRoutes, ExecutableDirectory, LogRequests, DeveloperMode, AllowCORS } = require('mho:server/route');
 
 
   var routes = [

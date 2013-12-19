@@ -25,10 +25,10 @@
 
   For conductance to serve your `.api` module in this way, the
   module must live within a directory configured as a
-  [server/routes::ExecutableDirectory] in your [./mho-file::] server configuration.
+  [server/route::ExecutableDirectory] in your [./mho-file::] server configuration.
 
   It is important to only serve *trusted locations* with
-  [server/routes::ExecutableDirectory], as serving user-generated content in
+  [server/route::ExecutableDirectory], as serving user-generated content in
   this way trivially allows users to execute arbitrary SJS code on your server.
 
 @class ApiStub

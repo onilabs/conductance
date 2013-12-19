@@ -82,7 +82,7 @@ if (hostenv === 'nodejs') {
   modules = modules.concat([
     {id:'mho:server', include:['Host', 'Route', 'Port']},
     {id:'mho:server', name:'server'},
-    {id:'mho:server/routes', name:'routes'},
+    {id:'mho:server/route', name:'route'},
     'mho:server/response',
     'mho:server/generator',
   ]);
@@ -120,7 +120,7 @@ module.exports = require(modules);
    - **logging**: (module [sjs:logging](#sjs%3Alogging))
    - **path**: (module [nodejs:path](http://nodejs.org/api/path.html))
    - **regexp**: (module [sjs:regexp](#sjs%3Aregexp))
-   - **routes**: (module [mho:server/routes](#mho%3Aserver%2Froutes))
+   - **route**: (module [mho:server/route](#mho%3Aserver%2Froute))
    - **server**: (module [mho:server](#mho%3Aserver))
    - **sys**: (module [sjs:sys](#sjs%3Asys))
    - **url**: (module [sjs:url](#sjs%3Aurl))

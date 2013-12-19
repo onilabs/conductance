@@ -5,7 +5,7 @@
     A `.gen` module is used to serve generated content from the
     conductance web server.
 
-    While you can write your own [server/routes] configuration to
+    While you can write your own [server/route::] configuration to
     generate custom content from the server, this is best suited
     to truly dynamic content (like an API).
 
@@ -22,10 +22,10 @@
 
     For conductance to serve your `.gen` module in this way, the
     module must live within a directory configured as a
-    [server/routes::ExecutableDirectory] in your [./mho-file::] server configuration.
+    [server/route::ExecutableDirectory] in your [./mho-file::] server configuration.
 
     It is important to only serve *trusted locations* with
-    [server/routes::ExecutableDirectory], as serving user-generated content in
+    [server/route::ExecutableDirectory], as serving user-generated content in
     this way trivially allows users to execute arbitrary SJS code on your server.
 
 

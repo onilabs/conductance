@@ -147,7 +147,7 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
 //----------------------------------------------------------------------
 // filter that generates html for a directory listing:
 function gen_dir_html(src, dest, aux) {
-  var listing = require('../server-ui/dirlisting').generateDirListing(JSON.parse(readAll(src)));
+  var listing = require('../server-ui/dir-listing').generateDirListing(JSON.parse(readAll(src)));
 
   dest.write(require('../surface').Document(listing));
 }
@@ -155,7 +155,7 @@ function gen_dir_html(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates docs for an sjs module:
 function gen_moduledocs_html(src, dest, aux) {
-  var docs = require('../server-ui/moduledocs').generateModuleDocs(aux.request.url.path, readAll(src));
+  var docs = require('../server-ui/module-doc').generateModuleDoc(aux.request.url.path, readAll(src));
   dest.write(require('../surface').Document(docs));
 }
 
@@ -213,7 +213,7 @@ function apiinfo(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates html for markdown (*.md) files:
 function gen_markdown_html(src, dest, aux) {
-  var docs = require('../server-ui/markdownfile').generateMarkdown(readAll(src));
+  var docs = require('../server-ui/markdown-file').generateMarkdown(readAll(src));
   dest.write(require('../surface').Document(docs));
 }
 

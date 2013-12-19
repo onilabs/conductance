@@ -5,7 +5,7 @@ var url = require('sjs:url');
 var logging = require('sjs:logging');
 
 var {Route, Host} = require('mho:server');
-var {Filter} = require('mho:server/routes');
+var {Filter} = require('mho:server/route');
 
 context('route filters') {||
 	test('filters from multiple nested routes are applied in the correct order') {||
