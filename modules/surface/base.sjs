@@ -698,6 +698,7 @@ __js {
     var id = ++gMechanismCounter, code;
     
     function setMechanism(ft) {
+      if (code == null) throw new Error("null mechanism");
       ft = cloneElement(ft);
       
       ft.mechanisms[id] = code;
