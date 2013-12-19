@@ -24,7 +24,6 @@
 
 .mb-top h3 {
     color: #4c4f55;
-    xfont-family: sans-serif;
     font-weight: normal;
     font-size: 18px;
     margin:25px 0 15px 0;
@@ -131,7 +130,6 @@ span.mb-arglist {
 }
 
 span.mb-rv {
-    xfont-family: sans-serif;
     float: right;
     color: #777;
 }
