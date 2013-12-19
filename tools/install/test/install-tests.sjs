@@ -39,8 +39,8 @@ hosts.systems .. each {|system|
 		assert.string(conductanceUrl);
 
 		// we'll prime the proxy with the current workspace' install script and archives
-		var installScript = "http://onilabs.com/conductance.sh"
-		var installArchive = "http://onilabs.com/conductance/install/#{system.platform}_#{system.arch}.tar.gz"
+		var installScript = "http://conductance.io/install.sh"
+		var installArchive = "https://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
 		var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
 		var exportProxy = 'export CONDUCTANCE_FORCE_HTTP=1 http_proxy='+host.proxy+'; ';
 
@@ -83,7 +83,7 @@ hosts.systems .. each {|system|
 
 		var bashInstallWithInput = function(input) {
 			host.runCmd('rm -rf /tmp/conductance && mkdir -p /tmp/conductance/bin');
-			return host.runCmd(exportProxy + "export CONDUCTANCE_HEADLESS=1 PREFIX=/tmp/conductance; curl -s #{installScript} > /tmp/script && echo -e '#{input}' | bash -e /tmp/script");
+			return host.runCmd(exportProxy + "export CONDUCTANCE_HEADLESS=1 PREFIX=/tmp/conductance; curl -L -s #{installScript} > /tmp/script && echo -e '#{input}' | bash -e /tmp/script");
 		};
 
 		var selfUpdate = function() {
