@@ -4,4 +4,4 @@ gup -u HEAD
 HEAD="$(cat HEAD)"
 cd "$(git rev-parse --show-toplevel)"
 set -x
-git archive --format=tar.gz "$HEAD" > "$1"
+git archive --format=tar.gz --prefix="conductance-HEAD/" "$HEAD" > "$1"

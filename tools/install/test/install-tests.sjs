@@ -109,9 +109,14 @@ hosts.systems .. each {|system|
 				process.chdir(tmp);
 				try {
 					childProcess.run('tar', ['xzf', archive], {stdio: 'inherit'});
+					var rootEntries = fs.readdir('.');
+					if (rootEntries.length == 1) {
+						// hacky support for archives with extract=1
+						file = rootEntries[0] + '/' + file;
+					}
 					var contents = fs.readFile(path.join(tmp, file), 'utf-8');
-					fs.writeFile(file, mutate(contents), 'utf-8');
-					childProcess.run('tar', ['czf', archive, '.'], {stdio: 'inherit'});
+					fs.writeFile(path.join(tmp, file), mutate(contents), 'utf-8');
+					childProcess.run('tar', ['czf', archive].concat(rootEntries), {stdio: 'inherit'});
 				} finally {
 					process.chdir(cwd);
 					childProcess.run('rm', ['-rf', tmp]);

@@ -56,7 +56,7 @@ exports.serve = function(port, block) {
 					var fake = fakes[url];
 
 					var localFile;
-					if (fake !== undefined) {
+					if (fake != null) {
 						if (Buffer.isBuffer(fake)) {
 							logging.info("PROXY: sending fake: [Buffer]");
 							setLength(fake.length);
