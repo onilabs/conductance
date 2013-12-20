@@ -24,16 +24,11 @@ function logStatusChanges(log, status, initial) {
   }
 }
 
-context("old bridge tests") {||
-
 context('bridge error handling') {||
   var apiid;
 
   test.beforeAll {|s|
-    var apiName = Url.parse(apiUrl()).relative;
-    var response = http.json([helper.url(apiName), {format:"json"}]);
-    apiid = response.id;
-    assert.ok(apiid);
+    apiid = apiUrl();
   }
 
   test('propagates server-side errors') {||
@@ -69,7 +64,7 @@ context('bridge error handling') {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
           log.push(connection.api.ping());
           connection.api[method](50);
-          hold(100);
+          hold(500);
           log.push(connection.api.ping());
         }
       };
@@ -111,7 +106,7 @@ context() {||
 
   context('object marshalling') {||
     test("Stream") {||
-      require(url).connect({status:true}) {|api|
+      require(url).connect {|api|
         api.integers(0, 5) .. map(x -> x) .. assert.eq([0,1,2,3,4,5]);
       }
     }
@@ -138,12 +133,14 @@ context() {||
   context('api modules') {||
 
     test('returns API') {||
-      require(url).connect(a -> a.ping()) .. assert.eq('pong');
+      var rv;
+      require(url).connect(a -> rv = a.ping());
+      rv .. assert.eq('pong');
     }
 
     test('exposes connection object') {||
       require(url).connect((a, c) -> c.reconnect .. assert.ok());
-    }
+    }.skip("TODO: update for new API");
 
     test('reestablishes connection') {||
       var log = [];
@@ -196,7 +193,7 @@ context() {||
         '-callback',
         'connected',
         'result']);
-    }
+    }.skip("TODO: update for new API");
 
 
     context('multiple clients') {||
@@ -358,9 +355,7 @@ context() {||
           c2.log .. assert.eq(['connected', '', '1.1', '1.1|2.1', '1.1|2.1|1.2']);
           c1.log .. assert.eq(['connected', '', '1.1', 'disconnected', 'connected', '1.1|2.1', '1.1|2.1|1.2']);
         }
-      }
+      }.skip("TODO: update for new API");
     }.browserOnly().timeout(15);
   }
 }
-
-}.skip("TODO: update bridge tests");

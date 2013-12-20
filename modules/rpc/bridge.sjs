@@ -209,7 +209,7 @@ function marshall(value, connection) {
 
   function processProperties(value) {
     return propertyPairs(value) ..
-      filter([name,_] -> name != 'toString' && !name.. startsWith('__oni_')) ..
+      filter([name,_] -> name != 'toString' && !name.. startsWith('_')) ..
       transform([name, val] -> [name, prepare(val)]);
   }
 
