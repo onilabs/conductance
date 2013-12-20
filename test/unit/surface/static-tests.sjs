@@ -4,15 +4,15 @@ toHtml = (w) -> @collapseHtmlFragment(w).getHtml();
 
 @context("void elements") {||
   @test("include no closing tag") {||
-    var content = @Widget("div", [
-      @Widget("img", null, {"src":"test.png"}),
-      @Widget("br"),
+    var content = @Element("div", [
+      @Element("img", null, {"src":"test.png"}),
+      @Element("br"),
     ]) .. toHtml();
     content .. @assert.eq('<div><img src="test.png"><br></div>');
   }
 
   @test("allow content argument to be skipped") {||
-    @Widget("img", {"src":"test.png"}) .. toHtml() .. @assert.eq('<img src="test.png">');
+    @Element("img", {"src":"test.png"}) .. toHtml() .. @assert.eq('<img src="test.png">');
     @h.Img({"src":"test.png"}) .. toHtml() .. @assert.eq('<img src="test.png">');
   }
 

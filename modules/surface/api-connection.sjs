@@ -14,6 +14,7 @@ var {@warn} = require('sjs:logging');
 
 /**
   @summary API connection utility
+  @hostenv xbrowser
 
   @function withAPI
   @param {Object} [api] api module
