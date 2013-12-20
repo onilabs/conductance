@@ -36,7 +36,7 @@ exports.errorHandler = function() {
   return @Element("script", "
     (function() {
       var errorIndicatorShown = false;
-      function showErrorIndicator(e) {
+      window.onerror = function() {
         window.inhibit_auto_busy_indicator = true;
         if (typeof(rainbow) !== 'undefined' && rainbow.hide) rainbow.hide();
         if (errorIndicatorShown) return;
@@ -49,7 +49,10 @@ exports.errorHandler = function() {
             \"</div>\"+
           \"</div>\");
       };
-      window.onerror = showErrorIndicator;
+      window.onbeforeunload = function() {
+        // don't show error indicator when we're navigating away
+        errorIndicatorShown=true;
+      }
     })();
   ");
 };
