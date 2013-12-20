@@ -34,4 +34,6 @@ var output = contents + MARKER + "
 ";
 @fs.writeFile(outputFile, output);
 
+require('../tmp/copyright-header.gup').addHeader(outputFile);
+
 @childProcess.run('gup', ['--contents', outputFile], {stdio:'inherit'});

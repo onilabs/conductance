@@ -1,0 +1,52 @@
+#!/usr/bin/env sjs
+// vim: syntax=sjs:
+
+@ = require("sjs:std");
+@run = (cmd, args) -> @childProcess.run(cmd, args, {stdio:'inherit'});
+
+
+var headerFile = @url.normalize('../../tools/copyright-header.txt', module.id) .. @url.toPath;
+@run('gup', ['-u', headerFile]);
+var headerContent = @fs.readFile(headerFile);
+
+var addHeader = exports.addHeader = function(target) {
+  var src = @fs.readFile(target).toString();
+  // remove existing header
+  var orig = src;
+  src = src.replace(/(^|\n*)\/\*[\n* ]*\(c\) [0-9-, ]* Oni Labs(.|\n)*?\*\/\n*/i, '\n');
+  src = src.replace(/^\n*/, '');
+  if (src == orig) {
+    console.warn("No existing header found in #{target}");
+  }
+
+  // insert on first line that doesn't start with '#' or '//' (shebang & editor config lines)
+  var insertionPoint = src.match(/(^|\n)([^#\/]|\/[^\/])/m);
+  @assert.ok(insertionPoint, "no header insertion point found in #{target}");
+  var prefix = insertionPoint.index == 0 ? '' : '\n\n';
+  var repl = src.slice(0, insertionPoint.index) + prefix + headerContent + src.slice(insertionPoint.index);
+  if (repl != orig) {
+    console.warn("Updating copyright in #{target}");
+    @fs.writeFile(target, repl);
+  }
+}
+
+if (require.main === module) {
+  var [ stamp, _ ] = @argv();
+  function walkdir(path, cb) {
+    var files = @fs.readdir(path);
+    files .. @each {
+      |f|
+      if (@fs.isDirectory(path+"/"+f))
+        walkdir(path+"/"+f, cb);
+      else
+        cb(path+"/"+f);
+    };
+  }
+
+  walkdir("../modules") { |m|
+    if (/.+\.(sjs|mho)$/.test(m)) {
+      addHeader(m);
+    }
+  };
+  @fs.writeFile(stamp, '');
+}

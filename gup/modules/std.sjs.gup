@@ -78,6 +78,8 @@ var output = "
 
 @fs.writeFile(outputFile, output);
 
+require('../tmp/copyright-header.gup').addHeader(outputFile);
+
 var proc = @childProcess.launch('gup', ['--contents'], {'stdio':['pipe', null, null]});
 proc.stdin .. @write(output);
 proc.stdin.end();
