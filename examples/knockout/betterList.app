@@ -20,7 +20,7 @@ function addItem(ev) {
     if (!newItem.length && allItems.indexOf(newItem) != -1) {
       return unchanged;
     }
-    return allItems.concat([itemToAdd]);
+    return allItems.concat([newItem]);
   });
   itemToAdd.set(''); // clear text box
 }
