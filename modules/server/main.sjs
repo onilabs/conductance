@@ -9,6 +9,11 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @nodoc
+*/
+
+
 require('../../hub'); // install mho: hub
 var sys = require('sjs:sys');
 var str = require('sjs:string');

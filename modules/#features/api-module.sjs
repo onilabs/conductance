@@ -21,7 +21,7 @@
 @desc
   In client-side code, you connect to an `.api` module using the standard
   [sjs:#language/builtins::require] function.
-
+  
   A properly configured conductance server (see below for details) will respond to
   a request for an `.api` file with an [::ApiStub] module.
   This stub module provides a `connect` method, which allows
@@ -55,17 +55,13 @@
 @function ApiStub.connect
 @param {optional Settings} [opts]
 @param {Function} [block]
-@setting {Function} [disconnectHandler] Custom disconnect handler
-@setting {Boolean} [status] Maintain an observable `connection.status` property
+@setting {Function} [connectMonitor] Optional function to run while connecting
 @desc
   This function creates a connection to the given API module on the server.
 
-  `block` will be called with two arguments:
+  See the [rpc/bridge::connect] method for a description of the `connectMonitor` setting.
 
-   - the API object
-   - the [rpc/bridge::BridgeConnection::] object
-
-  The API object is a [rpc/bridge::API] object containing
+  `block` will be called with an object containing proxies for
   all of the methods and properties exposed by the `.api` module's `exports`.
 
   The connection will be held open for the duration of `block`s execution,
@@ -73,18 +69,13 @@
   exception). If an unrecoverable connection error occurs, `block` will be retracted and
   a [rpc/bridge::TransportError] will be thrown from the call to `connect`.
 
-  To provide users with feedback about intermittent connection errors (which
-  will delay API calls), it is recommended to pass `true` for `opts.status`, and to
-  use the connection's [rpc/bridge::BridgeConnection::status]
-  property to display UI notification the user when the connection is
-  temporarily unavailable.
+  ### Handling connection errors
 
-  `opts.disconnectHandler` may be used to modify the automatic reconnect
-  behaviour of the underlying connection. By default, it will be set to
-  the default [rpc/bridge::AutoReconnect] handler. You can override this with:
+  Using the `connect` method explicitly creates a single-shot
+  connection - i.e any connection error will throw an exception, and your
+  code will have to recover from this accordingly.
 
-   - a paramaterized version of [rpc/bridge::AutoReconnect]
-   - `null`, to disable automatic reconnection attempts entirely
-   - a custom function which implements the `disconnectHandler` interface
-     described in the documentation for [rpc/bridge::connect]
+  To connect to an API in a way that automatically handles connection failures
+  and attempts to reconnect if the connection is lost, you may want to use [app::withApi].
+
 */

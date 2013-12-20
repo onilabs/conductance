@@ -8,6 +8,9 @@
  * copied, modified, propagated, or distributed except
  * according to the terms contained in the LICENSE file.
  */
+/**
+  @nodoc
+*/
 
 var { createID } = require('./random');
 var { API } = require('mho:rpc/bridge');

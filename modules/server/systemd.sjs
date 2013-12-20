@@ -12,6 +12,9 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @summary Utilities for defining systemd units
+*/
 
 var fs = require('sjs:nodejs/fs');
 var child_process = require('sjs:nodejs/child-process');
@@ -87,10 +90,22 @@ GroupProto._init = function(name, units) {
     
 
 
-    The systemd units are generated with the following rules:
-  
-    // TODO...
+    The following types are supported as values:
 
+     - The `Environment` value may be an
+       object literal - its [sjs:object::ownPropertyPairs] will be
+       collected and converted to "#{key}=#{value}" format.
+
+     - `Exec*` values may be an array, in which case
+       they will be escaped using [sjs:shell-quote::].
+
+     - For all other cases, Arrays will be repeated as
+       multiple values of the same key, e.g: `{key: [1,2,3]}`
+       will be converted to:
+
+           key=1
+           key=2
+           key=3
 */
 var Group = exports.Group = function(name, units) {
 	var rv = Object.create(GroupProto);

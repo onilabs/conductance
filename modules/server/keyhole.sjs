@@ -9,6 +9,10 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @nodoc
+*/
+
 var { createID } = require('./random');
 var logging = require('sjs:logging');
 var { NotFound } = require('./response');

@@ -8,6 +8,9 @@
  * copied, modified, propagated, or distributed except
  * according to the terms contained in the LICENSE file.
  */
+/**
+  @nodoc
+*/
 
 var fs     = require('sjs:nodejs/fs');
 var nodefs = require('fs');

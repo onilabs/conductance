@@ -9,6 +9,10 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @summary Utilities for generating and handling HTTP responses
+*/
+
 var { debug, info, verbose } = require('sjs:logging');
 var { Constructor } = require('sjs:object');
 var assert = require('sjs:assert');
@@ -23,7 +27,6 @@ HttpErrorProto._init = function(code, statusText, description) {
   this.code = code;
   this.statusText = statusText;
   this.description = description;
-  // TODO: is this legit?
   Error.call(this, "HTTP #{this.code}: #{this.statusText}");
 };
 

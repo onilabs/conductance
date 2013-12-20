@@ -19,17 +19,85 @@ var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequenc
 
   @function Observable
   @param {Object} [val] Initial value
-  @desc
-    TO BE WRITTEN
 
   @function Observable.get
-  @summary TODO
+  @summary Get the current observable value.
 
   @function Observable.set
-  @summary TODO
+  @summary Set a new observable value
+  @desc
+    **Note:** If this observable value is shared by multiple pieces of
+    code, it is typically better to use [Observable::modify], which
+    will protect against concurrent modifications to the same object.
 
   @function Observable.modify
-  @summary TODO
+  @summary Modify the current observable value
+  @param {Function} [change]
+  @desc
+
+    `modify` allows you to change the current value of the observable
+    without the possibility of race conditions. Consider:
+
+        var increment = function(observable) {
+          observable.set(count.get() + 1);
+        };
+
+    While the above code will work fine for a local observable object,
+    it could silently drop data if either of `get`, `set` or the
+    modification function may suspend, or if you forget to get()
+    the latest value before setting the new one.
+
+    Instead, the following code is safe under all conditions:
+
+        var increment = function(observable) {
+          observable.modify(val -> val + 1);
+        };
+
+    If the observable has not changed between the call to the
+    `change` function and its return, the value will be updated atomically.
+
+    If the value has changed, the return value from the `change` function
+    is no longer necessarily correct, so `modify` throws a [::ConflictError]
+    and does not update the value. If you expect multiple concurrent updates
+    to a single observable, you should catch this exception yourself and
+    retry as appropriate.
+
+    ### Warning: avoid mutation
+
+    It is highly recommended that the `change` function
+    should be pure. That is, it should *not* modify the current
+    value, but instead return a new value based on `current`.
+
+    That is, **don't** do this:
+
+        val.mutate(function(items) { items.push(newItem); return items; });
+
+    Instead, you should do this:
+
+        val.mutate(function(items) { return items.concat(newItem); });
+
+    If you mutate the current value but a conflict occurs with other
+    code trying to modify the same value, the results will likely
+    be inconsistent - the value may have changed, but no observers
+    will be notified of the change.
+
+    ### Cancelling a modification
+
+    In some cicrumstances, you may call `modify`, only to find that
+    the current value requires no modification. For this purpose,
+    a sentinel value is provided as the second argument to `change`.
+    If `change` returns this value, the modification is abandoned.
+
+        var decrement = function(observable) {
+          observable.modify(function(current, unchanged) {
+            if (current == 0) return unchanged;
+            return current - 1;
+          }
+        }
+
+    This is better than simply returning the current value as the new
+    value, as that would still cause observers to be notified of the
+    "new" value.
 */
 
 var unchanged = {};
@@ -158,9 +226,14 @@ exports.Computed = Computed;
 /**
    @function ObservableTuple
    @param {Stream} [input ...]
-   @summary Create a stream of tuples with 'Observable semantics'.
+   @summary Create a stream of tuples with Observable semantics.
    @desc
-      TO BE WRITTEN
+      ObservableTuple combines a number of input streams into a single
+      stream where each element is an array of the latest value from
+      each `input` - whenever one input changes, a new tuple is emitted.
+
+      If you want to make a derived value from multiple inputs
+      (rather than just an array of latest values), you should use [::Computed].
 */
 var ObservableTuple = exports.ObservableTuple = function() {
   var deps = arguments;

@@ -9,6 +9,9 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @nodoc
+*/
 var url = require('sjs:url');
 var path = require('nodejs:path');
 

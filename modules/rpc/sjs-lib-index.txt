@@ -1,1 +1,1 @@
-@name Conductance "bridge" rpc functionality
+@summary Bidirectional client-server communication

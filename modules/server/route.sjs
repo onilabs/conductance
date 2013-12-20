@@ -9,6 +9,13 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @summary Routing objects for use in the Conductance web server
+  @desc
+    See [server::run] and [#features/mho-file::] for more details
+    on configuring and running the Conductance web server.
+*/
+
 var { conductanceRoot, sjsRoot } = require('./env');
 var { setStatus, writeRedirectResponse, writeErrorResponse, isHttpError, HttpError, ServerError } = require('./response');
 var { flatten } = require('sjs:array');
@@ -62,7 +69,12 @@ exports.AllowCORS = AllowCORS;
 
 /**
    @function SimpleRedirect
-   @summary Deprecated
+   @param {RegExp|String} [path] Path to match
+   @param {String} [dest] Redirect destination
+   @param {optional Number} [status=302] HTTP status code
+   @summary Respond with a HTTP redirect to a different path on this server
+   @desc
+     Any query paramaters on the original URL are included in the redirection.
 */
 function SimpleRedirect(path, new_base, status) {
   status = status || 302;
@@ -318,12 +330,23 @@ exports.StaticDirectory = createDirectoryMapper({});
 
 /**
    @function SystemRoutes
-   @summary XXX To be documented
+   @summary Standard system routes
+   @desc
+    These routes are required for standard operation of the Conductance
+    server - you should always include them in your server configuration
+    if you use Conductance features.
+
+    They provide mappings for serving builtin conductance and StratifiedJS
+    modules, as well as routes to handle bidirectional bridge communication.
+
+    All included routes begin with with `/__` (e.g `/__mho/` and `/__sjs/`), so
+    you should avoid defining your own routes beginning with `/__` to
+    avoid the possibility of a clash.
 */
 function SystemRoutes() {
   return [
     CodeDirectory('__sjs/', "#{sjsRoot}"),
-    ExecutableDirectory('__mho/', "#{conductanceRoot}modules/"),
+    CodeDirectory('__mho/', "#{conductanceRoot}modules/"),
     Route(
       /^__aat_bridge\/(2)$/,
       require('mho:rpc/aat-server').createTransportHandler(
@@ -348,6 +371,7 @@ exports.SystemRoutes = SystemRoutes;
   @altsyntax responder .. SetHeaders(headers)
   @param {../server::Responder|Array} [responder]
   @param {Object} [headers]
+  @summary Set multiple response headers
   @return A copy of `responder` which sets the given headers for every request.
   @desc
     ### Example:
@@ -372,6 +396,7 @@ exports.SetHeaders = function(responder, headers) {
   @param {../server::Responder|Array} [responder]
   @param {String} [headerName]
   @param {String} [value]
+  @summary Set a single response header
   @return A copy of `responder` which sets the given header for every request.
   @desc
     See also [::SetHeaders]
@@ -388,6 +413,7 @@ exports.SetHeader = function(responder, k, v) {
   @altsyntax responder .. DeveloperMode()
   @param {../server::Responder|Array} [responder]
   @return A copy of `responder` with development mode enabled
+  @summary Include stack traces for server-side errors
   @desc
     Developer mode sends server-side errors to the client as a stacktrace.
 
@@ -429,9 +455,10 @@ exports.DeveloperMode = function(responder) {
 
 /**
   @function LogRequests
-  @param {Object} [headers]
   @param {../server::Responder|Array} [responder]
-  @return A copy of `responder` which logs request boundaries at the given log level
+  @param {Number} [level] A log level from [sjs:logging::]
+  @summary Log requests via the [sjs:logging::] module
+  @return A copy of `responder` which logs request boundaries (start/end) at the given log level
 */
 exports.LogRequests = function(responder, level) {
   if (level === undefined) level = logging.INFO;

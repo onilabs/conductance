@@ -19,6 +19,7 @@ var { override, merge } = require('sjs:object');
 var { Computed } = require('../observable');
 
 /**
+  @summary Surface HTML elements
   @desc
     As well as the explicitly document functions below, this module exports a
     constructor function for every HTML tag in the

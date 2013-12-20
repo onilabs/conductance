@@ -9,6 +9,10 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @summary File-format configuration for the conductance server
+*/
+
 var env = require('./env');
 var { pump, readAll } = require('sjs:nodejs/stream');
 var { map, each, toArray, join } = require('sjs:sequence');

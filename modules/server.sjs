@@ -23,7 +23,7 @@ var string = require('sjs:string');
 
 /**
   @function run
-  @summary run a conductance server
+  @summary Run a conductance server
   @param {Object|Array} [config] server configuration(s)
   @param {optional Function} [block] Block to run the server around
   @desc
@@ -272,6 +272,7 @@ var Responder = {
 
 /**
   @class Host
+  @summary Handle reqeusts for a given host
   @function Host
   @param {String|RexExp} [hostName] Hostname to handle requests for
   @param {Array} [routes] Array of (possibly nested) [::Route] objects for this host
@@ -407,6 +408,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
 
 /**
   @class Route
+  @summary Custom Route handler
   @function Route
   @param {optional RexExp|String} [path] Path to match
   @param {Object|Array} [handlers] handler object or array of sub-routes
@@ -459,8 +461,8 @@ exports.Route = Constructor(RouteProto);
     If `address` is not given, the server will listen on all available interfaces.
 
     If `port` is not given, or is falsy, a random available port will be used.
-    //TODO: how do you find out what port was used?
 */
+//TODO: how do you find out what port was used?
 var PortProto = {};
 PortProto.defaultConfig = {
   capacity: 100,

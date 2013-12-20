@@ -48,15 +48,15 @@
     the initial `require()` statements in an application, it is
     pre-loaded as `window.withBusyIndicator`. This means that instead of:
 
-      require('mho:app').withBusyIndicator {||
-        @ = require( <dependencies...> );
-      }
+        require('mho:app').withBusyIndicator {||
+          @ = require( <dependencies...> );
+        }
 
     You should typically use:
 
-      withBusyIndicator {||
-        @ = require( <dependencies...> );
-      }
+        withBusyIndicator {||
+          @ = require( <dependencies...> );
+        }
 
     Since other parts of `mho:app` may load resources from the server,
     this second form will ensure the busy indicator is displayed as soon as

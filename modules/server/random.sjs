@@ -9,6 +9,10 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @nodoc
+*/
+
 var sjcl   = require('sjs:sjcl');
 var fs     = require('sjs:nodejs/fs');
 var buffer = require('nodejs:buffer');

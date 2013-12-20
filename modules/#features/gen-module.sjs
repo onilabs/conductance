@@ -41,6 +41,7 @@
 
 
   @function content
+  @summary Generate the page content
   @param {Object} [params] URL parameters
   @return {String} document content
   @desc
@@ -65,7 +66,8 @@
 
       exports.filetype = 'html';
 
-  @fucntion etag
+  @function etag
+  @summary Generate an etag identifier
   @param {Object} [params] URL parameters
   @return {String} etag
   @desc
