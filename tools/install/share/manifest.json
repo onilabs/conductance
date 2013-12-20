@@ -15,8 +15,8 @@
   }
 , "data":
   { "conductance":
-    { "id": "0.1-dev"
-    , "href": "https://conductance.io/install/conductance-42a38acddf4fd290cd8e5898ef558d3ae4f159bf"
+    { "id": "0.1-pre"
+    , "href": "https://github.com/onilabs/conductance/tarball/8e3f4f5d13de4e9eeed6c4ad33eab5e5ba15fb51"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
@@ -34,7 +34,7 @@
       }
     }
   , "stratifiedjs":
-    { "id": "0.14-dev"
+    { "id": "0.15-pre"
     , "href": "https://github.com/onilabs/stratifiedjs/tarball/f428d1a146ae6655d29bc7849a5474356c5acfb4"
     , "extract": 1
     , "links":
