@@ -331,7 +331,7 @@ ElementProto.appendTo = function(target) {
     .. map(function([key,val]) {
       if (typeof(val) === 'undefined') return "";
       if (typeof(val) === 'boolean') {
-        return val ? key : "";
+        return val ? " #{key}" : "";
       }
       return " #{key}=\"#{String(flattenAttrib(val)).replace(/\"/g, '&quot;')}\"";
     })
