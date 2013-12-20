@@ -27,7 +27,7 @@ context("observable widget content") {||
     content.set("second");
 
     var widgets = [observableElement, computedElement];
-    document.body .. appendContent(widgets) {|parent|
+    document.body .. appendContent(`<div>$widgets</div>`) {|parent|
       var elems = parent.childNodes;
       elems.length .. assert.eq(widgets.length);
 
@@ -51,7 +51,6 @@ context("select widget") {||
 
   var commonTests = function() {
     test("should reflect static selections") {|s|
-      var selection = Observable("one");
       withSelect({
         items: s.items,
         selected: "one",
