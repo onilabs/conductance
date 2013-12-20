@@ -9,6 +9,12 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @nodoc
+  */
+
+// TODO: document
+
 var { transform, each, map, join, toArray } = require('sjs:sequence');
 
 /*
