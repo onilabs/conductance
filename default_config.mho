@@ -1,7 +1,7 @@
 // Default conductance configuration
 
-var assert = require('sjs:assert');
-var logging = require('sjs:logging');
+@ = require('mho:std');
+
 var server = require('mho:server');
 
 //----------------------------------------------------------------------
@@ -52,40 +52,34 @@ exports.serve = function(args) {
     process.exit(0);
   }
 
-  var { readFile } = require('sjs:nodejs/fs');
-  var { conductanceRoot } = require('mho:server/env');
-  var { Port } = server;
-  var { SystemRoutes, ExecutableDirectory, LogRequests, DeveloperMode, AllowCORS } = require('mho:server/route');
-
-
   var routes = [
-        SystemRoutes(),
-        ExecutableDirectory(process.cwd()),
-      ] .. LogRequests(logging.INFO);
+        @route.SystemRoutes(),
+        @route.ExecutableDirectory('__doc', @env.conductanceRoot + '/doc'),
+        @route.ExecutableDirectory(process.cwd()),
+      ] .. @route.LogRequests(@logging.INFO);
 
   if (process.env.NODE_ENV !== 'production') {
     // show stacktraces
-    routes = routes .. DeveloperMode();
+    routes = routes .. @route.DeveloperMode();
   }
-
 
   var host = opts.host == 'any' ? null : opts.host;
   var port = opts.port;
   var ssl = opts.ssl;
 
-  var address = Port(port, host);
+  var address = @Port(port, host);
   if (opts.ssl) {
     address = address.ssl({
-      key: readFile("#{conductanceRoot}ssl/insecure-localhost.key"),
-      cert: readFile("#{conductanceRoot}ssl/insecure-localhost.crt")
+      key: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.key"),
+      cert: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.crt")
     });
   }
 
   if (opts.cors) {
-    routes = routes .. AllowCORS;
+    routes = routes .. @route.AllowCORS;
   };
 
-  server.run({
+  @server.run({
     address: address,
     routes: routes,
   });
