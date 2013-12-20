@@ -59,7 +59,7 @@ exports._getDynOniSurfaceInit = ->
            // `html` is a fragment corresponding to a <strong> element
            // with the text "Hello, John"
 
-     - Any [::CollapsedFragment] (e.g any [::Element])
+     - Any [::Element]
      - An `Array` of [::HtmlFragment]s.
      - A `String`, which will be automatically escaped (see [::RawHTML] for
        inserting a String as HTML).
@@ -684,7 +684,7 @@ exports.RequireStyle = RequireStyle;
     document, `mechanism` will be called with its first argument and
     `this` pointer both set to `element`s DOM node.
 
-    When `element` is removed from the document using [::RemoveNode],
+    When `element` is removed from the document using [::removeNode],
     any still-running mechanisms attached to that element will be
     aborted.
 

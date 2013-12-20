@@ -405,7 +405,7 @@ function unmarshallStream(obj, connection) {
     data types and function calls across an RPC transport.
 
     `BridgeConnection` instances cannot be constructed directly, see [::connect] or
-    [#features/api-modules::].
+    [#features/api-module::].
 
   @variable BridgeConnection.sessionLost
   @type sjs:event::Emitter

@@ -32,7 +32,7 @@
   javascript dependencies. The default template also makes available
   a number of utilities via the [mho:app::] module.
 
-  You can customise the template used with the [::template] directive.
+  You can customise the template used with the [::@template] directive.
 
   ### Code reuse:
 
@@ -58,7 +58,7 @@
   
   You can also specify a relative path if you wish to use your own
   template module. Custom templates will be loaded via
-  [server/formats::loadTemplate].
+  [surface::loadTemplate].
 
 @feature @template-title
 @summary Set the document title

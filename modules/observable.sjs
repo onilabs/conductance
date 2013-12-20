@@ -27,7 +27,7 @@ var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequenc
   @summary Set a new observable value
   @desc
     **Note:** If this observable value is shared by multiple pieces of
-    code, it is typically better to use [Observable::modify], which
+    code, it is typically better to use [::Observable::modify], which
     will protect against concurrent modifications to the same object.
 
   @function Observable.modify
