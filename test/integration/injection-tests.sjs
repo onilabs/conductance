@@ -15,11 +15,11 @@ var payloadCss = "url('data:base64;#{payloadString.replace(/(')/g, '\\\'')}')";
 
 var rel = p -> Url.normalize('./fixtures/' + p, module.id);
 
-/// NOTE: context-aware encoding works only on "Widget" boundaries. i.e:
-// Widget("script", content)
+/// NOTE: context-aware encoding works only on "Element" boundaries. i.e:
+// Element("script", content)
 //    -> will escape `content` appropriately for a <script>, while
 //
-// Widget("div", `<script>$content</script>`)
+// Element("div", `<script>$content</script>`)
 //    -> will escape $content for inside a <div>, rather than a <script>
 //
 // If we wanted to protect against the latter case, we'e dhave to actually parse
@@ -76,36 +76,36 @@ context("static file generation") {||
 }
 
 context("dynamic content generation") {||
-	var {Widget, appendContent, Style} = require('mho:surface');
+	var {Element, appendContent, Style} = require('mho:surface');
 
 	test("encodes data inside a regular html tag") {||
-		document.body .. appendContent(Widget("div", payloadString)) {|elem|
+		document.body .. appendContent(Element("div", payloadString)) {|elem|
 			elem.textContent .. assert.eq(payloadString);
 		}
 	}
 
 	test("encodes data inside a <script>") {||
-		document.body .. appendContent(Widget("script", "window.tmp = #{JSON.stringify(payloadObject)};")) {|elem|
+		document.body .. appendContent(Element("script", "window.tmp = #{JSON.stringify(payloadObject)};")) {|elem|
 			window.tmp .. assert.eq(payloadObject);
 		}
 
-		document.body .. appendContent(Widget("script", `window.tmp = ${JSON.stringify(payloadObject)};`)) {|elem|
+		document.body .. appendContent(Element("script", `window.tmp = ${JSON.stringify(payloadObject)};`)) {|elem|
 			window.tmp .. assert.eq(payloadObject);
 		}
 	}.ignoreLeaks("tmp");
 
 	test("encodes data inside a <pre>") {|s|
-		document.body .. appendContent(Widget("pre", payloadString)) {|elem|
+		document.body .. appendContent(Element("pre", payloadString)) {|elem|
 			elem.textContent .. assert.eq(payloadString);
 		}
 
-		document.body .. appendContent(Widget("div", `<pre>$payloadString</pre>`)) {|elem|
+		document.body .. appendContent(Element("div", `<pre>$payloadString</pre>`)) {|elem|
 			elem.childNodes[0].textContent .. assert.eq(payloadString);
 		}
 	}
 
 	test("encodes data inside a CSS block") {|s|
-		document.body .. appendContent(Widget("div", "text") .. Style("{background-image: #{payloadCss} }")) {|elem|
+		document.body .. appendContent(Element("div", "text") .. Style("{background-image: #{payloadCss} }")) {|elem|
 			// getComputedStyle is not always synchronous
 			waitforSuccess(-> window.getComputedStyle(elem)['background-image'] .. assert.eq(payloadCss));
 		}

@@ -1,7 +1,7 @@
 var {test, context, assert} = require('sjs:test/suite');
 context("dynamic") {||
 
-var {appendContent, Widget} = require('mho:surface');
+var {appendContent, Element} = require('mho:surface');
 var { Select } = require('mho:surface/html');
 var {Observable, Computed} = require('mho:observable');
 var {each, at, map} = require('sjs:sequence');
@@ -15,18 +15,18 @@ var click = function(elem) {
 context("void elements") {||
   test("should throw no errors") {||
     // testing for IE edge cases, mostly
-    document.body .. appendContent(Widget("img"), ->hold(100));
+    document.body .. appendContent(Element("img"), ->hold(100));
   }
 }
 
 context("observable widget content") {||
   test("should reflect changes made before & after insertion") {||
     var content = Observable("first");
-    var observableWidget = Widget("div", content);
-    var computedWidget = Widget("div", Computed(content, c -> 'computed ' + c));
+    var observableElement = Element("div", content);
+    var computedElement = Element("div", Computed(content, c -> 'computed ' + c));
     content.set("second");
 
-    var widgets = [observableWidget, computedWidget];
+    var widgets = [observableElement, computedElement];
     document.body .. appendContent(widgets) {|parent|
       var elems = parent.childNodes;
       elems.length .. assert.eq(widgets.length);
