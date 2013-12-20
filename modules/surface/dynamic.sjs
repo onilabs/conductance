@@ -172,10 +172,14 @@ function StreamNodes(elem) {
 
 function runMechanisms(elem, content_only) {
   if (elem.nodeType == 1) {
-    elem.querySelectorAll('[data-oni-mechanisms]') ..
+
+    var elems = elem.querySelectorAll('[data-oni-mechanisms]') ..
       concat((!content_only && elem.hasAttribute('data-oni-mechanisms')) ? [elem] : []) ..
-      reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
-      each {
+      reverse; // we want to start mechanisms in post-order; querySelectorAll is pre-order
+
+    var streams = StreamNodes(elem) .. toArray;
+
+    elems .. each {
         |elem|
         elem.__oni_mechs = [];
         elem.getAttribute('data-oni-mechanisms').split(' ') ..
@@ -187,7 +191,7 @@ function runMechanisms(elem, content_only) {
       }
     
     // start streams:
-    StreamNodes(elem) .. toArray .. each { 
+    streams .. each { 
       |node| 
       var [,mech] = node.nodeValue.split("|");
       node.__oni_mechs = [spawn mechanismsInstalled[mech].func.call(node, node)];
