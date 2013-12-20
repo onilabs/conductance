@@ -86,10 +86,10 @@ context("dynamic content generation") {||
 
 	test("encodes data inside a <script>") {||
 		document.body .. appendContent(Element("script", "window.tmp = #{JSON.stringify(payloadObject)};")) {|elem|
-			window.tmp .. assert.eq(payloadObject);
-		}
-
-		document.body .. appendContent(Element("script", `window.tmp = ${JSON.stringify(payloadObject)};`)) {|elem|
+			// XXX appendContent uses insertAdjacentHTML, which doesn't auto-eval
+			// script tags. We don't really care about that here, just that the script
+			// contents are escaped correctly
+			eval(elem.textContent);
 			window.tmp .. assert.eq(payloadObject);
 		}
 	}.ignoreLeaks("tmp");
@@ -97,10 +97,6 @@ context("dynamic content generation") {||
 	test("encodes data inside a <pre>") {|s|
 		document.body .. appendContent(Element("pre", payloadString)) {|elem|
 			elem.textContent .. assert.eq(payloadString);
-		}
-
-		document.body .. appendContent(Element("div", `<pre>$payloadString</pre>`)) {|elem|
-			elem.childNodes[0].textContent .. assert.eq(payloadString);
 		}
 	}
 

@@ -2,11 +2,11 @@ var { ownValues, get } = require('sjs:object');
 var { at } = require('sjs:sequence');
 var logging = require('sjs:logging');
 var {collapseHtmlFragment} = require('mho:surface/base');
-var {Widget, Style, Document} = require('mho:surface');
+var {Element, Style, Document} = require('mho:surface');
 
 var templates = {
-	script: v -> Widget("script", "window.injected = #{v};", {"id":"content"}),
-	scriptQuasi: v -> Widget("script", `window.injected = ${v};`, {"id":"content"}),
+	script: v -> Element("script", "window.injected = #{v};", {"id":"content"}),
+	scriptQuasi: v -> Element("script", `window.injected = ${v};`, {"id":"content"}),
 	div:    v -> `<div id="content">$v</div>`,
 	pre:    v -> `<pre id="content">$v</pre>`,
 };
@@ -17,7 +17,7 @@ exports.content = function(pars) {
 	var result;
 	switch(name) {
 		case 'style':
-			result = Document(Widget("div", "styled", {"id":"content"}) .. Style(value));
+			result = Document(Element("div", "styled", {"id":"content"}) .. Style(value));
 			break;
 		default:
 			var tmpl = templates .. get(name);

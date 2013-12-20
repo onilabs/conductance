@@ -27,8 +27,8 @@ context("observable widget content") {||
     content.set("second");
 
     var widgets = [observableElement, computedElement];
-    document.body .. appendContent(`<div>$widgets</div>`) {|parent|
-      var elems = parent.childNodes;
+    document.body .. appendContent(widgets, function(/*elems ...*/) {
+      var elems = arguments;
       elems.length .. assert.eq(widgets.length);
 
       elems .. each {|elem|
@@ -40,7 +40,7 @@ context("observable widget content") {||
       elems .. each {|elem|
         elem.textContent.split(' ') .. at(-1) .. assert.eq("third");
       }
-    };
+    });
   }
 }
 
