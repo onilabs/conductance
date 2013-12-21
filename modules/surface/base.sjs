@@ -612,9 +612,9 @@ __js var ExternalStyleDefProto = {
   waitforLoading: true // This causes dynamic html code to wait for the css file to load before displaying; sometimes this is what we want, sometimes it isn't. XXX we might want to make this configurable.
 };
 
-__js function ExternalStyleDef(url, parent_class) {
+__js function ExternalStyleDef(url) {
   var rv = Object.create(ExternalStyleDefProto);
-  rv.url = buildUrl(url, {scope:parent_class});
+  rv.url = buildUrl(url);
   return rv;
 }
 
@@ -659,11 +659,11 @@ function RequireStyle(/* [opt] ft, url */) {
   }
 
   if (arguments.length == 1) {
-    styledef = ExternalStyleDef(arguments[0], class_name);
+    styledef = ExternalStyleDef(arguments[0]);
     return setStyle;
   }
   else /* if (arguments == 2) */{
-    styledef = ExternalStyleDef(arguments[1], class_name);
+    styledef = ExternalStyleDef(arguments[1]);
     return setStyle(arguments[0]);
   }
 }
