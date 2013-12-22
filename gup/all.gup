@@ -3,5 +3,4 @@ gup -u \
 	node_modules/all \
 	modules/all \
 	test/all \
-	tmp/version-stamp \
 	tmp/copyright-header
