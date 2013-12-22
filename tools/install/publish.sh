@@ -7,4 +7,4 @@ PATH="$PWD/../:$PATH"
 gup all
 . ./env.sh
 set -x
-cp -v --dereference $platform_bundles manifest*.json install.sh "$dest/"
+rsync -v --delay-updates --checksum --copy-links $platform_bundles manifest*.json install.sh "$dest/"
