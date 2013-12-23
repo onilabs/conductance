@@ -1,53 +1,52 @@
 var {test, context, assert} = require('sjs:test/suite');
 context("dynamic") {||
+@ =require(['mho:surface', 'sjs:sequence', 'mho:observable', 'sjs:object']);
 
-var {appendContent, Element} = require('mho:surface');
-var { Select } = require('mho:surface/html');
-var {Observable, Computed} = require('mho:observable');
-var {each, at, map} = require('sjs:sequence');
-var driver = require('sjs:xbrowser/driver');
+var { @Select, @Div } = require('mho:surface/html');
+var {@Observable, @Computed} = require('mho:observable');
+@driver = require('sjs:xbrowser/driver');
 
 var click = function(elem) {
-  elem .. driver.trigger('click');
-  elem .. driver.trigger('change');
+  elem .. @driver.trigger('click');
+  elem .. @driver.trigger('change');
 }
 
 context("void elements") {||
   test("should throw no errors") {||
     // testing for IE edge cases, mostly
-    document.body .. appendContent(Element("img"), ->hold(100));
+    document.body .. @appendContent(@Element("img"), ->hold(100));
   }
 }
 
 context("observable widget content") {||
   test("should reflect changes made before & after insertion") {||
-    var content = Observable("first");
-    var observableElement = Element("div", content);
-    var computedElement = Element("div", Computed(content, c -> 'computed ' + c));
+    var content = @Observable("first");
+    var observableElement = @Element("div", content);
+    var computedElement = @Element("div", @Computed(content, c -> 'computed ' + c));
     content.set("second");
 
     var widgets = [observableElement, computedElement];
-    document.body .. appendContent(widgets, function(/*elems ...*/) {
+    document.body .. @appendContent(widgets, function(/*elems ...*/) {
       var elems = arguments;
       elems.length .. assert.eq(widgets.length);
 
-      elems .. each {|elem|
-        elem.textContent.split(' ') .. at(-1) .. assert.eq("second");
+      elems .. @each {|elem|
+        elem.textContent.split(' ') .. @at(-1) .. assert.eq("second");
       }
 
       content.set("third");
 
-      elems .. each {|elem|
-        elem.textContent.split(' ') .. at(-1) .. assert.eq("third");
+      elems .. @each {|elem|
+        elem.textContent.split(' ') .. @at(-1) .. assert.eq("third");
       }
     });
   }
 }
 
 context("select widget") {||
-  var selectionMap = node -> node.childNodes .. map(e -> e.selected);
+  var selectionMap = node -> node.childNodes .. @map(e -> e.selected);
   var withSelect = (settings, block) ->
-      document.body .. appendContent(Select(settings), block);
+      document.body .. @appendContent(@Select(settings), block);
 
   var commonTests = function() {
     test("should reflect static selections") {|s|
@@ -60,7 +59,7 @@ context("select widget") {||
     }
 
     test("should read selection object changes") {|s|
-      var selection = Observable("one");
+      var selection = @Observable("one");
       withSelect({
         items: s.items,
         selected: selection,
@@ -83,7 +82,7 @@ context("select widget") {||
     }
 
     test("should store selection object changes") {|s|
-      var selection = Observable("one");
+      var selection = @Observable("one");
       withSelect({
         items: s.items,
         selected: selection,
@@ -117,12 +116,12 @@ context("select widget") {||
 
   context("observable collection") {||
     test.beforeEach {|s|
-      s.items = Observable(["one", "two", "three"]);
+      s.items = @Observable(["one", "two", "three"]);
     }
     commonTests();
 
     test("should maintain single selection on item change") {|s|
-      var selection = Observable("one");
+      var selection = @Observable("one");
       withSelect({
         items: s.items,
         selected: selection,
@@ -134,7 +133,7 @@ context("select widget") {||
     }
 
     test("should maintain multiple selection on item change") {|s|
-      var selection = Observable(["one", "two"]);
+      var selection = @Observable(["one", "two"]);
       withSelect({
         items: s.items,
         selected: selection,
@@ -147,7 +146,7 @@ context("select widget") {||
     }
 
     test("should use latest selection on item change if selection is observable") {|s|
-      var selection = Observable(["one", "two"]);
+      var selection = @Observable(["one", "two"]);
       withSelect({
         items: s.items,
         selected: selection,
