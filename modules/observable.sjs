@@ -70,11 +70,11 @@ var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequenc
 
     That is, **don't** do this:
 
-        val.mutate(function(items) { items.push(newItem); return items; });
+        val.modify(function(items) { items.push(newItem); return items; });
 
     Instead, you should do this:
 
-        val.mutate(function(items) { return items.concat(newItem); });
+        val.modify(function(items) { return items.concat(newItem); });
 
     If you mutate the current value but a conflict occurs with other
     code trying to modify the same value, the results will likely
