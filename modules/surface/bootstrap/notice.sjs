@@ -52,9 +52,10 @@ exports.NoticeStyle = function() {
 
 /**
   @function Notice
-  @param {surface/HtmlFragment} [content]
-  @param {optional Settings} [settings]
-  @setting {surface/Style} [style]
+  @summary Create a floating notice
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [settings]
+  @setting {surface::Style} [style]
   @setting {String} [class] additional class to place on notice
   @desc
     The notice contains a default style which sets

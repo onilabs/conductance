@@ -83,7 +83,7 @@ var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequenc
 
     ### Cancelling a modification
 
-    In some cicrumstances, you may call `modify`, only to find that
+    In some circumstances, you may call `modify`, only to find that
     the current value requires no modification. For this purpose,
     a sentinel value is provided as the second argument to `change`.
     If `change` returns this value, the modification is abandoned.

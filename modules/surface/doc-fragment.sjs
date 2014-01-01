@@ -45,7 +45,7 @@ exports.errorHandler = function() {
           \"<div style='#{_fixedNoticeStyle .. escapeCssAttr}'>\" +
             \"<div class='alert alert-danger' style='#{_fixedNoticeAlertStyle .. escapeCssAttr}'>\"+
               \"<strong>Error:</strong>\"+
-              \" An uncaught error occurred, reload the page to try again.\"+
+              \" An uncaught error occurred. Reload the page to try again.\"+
             \"</div>\"+
           \"</div>\");
       };
@@ -70,7 +70,7 @@ var rainbowContents = readFile(require.url('./rainbow.min.js') .. toPath);
 */
 exports.busyIndicator = function(showImmediately, opts) {
   opts = opts || {};
-  var color = opts.color || '#E12735';
+  var color = opts.color || '#C43133';
   var thickness = opts.thickness === undefined ? 2 : opts.thickness;
   var shadow = opts.shadow === undefined ? 2 : opts.shadow;
   return [
