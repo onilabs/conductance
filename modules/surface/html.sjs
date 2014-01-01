@@ -98,7 +98,7 @@ var { Computed } = require('../observable');
   'Img', 'Iframe', 'Embed', 'Object', 'Param', 'Video', 'Audio', 'Source', 'Track',
   'Canvas', 'Map', 'Area', 'Svg', 'Math',
   'Table', 'Caption', 'ColGroup', 'Col', 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
-  'Form', 'FieldSet', 'Legend', 'Label', 'Input', 'Button', /* 'Select', */
+  'Form', 'FieldSet', 'Legend', 'Label', /* 'Input', */ 'Button', /* 'Select', */
   'DataList', 'OptGroup', 'Option', 'TextArea', 'KeyGen', 'Output', 'Progress', 'Meter',
   'Details', 'Summary', 'MenuItem', 'Menu',
 ] .. each {|name|
@@ -108,14 +108,15 @@ var { Computed } = require('../observable');
 
 //----------------------------------------------------------------------
 /**
-  @function TextInput
-  @summary A plain HTML 'input' element with type='text'
+  @function Input
+  @summary A plain HTML 'input' element 
+  @param  {String} [type]
   @param  {String|sjs:sequence::Stream} [value]
   @param  {optional Object} [attrs]
   @return {surface::Element}
 */
-var TextInput = (value, attrs) ->
-  Element('input', null, {'type':'text'} .. merge(attrs||{})) ..
+var Input = (type, value, attrs) ->
+  Element('input', {'type':type} .. merge(attrs||{})) ..
   Mechanism(function(node) {
     value = value || "";
     if (isStream(value)) {
@@ -136,6 +137,18 @@ var TextInput = (value, attrs) ->
       node.value = value;
     }
   });
+exports.Input = Input;
+
+
+//----------------------------------------------------------------------
+/**
+  @function TextInput
+  @summary A plain HTML 'input' element with type='text'
+  @param  {String|sjs:sequence::Stream} [value]
+  @param  {optional Object} [attrs]
+  @return {surface::Element}
+*/
+var TextInput = (value, attrs) -> Input('text', value, attrs);
 exports.TextInput = TextInput;
 
 

@@ -31,7 +31,7 @@ exports .. @extend(base_html);
 
 // XXX there has to be a better way to set the classes here
 function wrapWithClass(baseElement, cls) {
-  return (content, attribs) -> baseElement(content, attribs) .. @Class(cls);
+  return () -> baseElement.apply(null, arguments) .. @Class(cls);
 }
 
 /**
@@ -54,7 +54,8 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
 
 /**
   @function Input
-  @param {surface::HtmlFragment} [content]
+  @param  {String} [type]
+  @param {String|sjs:sequence::Stream} [value]
   @param {optional Object} [attribs]
   @summary <input class="form-control">
   @return {surface::Element}
