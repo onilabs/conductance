@@ -33,6 +33,27 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
 // aat-server::PING_INTERVAL.
 var SERVER_PING_INTERVAL = 1000*(40+5); 
 
+// time (in ms) over which to batch aat calls:
+/* 
+  Why we set a non-zero call batch period:
+
+  With CALL_BATCH_PERIOD set to 0, only 'temporally adjacent' calls
+  will batched into a single request, i.e. calls that don't have a
+  hold(0) (or longer) in between them. 
+
+  Several library functions, such as each.par/transform.par, etc, have
+  hold(0)'s built-in to limit recursion depth. 
+  In a call such as
+
+    data .. @transform.par(50, datum -> server.foo(datum)) .. ...
+
+  there will be a built-in hold(0) for every 10's concurrent invocation of 
+  server.foo.
+  Thus a value of CALL_BATCH_PERIOD = 0 would cause only 10 server.foo calls to be batched up 
+  into the same request, and not 50 as the code might suggest. 
+*/
+var CALL_BATCH_PERIOD = 20;
+
 /*
 
  2 messages: send, poll
@@ -196,7 +217,8 @@ function openTransport(server) {
           body: JSON.stringify(messages)
         });
       return messages; // XXX no point in mapping the return value
-    }),
+    },
+                        {batch_period:CALL_BATCH_PERIOD}),
 
     sendData: function(header, data) {
       sendCommand.call(this,
