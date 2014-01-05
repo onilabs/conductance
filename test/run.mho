@@ -53,6 +53,7 @@ var serverConfig = {
       });
     })(),
     SystemRoutes(),
+    ExecutableDirectory(/(?=hello.api$)/, './test'),
     ExecutableDirectory(process.cwd()),
   ]
 };

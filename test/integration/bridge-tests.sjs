@@ -196,6 +196,15 @@ context() {||
     }.skip("TODO: update for new API");
 
 
+    test("serves .api from relative directory") {||
+      // hello.api is configured to be served from "./test",
+      // not cwd() + '/test':
+      require(helper.url('/hello.api')).connect {|api|
+        api.hello() .. assert.eq("world!");
+      }
+    }
+
+
     context('multiple clients') {||
       var driver = require('sjs:xbrowser/driver');
       var { Driver } = driver;

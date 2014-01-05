@@ -23,6 +23,7 @@ var { isString, sanitize } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
 var { keys } = require('sjs:object');
 var { Route } = require('../server');
+var fs = require('sjs:nodejs/fs');
 var logging = require('sjs:logging');
 
 //----------------------------------------------------------------------
@@ -248,6 +249,7 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
       if (isString(path)) path = new RegExp("^#{require('sjs:regexp').escape(path)}");
     }
 
+    root = fs.realpath(root);
     return Route(path, require('./file-server').MappedDirectoryHandler(root, settings));
   }
 };
