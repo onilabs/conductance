@@ -361,7 +361,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
       var served = false;
       if (settings.mapIndexToDir) {
         served = ['index.html', 'index.app'] ..
-          any(name -> serveFile(req, file + name, format, settings));
+          any(name -> serveFile(req, path.join(file, name), format, settings));
       }
       if (!served) {
         if (settings.allowDirListing)
