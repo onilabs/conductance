@@ -539,7 +539,7 @@ var install = function(opts) {
 			// expand environment {k1:"v1"} into ["k1=v1", ...]
 			if (service.Environment !== undefined &&
 			    !service.Environment .. isArrayLike() &&
-			    !service.Environment .. isString()) {
+			    !service.Environment .. string.isString()) {
 				service.Environment = service.Environment .. ownPropertyPairs .. map([k,v] -> "#{k}=#{v}");
 			}
 
