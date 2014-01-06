@@ -45,7 +45,11 @@ var banner = "
 
 ";
 
-var printBanner = -> console.log(banner);
+var printBanner = function() {
+  if (process.stderr.isTTY) {
+    console.warn(banner);
+  }
+}
 
 exports.run = function(args) {
   args = args || sys.argv();
