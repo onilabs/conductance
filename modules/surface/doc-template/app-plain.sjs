@@ -28,5 +28,5 @@ exports.Document = settings ->
     ${ settings.head }
     ${ settings.script }
   </head>
-  <body>#{settings.body}</body>
+  <body>${settings.body}</body>
 </html>`;
