@@ -189,6 +189,17 @@ SystemCtl.prototype._runUnits = function (action, units) {
 	return this._run([action].concat(units));
 }
 
+SystemCtl.prototype.controlUnits = function() {
+	// controlUnits are those that should be started / stopped / etc.
+	// if `--all` is passed in as an option, this returns all installed units.
+	// Otherwise, this returns the per-group `.target` unit
+	if (this.opts.all) {
+		return installedUnits(this.opts) .. map(u -> u.name);
+	} else {
+		return this.mainTargets;
+	}
+};
+
 SystemCtl.prototype.reloadConfig = ()      -> this._run(['daemon-reload']);
 SystemCtl.prototype.reinstall    = (units) -> this._runUnits('reenable', units);
 SystemCtl.prototype.uninstall    = (units) -> this._runUnits('disable', units);
@@ -652,6 +663,14 @@ exports.main = function(args) {
 		},
 	];
 
+	var allOpt = [
+		{
+			name: 'all',
+			type: 'bool',
+			help: 'Act on all units, not just .target units'
+		},
+	];
+
 	var groupOptions = [
 		{
 			names: ['config','c'],
@@ -708,28 +727,31 @@ exports.main = function(args) {
 			break;
 
 		case "restart":
+			options = options.concat(allOpt);
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
-				ctl.restart(ctl.mainTargets);
+				ctl.restart(ctl.controlUnits());
 			};
 			break;
 
 		case "stop":
+			options = options.concat(allOpt);
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
-				ctl.stop(ctl.mainTargets);
+				ctl.stop(ctl.controlUnits());
 			};
 			break;
 
 		case "start":
+			options = options.concat(allOpt);
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
-				ctl.start(ctl.mainTargets);
+				ctl.start(ctl.controlUnits());
 			};
 			break;
 
