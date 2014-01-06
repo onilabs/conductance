@@ -99,6 +99,7 @@ var { isFunction, exclusive } = require('sjs:function');
 var { Emitter } = require('sjs:event');
 var { ownKeys, keys, propertyPairs } = require('sjs:object');
 var http = require('sjs:http');
+var Url = require('sjs:url');
 
 /**
   @function isTransportError
@@ -626,6 +627,7 @@ function BridgeConnection(transport, opts) {
 */
 exports.connect = function(api_name, opts, block) {
   var transport = opts.transport;
+  var server = opts.server || Url.normalize('/', api_name);
   waitfor {
     waitfor {
       try {
@@ -639,7 +641,7 @@ exports.connect = function(api_name, opts, block) {
     }
     and {
       if (!transport) {
-        transport = require('./aat-client').openTransport(opts.server);
+        transport = require('./aat-client').openTransport(server);
       }
     }
     var connection = BridgeConnection(transport, opts .. merge({throwing:true, api:apiinfo.id}));
