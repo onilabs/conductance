@@ -1,42 +1,42 @@
-window.withBusyIndicator {|hideBusyIndicator|
-	//TODO: use merging require([.])
-	waitfor {
-	var {RequireStyle, OnClick, Class, Mechanism, Element, removeNode, appendContent, Style} = require('mho:surface');
-	} and {
-	var seq = require('sjs:sequence');
-	var {map, indexed, find, each, join, transform } = seq;
-	} and {
-	var { Observable, Computed } = require('mho:observable');
-	} and {
-	var array = require('sjs:array');
-	} and {
-	var event = require('sjs:event');
-	} and {
-	var {preventDefault} = require('sjs:xbrowser/dom');
-	} and {
-	var cutil = require('sjs:cutil');
-	} and {
-	var str = require('sjs:string');
-	} and {
-	var {ownPropertyPairs, ownValues, hasOwn} = require('sjs:object');
-	} and {
-	var logging = require('sjs:logging');
-	} and {
-	var http = require('sjs:http');
-	} and {
-	var Url = require('sjs:url');
-	} and {
-	var assert = require('sjs:assert');
-	} and {
-	var ui = require('./ui');
-	} and {
-	var Symbol = require('./symbol');
-	} and {
-	var Library = require('./library');
-	} and {
-	var { encodeFragment } = require('./url-util');
-	}
+//TODO: use merging require([.])
+waitfor {
+var {RequireStyle, OnClick, Class, Mechanism, Element, removeNode, appendContent, Style} = require('mho:surface');
+} and {
+var seq = require('sjs:sequence');
+var {map, indexed, find, each, join, transform } = seq;
+} and {
+var { Observable, Computed } = require('mho:observable');
+} and {
+var array = require('sjs:array');
+} and {
+var event = require('sjs:event');
+} and {
+var {preventDefault} = require('sjs:xbrowser/dom');
+} and {
+var cutil = require('sjs:cutil');
+} and {
+var str = require('sjs:string');
+} and {
+var {ownPropertyPairs, ownValues, hasOwn} = require('sjs:object');
+} and {
+var logging = require('sjs:logging');
+} and {
+var http = require('sjs:http');
+} and {
+var Url = require('sjs:url');
+} and {
+var assert = require('sjs:assert');
+} and {
+var ui = require('./ui');
+} and {
+var Symbol = require('./symbol');
+} and {
+var Library = require('./library');
+} and {
+var { encodeFragment } = require('./url-util');
+}
 
+window.withBusyIndicator {|hideBusyIndicator|
 	logging.setLevel(logging.DEBUG);
 
 	var mainStyle   = RequireStyle(Url.normalize('css/main.css', module.id))

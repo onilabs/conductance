@@ -6,8 +6,9 @@ var logging = require('sjs:logging');
 var { startsWith, endsWith, rstrip, contains } = require('sjs:string');
 var {ownValues, pairsToObject, ownPropertyPairs} = require('sjs:object');
 var { inspect } = require('sjs:debug')
+var sys = require('sjs:sys');
 
-var withBusyIndicator = require('sjs:sys').getGlobal().withBusyIndicator || function(block) { return block(); };
+var withBusyIndicator = sys.getGlobal().withBusyIndicator || function(block) { return block(); };
 
 var INTERNAL_LINK_RE = /\[([^ \]]+)\](?![\[\(])/g;
 exports.replaceInternalMarkdownLinks = function(text, replacer) {

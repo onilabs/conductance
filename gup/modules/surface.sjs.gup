@@ -29,6 +29,10 @@ var docComments = modules
 
 var output = contents + MARKER + "
 /**
+
+@require ./surface/base
+@require ./surface/dynamic
+
 #{docComments .. @join("\n")}
 */
 ";

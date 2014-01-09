@@ -21,6 +21,10 @@ module.exports = require(modules);
 // GENERATED DOCS FOLLOW:
 
 /**
+
+@require ./surface/base
+@require ./surface/dynamic
+
 @class HtmlFragment
 @summary A tree structure representing a piece of Html along with meta information
 @desc
