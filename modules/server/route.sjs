@@ -346,9 +346,7 @@ exports.StaticDirectory = createDirectoryMapper({});
     avoid the possibility of a clash.
 */
 function SystemRoutes() {
-  return [
-    CodeDirectory('__sjs/', "#{sjsRoot}"),
-    CodeDirectory('__mho/', "#{conductanceRoot}modules/"),
+  return exports.SystemCodeRoutes().concat([
     Route(
       /^__aat_bridge\/(2)$/,
       require('mho:rpc/aat-server').createTransportHandler(
@@ -363,10 +361,25 @@ function SystemRoutes() {
       /^__keyhole\/([^\/]+)\/(.*)$/,
       require('./keyhole').createKeyholeHandler()
     )
-  ];
+  ]);
 }
 exports.SystemRoutes = SystemRoutes;
 
+/**
+   @function SystemCodeRoutes
+   @summary Standard system routes (for serving code only)
+   @desc
+    These routes can be used in place of [::SystemRoutes] if your
+    server does not make use of any bridge features
+    (`.api` modules or [::rpc/bridge/] services).
+*/
+function SystemCodeRoutes() {
+  return [
+    CodeDirectory('__sjs/', "#{sjsRoot}"),
+    CodeDirectory('__mho/', "#{conductanceRoot}modules/"),
+  ];
+}
+exports.SystemCodeRoutes = SystemCodeRoutes;
 
 /**
   @function SetHeaders
