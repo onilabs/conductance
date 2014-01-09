@@ -172,6 +172,10 @@ window.withBusyIndicator {|hideBusyIndicator|
 		root .. appendContent(toplevel) {|elem|
 			using (var hashChange = event.HostEmitter(window, 'hashchange')) {
 				hideBusyIndicator();
+				
+				// preload search module in the background
+				spawn(hold(1000), require('./search'));
+
 				while(true) {
 					locationHash.set(decodeURIComponent(document.location.hash.slice(1)));
 					hashChange.wait();
