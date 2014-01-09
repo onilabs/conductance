@@ -233,8 +233,8 @@ exports.renderer = function(libraries, rootSymbol) {
 
 	function makeFunctionHtml(docs, symbol) {
 		var rv = [];
-		rv.push(Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		rv.push(Element("h3", functionSignature(docs, symbol), {"class":"mb-signature"}));
+		rv.push(Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 
 		rv.push(functionArgumentDetails(docs, symbol));
 
@@ -272,7 +272,6 @@ exports.renderer = function(libraries, rootSymbol) {
 					rv.push(Element("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
 				}
 
-        /*
 				var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor');
 				if (constructor) {
 					var [name, child] = constructor;
@@ -280,13 +279,12 @@ exports.renderer = function(libraries, rootSymbol) {
 					rv.push(makeFunctionHtml(child, childSymbol));
 					rv.push(makeDescriptionHTML(child, childSymbol));
 				}
-        */
 
 				var children = collectModuleChildren(docs, symbol);
 				rv.push(
 					Element("div", [
 						children['proto']           .. then(Table),
-            children['ctor']            .. then(HeaderTable("Constructor")),
+            //children['ctor']            .. then(HeaderTable("Constructor")),
 						children['static-function'] .. then(HeaderTable("Static Functions")),
 						children['function']        .. then(HeaderTable("Methods")),
 						children['variable']        .. then(HeaderTable("Member Variables")),
