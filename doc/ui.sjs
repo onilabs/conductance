@@ -295,7 +295,15 @@ exports.renderer = function(libraries, rootSymbol) {
 			} else {
 				// probably a variable
 				rv.push(summary);
-				rv.push(`<h3 class='mb-signature'>${symbol.className ? "#{symbol.className .. toCamelCase()}."}${symbol.name}</h3>`);
+				var signature = [
+					symbol.className ? "#{symbol.className .. toCamelCase()}.",
+					symbol.name,
+				];
+				if (docs.valtype) {
+					signature.push(` <span class='mb-rv'>${makeTypeHTML(docs.valtype, symbol)}</span>`);
+				}
+
+				rv.push(Element("h3", signature, {"class":"mb-signature"}));
 				rv.push(makeDescriptionHTML(docs, symbol));
 			}
 		}
