@@ -461,6 +461,9 @@ exports.Route = Constructor(RouteProto);
     If `address` is not given, the server will listen on all available interfaces.
 
     If `port` is not given, or is falsy, a random available port will be used.
+
+  @variable Port.port
+  @type Number
 */
 //TODO: how do you find out what port was used?
 var PortProto = {};
