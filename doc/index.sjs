@@ -37,7 +37,10 @@ var { encodeFragment } = require('./url-util');
 }
 
 window.withBusyIndicator {|hideBusyIndicator|
-	logging.setLevel(logging.DEBUG);
+	logging.setLevel(logging.INFO);
+	if (document.location.hostname .. str.contains('local')) {
+		logging.setLevel(logging.DEBUG);
+	}
 
 	var mainStyle   = RequireStyle(Url.normalize('css/main.css', module.id))
 	var docsStyle   = RequireStyle(Url.normalize('css/docs.css', module.id))
