@@ -1,6 +1,6 @@
 //TODO: use merging require([.])
 waitfor {
-var {RequireStyle, OnClick, Class, Mechanism, Element, removeNode, appendContent, Style} = require('mho:surface');
+var {RequireExternalStyle, OnClick, Class, Mechanism, Element, removeNode, appendContent, Style} = require('mho:surface');
 } and {
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, join, transform } = seq;
@@ -42,9 +42,9 @@ window.withBusyIndicator {|hideBusyIndicator|
 		logging.setLevel(logging.DEBUG);
 	}
 
-	var mainStyle   = RequireStyle(Url.normalize('css/main.css', module.id))
-	var docsStyle   = RequireStyle(Url.normalize('css/docs.css', module.id))
-	var searchStyle = RequireStyle(Url.normalize('css/search.css', module.id));
+	var mainStyle   = RequireExternalStyle(Url.normalize('css/main.css', module.id))
+	var docsStyle   = RequireExternalStyle(Url.normalize('css/docs.css', module.id))
+	var searchStyle = RequireExternalStyle(Url.normalize('css/search.css', module.id));
 
 	exports.run = function(root) {
 		var libraries = Library.Collection();
@@ -144,7 +144,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 				}
 			});
 
-		var mainDisplay = Element('div', symbolDocs, {"class":"mb-main mb-top"}) .. docsStyle;
+		var mainDisplay = [docsStyle, Element('div', symbolDocs, {"class":"mb-main mb-top"})];
 		var header = Element("div", [
 			toolbar,
 	//		`<h1>Conductance docs</h1>`
@@ -163,14 +163,14 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 
 		var toplevel = Element("div", [
+      mainStyle,
+      searchStyle,
 			sidebar,
 			header,
 			breadcrumbs,
 			hint,
 			mainDisplay,
-		], {'class':'documentationRoot'})
-		.. mainStyle
-		.. searchStyle;
+		], {'class':'documentationRoot'});
 
 		root .. appendContent(toplevel) {|elem|
 			using (var hashChange = event.HostEmitter(window, 'hashchange')) {

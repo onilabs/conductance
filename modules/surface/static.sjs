@@ -79,6 +79,9 @@ exports.Document = function(content, settings) {
     headContent.push(`<title>$title</title>`);
   }
 
+  var styleLinkTag = url -> `<link rel='stylesheet' href='${url}'>`;
+  headContent = headContent.concat(keys(content.getExternalStyles()) .. map(styleLinkTag));
+
   var scriptTag = url -> `<script src="${url}"></script>`;
   headContent = headContent.concat(keys(content.getExternalScripts()) .. map(scriptTag));
 

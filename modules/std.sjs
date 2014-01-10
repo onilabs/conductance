@@ -188,7 +188,7 @@ module.exports = require(modules);
    - **removeNode**: (function [mho:surface::removeNode])
    - **replaceContent**: (function [mho:surface::replaceContent])
    - **RequireExternalScript**: (function [mho:surface::RequireExternalScript])
-   - **RequireStyle**: (function [mho:surface::RequireStyle])
+   - **RequireExternalStyle**: (function [mho:surface::RequireExternalStyle])
    - **Style**: (function [mho:surface::Style])
   
   

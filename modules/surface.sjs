@@ -54,7 +54,7 @@ module.exports = require(modules);
 
   Note: Streams are only allowed for content that will be used in
   the 'dynamic world' (i.e. client-side). Attempting to add
-  a stream to in a [::Document] will raise an error.
+  a stream to a [::Document] will raise an error.
 
 @class Element
 @__inherit__ CURRENTLY HIDDEN ::CollapsedFragment
@@ -141,24 +141,6 @@ module.exports = require(modules);
   ensures that underlying <style> elements are re-used.
 
   If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
-
-@function RequireStyle
-@param {optional ::HtmlFragment} [element]
-@param {String} [url]
-@return {::Element|Function}
-@summary Add an external stylesheet to an element
-@desc
-  Note that unlike [::Style], external stylesheets
-  will not be scoped to the element -
-  they will be applied globally for as long as `element`
-  is present in the document.
-
-  If `element` is not provided, `RequireStyle` will
-  return a cached style function which can later be
-  called on a [::HtmlFragment] to apply the given style.
-
-  If `RequireStyle` is applied to a [::HtmlFragment] that is not of class [::Element], 
   `element` will automatically be wrapped using [::ensureElement].
 
 @function Mechanism
@@ -284,6 +266,21 @@ module.exports = require(modules);
   globally available - that way, the script is automatically loaded when your
   widget is used. For SJS-based dependencies, this function is unnecessary
   (just use `require`).
+
+@function RequireExternalStyle
+@summary Declare a dependency on an external `.css` file
+@param {String} [url]
+@return {::HtmlFragment}
+@desc
+  You can place `RequireExternalStyle` anywhere in a [::HtmlFragment], it
+  has no content. The first time the fragment is inserted into the document, the
+  external script will be loaded and executed. If the url specified has already been
+  loaded in this way, it will not be reloaded or re-executed.
+
+  Note that unlike [::Style], external stylesheets
+  will not be scoped to any particular element -
+  they will be applied globally.
+
 
 @function replaceContent
 @altsyntax parent_element .. replaceContent(html)

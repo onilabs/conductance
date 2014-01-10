@@ -72,7 +72,7 @@ exports._getDynOniSurfaceInit = ->
 
     Note: Streams are only allowed for content that will be used in
     the 'dynamic world' (i.e. client-side). Attempting to add
-    a stream to in a [::Document] will raise an error.
+    a stream to a [::Document] will raise an error.
 */
 /*
     HTML_FRAGMENT      : QUASI | CFRAGMENT | ARRAY | UNSAFE_TXT | 
@@ -92,11 +92,13 @@ __js var FragmentBase = {
     target.style .. extendStyle(this.style);
     target.mechanisms .. extend(this.mechanisms);
     target.externalScripts .. extend(this.externalScripts);
+    target.externalStyles .. extend(this.externalStyles);
   },
   _init: function() {
     this.style = {};
     this.mechanisms = {};
     this.externalScripts = {};
+    this.externalStyles = {};
   },
 };
 
@@ -113,6 +115,7 @@ __js CollapsedFragmentProto .. extend({
   getStyleDefs:    -> this.style,          // { style_id : [ref_count, def], ... }
   getMechanisms:   -> this.mechanisms,     // { mechanism_id : code, ... }
   getExternalScripts: -> this.externalScripts,     // { url: true, ... }
+  getExternalStyles: -> this.externalStyles, // { url: true, ... }
   appendTo: func.seq(CollapsedFragmentProto.appendTo, function(target) {
     target.content += this.content;
   }),
@@ -422,6 +425,7 @@ __js {
     rv.style = clone(ft.style);
     rv.mechanisms = clone(ft.mechanisms);
     rv.externalScripts = clone(ft.externalScripts);
+    rv.externalStyles = clone(ft.externalStyles);
     return rv;
   }
   exports.cloneElement = cloneElement;
@@ -599,77 +603,6 @@ __js {
   }
   exports.Style = Style;
 }
-
-__js var ExternalStyleDefProto = {
-  getHtml: -> "<link rel='stylesheet' href=\"#{sanitize(this.url)}\">",
-  createElement: function() {
-    // xbrowser env only
-    var elem = document.createElement('link');
-    elem.setAttribute('rel', 'stylesheet');
-    elem.setAttribute('href', this.url);
-    return elem;
-  },
-  waitforLoading: true // This causes dynamic html code to wait for the css file to load before displaying; sometimes this is what we want, sometimes it isn't. XXX we might want to make this configurable.
-};
-
-__js function ExternalStyleDef(url) {
-  var rv = Object.create(ExternalStyleDefProto);
-  rv.url = buildUrl(url);
-  return rv;
-}
-
-/**
-  @function RequireStyle
-  @param {optional ::HtmlFragment} [element]
-  @param {String} [url]
-  @return {::Element|Function}
-  @summary Add an external stylesheet to an element
-  @desc
-    Note that unlike [::Style], external stylesheets
-    will not be scoped to the element -
-    they will be applied globally for as long as `element`
-    is present in the document.
-
-    If `element` is not provided, `RequireStyle` will
-    return a cached style function which can later be
-    called on a [::HtmlFragment] to apply the given style.
-
-    If `RequireStyle` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
-*/
-
-function RequireStyle(/* [opt] ft, url */) {
-  var id = ++gStyleCounter, styledef;
-  var class_name = "_oni_style#{id}_";
-
-  function setStyle(ft) {
-    ft = cloneElement(ft);
-
-    if (!ft.style[id])
-      ft.style[id] = [1,styledef];
-    else
-      ft.style[id] = [ft.style[id][0]+1, styledef];
-
-    var classes = ft._normalizeClasses();
-    if (classes.indexOf('_oni_style_') == -1)
-      classes.push(' _oni_style_');
-    if (classes.indexOf(class_name) == -1) 
-      classes.push(class_name);
-    return ft;
-  }
-
-  if (arguments.length == 1) {
-    styledef = ExternalStyleDef(arguments[0]);
-    return setStyle;
-  }
-  else /* if (arguments == 2) */{
-    styledef = ExternalStyleDef(arguments[1]);
-    return setStyle(arguments[0]);
-  }
-}
-exports.RequireStyle = RequireStyle;
-
-
 
 //----------------------------------------------------------------------
 
@@ -942,5 +875,27 @@ exports.Markdown = (str, settings) -> exports.RawHTML(require('sjs:marked').conv
 exports.RequireExternalScript = function(url) {
   var rv = CollapsedFragment();
   rv.externalScripts[url] = true;
+  return rv;
+};
+
+/**
+  @function RequireExternalStyle
+  @summary Declare a dependency on an external `.css` file
+  @param {String} [url]
+  @return {::HtmlFragment}
+  @desc
+    You can place `RequireExternalStyle` anywhere in a [::HtmlFragment], it
+    has no content. The first time the fragment is inserted into the document, the
+    external script will be loaded and executed. If the url specified has already been
+    loaded in this way, it will not be reloaded or re-executed.
+
+    Note that unlike [::Style], external stylesheets
+    will not be scoped to any particular element -
+    they will be applied globally.
+
+*/
+exports.RequireExternalStyle = function(url) {
+  var rv = CollapsedFragment();
+  rv.externalStyles[url] = true;
   return rv;
 };

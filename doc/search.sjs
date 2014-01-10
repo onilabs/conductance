@@ -1,4 +1,4 @@
-var {RequireStyle, Class, Mechanism, Element, Style, appendContent, Checkbox, Attrib} = require('mho:surface');
+var {RequireExternalStyle, Class, Mechanism, Element, Style, appendContent, Checkbox, Attrib} = require('mho:surface');
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter, transform, first} = seq;

@@ -212,6 +212,11 @@ function insertHtml(html, doInsertHtml) {
     |url| require('sjs:xbrowser/dom').script(url);
   }
 
+  // load external style:
+  keys(html.getExternalStyles()) .. each {
+    |url| require('sjs:xbrowser/dom').css(url);
+  }
+
   // install styles and mechanisms
   var styles = html.getStyleDefs();
   resourceRegistry.useStyleDefs(styles);
