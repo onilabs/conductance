@@ -53,8 +53,8 @@ exports.serve = function(args) {
   }
 
   var routes = [
+        @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),
         @route.SystemRoutes(),
-        @route.ExecutableDirectory('__doc', @env.conductanceRoot + '/doc'),
         @route.ExecutableDirectory(process.cwd()),
       ] .. @route.LogRequests(@logging.INFO);
 
