@@ -1,7 +1,7 @@
 // conductance server environment
 // server-side only
 
-/* (c) 2013 Oni Labs, http://onilabs.com
+/* (c) 2013-2014 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *
