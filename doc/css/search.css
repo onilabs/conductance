@@ -105,11 +105,14 @@ li.libraryStatus input[type='checkbox'] {
 	margin-left:1em;
 }
 
-.searchWidget a.reset {
+.searchWidget a.cancel {
   color: #aaa;
 	padding-top:0.2em;
 	font-size:1.3em;
 	text-decoration: none !important;
+	position: absolute;
+	top:0;
+	right: 10px;
 	cursor: pointer;
 }
 

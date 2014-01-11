@@ -201,7 +201,7 @@ exports.run = (function() {
 
 			var widget = Element("div", `
 				<input type="text" class='form-control' value="${lastQuery ? lastQuery}"></input>
-				<a class="reset" style="position:absolute; top:0; right:10px;">&times;</a>
+				<a class="cancel">&times;</a>
 				<div>
 					${resultWidget}
 				</div>
@@ -228,17 +228,6 @@ exports.run = (function() {
         selectedMatch.set(res[newIndex].id);
 			};
 
-			var resetWorker = function(reset, input) {
-				using(var click = reset .. event.HostEmitter('click')) {
-					while(true) {
-						click.wait();
-						input.value = '';
-						input.focus();
-						search('');
-					}
-				}
-			};
-
 			elem .. appendContent(widget) {|elem|
 				window.scrollTo(0,0);
 				var input = elem.querySelector('input');
@@ -252,8 +241,7 @@ exports.run = (function() {
 				} or {
 					indexUpdate(input);
 				} or {
-					var reset = elem.querySelector('.reset');
-					resetWorker(reset, input);
+					elem.querySelector('.cancel') .. event.wait('click');
 				} or {
 					done.wait();
 					return selectedMatch.get();
