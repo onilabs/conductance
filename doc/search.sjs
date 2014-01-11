@@ -103,14 +103,23 @@ exports.run = (function() {
 						'PageUp':   -> changeSelected(0, 0),
 					};
 
+					// backfill for browsers that support neither key or keyIdentifier:
+					var keycodes = {
+						40: 'Down',
+						38: 'Up',
+						34: 'PageDown',
+						33: 'PageUp',
+					};
+
 					event.when(input, 'keydown', {
-						filter: e -> e.which == ui.RETURN || bindings .. hasOwn(e.keyIdentifier),
+						transform: e -> { which: e.which, key: keycodes[e.which] },
+						filter: e -> e.which == ui.RETURN || (e.key && bindings .. hasOwn(e.key)),
 						handle: dom.preventDefault,
 					}) {|e|
 						if (e.which == ui.RETURN) {
 							return highlightedMatch .. first();
 						} else {
-							bindings[e.keyIdentifier]();
+							bindings[e.key]();
 						}
 					}
 				}
