@@ -405,7 +405,7 @@ exports.renderer = function(libraries, rootSymbol) {
 
 		// collect modules & dirs:
 		var children = collectLibChildren(docs, symbol);
-		rv.push(children.lib .. then(HeaderTable("Libraries")));
+		rv.push(children.lib .. then(HeaderTable("Sub-Libraries")));
 		rv.push(children.module .. then(HeaderTable("Modules")));
 		return rv;
 	};
