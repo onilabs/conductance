@@ -9,6 +9,10 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @summary Client-side UI module
+*/
+
 var modules = ['./surface/base'];
 if (require('sjs:sys').hostenv === 'xbrowser') {
   modules.push('./surface/dynamic');

@@ -9,6 +9,11 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+  @summary Utilities for time-varying values
+*/
+
+
 var cutil = require('sjs:cutil');
 var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequence');
 

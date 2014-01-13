@@ -1,1 +1,1 @@
-@summary Surface module
+@summary Client-side UI module
