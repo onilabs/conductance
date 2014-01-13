@@ -371,7 +371,7 @@ exports.SystemRoutes = SystemRoutes;
    @desc
     These routes can be used in place of [::SystemRoutes] if your
     server does not make use of any bridge features
-    (`.api` modules or [::rpc/bridge/] services).
+    (`.api` modules or [mho:rpc/bridge/] services).
 */
 function SystemCodeRoutes() {
   return [

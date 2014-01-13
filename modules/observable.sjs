@@ -24,15 +24,15 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
   @desc
     A stream is said to be an "observable" if it consists of a
     *temporal* sequence of values representing some changing state
-    (e.g. that of an [::ObservableVar]). In contrast to an event stream 
-    (e.g. a stream of 'click' events on a button), an observable always has 
-    a 'current' value, which can be accessed using [mho:sequence::first] or [::current].
+    (e.g. that of an [::ObservableVar]). In contrast to an event stream
+    (e.g. a stream of 'click' events on a button), an observable always has
+    a 'current' value, which can be accessed using [sjs:sequence::first] or [::current].
 */
 
 /**
   @class ObservableVar
   @inherit ::Observable
-  @summary An [::Observable] stream backed by a modifyable variable.
+  @summary An [::Observable] stream backed by a modifiable variable.
 
   @function ObservableVar
   @param {Object} [val] Initial value
