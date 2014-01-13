@@ -185,11 +185,11 @@ RootSymbol.prototype.docs = function() {
 		lib: 'Available hubs',
 		children: this.libraries.get() .. ownValues .. map(v -> [v.name, v.loadModuleDocs()]) .. pairsToObject,
 		desc: "
-Welcome to the conductance documentation browser. This browser displays API documentation for
+Welcome to the Conductance documentation browser. This browser displays API documentation for
 multiple libraries, which are listed below.
 
 You can use the search functionality above (also available by pressing the '/' key) to search for
-symbols in any of these libraries, or you can use the heirarchy view on the left to navigate
+symbols in any of these libraries, or you can use the hierarchy view on the left to navigate
 to the current symbol's children, siblings and parents.
 		",
 	};
