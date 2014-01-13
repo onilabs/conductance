@@ -90,7 +90,7 @@ Protocol:
 */
 
 var logging = require('sjs:logging');
-var { each, toArray, map, filter, transform, isStream, Stream, at, Observable } = require('sjs:sequence');
+var { each, toArray, map, filter, transform, isStream, Stream, at } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');

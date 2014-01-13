@@ -13,7 +13,7 @@ var {merge, ownValues, ownPropertyPairs, getPath, hasOwn} = require('sjs:object'
 var { SymbolMissing, LibraryMissing } = require('./library');
 var { encodeNonSlashes, encodeFragment } = require('./url-util');
 var Symbol = require('./symbol');
-var { Observable } = require('mho:observable');
+var { ObservableVar } = require('mho:observable');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;

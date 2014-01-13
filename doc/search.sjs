@@ -2,7 +2,7 @@ var {RequireExternalStyle, Class, Mechanism, Element, Style, appendContent, Chec
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter, transform, first} = seq;
-var { Observable, Computed } = require('mho:observable');
+var { ObservableVar, observe } = require('mho:observable');
 var event = require('sjs:event');
 var dom = require('sjs:xbrowser/dom');
 var cutil = require('sjs:cutil');
@@ -45,7 +45,7 @@ var flattenLibraryIndex = function(lib) {
 
 
 exports.run = (function() {
-	var searchTerm = Observable();
+	var searchTerm = ObservableVar();
 	var lastQuery = null;
 
 	return function(elem, libraries, onReady) {
@@ -53,10 +53,10 @@ exports.run = (function() {
 
 		return ui.withOverlay {||
 			var libraryStatus = [];
-			var index = Observable([]);
+			var index = ObservableVar([]);
 			var query = cutil.Queue();
-			var results = Observable([]);
-			var selectedMatch = Observable(null);
+			var results = ObservableVar([]);
+			var selectedMatch = ObservableVar(null);
 
 			var search = function(query, force) {
 				if (query == lastQuery && !force) return;
@@ -126,7 +126,7 @@ exports.run = (function() {
 			};
 
 
-			var highlightedMatch = Computed(selectedMatch, results, function(sel, results) {
+			var highlightedMatch = observe(selectedMatch, results, function(sel, results) {
 				if (sel) return sel;
 				return results[0] && results[0].id;
 			});
@@ -178,8 +178,8 @@ exports.run = (function() {
 			};
 
 			libraries.get() .. ownValues .. each {|lib|
-				var loaded = Observable("loading ...");
-				var disabled = Observable(false);
+				var loaded = ObservableVar("loading ...");
+				var disabled = ObservableVar(false);
 				var enabledWidget = Checkbox(lib.searchEnabled) .. Attrib("disabled", disabled);
 				libraryStatus.push(Element("li", `${enabledWidget} <span class="hub">${lib.name}</span> ${loaded}`, {"class":"libraryStatus"}));
 				var idx = lib.loadIndex();

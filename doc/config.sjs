@@ -1,7 +1,7 @@
 var { Element, appendContent, Mechanism, Style, OnClick } = require('mho:surface');
 var { Input, Form, Button } = require('mho:surface/bootstrap/html');
 var { each, map, transform } = require('sjs:sequence');
-var { Observable } = require('mho:observable');
+var { ObservableVar } = require('mho:observable');
 var event = require('sjs:event');
 var assert = require('sjs:assert');
 var { remove } = require('sjs:array');
@@ -48,7 +48,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
       `;
     });
 
-    var formError = Observable();
+    var formError = ObservableVar();
     var addForm = Form(`
       ${Element("div", formError) .. ui.errorText}
       <div>

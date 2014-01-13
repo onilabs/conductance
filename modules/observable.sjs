@@ -15,56 +15,68 @@
 
 
 var cutil = require('sjs:cutil');
-var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequence');
+var { Stream, toArray, slice, integers, each, transform, first, skip } = require('sjs:sequence');
 
 /**
   @class Observable
-  @inherit Stream
-  @summary A value which can be modified and watched for changes.
+  @inherit sjs:sequence::Stream
+  @summary A stream with 'observable' semantics
+  @desc
+    A stream is said to be an "observable" if it consists of a
+    *temporal* sequence of values representing some changing state
+    (e.g. that of an [::ObservableVar]). In contrast to an event stream 
+    (e.g. a stream of 'click' events on a button), an observable always has 
+    a 'current' value, which can be accessed using [mho:sequence::first] or [::current].
+*/
 
-  @function Observable
+/**
+  @class ObservableVar
+  @inherit ::Observable
+  @summary An [::Observable] stream backed by a modifyable variable.
+
+  @function ObservableVar
   @param {Object} [val] Initial value
 
-  @function Observable.get
+  @function ObservableVar.get
   @summary Get the current observable value.
 
-  @function Observable.set
+  @function ObservableVar.set
   @summary Set a new observable value
   @desc
-    **Note:** If this observable value is shared by multiple pieces of
-    code, it is typically better to use [::Observable::modify], which
+    **Note:** If this ObservableVar is shared by multiple pieces of
+    code, it is typically better to use [::ObservableVar::modify], which
     will protect against concurrent modifications to the same object.
 
-  @function Observable.modify
+  @function ObservableVar.modify
   @summary Modify the current observable value
   @param {Function} [change]
   @desc
 
-    `modify` allows you to change the current value of the observable
+    `modify` allows you to change the current value of the ObservableVar
     without the possibility of race conditions. Consider:
 
-        var increment = function(observable) {
-          observable.set(count.get() + 1);
+        var increment = function(observable_var) {
+          observable_var.set(count.get() + 1);
         };
 
-    While the above code will work fine for a local observable object,
+    While the above code will work fine for a local observable_var object,
     it could silently drop data if either of `get`, `set` or the
     modification function may suspend, or if you forget to get()
     the latest value before setting the new one.
 
     Instead, the following code is safe under all conditions:
 
-        var increment = function(observable) {
-          observable.modify(val -> val + 1);
+        var increment = function(observable_var) {
+          observable_var.modify(val -> val + 1);
         };
 
-    If the observable has not changed between the call to the
+    If the observable_var has not changed between the call to the
     `change` function and its return, the value will be updated atomically.
 
     If the value has changed, the return value from the `change` function
     is no longer necessarily correct, so `modify` throws a [::ConflictError]
     and does not update the value. If you expect multiple concurrent updates
-    to a single observable, you should catch this exception yourself and
+    to a single observable_var, you should catch this exception yourself and
     retry as appropriate.
 
     ### Warning: avoid mutation
@@ -93,8 +105,8 @@ var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequenc
     a sentinel value is provided as the second argument to `change`.
     If `change` returns this value, the modification is abandoned.
 
-        var decrement = function(observable) {
-          observable.modify(function(current, unchanged) {
+        var decrement = function(observable_var) {
+          observable_var.modify(function(current, unchanged) {
             if (current == 0) return unchanged;
             return current - 1;
           }
@@ -106,7 +118,7 @@ var { Stream, toArray, slice, integers, each, transform } = require('sjs:sequenc
 */
 
 var unchanged = {};
-function Observable(val) {
+function ObservableVar(val) {
   var rev = 1;
   var change = Object.create(cutil._Waitable);
   change.init();
@@ -146,12 +158,12 @@ function Observable(val) {
   rv.get = -> val;
   return rv;
 }
-exports.Observable = Observable;
+exports.ObservableVar = ObservableVar;
 
 /**
   @class ConflictError
   @inherits Error
-  @summary The error raised by [::Observable::modify] in the case of a conflict
+  @summary The error raised by [::ObservableVar::modify] in the case of a conflict
 */
 var ConflictErrorProto = new Error();
 var ConflictError = exports.ConflictError = function(msg) {
@@ -171,48 +183,47 @@ exports.isConflictError = function(ex) {
 
 
 /**
-  @function Computed
+  @function observe
   @return [sjs:sequence::Stream]
-  @summary Create stream of values derived from one or more [sjs:sequence::Stream] inputs (including [::Observable]s).
-
-  @param {Function} [compute]
+  @summary Create stream of values derived from one or more [sjs:sequence::Stream] inputs (usually [::Observable]s).
+  @param {sjs:sequence::Stream} [stream1, stream2, ...] Input stream(s)
+  @param {Function} [transformer]
   @desc
-    Computed objects allow you to represent computed values of observables / streams
-    directly. When they are constructed, you pass in any number of [sjs:sequence::Stream]
-    inputs, followed by a final argument which is the `compute` function.
-
-    When the returned stream is being iterated, the `compute` function will be called
+    When the returned stream is being iterated, the `transformer` function will be called
     to generate the current value whenever one of the inputs changes.
-    `compute` is passed the most recent value of all inputs, in the same order
-    they were passed to the `Computed` constructor.
+    `transformer` is passed the most recent value of all inputs, in the same order
+    they were passed to the `observe` function.
 
-    For example, you might want to compute a deriverd property
-    from a single observable:
+    If one of the inputs changes during execution of `transformer`, the execution will be
+    aborted, and `transformer` will be called with the new set of inputs.
 
-        var person = Observable({
+    For example, you might want to compute a derived property
+    from a single observable variable:
+
+        var person = ObservableVar({
           firstName: "John",
           lastName: "Smith",
         });
 
-        var fullName = Computed(person, function(current) {
+        var fullName = observe(person, function(current) {
           return "#{current.firstName} #{current.lastName}";
         });
 
     When `person` changes, `fullName` will be recomputed automatically, and
     any code iterating over `fullName` will see the new value immediately.
 
-    You can create a Computed stream from multiple source streams:
+    You can create a observable stream from multiple source streams:
 
-        var runner = Observable({
+        var runner = ObservableVar({
           firstName: "John",
           lastName: "Smith",
           id: 5,
         });
 
         // The most recent race results:
-        var latestRanking = Observable([8, 2, 5, 7, 1, 3]);
+        var latestRanking = ObservableVar([8, 2, 5, 7, 1, 3]);
 
-        var personStatus = Computed(runner, latestRanking, function(runnerVal, rankingVal) {
+        var personStatus = observe(runner, latestRanking, function(runnerVal, rankingVal) {
           return `$(runnerVal.firstName) came #$(rankingVal.indexOf(runner.id)+1) in the last race`;
         });
 
@@ -221,27 +232,10 @@ exports.isConflictError = function(ex) {
         // whenever `runner` or `latestRanking` changed.
 
 */
-function Computed(/* var1, ...*/) {
+function observe(/* var1, ...*/) {
   var deps = arguments .. slice(0,-1) .. toArray;
   var f = arguments[arguments.length-1];
-  return ObservableTuple.apply(null, deps) .. transform(args -> f.apply(null, args));
-}
-exports.Computed = Computed;
 
-/**
-   @function ObservableTuple
-   @param {Stream} [input ...]
-   @summary Create a stream of tuples with Observable semantics.
-   @desc
-      ObservableTuple combines a number of input streams into a single
-      stream where each element is an array of the latest value from
-      each `input` - whenever one input changes, a new tuple is emitted.
-
-      If you want to make a derived value from multiple inputs
-      (rather than just an array of latest values), you should use [::Computed].
-*/
-var ObservableTuple = exports.ObservableTuple = function() {
-  var deps = arguments;
   return Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
     var change = Object.create(cutil._Waitable);
@@ -253,8 +247,15 @@ var ObservableTuple = exports.ObservableTuple = function() {
         change.wait();
         if (primed < deps.length) continue;
         while (current_rev < rev) {
-          current_rev = rev;
-          receiver(inputs.slice());
+          waitfor {
+            change.wait();
+          }
+          or {
+            current_rev = rev;
+            var f_val = f.apply(null, inputs);
+            collapse; // don't interrupt downstream call
+            receiver(f_val);
+          }
         }
       }
     }
@@ -278,22 +279,20 @@ var ObservableTuple = exports.ObservableTuple = function() {
     }
   });
 }
+exports.observe = observe;
+
 
 /**
-  @function observe
-  @summary `observe()` multiple [sjs:sequence::Stream] objects at once
-  @param {sjs:sequence::Stream} [input ...]
-  @param {Function} [block]
-  @desc
-    This function acts like [sjs:sequence::each] does on a single Observable,
-    except that `block` is called whenever any of the inputs changes.
-
-    The arguments passed to `observer` are the current values of each `input`.
+   @function current
+   @param {sjs:sequence::Stream} [obs] Stream (usually an [::Observable])
+   @summary Obtain the current value of an [::Observable]; synonym for [sjs:sequence::first]
 */
-exports.observe = function() {
-  var len = arguments.length;
-  var items = Array.prototype.slice.call(arguments, 0, len-1);
-  var block = arguments[len-1];
-  return ObservableTuple.apply(null, items) .. each(args -> block.apply(null, args));
-}
+exports.current = first;
+
+/**
+   @function changes
+   @param {sjs:sequence::Stream} [obs] Stream (usually an [::Observable])
+   @summary Obtain a stream of *changes* of an [::Observable], omitting the initial value; synonym for `skip(1)`.
+*/
+exports.changes = obs -> obs .. skip(1);
 

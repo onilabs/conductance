@@ -1,18 +1,18 @@
 // Conductance version of http://knockoutjs.com/examples/clickCounter.html
 
-var { Observable, Computed } = require('mho:observable');
+var { ObservableVar, observe } = require('mho:observable');
 var { appendContent, Attrib, OnClick } = require('mho:surface');
 var { Button } = require('mho:surface/html');
 
 //----------------------------------------------------------------------
 
-var numberOfClicks = Observable(0);
-var hasClickedTooManyTimes = Computed(numberOfClicks, x -> x>=3);
+var numberOfClicks = ObservableVar(0);
+var hasClickedTooManyTimes = observe(numberOfClicks, x -> x>=3);
 
 function registerClick() { numberOfClicks.set(numberOfClicks.get() + 1) }
 function resetClicks()   { numberOfClicks.set(0) }
 
-var clickedTooManyTimesWarning = Computed(
+var clickedTooManyTimesWarning = observe(
   hasClickedTooManyTimes,
   x -> x ?
     `<div>

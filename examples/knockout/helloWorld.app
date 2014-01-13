@@ -1,13 +1,13 @@
 // Conductance version of http://knockoutjs.com/examples/helloWorld.html
 
-var { Observable } = require('mho:observable');
+var { ObservableVar } = require('mho:observable');
 var { appendContent } = require('mho:surface');
 var { TextInput } = require('mho:surface/html');
 
 //----------------------------------------------------------------------
 
-var firstName = Observable("Planet");
-var lastName  = Observable("Earth");
+var firstName = ObservableVar("Planet");
+var lastName  = ObservableVar("Earth");
 
 document.body .. appendContent(
     `

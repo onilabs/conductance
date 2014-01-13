@@ -12,11 +12,11 @@
 var { Element, Mechanism, Attrib } = require('./base');
 var { replaceContent, appendContent, prependContent, Prop, removeNode, insertBefore } = require('./dynamic');
 var { HostEmitter } = require('sjs:event');
-var { Stream, isStream, integers, each, map, transform, indexed, filter, sort, slice, any } = require('sjs:sequence');
+var { Stream, isStream, integers, each, map, transform, indexed, filter, sort, slice, any, toArray } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { shallowEq } = require('sjs:compare');
 var { override, merge } = require('sjs:object');
-var { Computed } = require('../observable');
+var { observe } = require('../observable');
 
 /**
   @summary Surface HTML elements
@@ -274,9 +274,10 @@ function Select(settings) {
   var state = [settings.items, settings.selected];
   var computedState = null;
   if (state .. any(isStream)) {
-    var { ObservableTuple } = require('../observable');
     // make a single observable encapsulating the entire state
-    computedState = ObservableTuple.apply(null, state .. map(ensureStream));
+    var args = state .. map(ensureStream);
+    args.push(function() { return arguments .. toArray});
+    computedState = observe.apply(null, args);
   }
 
   if (computedState) {

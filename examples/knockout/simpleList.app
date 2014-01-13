@@ -1,14 +1,14 @@
 // Conductance version of http://knockoutjs.com/examples/simpleList.html
 
-var { Observable, Computed } = require('mho:observable');
+var { ObservableVar, observe } = require('mho:observable');
 var { appendContent, Mechanism, Attrib, Style, Prop } = require('mho:surface');
 var { Button, Form, TextInput, Select } = require('mho:surface/html');
 
 
 //----------------------------------------------------------------------
 
-var items     = Observable(["Alpha", "Beta", "Gamma"]);
-var itemToAdd = Observable('');
+var items     = ObservableVar(["Alpha", "Beta", "Gamma"]);
+var itemToAdd = ObservableVar('');
 
 function addItem(ev) {
   ev.preventDefault();
@@ -19,7 +19,7 @@ function addItem(ev) {
   itemToAdd.set('');
 }
 
-var name = Observable("test");
+var name = ObservableVar("test");
 document.body .. appendContent(
     `
       ${
@@ -30,7 +30,7 @@ document.body .. appendContent(
              ${
                Button('Add ') ..
                  Attrib('type', 'submit') ..
-                 Attrib('disabled', itemToAdd .. Computed(x->x.length == 0))
+                 Attrib('disabled', itemToAdd .. observe(x->x.length == 0))
               }
              <p>Your items:</p>
              ${

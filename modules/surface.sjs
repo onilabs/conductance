@@ -51,7 +51,7 @@ module.exports = require(modules);
      inserting a String as HTML).
    - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
      to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
-     Typically, this will be an [observable::Observable] or a Stream derived from one.
+     Typically, this will be an [observable::ObservableVar] or a Stream derived from one.
 
   Any other types will be coerced to a String wherever a HtmlFragment
   is required.

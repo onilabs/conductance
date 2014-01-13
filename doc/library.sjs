@@ -1,6 +1,6 @@
 var str = require('sjs:string');
 var {find, each, filter, map, at, join, transform, first} = require('sjs:sequence');
-var {Observable} = require('mho:observable');
+var {ObservableVar} = require('mho:observable');
 var {remove} = require('sjs:array');
 var {ownValues, hasOwn, get, clone, merge} = require('sjs:object');
 var docutil = require('sjs:docutil');
@@ -12,7 +12,7 @@ var assert = require('sjs:assert');
 var CollectionProto = exports.CollectionProto = {};
 
 CollectionProto._init = function() {
-	this.val = Observable([]);
+	this.val = ObservableVar([]);
 	this._libraryCache = {};
 	this._libraries = this.val .. transform(this._computeLibraries.bind(this));
 };
@@ -139,7 +139,7 @@ function Library(url, name) {
 	this.name = name;
 	this.moduleCache = {};
 	this.loadModuleDocs();
-	this.searchEnabled = Observable(true);
+	this.searchEnabled = ObservableVar(true);
 }
 
 Library.prototype.loadFile = function(path, params) {

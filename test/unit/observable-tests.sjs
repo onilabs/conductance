@@ -1,15 +1,15 @@
 @ = require('sjs:test/std');
 @ .. @extend(require('mho:observable'));
 
-@context("Observable") {||
+@context("ObservableVar") {||
 	@test("observe multiple values at once") {||
 		var log = [];
-		var a = @Observable("a0");
-		var b = @Observable("b0");
-		var c = @Observable("c0");
+		var a = @ObservableVar("a0");
+		var b = @ObservableVar("b0");
+		var c = @ObservableVar("c0");
 
 		waitfor {
-			@observe(a, b, c) {|_a, _b, _c|
+			@observe(a, b, c, (a,b,c)->[a,b,c]) .. @each {|[_a, _b, _c]|
 				log.push([_a, _b, _c]);
 				if (_c === "c1") {
 					break;
@@ -30,10 +30,10 @@
 
 	@test("combine multiple observables") {||
 		var log = [];
-		var a = @Observable("a0");
-		var b = @Observable("b0");
-		var c = @Observable("c0");
-		var obs = @ObservableTuple(a,b,c);
+		var a = @ObservableVar("a0");
+		var b = @ObservableVar("b0");
+		var c = @ObservableVar("c0");
+		var obs = @observe(a,b,c, (a,b,c)->[a,b,c]);
 
 		waitfor {
 			obs .. @each {|[_a, _b, _c]|
@@ -57,7 +57,7 @@
 
 	@test("only ever skips intermediate events events when observing") {||
 		var log = [];
-		var a = @Observable("a0");
+		var a = @ObservableVar("a0");
 
 		waitfor {
 			a .. @each {|val|
@@ -76,11 +76,11 @@
 	}
 }.timeout(2);
 
-@context("Computed") {||
+@context("observe") {||
 	@test("emits initial value") {||
 		var log = [];
-		var a = @Observable(0);
-		var c = @Computed(a, _a -> _a + 1);
+		var a = @ObservableVar(0);
+		var c = @observe(a, _a -> _a + 1);
 
 		waitfor {
 			c .. @each {|val|
@@ -95,7 +95,7 @@
 
 	@test("is recomputed each time it's accessed") {||
 		var count = 0;
-		var c = @Computed(@Observable(), -> count++);
+		var c = @observe(@ObservableVar(), -> count++);
 		c .. @first() .. @assert.eq(0);
 		c .. @first() .. @assert.eq(1);
 	}

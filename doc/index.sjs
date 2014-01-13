@@ -5,7 +5,7 @@ var {RequireExternalStyle, OnClick, Class, Mechanism, Element, removeNode, appen
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, join, transform } = seq;
 } and {
-var { Observable, Computed } = require('mho:observable');
+var { ObservableVar, observe } = require('mho:observable');
 } and {
 var array = require('sjs:array');
 } and {
@@ -50,9 +50,9 @@ window.withBusyIndicator {|hideBusyIndicator|
 		var libraries = Library.Collection();
 		var defaultHubs = ['sjs:','mho:'];
 
-		var locationHash = Observable(undefined);
+		var locationHash = ObservableVar(undefined);
 
-		var currentSymbol = Computed(locationHash, libraries.val, function(h) {
+		var currentSymbol = observe(locationHash, libraries.val, function(h) {
 			logging.debug("Location hash: #{h}");
 			if (h === undefined) return undefined; // undefined: "not yet loaded"
 			return Symbol.resolveSymbol(libraries, h);

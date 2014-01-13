@@ -1,6 +1,6 @@
 // Conductance version of http://knockoutjs.com/examples/betterList.html
 
-var { Observable, Computed } = require('mho:observable');
+var { ObservableVar, observe } = require('mho:observable');
 var { appendContent, Attrib, Prop, Style, OnClick } = require('mho:surface');
 var { difference } = require('sjs:array');
 var { Button, Form, TextInput, Select } = require('mho:surface/html');
@@ -8,9 +8,9 @@ var { Button, Form, TextInput, Select } = require('mho:surface/html');
 
 //----------------------------------------------------------------------
 
-var allItems      = Observable(["Fries", "Eggs Benedict", "Ham", "Cheese"]);
-var selectedItems = Observable(["Ham"]);
-var itemToAdd     = Observable('');
+var allItems      = ObservableVar(["Fries", "Eggs Benedict", "Ham", "Cheese"]);
+var selectedItems = ObservableVar(["Ham"]);
+var itemToAdd     = ObservableVar('');
 
 function addItem(ev) {
   ev.preventDefault();
@@ -43,7 +43,7 @@ document.body .. appendContent(
            ${ 
              Button('Add ') .. 
                Attrib('type', 'submit') .. 
-               Attrib('disabled', itemToAdd .. Computed(x->x.length == 0))
+               Attrib('disabled', itemToAdd .. observe(x->x.length == 0))
            }
           `) .. Prop('onsubmit', addItem)
    }
@@ -56,12 +56,12 @@ document.body .. appendContent(
    <div>
     ${ 
       Button('Remove') .. 
-        Attrib('disabled', selectedItems .. Computed(x->x==0)) ..
+        Attrib('disabled', selectedItems .. observe(x->x==0)) ..
         OnClick(removeSelected)
     }
     ${
       Button('Sort') ..
-        Attrib('disabled', allItems .. Computed(x->x.length < 2)) ..
+        Attrib('disabled', allItems .. observe(x->x.length < 2)) ..
         OnClick(sortItems)
     }   
    </div>

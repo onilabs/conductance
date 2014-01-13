@@ -3,7 +3,7 @@ context("dynamic") {||
 @ =require(['mho:surface', 'sjs:sequence', 'mho:observable', 'sjs:object']);
 
 var { @Select, @Div } = require('mho:surface/html');
-var {@Observable, @Computed} = require('mho:observable');
+var {@ObservableVar, @observe} = require('mho:observable');
 @driver = require('sjs:xbrowser/driver');
 
 var click = function(elem) {
@@ -20,9 +20,9 @@ context("void elements") {||
 
 context("observable widget content") {||
   test("should reflect changes made before & after insertion") {||
-    var content = @Observable("first");
+    var content = @ObservableVar("first");
     var observableElement = @Element("div", content);
-    var computedElement = @Element("div", @Computed(content, c -> 'computed ' + c));
+    var computedElement = @Element("div", @observe(content, c -> 'computed ' + c));
     content.set("second");
 
     var widgets = [observableElement, computedElement];
@@ -59,7 +59,7 @@ context("select widget") {||
     }
 
     test("should read selection object changes") {|s|
-      var selection = @Observable("one");
+      var selection = @ObservableVar("one");
       withSelect({
         items: s.items,
         selected: selection,
@@ -82,7 +82,7 @@ context("select widget") {||
     }
 
     test("should store selection object changes") {|s|
-      var selection = @Observable("one");
+      var selection = @ObservableVar("one");
       withSelect({
         items: s.items,
         selected: selection,
@@ -116,12 +116,12 @@ context("select widget") {||
 
   context("observable collection") {||
     test.beforeEach {|s|
-      s.items = @Observable(["one", "two", "three"]);
+      s.items = @ObservableVar(["one", "two", "three"]);
     }
     commonTests();
 
     test("should maintain single selection on item change") {|s|
-      var selection = @Observable("one");
+      var selection = @ObservableVar("one");
       withSelect({
         items: s.items,
         selected: selection,
@@ -133,7 +133,7 @@ context("select widget") {||
     }
 
     test("should maintain multiple selection on item change") {|s|
-      var selection = @Observable(["one", "two"]);
+      var selection = @ObservableVar(["one", "two"]);
       withSelect({
         items: s.items,
         selected: selection,
@@ -146,7 +146,7 @@ context("select widget") {||
     }
 
     test("should use latest selection on item change if selection is observable") {|s|
-      var selection = @Observable(["one", "two"]);
+      var selection = @ObservableVar(["one", "two"]);
       withSelect({
         items: s.items,
         selected: selection,

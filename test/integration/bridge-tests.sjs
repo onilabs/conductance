@@ -111,7 +111,7 @@ context() {||
       }
     }
 
-    test("Observable") {||
+    test("ObservableVar") {||
       require(url).connect({status:true}) {|api|
         api.withSharedVariable {|v|
           var changes = [];
