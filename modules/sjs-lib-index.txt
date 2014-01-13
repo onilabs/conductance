@@ -1,2 +1,13 @@
 @summary The Conductance web application framework
 @version 0.2.0-1-development
+@desc
+    This Library is the standard collection of modules
+    provided by the [Conductance](https://conductance.io/) web application server.
+
+    ### Loading `conductance` Modules
+
+    You can load modules from the `conductance` library by using the builtin `mho:` scheme, e.g.:
+
+        var http = require('mho:observable');
+    
+    See [sjs:#language/builtins::require] for more information about the StratifiedJS module system.
