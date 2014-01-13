@@ -51,7 +51,6 @@ exports.Document = function(data, settings) {
         waitfor {
           exports = module.exports = require([
                                     'mho:surface/bootstrap/html',
-                                    },
                                     {id:'mho:surface/api-connection',
                                       include: ['withAPI']
                                     },
