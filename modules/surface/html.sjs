@@ -22,7 +22,7 @@ var { observe } = require('../observable');
   @summary Surface HTML elements
   @desc
     As well as the explicitly document functions below, this module exports a
-    constructor function for every HTML tag in the
+    constructor function for almost _(see "Clashing names" below)_ every HTML tag in the
     [HTML5 Element List](https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/HTML5/HTML5_element_list).
     The function for each tag is in TitleCase, e.g:
 
@@ -35,6 +35,15 @@ var { observe } = require('../observable');
      - BlockQuote, THead, TBody, FigCaption, DataLost, OptGroup, TextArea, MenuItem, etc
 
     Each of these tag methods is a shortcut for calling [surface::Element] with the given tag name - i.e `Element(<tagName>, ... )`.
+
+    ## Clashing names
+
+    A small number of HTML tags do not have constructors in this module, since they would clash with names (and functionality)
+    already provided in [mho:std::]. Currently this is just:
+
+      - `Style`
+
+    If you do need to create one of these elements directly, you should use [../surface::Element], e.g. `Element('style', ...)`.
 
     ### Examples:
 
@@ -84,7 +93,7 @@ var { observe } = require('../observable');
 // commented-out tag names are those we have advanced bindings for, so we don't want the default
 ;[
   'Html',
-  'Head', 'Title', 'Base', 'Link', 'Meta', 'Style',
+  'Head', 'Title', 'Base', 'Link', 'Meta', /* 'Style', */
   'Script','NoScript',
   'Body', 'Section', 'Nav',
   'Article', 'Aside',

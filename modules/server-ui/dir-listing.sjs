@@ -9,7 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['mho:std', {id:'mho:surface/bootstrap/html', exclude:['Map','Style'] }]);
+@ = require(['mho:std', 'mho:surface/bootstrap/html']);
 
 // helper to format file sizes:
 function formatBytes(size) {

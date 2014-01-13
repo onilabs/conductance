@@ -30,13 +30,11 @@
     [surface/bootstrap/html::] (for `app-default`)
     or
     [surface/html::] (for `app-plain`).
-    All symbol names that clash with a symbol in
-    [mho:std::] are suppressed, to ensure compatibility with
-    the following idiom:
+
+    We've ensured that there are no names in `mho:app` that clash
+    with `mho:std`, to make sure you can use the common idiom of:
 
         @ = require(['mho:app', 'mho:std'])
-
-    Currently, the only symbol suppressed due to a name clash is `Style`.
     
   @function withBusyIndicator
   @param {Function} [block]
