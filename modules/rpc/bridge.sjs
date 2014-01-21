@@ -501,19 +501,23 @@ function BridgeConnection(transport, opts) {
     while (1) {
       try {
         var packet = transport.receive();
+        logging.debug("received packet", packet);
+        if (packet.type == 'message')
+          receiveMessage(packet);
+        else if (packet.type == 'data')
+          receiveData(packet);
+        else {
+          logging.warn("Unknown packet '#{packet.type}' received");
+        }
       }
       catch (e) {
-        if (!throwing) break;
+        if (!throwing) {
+          logging.warn("Error while receiving; terminating BridgeConnection: #{e}");
+          break;
+        }
         throw e;
       }
-      logging.debug("received packet", packet);
-      if (packet.type == 'message')
-        receiveMessage(packet);
-      else if (packet.type == 'data')
-        receiveData(packet);
-      else {
-        logging.warn("Unknown packet '#{packet.type}' received");
-      }
+
       // XXX this asynchronisation is necessary because the
       // `this.stratum.abort()` call in __finally_ above happens
       // reentrantly, but the stratum doesn't abort until blocking
