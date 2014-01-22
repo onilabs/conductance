@@ -3,15 +3,33 @@ if (typeof(__filename) == 'undefined') {
 	var __filename = decodeURIComponent(module.id.substr(7));
 }
 
-// this script can process any manifest format v1.
-var FORMATS = [1];
+// this script can process any manifest format v2
+var FORMATS = [2];
 exports.FORMATS = FORMATS;
+
+/*
+ * FORMAT HISTORY:
+ *
+ * v2: added in conductance-0.2.1
+ *  - added windows support (using bundled bsdtar & unzip)
+ *  - added detection of file ext from href, rather than filename
+ *    (which can be broken by server redirects). This means all hrefs
+ *    can end in e.g. #.tgz to force correct detection.
+ *  - roll our own `extract` handling, as bsdtar on windows is broken,
+ *    and now we can use it with .zip archives if we ever need
+ *
+ * Currently, the same contents are published as both v1 and v2, for
+ * simplicity. Once we _require_ any v2 features, we need to maintain two
+ * different manifests (or drop support for the v1 self-update)
+ */
+
 var fs = require("fs");
 var path = require("path");
 var os = require("os");
 var http = require('http');
 var https = require('https');
 var PROTO_MODS = {http: http, https: https};
+var IS_WINDOWS = os.platform().toLowerCase().indexOf('win') === 0;
 
 var child_process = require('child_process');
 
@@ -43,6 +61,11 @@ exports.platformKey = function(platform_key, _os) {
 		if (part.call) {
 			part = part.call(_os);
 		}
+		if (k == 'platform' && part.indexOf('win') === 0) {
+			// Windows apparently reports a `win32` platform name even
+			// on 64-bit arches, but that's confusing.
+			part = 'windows';
+		}
 		return part.toLowerCase();
 	}).join("_");
 };
@@ -70,6 +93,7 @@ exports.platformSpecificAttr = function(val, _os) {
 var ensureDir = exports.ensureDir = function (dir) {
 	if (!fs.existsSync(dir)) {
 		ensureDir(path.dirname(dir));
+		debug("mkdir: " + dir);
 		fs.mkdirSync(dir);
 	}
 };
@@ -79,6 +103,7 @@ function install(link, manifest, cb) {
 	if (fs.existsSync(link.dest)) {
 		exports.trash(link.dest);
 	}
+
 	if(link.runner) {
 		var wrapper = assert(exports.platformSpecificAttr(manifest.wrappers[link.runner]));
 		var contents = wrapper.template.replace(/__REL_PATH__/, path.relative(conductance_root, link.src));
@@ -87,9 +112,24 @@ function install(link, manifest, cb) {
 		// make sure it's executable
 		fs.chmodSync(link.dest, 0755);
 	} else {
-		if (os.platform().toLowerCase() == 'windows' && fs.statSync(link.src).isDirectory()) {
-			// can't symlink a dir on windows - just copy it
-			exports.runCmd("xcopy", [link.src, link.dest, '/s','/e'], cb);
+		if (IS_WINDOWS) {
+			// can't symlink on windows - just copy it
+			if (fs.statSync(link.src).isDirectory()) {
+				exports.runCmd("robocopy", [link.src, link.dest, '/E',
+					// shut up, robocopy:
+					'/NFL', // file list
+					'/NDL', // directory list
+					'/NJH', // job header
+					'/NJS', // summary
+					'/NC',  // file classes
+					'/NS',  // file sizes
+					'/NP'   // progress
+					],
+					[0,1], // robocopy thinks both 0 and 1 mean success. Silly robot.
+					cb);
+			} else {
+				exports.copyFile(link.src, link.dest, cb);
+			}
 			return;
 		}
 		// make relative symlinks so that the install dir can be moved
@@ -272,11 +312,20 @@ exports.copyFile = function(src, dest, cb) {
 	}
 };
 
-exports.runCmd = function(cmd, args, cb) {
+exports.runCmd = function(cmd, args, okCodes /* opt */, cb) {
+	if (arguments.length == 3) {
+		// okCodes is optional, default to [0]
+		cb = okCodes;
+		okCodes = [0];
+	}
 	debug("running ", cmd, args);
 	var child = child_process['spawn'](cmd, args, {stdio:'inherit'});
 	var done = function(code) {
-		var err = code == 0 ? undefined : new Error("Command failed with status: " + code);
+		var err;
+		if (okCodes.indexOf(code) === -1) {
+			err = new Error("Command failed with status: " + code);
+			err.code = code;
+		}
 		return cb(err);
 	}
 	try {
@@ -287,43 +336,81 @@ exports.runCmd = function(cmd, args, cb) {
 	}
 };
 
-exports.extract = function(archive, dest, extract, cb) {
+var extractComponents = function(extract, src, dest) {
+	// given a raw archive extract, dive `extract` folders
+	// deep and move _those_ contents into dest.
+	// Simulates --strip-components of tar,
+	// but that's broken on windows' bsdtar (plus we can
+	// use it for other archive types like .zip)
+
+	if (!extract) {
+		// no more traversal necessary - move contents
+		debug("moving contents of "+src + " -> " + dest);
+		fs.readdirSync(src).forEach(function(f) {
+			var fullSrc = path.join(src, f);
+			var fullDest = path.join(dest, f);
+			debug("moving " + fullSrc + " -> " + fullDest);
+			fs.renameSync(fullSrc, fullDest);
+		});
+		return;
+	}
+
+	var contents = fs.readdirSync(src);
+	assert(contents.length == 1, "Ambiguous extract - folder contents are " + JSON.stringify(contents));
+	debug("entering " + contents[0]);
+	extractComponents(extract-1, path.join(src, contents[0]), dest);
+};
+
+
+exports.getExt = function(url) {
+	var ext = url.match(/\.[^./\\]*$/);
+	if (ext) ext = ext[0].toLowerCase();
+	return ext;
+};
+
+exports.extract = function(archive, dest, extract, ext, cb) {
+	assert(arguments.length == 5, "extract: wrong number of arguments: " + arguments.length);
 	var archivePath = assert(archive.path, "archive has no path");
 	var originalName = assert(archive.originalName, "archive has no originalName");
 	debug("Extracting " + archivePath + " into " + dest);
-	exports.ensureDir(dest);
-	var ext = originalName.match(/\.[^./\\]*$/);
+	var rawDest = dest + '.raw';
+	exports.ensureDir(rawDest);
+
 	var done = function(err) {
 		if (err) {
-			exports.trash(dest);
+			exports.trash(rawDest);
 			assert(false, err.message || String(err));
 		} else {
+			exports.ensureDir(dest);
+			try {
+				extractComponents(extract, rawDest, dest);
+			} finally {
+				exports.trash(rawDest);
+			}
 			cb();
 		}
 	};
 
-	if (ext) ext = ext[0].toLowerCase();
 	switch(ext) {
 		case ".exe":
-			return exports.copyFile(archivePath, path.join(dest, originalName), done);
+			return exports.copyFile(archivePath, path.join(rawDest, originalName), done);
 			break;
 		case null:
 		case ".gz":
 		case ".tgz":
 			var cmd = 'tar';
-			if (os.platform().toLowerCase() == 'windows') {
-				cmd = os.path.join(conductance_root, 'share', 'bsdtar.exe');
+			if (IS_WINDOWS) {
+				cmd = path.join(conductance_root, 'share', 'bsdtar', 'bsdtar.exe');
 			}
-			var args = ["zxf", archivePath, '--directory=' + dest];
-			if (extract !== undefined) {
-				args.push('--strip-components=' + String(extract));
-			}
+			var args = ["zxf", archivePath, '--directory=' + rawDest];
 			return exports.runCmd(cmd, args, done);
 			break;
 		case ".zip":
 			var cmd = 'unzip';
-			var args = ['-q', archivePath, '-d', dest];
-			assert(extract === undefined, "Can't extract components from a zip");
+			if (IS_WINDOWS) {
+				cmd = os.path.join(conductance_root, 'share', 'unzip', 'unzip.exe');
+			}
+			var args = ['-q', archivePath, '-d', rawDest];
 			return exports.runCmd(cmd, args, done);
 			break;
 		default:
@@ -339,7 +426,13 @@ var download_and_extract = function(name, dest, attrs, cb) {
 	if (href === false) return cb();
 	console.warn("Downloading component: " + name);
 	assert(href, "Malformed manifest: no href");
-	console.warn(" - fetching: " + href + ' ...');
+
+	var ext = exports.getExt(href);
+	var extDesc = ext ? ' ('+ext.slice(1)+')' : '';
+
+	href = href.replace(/#.*/, '');
+	console.warn(" - fetching: " + href + extDesc + ' ...');
+
 	exports.download(href, function(err, archive) {
 		if (err) assert(false, err);
 		
@@ -347,7 +440,7 @@ var download_and_extract = function(name, dest, attrs, cb) {
 		var tmp = dest + '.tmp';
 		if (fs.existsSync(tmp)) exports.trash(tmp);
 		if (fs.existsSync(dest)) exports.trash(dest);
-		exports.extract(archive, tmp, extract, function() {
+		exports.extract(archive, tmp, extract, ext, function() {
 			fs.renameSync(tmp, dest);
 			cb();
 		});
@@ -503,7 +596,8 @@ exports.main = function(initial) {
 			// NOTE: this is the point of no return. If anything goes wrong between
 			// here and the end of the script, we've got a potentially-unrecoverable install
 			console.warn("Installing components ...");
-			var installNext = function() {
+			var installNext = function(err) {
+				assert(!err, String(err));
 				if (all_links.length > 0) {
 					var link = all_links.shift();
 					install(link, manifest, installNext);
@@ -544,8 +638,7 @@ exports.main = function(initial) {
 										msg = {note: "Skipped global installation", rerun: "if you change your mind"};
 									}
 									console.warn("\n" + msg.note + ". You can:\n" +
-										//TODO: print boot.cmd on windows
-										"  - Re-run this installer (" + path.join(conductance_root, "share", "install.sh") +") " + msg.rerun + "\n" +
+										"  - Re-run this installer (" + path.join(conductance_root, "share", "install." + (IS_WINDOWS ? 'cmd':'sh')) +") " + msg.rerun + "\n" +
 										"  - Add " + path.join(conductance_root, "bin") + " to $PATH yourself\n" +
 										"  - Run conductance by its full path: " + path.join(conductance_root, "bin", "conductance") + "\n");
 								}

@@ -1,0 +1,18 @@
+#!/usr/bin/env sjs
+// vim: syntax=sjs:
+@ = require('sjs:std');
+@fs = require('sjs:nodejs/fs');
+var [ dest, name ] = @argv();
+
+var inputFile = './share/manifest.json';
+@childProcess.run('gup', ['-u', inputFile]);
+var contents = JSON.parse(@fs.readFile(inputFile, 'utf-8'));
+
+// currently, manifest-v2 is backwards-compatible,
+// so we can just re-publish it as v1.
+// Obviously, this needs to be changed if we actually
+// use any v2 features in the manifest
+@assert.eq(contents.format, 2);
+contents.format = 1;
+@fs.writeFile(dest, JSON.stringify(contents, null, '    '));
+

@@ -1,6 +1,6 @@
-{ "format": 1
+{ "format": 2
 , "version": 5
-, "manifest_url": "https://conductance.io/install/manifest-v1.json"
+, "manifest_url": "https://conductance.io/install/manifest-v2.json"
 , "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from https://conductance.io/"
 , "wrappers":
   { "node":
@@ -9,7 +9,7 @@
       { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexport CONDUCTANCE_ROOT=\"$(dirname \"$bindir\")\"\nexec \"$CONDUCTANCE_ROOT/bin/node\" \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\"\n"
       }
     , "windows":
-      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=\"%~dp0\\..\"\n\"%CONDUCTANCE_ROOT%\\bin\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
+      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\bin\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
       }
     }
   }
@@ -25,11 +25,9 @@
         ]
       , "default":
         [ {"src": "conductance", "dest": "bin/", "runner": "node"}
-        , {"src": "tools/install/share/self-update.js", "dest": "share/install.sh", "runner":"node"}
         ]
       , "windows":
-        [ {"src": "conductance", "dest": "bin/"}
-        , {"src": "conductance.cmd", "dest": "bin/"}
+        [ {"src": "conductance", "dest": "bin/conductance.cmd", "runner":"node"}
         ]
       }
     }
@@ -72,20 +70,60 @@
       , "windows": [ {"src": "node.exe", "dest": "bin/"} ]
       }
     }
-  , "bsdtar":
-    { "id": "3.1.2"
+
+  , "libarchive":
+    { "id": "2.4.12"
     , "bootstrap": true
     , "internal": true
     , "href":
       { "platform_key": ["platform"]
       , "default": false
-      , "windows": "http://internode.dl.sourceforge.net/project/gnuwin32/libarchive/2.4.12-1/libarchive-2.4.12-1-bin.zip"
+      , "windows": "http://downloads.sourceforge.net/gnuwin32/libarchive-2.4.12-1-bin.zip"
       }
     , "links":
       { "platform_key": ["platform"]
       , "default": []
-      , "windows": [ { "src": "bin/bsdtar.exe", "dest": "share/bsdtar.exe" } ]
+      , "windows":
+        [ { "src": "bin/bsdtar.exe", "dest": "share/bsdtar/" }
+        , { "src": "bin/libarchive2.dll", "dest": "share/bsdtar/" }
+        ]
       }
     }
+
+  , "libarchive-deps":
+    { "id": "2.4.12"
+    , "bootstrap": true
+    , "internal": true
+    , "href":
+      { "platform_key": ["platform"]
+      , "default": false
+      , "windows": "http://downloads.sourceforge.net/gnuwin32/libarchive-2.4.12-1-dep.zip"
+      }
+    , "links":
+      { "platform_key": ["platform"]
+      , "default": []
+      , "windows":
+        [ { "src": "bin/bzip2.dll", "dest": "share/bsdtar/" }
+        , { "src": "bin/zlib1.dll", "dest": "share/bsdtar/" }
+        ]
+      }
+    }
+
+  , "unzip":
+    { "id": "5.51"
+    , "bootstrap": true
+    , "internal": true
+    , "href":
+      { "platform_key": ["platform"]
+      , "default": false
+      , "windows": "http://downloads.sourceforge.net/project/gnuwin32/unzip/5.51-1/unzip-5.51-1-bin.zip"
+      }
+    , "links":
+      { "platform_key": ["platform"]
+      , "default": []
+      , "windows": [ { "src": "bin", "dest": "share/unzip" } ]
+      }
+    }
+
   }
 }

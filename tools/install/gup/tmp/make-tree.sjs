@@ -50,21 +50,27 @@ exports.main = function(args) {
 		var extract = config.extract;
 		if (extract) extract = selfUpdate.platformSpecificAttr(extract, _os);
 		var component_base = path.join(base, "data", "#{component}-#{config.id}");
+		var ext = selfUpdate.getExt(originalName);
 		waitfor() {
 			selfUpdate.extract(
 				{path: local_tarball, originalName: originalName},
 				component_base,
-				extract, resume);
+				extract,
+				ext,
+				resume);
 		}
 
 		var links = config.links;
 		if(links) {
 			links = selfUpdate.platformSpecificAttr(links, _os);
 			links .. each {|link|
+				if (link.runner) {
+					throw new Error("don\'t know how to handle bootstrapped runner scripts yet");
+				}
 				var src = path.join(component_base, link.src);
 				var dest = path.join(base, link.dest);
 				selfUpdate.ensureDir(dest .. str.endsWith('/') ? dest : path.dirname(dest));
-				run("cp", src, dest);
+				run("cp", "-r", src, dest);
 			}
 		}
 	}

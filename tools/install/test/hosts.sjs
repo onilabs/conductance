@@ -1,6 +1,9 @@
 var childProcess = require('sjs:nodejs/child-process');
 var shell_quote = require('sjs:shell-quote');
 var logging = require('sjs:logging');
+var assert = require('sjs:assert');
+var fs = require('sjs:nodejs/fs');
+var { merge } = require('sjs:object');
 
 var PRINT_COMMANDS = false;
 
@@ -25,9 +28,36 @@ var ssh = function(cmd) {
   return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--'].concat(cmd));
 };
 
+var replaceTemp = function(str, tempdir) {
+  if (tempdir) {
+    return str.replace(/\/tmp\//, tempdir);
+  }
+  return str;
+};
+
+var sshWindows = function(cmd) {
+  assert.string(cmd);
+  var HOME = "C:/Users/#{this.user}";
+  cmd = cmd .. replaceTemp(HOME + '/' + this.tempdir);
+  cmd = cmd.replace(/\$HOME/, HOME);
+
+  var tmpfile = '/tmp/conductance-remote.sh'
+  fs.writeFile(tmpfile, cmd);
+  this.copyFile(tmpfile, this.tempdir + 'input.sh');
+
+  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'bash', '-eux', HOME + '/' + this.tempdir + 'input.sh']);
+};
+
 var scp = function(src, dest) {
   return run('scp', ['-q', '-P', this.port, src, "#{this.user}@#{this.host}:#{dest}"]);
 };
+
+var sftp = function(src, dest) {
+  dest = dest .. replaceTemp(this.tempdir);
+  return run('bash', ['-c', "sftp -q -P #{this.port} -b - #{this.user}@#{this.host} <<EOF
+put #{src} #{dest}
+EOF"]);
+}
 
 // like childProcess.run(), but combines stdout/stderr
 exports.run = function(command, args, options) {
@@ -55,53 +85,76 @@ exports.run = function(command, args, options) {
 
 // user-specific stuff:
 
-var hosts = (function() {
+exports.systems = (function() {
   var user = process.env['USER'];
   var hostname = childProcess.run('hostname', [], {stdio: [process.stdin, 'pipe', process.stderr]}).stdout.trim();
+
+  var posixBase = {
+    port: '22',
+    runCmd: ssh,
+    copyFile: scp,
+    extractInstaller: "tar zxf",
+    nativeScript: (script, args) -> shell_quote.quote([script].concat(args||[])),
+  };
+
+  var windowsBase = {
+    /*
+     * A brief summary of what's needed on the
+     * windows host:
+     *
+     * - 0install (http://0install.de/?lang=en)
+     * - freeSSHd (http://www.freesshd.com/)
+     *    - configured to allow public key access
+     *    - the SSH key auth stops working sometimes, a restart can fix it (!)
+     * - bash (I'm using MSYS bash frm MinGW)
+     * - bonjour (zeroconf networking - http://www.apple.com/support/downloads/bonjourforwindows.html)
+     */
+    runCmd: sshWindows,
+    copyFile: sftp,
+    tempdir: "AppData/Local/Temp/",
+    extractInstaller: '0install run http://0install.de/feeds/SevenZip_CLI.xml x',
+    
+    // this does not do any quoting of args, but we dn't need that yet...
+    nativeScript: (script, args) -> "$COMSPEC /c \"#{script.replace(/\//g,"\\\\").replace(/\.sh$/, '')}.cmd #{(args||[]).join(" ")}\"",
+  };
 
   switch(user) {
     case 'tim':
       var proxy = "http://#{hostname}.local:9090/";
-      return {
-        linux: -> {
-          host: 'localhost',
-          user: 'sandbox',
-          port: '22',
-          proxy: proxy,
-          runCmd: ssh,
-          copyFile: scp,
+      return [
+        {
+          platform: 'linux',
+          arch: 'x64',
+          host: -> posixBase .. merge({
+            proxy: proxy,
+            host: 'localhost',
+            user: 'sandbox',
+          }),
         },
-        mac: -> {
-          host: 'mba.local',
-          user: 'test',
-          port: '22',
-          proxy: proxy,
-          runCmd: ssh,
-          copyFile: scp,
+
+        {
+          platform: 'darwin',
+          arch: 'x64',
+          host: -> posixBase .. merge({
+            proxy: proxy,
+            host: 'mba.local',
+            user: 'test',
+          }),
         },
-        // TODO: windows
-      }
+
+        {
+          platform: 'windows',
+          arch: 'x86',
+          host: -> windowsBase .. merge({
+            proxy: proxy,
+            host: 'IE10Win8.local',
+            user: 'IEUser',
+            port: '2222',
+          }),
+        },
+      ];
 
     default: throw new Error("No test hosts configured for user #{user}");
   }
 })();
 
-
-
-exports.systems = [
-    {
-      platform: 'linux',
-      arch: 'x64',
-      host: hosts.linux,
-    },
-    {
-      platform: 'darwin',
-      arch: 'x64',
-      host: hosts.mac,
-    },
-    {
-      platform: 'windows',
-      arch: 'x64',
-      host: hosts.windows,
-    },
-  ];

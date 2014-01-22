@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eu
+gup -u share/manifest.json
+cp share/manifest.json "$1"

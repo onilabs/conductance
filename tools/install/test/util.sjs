@@ -37,15 +37,15 @@ exports.api = function(host) {
 
 		_runCommand: function(args, conductance_root) {
 			conductance_root = conductance_root || '$HOME/.conductance';
-			return host.runCmd("#{conductance_root}/bin/conductance #{args}");
+			return host.runCmd(host.nativeScript(conductance_root + "/bin/conductance", args));
 		},
 
 		runServer: function(config, conductance_root) {
-			return self._runCommand("serve #{self._copyFixture(config)}", conductance_root);
+			return self._runCommand(["serve", "#{self._copyFixture(config)}"], conductance_root);
 		},
 
 		runMhoScript: function(config, conductance_root) {
-			return self._runCommand("exec #{self._copyFixture(config)}", conductance_root);
+			return self._runCommand(["exec", "#{self._copyFixture(config)}"], conductance_root);
 		},
 	};
 	return self;

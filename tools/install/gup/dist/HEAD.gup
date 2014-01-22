@@ -1,4 +1,8 @@
 #!/bin/bash
 set -eu
 gup --always
-git rev-parse HEAD | tee "$1" | gup --contents
+commit="$(git stash create)"
+if [ -z "$commit" ]; then
+	commit="$(git rev-parse HEAD)"
+fi
+echo "$commit" | tee "$1" | gup --contents

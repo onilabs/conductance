@@ -1,4 +1,4 @@
 #!/bin/bash
 set -eu
 . ./env.sh
-gup -u $platform_bundles
+gup -u manifest $platform_bundles
