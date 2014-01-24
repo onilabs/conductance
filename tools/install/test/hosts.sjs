@@ -41,11 +41,25 @@ var sshWindows = function(cmd) {
   cmd = cmd .. replaceTemp(HOME + '/' + this.tempdir);
   cmd = cmd.replace(/\$HOME/, HOME);
 
+  // give SSH output some time to propagate,
+  // otherwise the failure reason sometimes gets cut off
+  cmd = 'function delay_exit {
+    rv=$?
+    set +x
+    if [ "$rv" != 0 ]; then
+      echo -e "EXIT:$rv"
+      sleep 1
+    fi
+    exit "$rv"
+  }
+  trap delay_exit EXIT
+  ' + cmd
+
   var tmpfile = '/tmp/conductance-remote.sh'
   fs.writeFile(tmpfile, cmd);
   this.copyFile(tmpfile, this.tempdir + 'input.sh');
 
-  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'bash', '-eux', HOME + '/' + this.tempdir + 'input.sh']);
+  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'bash', '-eu', HOME + '/' + this.tempdir + 'input.sh']);
 };
 
 var scp = function(src, dest) {

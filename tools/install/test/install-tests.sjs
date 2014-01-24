@@ -78,9 +78,7 @@ hosts.systems .. each {|system|
 		var exportProxy = 'export CONDUCTANCE_FORCE_HTTP=1 http_proxy='+host.proxy+'; ';
 
 		test.beforeAll {||
-			if (process.env['GUP_TARGET']) {
-				childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
-			}
+			childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
 
 			if (!proxyStrata) {
 				proxyStrata = cutil.breaking {|brk|
@@ -382,6 +380,14 @@ hosts.systems .. each {|system|
 					trash();
 				}
 			}
+
+			test('has only the expected contents') {||
+				// notably, ".temp" should be cleaned up
+				listDir('.') .. assert.eq([
+					'bin', 'data', 'node_modules', 'share'
+				]);
+			}
+
 
 			context('error handling') {||
 				var assertNotBroken = function() {
