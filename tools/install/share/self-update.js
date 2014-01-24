@@ -35,7 +35,7 @@ var child_process = require('child_process');
 
 var here;
 here = path.dirname(__filename);
-var conductance_root = process.env['CONDUCTANCE_ROOT'] || path.dirname(here);
+var conductance_root = fs.realpathSync(process.env['CONDUCTANCE_ROOT'] || path.dirname(here));
 
 var CURRENT_MANIFEST = path.join(conductance_root, 'share', 'manifest.json');
 var NEW_MANIFEST = path.join(conductance_root, 'share', 'manifest.new.json');
@@ -162,44 +162,66 @@ exports.installGlobally = function(cb) {
 	//  - true: succeeded
 	//  - false: failed
 	//  - null: user declined
-	//
-	// TODO: windows
-	var bins = ['conductance', 'sjs'];
-	var success = true;
 	var prefix = process.env['PREFIX'];
 	if (prefix === '') {
 		// explicitly skip
 		return cb(null);
 	}
 	prefix = (prefix || '/usr') + '/bin';
-	process.stderr.write("Do you want to install conductance scripts globally into " + prefix + "? [Y/n] ");
+	var promptMsg = IS_WINDOWS ?
+		"Do you want to add conductance to your $PATH? [Y/n] " :
+		"Do you want to install conductance scripts globally into " + prefix + "? [Y/n] ";
+	process.stderr.write(promptMsg);
 	exports.prompt(function(response) {
 		console.warn("");
 		response = response.trim();
 		if (response == 'y' || response == '') {
-			var cmd = 'set -eux';
-			bins.forEach(function(name) {
-				var src = path.join(conductance_root, "bin", name);
-				var dest = path.join(prefix, name);
-				cmd += "; ln -sfn '" + src + "' '" + dest + "'";
-			});
 
-			exports.runCmd('bash', ['-c', cmd], function(err) {
-				if (err) {
-					// assume it's a permission error, and try with sudo:
-					console.warn("You may be prompted for your user password.");
-					exports.runCmd('sudo', ['bash', '-c', cmd], function(err) {
-						if (err) {
-							console.warn(err.message);
-							cb(false);
-						} else {
-							cb(true);
-						}
-					});
-				} else {
-					return cb(true);
-				}
-			});
+			if (IS_WINDOWS) {
+				var pathed = path.join(conductance_root, 'share', 'pathed.exe');
+				var bindir = path.join(conductance_root, 'bin');
+				exports.runCmd(pathed, ['-q', bindir], function(err) {
+					if (!err) {
+						debug("already on $PATH, no further action needed");
+						cb(true);
+					} else {
+						exports.runCmd(pathed, ['-a', bindir], function(err) {
+							if (err) {
+								console.warn(err.message);
+								cb(false);
+							} else {
+								cb(true);
+							}
+						});
+					}
+				});
+
+			} else {
+				var bins = ['conductance', 'sjs'];
+				var cmd = 'set -eux';
+				bins.forEach(function(name) {
+					var src = path.join(conductance_root, "bin", name);
+					var dest = path.join(prefix, name);
+					cmd += "; ln -sfn '" + src + "' '" + dest + "'";
+				});
+
+				exports.runCmd('bash', ['-c', cmd], function(err) {
+					if (err) {
+						// assume it's a permission error, and try with sudo:
+						console.warn("You may be prompted for your user password.");
+						exports.runCmd('sudo', ['bash', '-c', cmd], function(err) {
+							if (err) {
+								console.warn(err.message);
+								cb(false);
+							} else {
+								cb(true);
+							}
+						});
+					} else {
+						return cb(true);
+					}
+				});
+			}
 		} else {
 			return cb(null);
 		}
@@ -630,6 +652,9 @@ exports.main = function(initial) {
 							exports.installGlobally(function(ok) {
 								if (ok) {
 									console.warn("\nEverything installed! Run `conductance` to get started!");
+									if (IS_WINDOWS) {
+										console.warn("(You may need to open a new console to get the new $PATH setting)");
+									}
 								} else {
 									var msg;
 									if (ok === false) { // failed

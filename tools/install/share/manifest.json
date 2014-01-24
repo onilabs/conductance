@@ -43,10 +43,7 @@
       , "default":
         [ {"src": "sjs", "dest": "bin/", "runner": "node"}
         ]
-      , "windows":
-        [ {"src": "sjs", "dest": "bin/"}
-        , {"src": "sjs.cmd", "dest": "bin/"}
-        ]
+      , "windows": [ ]
       }
     }
   , "node":
@@ -124,6 +121,23 @@
       , "windows": [ { "src": "bin", "dest": "share/unzip" } ]
       }
     }
+
+  , "pathed":
+    { "id": "0.8"
+    , "bootstrap": true
+    , "internal": true
+    , "href":
+      { "platform_key": ["platform"]
+      , "default": false
+      , "windows": "https://pathed.googlecode.com/files/pathed-08.zip"
+      }
+    , "links":
+      { "platform_key": ["platform"]
+      , "default": []
+      , "windows": [ { "src": "pathed.exe", "dest": "share/" } ]
+      }
+    }
+
 
   }
 }
