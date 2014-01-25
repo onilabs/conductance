@@ -461,7 +461,7 @@ __js function InternalStyleDef(content, parent_class, mech) {
 /**
   @function Style
   @param {optional ::HtmlFragment} [element]
-  @param {String} [style]
+  @param {String|sjs:quasi::Quasi} [style]
   @return {::Element|Function}
   @summary Add CSS style to an element
   @desc
@@ -513,8 +513,8 @@ __js function InternalStyleDef(content, parent_class, mech) {
               }
             }
 
-    If `style` is a [sjs:sequence::Stream] (or a [sjs:quasi::Quasi] containing
-    any stream values), the style will be recomputed and updated
+    If `style` is a [sjs:quasi::Quasi] containing
+    any [sjs:sequence::Stream] values, the style will be recomputed and updated
     whenever any of the composite stream values changes.
 
     If `element` is not provided, `Style` will
