@@ -213,7 +213,7 @@ function openTransport(server) {
         }
         ],
         { method: 'POST', 
-          headers: {'Content-Type': 'text/plain; charset=utf-8'},
+          headers: {'Content-Type': 'text/plain'},
           body: JSON.stringify(messages)
         });
       return messages; // XXX no point in mapping the return value
