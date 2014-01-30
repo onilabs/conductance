@@ -529,7 +529,7 @@ function BridgeConnection(transport, opts) {
       }
       catch (e) {
         if (!throwing) {
-          logging.warn("Error while receiving; terminating BridgeConnection: #{e}");
+          logging.info("Error while receiving; terminating BridgeConnection: #{e}");
           break;
         }
         throw e;
