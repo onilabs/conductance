@@ -9,7 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['sjs:object', '../../surface']);
+@ = require(['sjs:object', 'sjs:sequence', '../../surface']);
 
 /**
   @summary Bootstrap HTML module
@@ -30,7 +30,7 @@ exports .. @extend(base_html);
 // ... and override with bootstrap specializations:
 
 // XXX there has to be a better way to set the classes here
-function wrapWithClass(baseElement, cls) {
+__js function wrapWithClass(baseElement, cls) {
   return () -> baseElement.apply(null, arguments) .. @Class(cls);
 }
 
@@ -42,6 +42,24 @@ function wrapWithClass(baseElement, cls) {
   @return {surface::Element}
 */
 exports.Button = wrapWithClass(base_html.Button, 'btn');
+
+/**
+  @function Btn
+  @summary Bootstrap-style button ("class='btn'") with additional `btn-*` classes applied.
+  @param {String} [btn_classes] String of `btn-*` classes to apply to the button
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
+  @return {surface::Element}
+  @desc
+    `btn_classes` is a space-separated list of `btn-*` classes that should be applied to the 
+    button:
+    
+    * **style**: `default`, `primary`, `success`, `info`, `warning`, `danger`, or `link`
+    * **sizing**: `lg`, `sm`, or `xs`
+    * **block-level**: `block`
+*/
+exports.Btn = (btn_classes, content, attribs) -> 
+  (wrapWithClass(base_html.Button, 'btn '+(btn_classes.split(' ') .. @map(cls->'btn-'+cls) .. @join(' '))))(content, attribs);
 
 /**
   @function Table
