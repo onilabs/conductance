@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eu
+gup -u 7zsd.7z ./7z
+./7z e 7zsd.7z "$2" -so > "$1"

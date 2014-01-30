@@ -52,10 +52,11 @@ switch(ext) {
     var confFiles = @fs.readdir("conf");
     var confPaths = confFiles .. @map(f -> @path.join("conf", f));
     var payload = (name .. @rsplit(".", 1))[0] + ".7z";
-    run.apply(null, ["gup", "-u", payload].concat(confPaths));
+    var prelude = "dist/7zsd.sfx";
+    run.apply(null, ["gup", "-u", payload, prelude].concat(confPaths));
 
     var out = @nodeFs.createWriteStream(dest, 'w');
-    ;[root+"/conf/7zS.sfx", root+"/conf/7zip.conf", root+"/" + payload] .. @each {|input|
+    ;[root+"/" + prelude, root+"/conf/7zip.conf", root+"/" + payload] .. @each {|input|
       var inf = @nodeFs.createReadStream(input);
       inf .. @stream.pump(out);
     }

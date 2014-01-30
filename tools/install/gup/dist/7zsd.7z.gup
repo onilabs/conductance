@@ -1,0 +1,2 @@
+#!/bin/bash
+wget -O "$1" http://7zsfx.solta.ru/files/7zsd_150_2712.7z
