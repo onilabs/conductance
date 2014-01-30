@@ -176,6 +176,7 @@ module.exports = require(modules);
    - **Class**: (function [mho:surface::Class])
    - **Document**: (function [mho:surface::Document])
    - **Element**: (class [mho:surface::Element])
+   - **Enabled**: (function [mho:surface::Enabled])
    - **ensureElement**: (function [mho:surface::ensureElement])
    - **Id**: (function [mho:surface::Id])
    - **insertAfter**: (function [mho:surface::insertAfter])

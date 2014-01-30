@@ -19,9 +19,9 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
-var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode } = require('./base');
+var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode, Class } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
-var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile } = require('sjs:sequence');
+var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait, when } = require('sjs:event');
 
@@ -530,7 +530,6 @@ exports.removeNode = removeNode;
 
 //----------------------------------------------------------------------
 
-// set a property on an element
 /**
   @function Prop
   @altsyntax element .. Prop(name, value)
@@ -558,6 +557,19 @@ function Prop(html, name, value) {
   });
 }
 exports.Prop = Prop;
+
+//----------------------------------------------------------------------
+/**
+  @function Enabled
+  @altsyntax element .. Enabled(obs)
+  @summary Add a `disabled` attribute to element when obs is not truthy
+  @param {::HtmlFragment} [element]
+  @param {observable::Observable} [obs] Observable
+  @return {::Element}
+  @hostenv xbrowser
+*/
+exports.Enabled = (html, obs) -> html .. Class('disabled', obs .. transform(x->!x));
+
 
 //----------------------------------------------------------------------
 
