@@ -182,6 +182,8 @@ module.exports = require(modules);
    - **isElement**: (function [mho:surface::isElement])
    - **loadTemplate**: (function [mho:surface::loadTemplate])
    - **Mechanism**: (function [mho:surface::Mechanism])
+   - **On**: (function [mho:surface::On])
+   - **OnClick**: (function [mho:surface::OnClick])
    - **prependContent**: (function [mho:surface::prependContent])
    - **Prop**: (function [mho:surface::Prop])
    - **RawHTML**: (function [mho:surface::RawHTML])

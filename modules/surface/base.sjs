@@ -396,7 +396,7 @@ __js {
 
 /**
   @function ensureElement
-  @param {::HtmlFragment}
+  @param {::HtmlFragment} [html]
   @return {::Element}
   @summary Wrap a [::HtmlFragment] in an [::Element] with tag name 'surface-ui', if it isn't already one.
 */
@@ -460,6 +460,7 @@ __js function InternalStyleDef(content, parent_class, mech) {
 
 /**
   @function Style
+  @altsyntax element .. Style(style)
   @param {optional ::HtmlFragment} [element]
   @param {String|sjs:quasi::Quasi} [style]
   @return {::Element|Function}
@@ -610,6 +611,7 @@ __js {
 
 /**
   @function Mechanism
+  @altsyntax element .. Mechanism(mechanism)
   @param {optional ::HtmlFragment} [element]
   @param {Function|String} [mechanism]
   @summary Add a mechanism to an element
@@ -719,6 +721,7 @@ function StreamAttribMechanism(ft, name, obs) {
 
 /**
   @function Attrib
+  @altsyntax element .. Attrib(name, value)
   @summary Add a HTML attribute to an element
   @param {::HtmlFragment} [element]
   @param {String} [name] Attribute name
@@ -747,6 +750,7 @@ exports.Attrib = Attrib;
 
 /**
   @function Id
+  @altsyntax element .. Id(id)
   @param {::HtmlFragment} [element]
   @param {String|sjs:sequence::Stream} [id]
   @summary Add an `id` attribute to an element
@@ -765,6 +769,7 @@ exports.Id = (element, id) -> Attrib(element, 'id', id);
 
 /**
   @function Class
+  @altsyntax element .. Class(class, [flag])
   @summary Add a `class` to an element
   @param {::HtmlFragment} [element]
   @param {String|sjs:sequence::Stream} [class]
