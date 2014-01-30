@@ -261,6 +261,18 @@ module.exports = require(modules);
 
       
 
+@function Autofocus
+@altsyntax element .. Autofocus()
+@summary Focus element when loaded into DOM
+@param {::HtmlFragment} [element]
+@return {::Element}
+@desc
+  Similar to setting an attribute 'autofocus' on an element, but works in 
+  more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1.
+
+  If `Autofocus` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
+
 @function RequireExternalScript
 @summary Declare a dependency on an external `.js` script
 @param {String} [url]

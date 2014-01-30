@@ -145,7 +145,7 @@ __js function CollapsedFragment() {
 */
 __js function isCollapsedFragment(obj) { return CollapsedFragmentProto.isPrototypeOf(obj); }
 __js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
-
+exports.isFragment = isFragment;
 
 /* NOT PART OF DOCUMENTED API
   @function collapseHtmlFragment
@@ -832,6 +832,7 @@ function Class(element, clsname, val) {
   return element;
 }
 exports.Class = Class;
+
 /**
   @function RawHTML
   @summary Cast a string into raw HTML
@@ -858,6 +859,24 @@ exports.Class = Class;
         
 */
 exports.RawHTML = (str) -> Quasi([str]);
+
+
+/**
+  @function Autofocus
+  @altsyntax element .. Autofocus()
+  @summary Focus element when loaded into DOM
+  @param {::HtmlFragment} [element]
+  @return {::Element}
+  @desc
+    Similar to setting an attribute 'autofocus' on an element, but works in 
+    more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1.
+
+    If `Autofocus` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    `element` will automatically be wrapped using [::ensureElement].
+*/
+// the hold(0) is necessary to make focus work for content that is initially hidden; e.g.
+// in doModal:
+exports.Autofocus = Mechanism("hold(0); this.focus();");
 
 //----------------------------------------------------------------------
 
@@ -906,3 +925,4 @@ exports.RequireExternalStyle = function(url) {
   rv.externalStyles[url] = true;
   return rv;
 };
+

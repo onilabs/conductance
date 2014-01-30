@@ -172,6 +172,7 @@ module.exports = require(modules);
   
    - **appendContent**: (function [mho:surface::appendContent])
    - **Attrib**: (function [mho:surface::Attrib])
+   - **Autofocus**: (function [mho:surface::Autofocus])
    - **Class**: (function [mho:surface::Class])
    - **Document**: (function [mho:surface::Document])
    - **Element**: (class [mho:surface::Element])

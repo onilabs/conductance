@@ -9,7 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['sjs:object', 'sjs:sequence', '../../surface']);
+@ = require(['sjs:object', 'sjs:sequence', '../../surface', 'sjs:quasi']);
 
 /**
   @summary Bootstrap HTML module
@@ -160,3 +160,84 @@ exports.Label = (content, attribs) -> @Element('label', content, attribs) .. @Cl
 */
 exports.PageHeader = (content, attribs) -> @Element('div', `<h1>$content</h1>`, attribs) .. @Class('page-header');
 
+/**
+  @function doModal
+  @altsyntax doModal(body, [settings], block)
+  @param {Object} [settings] 
+  @param {Function} [block] Function bounding lifetime of dialog
+  @return `undefined` if the dialog is dismissed with the close button, by clicking on the backdrop or typing 'Escape', other equal to the return value of `block`
+  @setting {surface::HtmlFragment} [body]
+  @setting {optional surface::HtmlFragment} [header] Content of header. Takes precedence over `title` if both are given.
+  @setting {optional surface::HtmlFragment} [title] Title to display in a `<h4 class='modal-title'>` in the header.
+  @setting {optional Boolean} [close_button=true] Show a close button in the header. Only takes effect if `header` or `title` is given.
+  @setting {optional surface::HtmlFragment} [footer]
+  @setting {optional Boolean|String} [backdrop=true] Include a modal-backdrop element. Specify `'static'` for a backdrop that doesn't close the modal on click.
+  @setting {optional Boolean} [keyboard=true] Close the modal when Escape key is pressed.
+  @summary Execute function `block` while showing a modal dialogbox
+  @hostenv xbrowser
+*/
+function doModal() {
+  // untangle args:
+  var settings = { close_button: true}, block;
+  if (typeof arguments[0] === 'string' ||
+      @isQuasi(arguments[0]) ||
+      @isFragment(arguments[0]) ||
+      Array.isArray(arguments[0])) {
+    settings = settings .. @merge({body:arguments[0]});
+    if (arguments.length > 2) {
+      block = arguments[2];
+      settings = settings .. @merge(arguments[1]);
+    }
+    else {
+      block = arguments[1];
+    }
+  }
+  else {
+    settings = settings .. @merge(arguments[0]);
+    block = arguments[1];
+  }
+
+  // build content:
+  var content = `<div class='modal-body'>${settings.body}</div>`;
+
+  if (!settings.header && settings.title)
+    settings.header = `<h4 class='modal-title'>${settings.title}</h4>`;
+  if (settings.header) {
+    content = [`<div class='modal-header'>${settings.close_button? `<button type='button' class='close' data-dismiss='modal'>&times;</button>`}${settings.header}</div>`, content];
+  }
+  if (settings.footer) {
+    content = [content, `<div class='modal-footer'>${settings.footer}</div>`];
+  }
+
+  // build options to pass to bootstrap's modal(.) init call:
+  var bs_options = { backdrop: true,
+                     keyboard: true,
+                   } .. @override(settings);
+
+  document.body .. @appendContent(
+    `<div class='modal' tabindex='-1'>
+      <div class='modal-dialog'>
+        <div class='modal-content'>
+          $content
+        </div>
+      </div>
+     </div>`) {
+    |dialog|
+    
+    $(dialog).modal(bs_options);
+    try {
+      waitfor {
+        return block(dialog);
+      }
+      or {
+        waitfor() {
+          $(dialog).on('hidden.bs.modal', resume);
+        }
+      }
+    }
+    finally {
+      $(dialog).modal('hide');
+    }
+  }
+}
+exports.doModal = doModal;
