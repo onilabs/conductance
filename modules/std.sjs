@@ -172,9 +172,11 @@ module.exports = require(modules);
   
    - **appendContent**: (function [mho:surface::appendContent])
    - **Attrib**: (function [mho:surface::Attrib])
+   - **Autofocus**: (function [mho:surface::Autofocus])
    - **Class**: (function [mho:surface::Class])
    - **Document**: (function [mho:surface::Document])
    - **Element**: (class [mho:surface::Element])
+   - **Enabled**: (function [mho:surface::Enabled])
    - **ensureElement**: (function [mho:surface::ensureElement])
    - **Id**: (function [mho:surface::Id])
    - **insertAfter**: (function [mho:surface::insertAfter])
@@ -182,6 +184,8 @@ module.exports = require(modules);
    - **isElement**: (function [mho:surface::isElement])
    - **loadTemplate**: (function [mho:surface::loadTemplate])
    - **Mechanism**: (function [mho:surface::Mechanism])
+   - **On**: (function [mho:surface::On])
+   - **OnClick**: (function [mho:surface::OnClick])
    - **prependContent**: (function [mho:surface::prependContent])
    - **Prop**: (function [mho:surface::Prop])
    - **RawHTML**: (function [mho:surface::RawHTML])
@@ -345,6 +349,7 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:string](#sjs%3Astring) module:
   
+   - **base64ToArrayBuffer**: (function [sjs:string::base64ToArrayBuffer])
    - **base64ToOctets**: (function [sjs:string::base64ToOctets])
    - **capitalize**: (function [sjs:string::capitalize])
    - **contains**: (function [sjs:string::contains])

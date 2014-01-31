@@ -176,7 +176,7 @@ function createTransport(finish) {
         if (e) throw e; // exception thrown
       }
       // assert (receive_q.length)
-      return receive_q.shift();
+      return receive_q.pop();
     },
     __finally__: function() {
       delete transports[this.id];

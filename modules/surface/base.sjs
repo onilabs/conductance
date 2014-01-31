@@ -145,7 +145,7 @@ __js function CollapsedFragment() {
 */
 __js function isCollapsedFragment(obj) { return CollapsedFragmentProto.isPrototypeOf(obj); }
 __js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
-
+exports.isFragment = isFragment;
 
 /* NOT PART OF DOCUMENTED API
   @function collapseHtmlFragment
@@ -396,7 +396,7 @@ __js {
 
 /**
   @function ensureElement
-  @param {::HtmlFragment}
+  @param {::HtmlFragment} [html]
   @return {::Element}
   @summary Wrap a [::HtmlFragment] in an [::Element] with tag name 'surface-ui', if it isn't already one.
 */
@@ -460,8 +460,9 @@ __js function InternalStyleDef(content, parent_class, mech) {
 
 /**
   @function Style
+  @altsyntax element .. Style(style)
   @param {optional ::HtmlFragment} [element]
-  @param {String} [style]
+  @param {String|sjs:quasi::Quasi} [style]
   @return {::Element|Function}
   @summary Add CSS style to an element
   @desc
@@ -513,8 +514,8 @@ __js function InternalStyleDef(content, parent_class, mech) {
               }
             }
 
-    If `style` is a [sjs:sequence::Stream] (or a [sjs:quasi::Quasi] containing
-    any stream values), the style will be recomputed and updated
+    If `style` is a [sjs:quasi::Quasi] containing
+    any [sjs:sequence::Stream] values, the style will be recomputed and updated
     whenever any of the composite stream values changes.
 
     If `element` is not provided, `Style` will
@@ -610,6 +611,7 @@ __js {
 
 /**
   @function Mechanism
+  @altsyntax element .. Mechanism(mechanism)
   @param {optional ::HtmlFragment} [element]
   @param {Function|String} [mechanism]
   @summary Add a mechanism to an element
@@ -719,6 +721,7 @@ function StreamAttribMechanism(ft, name, obs) {
 
 /**
   @function Attrib
+  @altsyntax element .. Attrib(name, value)
   @summary Add a HTML attribute to an element
   @param {::HtmlFragment} [element]
   @param {String} [name] Attribute name
@@ -747,6 +750,7 @@ exports.Attrib = Attrib;
 
 /**
   @function Id
+  @altsyntax element .. Id(id)
   @param {::HtmlFragment} [element]
   @param {String|sjs:sequence::Stream} [id]
   @summary Add an `id` attribute to an element
@@ -765,6 +769,7 @@ exports.Id = (element, id) -> Attrib(element, 'id', id);
 
 /**
   @function Class
+  @altsyntax element .. Class(class, [flag])
   @summary Add a `class` to an element
   @param {::HtmlFragment} [element]
   @param {String|sjs:sequence::Stream} [class]
@@ -827,6 +832,7 @@ function Class(element, clsname, val) {
   return element;
 }
 exports.Class = Class;
+
 /**
   @function RawHTML
   @summary Cast a string into raw HTML
@@ -853,6 +859,24 @@ exports.Class = Class;
         
 */
 exports.RawHTML = (str) -> Quasi([str]);
+
+
+/**
+  @function Autofocus
+  @altsyntax element .. Autofocus()
+  @summary Focus element when loaded into DOM
+  @param {::HtmlFragment} [element]
+  @return {::Element}
+  @desc
+    Similar to setting an attribute 'autofocus' on an element, but works in 
+    more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1.
+
+    If `Autofocus` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    `element` will automatically be wrapped using [::ensureElement].
+*/
+// the hold(0) is necessary to make focus work for content that is initially hidden; e.g.
+// in doModal:
+exports.Autofocus = Mechanism("hold(0); this.focus();");
 
 //----------------------------------------------------------------------
 
@@ -901,3 +925,4 @@ exports.RequireExternalStyle = function(url) {
   rv.externalStyles[url] = true;
   return rv;
 };
+

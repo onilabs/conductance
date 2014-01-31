@@ -314,7 +314,7 @@ var withFormats = exports.withFormats = function(map, extensions) {
     Note that the source of .app files is accessible via the `src` format.
 
 */
-var conductanceVersionEtag = "#{env.conductanceVersion()}-#{env.compilerStamp}";
+var conductanceVersionEtag = "#{env.conductanceVersion()}-#{env.compilerStamp()}";
 var Code = (base) -> base
   .. withFormats({
     sjs: { none     : { mime: "text/html",

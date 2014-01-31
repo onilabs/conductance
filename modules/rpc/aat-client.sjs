@@ -230,7 +230,7 @@ function openTransport(server) {
         ],
         {
           method: 'POST',
-          headers: {'Content-Type': 'text/plain; charset=utf-8'},
+          headers: {'Content-Type': 'text/plain'},
           body: data
         });
     },

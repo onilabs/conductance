@@ -10,7 +10,7 @@
  */
 
 /**
-  @summary Client-side UI module
+  @summary Conductance sub-system for constructing static and dynamic client-side UI
 */
 
 var modules = ['./surface/base'];
@@ -75,13 +75,14 @@ module.exports = require(modules);
 @return {Boolean}
 
 @function ensureElement
-@param {::HtmlFragment}
+@param {::HtmlFragment} [html]
 @return {::Element}
 @summary Wrap a [::HtmlFragment] in an [::Element] with tag name 'surface-ui', if it isn't already one.
 
 @function Style
+@altsyntax element .. Style(style)
 @param {optional ::HtmlFragment} [element]
-@param {String} [style]
+@param {String|sjs:quasi::Quasi} [style]
 @return {::Element|Function}
 @summary Add CSS style to an element
 @desc
@@ -133,8 +134,8 @@ module.exports = require(modules);
             }
           }
 
-  If `style` is a [sjs:sequence::Stream] (or a [sjs:quasi::Quasi] containing
-  any stream values), the style will be recomputed and updated
+  If `style` is a [sjs:quasi::Quasi] containing
+  any [sjs:sequence::Stream] values, the style will be recomputed and updated
   whenever any of the composite stream values changes.
 
   If `element` is not provided, `Style` will
@@ -148,6 +149,7 @@ module.exports = require(modules);
   `element` will automatically be wrapped using [::ensureElement].
 
 @function Mechanism
+@altsyntax element .. Mechanism(mechanism)
 @param {optional ::HtmlFragment} [element]
 @param {Function|String} [mechanism]
 @summary Add a mechanism to an element
@@ -178,6 +180,7 @@ module.exports = require(modules);
  
 
 @function Attrib
+@altsyntax element .. Attrib(name, value)
 @summary Add a HTML attribute to an element
 @param {::HtmlFragment} [element]
 @param {String} [name] Attribute name
@@ -195,6 +198,7 @@ module.exports = require(modules);
   See also [::Prop].
 
 @function Id
+@altsyntax element .. Id(id)
 @param {::HtmlFragment} [element]
 @param {String|sjs:sequence::Stream} [id]
 @summary Add an `id` attribute to an element
@@ -209,6 +213,7 @@ module.exports = require(modules);
   `element` will automatically be wrapped using [::ensureElement].
 
 @function Class
+@altsyntax element .. Class(class, [flag])
 @summary Add a `class` to an element
 @param {::HtmlFragment} [element]
 @param {String|sjs:sequence::Stream} [class]
@@ -256,6 +261,18 @@ module.exports = require(modules);
 
       
 
+@function Autofocus
+@altsyntax element .. Autofocus()
+@summary Focus element when loaded into DOM
+@param {::HtmlFragment} [element]
+@return {::Element}
+@desc
+  Similar to setting an attribute 'autofocus' on an element, but works in 
+  more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1.
+
+  If `Autofocus` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
+
 @function RequireExternalScript
 @summary Declare a dependency on an external `.js` script
 @param {String} [url]
@@ -291,6 +308,7 @@ module.exports = require(modules);
 @summary Replace the content of a DOM element with a [::HtmlFragment]
 @param {DOMElement} [parent_element] 
 @param {::HtmlFragment} [html] Html to insert
+@hostenv xbrowser
 @desc
   ### Example:
 
@@ -303,6 +321,7 @@ module.exports = require(modules);
 @param {::HtmlFragment} [html] Html to append
 @param {optional Function} [block] Function bounding lifetime of appended content
 @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@hostenv xbrowser
 
 @desc
 
@@ -350,6 +369,7 @@ module.exports = require(modules);
 @param {::HtmlFragment} [html] Html to prepend
 @param {optional Function} [block] Function bounding lifetime of prepended content
 @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@hostenv xbrowser
 
 @desc
   * See [::appendContent] for notes on the semantics and return value.
@@ -361,6 +381,7 @@ module.exports = require(modules);
 @param {::HtmlFragment} [html] Html to insert
 @param {optional Function} [block] Function bounding lifetime of inserted content
 @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@hostenv xbrowser
 
 @desc
   * `sibling_node` should be a DOM *element* or comment node.
@@ -373,6 +394,7 @@ module.exports = require(modules);
 @param {::HtmlFragment} [html] Html to insert
 @param {optional Function} [block] Function bounding lifetime of inserted content
 @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@hostenv xbrowser
 
 @desc
   * `sibling_node` should be a DOM *element* or comment node.
@@ -381,6 +403,7 @@ module.exports = require(modules);
 @function removeNode
 @param {DOMNode} [node] Node to remove
 @summary Remove a DOM node from the document
+@hostenv xbrowser
 @desc
   * This function can be used to remove any DOM node from
     document - whether it has been inserted using one of the surface
@@ -395,16 +418,49 @@ module.exports = require(modules);
     released. This might change in future versions of the library.
 
 @function Prop
+@altsyntax element .. Prop(name, value)
 @summary Add a javascript property to an element
 @param {::HtmlFragment} [element]
 @param {String} [name] Property name
 @param {String|sjs:sequence::Stream} [value] Property value
 @return {::Element}
+@hostenv xbrowser
 @desc
   Sets a javascript property
   on the element's DOM node once it is inserted into the document.
 
   See also [::Attrib].
+
+@function Enabled
+@altsyntax element .. Enabled(obs)
+@summary Add a `disabled` attribute to element when obs is not truthy
+@param {::HtmlFragment} [element]
+@param {observable::Observable} [obs] Observable
+@return {::Element}
+@hostenv xbrowser
+
+@function On
+@altsyntax element .. On(event, [settings], event_handler)
+@summary Adds an event handler on an element
+@param {::HtmlFragment} [element]
+@param {String} [event] Name of the event, e.g. 'click'
+@param {optional Object} [settings] Settings as described at [sjs:event::when]. By default, `queue` is set to `true`.
+@param {Function} [event_handler] 
+@return {::Element}
+@hostenv xbrowser
+@desc
+  Sets an event handler on the element's DOM once it is inserted into the document.
+
+@function OnClick
+@altsyntax element .. OnClick([settings], event_handler)
+@summary Adds a 'click' event handler on an element
+@param {::HtmlFragment} [element]
+@param {optional Object} [settings] Settings as described at [sjs:event::when]. By default, `queue` is set to `true`.
+@param {Function} [event_handler] 
+@return {::Element}
+@hostenv xbrowser
+@desc
+  See also [::On].
 
 @function Document
 @param {surface::HtmlFragment} [content] Document content

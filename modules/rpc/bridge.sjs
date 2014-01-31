@@ -90,7 +90,7 @@ Protocol:
 */
 
 var logging = require('sjs:logging');
-var { each, toArray, map, filter, transform, isStream, Stream, at } = require('sjs:sequence');
+var { each, toArray, map, filter, transform, isStream, Stream, at, any } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
@@ -100,6 +100,18 @@ var { Emitter } = require('sjs:event');
 var { ownKeys, keys, propertyPairs } = require('sjs:object');
 var http = require('sjs:http');
 var Url = require('sjs:url');
+var global = require('sjs:sys').getGlobal();
+
+// helper to identify binary data:
+var BinaryCtors = ['Blob', 'ArrayBuffer', 'DataView', 
+                   'Uint8Array', 'Uint16Array', 'Uint32Array', 
+                   'Int8Array', 'Int16Array', 'Int32Array',
+                   'Float32Array', 'Float64Array'] ..
+  filter(x -> typeof global[x] == 'function') .. 
+  map(x -> global[x]);
+function isBinaryData(obj) {
+  return BinaryCtors .. any(ctor -> obj instanceof ctor);
+}
 
 /**
   @function isTransportError
@@ -261,10 +273,15 @@ function marshall(value, connection) {
           toArray;
         rv = { __oni_type:'api', id: value.id, methods: methods};
       }
-      else if (value.__oni_type == 'blob') {
+      else if (value.__oni_type === 'blob') {
         // send the blob as 'data'
         var id = ++connection.sent_blob_counter;
         connection.sendBlob(id, value.obj);
+        rv = { __oni_type: 'blob', id:id };
+      }
+      else if (isBinaryData(value)) {
+        var id = ++connection.sent_blob_counter;
+        connection.sendBlob(id, value);
         rv = { __oni_type: 'blob', id:id };
       }
       else if (isNodeJSBuffer(value)) {
@@ -501,19 +518,23 @@ function BridgeConnection(transport, opts) {
     while (1) {
       try {
         var packet = transport.receive();
+        logging.debug("received packet", packet);
+        if (packet.type == 'message')
+          receiveMessage(packet);
+        else if (packet.type == 'data')
+          receiveData(packet);
+        else {
+          logging.warn("Unknown packet '#{packet.type}' received");
+        }
       }
       catch (e) {
-        if (!throwing) break;
+        if (!throwing) {
+          logging.info("Error while receiving; terminating BridgeConnection: #{e}");
+          break;
+        }
         throw e;
       }
-      logging.debug("received packet", packet);
-      if (packet.type == 'message')
-        receiveMessage(packet);
-      else if (packet.type == 'data')
-        receiveData(packet);
-      else {
-        logging.warn("Unknown packet '#{packet.type}' received");
-      }
+
       // XXX this asynchronisation is necessary because the
       // `this.stratum.abort()` call in __finally_ above happens
       // reentrantly, but the stratum doesn't abort until blocking

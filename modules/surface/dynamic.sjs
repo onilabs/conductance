@@ -19,9 +19,9 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
-var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode } = require('./base');
+var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode, Class } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
-var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile } = require('sjs:sequence');
+var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { wait, when } = require('sjs:event');
 
@@ -270,6 +270,7 @@ function nodes(parent, before_node, after_node) {
    @summary Replace the content of a DOM element with a [::HtmlFragment]
    @param {DOMElement} [parent_element] 
    @param {::HtmlFragment} [html] Html to insert
+   @hostenv xbrowser
    @desc
      ### Example:
 
@@ -296,6 +297,7 @@ exports.replaceContent = replaceContent;
    @param {::HtmlFragment} [html] Html to append
    @param {optional Function} [block] Function bounding lifetime of appended content
    @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @hostenv xbrowser
 
    @desc
 
@@ -367,6 +369,7 @@ exports.appendContent = appendContent;
    @param {::HtmlFragment} [html] Html to prepend
    @param {optional Function} [block] Function bounding lifetime of prepended content
    @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @hostenv xbrowser
 
    @desc
      * See [::appendContent] for notes on the semantics and return value.
@@ -402,6 +405,7 @@ exports.prependContent = prependContent;
    @param {::HtmlFragment} [html] Html to insert
    @param {optional Function} [block] Function bounding lifetime of inserted content
    @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @hostenv xbrowser
 
    @desc
      * `sibling_node` should be a DOM *element* or comment node.
@@ -450,6 +454,7 @@ exports.insertBefore = insertBefore;
    @param {::HtmlFragment} [html] Html to insert
    @param {optional Function} [block] Function bounding lifetime of inserted content
    @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @hostenv xbrowser
 
    @desc
      * `sibling_node` should be a DOM *element* or comment node.
@@ -495,6 +500,7 @@ exports.insertAfter = insertAfter;
    @function removeNode
    @param {DOMNode} [node] Node to remove
    @summary Remove a DOM node from the document
+   @hostenv xbrowser
    @desc
      * This function can be used to remove any DOM node from
        document - whether it has been inserted using one of the surface
@@ -524,14 +530,15 @@ exports.removeNode = removeNode;
 
 //----------------------------------------------------------------------
 
-// set a property on an element
 /**
   @function Prop
+  @altsyntax element .. Prop(name, value)
   @summary Add a javascript property to an element
   @param {::HtmlFragment} [element]
   @param {String} [name] Property name
   @param {String|sjs:sequence::Stream} [value] Property value
   @return {::Element}
+  @hostenv xbrowser
   @desc
     Sets a javascript property
     on the element's DOM node once it is inserted into the document.
@@ -552,10 +559,35 @@ function Prop(html, name, value) {
 exports.Prop = Prop;
 
 //----------------------------------------------------------------------
+/**
+  @function Enabled
+  @altsyntax element .. Enabled(obs)
+  @summary Add a `disabled` attribute to element when obs is not truthy
+  @param {::HtmlFragment} [element]
+  @param {observable::Observable} [obs] Observable
+  @return {::Element}
+  @hostenv xbrowser
+*/
+exports.Enabled = (html, obs) -> html .. Class('disabled', obs .. transform(x->!x));
 
-// set an event handler:
 
-var OnEvent = (html, event, opts, f) -> html .. Mechanism(function(node) {
+//----------------------------------------------------------------------
+
+
+/**
+  @function On
+  @altsyntax element .. On(event, [settings], event_handler)
+  @summary Adds an event handler on an element
+  @param {::HtmlFragment} [element]
+  @param {String} [event] Name of the event, e.g. 'click'
+  @param {optional Object} [settings] Settings as described at [sjs:event::when]. By default, `queue` is set to `true`.
+  @param {Function} [event_handler] 
+  @return {::Element}
+  @hostenv xbrowser
+  @desc
+    Sets an event handler on the element's DOM once it is inserted into the document.
+*/
+var On = (html, event, opts, f) -> html .. Mechanism(function(node) {
   if (!f) {
     // opts not given
     f = opts;
@@ -563,9 +595,21 @@ var OnEvent = (html, event, opts, f) -> html .. Mechanism(function(node) {
   }
   node .. when(event, {queue: true} .. merge(opts), f);
 });
-exports.OnEvent = OnEvent;
+exports.On = On;
 
-var OnClick = (html, opts, f) -> html .. OnEvent('click', opts, f);
+/**
+  @function OnClick
+  @altsyntax element .. OnClick([settings], event_handler)
+  @summary Adds a 'click' event handler on an element
+  @param {::HtmlFragment} [element]
+  @param {optional Object} [settings] Settings as described at [sjs:event::when]. By default, `queue` is set to `true`.
+  @param {Function} [event_handler] 
+  @return {::Element}
+  @hostenv xbrowser
+  @desc
+    See also [::On].
+*/
+var OnClick = (html, opts, f) -> html .. On('click', opts, f);
 exports.OnClick = OnClick;
 
 

@@ -16,7 +16,8 @@
 var fs     = require('sjs:nodejs/fs');
 var nodefs = require('fs');
 var stream = require('sjs:nodejs/stream');
-var path = require('path');
+var path   = require('path');
+var url    = require('sjs:url');
 var logging = require('sjs:logging');
 var { isString } = require('sjs:string');
 var { override } = require('sjs:object');
@@ -224,7 +225,7 @@ function serveFile(req, filePath, format, settings) {
 
   if (settings.allowApis && extension == 'api' && format.name == 'json') {
     try {
-      var apiid = require('./api-registry').registerAPI(filePath);
+      var apiid = require('./api-registry').registerAPI(filePath .. url.fileURL);
       logging.info("registered API #{filePath} -> #{apiid}");
       apiinfo = {id: apiid};
     } catch(e) {
@@ -262,7 +263,7 @@ function generateFile(req, filePath, format, settings) {
   
   var generator_file_mtime = stat.mtime.getTime();
 
-  var resolved_path = require.resolve(genPath).path;
+  var resolved_path = require.resolve(genPath .. url.fileURL).path;
 
   // purge module if it is loaded already, but the mtime doesn't match:
   var module_desc = require.modules[resolved_path];

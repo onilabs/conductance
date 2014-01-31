@@ -1,2 +1,2 @@
 @summary Modules for bootstrap-enabled documents
-@hostenv xbrowser
+
