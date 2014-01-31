@@ -26,26 +26,29 @@ exports.api = function(host) {
 		},
 
 		ensureClean: function() {
-			host.runCmd("rm -rf $HOME/.conductance");
+			host.runPython("rmtree(path.join(user.home, '.conductance'))");
 		},
 
 		_copyFixture: function(name) {
-			var dest = "/tmp/#{name}";
-			host.copyFile(url.normalize("fixtures/#{name}", module.id) .. url.toPath, dest);
-			return dest;
+			var dest = "#{name}";
+			return host.copyFile(url.normalize("fixtures/#{name}", module.id) .. url.toPath, dest);
 		},
 
-		_runCommand: function(args, conductance_root) {
-			conductance_root = conductance_root || '$HOME/.conductance';
-			return host.runCmd(host.nativeScript(conductance_root + "/bin/conductance", args));
+		_run: function(args, conductance_root) {
+			conductance_root = conductance_root ? JSON.stringify(conductance_root) : 'conductance';
+			return host.runPython("
+				os.chdir(HOME)
+				os.chdir(#{conductance_root})
+				run([script('bin/conductance')] + #{JSON.stringify(args)})
+			");
 		},
 
 		runServer: function(config, conductance_root) {
-			return self._runCommand(["serve", "#{self._copyFixture(config)}"], conductance_root);
+			return self._run(["serve", "#{self._copyFixture(config)}"], conductance_root);
 		},
 
 		runMhoScript: function(config, conductance_root) {
-			return self._runCommand(["exec", "#{self._copyFixture(config)}"], conductance_root);
+			return self._run(["exec", "#{self._copyFixture(config)}"], conductance_root);
 		},
 	};
 	return self;

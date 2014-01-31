@@ -35,7 +35,6 @@ if (require.main === module) {
 	var installScript = "http://conductance.io/install.sh"
 	var installArchive = "https://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
 	var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
-	var exportProxy = 'export CONDUCTANCE_FORCE_HTTP=1 http_proxy='+host.proxy+'; ';
 
 	childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
 
@@ -75,7 +74,6 @@ hosts.systems .. each {|system|
 		var installScript = "http://conductance.io/install.sh"
 		var installArchive = "https://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
 		var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
-		var exportProxy = 'export CONDUCTANCE_FORCE_HTTP=1 http_proxy='+host.proxy+'; ';
 
 		test.beforeAll {||
 			childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
@@ -102,23 +100,42 @@ hosts.systems .. each {|system|
 
 		var manualInstall = function(input) {
 			assert.ok(fs.exists(bundle), "no such file: #{bundle}");
-			host.copyFile(bundle, '/tmp/conductance-install');
-			host.runCmd('bash -ex -c "cd $HOME; mkdir .conductance; cd .conductance; ' + (host.extractInstaller) + ' /tmp/conductance-install"');
+			host.copyFile(bundle, 'conductance-install');
+			host.runPython('
+				mkdirp(conductance)
+				os.chdir(conductance)
+				extractInstaller(path.join(TMP, "conductance-install"))
+			');
 			var prefix='';
 			if (input !== undefined) {
-				prefix ='/tmp/conductance';
-				host.runCmd('rm -rf ' + prefix + ' && mkdir -p ' + prefix);
+				host.runPython('tmp=path.join(TMP, "conductance"); rmtree(tmp); mkdirp(tmp)');
 			}
-			return host.runCmd("#{exportProxy} export PREFIX=\"#{prefix}\"; echo -e '#{input || ''}' | #{host.nativeScript('$HOME/.conductance/share/install.sh')}");
+			return host.runPython("
+				exportProxy()
+				env['PREFIX']=\"#{prefix}\"
+				run_input('#{input || ''}', [script(HOME + '/.conductance/share/install.sh')])
+			");
 		};
 
 		var bashInstallWithInput = function(input) {
-			host.runCmd('rm -rf /tmp/conductance && mkdir -p /tmp/conductance/bin');
-			return host.runCmd(exportProxy + "export CONDUCTANCE_HEADLESS=1 PREFIX=/tmp/conductance; curl -L -s #{installScript} > /tmp/script && echo -e '#{input}' | bash -e /tmp/script");
+			return host.runPython("
+				exportProxy()
+				env['CONDUCTANCE_HEADLESS']='1'
+				base = path.join(TMP, 'conductance')
+				rmtree(base)
+				mkdirp(path.join(base, 'bin'))
+				env['PREFIX'] = base
+				script = path.join(TMP, 'installer');
+				run(['curl', '-L', '-s', '--output', script, '#{installScript}'])
+				run_input('#{input}', ['bash', '-e', script])
+			");
 		};
 
 		var selfUpdate = function() {
-			return host.runCmd(exportProxy + '$HOME/.conductance/bin/conductance self-update');
+			return host.runPython("
+				exportProxy()
+				run([script(conductance + '/bin/conductance'), 'self-update'])
+			");
 		};
 
 		var withTemp = function(block) {
@@ -160,7 +177,7 @@ hosts.systems .. each {|system|
 		}
 
 		var listDir = (dir) ->
-			host.runCmd("ls -A1 $HOME/.conductance/#{dir}/").trim().split("\n")
+			host.runPython("print '\\n'.join(os.listdir(path.join(conductance, \"#{dir}\")))").trim().split("\n")
 				.. seq.filter()
 				.. seq.sort()
 				.. seq.toArray();
@@ -171,7 +188,7 @@ hosts.systems .. each {|system|
 		********************************************************/
 		test('host is available') {||
 			// don't bother running futher tests if this one fails
-			host.runCmd('true');
+			host.runPython('print "OK"');
 		}
 
 		context('manual') {||
@@ -249,7 +266,7 @@ hosts.systems .. each {|system|
 					currentVersion .. assert.eq("NODE VERSION: 0.8.9");
 					currentVersion .. assert.notEq(initialVersion);
 				}
-				JSON.parse(host.runCmd('cat $HOME/.conductance/share/manifest.json')) .. assert.eq(manifest);
+				JSON.parse(host.catFile('share/manifest.json')) .. assert.eq(manifest);
 			}
 
 			test('updates symlinks and wrapper scripts when manifest definitions change') {||
@@ -285,8 +302,8 @@ hosts.systems .. each {|system|
 				listDir('node_modules') .. assert.eq([]);
 				listDir('sjs_modules/modules') .. assert.contains('http.sjs');
 
-				JSON.parse(host.runCmd('cat $HOME/.conductance/share/manifest.json')) .. assert.eq(manifest);
-				host.runCmd('cat $HOME/.conductance/bin/conductance') .. assert.eq("A script invoking data/conductance-#{manifest.data.conductance.id}/conductance!");
+				JSON.parse(host.catFile('share/manifest.json')) .. assert.eq(manifest);
+				host.catFile('bin/conductance').trim() .. assert.eq("A script invoking data/conductance-#{manifest.data.conductance.id}/conductance!");
 			}
 
 			test("is upgradeable to a new format via an intermediate release") {||
@@ -371,11 +388,11 @@ hosts.systems .. each {|system|
 			}
 
 			test("allows install location to be moved to a location containing spaces") {||
-				var trash = -> host.runCmd("rm -rf \"$HOME/.conductance moved\"");
+				var trash = -> host.runPython("rmtree(path.join(HOME, '.conductance moved'))");
 				trash();
 				try {
-					host.runCmd("cd $HOME && mv .conductance \".conductance moved\"");
-					assertHealthy('\"$HOME/.conductance moved\"');
+					host.runPython("os.rename(conductance, path.join(HOME, '.conductance moved'))");
+					assertHealthy('.conductance moved');
 				} finally {
 					trash();
 				}
@@ -404,7 +421,7 @@ hosts.systems .. each {|system|
 						mf.version++;
 					}
 					withManifest(manifest) {||
-						assert.raises({filter: e -> e.output.match(/^ERROR: No such file: .*\/noop$/m)}, selfUpdate);
+						assert.raises({filter: e -> e.output.match(/^ERROR: No such file: .*[\/\\]noop$/m)}, selfUpdate);
 					}
 					assertNotBroken();
 				}
@@ -489,20 +506,24 @@ hosts.systems .. each {|system|
 					bashInstallWithInput('n') .. str.contains(
 						"Do you want to install conductance scripts globally into /tmp/conductance/bin? [Y/n] " +
 						"\n\nSkipped global installation.") .. assert.ok();
-					host.runCmd('ls -1 /tmp/conductance/bin').trim() .. assert.eq('');
+					listDir('/tmp/conductance/bin').trim() .. assert.eq('');
 				}
 
 				test('instructions to re-run installer are correct') {||
 					var output = bashInstallWithInput('n');
 					var match = /Re-run this installer \(([^)]+)\) if you change your mind/.exec(output);
 					assert.ok(match, "couldn't find re-run instructions");
-					host.runCmd('ls -1 /tmp/conductance/bin').trim() .. assert.eq('');
-					host.runCmd(exportProxy + 'export PREFIX=/tmp/conductance; echo y | ' + match[1]);
+					host.listDir('/tmp/conductance/bin').trim() .. assert.eq('');
+					host.runPython("
+						exportProxy()
+						env['PREFIX']=path.join(TEMP, 'conductance')
+						run_input('y', [#{JSON.stringify(match[1])}])
+					");
 					assertHealthy('/tmp/conductance');
 				}
 
 				context("with existing install") {||
-					test.beforeEach( -> host.runCmd("mkdir -p $HOME/.conductance"));
+					test.beforeEach( -> host.runPython("mkdirp(conductance)"));
 
 					test('aborts by default when directory exists') {||
 						['n','no',''] .. each {|response|
@@ -517,7 +538,7 @@ hosts.systems .. each {|system|
 							}
 							assert.ok(failed, 'Command succeeded!');
 							assert.ok(output, 'no output');
-							var homePath = host.runCmd("echo $HOME").trim();
+							var homePath = host.runPython("print HOME").trim();
 
 							output.split('\n') .. assert.eq([
 								"This installer will REMOVE the existing contents at #{homePath}/.conductance",
@@ -530,7 +551,7 @@ hosts.systems .. each {|system|
 
 					test('overwrites existing directory if the user tells it to') {||
 						var output = bashInstallWithInput('y\ny');
-						var homePath = host.runCmd("echo $HOME").trim();
+						var homePath = host.runPython("print HOME").trim();
 
 						output .. str.contains("This installer will REMOVE the existing contents at #{homePath}/.conductance\nContinue? [y/N]") .. assert.ok;
 						output .. str.contains("Cancelled.") .. assert.falsy;

@@ -3,17 +3,17 @@ var shell_quote = require('sjs:shell-quote');
 var logging = require('sjs:logging');
 var assert = require('sjs:assert');
 var fs = require('sjs:nodejs/fs');
+var { lstrip, unindent } = require('sjs:string');
 var { merge } = require('sjs:object');
 
 var PRINT_COMMANDS = false;
 
-var run = function(cmd, args) {
-  logging.info("Running: #{cmd} #{shell_quote.quote(args)}");
+var run = function(cmd, args, stdin) {
+  //logging.info("Running: #{cmd} #{shell_quote.quote(args)}");
   if (PRINT_COMMANDS) process.stderr.write("[Running: #{cmd} #{shell_quote.quote(args)} .. ");
   var result;
-
   try {
-    result = exports.run(cmd, args, {stdio:[process.stdin, 'pipe', 'pipe']});
+    result = exports.run(cmd, args, {stdio:[stdin === undefined ? process.stdin : stdin, 'pipe', 'pipe']});
   } catch(e) {
     logging.warn(e.output);
     throw e;
@@ -21,54 +21,76 @@ var run = function(cmd, args) {
     if (PRINT_COMMANDS) console.warn("done]");
   }
   logging.info(result.output);
-  return result.output;
+  return result.output.replace(/\r/g, '');
 };
+
+var runPython = function(script) {
+  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'python'], script .. pythonPrelude(this));
+}
 
 var ssh = function(cmd) {
-  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--'].concat(cmd));
+  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--'].concat('bash', '-euc', shell_quote.quote([cmd])));
 };
 
-var replaceTemp = function(str, tempdir) {
-  if (tempdir) {
-    return str.replace(/\/tmp\//, tempdir);
-  }
-  return str;
+var pythonPrelude = function (script, self) {
+  script = script .. lstrip('\n') .. unindent();
+  assert.ok(self);
+  logging.info("* running python code:\n" + script.trim().replace(/^/gm, '# '));
+  return "
+import os,json,sys,user,shutil, subprocess,platform
+WINDOWS = platform.system() == 'Windows'
+HOME = user.home
+from os import path
+def mkdirp(dest):
+  if not os.path.exists(dest):
+    os.makedirs(dest)
+
+def rmtree(dest):
+  if os.path.exists(dest):
+    shutil.rmtree(dest)
+
+run = subprocess.check_call
+def run_input(input, cmd):
+  p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+  p.communicate(input)
+  rv = p.wait()
+  if rv != 0:
+    raise subprocess.CalledProcessError(rv, cmd)
+
+def extractInstaller(path):
+  subprocess.check_call(#{JSON.stringify(self.commands.extract_installer)} + [path], stdout=open(os.devnull))
+
+def exportProxy():
+  env['CONDUCTANCE_FORCE_HTTP']='1'
+  env['http_proxy'] = \'#{self.proxy}'
+
+def script(path):
+  if WINDOWS:
+    if path.endswith('.sh'):
+      path = path[:-3]
+    return path.replace('/','\\\\') + '.cmd'
+  return path
+env = os.environ
+TMP = env.get('TEMP', '/tmp')
+conductance=path.join(HOME, '.conductance')
+#{script}";
 };
 
-var sshWindows = function(cmd) {
-  assert.string(cmd);
+var runPythonWindows = function(script) {
+  var tmpfile = '/tmp/conductance-remote.py'
+  fs.writeFile(tmpfile, script .. pythonPrelude(this));
+  var scriptPath = this.copyFile(tmpfile, 'input.py');
+
   var HOME = "C:/Users/#{this.user}";
-  cmd = cmd .. replaceTemp(HOME + '/' + this.tempdir);
-  cmd = cmd.replace(/\$HOME/, HOME);
-
-  // give SSH output some time to propagate,
-  // otherwise the failure reason sometimes gets cut off
-  cmd = 'function delay_exit {
-    rv=$?
-    set +x
-    if [ "$rv" != 0 ]; then
-      echo -e "EXIT:$rv"
-      sleep 1
-    fi
-    exit "$rv"
-  }
-  trap delay_exit EXIT
-  ' + cmd
-
-  var tmpfile = '/tmp/conductance-remote.sh'
-  fs.writeFile(tmpfile, cmd);
-  this.copyFile(tmpfile, this.tempdir + 'input.sh');
-
-  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'bash', '-eu', HOME + '/' + this.tempdir + 'input.sh']);
-};
+  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'python', scriptPath]);
+}
 
 var scp = function(src, dest) {
-  return run('scp', ['-q', '-P', this.port, src, "#{this.user}@#{this.host}:#{dest}"]);
+  run('scp', ['-q', '-P', this.port, src, "#{this.user}@#{this.host}:#{dest}"]);
 };
 
 var sftp = function(src, dest) {
-  dest = dest .. replaceTemp(this.tempdir);
-  return run('bash', ['-c', "sftp -q -P #{this.port} -b - #{this.user}@#{this.host} <<EOF
+  run('bash', ['-c', "sftp -q -P #{this.port} -b - #{this.user}@#{this.host} <<EOF
 put #{src} #{dest}
 EOF"]);
 }
@@ -80,12 +102,20 @@ exports.run = function(command, args, options) {
     return function(data) { buffer.push(data); }
   };
 
+  var input = null;
+  if (options && options.stdio && options.stdio[0]) {
+    input = new Buffer(options.stdio[0], 'utf-8');
+    options.stdio[0] = 'pipe';
+  }
   var child = childProcess.launch(command, args, options);
   if(child.stdout) child.stdout.on('data', appendTo(output));
   if(child.stderr) child.stderr.on('data', appendTo(output));
   function join(arr) { return arr.join(''); };
 
   try {
+    if (input !== null) {
+      child.stdin.end(input);
+    }
     childProcess.wait(child);
   } catch(e) {
     // annotate error with stdout / err info
@@ -103,15 +133,25 @@ exports.systems = (function() {
   var user = process.env['USER'];
   var hostname = childProcess.run('hostname', [], {stdio: [process.stdin, 'pipe', process.stderr]}).stdout.trim();
 
-  var posixBase = {
-    port: '22',
-    runCmd: ssh,
-    copyFile: scp,
-    extractInstaller: "tar zxf",
-    nativeScript: (script, args) -> shell_quote.quote([script].concat(args||[])),
-  };
+  var commonBase = {
+    catFile: (path) -> this.runPython("print open(path.join(conductance, #{JSON.stringify(path)})).read()"),
+  }
 
-  var windowsBase = {
+  var posixBase = commonBase .. merge({
+    port: '22',
+    runPython: runPython,
+    copyFile: function(src, dest) {
+      dest = '/tmp/' + dest;
+      scp.call(this, src, dest);
+      return dest;
+    },
+    commands: {
+      extract_installer: ['tar', 'zxf'],
+    },
+    nativeScript: (script, args) -> shell_quote.quote([script].concat(args||[])),
+  });
+
+  var windowsBase = commonBase .. merge({
     /*
      * A brief summary of what's needed on the
      * windows host:
@@ -123,14 +163,18 @@ exports.systems = (function() {
      * - bash (I'm using MSYS bash frm MinGW)
      * - bonjour (zeroconf networking - http://www.apple.com/support/downloads/bonjourforwindows.html)
      */
-    runCmd: sshWindows,
-    copyFile: sftp,
-    tempdir: "AppData/Local/Temp/",
-    extractInstaller: '0install run http://0install.de/feeds/SevenZip_CLI.xml x',
+    runPython: runPythonWindows,
+    copyFile: function(src, dest) {
+      sftp.call(this, src, "AppData/Local/Temp/" + dest);
+      return "C:/Users/IEUser/AppData/Local/Temp/" + dest;
+    },
+    commands: {
+      extract_installer: ['0install', 'run', 'http://0install.de/feeds/SevenZip_CLI.xml', 'x'],
+    },
     
     // this does not do any quoting of args, but we dn't need that yet...
     nativeScript: (script, args) -> "$COMSPEC /c \"#{script.replace(/\//g,"\\\\").replace(/\.sh$/, '')}.cmd #{(args||[]).join(" ")}\"",
-  };
+  });
 
   switch(user) {
     case 'tim':

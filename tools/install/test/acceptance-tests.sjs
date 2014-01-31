@@ -10,14 +10,17 @@ var runner = require('sjs:test/run');
 hosts.systems .. each {|system|
 	var host = system.host;
 	var {assertHealthy} = require('./util').api(host);
-	var clean = -> host.runCmd("rm -rf $HOME/.conductance && sudo rm -f /usr/bin/{conductance,sjs}");
+	var clean = -> host.runPython("
+		rmtree(conductance)
+		run(['sudo','rm','-rf','/usr/bin/conductance','/usr/bin/sjs'])
+	");
 
 	test.beforeEach(clean);
 	test.afterEach(clean);
 
 	test(system.platform) {||
 		var installScript = "http://onilabs.com/conductance.sh"
-		host.runCmd("curl -s #{installScript} | bash -e");
+		host.runPython("run(['bash','-c', 'curl -s #{installScript} | bash -e'])");
 		assertHealthy("/usr");
 	}.skipIf(!host, "No configured host for this platform");
 }
