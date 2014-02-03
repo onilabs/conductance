@@ -8,20 +8,32 @@ var { merge } = require('sjs:object');
 
 var PRINT_COMMANDS = false;
 
-var run = function(cmd, args, stdin) {
+var run = function(cmd, args, stdin, getOutput) {
   //logging.info("Running: #{cmd} #{shell_quote.quote(args)}");
   if (PRINT_COMMANDS) process.stderr.write("[Running: #{cmd} #{shell_quote.quote(args)} .. ");
+
+  var fixOutput = function(result) {
+    if (getOutput) result.output = getOutput();
+    result.output = (result.output || '').replace(/\r/g, '').trim();
+  };
+
   var result;
   try {
     result = exports.run(cmd, args, {stdio:[stdin === undefined ? process.stdin : stdin, 'pipe', 'pipe']});
+    fixOutput(result);
   } catch(e) {
-    logging.warn(e.output);
+    fixOutput(e);
+    if (e.output.length) {
+      logging.warn(e.output);
+    }
     throw e;
   } finally {
     if (PRINT_COMMANDS) console.warn("done]");
   }
-  logging.info(result.output);
-  return result.output.replace(/\r/g, '');
+  if (result.output.length > 0) {
+    logging.info(result.output);
+  }
+  return result.output;
 };
 
 var runPython = function(script) {
@@ -49,10 +61,12 @@ def rmtree(dest):
   if os.path.exists(dest):
     shutil.rmtree(dest)
 
+pathed_cmd = ['0install', 'run', 'http://gfxmonk.net/dist/0install/pathed.xml']
+
 run = subprocess.check_call
 def run_input(input, cmd):
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-  p.communicate(input)
+  p.communicate(input + '\\n')
   rv = p.wait()
   if rv != 0:
     raise subprocess.CalledProcessError(rv, cmd)
@@ -68,30 +82,55 @@ def script(path):
   if WINDOWS:
     if path.endswith('.sh'):
       path = path[:-3]
-    return path.replace('/','\\\\') + '.cmd'
-  return path
+    path = path.replace('/','\\\\')
+  return path + #{JSON.stringify(self.executableScriptSuffix)}
 env = os.environ
 TMP = env.get('TEMP', '/tmp')
+SILENT=False
 conductance=path.join(HOME, '.conductance')
-#{script}";
+
+# env['CONDUCTANCE_DEBUG']='1'
+
+try:
+#{script.replace(/^/gm, '    ')}
+except subprocess.CalledProcessError as e:
+  if not SILENT:
+    print >> sys.stderr, 'Command failed [%s]: %r' % (e.returncode, e.cmd)
+  sys.exit(1)
+";
 };
 
 var runPythonWindows = function(script) {
   var tmpfile = '/tmp/conductance-remote.py'
+
   fs.writeFile(tmpfile, script .. pythonPrelude(this));
   var scriptPath = this.copyFile(tmpfile, 'input.py');
 
+  var getOutput = function() {
+    try {
+      sftp.call(this, "AppData/Local/Temp/python-output.log", "/tmp/python-output.log", 'get');
+      return fs.readFile('/tmp/python-output.log', 'utf-8');
+    } catch(e) {
+      logging.warn("ERROR: Couldn't get remote output: #{e.message} ...");
+      return "";
+    }
+  }.bind(this);
+
   var HOME = "C:/Users/#{this.user}";
-  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'python', scriptPath]);
+  return run('ssh',
+    ['-p', this.port, this.user+"@"+this.host, '--', 'cmd /c "python ' + scriptPath + ' > %TEMP%/python-output.log 2>&1"'],
+    undefined,
+    getOutput
+  );
 }
 
 var scp = function(src, dest) {
   run('scp', ['-q', '-P', this.port, src, "#{this.user}@#{this.host}:#{dest}"]);
 };
 
-var sftp = function(src, dest) {
-  run('bash', ['-c', "sftp -q -P #{this.port} -b - #{this.user}@#{this.host} <<EOF
-put #{src} #{dest}
+var sftp = function(src, dest, op) {
+  run('bash', ['-c', "sftp -q -P #{this.port} -b - #{this.user}@#{this.host} >/dev/null <<EOF
+#{op || 'put'} #{src} #{dest}
 EOF"]);
 }
 
@@ -138,6 +177,7 @@ exports.systems = (function() {
   }
 
   var posixBase = commonBase .. merge({
+    executableScriptSuffix: '',
     port: '22',
     runPython: runPython,
     copyFile: function(src, dest) {
@@ -148,7 +188,7 @@ exports.systems = (function() {
     commands: {
       extract_installer: ['tar', 'zxf'],
     },
-    nativeScript: (script, args) -> shell_quote.quote([script].concat(args||[])),
+    sep: '/',
   });
 
   var windowsBase = commonBase .. merge({
@@ -156,14 +196,15 @@ exports.systems = (function() {
      * A brief summary of what's needed on the
      * windows host:
      *
+     * - python
      * - 0install (http://0install.de/?lang=en)
      * - freeSSHd (http://www.freesshd.com/)
      *    - configured to allow public key access
      *    - the SSH key auth stops working sometimes, a restart can fix it (!)
-     * - bash (I'm using MSYS bash frm MinGW)
      * - bonjour (zeroconf networking - http://www.apple.com/support/downloads/bonjourforwindows.html)
      */
     runPython: runPythonWindows,
+    executableScriptSuffix: '.cmd',
     copyFile: function(src, dest) {
       sftp.call(this, src, "AppData/Local/Temp/" + dest);
       return "C:/Users/IEUser/AppData/Local/Temp/" + dest;
@@ -171,9 +212,7 @@ exports.systems = (function() {
     commands: {
       extract_installer: ['0install', 'run', 'http://0install.de/feeds/SevenZip_CLI.xml', 'x'],
     },
-    
-    // this does not do any quoting of args, but we dn't need that yet...
-    nativeScript: (script, args) -> "$COMSPEC /c \"#{script.replace(/\//g,"\\\\").replace(/\.sh$/, '')}.cmd #{(args||[]).join(" ")}\"",
+    sep: '\\',
   });
 
   switch(user) {

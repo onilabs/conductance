@@ -76,7 +76,11 @@ fi
 log "Installing to $DEST ..."
 
 TARBALL="${PLATFORM}.tar.gz"
-URL="https://conductance.io/install/$TARBALL"
+PROTOCOL=https
+if [ "${CONDUCTANCE_FORCE_HTTP:-}" = "1" ]; then
+  PROTOCOL=http
+fi
+URL="$PROTOCOL://conductance.io/install/$TARBALL"
 log "Downloading $URL ..."
 curl --progress-bar "$URL" -o "$TMP_TAR"
 

@@ -1,0 +1,4 @@
+#!bash -eu
+src="$(basename "$2" .exe).cs"
+gup -u "$src"
+gmcs "$src" -out:"$1"

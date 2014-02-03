@@ -178,8 +178,8 @@ exports.run = function(args) {
 
 exports.exec = function(args) {
   var url = args.shift();
-  if (url.indexOf(":") == -1) {
-    url = "file://" + fs.realpath(url);
+  if (url.indexOf(":", 2) == -1) {
+    url = fs.realpath(url) .. require('sjs:url').fileURL();
   }
   process.argv = [ env.executable, url ].concat(args);
   require(url, {main:true});

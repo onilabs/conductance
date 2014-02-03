@@ -1,6 +1,7 @@
 var {context, test, assert} = require('sjs:test/suite');
 var seq = require('sjs:sequence');
-var {each, map} = seq;
+var {each, map, slice, toArray} = seq;
+var array = require('sjs:array');
 var http = require('sjs:http');
 var url = require('sjs:url');
 var fs = require('sjs:nodejs/fs');
@@ -18,6 +19,7 @@ var proxyModule = require('../proxy');
 var manifestContents = fs.readFile(url.normalize('../share/manifest.json', module.id) .. url.toPath, 'utf-8')
 var manifest = JSON.parse(manifestContents);
 
+/*
 if (require.main === module) {
 	var system = hosts.systems[2]; // (hack)
 	// XXX duplicated with context() block below, just used for manual testing
@@ -33,7 +35,7 @@ if (require.main === module) {
 
 	// we'll prime the proxy with the current workspace' install script and archives
 	var installScript = "http://conductance.io/install.sh"
-	var installArchive = "https://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
+	var installArchive = "http://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
 	var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
 
 	childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
@@ -48,16 +50,10 @@ if (require.main === module) {
 		], -> hold());
 	}
 }
+/* */
 
 
 var proxyStrata = null;
-test.afterAll {||
-	if(proxyStrata) {
-		proxyStrata.resume();
-	}
-};
-
-
 hosts.systems .. each {|system|
 	var platform = system.platform;
 	var host = system.host && system.host();
@@ -71,32 +67,41 @@ hosts.systems .. each {|system|
 		assert.string(conductanceUrl);
 
 		// we'll prime the proxy with the current workspace' install script and archives
+		// NOTE: these two URLs must be http, because they're access via `curl` and
+		// we can't get curl to use a http proxy for https URLs.
 		var installScript = "http://conductance.io/install.sh"
-		var installArchive = "https://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
+		var installArchive = "http://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
 		var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
 
 		test.beforeAll {||
 			childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
+			assert.eq(proxyStrata, null);
 
-			if (!proxyStrata) {
-				proxyStrata = cutil.breaking {|brk|
-					proxyModule.serve(9090) {|proxy|
-						// always fake out the condutance URL to serve the latest HEAD
-						proxy.fake([
-							[conductanceUrl, conductanceHead],
-							[installScript, localInstallScript],
-							[manifest.manifest_url, new Buffer(manifestContents)],
-							[installArchive, bundle],
-						], brk);
-					}
+			proxyStrata = cutil.breaking {|brk|
+				proxyModule.serve(9090) {|proxy|
+					// always fake out the condutance URL to serve the latest HEAD
+					proxy.fake([
+						[conductanceUrl, conductanceHead],
+						[installScript, localInstallScript],
+						[manifest.manifest_url, new Buffer(manifestContents)],
+						[installArchive, bundle],
+					], brk);
 				}
+			}
+		}
+
+		test.afterAll {||
+			if(proxyStrata) {
+				proxyStrata.resume();
+				proxyStrata = null;
 			}
 		}
 
 		/********************************************************
 		* helpers to setup / destroy conductance install
 		********************************************************/
-		var {assertHealthy, ensureClean, runServer, runMhoScript} = require('./util').api(host);
+		var util = require('./util').api(host, system);
+		var {assertHealthy, ensureClean, runServer, runMhoScript, isGloballyInstalled, listDir} = util;
 
 		var manualInstall = function(input) {
 			assert.ok(fs.exists(bundle), "no such file: #{bundle}");
@@ -114,20 +119,6 @@ hosts.systems .. each {|system|
 				exportProxy()
 				env['PREFIX']=\"#{prefix}\"
 				run_input('#{input || ''}', [script(HOME + '/.conductance/share/install.sh')])
-			");
-		};
-
-		var bashInstallWithInput = function(input) {
-			return host.runPython("
-				exportProxy()
-				env['CONDUCTANCE_HEADLESS']='1'
-				base = path.join(TMP, 'conductance')
-				rmtree(base)
-				mkdirp(path.join(base, 'bin'))
-				env['PREFIX'] = base
-				script = path.join(TMP, 'installer');
-				run(['curl', '-L', '-s', '--output', script, '#{installScript}'])
-				run_input('#{input}', ['bash', '-e', script])
 			");
 		};
 
@@ -175,13 +166,6 @@ hosts.systems .. each {|system|
 		test.beforeEach {||
 			ensureClean();
 		}
-
-		var listDir = (dir) ->
-			host.runPython("print '\\n'.join(os.listdir(path.join(conductance, \"#{dir}\")))").trim().split("\n")
-				.. seq.filter()
-				.. seq.sort()
-				.. seq.toArray();
-
 
 		/********************************************************
 		* Tests
@@ -246,6 +230,7 @@ hosts.systems .. each {|system|
 						platform_key: node.href.platform_key
 						, "linux_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-linux-x64.tar.gz"
 						, "windows_x64": "http://nodejs.org/dist/v0.8.9/x64/node.exe"
+						, "windows_x86": "http://nodejs.org/dist/v0.8.9/node.exe"
 						, "darwin_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-darwin-x64.tar.gz"
 					};
 					mf.version++;
@@ -272,8 +257,13 @@ hosts.systems .. each {|system|
 			test('updates symlinks and wrapper scripts when manifest definitions change') {||
 				// NOTE: this is brittle based on contents of manifest.json,
 				// but that should change rarely
-				listDir('share') .. assert.eq(['install.sh', 'manifest.json', 'self-update.js']);
-				listDir('node_modules') .. assert.eq(['stratifiedjs']);
+				var initialDirs = {
+					'.': listDir('.'),
+					'share': listDir('share'),
+					'node_modules': listDir('node_modules'),
+				};
+				var initialShare = listDir('share');
+				var initialNodeModules = listDir('node_modules');
 
 				var manifest = modifyManifest {|mf|
 					mf.version++;
@@ -283,7 +273,8 @@ hosts.systems .. each {|system|
 						existingWrapper[k] = {template: 'A script invoking __REL_PATH__!'};
 					}
 
-					mf.data.conductance.links = mf.data.conductance.links['default'];
+					// remove common link (share/self-update.js)
+					mf.data.conductance.links = mf.data.conductance.links .. object.merge({all:[]});
 					mf.data.stratifiedjs.links = [
 						{src: "modules", dest:"sjs_modules/"},
 					];
@@ -296,14 +287,23 @@ hosts.systems .. each {|system|
 					assert.ok(output .. str.contains('Updated. Restart conductance for the new version to take effect.'));
 				}
 
+				var without = function(arr, elem) {
+					var rv = arr.slice();
+					assert.contains(arr, elem);
+					rv .. array.remove(elem) .. assert.ok();
+					return rv;
+				};
+
 				// old links should be removed, and new ones in their place
-				listDir('.') .. assert.eq(['bin', 'data', 'node_modules', 'share', 'sjs_modules']);
-				listDir('share') .. assert.eq(['install.sh', 'manifest.json']);
-				listDir('node_modules') .. assert.eq([]);
+				listDir('.') .. assert.eq(initialDirs['.'].concat(['sjs_modules']) .. seq.sort());
+				listDir('share') .. assert.eq(initialDirs['share'] .. without('self-update.js'));
+				listDir('node_modules') .. assert.eq(initialDirs['node_modules'] .. without('stratifiedjs'));
 				listDir('sjs_modules/modules') .. assert.contains('http.sjs');
 
 				JSON.parse(host.catFile('share/manifest.json')) .. assert.eq(manifest);
-				host.catFile('bin/conductance').trim() .. assert.eq("A script invoking data/conductance-#{manifest.data.conductance.id}/conductance!");
+
+				host.catFile('bin/conductance' + host.executableScriptSuffix).trim()
+					.. assert.eq("A script invoking data/conductance-#{manifest.data.conductance.id}/conductance!".replace(/\//g, host.sep));
 			}
 
 			test("is upgradeable to a new format via an intermediate release") {||
@@ -484,54 +484,50 @@ hosts.systems .. each {|system|
 			}
 		}
 
-		if (system.platform == 'windows') {
-			context('self-installer .exe') {||
-				test('installs') {||
+		context('automated installer') {||
+			// NOTE: on windows, we can't use the automated installer, since
+			// it opens a GUI window. So we're still using the manual installer here,
+			// and assuming the self-extractor does what it's supposed to.
+			test.beforeAll {|s|
+				if (system.platform == 'windows') {
+					s.install = manualInstall;
+					s.installGloballyPrompt = "Do you want to add conductance to your $PATH?";
+				} else {
+					s.install = function(input) {
+						return host.runPython("
+							exportProxy()
+							env['CONDUCTANCE_HEADLESS']='1'
+							base = path.join(TMP, 'conductance')
+							rmtree(base)
+							mkdirp(path.join(base, 'bin'))
+							env['PREFIX'] = base
+							script = path.join(TMP, 'installer');
+							run(['curl', '-L', '-s', '--output', script, '#{installScript}'])
+							SILENT=True # suppress 'command failed' python output
+							run_input(#{JSON.stringify(input)}, ['bash', '-e', script])
+						");
+					};
+					s.installGloballyPrompt = "Do you want to install conductance scripts globally into #{util.installRoot}/bin?";
 				}
+			}
 
-				test('aborts when directory exists') {||
-				}
-
-				test('overwrites existing directory if the user tells it to') {||
-				}
-			}.skip("TODO");
-		} else {
 			context('bash installer') {||
-				test('installs to a clean system') {||
-					bashInstallWithInput('y'); // install into $PREFIX
-					assertHealthy('/tmp/conductance');
+				test('installs to a clean system') {|s|
+					s.install('y'); // install into $PREFIX
+					isGloballyInstalled() .. assert.ok();
+					assertHealthy(util.installRoot);
 				}
 
-				test('skips global install if the user wants') {||
-					bashInstallWithInput('n') .. str.contains(
-						"Do you want to install conductance scripts globally into /tmp/conductance/bin? [Y/n] " +
-						"\n\nSkipped global installation.") .. assert.ok();
-					listDir('/tmp/conductance/bin').trim() .. assert.eq('');
-				}
-
-				test('instructions to re-run installer are correct') {||
-					var output = bashInstallWithInput('n');
-					var match = /Re-run this installer \(([^)]+)\) if you change your mind/.exec(output);
-					assert.ok(match, "couldn't find re-run instructions");
-					host.listDir('/tmp/conductance/bin').trim() .. assert.eq('');
-					host.runPython("
-						exportProxy()
-						env['PREFIX']=path.join(TEMP, 'conductance')
-						run_input('y', [#{JSON.stringify(match[1])}])
-					");
-					assertHealthy('/tmp/conductance');
-				}
-
-				context("with existing install") {||
+				context("with existing install") {|s|
 					test.beforeEach( -> host.runPython("mkdirp(conductance)"));
 
-					test('aborts by default when directory exists') {||
+					test('aborts by default when directory exists') {|s|
 						['n','no',''] .. each {|response|
 							logging.info("Responding with: '#{response}'");
 							var output;
 							var failed = false;
 							try {
-								bashInstallWithInput(response);
+								s.install(response);
 							} catch(e) {
 								failed = true;
 								output = e.output;
@@ -544,21 +540,91 @@ hosts.systems .. each {|system|
 								"This installer will REMOVE the existing contents at #{homePath}/.conductance",
 								"Continue? [y/N] ",
 								"Cancelled.",
-								""
 							]);
 						}
 					}
 
-					test('overwrites existing directory if the user tells it to') {||
-						var output = bashInstallWithInput('y\ny');
+					test('overwrites existing directory if the user tells it to') {|s|
+						var output = s.install('y\ny');
 						var homePath = host.runPython("print HOME").trim();
 
 						output .. str.contains("This installer will REMOVE the existing contents at #{homePath}/.conductance\nContinue? [y/N]") .. assert.ok;
 						output .. str.contains("Cancelled.") .. assert.falsy;
-						assertHealthy('/tmp/conductance');
+						assertHealthy(util.installRoot);
 					}
 				}
+			}.skipIf(system.platform == 'windows', "N/A")
+
+			test("windows self-extracting .exe") {|s|
+				var homePath = host.runPython("print HOME").trim();
+				var installerPath = url.normalize("../dist/Conductance-#{system.arch}.exe", module.id) .. url.toPath();
+				var mockCmdPath = url.normalize("./fixtures/mock-cmd.exe", module.id) .. url.toPath();
+
+				console.warn();
+				childProcess.run('gup', ['-u', installerPath, mockCmdPath], {'stdio':'inherit'});
+
+				var remoteInstaller = host.copyFile(installerPath, 'conductance.exe');
+				var remoteCmdExe = host.copyFile(mockCmdPath, 'mock-cmd.exe');
+				host.runPython("
+					installer = #{JSON.stringify(remoteInstaller)}
+					with open(installer, 'rb') as f:
+						installer_contents = f.read()
+					assert 'cmd.exe' in installer_contents, 'cmd.exe missing from exe contents'
+					installer_contents = installer_contents.replace('cmd.exe', 'dmc.exe')
+					with open(installer, 'wb') as out:
+						out.write(installer_contents)
+
+					import tempfile
+					bindir = tempfile.mkdtemp()
+					try:
+						# insert dmc.exe
+						shutil.copy(#{JSON.stringify(remoteCmdExe)}, path.join(bindir, 'dmc.exe'))
+						child_env = env.copy()
+						child_env['PATH'] = os.pathsep.join([bindir,  env['PATH']])
+
+						args_file = path.join(TMP, 'cmd-args')
+						if os.path.exists(args_file):
+							os.remove(args_file)
+						child_env['LOG'] = args_file
+						run([installer], env=child_env)
+						with open(args_file) as f:
+							args = f.read().splitlines()
+						print 'ARGS: ' + repr(args)
+					finally:
+						shutil.rmtree(bindir)
+
+					exportProxy()
+					assert args[0] == '/K'
+					args[0] = '/C' # run noninteractively for test purposes
+
+					run_input('y', ['cmd.exe'] + args)
+				");
+				isGloballyInstalled() .. assert.ok();
+				assertHealthy();
+			}.skipIf(system.platform != 'windows', "N/A")
+
+			test('skips global install if the user wants') {|s|
+				s.install('n') .. assert.contains(s.installGloballyPrompt + " [Y/n] \n\nSkipped global installation.");
+				isGloballyInstalled() .. assert.eq(false);
+				assertHealthy();
 			}
+
+			test('instructions to re-run installer are correct') {|s|
+				var output = s.install('n');
+				var match = /Re-run this installer \(([^)]+)\) if you change your mind/.exec(output);
+				assert.ok(match, "couldn't find re-run instructions");
+				var installerLocation = match[1];
+
+				isGloballyInstalled() .. assert.eq(false);
+				host.runPython("
+					exportProxy()
+					env['PREFIX']=#{JSON.stringify(util.installRoot || '/not-used')} # only used on posix
+					run_input('y', [#{JSON.stringify(installerLocation)}])
+				");
+				assertHealthy(util.installRoot);
+			}
+
 		}
-	}.timeout(60).skipIf(!host, "No host configured for this platform");;
+
+	}.timeout(90).skipIf(!host, "No host configured for this platform");;
 }

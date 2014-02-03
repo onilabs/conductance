@@ -1,3 +1,4 @@
 /dist/
 /tmp/
 /manifest-*.json
+/test/fixtures/mock-cmd.exe

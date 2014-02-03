@@ -61,8 +61,11 @@ exports.platformKey = function(platform_key, _os) {
 		if (part.call) {
 			part = part.call(_os);
 		}
+		if (k == 'arch' && part === 'ia32') {
+			part = 'x86';
+		}
 		if (k == 'platform' && part.indexOf('win') === 0) {
-			// Windows apparently reports a `win32` platform name even
+			// Windows reports a `win32` platform name even
 			// on 64-bit arches, but that's confusing.
 			part = 'windows';
 		}
@@ -430,7 +433,7 @@ exports.extract = function(archive, dest, extract, ext, cb) {
 		case ".zip":
 			var cmd = 'unzip';
 			if (IS_WINDOWS) {
-				cmd = os.path.join(conductance_root, 'share', 'unzip', 'unzip.exe');
+				cmd = path.join(conductance_root, 'share', 'unzip', 'unzip.exe');
 			}
 			var args = ['-q', archivePath, '-d', rawDest];
 			return exports.runCmd(cmd, args, done);

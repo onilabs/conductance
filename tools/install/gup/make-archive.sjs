@@ -10,6 +10,18 @@ var [basename, ext] = @path.basename(name) .. @split('.', 1);
 ;[basename, ext] .. @each(@assert.ok);
 var root = process.cwd();
 
+if (ext == 'exe') {
+  // since users see the names of windows .exes, we name them
+  // Conductance-{arch}.exe
+  [platform, arch]  = basename .. @split('-', 1);
+  platform .. @assert.eq('Conductance');
+  
+  // but we're building the tree named windows_{arch}:
+  basename = "windows_#{arch}";
+}
+
+var tree = "tmp/#{basename}";
+var ls = -> @fs.readdir('.');
 function indir(dest, block) {
   @info("# (in #{dest})");
   var init = process.cwd();
@@ -21,8 +33,6 @@ function indir(dest, block) {
   }
 }
 
-var tree = "tmp/#{basename}";
-var ls = -> @fs.readdir('.');
 function intree(blk) {
   run("gup", '-u', tree);
   indir(tree, blk);
@@ -51,7 +61,7 @@ switch(ext) {
   case 'exe':
     var confFiles = @fs.readdir("conf");
     var confPaths = confFiles .. @map(f -> @path.join("conf", f));
-    var payload = (name .. @rsplit(".", 1))[0] + ".7z";
+    var payload = @path.join(@path.dirname(name), basename + '.7z');
     var prelude = "dist/7zsd.sfx";
     run.apply(null, ["gup", "-u", payload, prelude].concat(confPaths));
 

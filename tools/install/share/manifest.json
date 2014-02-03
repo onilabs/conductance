@@ -9,7 +9,7 @@
       { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexport CONDUCTANCE_ROOT=\"$(dirname \"$bindir\")\"\nexec \"$CONDUCTANCE_ROOT/bin/node\" \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\"\n"
       }
     , "windows":
-      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\bin\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*"
+      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\bin\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                                        "
       }
     }
   }
@@ -33,7 +33,7 @@
     }
   , "stratifiedjs":
     { "id": "0.16.1"
-    , "href": "https://github.com/onilabs/stratifiedjs/tarball/4d6c6a4da12396b137c3263df812a81e16d8b1df"
+    , "href": "https://github.com/onilabs/stratifiedjs/tarball/db8584e214adb1fb9fc1a53f7958fa9da891d757"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
