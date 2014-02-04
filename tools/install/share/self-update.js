@@ -453,10 +453,9 @@ var download_and_extract = function(name, dest, attrs, cb) {
 	assert(href, "Malformed manifest: no href");
 
 	var ext = exports.getExt(href);
-	var extDesc = ext ? ' ('+ext.slice(1)+')' : '';
 
 	href = href.replace(/#.*/, '');
-	console.warn(" - fetching: " + href + extDesc + ' ...');
+	console.warn(" - fetching: " + href + ' ...');
 
 	exports.download(href, function(err, archive) {
 		if (err) assert(false, err);
