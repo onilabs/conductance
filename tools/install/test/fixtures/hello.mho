@@ -6,6 +6,9 @@ exports.serve = function() {
       @Route(/ping$/, {
         "GET": function(req, matches) { req.response.end("Pong!"); spawn(function(){hold(0); process.exit(0);}()); }
       }),
+      @Route(/up$/, {
+        "GET": function(req, matches) { req.response.end("ok"); }
+      }),
       @Route(/stop$/, {
         "GET": function(req, matches) { process.exit(0); }
       }),

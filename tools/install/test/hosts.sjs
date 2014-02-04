@@ -96,6 +96,7 @@ try:
 except subprocess.CalledProcessError as e:
   if not SILENT:
     print >> sys.stderr, 'Command failed [%s]: %r' % (e.returncode, e.cmd)
+    sys.stderr.flush()
   sys.exit(1)
 ";
 };

@@ -10,7 +10,7 @@ var cutil = require('sjs:cutil');
 var str = require('sjs:string');
 var logging = require('sjs:logging');
 var object = require('sjs:object');
-var {get} = object;
+var {get, ownKeys} = object;
 var path = require('nodejs:path');
 
 var hosts = require('./hosts');
@@ -220,6 +220,14 @@ hosts.systems .. each {|system|
 					assert.ok(output .. str.contains('No updates available'), output);
 				}
 			}
+
+			var old_nodejs_hrefs = {
+				"platform_key": ["platform", "arch"]
+				, "linux_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-linux-x64.tar.gz"
+				, "windows_x64": "http://nodejs.org/dist/v0.8.9/x64/node.exe"
+				, "windows_x86": "http://nodejs.org/dist/v0.8.9/node.exe"
+				, "darwin_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-darwin-x64.tar.gz"
+			};
 
 			test('downloads a single new component') {||
 				var manifest = modifyManifest {|mf|
@@ -481,6 +489,50 @@ hosts.systems .. each {|system|
 						)}, selfUpdate);
 					}
 				}
+			}
+
+			test('update while conductance is running') {||
+				// make a new manifest with all versions updated (but the same archive).
+				// In the case of node, we actually downgrade the .exe to make sure a change
+				// to the running .exe works
+				var manifest = modifyManifest {|mf|
+					var components = 0;
+					var nodeComponent;
+					mf.data .. ownKeys() .. each {|k|
+						components++;
+						mf.data[k]['id'] = mf.data[k]['id'] + '-new';
+						if (k == 'node') {
+							nodeComponent = mf.data[k];
+						}
+					}
+					assert.ok(components > 1, "too few components: #{components}");
+					assert.ok(nodeComponent, "node component not found");
+					nodeComponent.href = old_nodejs_hrefs;
+					mf.version++;
+				};
+
+				withManifest(manifest) {||
+					var fixture = util._copyFixture('hello.mho');
+					try {
+						var output = host.runPython("
+							server = subprocess.Popen([script(conductance + '/bin/conductance'), 'serve', #{JSON.stringify(fixture)}])
+							import time
+							time.sleep(1)
+							assert server.poll() is None, 'server ended...'
+							import urllib
+							assert urllib.urlopen('http://localhost:7079/up').read() == 'ok'
+
+							exportProxy()
+							run([script(conductance + '/bin/conductance'), 'self-update'])
+							server.terminate()
+							server.wait()
+						");
+						assert.ok(output .. str.contains('-new'));
+					} finally {
+						http.get("http://#{host.host}:7079/ping") .. assert.eq('Pong!');
+					}
+				}
+				assertHealthy();
 			}
 		}
 
