@@ -157,7 +157,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 				node.querySelector('a') .. event.wait('click', {handle: preventDefault});
 				if (window.localStorage)
 					window.localStorage['search-hint-shown'] = true;
-				node.remove();
+				node.parentNode.removeChild(node);
 			});
 		}
 
