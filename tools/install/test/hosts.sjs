@@ -174,11 +174,6 @@ exports.systems = (function() {
   var hostname = childProcess.run('hostname', [], {stdio: [process.stdin, 'pipe', process.stderr]}).stdout.trim();
 
   var commonBase = {
-    catFile: (path) -> this.runPython("print open(path.join(conductance, #{JSON.stringify(path)})).read()"),
-  }
-
-  var posixBase = commonBase .. merge({
-    executableScriptSuffix: '',
     port: '22',
     runPython: runPython,
     copyFile: function(src, dest) {
@@ -186,6 +181,11 @@ exports.systems = (function() {
       scp.call(this, src, dest);
       return dest;
     },
+    catFile: (path) -> this.runPython("print open(path.join(conductance, #{JSON.stringify(path)})).read()"),
+  }
+
+  var posixBase = commonBase .. merge({
+    executableScriptSuffix: '',
     commands: {
       extract_installer: ['tar', 'zxf'],
     },
@@ -210,6 +210,13 @@ exports.systems = (function() {
       sftp.call(this, src, "AppData/Local/Temp/" + dest);
       return "C:/Users/IEUser/AppData/Local/Temp/" + dest;
     },
+    catFile: function(path) {
+      var localFile = "/tmp/catfile-output-#{process.pid}";
+      sftp.call(this, ".conductance/" + path, localFile, 'get');
+      var contents = fs.readFile(localFile, 'utf-8');
+      fs.unlink(localFile);
+      return contents;
+    },
     commands: {
       extract_installer: ['0install', 'run', 'http://0install.de/feeds/SevenZip_CLI.xml', 'x'],
     },
@@ -218,13 +225,13 @@ exports.systems = (function() {
 
   switch(user) {
     case 'tim':
-      var proxy = "http://#{hostname}.local:9090/";
+      var proxy = (port) -> "http://#{hostname}.local:#{port}/";
       return [
         {
           platform: 'linux',
           arch: 'x64',
           host: -> posixBase .. merge({
-            proxy: proxy,
+            proxy: proxy(9090),
             host: 'localhost',
             user: 'sandbox',
           }),
@@ -234,7 +241,7 @@ exports.systems = (function() {
           platform: 'darwin',
           arch: 'x64',
           host: -> posixBase .. merge({
-            proxy: proxy,
+            proxy: proxy(9091),
             host: 'mba.local',
             user: 'test',
           }),
@@ -244,7 +251,7 @@ exports.systems = (function() {
           platform: 'windows',
           arch: 'x86',
           host: -> windowsBase .. merge({
-            proxy: proxy,
+            proxy: proxy(9092),
             host: 'IE10Win8.local',
             user: 'IEUser',
             port: '2222',

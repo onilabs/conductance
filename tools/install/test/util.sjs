@@ -3,8 +3,9 @@ var seq = require('sjs:sequence');
 var http = require('sjs:http');
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
+var fs = require('sjs:nodejs/fs');
 
-exports.api = function(host, system) {
+exports.api = function(host, system, bundle) {
 	var isWindows = system.platform == 'windows';
 	var self = {
 		installRoot: isWindows ? undefined : '/tmp/conductance',
@@ -78,6 +79,36 @@ exports.api = function(host, system) {
 				['true','false'] .. assert.contains(output);
 				return output == 'true';
 			}
+		},
+
+		_extractInstaller: function() {
+			assert.ok(fs.exists(bundle), "no such file: #{bundle}");
+			host.copyFile(bundle, 'conductance-install');
+			host.runPython('
+				mkdirp(conductance)
+				os.chdir(conductance)
+				extractInstaller(path.join(TMP, "conductance-install"))
+			');
+		},
+
+		_runInstaller: function(input) {
+			return host.runPython("
+				exportProxy()
+				env['PREFIX']=''
+				run_input('#{input || ''}', [script(HOME + '/.conductance/share/install.sh')])
+			");
+		},
+
+		manualInstall: function(input) {
+			self._extractInstaller();
+			self._runInstaller(input);
+		},
+
+		selfUpdate: function() {
+			return host.runPython("
+				exportProxy()
+				run([script(conductance + '/bin/conductance'), 'self-update'])
+			");
 		},
 
 		_copyFixture: function(name) {

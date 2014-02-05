@@ -2,5 +2,7 @@
 set -eux
 gup -u *-tests.sjs ./run
 group="$(basename "$2" .ok)"
-./run ":$group"
+(
+	cd .. && ./test/run ":$group" --color=on 2>&1 | tee "test/$group.log"
+)
 echo 'ok' > "$1"

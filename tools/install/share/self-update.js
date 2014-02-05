@@ -3,8 +3,8 @@ if (typeof(__filename) == 'undefined') {
 	var __filename = decodeURIComponent(module.id.substr(7));
 }
 
-// this script can process any manifest format v2
-var FORMATS = [2];
+// This script can process any manifest format v1 or v2
+var FORMATS = [1, 2];
 exports.FORMATS = FORMATS;
 
 /*

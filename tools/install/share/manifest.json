@@ -1,5 +1,5 @@
 { "format": 2
-, "version": 5
+, "version": 7
 , "manifest_url": "https://conductance.io/install/manifest-v2.json"
 , "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from https://conductance.io/"
 , "wrappers":

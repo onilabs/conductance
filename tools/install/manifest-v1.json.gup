@@ -14,5 +14,6 @@ var contents = JSON.parse(@fs.readFile(inputFile, 'utf-8'));
 // use any v2 features in the manifest
 @assert.eq(contents.format, 2);
 contents.format = 1;
+contents.version = contents.version-1;
 @fs.writeFile(dest, JSON.stringify(contents, null, '    '));
 

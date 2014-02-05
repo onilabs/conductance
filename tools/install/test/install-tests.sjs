@@ -16,9 +16,6 @@ var path = require('nodejs:path');
 var hosts = require('./hosts');
 var proxyModule = require('../proxy');
 
-var manifestContents = fs.readFile(url.normalize('../share/manifest.json', module.id) .. url.toPath, 'utf-8')
-var manifest = JSON.parse(manifestContents);
-
 /*
 if (require.main === module) {
 	var system = hosts.systems[2]; // (hack)
@@ -57,9 +54,14 @@ var proxyStrata = null;
 hosts.systems .. each {|system|
 	var platform = system.platform;
 	var host = system.host && system.host();
+	var proxyPort = parseInt(url.parse(host.proxy).port, 10);
+	assert.number(proxyPort);
 	var arch = system.arch;
 
 	context("#{platform}_#{arch}") {||
+		var manifestContents = fs.readFile(url.normalize('../share/manifest.json', module.id) .. url.toPath, 'utf-8')
+		var manifest = JSON.parse(manifestContents);
+
 		var archive = "#{platform}_#{arch}.#{platform == 'windows' ? 'zip' : 'tar.gz'}";
 		var bundle = url.normalize("../dist/#{archive}", module.id) .. url.toPath();
 		var conductanceHead = url.normalize("../dist/conductance-HEAD.tar.gz", module.id) .. url.toPath();
@@ -78,7 +80,7 @@ hosts.systems .. each {|system|
 			assert.eq(proxyStrata, null);
 
 			proxyStrata = cutil.breaking {|brk|
-				proxyModule.serve(9090) {|proxy|
+				proxyModule.serve(proxyPort) {|proxy|
 					// always fake out the condutance URL to serve the latest HEAD
 					proxy.fake([
 						[conductanceUrl, conductanceHead],
@@ -100,42 +102,11 @@ hosts.systems .. each {|system|
 		/********************************************************
 		* helpers to setup / destroy conductance install
 		********************************************************/
-		var util = require('./util').api(host, system);
-		var {assertHealthy, ensureClean, runServer, runMhoScript, isGloballyInstalled, listDir} = util;
-
-		var _extractInstaller = function() {
-			assert.ok(fs.exists(bundle), "no such file: #{bundle}");
-			host.copyFile(bundle, 'conductance-install');
-			host.runPython('
-				mkdirp(conductance)
-				os.chdir(conductance)
-				extractInstaller(path.join(TMP, "conductance-install"))
-			');
-		};
-
-		var _runInstaller = function(input) {
-			var prefix='';
-			if (input !== undefined && util.installRoot) {
-				host.runPython("tmp=#{JSON.stringify(util.installRoot)}; rmtree(tmp); mkdirp(tmp)");
-			}
-			return host.runPython("
-				exportProxy()
-				env['PREFIX']=\"#{prefix}\"
-				run_input('#{input || ''}', [script(HOME + '/.conductance/share/install.sh')])
-			");
-		}
-
-		var manualInstall = function(input) {
-			_extractInstaller();
-			_runInstaller(input);
-		};
-
-		var selfUpdate = function() {
-			return host.runPython("
-				exportProxy()
-				run([script(conductance + '/bin/conductance'), 'self-update'])
-			");
-		};
+		var util = require('./util').api(host, system, bundle);
+		var {
+			assertHealthy, ensureClean, runServer, runMhoScript,
+			isGloballyInstalled, listDir, selfUpdate, manualInstall
+		} = util;
 
 		var withTemp = function(block) {
 			var tmpfile = '/tmp/conductance-test-' + process.pid + '-' + withTemp.counter++;
@@ -184,7 +155,7 @@ hosts.systems .. each {|system|
 		}
 
 		test("bundle contains a working nodejs") {||
-			_extractInstaller();
+			util._extractInstaller();
 			host.runPython("
 				run([path.join(conductance, script('bin/node')), '-e', 'console.log(__filename)'])
 			") .. assert.eq("[eval]");
@@ -506,7 +477,7 @@ hosts.systems .. each {|system|
 					withManifest(manifest) {||
 						assert.raises({filter: e -> e.output .. str.contains(
 							"Manifest format version: #{manifest.format}\n" +
-							"This installation understands versions: #{understoodFormats.join(", ")}\n" +
+							"This installation understands versions: #{understoodFormats.join(",")}\n" +
 							"You can't handle the manifest!"
 						)}, selfUpdate);
 					}
@@ -630,7 +601,7 @@ hosts.systems .. each {|system|
 				}
 			}.skipIf(system.platform == 'windows', "N/A")
 
-			test("windows self-extracting .exe") {|s|
+			test("self-extracting .exe") {|s|
 				var homePath = host.runPython("print HOME").trim();
 				var installerPath = url.normalize("../dist/Conductance-#{system.arch}.exe", module.id) .. url.toPath();
 				var mockCmdPath = url.normalize("./fixtures/mock-cmd.exe", module.id) .. url.toPath();
@@ -700,6 +671,106 @@ hosts.systems .. each {|system|
 			}
 
 		}
+	}.timeout(90).skipIf(!host, "No host configured for this platform");
 
-	}.timeout(90).skipIf(!host, "No host configured for this platform");;
+	if (platform != 'windows') {
+		// don't need to check windows compatibility, since
+		// there was no v1 windows installer
+		context("#{platform}_#{arch} forwards compatibility") {||
+			var v1Code = url.normalize('../tmp/v0.2.0.git', module.id) .. url.toPath();
+			var v1InstallRoot = path.join(v1Code, 'tools/install');
+
+			var archive = "#{platform}_#{arch}.#{platform == 'windows' ? 'zip' : 'tar.gz'}";
+			var bundle = path.join(v1InstallRoot, "dist/#{archive}");
+
+			// the v1 manifest, as of release 0.1:
+			var oldManifestPath = path.join(v1InstallRoot, 'share/manifest.json');
+			// the latest v1-compatible manifest:
+			var manifestPath =    url.normalize('../manifest-v1.json', module.id) .. url.toPath;
+			// the latest v2-compatible manifest:
+			var newManifestPath = url.normalize('../manifest-v2.json', module.id) .. url.toPath;
+			var oldManifest, manifest, newManifest;
+
+			// `manifest` and `newManifest` will use conductance-HEAD.
+			var conductanceHead = url.normalize("../dist/conductance-HEAD.tar.gz", module.id) .. url.toPath();
+
+			test.beforeAll {||
+				console.warn();
+				childProcess.run('gup', ['-j5', '-u', conductanceHead, oldManifestPath, manifestPath, newManifestPath, bundle], {'stdio':'inherit'});
+
+				var oldManifestContents = fs.readFile(oldManifestPath, 'utf-8');
+				oldManifest = oldManifestContents .. JSON.parse();
+				assert.eq(oldManifest.format, 1);
+				assert.contains(oldManifest.manifest_url, "manifest-v1.json");
+
+				var manifestContents = fs.readFile(manifestPath, 'utf-8');
+				manifest = JSON.parse(manifestContents);
+				assert.eq(manifest.format, 1);
+				assert.contains(manifest.manifest_url, "manifest-v2.json");
+				assert.notEq(oldManifest.version, manifest.version);
+
+				var newManifestContents =  fs.readFile(newManifestPath, 'utf-8');
+				newManifest = JSON.parse(newManifestContents);
+				assert.eq(newManifest.format, 2);
+				assert.contains(newManifest.manifest_url, "manifest-v2.json");
+				assert.notEq(manifest.version, newManifest.version);
+
+				var conductanceUrl = newManifest.data.conductance.href;
+				assert.notEq(oldManifest.data.conductance.href, conductanceUrl);
+
+				assert.eq(proxyStrata, null);
+
+				proxyStrata = cutil.breaking {|brk|
+					proxyModule.serve(proxyPort) {|proxy|
+						proxy.fake([
+							[oldManifest.manifest_url, new Buffer(manifestContents)],
+							[newManifest.manifest_url, new Buffer(newManifestContents)],
+							[conductanceUrl, conductanceHead],
+						], brk);
+					}
+				}
+			}
+
+			test.afterAll {||
+				if(proxyStrata) {
+					proxyStrata.resume();
+					proxyStrata = null;
+				}
+			}
+
+			var util = require('./util').api(host, system, bundle);
+			var {
+				assertHealthy, ensureClean, runServer, runMhoScript,
+				isGloballyInstalled, listDir, selfUpdate, manualInstall
+			} = util;
+
+			test.beforeEach {||
+				ensureClean();
+			}
+
+			test("can update cleanly to the latest version") {||
+				manualInstall();
+				assertHealthy();
+				var remoteManifest = host.catFile("share/manifest.json") .. JSON.parse();
+				remoteManifest.format .. assert.eq(1);
+				remoteManifest .. assert.eq(oldManifest);
+
+				// the first update gets the latest manifest-v1.json, which contains
+				// the new updater:
+				selfUpdate();
+				assertHealthy();
+				remoteManifest = host.catFile("share/manifest.json") .. JSON.parse();
+				remoteManifest.format .. assert.eq(1);
+				remoteManifest .. assert.eq(manifest);
+
+				// the next update installs the very latest code, using the latest updater:
+				selfUpdate();
+				assertHealthy();
+				remoteManifest = host.catFile("share/manifest.json") .. JSON.parse();
+				remoteManifest.format .. assert.eq(2);
+				remoteManifest .. assert.eq(newManifest);
+			}
+
+		}.timeout(90).skipIf(!host, "No host configured for this platform");
+	}
 }
