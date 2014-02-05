@@ -1,4 +1,11 @@
 #!/bin/bash
 set -eu
-gup -u 7zsd.7z ./7z
-./7z e 7zsd.7z "$2" -so > "$1"
+
+# we originally used this:
+# gup -u 7zsd.7z ./7z
+# ./7z e 7zsd.7z "$2" -so > "$1"
+
+# But we've used resource hacker to modify the icon, which has been checked in to conf/:
+src="../conf/7zsd.sfx"
+gup -u "$src"
+cp "$src" "$1"

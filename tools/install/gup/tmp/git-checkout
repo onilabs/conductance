@@ -1,0 +1,16 @@
+#!bash -eu
+
+dest="$2"
+gup --always
+commit="$(basename "$dest" .git)"
+commit="$(git rev-parse "$commit")"
+if [ ! -d "$dest/.git" ]; then
+	mkdir -p "$2"
+	cd "$2" && git init
+fi
+cd "$2"
+if ! git checkout "$commit"; then
+	# fetch and re-try
+	git fetch "git@github.com:onilabs/conductance.git"
+	git checkout "$commit"
+fi
