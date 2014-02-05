@@ -101,6 +101,25 @@ var ensureDir = exports.ensureDir = function (dir) {
 	}
 };
 
+exports.createWrapper = function(link, root, manifest, os) {
+	var wrapper = assert(exports.platformSpecificAttr(manifest.wrappers[link.runner], os), "manifest has no wrapper for "+link.runner);
+	var contents = wrapper.template.replace(/__REL_(?:([a-zA-Z]+)_)?PATH__/g, function(_, component) {
+		if (component) {
+			var componentData = manifest.data[component];
+			assert(componentData, "unknown component: " + component);
+			var id = componentData.id;
+			assert(id);
+			return path.join('data', component + '-' + id);
+		} else {
+			return path.relative(root, link.src);
+		}
+	});
+
+	fs.writeFileSync(link.dest, contents);
+	// make sure it's executable
+	fs.chmodSync(link.dest, 0755);
+};
+
 function install(link, manifest, cb) {
 	debug("Installing link: ", link);
 	if (fs.existsSync(link.dest)) {
@@ -108,12 +127,7 @@ function install(link, manifest, cb) {
 	}
 
 	if(link.runner) {
-		var wrapper = assert(exports.platformSpecificAttr(manifest.wrappers[link.runner]));
-		var contents = wrapper.template.replace(/__REL_PATH__/, path.relative(conductance_root, link.src));
-		fs.writeFileSync(link.dest, contents);
-		
-		// make sure it's executable
-		fs.chmodSync(link.dest, 0755);
+		var contents = exports.createWrapper(link, conductance_root, manifest, undefined);
 	} else {
 		if (IS_WINDOWS) {
 			// can't symlink on windows - just copy it

@@ -9,7 +9,13 @@
       { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexport CONDUCTANCE_ROOT=\"$(dirname \"$bindir\")\"\nexec \"$CONDUCTANCE_ROOT/bin/node\" \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\"\n"
       }
     , "windows":
-      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\bin\\node.exe\"  \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                                        "
+      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\__REL_node_PATH__\\node.exe\" \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                "
+      }
+    }
+  , "wrap":
+    { "platform_key": ["platform"]
+    , "windows":
+      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                                                                    "
       }
     }
   }
@@ -43,7 +49,9 @@
       , "default":
         [ {"src": "sjs", "dest": "bin/", "runner": "node"}
         ]
-      , "windows": [ ]
+      , "windows":
+        [ {"src": "sjs", "dest": "bin/sjs.cmd", "runner": "node"}
+        ]
       }
     }
   , "node":
@@ -64,7 +72,7 @@
     , "links":
       { "platform_key": ["platform"]
       , "default": [ {"src": "bin/node", "dest": "bin/"} ]
-      , "windows": [ {"src": "node.exe", "dest": "bin/"} ]
+      , "windows": [ {"src": "node.exe", "dest": "bin/node.cmd", "runner": "wrap"} ]
       }
     }
 

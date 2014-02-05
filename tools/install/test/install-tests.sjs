@@ -103,7 +103,7 @@ hosts.systems .. each {|system|
 		var util = require('./util').api(host, system);
 		var {assertHealthy, ensureClean, runServer, runMhoScript, isGloballyInstalled, listDir} = util;
 
-		var manualInstall = function(input) {
+		var _extractInstaller = function() {
 			assert.ok(fs.exists(bundle), "no such file: #{bundle}");
 			host.copyFile(bundle, 'conductance-install');
 			host.runPython('
@@ -111,15 +111,23 @@ hosts.systems .. each {|system|
 				os.chdir(conductance)
 				extractInstaller(path.join(TMP, "conductance-install"))
 			');
+		};
+
+		var _runInstaller = function(input) {
 			var prefix='';
-			if (input !== undefined) {
-				host.runPython('tmp=path.join(TMP, "conductance"); rmtree(tmp); mkdirp(tmp)');
+			if (input !== undefined && util.installRoot) {
+				host.runPython("tmp=#{JSON.stringify(util.installRoot)}; rmtree(tmp); mkdirp(tmp)");
 			}
 			return host.runPython("
 				exportProxy()
 				env['PREFIX']=\"#{prefix}\"
 				run_input('#{input || ''}', [script(HOME + '/.conductance/share/install.sh')])
 			");
+		}
+
+		var manualInstall = function(input) {
+			_extractInstaller();
+			_runInstaller(input);
 		};
 
 		var selfUpdate = function() {
@@ -175,6 +183,13 @@ hosts.systems .. each {|system|
 			host.runPython('print "OK"');
 		}
 
+		test("bundle contains a working nodejs") {||
+			_extractInstaller();
+			host.runPython("
+				run([path.join(conductance, script('bin/node')), '-e', 'console.log(__filename)'])
+			") .. assert.eq("[eval]");
+		}
+
 		context('manual') {||
 			var modifyManifest = function(block) {
 				var manifest = JSON.parse(manifestContents);
@@ -200,6 +215,13 @@ hosts.systems .. each {|system|
 				listDir('.') .. assert.eq([
 					'bin', 'data', 'node_modules', 'share'
 				]);
+				host.runPython("
+					run([path.join(conductance, script('bin/sjs')), '-e', '123 .. console.log()'])
+				") .. assert.eq("123");
+
+				host.runPython("
+					run([path.join(conductance, script('bin/node')), '-e', 'console.log(__filename)'])
+				") .. assert.eq("[eval]");
 			}
 
 			test('ignores a modified manifest if the version is <= the existing version') {||
@@ -338,7 +360,7 @@ hosts.systems .. each {|system|
 					mf.version+=2;
 					mf.format = currentFormat + 1;
 					mf.manifest_url += (currentFormat + 1);
-					mf.data.conductance.id = 'test-3';
+					mf.data.conductance.id = 'long-test-version-3';
 					mf.data.conductance.href = conductanceUrl(3);
 				}
 
@@ -369,7 +391,7 @@ hosts.systems .. each {|system|
 							]) {||
 							selfUpdate() .. str.contains("conductance: test-2") .. assert.ok();
 							assertHealthy();
-							selfUpdate() .. str.contains("conductance: test-3") .. assert.ok();
+							selfUpdate() .. str.contains("conductance: long-test-version-3") .. assert.ok();
 							assertHealthy();
 							selfUpdate() .. str.contains("conductance: test-4") .. assert.ok();
 							assertHealthy();
@@ -513,24 +535,24 @@ hosts.systems .. each {|system|
 
 				withManifest(manifest) {||
 					var fixture = util._copyFixture('hello.mho');
-					try {
-						var output = host.runPython("
-							server = subprocess.Popen([script(conductance + '/bin/conductance'), 'serve', #{JSON.stringify(fixture)}])
-							import time
-							time.sleep(1)
-							assert server.poll() is None, 'server ended...'
-							import urllib
+					var output = host.runPython("
+						import time
+						import urllib
+
+						server = subprocess.Popen([script(conductance + '/bin/conductance'), 'serve', #{JSON.stringify(fixture)}])
+						time.sleep(1)
+						assert server.poll() is None, 'server ended...'
+						try:
 							assert urllib.urlopen('http://localhost:7079/up').read() == 'ok'
 
 							exportProxy()
 							run([script(conductance + '/bin/conductance'), 'self-update'])
+							assert urllib.urlopen('http://localhost:7079/ping').read() == 'Pong!'
+						finally:
 							server.terminate()
 							server.wait()
-						");
-						assert.ok(output .. str.contains('-new'));
-					} finally {
-						http.get("http://#{host.host}:7079/ping") .. assert.eq('Pong!');
-					}
+					");
+					assert.ok(output .. str.contains('-new'));
 				}
 				assertHealthy();
 			}
@@ -539,7 +561,8 @@ hosts.systems .. each {|system|
 		context('automated installer') {||
 			// NOTE: on windows, we can't use the automated installer, since
 			// it opens a GUI window. So we're still using the manual installer here,
-			// and assuming the self-extractor does what it's supposed to.
+			// and we have an explicit test that the self-extracting .exe is
+			// creating the files and running the commands we expect.
 			test.beforeAll {|s|
 				if (system.platform == 'windows') {
 					s.install = manualInstall;

@@ -2,6 +2,7 @@
 var fs = require("sjs:nodejs/fs");
 var path = require("nodejs:path");
 var object = require('sjs:object');
+var { get } = object;
 var str = require('sjs:string');
 var url = require('sjs:url');
 var seq = require('sjs:sequence');
@@ -13,6 +14,7 @@ var selfUpdate = require('../../share/self-update.js');
 var proxy = require('../../proxy');
 
 var { run, assert} = require('../common');
+
 var rm_rf = function(d) {
 	waitfor() {
 		selfUpdate.rm_rf(d, resume);
@@ -64,13 +66,19 @@ exports.main = function(args) {
 		if(links) {
 			links = selfUpdate.platformSpecificAttr(links, _os);
 			links .. each {|link|
-				if (link.runner) {
-					throw new Error("don\'t know how to handle bootstrapped runner scripts yet");
-				}
 				var src = path.join(component_base, link.src);
 				var dest = path.join(base, link.dest);
 				selfUpdate.ensureDir(dest .. str.endsWith('/') ? dest : path.dirname(dest));
-				run("cp", "-r", src, dest);
+
+				if (link.runner) {
+					var contents = selfUpdate.createWrapper({
+						src: src,
+						runner: link.runner,
+						dest: dest
+					}, base, manifest, _os);
+				} else {
+					run("cp", "-r", src, dest);
+				}
 			}
 		}
 	}
@@ -88,12 +96,14 @@ exports.main = function(args) {
 		run("cp", "-a", filename, share_dest);
 	}
 
-	var node_wrapper = selfUpdate.platformSpecificAttr(manifest.wrappers.node, _os);
-	var filename = 'install.' + (_os.platform == 'windows' ? 'cmd' : 'sh');
-	var content = node_wrapper.template.replace('__REL_PATH__', 'share/self-update.js');
-	var script = path.join(base, 'share', filename);
-	fs.writeFile(script, content);
-	fs.chmod(script, 0755);
+	// create the installer script (a wrapper around self-update.js)
+	var scriptName = 'install.' + (_os.platform == 'windows' ? 'cmd' : 'sh');
+	var script = path.join(base, 'share', scriptName);
+	selfUpdate.createWrapper({
+		runner: 'node',
+		src: path.join(base, 'share/self-update.js'),
+		dest: script,
+	}, base, manifest, _os);
 }
 
 if (require.main === module) {
