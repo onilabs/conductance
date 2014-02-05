@@ -16,6 +16,7 @@
 
 require('../../hub'); // install mho: hub
 var sys = require('sjs:sys');
+var Url = require('sjs:url');
 var str = require('sjs:string');
 var nodePath = require('nodejs:path');
 var { withServer } = require('sjs:nodejs/http');
@@ -177,10 +178,7 @@ exports.run = function(args) {
 };
 
 exports.exec = function(args) {
-  var url = args.shift();
-  if (url.indexOf(":", 2) == -1) {
-    url = fs.realpath(url) .. require('sjs:url').fileURL();
-  }
+  var url = args.shift() .. Url.coerceToURL();
   process.argv = [ env.executable, url ].concat(args);
   require(url, {main:true});
 }

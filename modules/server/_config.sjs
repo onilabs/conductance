@@ -15,17 +15,24 @@ var pathMod = require('nodejs:path');
 var fs = require('sjs:nodejs/fs');
 var env = require('./env');
 var logging = require('sjs:logging');
+var url = require('sjs:url');
 
 exports.loadConfig = function(path) {
   var configfile = path || exports.defaultConfig();
-  configfile = pathMod.resolve(path);
+  
+  // Note: configfile *might* already be a file URL.
+  // We need to ensure a url for require():
+  configfile = configfile .. url.coerceToURL();
+
+  // But we also want a plain path for config.path and logging
+  configpath = configfile .. url.toPath();
 
   //----------------------------------------------------------------------
   // load config file
 
-  logging.info("Loading config from #{configfile}");
-  var config = require(configfile .. url.fileURL());
-  env.set('config', {path:configfile, module: config});
+  logging.info("Loading config from #{configpath}");
+  var config = require(configfile);
+  env.set('config', {path:configpath, module: config});
   return config;
 }
 

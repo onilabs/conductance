@@ -16,6 +16,6 @@
     "recess": "~1.1.9"
   },
   "dependencies": {
-    "stratifiedjs": "~0.16.0"
+    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#1a07cc57b90fbdad9ed104fa88ebde0131424380"
   }
 }
