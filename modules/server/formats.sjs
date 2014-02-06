@@ -91,7 +91,7 @@ function gen_app_html(src, dest, aux) {
   var { Document, loadTemplate } = require('../surface');
   dest.write(
     Document(null, documentSettings .. merge({
-      template: loadTemplate(template, src.path),
+      template: loadTemplate(template, src.path .. Url.fileURL),
       templateData: metadata,
       title: metadata.title,
     }))
