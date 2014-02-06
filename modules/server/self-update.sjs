@@ -42,17 +42,18 @@ if (exports.available) {
     try {
       if (checkForUpdates()) {
         console.warn("A conductance update is available. Run `conductance-self-update` to update.");
+        process.exit(1);
       }
     } catch(e) {
       console.warn("An error occurred while checking for conductance updates:\n#{e.message || e}");
-      process.exit(1);
+      process.exit(2);
     }
   };
 
   exports.update = function(args) {
     if (args.length > 0) {
       console.error("self-update takes no arguments");
-      process.exit(1);
+      process.exit(2);
     }
     checkForUpdates();
     // NOTE: executes async, kills the process itself if it fails

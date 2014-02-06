@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eu
+which 7za > /dev/null 2>&1 || (echo "please install 7za">&2; exit 1)
+ln -s "`which 7za`" "$1"

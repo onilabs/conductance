@@ -51,7 +51,7 @@ switch(ext) {
     break;
 
   case '7z':
-    var z = root + "/dist/7z";
+    var z = root + "/dist/7za";
     run("gup", "-u", z);
     intree {||
       run.apply(null, [z, "a", "-y", dest].concat(ls()));

@@ -1,4 +1,0 @@
-#!/bin/bash
-set -eu
-which 7z > /dev/null 2>&1 || (echo "please install 7z">&2; exit 1)
-ln -s "`which 7z`" "$1"

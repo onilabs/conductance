@@ -21,8 +21,8 @@
   }
 , "data":
   { "conductance":
-    { "id": "0.2.0"
-    , "href": "https://github.com/onilabs/conductance/tarball/88a130085c77773202c076209daf353286483830"
+    { "id": "0.3.0"
+    , "href": "https://github.com/onilabs/conductance/tarball/9de31d5ca34797566e42d9671a6d46583e08288f"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
@@ -38,8 +38,8 @@
       }
     }
   , "stratifiedjs":
-    { "id": "0.16.1"
-    , "href": "https://github.com/onilabs/stratifiedjs/tarball/db8584e214adb1fb9fc1a53f7958fa9da891d757"
+    { "id": "0.17.0"
+    , "href": "https://github.com/onilabs/stratifiedjs/tarball/2d6ef62891bd622f45fde5f035b807f8c90f8dbe"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
