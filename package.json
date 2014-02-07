@@ -12,7 +12,7 @@
   "main": "conductance",
   "bin": { "conductance": "conductance" },
   "devDependencies": {
-    "karma-sjs-adapter": "~0.2.0",
+    "karma-sjs-adapter": "~0.2.2",
     "recess": "~1.1.9"
   },
   "dependencies": {
