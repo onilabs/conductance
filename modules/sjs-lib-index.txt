@@ -1,2 +1,2 @@
 @summary The Conductance web application framework
-@version 0.3.0-development
+@version 0.4.0-development
