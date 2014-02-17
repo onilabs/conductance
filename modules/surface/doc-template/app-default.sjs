@@ -42,7 +42,7 @@ exports.Document = function(data, settings) {
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     ${frag.bootstrapCss()}
     ${showErrorDialog !== false ? frag.errorHandler()}
-    ${frag.busyIndicator(settings.showBusyIndicator === true)}
+    ${frag.busyIndicator(showBusyIndicator === true)}
     ${appModule !== false ? `
     <script type='text/sjs' module='mho:app'>
       withBusyIndicator {
