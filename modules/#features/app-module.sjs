@@ -109,6 +109,12 @@
         @ template-wrap-content false
        *\/
 
+@feature @template-use-bootstrap
+@summary Disable twitter bootstrap CSS/JS
+@desc
+  If set to false, the default twitter bootstrap CSS and Javascript
+  will not be included in the document.
+
 @feature @template-show-busy-indicator
 @summary Begin the busy indicator on page load
 @desc

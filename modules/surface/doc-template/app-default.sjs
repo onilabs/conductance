@@ -32,6 +32,7 @@ exports.Document = function(data, settings) {
   var showBusyIndicator = settings.showBusyIndicator .. toBool;
   var wrapContent = settings.wrapContent ..toBool;
   var appModule = settings.appModule .. toBool;
+  var includeBootstrap = settings.useBootstrap .. toBool;
 
   if (wrapContent !== false) content = `<div class='container'>${data.body}</div>`;
 
@@ -40,7 +41,7 @@ exports.Document = function(data, settings) {
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    ${frag.bootstrapCss()}
+    ${includeBootstrap ? frag.bootstrapCss()}
     ${showErrorDialog !== false ? frag.errorHandler()}
     ${frag.busyIndicator(showBusyIndicator === true)}
     ${appModule !== false ? `
@@ -72,7 +73,7 @@ exports.Document = function(data, settings) {
     ${ data.script }
   </head>
   <body>${content}
-    ${frag.bootstrapJavascript()}
+    ${includeBootstrap ? frag.bootstrapJavascript()}
   </body>
 </html>`;
 }
