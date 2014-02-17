@@ -137,18 +137,4 @@
       /**
         @template-show-busy-indicator
       *\/
-
-@feature @bundle
-@summary Bundle this module's dependencies
-@desc
-  By default, `.sjs` modules used by an `.app` are loaded
-  individually, on-demand. If you include the `@bundle`
-  directive, Conductance will serve up this app's code as
-  a single file containing all required modules.
-
-  This reduces the number of round-trips, but reduces the
-  opportunity for caching - i.e different bundles will
-  duplicate all common modules, and a change
-  in any file will cause the entire bundle to
-  be re-downloaded).
 */
