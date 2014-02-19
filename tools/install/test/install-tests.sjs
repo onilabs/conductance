@@ -15,6 +15,7 @@ var path = require('nodejs:path');
 
 var hosts = require('./hosts');
 var proxyModule = require('../proxy');
+var util = require('./util');
 
 /*
 if (require.main === module) {
@@ -53,18 +54,13 @@ if (require.main === module) {
 var proxyStrata = null;
 hosts.systems .. each {|system|
 	var platform = system.platform;
-	var host = system.host && system.host();
-	var proxyPort = parseInt(url.parse(host.proxy).port, 10);
-	assert.number(proxyPort);
+	var host = util.getHost(system);
 	var arch = system.arch;
 
 	context("#{platform}_#{arch}") {||
-		var manifestContents = fs.readFile(url.normalize('../share/manifest.json', module.id) .. url.toPath, 'utf-8')
-		var manifest = JSON.parse(manifestContents);
-
-		var archive = "#{platform}_#{arch}.#{platform == 'windows' ? 'zip' : 'tar.gz'}";
-		var bundle = url.normalize("../dist/#{archive}", module.id) .. url.toPath();
-		var conductanceHead = url.normalize("../dist/conductance-HEAD.tar.gz", module.id) .. url.toPath();
+		var [manifest, manifestContents] = util.loadManifest();
+		var bundle = util.bundlePath(system);
+		var conductanceHead = util.conductanceHead;
 		var conductanceUrl = manifest.data.conductance.href;
 		assert.string(conductanceUrl);
 
@@ -75,12 +71,13 @@ hosts.systems .. each {|system|
 		var installArchive = "http://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
 		var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
 
+		var hostUtil = util.api(system);
+
 		test.beforeAll {||
-			childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
 			assert.eq(proxyStrata, null);
 
 			proxyStrata = cutil.breaking {|brk|
-				proxyModule.serve(proxyPort) {|proxy|
+				hostUtil.serveProxy {|proxy|
 					// always fake out the condutance URL to serve the latest HEAD
 					proxy.fake([
 						[conductanceUrl, conductanceHead],
@@ -102,11 +99,10 @@ hosts.systems .. each {|system|
 		/********************************************************
 		* helpers to setup / destroy conductance install
 		********************************************************/
-		var util = require('./util').api(host, system, bundle);
 		var {
 			assertHealthy, ensureClean, runServer, runMhoScript,
 			isGloballyInstalled, listDir, selfUpdate, manualInstall
-		} = util;
+		} = hostUtil;
 
 		var withTemp = function(block) {
 			var tmpfile = '/tmp/conductance-test-' + process.pid + '-' + withTemp.counter++;
@@ -155,7 +151,7 @@ hosts.systems .. each {|system|
 		}
 
 		test("bundle contains a working nodejs") {||
-			util._extractInstaller();
+			hostUtil._extractInstaller();
 			host.runPython("
 				run([path.join(conductance, script('bin/node')), '-e', 'console.log(__filename)'])
 			") .. assert.eq("[eval]");
@@ -505,7 +501,7 @@ hosts.systems .. each {|system|
 				};
 
 				withManifest(manifest) {||
-					var fixture = util._copyFixture('hello.mho');
+					var fixture = hostUtil._copyFixture('hello.mho');
 					var output = host.runPython("
 						import time
 						import urllib
@@ -553,7 +549,7 @@ hosts.systems .. each {|system|
 							run_input(#{JSON.stringify(input)}, ['bash', '-e', script])
 						");
 					};
-					s.installGloballyPrompt = "Do you want to install conductance scripts globally into #{util.installRoot}/bin?";
+					s.installGloballyPrompt = "Do you want to install conductance scripts globally into #{hostUtil.installRoot}/bin?";
 				}
 			}
 
@@ -561,7 +557,7 @@ hosts.systems .. each {|system|
 				test('installs to a clean system') {|s|
 					s.install('y'); // install into $PREFIX
 					isGloballyInstalled() .. assert.ok();
-					assertHealthy(util.installRoot);
+					assertHealthy(hostUtil.installRoot);
 				}
 
 				context("with existing install") {|s|
@@ -596,7 +592,7 @@ hosts.systems .. each {|system|
 
 						output .. str.contains("This installer will REMOVE the existing contents at #{homePath}/.conductance\nContinue? [y/N]") .. assert.ok;
 						output .. str.contains("Cancelled.") .. assert.falsy;
-						assertHealthy(util.installRoot);
+						assertHealthy(hostUtil.installRoot);
 					}
 				}
 			}.skipIf(system.platform == 'windows', "N/A")
@@ -664,10 +660,10 @@ hosts.systems .. each {|system|
 				isGloballyInstalled() .. assert.eq(false);
 				host.runPython("
 					exportProxy()
-					env['PREFIX']=#{JSON.stringify(util.installRoot || '/not-used')} # only used on posix
+					env['PREFIX']=#{JSON.stringify(hostUtil.installRoot || '/not-used')} # only used on posix
 					run_input('y', [#{JSON.stringify(installerLocation)}])
 				");
-				assertHealthy(util.installRoot);
+				assertHealthy(hostUtil.installRoot);
 			}
 
 		}
@@ -691,12 +687,9 @@ hosts.systems .. each {|system|
 			var newManifestPath = url.normalize('../manifest-v2.json', module.id) .. url.toPath;
 			var oldManifest, manifest, newManifest;
 
-			// `manifest` and `newManifest` will use conductance-HEAD.
-			var conductanceHead = url.normalize("../dist/conductance-HEAD.tar.gz", module.id) .. url.toPath();
-
 			test.beforeAll {||
 				console.warn();
-				childProcess.run('gup', ['-j5', '-u', conductanceHead, oldManifestPath, manifestPath, newManifestPath, bundle], {'stdio':'inherit'});
+				childProcess.run('gup', ['-j5', '-u', oldManifestPath, manifestPath, newManifestPath], {'stdio':'inherit'});
 
 				var oldManifestContents = fs.readFile(oldManifestPath, 'utf-8');
 				oldManifest = oldManifestContents .. JSON.parse();
@@ -721,11 +714,11 @@ hosts.systems .. each {|system|
 				assert.eq(proxyStrata, null);
 
 				proxyStrata = cutil.breaking {|brk|
-					proxyModule.serve(proxyPort) {|proxy|
+					hostUtil.serveProxy() {|proxy|
 						proxy.fake([
 							[oldManifest.manifest_url, new Buffer(manifestContents)],
 							[newManifest.manifest_url, new Buffer(newManifestContents)],
-							[conductanceUrl, conductanceHead],
+							[conductanceUrl, util.conductanceHead],
 						], brk);
 					}
 				}
@@ -738,11 +731,11 @@ hosts.systems .. each {|system|
 				}
 			}
 
-			var util = require('./util').api(host, system, bundle);
+			var hostUtil = util.api(system, bundle);
 			var {
 				assertHealthy, ensureClean, runServer, runMhoScript,
 				isGloballyInstalled, listDir, selfUpdate, manualInstall
-			} = util;
+			} = hostUtil;
 
 			test.beforeEach {||
 				ensureClean();

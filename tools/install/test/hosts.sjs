@@ -218,7 +218,7 @@ exports.systems = (function() {
       return contents;
     },
     commands: {
-      extract_installer: ['0install', 'run', 'http://0install.de/feeds/SevenZip_CLI.xml', 'x'],
+      extract_installer: ['0install', 'run', 'http://0install.de/feeds/SevenZip_CLI.xml', 'x', '-aoa'],
     },
     sep: '\\',
   });

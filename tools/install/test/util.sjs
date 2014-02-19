@@ -4,9 +4,16 @@ var http = require('sjs:http');
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
 var fs = require('sjs:nodejs/fs');
+var { get } = require('sjs:object');
+var childProcess = require('sjs:nodejs/child-process');
+var proxyModule = require('../proxy');
 
-exports.api = function(host, system, bundle) {
+exports.api = function(system, bundle) {
+	var host = exports.getHost(system);
+	bundle = bundle || exports.bundlePath(system);
+
 	var isWindows = system.platform == 'windows';
+	var depsBuilt = false;
 	var self = {
 		installRoot: isWindows ? undefined : '/tmp/conductance',
 		assertHealthy: function(conductance_root) {
@@ -26,6 +33,10 @@ exports.api = function(host, system, bundle) {
 				}
 			}
 			assert.eq(contents, "Pong!");
+		},
+
+		buildDeps: function() {
+			childProcess.run('gup', ['-u', exports.conductanceHead, bundle], {'stdio':'inherit'});
 		},
 
 		ensureClean: function() {
@@ -82,7 +93,7 @@ exports.api = function(host, system, bundle) {
 		},
 
 		_extractInstaller: function() {
-			assert.ok(fs.exists(bundle), "no such file: #{bundle}");
+			if (!depsBuilt) self.buildDeps();
 			host.copyFile(bundle, 'conductance-install');
 			host.runPython('
 				mkdirp(conductance)
@@ -132,6 +143,35 @@ exports.api = function(host, system, bundle) {
 		runMhoScript: function(config, conductance_root) {
 			return self._run(["exec", "#{self._copyFixture(config)}"], conductance_root);
 		},
+
+		serveProxy: function(block) {
+			return proxyModule.serve(exports.getProxyPort(system), block);
+		},
 	};
 	return self;
 };
+
+exports.bundlePath = function(system) {
+	var platform = system .. exports.getPlatform;
+	var archive = "#{platform}_#{system .. exports.getArch}.#{platform == 'windows' ? 'zip' : 'tar.gz'}";
+	var bundle = url.normalize("../dist/#{archive}", module.id) .. url.toPath();
+	return bundle;
+};
+
+exports.getPlatform = (sys) -> sys .. get('platform');
+exports.getHost = (sys) -> sys.host && sys.host();
+exports.getArch = (sys) -> sys .. get('arch');
+exports.getProxyPort = function(sys) {
+	var host = sys .. exports.getHost();
+	var proxyPort = parseInt(url.parse(host.proxy).port, 10);
+	assert.number(proxyPort);
+	return proxyPort;
+}
+
+
+exports.loadManifest = function (path) {
+	var manifestContents = fs.readFile(path || (url.normalize('../share/manifest.json', module.id) .. url.toPath), 'utf-8')
+	var manifest = JSON.parse(manifestContents);
+	return [manifest, manifestContents];
+}
+exports.conductanceHead = url.normalize("../dist/conductance-HEAD.tar.gz", module.id) .. url.toPath();

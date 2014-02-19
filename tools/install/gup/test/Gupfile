@@ -1,2 +1,5 @@
 run-tests:
 	*.ok
+
+../../test/install.sjs:
+	*.install
