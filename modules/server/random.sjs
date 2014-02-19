@@ -14,17 +14,23 @@
 */
 
 var sjcl   = require('sjs:sjcl');
-var fs     = require('sjs:nodejs/fs');
 var buffer = require('nodejs:buffer');
+var crypto = require('nodejs:crypto');
 
-var f = fs.open('/dev/random', 'r');
-var buf = new (buffer.Buffer)(128);
 while (!sjcl.random.isReady()) {
-//  console.log('adding entropy to random number generator');
-  fs.read(f, buf, 0, 128);
-  sjcl.random.addEntropy(buf.toString('hex'), 1024);
+  //console.log(new Date() + ' adding entropy to random number generator');
+  waitfor(var err, buf) {
+    crypto.randomBytes(128, resume);
+  }
+  if (err) {
+    // Rarely fails, but the docs say it can
+    // when there is insufficient entropy.
+    console.warn("Error seeding RNG: #{err.message}");
+    hold(1000);
+  } else {
+    sjcl.random.addEntropy(buf.toString('hex'), 1024);
+  }
 }
-fs.close(f);
 
 exports.createID = function(words) {
   words = words || 4;
