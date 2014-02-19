@@ -190,7 +190,7 @@ function apiimport(src, dest, aux) {
   // should itself be able to give full urls - but that would probably
   // require strata-local storage for communicating the request
   // downstream).
-  var serverRoot = Url.normalize('/', aux.request.url);
+  var serverRoot = Url.normalize('/', aux.request.url.source);
   dest.write("\
 var serverURL = #{JSON.stringify(serverRoot)};
 var moduleURL = #{JSON.stringify(moduleURL)};
