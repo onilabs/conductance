@@ -220,15 +220,15 @@ function marshall(value, connection) {
  
   var stringifyable = {};
 
-  function processProperties(value) {
-    return propertyPairs(value) ..
-      filter([name,_] -> name != 'toString' && !name.. startsWith('_')) ..
+  function processProperties(value, root) {
+    return value .. propertyPairs ..
+      filter([name,val] -> name != 'toString' && !name.. startsWith('_') && root[name] !== val) ..
       transform([name, val] -> [name, prepare(val)]);
   }
 
-  function withProperties(dest, value) {
+  function withProperties(dest, value, root) {
     var props;
-    processProperties(value) .. each {|[name, val]|
+    processProperties(value, root) .. each {|[name, val]|
       if (!props) props = dest.props = {};
       props[name] = val;
     }
@@ -247,7 +247,7 @@ function marshall(value, connection) {
         // XXX we'll be calling the function with the wrong 'this' object
         rv = { __oni_type: 'func', id: connection.publishFunction(value) };
       }
-      rv = rv .. withProperties(value);
+      rv = rv .. withProperties(value, Function.prototype);
     }
     else if (value instanceof Date) {
       rv = { __oni_type: 'date', val: value.getTime() };
@@ -290,7 +290,7 @@ function marshall(value, connection) {
       }
       else {
         // a normal object -> traverse it
-        rv = processProperties(value) .. pairsToObject;
+        rv = processProperties(value, Object.prototype) .. pairsToObject;
       }
     }
     return rv;
