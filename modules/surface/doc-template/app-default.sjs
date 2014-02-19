@@ -73,7 +73,7 @@ exports.Document = function(data, settings) {
     ${ data.script }
   </head>
   <body>${content}
-    ${includeBootstrap ? frag.bootstrapJavascript()}
+    ${includeBootstrap !== false ? frag.bootstrapJavascript()}
   </body>
 </html>`;
 }
