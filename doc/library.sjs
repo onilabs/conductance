@@ -228,7 +228,7 @@ Library.prototype.loadDocs = function(modulePath, symbolPath) {
 			docs = docs.children .. get(symbolPath.shift(), null);
 		}
 	}
-	if (!docs) throw new SymbolMissing();
+	if (!docs) throw new SymbolMissing("No such symbol: #{JSON.stringify({module: modulePath, symbol: symbolPath})}");
 	return docs;
 };
 
