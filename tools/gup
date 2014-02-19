@@ -127,6 +127,7 @@ class Unbuildable(SafeError):
 import os
 import errno
 import logging
+import shutil
 
 
 def mkdirp(p):
@@ -140,17 +141,23 @@ def get_mtime(path):
 	Note: we return a microsecond int as this serializes to / from strings better
 	'''
 	try:
-		return int(os.lstat(path).st_mtime * (10 ** 6))
+		return int(os.lstat(path).st_mtime * (10 ** 3))
 	except OSError as e:
 		if e.errno == errno.ENOENT:
 			return None
 		raise e
 
 def try_remove(path):
-	'''Remove a file. Ignore if it doesn't exist'''
+	'''
+	Remove a file or directory (including contents).
+	Ignore if it doesn't exist.
+	'''
 	try:
 		os.remove(path)
 	except OSError as e:
+		if e.errno == errno.EISDIR:
+			shutil.rmtree(path)
+			return
 		if e.errno != errno.ENOENT: raise
 
 try:
@@ -880,6 +887,8 @@ _state_log = getLogger('gup.state')
 
 META_DIR = '.gup'
 
+class VersionMismatch(ValueError): pass
+
 class _dirty_args(object):
 	def __init__(self, deps, base, builder_path, built):
 		self.deps = deps
@@ -925,13 +934,17 @@ class TargetState(object):
 			return rv
 
 		with self._ensure_dep_lock().read():
+			deps_path = self.meta_path('deps')
 			try:
-				f = open(self.meta_path('deps'))
+				f = open(deps_path)
 			except IOError as e:
 				if e.errno != errno.ENOENT: raise
 			else:
-				with f:
-					rv = Dependencies(self.path, f)
+				try:
+					with f:
+						rv = Dependencies(self.path, f)
+				except VersionMismatch as e:
+					_state_log.debug("dep file is a previous version: %s", deps_path)
 		_state_log.trace("Loaded serialized state: %r" % (rv,))
 		return rv
 
@@ -975,7 +988,7 @@ class TargetState(object):
 				return built
 
 class Dependencies(object):
-	FORMAT_VERSION = 1
+	FORMAT_VERSION = 2
 	def __init__(self, path, file):
 		self.path = path
 		self.rules = []
@@ -990,7 +1003,7 @@ class Dependencies(object):
 			if not version_line.startswith('version:'): raise ValueError("Invalid file")
 			_, file_version = version_line.split(' ')
 			if int(file_version) != self.FORMAT_VERSION:
-				raise ValueError("version mismatch: can't read format version %s" % (file_version,))
+				raise VersionMismatch("can't read format version %s" % (file_version,))
 
 			while True:
 				line = file.readline()
@@ -1088,14 +1101,9 @@ class AlwaysRebuild(Dependency):
 		_state_log.debug('DIRTY: always rebuild')
 		return True
 
-class UnknownState(object):
-	def __init__(self, target, children):
-		self.target = target
-		self.children = children
-
 class FileDependency(Dependency):
 	num_fields = 3
-	tag = 'filedep:'
+	tag = 'file:'
 	recursive = True
 
 	def __init__(self, mtime, checksum, path):
@@ -1112,14 +1120,14 @@ class FileDependency(Dependency):
 	@classmethod
 	def deserialize(cls, mtime, checksum, path):
 		return cls(
-			int(mtime) or None,
+			None if mtime == '-' else int(mtime),
 			None if checksum == '-' else checksum,
 			path)
 
 	@property
 	def fields(self):
 		return [
-			str(self.mtime or 0),
+			'-' if self.mtime is None else str(self.mtime),
 			self.checksum or '-',
 			self.path]
 
@@ -1398,7 +1406,13 @@ class Target(object):
 
 
 	def _run_process(self, args, cwd, env):
-		return subprocess.Popen(args, cwd = cwd, env = env).wait()
+		try:
+			proc = subprocess.Popen(args, cwd = cwd, env = env)
+		except OSError as e:
+			if e.errno == errno.ENOENT:
+				raise SafeError("Command not found: %s" % (args[0],))
+			raise e
+		return proc.wait()
 
 def _builder_guess_executable(p):
 	with open(p) as f:
@@ -1649,7 +1663,7 @@ def _cmd_mark_ifcreate(opts, files):
 		parent_state.add_dependency(FileDependency.relative_to_target(parent_target, mtime=None, checksum=None, path = filename))
 
 def _cmd_mark_contents(opts, targets):
-	parent_target = _cmd_assert_parent_target('--content')
+	parent_target = _cmd_assert_parent_target('--contents')
 	if len(targets) == 0:
 		assert not sys.stdin.isatty()
 		checksum = Checksum.from_stream(sys.stdin)
@@ -1690,13 +1704,15 @@ def _cmd_clean_targets(opts, dests):
 				if not opts.metadata:
 					deps = TargetState.built_targets(gupdir)
 					for dep in deps:
-						if dep in filenames:
+						if dep in (filenames + dirnames):
 							target = os.path.join(dirpath, dep)
 							if Builder.for_target(target) is not None:
 								rm(target)
 				rm(gupdir, isdir=True)
 			# filter out hidden directories
-			dirnames = [d for d in dirnames if not d.startswith('.')]
+			hidden_dirs = [d for d in dirnames if d.startswith('.')]
+			for hidden in hidden_dirs:
+				dirnames.remove(hidden)
 
 def _cmd_build(opts, targets):
 	if opts.trace:
