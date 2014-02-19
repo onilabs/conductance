@@ -199,7 +199,7 @@ context() {||
     test("serves .api from relative directory") {||
       // hello.api is configured to be served from "./test",
       // not cwd() + '/test':
-      require(helper.url('/hello.api')).connect {|api|
+      require(helper.url('hello.api')).connect {|api|
         api.hello() .. assert.eq("world!");
       }
     }

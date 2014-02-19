@@ -1,4 +1,5 @@
 var serverConfig = require('./server.js');
+var PORT = 9876;
 var exports = module.exports = function(config) {
   config.set({
     basePath: '../',
@@ -7,8 +8,7 @@ var exports = module.exports = function(config) {
 
     client: {
       hubs: {
-        'app:' : '/app/',
-        'mho:' : 'app:__mho/',
+        'mho:' : '/app/__mho/',
       },
     },
 
@@ -18,7 +18,7 @@ var exports = module.exports = function(config) {
 
     reporters: ['progress'],
 
-    port: 9876,
+    port: PORT,
 
     colors: true,
 
@@ -45,5 +45,6 @@ var exports = module.exports = function(config) {
   });
 };
 
-exports.testScript = 'app:test/run.html';
+exports.testScript = '/app/test/run.html';
+exports.port = PORT;
 
