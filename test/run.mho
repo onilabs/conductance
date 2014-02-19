@@ -8,6 +8,8 @@ var { Port, Route } = require('mho:server');
 var url = require('sjs:url');
 var logging = require('sjs:logging');
 var helper = require('./helper');
+var path = require('nodejs:path');
+var root = url.normalize('../', module.id) .. url.toPath;
 
 //----------------------------------------------------------------------
 // Array of ports that conductance will listen on:
@@ -53,8 +55,8 @@ var serverConfig = {
       });
     })(),
     SystemRoutes(),
-    ExecutableDirectory(/(?=hello.api$)/, './test'),
-    ExecutableDirectory(process.cwd()),
+    ExecutableDirectory(/(?=hello.api$)/, path.join(root, 'test')),
+    ExecutableDirectory(root),
   ]
 };
 
