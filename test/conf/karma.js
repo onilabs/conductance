@@ -1,6 +1,32 @@
 var serverConfig = require('./server.js');
 var PORT = 9876;
+var has = function(moduleName) {
+  try {
+    require.resolve(moduleName);
+    return true;
+  } catch(e) {
+    return false;
+  }
+};
+
 var exports = module.exports = function(config) {
+  var plugins = [
+    'karma-chrome-launcher'
+    ,'karma-firefox-launcher'
+    ,'karma-script-launcher'
+    ,'karma-phantomjs-launcher'
+    ,'karma-sjs-adapter'
+  ];
+  var browsers = [
+    'PhantomJS',
+  ];
+
+  var iePlugin = 'karma-ie-launcher';
+  if (has(iePlugin)) {
+    plugins.push(iePlugin);
+    browsers = ['IE'];
+  }
+
   config.set({
     basePath: '../',
     frameworks: [ 'sjs', ],
@@ -26,22 +52,14 @@ var exports = module.exports = function(config) {
 
     autoWatch: false,
 
-    browsers: [
-      'PhantomJS',
-    ],
+    browsers: browsers,
 
     // If browser does not capture in given timeout [ms], kill it
     captureTimeout: 0,
 
     singleRun: false,
 
-    plugins: [
-      'karma-chrome-launcher'
-      ,'karma-firefox-launcher'
-      ,'karma-script-launcher'
-      ,'karma-phantomjs-launcher'
-      ,'karma-sjs-adapter'
-    ],
+    plugins: plugins,
   });
 };
 
