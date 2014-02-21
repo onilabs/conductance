@@ -124,6 +124,6 @@
     if (failures.length) {
       throw new Error("Issues:\n#{failures .. @join("\n")}");
     }
-  }
+  }.timeout(40)
 
 }.serverOnly();
