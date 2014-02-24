@@ -1,4 +1,5 @@
 unit/observable-tests.sjs
+unit/server/formats-tests.sjs
 unit/server/route-tests.sjs
 unit/surface/css-tests.sjs
 unit/surface/dynamic-tests.sjs
