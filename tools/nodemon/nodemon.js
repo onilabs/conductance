@@ -2,7 +2,7 @@
 
 "use strict";
 
-var DEFAULT_EXTENSIONS = ['.js', '.sjs', '.api', '.mho'];
+var DEFAULT_EXTENSIONS = ['.js', '.sjs', '.api', '.mho', '.gen'];
 
 var fs = require('fs'),
     util = require('util'),

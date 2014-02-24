@@ -57,17 +57,24 @@
   }
 
   @test.afterAll() {|s|
+    var drain = function(s) {
+      while(s .. @read() != null);
+    }
+
     waitfor {
-      s.proc .. @childProcess.wait();
-    } or {
-      s.proc .. @childProcess.kill({wait: false});
-      hold(3000);
-      console.warn("nodemon won't quit - sending TERM");
-      s.proc .. @childProcess.kill({wait: false, killSignal: 15});
-      hold(5000);
-      console.warn("nodemon won't quit - sending KILL");
-      s.proc .. @childProcess.kill({wait: false, killSignal: 9});
-      hold();
+      [s.proc.stdout, s.proc.stderr] .. @each.par(drain);
+    } and {
+      waitfor {
+        s.proc .. @childProcess.wait();
+      } or {
+        s.proc .. @childProcess.kill({wait: false});
+        console.warn("nodemon (pid #{s.proc.pid} won't quit - sending TERM");
+        s.proc .. @childProcess.kill({wait: false, killSignal: 'SIGTERM'});
+        hold(5000);
+        console.warn("nodemon won't quit - sending KILL");
+        s.proc .. @childProcess.kill({wait: false, killSignal: 'SIGKILL'});
+        hold();
+      }
     }
   }
 
