@@ -22,5 +22,5 @@ notifications:
     on_success: change
     on_failure: always
 
-script: "./conductance test/run.mho $a"
+script: "./conductance test/run.mho --show-failed $a"
 
