@@ -324,13 +324,25 @@ HostProto._handle = function(req) {
 
 exports.Host = Constructor(HostProto);
 
-var stringMatchesPath = function(s) {
-  var match = [s];
-  match.index = 0;
-  match.input = s;
-  return function(path) {
-    if (path === s) {
-      return match;
+var stringMatchesPath = function(s, prefix) {
+  if (prefix) {
+    return function(path) {
+      var match = [s];
+      match.index = 0;
+      match.input = path;
+      if (path .. string.startsWith(s)) {
+        return match;
+      }
+    }
+  } else {
+    // use a constant `match`, since it's unaffected by `path`
+    var match = [s];
+    match.index = 0;
+    match.input = s;
+    return function(path) {
+      if (path === s) {
+        return match;
+      }
     }
   }
 }
@@ -346,11 +358,14 @@ RouteProto._init = func.seq(RouteProto._init, function(matcher, handlers) {
   if (matcher == null) {
     matcher = /^/;
   }
-  
+
+  if (RouteProto.isPrototypeOf(this.handlers)) this.handlers = [this.handlers];
+  var isNested = Array.isArray(this.handlers);
+
   // set up `this.matchesPath() based on type of matcher
   // note that the return value should always look like a regexp match object
   if (string.isString(matcher)) {
-    this.matchesPath = stringMatchesPath(matcher);
+    this.matchesPath = stringMatchesPath(matcher, isNested);
   } else {
     // assume regexp
     this.matchesPath = (p) -> matcher.exec(p);
@@ -366,15 +381,15 @@ RouteProto._init = func.seq(RouteProto._init, function(matcher, handlers) {
     };
   }
 
-  if (RouteProto.isPrototypeOf(this.handlers)) this.handlers = [this.handlers];
-
-  if (Array.isArray(this.handlers)) {
+  if (isNested) {
     // if we have sub-routes, use the nested handle function
     this._handle = this._handleNested;
+    this.handlers = flatten(this.handlers);
   } else {
     // otherwise, handle requests directly
     this._handle = this._handleDirect;
   }
+  
 });
 RouteProto.__finally__ = function() {
   if(Array.isArray(this.handlers)) {

@@ -27,7 +27,7 @@ HttpErrorProto._init = function(code, statusText, description) {
   this.code = code;
   this.statusText = statusText;
   this.description = description;
-  Error.call(this, "HTTP #{this.code}: #{this.statusText}");
+  this.message = "HTTP #{this.code}: #{this.statusText}";
 };
 
 HttpErrorProto.writeTo = function(req) {
