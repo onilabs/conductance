@@ -207,7 +207,7 @@ exports.serve = function(args, initial_argv) {
     //   '/path/to/conductance',
     //   'serve', ...]
     //
-    process.argv.splice(1, 1, require.resolve('nodejs:nodemon').path, '--exec', process.argv[1]);
+    process.argv.splice(1, 1, require.resolve('nodejs:nodemon').path, '--exec', process.execPath, env.executable);
     // console.log(process.argv);
     var url = require('sjs:url');
     require("nodejs:#{url.normalize('../../tools/nodemon/nodemon.js', module.id) .. url.toPath}");
