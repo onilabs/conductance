@@ -264,10 +264,8 @@ hosts.systems .. each {|system|
 
 				var manifest = modifyManifest {|mf|
 					mf.version++;
-					var existingWrapper = mf.wrappers.node;
-					existingWrapper .. object.keys .. each {|k|
-						if (k === 'platform_key') continue;
-						existingWrapper[k] = {template: 'A script invoking __REL_PATH__!'};
+					['node_cmd', 'node_sh'] .. each {|name|
+						mf.wrappers[name] = {template: 'A script invoking __REL_PATH__!'};
 					}
 
 					// remove common link (share/self-update.js)
@@ -479,6 +477,24 @@ hosts.systems .. each {|system|
 					}
 				}
 			}
+
+			test('installs executable stubs for use in `git bash`') {||
+				manualInstall();
+				// XXX: assumes location of `git` in program files.
+				// NOTE: we pipe commands into an interactive bash session (rather than using `-c`)
+				// because everything crashes (even `dirname`) if you run it non-interactively
+				var output = host.runPython("
+					proc = subprocess.Popen(['C:/Program Files/Git/bin/bash.exe', '--login', '-i'], stdin=subprocess.PIPE)
+					proc.stdin.write('conductance version                               \\necho CONDUCTANCE_EXIT_$?\\n')
+					proc.stdin.write('node --version                                    \\necho NODE_EXIT_$?\\n')
+					proc.stdin.write('sjs -e \"console.log(require(\\'sjs:sys\\').version)\"\\necho SJS_EXIT_$?\\n')
+					proc.stdin.close()
+					proc.wait()
+				");
+				output .. assert.contains('CONDUCTANCE_EXIT_0');
+				output .. assert.contains('NODE_EXIT_0');
+				output .. assert.contains('SJS_EXIT_0');
+			}.skipIf(system.platform != 'windows', "N/A")
 
 			test('update while conductance is running') {||
 				// make a new manifest with all versions updated (but the same archive).

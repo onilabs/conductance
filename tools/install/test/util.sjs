@@ -8,6 +8,7 @@ var { get } = require('sjs:object');
 var childProcess = require('sjs:nodejs/child-process');
 var proxyModule = require('../proxy');
 
+var builtConductanceHead = false;
 exports.api = function(system, bundle) {
 	var host = exports.getHost(system);
 	bundle = bundle || exports.bundlePath(system);
@@ -36,7 +37,17 @@ exports.api = function(system, bundle) {
 		},
 
 		buildDeps: function() {
-			childProcess.run('gup', ['-u', exports.conductanceHead, bundle], {'stdio':'inherit'});
+			var opts = {stdio: ['ignore', 'ignore', 'pipe']};
+			try {
+				if (!builtConductanceHead) {
+					childProcess.run('gup', ['-u', exports.conductanceHead], opts);
+					builtConductanceHead = true;
+				}
+				childProcess.run('gup', ['-u', bundle], opts);
+			} catch(e) {
+				logging.print(e.stderr);
+				throw e;
+			}
 		},
 
 		ensureClean: function() {

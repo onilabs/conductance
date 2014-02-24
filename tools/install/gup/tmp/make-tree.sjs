@@ -97,10 +97,11 @@ exports.main = function(args) {
 	}
 
 	// create the installer script (a wrapper around self-update.js)
-	var scriptName = 'install.' + (_os.platform == 'windows' ? 'cmd' : 'sh');
+	var scriptExt = (_os.platform == 'windows' ? 'cmd' : 'sh')
+	var scriptName = 'install.' + scriptExt;
 	var script = path.join(base, 'share', scriptName);
 	selfUpdate.createWrapper({
-		runner: 'node',
+		runner: "node_#{scriptExt}",
 		src: path.join(base, 'share/self-update.js'),
 		dest: script,
 	}, base, manifest, _os);

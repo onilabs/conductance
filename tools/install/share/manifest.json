@@ -3,20 +3,14 @@
 , "manifest_url": "https://conductance.io/install/manifest-v2.json"
 , "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from https://conductance.io/"
 , "wrappers":
-  { "node":
-    { "platform_key": ["platform"]
-    , "default":
-      { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexport CONDUCTANCE_ROOT=\"$(dirname \"$bindir\")\"\nexec \"$CONDUCTANCE_ROOT/bin/node\" \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\"\n"
-      }
-    , "windows":
-      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\__REL_node_PATH__\\node.exe\" \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                "
-      }
+  { "node_sh":
+    { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexport CONDUCTANCE_ROOT=\"$(dirname \"$bindir\")\"\nexec \"$CONDUCTANCE_ROOT/bin/node\" \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\"\n"
     }
-  , "wrap":
-    { "platform_key": ["platform"]
-    , "windows":
-      { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                                                                    "
-      }
+  , "node_cmd":
+    { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\__REL_node_PATH__\\node.exe\" \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                "
+    }
+  , "wrap_cmd":
+    { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                                                                    "
     }
   }
 , "data":
@@ -28,12 +22,10 @@
       { "platform_key": ["platform"]
       , "all":
         [ {"src": "tools/install/share/self-update.js", "dest": "share/"}
-        ]
-      , "default":
-        [ {"src": "conductance", "dest": "bin/", "runner": "node"}
+        , {"src": "conductance", "dest": "bin/", "runner": "node_sh"}
         ]
       , "windows":
-        [ {"src": "conductance", "dest": "bin/conductance.cmd", "runner":"node"}
+        [ {"src": "conductance", "dest": "bin/conductance.cmd", "runner":"node_cmd"}
         ]
       }
     }
@@ -45,12 +37,10 @@
       { "platform_key": ["platform"]
       , "all":
         [ {"src": ".", "dest": "node_modules/stratifiedjs"}
-        ]
-      , "default":
-        [ {"src": "sjs", "dest": "bin/", "runner": "node"}
+        , {"src": "sjs", "dest": "bin/", "runner": "node_sh"}
         ]
       , "windows":
-        [ {"src": "sjs", "dest": "bin/sjs.cmd", "runner": "node"}
+        [ {"src": "sjs", "dest": "bin/sjs.cmd", "runner": "node_cmd"}
         ]
       }
     }
@@ -72,7 +62,10 @@
     , "links":
       { "platform_key": ["platform"]
       , "default": [ {"src": "bin/node", "dest": "bin/"} ]
-      , "windows": [ {"src": "node.exe", "dest": "bin/node.cmd", "runner": "wrap"} ]
+      , "windows":
+        [ {"src": "node.exe", "dest": "bin/node.cmd", "runner": "wrap_cmd"}
+        , {"src": "node.exe", "dest": "bin/node" }
+        ]
       }
     }
 
