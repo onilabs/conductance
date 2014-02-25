@@ -6,6 +6,9 @@
   { "node_sh":
     { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexport CONDUCTANCE_ROOT=\"$(dirname \"$bindir\")\"\nexec \"$CONDUCTANCE_ROOT/bin/node\" \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\"\n"
     }
+  , "wrap_sh":
+    { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexec \"$(dirname \"$bindir\")/__REL_PATH__\" \"$@\"\n"
+    }
   , "node_cmd":
     { "template": "@ECHO OFF\nset CONDUCTANCE_ROOT=%~dp0..\n\"%CONDUCTANCE_ROOT%\\__REL_node_PATH__\\node.exe\" \"%CONDUCTANCE_ROOT%\\__REL_PATH__\" %*                                                                                                                                                                                "
     }
@@ -64,7 +67,7 @@
       , "default": [ {"src": "bin/node", "dest": "bin/"} ]
       , "windows":
         [ {"src": "node.exe", "dest": "bin/node.cmd", "runner": "wrap_cmd"}
-        , {"src": "node.exe", "dest": "bin/node" }
+        , {"src": "node.exe", "dest": "bin/node",     "runner": "wrap_sh" }
         ]
       }
     }
@@ -138,7 +141,5 @@
       , "windows": [ { "src": "pathed.exe", "dest": "share/" } ]
       }
     }
-
-
   }
 }
