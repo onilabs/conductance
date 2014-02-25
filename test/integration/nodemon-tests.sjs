@@ -14,13 +14,16 @@
         if (data == null) break;
         data = data.toString('utf-8');
         @info("got data: #{data}");
-        restarts += data .. @regexp.matches(/Conductance serving address:/g) .. @count();
-        @info("restarts = #{restarts}");
-        hold(1000);
-        restarted.emit(restarts);
+        var newRestarts = data .. @regexp.matches(/Conductance serving address:/g) .. @count();
+        if (newRestarts > 0) {
+          restarts += newRestarts;
+          @info("restarts = #{restarts}");
+          hold(1000);
+          restarted.emit(restarts);
+        }
       }
     } or {
-      while(true) {
+      while(proc.stdout) {
         var out = proc.stdout .. @read();
         out = out.toString('utf-8');
         if (out == null) break;
@@ -62,12 +65,17 @@
     }
 
     waitfor {
-      [s.proc.stdout, s.proc.stderr] .. @each.par(drain);
+      [s.proc.stdout, s.proc.stderr] .. @filter .. @each.par(drain);
     } and {
       waitfor {
-        s.proc .. @childProcess.wait();
+        try {
+          s.proc .. @childProcess.wait();
+        } catch(e) {
+          if (!e.signal) throw e;
+        }
       } or {
         s.proc .. @childProcess.kill({wait: false});
+        hold(3000);
         console.warn("nodemon (pid #{s.proc.pid} won't quit - sending TERM");
         s.proc .. @childProcess.kill({wait: false, killSignal: 'SIGTERM'});
         hold(5000);
