@@ -10,7 +10,7 @@ exports.FORMATS = FORMATS;
 /*
  * FORMAT HISTORY:
  *
- * v2: added in conductance-0.2.1
+ * v2: added in conductance-0.3
  *  - added windows support (using bundled bsdtar & unzip)
  *  - added detection of file ext from href, rather than filename
  *    (which can be broken by server redirects). This means all hrefs
@@ -437,12 +437,8 @@ exports.extract = function(archive, dest, extract, ext, cb) {
 		case null:
 		case ".gz":
 		case ".tgz":
-			var cmd = 'tar';
-			if (IS_WINDOWS) {
-				cmd = path.join(conductance_root, 'share', 'bsdtar', 'bsdtar.exe');
-			}
-			var args = ["zxf", archivePath, '--directory=' + rawDest];
-			return exports.runCmd(cmd, args, done);
+			var tgz = require('tar.gz');
+			new tgz().extract(archivePath, rawDest, done);
 			break;
 		case ".zip":
 			var cmd = 'unzip';

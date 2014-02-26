@@ -72,44 +72,6 @@
       }
     }
 
-  , "libarchive":
-    { "id": "2.4.12"
-    , "bootstrap": true
-    , "internal": true
-    , "href":
-      { "platform_key": ["platform"]
-      , "default": false
-      , "windows": "http://downloads.sourceforge.net/gnuwin32/libarchive-2.4.12-1-bin.zip"
-      }
-    , "links":
-      { "platform_key": ["platform"]
-      , "default": []
-      , "windows":
-        [ { "src": "bin/bsdtar.exe", "dest": "share/bsdtar/" }
-        , { "src": "bin/libarchive2.dll", "dest": "share/bsdtar/" }
-        ]
-      }
-    }
-
-  , "libarchive-deps":
-    { "id": "2.4.12"
-    , "bootstrap": true
-    , "internal": true
-    , "href":
-      { "platform_key": ["platform"]
-      , "default": false
-      , "windows": "http://downloads.sourceforge.net/gnuwin32/libarchive-2.4.12-1-dep.zip"
-      }
-    , "links":
-      { "platform_key": ["platform"]
-      , "default": []
-      , "windows":
-        [ { "src": "bin/bzip2.dll", "dest": "share/bsdtar/" }
-        , { "src": "bin/zlib1.dll", "dest": "share/bsdtar/" }
-        ]
-      }
-    }
-
   , "unzip":
     { "id": "5.51"
     , "bootstrap": true
@@ -124,6 +86,17 @@
       , "default": []
       , "windows": [ { "src": "bin", "dest": "share/unzip" } ]
       }
+    }
+
+  , "node-tar":
+    { "id": "0.1.1"
+    , "bootstrap": true
+    , "internal": true
+    , "href": "https://github.com/onilabs/conductance/tarball/87302f2be396d92d7842d76b1aa5a7b2d3f787e1"
+    , "extract": 1
+    , "links":
+      [ {"src": "node_modules/tar.gz", "dest": "node_modules/tar.gz"}
+      ]
     }
 
   , "pathed":
