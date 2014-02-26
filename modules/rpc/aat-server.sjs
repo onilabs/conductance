@@ -26,11 +26,20 @@ var { ownValues } = require('sjs:object');
 var { startsWith } = require('sjs:string');
 var { createID } = require('../server/random');
 var { TransportError } = require('./error');
+var { hostenv } = require('sjs:sys');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
 var PING_INTERVAL = 1000*40; // 40 seconds
 var POLL_ACCU_INTERVAL = 100; // 200 ms
 var EXCHANGE_ACCU_INTERVAL = 10; // 10ms
+
+var isNodeJSBuffer;
+if (hostenv === 'nodejs') {
+  isNodeJSBuffer = value -> Buffer.isBuffer(value);
+}
+else {
+  isNodeJSBuffer = -> false;
+}
 
 //----------------------------------------------------------------------
 // default transport sink (for testing):
@@ -80,14 +89,15 @@ function createTransport(finish) {
         receive_q.unshift(mes);
       }
 
-      if (exchange_in_progress) {
+      if (exchange_in_progress || !flush) {
         // Reentrant call to exchangeMessages
         // we're not going to wait for outgoing messages; there is
         // already an exchange in progress that will pick those up
         if (in_messages.length && resume_receive) {
           resume_receive();
         }
-        flush([]);
+        if (flush)
+          flush([]);
         return;
       }
 
@@ -101,26 +111,39 @@ function createTransport(finish) {
           // we can flush out the given messages immediately
           if (in_messages.length && resume_receive) {
             resume_receive();
+            if (!flush) return;
             // wait a little bit for outgoing messages:
             hold(EXCHANGE_ACCU_INTERVAL);
           }
           
-          // flush our send_q:
-          send_q .. each {
-            |mes|
-            out_messages.unshift(mes);
+          // construct out out_messages queue. this will either be
+          // a single binary message, or an arbitrary number of textual 
+          // messages (which will be encoded as JSON):
+          while (send_q.length) {
+            if (isNodeJSBuffer(send_q[0])) {
+              if (out_messages.length === 0)
+                out_messages.push(send_q.shift());
+              break;
+            }
+            out_messages.unshift(send_q.shift());
           }
-          send_q = [];
-          
+        }
+        finally {
           // reset our reaper:
           if (reset_reaper)
             reset_reaper();
-        }
-        finally {
+
           exchange_in_progress = false;
         }
 
         flush(out_messages);
+
+        // if we only sent part of the messages (because we have to
+        // send binary & json messages separately), make sure we prod
+        // any pending poll to pick up messages immediately:
+        if (out_messages.length && resume_poll) 
+          resume_poll();
+
       } retract {
         // out_messages didn't actually make it - re-queue them
         // for the next response.
@@ -164,6 +187,23 @@ function createTransport(finish) {
       send_q.unshift(message);
       if (resume_poll && !exchange_in_progress) resume_poll();
     },
+
+    sendData: function(header, data) {
+      if (!this.active) 
+        throw new Error("inactive transport");
+      // XXX implement support for ArrayBuffers (easy)
+      if (!isNodeJSBuffer(data)) 
+        throw new Error("aat-server can currently only send nodejs buffers, not other binary content, such as ArrayBuffers");
+      
+      header = JSON.stringify(header);
+      var buf = new Buffer(3+header.length);
+      buf.writeUInt8(100, 0); // 100 = 'd'
+      buf.writeUInt16BE(header.length, 1);
+      buf.write(header, 3);
+      send_q.unshift(Buffer.concat([buf, data]));
+      if (resume_poll && !exchange_in_progress) resume_poll();
+    },
+
     receive: function() {
       if (!this.active) throw new Error("inactive transport");
       if (!receive_q.length) {
@@ -317,11 +357,25 @@ function createTransportHandler(transportSink) {
     
     if (error_code) {
       req.response.end(JSON.stringify(["error_#{error_code}"]));
-    } else {
-      transport.exchangeMessages(in_messages || []) {|out_messages|
-        out_messages = out_messages.slice();
-        out_messages.unshift(ok_code ? "ok_#{ok_code}" : "ok");
-        req.response.end(JSON.stringify(out_messages));
+    }
+    else if (ok_code) {
+      req.response.end(JSON.stringify(["ok_#{ok_code}"]));
+      transport.exchangeMessages(in_messages || []);
+    }
+    else {
+      transport.exchangeMessages(in_messages || []) {
+        |out_messages|
+        if (out_messages.length === 1 &&
+            isNodeJSBuffer(out_messages[0])) {
+          // send as binary
+          req.response.end(out_messages[0]);
+        }
+        else {
+          // send as json
+          out_messages = out_messages.slice();
+          out_messages.unshift("ok");
+          req.response.end(JSON.stringify(out_messages));
+        }
       }
     }
   }

@@ -279,14 +279,10 @@ function marshall(value, connection) {
         connection.sendBlob(id, value.obj);
         rv = { __oni_type: 'blob', id:id };
       }
-      else if (isBinaryData(value)) {
+      else if (isBinaryData(value) || isNodeJSBuffer(value)) {
         var id = ++connection.sent_blob_counter;
         connection.sendBlob(id, value);
         rv = { __oni_type: 'blob', id:id };
-      }
-      else if (isNodeJSBuffer(value)) {
-        //XXX
-        throw new Error("Cannot serialize nodejs buffers across the bridge yet");
       }
       else {
         // a normal object -> traverse it
@@ -349,8 +345,23 @@ function unmarshallComplexTypes(obj, connection) {
 function unmarshallBlob(obj, connection) {
   var id = obj.id;
   var blob;
-  if (!id || (blob = connection.received_blobs[id]) === undefined) 
-    throw new Error("Cannot find blob #{id}");
+  while ((blob = connection.received_blobs[id]) === undefined) {
+    // data received by aat-server will always arrive before it is
+    // being referenced (because we send it as a request and wait for
+    // the response before sending the referencing call. data received
+    // by the aat-client, however, might arrive *after* the
+    // referencing call: aat-server doesn't get a "notification" when
+    // the data has arrived at the client, since it is being sent in a
+    // http response. Hence the `wait` here:
+    waitfor {
+      connection.dataReceived.wait();
+    }
+    or {
+      connection.sessionLost.wait();
+      // XXX is this the right error to throw?
+      throw new Error("session lost");
+    }
+  }
   delete connection.received_blobs[id];
   return blob;
 }
@@ -445,6 +456,10 @@ function BridgeConnection(transport, opts) {
   var disconnectHandler = opts.disconnectHandler;
 
   var sessionLost = Emitter(); // session has been lost
+  
+  // emitter that gets prodded every time a binary data packet is received;
+  // see note under `unmarshallBlob` for details
+  var dataReceived = Emitter(); 
 
   if (opts.publish)
     published_apis[0] = opts.publish;
@@ -453,6 +468,8 @@ function BridgeConnection(transport, opts) {
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
     received_blobs: {},
     sessionLost: sessionLost,
+    dataReceived: dataReceived,
+
     sendBlob: function(id, obj) {
       transport.sendData(id, obj);
       return id;
@@ -515,17 +532,36 @@ function BridgeConnection(transport, opts) {
   };
 
   function receiver() {
-    while (1) {
-      try {
-        var packet = transport.receive();
-        logging.debug("received packet", packet);
-        if (packet.type == 'message')
+
+    function inner() {
+      var async = false;
+      var packet = transport.receive();
+      logging.debug("received packet", packet);
+      waitfor {
+        if (packet.type === 'message')
           receiveMessage(packet);
-        else if (packet.type == 'data')
+        else if (packet.type === 'data')
           receiveData(packet);
         else {
           logging.warn("Unknown packet '#{packet.type}' received");
         }
+//        if (!async) return;
+      }
+      and {
+//        async = true;
+        // XXX this asynchronisation is necessary because the
+        // `this.stratum.abort()` call in __finally__ above happens
+        // reentrantly, but the stratum doesn't abort until blocking
+        hold(0);
+        inner();
+      }
+    }
+
+    // The while loop here (and the async flag logic, above) shouldn't
+    // be necessary in theory because SJS is tail-call safe. 
+    while (1) {
+      try {
+        inner();
       }
       catch (e) {
         if (!throwing) {
@@ -535,19 +571,17 @@ function BridgeConnection(transport, opts) {
         throw e;
       }
 
-      // XXX this asynchronisation is necessary because the
-      // `this.stratum.abort()` call in __finally_ above happens
-      // reentrantly, but the stratum doesn't abort until blocking
-      hold(0);
     }
   }
 
-  function receiveData(packet) {
+  function receiveData(packet) { 
     connection.received_blobs[packet.header] = packet.data;
+    dataReceived.emit();
   }
 
   function receiveMessage(packet) {
     var message = unmarshall(packet.data, connection);
+
     switch (message[0]) {
     case 'return':
       var cb = pending_calls[message[1]];

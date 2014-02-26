@@ -16,11 +16,10 @@
    @nodoc
 */
 
+@ = require(['sjs:string', 'sjs:object', 'sjs:sequence']);
 var http = require('sjs:http');
 var url  = require('sjs:url');
-var { each } = require('sjs:sequence');
 var func = require('sjs:function');
-var logging = require('sjs:logging');
 var { TransportError } = require('./error');
 
 var AAT_VERSION   = '2';
@@ -59,15 +58,22 @@ var CALL_BATCH_PERIOD = 20;
  2 messages: send, poll
 
   // this always returns "immediately":
- ['send_'+ID, MES*] -> ['ok',MES*] | ['error_id'] | ['error_xx']
+ ['send_'+ID, MES*] -> ['ok',MES*] | ['error_id'] | ['error_xx'] | data_payload
  ['send', MES*] -> ['ok_'+ID, MES*] | ['error_xx']
 
 
  // this returns after polling interval (or earlier):
- ['poll_'+ID, MES*] -> ['ok',MES*] | ['error_id'] | ['error_xx']
+ ['poll_'+ID, MES*] -> ['ok',MES*] | ['error_id'] | ['error_xx'] | data_payload
 
  // this returns "immediately" (equivalent to 'send'):
  ['poll', MES*] -> ['ok_'+ID, MES*] | ['error_xx']
+
+ All payload encoded as json, apart from 'data_payload', which is:
+
+  character 'd'=100    (1 byte)
+  length of header (2 bytes uint16, BE)
+  json header      
+  binary octets
 
 */
 
@@ -88,7 +94,29 @@ var CALL_BATCH_PERIOD = 20;
    @summary To be documented
 */
 
+__js function parseResponse(content) {
+  var rv;
+  var view = new DataView(content);
+  if (view.getUint8(0) === 100 /* 'd' */) {
+    // a data message
+    var header_length = view.getUint16(1);
+    var header = content .. @arrayBufferToOctets(3, header_length) .. @utf8ToUtf16 .. JSON.parse;
+    var payload = new Uint8Array(content, 3 + header_length);
+    var rv = ['ok', 
+              [{
+                type:'data', 
+                header: header,
+                data: payload
+              }]
+             ];
+  }
+  else {
+    rv =  JSON.parse(content .. @arrayBufferToOctets .. @utf8ToUtf16);
+    rv = [rv[0], rv .. @skip(1) .. @map(mes -> {type:'message', data:mes})];
+  }
 
+  return rv;
+}
 
 /**
    @function openTransport
@@ -110,14 +138,15 @@ function openTransport(server) {
       while (1) {
         // assert(transport_id_suffix)
         waitfor {
-          var messages = http.request(
+          var response = http.request(
             [server, SERVER_PATH, AAT_VERSION,
              {
                cmd: "poll#{transport_id_suffix}"
              }
             ],
             { method: 'POST',
-              headers: {'Content-Type': 'text/plain; charset=utf-8'}
+              headers: {'Content-Type': 'text/plain; charset=utf-8'},
+              response: 'arraybuffer'
             });
         }
         or {
@@ -125,20 +154,16 @@ function openTransport(server) {
           throw TransportError("server poll timeout");
         }
 
-        messages = JSON.parse(messages);
-        
+        var [status_code, messages] = parseResponse(response.content);
+
         // check for error response:
-        if (!messages[0] || messages[0] != 'ok') {
-          throw TransportError("response is not ok: #{messages[0]}");
+        if (status_code != 'ok') {
+          throw TransportError("response is not ok: #{status_code}");
         }
         
         // put any messages in receive queue:
-        messages.shift();
+        receive_q = receive_q.concat(messages);
 
-        messages .. each {
-          |mes| 
-          receive_q.unshift({ type: 'message', data: mes });
-        }
         // prod receiver:
         if (receive_q.length && resume_receive) resume_receive();
       }
@@ -153,23 +178,23 @@ function openTransport(server) {
 
   function sendCommand(url, opts, default_id) {
     if (!this.active) throw TransportError("inactive transport");
-    var result;
+    var response;
     try {
       try {
-        result = http.request(url, opts);
+        response = http.request(url, opts .. @extend({response:'arraybuffer'}));
       } catch(e) {
         throw TransportError(e.message);
       }
       
-      result = JSON.parse(result);
+      var [status_code, messages] = parseResponse(response.content);
 
       // check for error response:
-      if (!result[0] || result[0].indexOf('ok') != 0)
-        throw TransportError("response is not ok: #{result[0]}");
+      if (typeof status_code !== 'string' || status_code.indexOf('ok') != 0)
+        throw TransportError("response is not ok: #{status_code}");
 
       if (!transport_id_suffix) {
         // we're expecting an id
-        transport_id_suffix = result[0].substr(2) || default_id || "";
+        transport_id_suffix = status_code.substr(2) || default_id || "";
         if (!transport_id_suffix)
           throw TransportError("Missing transport ID");
         
@@ -179,15 +204,12 @@ function openTransport(server) {
         // start our polling loop:
         poll_stratum = spawn (hold(0),poll_loop());
       }
-      else if (result[0] != 'ok')
-        throw TransportError("response not ok: #{result[0]}");
+      else if (status_code != 'ok')
+        throw TransportError("response not ok: #{status_code}");
 
       // put any messages in receive queue:
-      result.shift();
-      result .. each {
-        |mes|
-        receive_q.unshift({ type: 'message', data: mes });
-      }
+      receive_q = receive_q.concat(messages);
+
       // prod receiver:
       if (receive_q.length && resume_receive) resume_receive();
     } catch (e) {
@@ -248,7 +270,7 @@ function openTransport(server) {
       }
       if (e) throw e; // exception thrown
 
-      return receive_q.pop();
+      return receive_q.shift();
     }),
 
     close: function() {
