@@ -23,6 +23,7 @@
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
+      , "default": []
       , "all":
         [ {"src": "tools/install/share/self-update.js", "dest": "share/"}
         , {"src": "conductance", "dest": "bin/", "runner": "node_sh"}
@@ -38,6 +39,7 @@
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
+      , "default": []
       , "all":
         [ {"src": ".", "dest": "node_modules/stratifiedjs"}
         , {"src": "sjs", "dest": "bin/", "runner": "node_sh"}

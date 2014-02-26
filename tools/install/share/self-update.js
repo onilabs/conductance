@@ -80,7 +80,7 @@ exports.platformSpecificAttr = function(val, _os) {
 	if (val.platform_key) {
 		debug("platform config:", val);
 		var key = exports.platformKey(val.platform_key, _os);
-		var msg = "Unsupported platform type: " + key;
+		var msg = "Component lacks value for platform: " + key;
 		if (!val.hasOwnProperty(key)) {
 			key = 'default';
 		}
