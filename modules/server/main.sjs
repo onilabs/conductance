@@ -13,7 +13,6 @@
   @nodoc
 */
 
-
 require('../../hub'); // install mho: hub
 var sys = require('sjs:sys');
 var Url = require('sjs:url');
@@ -190,34 +189,51 @@ exports.serve = function(args, initial_argv) {
   // --autorestart:
   
   var arg = args[0];
+  printBanner();
+
   if(arg === '-r' || arg === '--autorestart') {
-    process.argv = initial_argv;
-    process.argv .. remove(arg);
-    // nodemon has no API - it just takes over as soon as it's imported.
-    // we need to modify the original ARGV:
-    // [ '/path/to/node',
-    //   '/path/to/conductance',
-    //   'serve', ...]
-    //
-    // To look like a valid nodemon invocation:
-    //
-    // [ '/path/to/node',
-    //   '/path/to/nodemon',
-    //   '--exec',
-    //   '/path/to/conductance',
-    //   'serve', ...]
-    //
-    process.argv.splice(1, 1, require.resolve('nodejs:nodemon').path, '--exec', process.execPath, env.executable);
-    // console.log(process.argv);
-    var url = require('sjs:url');
-    require("nodejs:#{url.normalize('../../tools/nodemon/nodemon.js', module.id) .. url.toPath}");
+    args.shift(); // remove -r // --autorestart
+    var nodemon = require('nodejs:nodemon');
+
+    // TODO: pluck nodemon-compatible args from the front of `args`
+    // to customise `opts`
+    var opts = {
+      ext: 'api sjs mho gen js',
+      exec: process.execPath,
+      args: [env.executable, 'serve'].concat(args),
+    };
+    logging.debug("nodemon options:", opts);
+
+    waitfor() {
+      __js {
+        nodemon(opts)
+            .on('log', function(log) {
+              var output = log.colour;
+              //console.log(log);
+
+              // skip `starting <exec>`
+              if (log.type === 'status' && log.message .. str.startsWith('starting ')) {
+                //output = output.replace(/starting.*`/, 'starting conductance ...');
+                return;
+              }
+              
+              // skip version message
+              if (log.type === 'info' && /^v\d+(\.\d+)+$/.test(log.message)) return;
+
+              // skip "watching: *.*
+              if (log.type === 'info' && log.message .. str.startsWith('watching: ')) return;
+
+              console.warn(output);
+            })
+        ;
+        // NOTE: never resumes
+      }
+    }
     return;
   }
 
   //----------------------------------------------------------------------
   // main program:
-
-  printBanner();
 
   if (args.length > 0 && args[0].charAt(0) != '-') {
     configfile = args.shift();
