@@ -163,8 +163,9 @@ exports.PageHeader = (content, attribs) -> @Element('div', `<h1>$content</h1>`, 
 /**
   @function doModal
   @altsyntax doModal(body, [settings], block)
+  @altsyntax doModal([settings]) { |dialog| ... }
   @param {Object} [settings] 
-  @param {Function} [block] Function bounding lifetime of dialog
+  @param {Function} [block] Function bounding lifetime of dialog; will be called with DOM node of dialog as first argument.
   @return `undefined` if the dialog is dismissed with the close button, by clicking on the backdrop or typing 'Escape', other equal to the return value of `block`
   @setting {surface::HtmlFragment} [body]
   @setting {optional surface::HtmlFragment} [header] Content of header. Takes precedence over `title` if both are given.
