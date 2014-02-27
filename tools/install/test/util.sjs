@@ -9,6 +9,21 @@ var childProcess = require('sjs:nodejs/child-process');
 var proxyModule = require('../proxy');
 
 var builtConductanceHead = false;
+var defineConductanceTempFiles = "
+def conductanceTempFiles():
+	files = os.listdir(TMP)
+	paths = [path.join(TMP, f) for f in files if re.match(r'conductance-\\d+-', f)]
+	try:
+		me = os.getuid()
+	except AttributeError: pass
+	else:
+		# windows doesn't have geteuid, but we don't have
+		# multiple users installing on windows anyway
+		mine = lambda p: os.stat(p).st_uid == me
+		paths = list(filter(mine, paths))
+	return paths
+";
+
 exports.api = function(system, bundle) {
 	var host = exports.getHost(system);
 	bundle = bundle || exports.bundlePath(system);
@@ -62,8 +77,22 @@ exports.api = function(system, bundle) {
 						print 'Warn: %s' % (e,)
 				else:
 					rmtree('/tmp/conductance/bin')
+
+				#{defineConductanceTempFiles}
+				for f in conductanceTempFiles():
+					print f
+					import time; time.sleep(0.5)
+					os.remove(f)
 			");
 			self.isGloballyInstalled() .. assert.eq(false, "conductance is globally installed!");
+		},
+
+		assertNoLeftoverTempFiles: function() {
+			host.runPython("
+				#{defineConductanceTempFiles}
+				files = conductanceTempFiles()
+				assert len(files) == 0, 'Leftover files:\\n%s' % ('\\n'.join(files))
+			");
 		},
 
 		listDir: function(dir) {

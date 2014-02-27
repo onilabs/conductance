@@ -249,82 +249,108 @@ function genTemp(name) {
 	return path.join(os.tmpdir(), "conductance-" + String(process.pid) + "-" + name);
 };
 
-exports.download = function(href, cb, redirectCount) {
+exports.download = function(href, cb) {
+	var name = href.replace(/.*\//, '').replace(/\?.*/,'');
+	var tmpfile = genTemp(name);
 	var _assert = function(o, detail) {
 		var msg = "Download failed. The server may be experiencing trouble, please try again later.";
 		if(detail) msg += "\n(" + detail + ")";
 		if (!o) {
-			cb(msg, null);
+			try_remove_tmpfile(tmpfile, function() {
+				cb(msg, null);
+			});
 			return false;
 		}
 		return o;
 	};
 
-	if (redirectCount === undefined) {
-		redirectCount = 0;
-	}
-	debug("Downloading: " + href);
-	if (!_assert(redirectCount < 10, "Too many redirects")) return;
-	var name = href.replace(/.*\//, '').replace(/\?.*/,'');
-	var tmpfile = genTemp(name);
-
-	var file = fs.createWriteStream(tmpfile);
-	var options = href;
-	var proto = href.split(':',1)[0].toLowerCase();
-	var proxy = null;
-	if ((process.env['CONDUCTANCE_FORCE_HTTP'] == '1') || proto === 'http') {
-		proxy = process.env['http_proxy'];
-		debug("using proxy: " + proxy);
-	}
-	if(proxy) {
-		proto = 'http';
-		var match = proxy.match(/^[^:]*:\/\/([^\/:]+)(?::(\d+))/);
-		var destMatch = href.match(/^[^:]*:\/\/([^\/]+)/);
-		assert(match, "Can't parse proxy host");
-		assert(destMatch, "Can't parse URL host");
-		options = {
-			host: match[1],
-			port: parseInt(match[2] || 8080, 10),
-			path: href,
-			headers: {
-				Host: destMatch[1]
-			}
-		};
-		debug('http options: ', options);
-	}
-
-	var fetcher = assert(PROTO_MODS[proto], "Unsupported protocol: " + proto);
-	var request = fetcher.get(options, function(response) {
-		var redirect = response.headers['location'];
-		if (redirect) {
-			debug("Redirect: " + redirect);
-			return exports.download(redirect, cb, redirectCount + 1);
+	var _download = function(href, redirectCount) {
+		// recursively called on redirect
+		if (redirectCount === undefined) {
+			redirectCount = 0;
 		}
-		var statusCode = response.statusCode;
-		if (!_assert(response.statusCode === 200, "Server returned " + statusCode + " error status")) return;
-		debug("HEADERS:", response.headers);
-		var expectedLength = response.headers['content-length'];
+		debug("Downloading: " + href);
+		if (!_assert(redirectCount < 10, "Too many redirects")) return;
 
-		debug("Content-length: " + expectedLength);
-		if (expectedLength !== undefined) {
-			expectedLength = parseInt(expectedLength, 10);
-			if (!_assert(expectedLength > 0, "content-length = 0")) return;
+		var file = fs.createWriteStream(tmpfile);
+		var options = href;
+		var proto = href.split(':',1)[0].toLowerCase();
+		var proxy = null;
+		if ((process.env['CONDUCTANCE_FORCE_HTTP'] == '1') || proto === 'http') {
+			proxy = process.env['http_proxy'];
+			debug("using proxy: " + proxy);
 		}
-		response.pipe(file);
-		response.on('end', function() {
-			file.on('finish', function() {
-				file.close();
-				var fileSize = fs.statSync(tmpfile).size;
-				debug("File size: " + expectedLength);
-				if (!_assert(fileSize > 0, "no content in downloaded file")) return;
-				if (expectedLength !== undefined) {
-					if (!_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize)) return;
+		if(proxy) {
+			proto = 'http';
+			var match = proxy.match(/^[^:]*:\/\/([^\/:]+)(?::(\d+))/);
+			var destMatch = href.match(/^[^:]*:\/\/([^\/]+)/);
+			assert(match, "Can't parse proxy host");
+			assert(destMatch, "Can't parse URL host");
+			options = {
+				host: match[1],
+				port: parseInt(match[2] || 8080, 10),
+				path: href,
+				headers: {
+					Host: destMatch[1]
 				}
-				cb(null, { path: tmpfile, originalName: name});
+			};
+			debug('http options: ', options);
+		}
+
+		var fetcher = assert(PROTO_MODS[proto], "Unsupported protocol: " + proto);
+		var request = fetcher.get(options, function(response) {
+			var redirect = response.headers['location'];
+			if (redirect) {
+				debug("Redirect: " + redirect);
+				return _download(redirect, redirectCount + 1);
+			}
+			var statusCode = response.statusCode;
+			if (!_assert(response.statusCode === 200, "Server returned " + statusCode + " error status")) return;
+			debug("HEADERS:", response.headers);
+			var expectedLength = response.headers['content-length'];
+
+			debug("Content-length: " + expectedLength);
+			if (expectedLength !== undefined) {
+				expectedLength = parseInt(expectedLength, 10);
+				if (!_assert(expectedLength > 0, "content-length = 0")) return;
+			}
+			response.pipe(file);
+			response.on('end', function() {
+				file.on('finish', function() {
+					file.close();
+					var fileSize = fs.statSync(tmpfile).size;
+					debug("File size: " + expectedLength);
+					if (!_assert(fileSize > 0, "no content in downloaded file")) return;
+					if (expectedLength !== undefined) {
+						if (!_assert(fileSize === expectedLength, "expected " + expectedLength + " bytes, got " + fileSize)) return;
+					}
+					var cleanup = function(cont) {
+						var args = Array.prototype.slice.call(arguments, 1);
+						try_remove_tmpfile(tmpfile, function() {
+							cont.apply(null, args);
+						});
+					};
+					cb(null, { path: tmpfile, originalName: name}, cleanup);
+				});
 			});
+		}).on('error', function() {
+			_assert(false);
 		});
-	}).on('error', function() {
-		_assert(false);
+	};
+	_download(href);
+
+};
+
+var try_remove_tmpfile = function(p, cb) {
+	if(!fs.existsSync(p)) {
+		return cb();
+	}
+	exports.rm_rf(p, function(err) {
+		// ignore error, it's just a temp file
+		if (err) {
+			debug("Failed to remove tempfile " + p + ": " + err);
+		}
+		cb();
 	});
 };
 
@@ -418,7 +444,7 @@ exports.extract = function(archive, dest, extract, ext, cb) {
 	var done = function(err) {
 		if (err) {
 			exports.trash(rawDest);
-			assert(false, err.message || String(err));
+			cb(err.message || String(err));
 		} else {
 			exports.ensureDir(dest);
 			try {
@@ -437,8 +463,7 @@ exports.extract = function(archive, dest, extract, ext, cb) {
 		case null:
 		case ".gz":
 		case ".tgz":
-			var tgz = require('tar.gz');
-			new tgz().extract(archivePath, rawDest, done);
+			extractTgz(archivePath, rawDest, done);
 			break;
 		case ".zip":
 			var cmd = 'unzip';
@@ -454,6 +479,25 @@ exports.extract = function(archive, dest, extract, ext, cb) {
 	}
 };
 
+var extractTgz = function(source, destination, cb) {
+	// adopted from tar.gz package, but with error handling
+	var tar = require('tar');
+	var fstream = require('fstream');
+	var zlib = require('zlib');
+	var stream = fstream.Reader({
+		path: source,
+		type: 'File'
+	});
+	stream.on('error', cb);
+
+	var gzstream = stream.pipe(zlib.createGunzip());
+	gzstream.on('error', cb);
+
+	var tzstream = gzstream.pipe(tar.Extract({ path: destination }));
+	tzstream.on('error', cb);
+	tzstream.on('end', function() { cb(null); });
+};
+
 var download_and_extract = function(name, dest, attrs, cb) {
 	var href = exports.platformSpecificAttr(attrs.href);
 	var extract = exports.platformSpecificAttr(attrs.extract);
@@ -467,16 +511,22 @@ var download_and_extract = function(name, dest, attrs, cb) {
 	href = href.replace(/#.*/, '');
 	console.warn(" - fetching: " + href + ' ...');
 
-	exports.download(href, function(err, archive) {
+	exports.download(href, function(err, archive, cleanup) {
 		if (err) assert(false, err);
 		
 		// extract to a tempdir, and move over to final dest on success
 		var tmp = dest + '.tmp';
 		if (fs.existsSync(tmp)) exports.trash(tmp);
 		if (fs.existsSync(dest)) exports.trash(dest);
-		exports.extract(archive, tmp, extract, ext, function() {
-			fs.renameSync(tmp, dest);
-			cb();
+		exports.extract(archive, tmp, extract, ext, function(err) {
+			if (err) {
+				cleanup(function() {
+					assert(false, err);
+				});
+			} else {
+				fs.renameSync(tmp, dest);
+				cleanup(cb);
+			}
 		});
 	});
 }
@@ -516,7 +566,7 @@ exports.checkForUpdates = function(cb) {
 	var existingManifest = exports.load_manifest(CURRENT_MANIFEST);
 	var updateUrl = existingManifest.manifest_url;
 	
-	var newfile = exports.download(updateUrl, function(err, file) {
+	var newfile = exports.download(updateUrl, function(err, file, cleanup) {
 		if (err) return cb(err);
 		var available = false;
 		try {
@@ -530,9 +580,9 @@ exports.checkForUpdates = function(cb) {
 				available = true;
 			}
 		} catch(e) {
-			return cb(e);
+			return cleanup(cb, e);
 		}
-		cb(null, available);
+		cleanup(cb, null, available);
 	});
 };
 

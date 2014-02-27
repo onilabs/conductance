@@ -49,19 +49,13 @@ var pythonPrelude = function (script, self) {
   assert.ok(self);
   logging.info("* running python code:\n" + script.trim().replace(/^/gm, '# '));
   return "
-import os,json,sys,user,shutil, subprocess,platform
+import os,json,sys,user,re,shutil,subprocess,platform,time
 WINDOWS = platform.system() == 'Windows'
 HOME = user.home
 from os import path
 def mkdirp(dest):
   if not os.path.exists(dest):
     os.makedirs(dest)
-
-def rmtree(dest):
-  if os.path.exists(dest):
-    shutil.rmtree(dest)
-
-pathed_cmd = ['0install', 'run', 'http://gfxmonk.net/dist/0install/pathed.xml']
 
 run = subprocess.check_call
 def run_input(input, cmd):
@@ -70,6 +64,27 @@ def run_input(input, cmd):
   rv = p.wait()
   if rv != 0:
     raise subprocess.CalledProcessError(rv, cmd)
+
+
+def rmtree(dest):
+  if os.path.exists(dest):
+    if WINDOWS:
+      # rmtree fails on long paths in windows, so
+      # we use rmdir, which we keep running until
+      # it actually deleltes `dest`
+      tries = 10
+      while True:
+        run(['cmd.exe', '/C', 'rmdir', '/s', '/q', dest])
+        if not os.path.exists(dest):
+          break
+        assert tries >= 0, 'rmdir: too many tries'
+        print 'rmdir sucks, retrying ...'
+        tries -= 1
+        time.sleep(0.5)
+    else:
+      shutil.rmtree(dest)
+
+pathed_cmd = ['0install', 'run', 'http://gfxmonk.net/dist/0install/pathed.xml']
 
 def extractInstaller(path):
   subprocess.check_call(#{JSON.stringify(self.commands.extract_installer)} + [path], stdout=open(os.devnull))
@@ -89,7 +104,7 @@ TMP = env.get('TEMP', '/tmp')
 SILENT=False
 conductance=path.join(HOME, '.conductance')
 
-# env['CONDUCTANCE_DEBUG']='1'
+env['CONDUCTANCE_DEBUG']='1'
 
 try:
 #{script.replace(/^/gm, '    ')}

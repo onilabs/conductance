@@ -94,10 +94,11 @@
     { "id": "0.1.1"
     , "bootstrap": true
     , "internal": true
-    , "href": "https://github.com/onilabs/conductance/tarball/87302f2be396d92d7842d76b1aa5a7b2d3f787e1"
+    , "href": "https://github.com/onilabs/conductance/tarball/39df769dd0c1455db4093a01d5fcfbeaa437abd8"
     , "extract": 1
     , "links":
-      [ {"src": "node_modules/tar.gz", "dest": "node_modules/tar.gz"}
+      [ {"src": "node_modules/tar", "dest": "node_modules/tar"}
+      , {"src": "node_modules/fstream", "dest": "node_modules/fstream"}
       ]
     }
 

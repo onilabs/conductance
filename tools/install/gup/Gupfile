@@ -4,8 +4,8 @@ make-archive.sjs:
 	dist/*.7z
 	dist/*.exe
 
-tmp/git-checkout:
+git-checkout:
 	tmp/*.git
 
-tmp/make-tree.sjs:
+make-tree.sjs:
 	tmp/*

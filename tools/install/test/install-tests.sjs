@@ -101,7 +101,8 @@ hosts.systems .. each {|system|
 		********************************************************/
 		var {
 			assertHealthy, ensureClean, runServer, runMhoScript,
-			isGloballyInstalled, listDir, selfUpdate, manualInstall
+			isGloballyInstalled, listDir, selfUpdate, manualInstall,
+			assertNoLeftoverTempFiles
 		} = hostUtil;
 
 		var withTemp = function(block) {
@@ -140,6 +141,10 @@ hosts.systems .. each {|system|
 
 		test.beforeEach {||
 			ensureClean();
+		}
+
+		test.afterEach {||
+			assertNoLeftoverTempFiles();
 		}
 
 		/********************************************************
@@ -268,8 +273,11 @@ hosts.systems .. each {|system|
 						mf.wrappers[name] = {template: 'A script invoking __REL_PATH__!'};
 					}
 
-					// remove common link (share/self-update.js)
-					mf.data.conductance.links = mf.data.conductance.links .. object.merge({all:[]});
+					// remove self-update.js link
+					var conductanceLinks = mf.data.conductance.links.all;
+					var selfUpdateLink = conductanceLinks .. seq.find(link -> link.src .. str.contains('self-update.js'));
+					assert.ok(selfUpdateLink);
+					conductanceLinks .. array.remove(selfUpdateLink) .. assert.ok();
 					mf.data.stratifiedjs.links = [
 						{src: "modules", dest:"sjs_modules/"},
 					];
@@ -430,7 +438,7 @@ hosts.systems .. each {|system|
 					}
 					withManifest(manifest) {||
 						proxyStrata.value.fake([[fakeHref, new Buffer("hardly a tar")]]) {||
-							assert.raises({filter: e -> e.output.match(/^ERROR: Command failed with status: \d+$/m)}, selfUpdate);
+							assert.raises({filter: e -> e.output.match(/^ERROR: incorrect header check$/m)}, selfUpdate);
 						}
 					}
 					assertNotBroken();
@@ -484,7 +492,12 @@ hosts.systems .. each {|system|
 				// NOTE: we pipe commands into an interactive bash session (rather than using `-c`)
 				// because everything crashes (even `dirname`) if you run it non-interactively
 				var output = host.runPython("
+					# ensure we're getting the installed $PATH:
+					sys_path = subprocess.check_output([path.join(conductance, 'share/pathed.exe'), '-l']).splitlines()
+					os.environ['PATH'] = os.pathsep.join(sys_path)
+
 					proc = subprocess.Popen(['C:/Program Files/Git/bin/bash.exe', '--login', '-i'], stdin=subprocess.PIPE)
+					proc.stdin.write('echo \"PATH:$PATH\"\\n')
 					proc.stdin.write('conductance version                               \\necho CONDUCTANCE_EXIT_$?\\n')
 					proc.stdin.write('node --version                                    \\necho NODE_EXIT_$?\\n')
 					proc.stdin.write('sjs -e \"console.log(require(\\'sjs:sys\\').version)\"\\necho SJS_EXIT_$?\\n')

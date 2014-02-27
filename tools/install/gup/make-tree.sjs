@@ -10,10 +10,10 @@ var {map, each, toArray} = seq;
 var logging = require('sjs:logging');
 logging.setLevel(process.env['GUP_XTRACE'] ? logging.INFO : logging.warn);
 
-var selfUpdate = require('../../share/self-update.js');
-var proxy = require('../../proxy');
+var selfUpdate = require('../share/self-update.js');
+var proxy = require('../proxy');
 
-var { run, assert} = require('../common');
+var { run, assert} = require('./common');
 
 var rm_rf = function(d) {
 	waitfor() {
@@ -23,10 +23,10 @@ var rm_rf = function(d) {
 
 exports.main = function(args) {
 	var [dest, target] = require('sjs:sys').argv();
-	var platform_root = fs.realpath(process.cwd());
-	var manifest = JSON.parse(fs.readFile('../share/manifest.json', "utf-8"));
+	var platform_root = fs.realpath(path.dirname(target));
+	var manifest = JSON.parse(fs.readFile('share/manifest.json', "utf-8"));
 
-	var [platform, arch] = target.split('_');
+	var [platform, arch] = path.basename(target).split('_');
 	var _os = { platform: platform, arch: arch};
 
 	var package_name = "#{_os.platform}_#{_os.arch}";
@@ -53,7 +53,7 @@ exports.main = function(args) {
 		if (extract) extract = selfUpdate.platformSpecificAttr(extract, _os);
 		var component_base = path.join(base, "data", "#{component}-#{config.id}");
 		var ext = selfUpdate.getExt(originalName);
-		waitfor() {
+		waitfor(var err) {
 			selfUpdate.extract(
 				{path: local_tarball, originalName: originalName},
 				component_base,
@@ -61,6 +61,7 @@ exports.main = function(args) {
 				ext,
 				resume);
 		}
+		if (err) throw err;
 
 		var links = config.links;
 		if(links) {
