@@ -18,7 +18,7 @@
     "fstream": "~0.1.25"
   },
   "dependencies": {
-    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#b78adbe66265088d5b15deffd72eed610126de9c",
+    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#05681ff645debb8182f305c41280db3864e90d57",
     "nodemon": "~1.0.15"
   }
 }
