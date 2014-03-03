@@ -14,9 +14,16 @@ var transport = function() {
 }
 
 var pollRequest = function() {
-  if (!exports._poll_request)
+  // _poll_request gets unset temporarily between polls - wait up to 1s
+  waitfor {
+    while(!exports._poll_request) {
+      hold(200);
+    }
+    return exports._poll_request;
+  } or {
+    hold(1000);
     throw new Error("Test harness error: exports._poll_request not set by server config");
-  return exports._poll_request;
+  }
 }
 
 exports.destroyConnection = function(timeout) {
