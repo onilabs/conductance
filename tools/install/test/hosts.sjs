@@ -13,7 +13,10 @@ var run = function(cmd, args, stdin, getOutput) {
   if (PRINT_COMMANDS) process.stderr.write("[Running: #{cmd} #{shell_quote.quote(args)} .. ");
 
   var fixOutput = function(result) {
-    if (getOutput) result.output = getOutput();
+    if (getOutput) {
+      if (result.output.length) result.output += "\n";
+      result.output += getOutput();
+    }
     result.output = (result.output || '').replace(/\r/g, '').trim();
   };
 
@@ -36,18 +39,20 @@ var run = function(cmd, args, stdin, getOutput) {
   return result.output;
 };
 
-var runPython = function(script) {
-  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'python'], script .. pythonPrelude(this));
+var runPython = function(script, quiet) {
+  return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--', 'python'], script .. pythonPrelude(this, quiet));
 }
 
 var ssh = function(cmd) {
   return run('ssh', ['-p', this.port, this.user+"@"+this.host, '--'].concat('bash', '-euc', shell_quote.quote([cmd])));
 };
 
-var pythonPrelude = function (script, self) {
+var pythonPrelude = function (script, self, quiet) {
   script = script .. lstrip('\n') .. unindent();
   assert.ok(self);
-  logging.info("* running python code:\n" + script.trim().replace(/^/gm, '# '));
+  if (!quiet)
+    logging.info("* running python code:\n" + script.trim().replace(/^/gm, '# '));
+
   return "
 import os,json,sys,user,re,shutil,subprocess,platform,time
 WINDOWS = platform.system() == 'Windows'
@@ -116,10 +121,10 @@ except subprocess.CalledProcessError as e:
 ";
 };
 
-var runPythonWindows = function(script) {
+var runPythonWindows = function(script, quiet) {
   var tmpfile = '/tmp/conductance-remote.py'
 
-  fs.writeFile(tmpfile, script .. pythonPrelude(this));
+  fs.writeFile(tmpfile, script .. pythonPrelude(this, quiet));
   var scriptPath = this.copyFile(tmpfile, 'input.py');
 
   var getOutput = function() {

@@ -35,7 +35,7 @@
     }
   , "stratifiedjs":
     { "id": "0.17.0"
-    , "href": "https://github.com/onilabs/stratifiedjs/tarball/2d6ef62891bd622f45fde5f035b807f8c90f8dbe"
+    , "href": "https://github.com/onilabs/stratifiedjs/tarball/e66fe13838acbee0d91b62bd562078c98c142024"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]

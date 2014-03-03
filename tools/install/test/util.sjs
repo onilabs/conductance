@@ -83,7 +83,7 @@ exports.api = function(system, bundle) {
 					print f
 					import time; time.sleep(0.5)
 					os.remove(f)
-			");
+			", true);
 			self.isGloballyInstalled() .. assert.eq(false, "conductance is globally installed!");
 		},
 
@@ -92,11 +92,11 @@ exports.api = function(system, bundle) {
 				#{defineConductanceTempFiles}
 				files = conductanceTempFiles()
 				assert len(files) == 0, 'Leftover files:\\n%s' % ('\\n'.join(files))
-			");
+			", true);
 		},
 
 		listDir: function(dir) {
-			return host.runPython("print '\\n'.join(os.listdir(path.join(conductance, \"#{dir}\")))").trim().split("\n")
+			return host.runPython("print '\\n'.join(os.listdir(path.join(conductance, \"#{dir}\")))", true).trim().split("\n")
 				.. seq.filter()
 				.. seq.sort()
 				.. seq.toArray();
