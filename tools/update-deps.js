@@ -17,10 +17,41 @@ var packageInfo = require(path.join(root, 'package.json'));
 var deps = packageInfo.dependencies;
 
 if (process.env['NODE_ENV'] != 'production') {
-	// merge devDependencies
-	for (var k in packageInfo.devDependencies) {
-		deps[k] = packageInfo.devDependencies[k];
+	process.env['DEV_DEPENDENCIES'] = process.env['DEV_DEPENDENCIES'] || '*';
+}
+
+if (process.env['DEV_DEPENDENCIES']) {
+	// merge specific devDependencies
+	var include;
+	var check;
+	if (process.env['DEV_DEPENDENCIES'] == '*') {
+		include = function() { return true; };
+		check = function() {};
+	} else {
+		var names = process.env['DEV_DEPENDENCIES'].split(',');
+		include = function(key) {
+			var idx = names.indexOf(key);
+			if (idx !== -1) {
+				names.splice(idx, 1);
+				return true;
+			} else {
+				return false;
+			}
+		};
+
+		check = function() {
+			if (names.length > 0) {
+				throw new Error("Unknown dev dependencies: " + names.join(","));
+			}
+		};
 	}
+
+	for (var k in packageInfo.devDependencies) {
+		if (include(k)) {
+			deps[k] = packageInfo.devDependencies[k];
+		}
+	}
+	check();
 }
 
 var packageNames = Object.keys(deps);
