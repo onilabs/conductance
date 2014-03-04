@@ -1020,7 +1020,7 @@ class Dependencies(object):
 
 	def is_dirty(self, builder, built):
 		assert isinstance(builder, Builder)
-		if not os.path.exists(self.path):
+		if not os.path.lexists(self.path):
 			_state_log.debug("DIRTY: %s (target does not exist)", self.path)
 			return True
 
@@ -1390,8 +1390,8 @@ class Target(object):
 					# directories often need to be created directly
 					_builder_log.warn("%s modified %s directly" % (exe_path, self.path))
 			if ret == 0:
-				if os.path.exists(output_file):
-					if os.path.isdir(self.path):
+				if os.path.lexists(output_file):
+					if os.path.isdir(self.path) and not os.path.islink(self.path):
 						_builder_log.trace("calling rmtree() on previous %s", self.path)
 						shutil.rmtree(self.path)
 					rename(output_file, self.path)
@@ -1410,7 +1410,7 @@ class Target(object):
 			proc = subprocess.Popen(args, cwd = cwd, env = env)
 		except OSError as e:
 			if e.errno == errno.ENOENT:
-				raise SafeError("Command not found: %s" % (args[0],))
+				raise SafeError("Executable not found: %s" % (args[0],))
 			raise e
 		return proc.wait()
 
@@ -1452,7 +1452,7 @@ class Task(object):
 
 		target = self.target = prepare_build(target_path)
 		if target is None:
-			if opts.update and os.path.exists(target_path):
+			if opts.update and os.path.lexists(target_path):
 				self.report_nobuild()
 				return None
 			raise Unbuildable(target_path)
@@ -1658,7 +1658,7 @@ def _cmd_mark_ifcreate(opts, files):
 	parent_target = _cmd_assert_parent_target('--ifcreate')
 	parent_state = TargetState(parent_target)
 	for filename in files:
-		if os.path.exists(filename):
+		if os.path.lexists(filename):
 			raise SafeError("File already exists: %s" % (filename,))
 		parent_state.add_dependency(FileDependency.relative_to_target(parent_target, mtime=None, checksum=None, path = filename))
 
