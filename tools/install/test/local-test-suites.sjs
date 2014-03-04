@@ -11,6 +11,7 @@ systems .. @each {|system|
 
 	var proxyStrata = null;
 	var host = @util.getHost(system);
+	var commonArgs = ['-f'];
 
 	@context("#{system.platform}_#{system.arch}") {||
 		@test.beforeAll {||
@@ -38,14 +39,16 @@ systems .. @each {|system|
 		}
 
 		@test("conductance") {||
+			var args = ['exec', 'mho:../test/run.mho'].concat(commonArgs);
 			host.runPython("
-				run([os.path.join(conductance, 'bin','conductance'), 'exec', 'mho:../test/run.mho', '-f'])
+				run([script(conductance + '/bin/conductance')] + #{JSON.stringify(args)})
 			");
 		}
 
 		@test("stratifiedJS") {||
+			var args = ['sjs:../test/run.html'].concat(commonArgs);
 			host.runPython("
-				run([os.path.join(conductance, 'bin','sjs'), 'sjs:../test/run.html', '-f'])
+				run([script(conductance + '/bin/sjs')] + #{JSON.stringify(args)})
 			");
 		}
 	}.timeout(1000);
