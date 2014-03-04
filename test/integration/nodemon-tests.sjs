@@ -51,7 +51,19 @@
       });
   }
 
+  var TO_REMOVE = [];
   @test.beforeAll() {|s|
+    if (base .. @contains(@path.sep + ".")) {
+      // we're running from a hidden directory, so minimatch will
+      // cause nodemmon to ignore everything. Let's make a tempfile instead
+      var tmp = process.env['TEMP'] || process.env['TMP'] || '/tmp';
+      var orig_base = base;
+      base = @path.join(tmp, "conductance-nodemon-test");
+      TO_REMOVE.push(base);
+      @childProcess.run('rm', ['-rf', base], {stdio:'inherit'});
+      @childProcess.run('cp', ['-a', orig_base, base], {stdio:'inherit'});
+    }
+
     s.proc = launch();
     // wait until it's started
     s.proc .. expectStarts(1) {|restarted|
@@ -83,6 +95,9 @@
         s.proc .. @childProcess.kill({wait: false, killSignal: 'SIGKILL'});
         hold();
       }
+    }
+    if (TO_REMOVE.length > 0) {
+      @childProcess.run('rm', ['-rf'].concat(TO_REMOVE), {stdio:'inherit'});
     }
   }
 
