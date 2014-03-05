@@ -325,6 +325,7 @@ module.exports = require(modules);
    - **join**: (function [sjs:sequence::join])
    - **map**: (function [sjs:sequence::map])
    - **map.par**: (function [sjs:sequence::map.par])
+   - **monitor**: (function [sjs:sequence::monitor])
    - **pack**: (function [sjs:sequence::pack])
    - **partition**: (function [sjs:sequence::partition])
    - **reduce**: (function [sjs:sequence::reduce])
@@ -350,6 +351,7 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:string](#sjs%3Astring) module:
   
+   - **arrayBufferToOctets**: (function [sjs:string::arrayBufferToOctets])
    - **base64ToArrayBuffer**: (function [sjs:string::base64ToArrayBuffer])
    - **base64ToOctets**: (function [sjs:string::base64ToOctets])
    - **capitalize**: (function [sjs:string::capitalize])
@@ -357,6 +359,7 @@ module.exports = require(modules);
    - **endsWith**: (function [sjs:string::endsWith])
    - **isString**: (function [sjs:string::isString])
    - **lstrip**: (function [sjs:string::lstrip])
+   - **octetsToArrayBuffer**: (function [sjs:string::octetsToArrayBuffer])
    - **octetsToBase64**: (function [sjs:string::octetsToBase64])
    - **padBoth**: (function [sjs:string::padBoth])
    - **padLeft**: (function [sjs:string::padLeft])
