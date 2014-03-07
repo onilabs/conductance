@@ -18,7 +18,7 @@
     "fstream": "~0.1.25"
   },
   "dependencies": {
-    "stratifiedjs": "~0.18.0",
+    "stratifiedjs": "~0.18.1",
     "nodemon": "~1.0.15"
   }
 }
