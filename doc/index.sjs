@@ -51,16 +51,17 @@ window.withBusyIndicator {|hideBusyIndicator|
 		var defaultHubs = ['sjs:','mho:'];
 
 		var locationHash = ObservableVar(undefined);
+		var symbolAnchor = null; // anchor-within-hash part of location (e.g #sjs:sequence::transform~example)
 
 		var currentSymbol = observe(locationHash, libraries.val, function(h) {
-			logging.debug("Location hash: #{h}");
+			logging.debug("Location hash:", h);
 			if (h === undefined) return undefined; // undefined: "not yet loaded"
 			return Symbol.resolveSymbol(libraries, h);
 		});
 
 		var renderer = ui.renderer(libraries, new Symbol.RootSymbol(libraries));
 		var symbolDocs = currentSymbol .. transform(function(sym) {
-			return sym !== undefined ? renderer.renderSymbol(sym);
+			return sym !== undefined ? renderer.renderSymbol(sym, symbolAnchor);
 		});
 
 		var breadcrumbs = currentSymbol .. transform(function(sym) {
@@ -180,7 +181,9 @@ window.withBusyIndicator {|hideBusyIndicator|
 				spawn(hold(1000), require('./search'));
 
 				while(true) {
-					locationHash.set(decodeURIComponent(document.location.hash.slice(1)));
+					var location;
+					[location, symbolAnchor] = document.location.hash.slice(1) .. str.split('~', 1) .. map(decodeURIComponent);
+					locationHash.set(location);
 					hashChange.wait();
 				}
 			}

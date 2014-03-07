@@ -149,7 +149,10 @@ exports.Container = (content, attribs) -> @Element('div', content, attribs) .. @
   @summary <label class="label [label-{attribs.type}]">
   @return {surface::Element}
 */
-exports.Label = (content, attribs) -> @Element('label', content, attribs) .. @Class("label #{attribs.type ? "label-#{attribs.type}" : ''}");
+exports.Label = function (content, attribs) {
+  attribs = attribs || {};
+  return @Element('label', content, attribs) .. @Class("label #{attribs.type ? "label-#{attribs.type}" : ''}");
+}
 
 /**
   @function PageHeader
