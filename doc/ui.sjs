@@ -1,11 +1,10 @@
-var {Element, Mechanism, Style, Class, prependContent, removeNode} = require('mho:surface');
+var {Element, Mechanism, Style, Class, prependContent, removeNode, RawHTML} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
      reduce, reverse, join, find, hasElem
      } = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, startsWith, endsWith, strip} = string;
-var {Quasi} = require('sjs:quasi');
 var event = require('sjs:event');
 var logging = require('sjs:logging');
 var Marked = require('sjs:marked');
@@ -69,7 +68,18 @@ exports.renderer = function(libraries, rootSymbol) {
 				return "[#{dest}](##{encodeFragment(link)})";
 			});
 		}
-		return Quasi([Marked.convert(text, {sanitize:true})]);
+		var html = Marked.convert(text, {sanitize:true});
+
+		// auto-generate anchors based on h2 header contents
+		html = html.replace(/<(h2)>(.*?)<\/h2>/gi, function(text, tag, heading) {
+			var anchor = heading.toLowerCase().replace(/<.*/, '').replace(/[^0-9a-z]+/g, '-')
+				.. strip('-')
+				.. string.sanitize;
+			var [symbolLink] = symbol.link();
+			var anchorHref = "##{encodeFragment(symbolLink)}~#{encodeFragment(anchor)}";
+			return "<#{tag}>#{heading}<a name=\"#{anchor}\" href=\"#{anchorHref}\" class=\"mb-pilcrow\">&para;</a></#{tag}>";
+		});
+		return RawHTML(html);
 	}
 
 	function FragmentLink(href, text) {
@@ -459,7 +469,7 @@ exports.renderer = function(libraries, rootSymbol) {
 	};
 
 	return {
-		renderSymbol: function (symbol) {
+		renderSymbol: function (symbol, anchor) {
 			logging.debug("Rendering docs for", symbol);
 			var view;
 			try {
@@ -504,7 +514,16 @@ exports.renderer = function(libraries, rootSymbol) {
 				else
 					throw e;
 			}
-			return Element("div", view);
+			var elem = Element("div", view);
+			if (anchor !== undefined) {
+				elem = elem .. Mechanism(function(elem) {
+					var activeElem = document.getElementsByName(anchor)[0];
+					if(activeElem) {
+						activeElem.scrollIntoView(true);
+					}
+				});
+			}
+			return elem;
 		},
 
 		renderSidebar: function(symbol) {
@@ -528,8 +547,9 @@ exports.renderer = function(libraries, rootSymbol) {
 			var prefix = '#';
 			var sep = Element("span", ` &raquo; `, {"class": "sep"});
 
-			var ret = symbol.parentLinks().slice(0, -1) .. map(FragmentLink);
-			ret.push(Element('span', symbol.name, {"class":"leaf"}));
+			var ret = symbol.parentLinks() .. map(FragmentLink);
+			// add `leaf` class to final element
+			ret[ret.length - 1] = ret[ret.length - 1] .. Class('leaf');
 
 			var crumbs = ret .. intersperse(sep) .. toArray();
 			var content = [crumbs];
