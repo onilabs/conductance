@@ -28,11 +28,12 @@ var { toBool } = require('sjs:docutil');
 
 exports.Document = function(data, settings) {
   var content = data.body;
-  var showErrorDialog = settings.showErrorDialog .. toBool;
-  var showBusyIndicator = settings.showBusyIndicator .. toBool;
+  var showErrorDialog = settings.showErrorDialog .. toBool !== false;
+  var showBusyIndicator = settings.showBusyIndicator .. toBool === true;
   var wrapContent = settings.wrapContent ..toBool;
-  var appModule = settings.appModule .. toBool;
-  var includeBootstrap = settings.useBootstrap .. toBool;
+  var appModule = settings.appModule .. toBool !== false;
+  var includeBootstrap = settings.useBootstrap .. toBool !== false;
+  var includeAPI = settings.useApi .. toBool !== false;
 
   if (wrapContent !== false) content = `<div class='container'>${data.body}</div>`;
 
@@ -41,23 +42,27 @@ exports.Document = function(data, settings) {
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    ${includeBootstrap !== false ? frag.bootstrapCss()}
-    ${showErrorDialog !== false ? frag.errorHandler()}
-    ${frag.busyIndicator(showBusyIndicator === true)}
-    ${appModule !== false ? `
+    ${includeBootstrap ? frag.bootstrapCss()}
+    ${showErrorDialog ? frag.errorHandler()}
+    ${frag.busyIndicator(showBusyIndicator)}
+    ${appModule ? `
     <script type='text/sjs' module='mho:app'>
       withBusyIndicator {
         ||
 
         waitfor {
           exports = module.exports = require([
-                                    'mho:surface/bootstrap/html',
-                                    {id:'mho:surface/api-connection',
-                                      include: ['withAPI']
-                                    },
+                                    'mho:surface/${includeBootstrap ? `bootstrap/`}html',
+                                  ${includeAPI ? `
+                                      {id:'mho:surface/api-connection',
+                                        include: ['withAPI']
+                                      },
+                                  `}
+                                  ${includeBootstrap ? `
                                     {id:'mho:surface/bootstrap/notice',
                                       include: ['Notice']
-                                    }
+                                    },
+                                  `}
                                   ]);
         } and {
           @ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event']);
@@ -65,7 +70,7 @@ exports.Document = function(data, settings) {
 
         // ui entry points:
         exports.body = document.body;
-        exports.mainContent = document.body.firstChild;
+        exports.mainContent = document.body${includeBootstrap ? `.firstChild`};
         exports.withBusyIndicator = withBusyIndicator;
       }
     </script>`}
@@ -73,7 +78,7 @@ exports.Document = function(data, settings) {
     ${ data.script }
   </head>
   <body>${content}
-    ${includeBootstrap !== false ? frag.bootstrapJavascript()}
+    ${includeBootstrap ? frag.bootstrapJavascript()}
   </body>
 </html>`;
 }

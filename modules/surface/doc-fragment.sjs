@@ -130,7 +130,7 @@ exports.busyIndicator = function(showImmediately, opts) {
         }
         try {
           showBusyIndicator();
-          return block(done);
+          return block ? block(done);
         }
         finally {
           done();

@@ -123,6 +123,14 @@
   If set to false, the default twitter bootstrap CSS and Javascript
   will not be included in the document.
 
+@feature @template-use-api
+@summary Disable API utilities
+@desc
+  _Availability: `app-default`_
+
+  If set to false, the default API connection functionality
+  (from [surface::api-connection]) won't be exported from the `mho:app` module.
+
 @feature @template-show-busy-indicator
 @summary Begin the busy indicator on page load
 @desc
