@@ -138,7 +138,7 @@
 @summary Disable API utilities (`app-default`)
 @desc
   If set to false, the default API connection functionality
-  (from [surface::api-connection]) won't be exported from the `mho:app` module.
+  (from [surface/api-connection]) won't be exported from the `mho:app` module.
 
   ### Availability:
 
