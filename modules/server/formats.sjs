@@ -88,6 +88,10 @@ function gen_app_html(src, dest, aux) {
     }
   }
 
+  if (docs['bundle'] .. docutil.toBool === true) {
+      documentSettings.externalScripts.push("#{app_name}!bundle");
+  }
+
   var { Document, loadTemplate } = require('../surface');
   dest.write(
     Document(null, documentSettings .. merge({

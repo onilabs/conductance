@@ -63,6 +63,8 @@
 @feature @template-title
 @summary Set the document title
 @desc
+  _Availability: all templates_
+
   This allows you to set an initial <title> content for
   the .app:
 
@@ -76,6 +78,8 @@
 @feature @template-show-error-dialog
 @summary Enable / disable the default error dialog
 @desc
+  _Availability: `app-default`_
+
   By default, the `app-default` template installs a simple
   handler for `window.onerror`, which removes all application UI
   and shows a simple error notification. This ensures that
@@ -100,6 +104,8 @@
 @feature @template-wrap-content
 @summary Enable / disable the default <div class="container"> wrapper
 @desc
+  _Availability: `app-default`_
+
   By default, the `app-default` template wraps the body of a page in
   a <div class="container"> element.
 
@@ -112,12 +118,16 @@
 @feature @template-use-bootstrap
 @summary Disable twitter bootstrap CSS/JS
 @desc
+  _Availability: `app-default`_
+
   If set to false, the default twitter bootstrap CSS and Javascript
   will not be included in the document.
 
 @feature @template-show-busy-indicator
 @summary Begin the busy indicator on page load
 @desc
+  _Availability: `app-default`_
+
   If set, the busy indicator (as shown by
   [app::withBusyIndicator] will be shown immedately on page load,
   rather than some time after your app's main module has started executing.
@@ -137,4 +147,19 @@
       /**
         @template-show-busy-indicator
       *\/
+
+@feature @bundle
+@summary Bundle this module's dependencies in a single .js file
+@desc
+  By default, `.sjs` modules used by an `.app` are loaded
+  individually, on-demand. If you include the `@bundle`
+  directive, Conductance will serve up this app's code as
+  a single file containing all required modules.
+
+  This reduces the number of round-trips, but reduces the
+  opportunity for caching - e.g different bundles will
+  duplicate all common modules, and a change
+  in any file will cause the entire bundle to
+  be re-downloaded.
+
 */
