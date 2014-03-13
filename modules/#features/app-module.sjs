@@ -63,10 +63,13 @@
 @feature @template-title
 @summary Set the document title
 @desc
-  _Availability: all templates_
-
   This allows you to set an initial <title> content for
   the .app:
+
+  ### Availability:
+
+   - all templates
+
 
   ### Example:
 
@@ -76,15 +79,18 @@
 
 
 @feature @template-show-error-dialog
-@summary Enable / disable the default error dialog
+@summary Enable / disable the default error dialog (`app-default`)
 @desc
-  _Availability: `app-default`_
-
   By default, the `app-default` template installs a simple
   handler for `window.onerror`, which removes all application UI
   and shows a simple error notification. This ensures that
   the user knows when something has gone wrong, but you may wish
   to disable it if you install your own error handling.
+
+  ### Availability:
+
+   - `app-default`
+
 
   ### Example:
 
@@ -102,10 +108,8 @@
   `window.onerror` once your application is successfully loaded.
 
 @feature @template-wrap-content
-@summary Enable / disable the default <div class="container"> wrapper
+@summary Enable / disable the default <div class="container"> wrapper (`app-default`)
 @desc
-  _Availability: `app-default`_
-
   By default, the `app-default` template wraps the body of a page in
   a <div class="container"> element.
 
@@ -115,27 +119,34 @@
         @ template-wrap-content false
        *\/
 
-@feature @template-use-bootstrap
-@summary Disable twitter bootstrap CSS/JS
-@desc
-  _Availability: `app-default`_
+  ### Availability:
 
+   - `app-default`
+
+
+@feature @template-use-bootstrap
+@summary Disable twitter bootstrap CSS/JS (`app-default`)
+@desc
   If set to false, the default twitter bootstrap CSS and Javascript
   will not be included in the document.
 
-@feature @template-use-api
-@summary Disable API utilities
-@desc
-  _Availability: `app-default`_
+  ### Availability:
 
+   - `app-default`
+
+@feature @template-use-api
+@summary Disable API utilities (`app-default`)
+@desc
   If set to false, the default API connection functionality
   (from [surface::api-connection]) won't be exported from the `mho:app` module.
 
-@feature @template-show-busy-indicator
-@summary Begin the busy indicator on page load
-@desc
-  _Availability: `app-default`_
+  ### Availability:
 
+   - `app-default`
+
+@feature @template-show-busy-indicator
+@summary Begin the busy indicator on page load (`app-default`)
+@desc
   If set, the busy indicator (as shown by
   [app::withBusyIndicator] will be shown immedately on page load,
   rather than some time after your app's main module has started executing.
@@ -149,6 +160,10 @@
   generally use this flag as well so that there isn't a gap between
   page load and displaying the busy indicator.
   test \`backticks
+
+  ### Availability:
+
+   - `app-default`
 
   ### Example:
 

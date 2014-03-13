@@ -27,7 +27,6 @@ var frag = require('../doc-fragment');
 var { toBool } = require('sjs:docutil');
 
 exports.Document = function(data, settings) {
-  var content = data.body;
   var showErrorDialog = settings.showErrorDialog .. toBool !== false;
   var showBusyIndicator = settings.showBusyIndicator .. toBool === true;
   var wrapContent = settings.wrapContent ..toBool;
@@ -35,7 +34,8 @@ exports.Document = function(data, settings) {
   var includeBootstrap = settings.useBootstrap .. toBool !== false;
   var includeAPI = settings.useApi .. toBool !== false;
 
-  if (wrapContent !== false) content = `<div class='container'>${data.body}</div>`;
+  var content = data.body;
+  if (wrapContent !== false) content = `<div class='container'>${content}</div>`;
 
   return `<!DOCTYPE html>
 <html>
