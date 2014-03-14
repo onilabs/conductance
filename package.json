@@ -13,6 +13,10 @@
   "bin": { "conductance": "conductance" },
   "devDependencies": {
     "karma-sjs-adapter": "~0.2.2",
+    "karma-chrome-launcher": "*",
+    "karma-firefox-launcher": "*",
+    "karma-phantomjs-launcher": "*",
+    "karma-script-launcher": "*",
     "recess": "~1.1.9",
     "tar": "~0.1.19",
     "fstream": "~0.1.25"
