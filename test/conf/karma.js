@@ -36,6 +36,8 @@ var exports = module.exports = function(config) {
       hubs: {
         'mho:' : '/app/__mho/',
       },
+      // workaround for https://github.com/karma-runner/karma/issues/961
+      captureConsole: true,
     },
 
     proxies: { '/app/': 'http://localhost:' + serverConfig.port + '/' },

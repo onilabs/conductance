@@ -87,11 +87,11 @@ if (require.main === module) {
   if (args[0] === '--karma') {
     args.shift();
     var runKarma = -> require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
+    args.splice(1,0, karmaConfUrl .. url.toPath);
     if(args[0] === 'run') {
-      args.splice(1, 0, '--', karmaConf.testScript);
+      args.splice(2, 0, '--', karmaConf.testScript);
       runKarma();
     } else if(args[0] === 'start' || args[0] == 'single-run') {
-      args.splice(1,0, karmaConfUrl .. url.toPath);
       if (args[0] == 'single-run') {
         args[0] = 'start';
         args.splice(2, 0, '--single-run', '--', karmaConf.testScript);

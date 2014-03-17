@@ -1,6 +1,7 @@
 @ = require("sjs:test/std");
 @helper = require('../helper');
-@bundle = require('sjs:bundle');
+
+if (!@isBrowser) @bundle = require('sjs:bundle');
 
 var load = function(filename) {
   return @http.get(@helper.url("test/integration/fixtures/app/#{filename}"));
@@ -18,10 +19,10 @@ var getJSUrls = function(contents) {
     load('bundle.app') .. getJSUrls .. @assert.eq(['bundle.app!bundle', 'stratified.js']);
   }
 
-  @test("app content and dependencies") {||
+  @test("bundle script includes app content and dependencies") {||
     @bundle.contents({contents: load('bundle.app!bundle')})
       .. @map(url -> url.replace(/.*fixtures/, 'FIXTURES'))
       .. @sort
       .. @assert.eq(['FIXTURES/app/bundle.app', 'sjs:sys.sjs']);
-  }
+  }.serverOnly();
 }
