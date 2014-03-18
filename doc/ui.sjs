@@ -389,6 +389,18 @@ exports.renderer = function(libraries, rootSymbol) {
 
 		rv.push(Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		rv.push(makeDescriptionHTML(docs, symbol));
+
+		var executable = docs.executable;
+		if (executable) {
+			rv.push(`
+			<h3>This module is executable</h3>
+			<p>
+			You can run it directly from the command-line, using either:
+<code class="mb-commandline">sjs <strong>${symbol.fullModulePath .. join('')}</strong> [...]</code>
+<code class="mb-commandline">conductance exec <strong>${symbol.fullModulePath .. join('')}</strong> [...]</code>
+			</p>`);
+		}
+
 	
 		var children = collectModuleChildren(docs, symbol);
 
