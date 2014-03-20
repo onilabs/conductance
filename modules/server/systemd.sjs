@@ -18,10 +18,11 @@
 */
 
 var fs = require('sjs:nodejs/fs');
+var stream = require('sjs:nodejs/stream');
 var child_process = require('sjs:nodejs/child-process');
 var path = require('nodejs:path');
 var seq  = require('sjs:sequence');
-var { concat, each, map, toArray, filter, find, any, join } = seq;
+var { concat, each, map, toArray, filter, find, any, join, groupBy } = seq;
 var string = require('sjs:string');
 var array = require('sjs:array');
 var { isArrayLike } = array;
@@ -306,12 +307,14 @@ SystemCtl.prototype.log = function(units, args) {
 
 
 /**
- * write a string to a file
+ * write a line to a writable stream
  */
-var write = function(f, s) {
-	var buf = new Buffer(s + '\n');
-	logging.debug(s);
-	fs.write(f, buf, 0, buf.length);
+var writeln = function(f, s) {
+	if (s) {
+		logging.debug(s);
+		f .. stream.write(s);
+	}
+	f .. stream.write('\n');
 }
 
 /**
@@ -433,48 +436,68 @@ function Unit(base, filename) {
 	assert.string(filename, 'filename');
 	this.base = base;
 	this.name = filename;
-	this.sections = [];
+	this.sections = {};
 	this.desiredLinks = [];
+
+	this.addSection('Unit', [[CONDUCTANCE_FLAG, 'true']]);
 }
 
 Unit.prototype.addSection = function(name, conf) {
-	var params = [];
+	var section;
+	if (this.sections .. hasOwn(name)) {
+		section = this.sections[name];
+	} else {
+		section = this.sections[name] = [];
+	}
+
+	if (!isArrayLike(conf)) {
+		// convert obj to list of pairs
+		conf = conf .. ownPropertyPairs();
+	}
+
 	// flatten arrays into lists of params, for consistency
-	conf .. ownPropertyPairs .. each {|[key,val]|
+	conf .. each {|[key,val]|
+
+		// special-cased conversions:
+		if (key .. string.startsWith('Exec') && val .. isArrayLike()) {
+			val = shell_quote.quote(val);
+		} else if (key === 'Environment' && !val .. string.isString()) {
+			if (!val .. isArrayLike()) {
+				val = val .. ownPropertyPairs;
+			}
+			// now turn pairs into env strings
+			val = val .. map([k,v] -> "#{k}=#{v}") .. map(s -> shell_quote.quote([s]));
+		}
+
 		var vals = (val .. isArrayLike()) ? val : [val];
 		vals .. each {|val|
-			params.push([key, val]);
+			assert.string(val, `value for ${key} is ${typeof(val)}: ${val}`);
+			section.push([key, val]);
 		}
 	}
-	if (name == 'Unit') {
-		params.push([CONDUCTANCE_FLAG, 'true']);
-	}
-	this.sections.push([name, params]);
 }
 
 Unit.prototype.write = function() {
 	ensureDir(this.base);
-	var f = fs.open(this.path(), 'w');
-	try {
-		this._write(f);
-	} finally {
-		fs.close(f);
-	}
+	fs.withWriteStream(this.path(), this._write.bind(this));
 }
 
 Unit.prototype.toString = -> "<Unit(#{this.name})>";
 
+var fst = pair -> pair[0];
+
 Unit.prototype._write = function(f) {
-	this.sections .. each {|[name, params]|
-		f .. write("[#{name}]");
-		params .. each {|[key,val]|
-			f .. write(key + '=' + val);
+	this.sections .. ownPropertyPairs .. each {|[name, params]|
+		f .. writeln("[#{name}]");
+		params .. seq.sort(array.cmp) .. each {|[key,val]|
+			f .. writeln(key + '=' + val);
 		}
-		f .. write('\n');
+		f .. writeln();
 	}
 };
 
 Unit.prototype.path = -> path.join(this.base, this.name);
+exports._Unit = Unit;
 
 var loadGroup = function(configPath) {
 	var config = conductance.loadConfig(configPath);
@@ -544,19 +567,6 @@ var install = function(opts) {
 				'SyslogIdentifier': fqn,
 				'StandardOutput': 'syslog',
 			}, service);
-			// quote all exec* arrays
-			service .. object.ownPropertyPairs .. each {|[k,v]|
-				if (k .. string.startsWith('Exec') && v .. isArrayLike()) {
-					service[k] = shell_quote.quote(v);
-				}
-			}
-			// expand environment {k1:"v1"} into ["k1=v1", ...]
-			if (service.Environment !== undefined &&
-			    !service.Environment .. isArrayLike() &&
-			    !service.Environment .. string.isString()) {
-				service.Environment = service.Environment .. ownPropertyPairs .. map([k,v] -> "#{k}=#{v}");
-			}
-
 			serviceUnit.addSection('Service', service);
 
 			// -- Service Install --
