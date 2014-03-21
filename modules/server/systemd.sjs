@@ -45,7 +45,7 @@ var fail = function(msg) {
 
 var CONDUCTANCE_FLAG = 'X-Conductance-Generated';
 var CONDUCTANCE_FORMAT_FLAG = 'X-Conductance-Format';
-var CONDUCTANCE_FORMAT = 1;
+var CONDUCTANCE_FORMAT = exports._format = 1;
 var CONDUCTANCE_GROUP_FLAG = 'X-Conductance-Group';
 
 var DEFAULT_GROUP = 'conductance';
@@ -55,25 +55,40 @@ var DEFAULT_GROUP = 'conductance';
   @class Group
   @function Group
   @param {optional String} [name="conductance"]
-  @param {Array} [units] an array of [::Unit] objects
+  @param {Object} [components]
   @desc
     Creates a group of systemd services.
 
-    The keys from `units` become the systemd target names (prefixed by the group name).
-    The values of `units will be turned into sytemd units.
+    `components` is an object with keys for each component of your
+    application, and whose values are single (or arrays of) [::Unit] objects.
+
+    Each component can have one or more units, but cannot have multiple units
+    of the same type. That is, a typical conductance server component will
+    have both a [::Socket] and [::Service] unit, but cannot (for example)
+    have multiple [::Service] units.
+
+    When a group is installed, all units from all components are installed with the
+    naming scheme `"#{groupName}-#{componentName}.#{unitType}"`.
+
+    An additional unit will be created for each group, named `"#{groupName}.target"`.
 
     ### Example:
 
+    This example defines two components: the main conductance server, and a periodic task
+    that will backup the database immediately on boot and periodically every 4 hours.
+    This allows you to combine cron-like tasks and other required services with your
+    application config, rather than managing them system-wide.
+
         var env = require('mho:server/env');
-        var { Group, ConductanceArgs } = require('mho:server/systemd');
+        var { Group, ConductanceArgs, Service, Socket, Timer } = require('mho:server/systemd');
         var { Port } = require('mho:server');
 
         var serverAddress = Port(8080);
 
         exports.systemd = Group("my-app",
           {
-            main: {
-              Service: {
+            main: [
+              Service({
                 Restart: 'always',
                 User: 'myapp',
                 Group: 'myapp',
@@ -81,24 +96,32 @@ var DEFAULT_GROUP = 'conductance';
                   'NODE_ENV=production',
                 ],
                 'ExecStart': ConductanceArgs.concat('serve', env.config().path),
-              },
+              }),
               // use socket activation
-              Socket: {
+              Socket({
                 Listen: serverAddress,
-              },
-            }
-          }
-         );
+              }),
+            ],
+
+            'db-backup': [
+              Service({
+                'ExecStart': '/usr/local/bin/db-backup',
+              }),
+              Timer({
+                'OnBootSec': '0m',
+                'OnActiveSec': '4h',
+              }),
+          });
     
 
 
-    The following types are supported as values:
+    The following types are supported as setting values:
 
-     - The `Environment` value may be an
+     - The `Environment` setting may be an
        object literal - its [sjs:object::ownPropertyPairs] will be
        collected and converted to "#{key}=#{value}" format.
 
-     - `Exec*` values may be an array, in which case
+     - `Exec*` settings may be an array, in which case
        they will be escaped using [sjs:shell-quote::].
 
      - For all other cases, Arrays will be repeated as
@@ -108,6 +131,10 @@ var DEFAULT_GROUP = 'conductance';
            key=1
            key=2
            key=3
+
+     - `null` and `undefined` settings will be ignored
+
+     - all other non-string settings will be coerced to a String
 */
 
 var GroupProto = Object.create({});
@@ -133,7 +160,7 @@ GroupProto._addMandatorySettings = function(unit) {
 	unit.override('Unit', [
 		[CONDUCTANCE_FLAG, 'true'],
 		[CONDUCTANCE_FORMAT_FLAG, String(CONDUCTANCE_FORMAT)],
-		[CONDUCTANCE_GROUP_FLAG, this.unitFilename],
+		[CONDUCTANCE_GROUP_FLAG, this.name],
 	] .. pairsToObject());
 }
 
@@ -281,6 +308,33 @@ GroupProto._processComponents = function(components, groupTarget) {
 
      - `Exec*` values may be an array, in which case
        they will be escaped using [sjs:shell-quote::].
+
+     - Socket units may specify a [::Port] object (or array of such objects)
+       as a `Listen` setting. These will be formatted appropriately for systemd
+       and moved to the `ListenStream` setting.
+
+     ### Default values
+
+     In some cases, conductance will add default values to unit settings.
+     These should almost always be what you want, but in the event that they are
+     incorrect, you can override them:
+
+      - The ExecStart setting of a service unit defaults to:
+        `[::ConductanceArgs].concat(["run", [env::conductancePath]()])`
+
+      - The `After` setting of a service unit defaults to
+        `['local-fs.target','network.target']`.
+
+      - All units default their `WantedBy` setting to the
+        group target they're a memeber of (e.g "conductance.target").
+
+        A single service unit will also default the `PartOf` setting to
+        this same group target. If a service is accompanied by a socket
+        or timer group, it's assumed that these other units will trigger
+        the service on-demand: those units will have the `PartOf` setting
+        defaulted to the name og the group target, while the service unit
+        will not (and therefore won't be started until needed, e.g via
+        socket activation).
 
 
 */
@@ -684,6 +738,8 @@ UnitFile.prototype.addSection = function(name, conf) {
 			// now turn pairs into env strings
 			val = val .. map([k,v] -> "#{k}=#{v}") .. map(s -> shell_quote.quote([s]));
 		}
+
+		if (val == null) continue;
 
 		var vals = (val .. isArrayLike()) ? val : [val];
 		vals .. each {|val|

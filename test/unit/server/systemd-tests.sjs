@@ -94,6 +94,34 @@
       messages .. @assert.eq(["WARN", "Unknown systemd unit section 'FOO' - did you mean 'Foo'?"]);
     }
 
+    @test("adds mandatory properties to all units") {||
+      var mandatoryProperties = {
+        'X-Conductance-Generated': 'true',
+        'X-Conductance-Format': String(@sd._format),
+        'X-Conductance-Group': 'myapp',
+      };
+
+      var group = @sd.Group('myapp', {
+        'server': [
+          @sd.Service(),
+          @sd.Socket(),
+          @sd.Timer(),
+          @sd.Unit('unknowntype'),
+        ]
+      });
+
+      var units = group.components.server;
+      units.length .. @assert.eq(4);
+      units .. @each {|unit|
+        unit.sections.Unit
+          .. @ownPropertyPairs
+          .. @tap(f -> f .. @toArray .. @info)
+          .. @filter([k,] -> k .. @tap(@warn) .. @startsWith('X-'))
+          .. @pairsToObject
+          .. @assert.eq(mandatoryProperties)
+      }
+    }
+
     @test("adds default properties") {||
       var group = @sd.Group('myapp', {
         'server': [
