@@ -22,18 +22,19 @@ var stream = require('sjs:nodejs/stream');
 var child_process = require('sjs:nodejs/child-process');
 var path = require('nodejs:path');
 var seq  = require('sjs:sequence');
-var { concat, each, map, toArray, filter, find, any, join, groupBy } = seq;
+var { concat, each, map, toArray, filter, find, any, join, hasElem } = seq;
 var string = require('sjs:string');
 var array = require('sjs:array');
 var { isArrayLike } = array;
 var object = require('sjs:object');
-var { ownKeys, ownValues, hasOwn, ownPropertyPairs, merge } = object;
+var { ownKeys, ownValues, hasOwn, ownPropertyPairs, merge, pairsToObject, getPath } = object;
 var shell_quote = require('sjs:shell-quote');
 var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
 var assert = require('sjs:assert');
 var Url = require('sjs:url');
 var sys = require('sjs:sys');
+var { inspect } = require('sjs:debug');
 
 var conductance = require('./_config');
 var env = require('./env');
@@ -43,19 +44,18 @@ var fail = function(msg) {
 }
 
 var CONDUCTANCE_FLAG = 'X-Conductance-Generated';
+var CONDUCTANCE_FORMAT_FLAG = 'X-Conductance-Format';
+var CONDUCTANCE_FORMAT = 1;
+var CONDUCTANCE_GROUP_FLAG = 'X-Conductance-Group';
+
 var DEFAULT_GROUP = 'conductance';
 
-var GroupProto = Object.create({});
-GroupProto._init = function(name, units) {
-	this.name = name;
-	this.units = units;
-};
 
 /**
   @class Group
   @function Group
   @param {optional String} [name="conductance"]
-  @param {Object} [units]
+  @param {Array} [units] an array of [::Unit] objects
   @desc
     Creates a group of systemd services.
 
@@ -109,15 +109,226 @@ GroupProto._init = function(name, units) {
            key=2
            key=3
 */
-var Group = exports.Group = function(name, units) {
-	var rv = Object.create(GroupProto);
+
+var GroupProto = Object.create({});
+var Group = exports.Group = object.Constructor(GroupProto);
+
+GroupProto._init = function(name, components) {
 	if (arguments.length < 2) {
-		units = arguments[0];
+		components = arguments[0];
 		name = DEFAULT_GROUP;
 	}
-	rv._init(name, units);
-	return rv;
+	this.name = name;
+	this.unitFilename = "#{this.name}.target";
+	this.components = this._processComponents(components, this.unitFilename);
 };
+
+GroupProto.unit = -> this._addMandatorySettings(Unit('Target', null, {
+	'Unit':    { Description: "Oni Conductance target" },
+	'Install': { WantedBy: "multi-user.target" },
+}));
+
+GroupProto._addMandatorySettings = function(unit) {
+	// add common settings
+	unit.override('Unit', [
+		[CONDUCTANCE_FLAG, 'true'],
+		[CONDUCTANCE_FORMAT_FLAG, String(CONDUCTANCE_FORMAT)],
+		[CONDUCTANCE_GROUP_FLAG, this.unitFilename],
+	] .. pairsToObject());
+}
+
+GroupProto._processComponents = function(components, groupTarget) {
+	components .. ownPropertyPairs .. each {|[key, units]|
+		if (!isArrayLike(units)) {
+			// promote single unit object into an array
+			components[key] = [units];
+		}
+	}
+
+	components .. ownPropertyPairs .. each {|[name, units]|
+		units .. each {|unit|
+			if (!UnitProto.isPrototypeOf(unit)) {
+				fail("Not a systemd.Unit object: #{unit .. inspect}");
+			}
+		}
+
+		var fqn = "#{this.name}-#{name}";
+		var unitTypes = units .. map(u -> u.type);
+
+		// trigger types are units that will activate a service.
+		var triggerTypes = ['socket', 'timer'];
+		var hasTrigger = (triggerTypes .. array.union(unitTypes)).length > 0;
+
+		units .. each {|unit|
+			this._addMandatorySettings(unit);
+			unit.setDefault('Install', { 'WantedBy': groupTarget });
+
+			// add in defaults or each unit type
+			if (unit.type == 'service') {
+
+				// if there's a socket unit depend upon it
+				if (unitTypes .. hasElem('socket')) {
+					unit.setDefault('Unit', {
+						'Requires': ["#{fqn}.socket"],
+					});
+				}
+
+				unit.setDefault('Unit', {
+					'After': ['local-fs.target', 'network.target'],
+				});
+
+				unit.setDefault('Service', {
+					// fully qualify both `node` and `sjs` executables to ensure we get the right runtime
+					'ExecStart': exports.ConductanceArgs.concat('run', env.configPath()),
+				});
+
+				// If we don't have any trigger units defined, we bind this
+				// service directly to the group target
+				if (!hasTrigger) {
+					unit.setDefault('Unit', { 'PartOf': groupTarget });
+				}
+
+			} else {
+				// all non-service units are bound to the group target
+				unit.setDefault('Unit', { 'PartOf': groupTarget });
+			}
+
+			if (unit.type == 'socket') {
+				// socket.listen is intended for `ports` style objects,
+				// we move it to socket.ListenStream after processing
+				var ports = unit.sections .. getPath('Socket.Listen', null);
+				if (ports !== null) {
+					var socket = unit.sections['Socket'];
+					delete socket['Listen'];
+
+					if (!Array.isArray(ports)) ports = [ports];
+					socket['ListenStream'] = ports .. map(p -> p.getAddress ? p.getAddress() : p);
+				}
+			}
+		};
+	};
+	
+	return components;
+};
+
+/**
+  @class Unit
+  @function Unit
+  @param {String} [type]
+  @param {Object|null} [primarySettings]
+  @param {optional Object} [additionalSettings]
+  @desc
+    Creates a systemd unit, suitable for passing to [::Group].
+
+    Generally, it's more convenient to use the shortcut functions to create
+    units of standard types:
+
+    - [::Service]
+    - [::Socket]
+    - [::Timer]
+
+    `type` should be a lowercase string like "socket", "service", etc.
+
+    A systemd unit is made up of multiple sections. The primary section is
+    named after the type (e.g the promary section for a service is the "Service"
+    section). The keys and values specified in `primarySettings` will be used for the primary section.
+
+    If you need to specify additional sections (e.g "Unit"), you should pass
+    these in `additionalSettings`. This is an object with keys for each section, and
+    nested objects for that section's settings.
+
+    To understand what settings you should configure, consult
+    [the systemd.unit documentation](http://www.freedesktop.org/software/systemd/man/systemd.unit.html).
+
+    ### Example:
+
+        Unit('service', {
+          Restart: 'always',
+          User: 'myapp',
+          ExecStart: ConductanceArgs.concat('serve', env.config().path),
+        }, {
+          Install: {
+            WantedBy: 'multi-user.target',
+          }
+        });
+
+
+    ### Value types:
+
+    The following types are supported as values for any setting:
+
+     - `String`: this will be written to the configuration file without
+       any processing.
+
+     - `Array`: in general, Arrays will be repeated as
+       multiple values of the same key, e.g: `{key: [1,2,3]}`
+       will be converted to:
+
+           key=1
+           key=2
+           key=3
+
+     However, There are some property-specific exceptions to the above conversion rules:
+
+     - A value for the `Environment` setting may be a
+       string, an array of pairs, or an object literal
+       (whose [sjs:object::ownPropertyPairs] will be used).
+
+       If given a string, it will be written as-is to the configuration file.
+       If given an array or object, the keys and values will be escaped (so
+       that special characters and spaces are represented literally, rather than
+       interpreted by systemd.
+
+     - `Exec*` values may be an array, in which case
+       they will be escaped using [sjs:shell-quote::].
+
+
+*/
+var titleCase = (s) -> s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+var UnitProto = Object.create({});
+UnitProto._init = function(type, attrs, sections) {
+	sections = sections ? object.clone(sections) : {};
+	if (attrs) {
+		var primarySection = type .. titleCase();
+		assert.notOk(sections .. hasOwn(primarySection), "additional sections includes #{primarySection}");
+		sections[primarySection] = object.clone(attrs);
+	}
+
+	// Check for non-normalized section names.
+	// These _could_ be valid multi-word sections we don't know about, so just warn
+	sections .. ownKeys .. each {|key|
+		var normalized = key .. titleCase();
+		if (key != normalized) {
+			logging.warn("Unknown systemd unit section #{inspect(key)} - did you mean #{inspect(normalized)}?");
+		}
+	}
+
+
+	this.sections = sections;
+	this.type = type.toLowerCase();
+};
+
+UnitProto.ensureSection = function(section) {
+	if (!this.sections .. hasOwn(section)) {
+		this.sections[section] = {};
+	}
+	return this.sections[section];
+};
+
+UnitProto.setDefault = function(section, attrs) {
+	this.sections[section] = object.merge(attrs, this.ensureSection(section));
+};
+
+UnitProto.override = function(section, attrs) {
+	this.sections[section] = object.merge(this.ensureSection(section), attrs);
+};
+
+var Unit = exports.Unit = object.Constructor(UnitProto);
+
+exports.Service = () -> Unit.apply(null, ['service'].concat(arguments .. toArray));
+exports.Socket  = () -> Unit.apply(null, ['socket' ].concat(arguments .. toArray));
+exports.Timer   = () -> Unit.apply(null, ['timer'  ].concat(arguments .. toArray));
 
 /**
   used by configs to define systemd actions which will launch conductance
@@ -431,7 +642,7 @@ var uninstall = function(opts) {
 /**
  * Unit file abstraction
  */
-function Unit(base, filename) {
+function UnitFile(base, filename, unit) {
 	assert.string(base, 'base');
 	assert.string(filename, 'filename');
 	this.base = base;
@@ -439,10 +650,15 @@ function Unit(base, filename) {
 	this.sections = {};
 	this.desiredLinks = [];
 
-	this.addSection('Unit', [[CONDUCTANCE_FLAG, 'true']]);
+	if (unit) {
+		assert.ok(UnitProto.isPrototypeOf(unit));
+		unit.sections .. ownPropertyPairs() .. each {|[name, conf]|
+			this.addSection(name, conf);
+		}
+	}
 }
 
-Unit.prototype.addSection = function(name, conf) {
+UnitFile.prototype.addSection = function(name, conf) {
 	var section;
 	if (this.sections .. hasOwn(name)) {
 		section = this.sections[name];
@@ -477,16 +693,16 @@ Unit.prototype.addSection = function(name, conf) {
 	}
 }
 
-Unit.prototype.write = function() {
+UnitFile.prototype.write = function() {
 	ensureDir(this.base);
 	fs.withWriteStream(this.path(), this._write.bind(this));
 }
 
-Unit.prototype.toString = -> "<Unit(#{this.name})>";
+UnitFile.prototype.toString = -> "<UnitFile(#{this.name})>";
 
 var fst = pair -> pair[0];
 
-Unit.prototype._write = function(f) {
+UnitFile.prototype._write = function(f) {
 	this.sections .. ownPropertyPairs .. each {|[name, params]|
 		f .. writeln("[#{name}]");
 		params .. seq.sort(array.cmp) .. each {|[key,val]|
@@ -496,8 +712,8 @@ Unit.prototype._write = function(f) {
 	}
 };
 
-Unit.prototype.path = -> path.join(this.base, this.name);
-exports._Unit = Unit;
+UnitFile.prototype.path = -> path.join(this.base, this.name);
+exports._UnitFile = UnitFile;
 
 var loadGroup = function(configPath) {
 	var config = conductance.loadConfig(configPath);
@@ -522,7 +738,7 @@ var defaultConfig = function() {
 
 var install = function(opts) {
 	var base = opts.dest;
-	var mkunit = (name) -> new Unit(opts.dest, name);
+	var mkUnitFile = (name, unit) -> new UnitFile(opts.dest, name, unit);
 	ensureDir(opts.dest);
 
 	var configFiles = opts._args;
@@ -531,80 +747,28 @@ var install = function(opts) {
 	}
 
 	var namespaces = {};
-	var addUnit = function(namespace, unit) {
-		if (!namespaces .. hasOwn(namespace)) {
-			namespaces[namespace] = [];
-		}
-		namespaces[namespace].push(unit);
-	};
 
 	configFiles .. each {|configPath|
 		var group = loadGroup(configPath);
 
 		var namespace = group.name;
-		var groupTarget = "#{namespace}.target";
-
-		group.units .. ownPropertyPairs .. each {|[name, sys]|
-			var fqn = "#{namespace}-#{name}"
-			var serviceUnit = mkunit("#{fqn}.service");
-			var service = sys.Service || {};
-			var socket = sys.Socket;
-
-			var socketUnit = socket ? mkunit("#{fqn}.socket") : null;
-
-			// -- Service --
-			var requires = [];
-			if (socketUnit) requires.push(socketUnit.name);
-			serviceUnit.addSection('Unit', {
-				'X-Conductance-Source': env.configPath(),
-				'Requires': requires,
-				'After': 'local-fs.target network.target',
-			});
-
-			service = object.merge({
-				// fully qualify both `node` and `sjs` executables to ensure we get the right runtime
-				'ExecStart': exports.ConductanceArgs.concat('run', env.configPath()),
-				'SyslogIdentifier': fqn,
-				'StandardOutput': 'syslog',
-			}, service);
-			serviceUnit.addSection('Service', service);
-
-			// -- Service Install --
-			var defaults = {};
-			if (!socketUnit) {
-				defaults['WantedBy'] = groupTarget;
-			}
-			var install = object.merge(defaults, sys.Install || {});
-			serviceUnit.addSection('Install', install);
-			addUnit(namespace, serviceUnit);
-
-			if (socket) {
-				socketUnit.addSection('Unit', { 'Requires': groupTarget });
-				socket = object.clone(socket);
-				// socket.listen is intended for `ports` style objects, we move it to socket.ListenStream
-				// after processing
-				if (socket.Listen) {
-					var ports = socket.Listen;
-					delete socket.Listen;
-					if (!Array.isArray(ports)) ports = [ports];
-					socket.ListenStream = ports .. map(p -> p.getAddress ? p.getAddress() : p);
-				}
-				socketUnit.addSection('Socket', socket);
-				socketUnit.addSection('Install', { WantedBy: groupTarget });
-				addUnit(namespace, socketUnit);
-			}
+		if (namespaces .. hasOwn(namespace)) {
+			fail("Duplicate systemd group detected (#{namespace}) - no files written");
 		}
-	}
+
+		var targetFile = mkUnitFile(group.unitFilename, group.unit);
+
+		var unitFiles = group.components .. ownPropertyPairs .. map (function([name, units]) {
+			var fqn = "#{namespace}-#{name}";
+			return units .. map(unit -> mkUnitFile("#{fqn}.#{unit.type}", unit));
+		}) .. concat .. toArray;
+
+		unitFiles.push(mkUnitFile(group.unitFilename, group.unit));
+		namespaces[namespace] = unitFiles;
+	};
 
 
 	opts.groups = namespaces .. ownKeys .. toArray;
-	// add one root target per namespace
-	namespaces .. ownPropertyPairs .. each {|[namespace, units]|
-		var rootService = mkunit("#{namespace}.target");
-		rootService.addSection('Unit', { Description: "Oni Conductance target" });
-		rootService.addSection('Install', { WantedBy: "multi-user.target" });
-		units.push(rootService);
-	}
 
 	// combine units from all namespaces
 	var allUnits = namespaces .. ownValues .. concat .. toArray;
