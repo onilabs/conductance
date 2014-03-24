@@ -22,7 +22,7 @@ var stream = require('sjs:nodejs/stream');
 var child_process = require('sjs:nodejs/child-process');
 var path = require('nodejs:path');
 var seq  = require('sjs:sequence');
-var { concat, each, map, toArray, filter, find, any, join, hasElem } = seq;
+var { concat, each, map, toArray, filter, find, any, join, hasElem, transform } = seq;
 var string = require('sjs:string');
 var array = require('sjs:array');
 var { isArrayLike } = array;
@@ -162,6 +162,7 @@ GroupProto._addMandatorySettings = function(unit) {
 		[CONDUCTANCE_FORMAT_FLAG, String(CONDUCTANCE_FORMAT)],
 		[CONDUCTANCE_GROUP_FLAG, this.name],
 	] .. pairsToObject());
+	return unit;
 }
 
 GroupProto._processComponents = function(components, groupTarget) {
@@ -184,11 +185,10 @@ GroupProto._processComponents = function(components, groupTarget) {
 
 		// trigger types are units that will activate a service.
 		var triggerTypes = ['socket', 'timer'];
-		var hasTrigger = (triggerTypes .. array.union(unitTypes)).length > 0;
+		var hasTrigger = triggerTypes .. array.haveCommonElements(unitTypes);
 
 		units .. each {|unit|
 			this._addMandatorySettings(unit);
-			unit.setDefault('Install', { 'WantedBy': groupTarget });
 
 			// add in defaults or each unit type
 			if (unit.type == 'service') {
@@ -206,18 +206,21 @@ GroupProto._processComponents = function(components, groupTarget) {
 
 				unit.setDefault('Service', {
 					// fully qualify both `node` and `sjs` executables to ensure we get the right runtime
-					'ExecStart': exports.ConductanceArgs.concat('run', env.configPath()),
+					'ExecStart': exports.ConductanceArgs.concat('serve', env.configPath()),
+					'SyslogIdentifier': fqn,
 				});
 
 				// If we don't have any trigger units defined, we bind this
 				// service directly to the group target
 				if (!hasTrigger) {
 					unit.setDefault('Unit', { 'PartOf': groupTarget });
+					unit.setDefault('Install', { 'WantedBy': groupTarget });
 				}
 
 			} else {
 				// all non-service units are bound to the group target
 				unit.setDefault('Unit', { 'PartOf': groupTarget });
+				unit.setDefault('Install', { 'WantedBy': groupTarget });
 			}
 
 			if (unit.type == 'socket') {
@@ -320,7 +323,7 @@ GroupProto._processComponents = function(components, groupTarget) {
      incorrect, you can override them:
 
       - The ExecStart setting of a service unit defaults to:
-        `[::ConductanceArgs].concat(["run", [env::conductancePath]()])`
+        `[::ConductanceArgs].concat(["serve", [env::conductancePath]()])`
 
       - The `After` setting of a service unit defaults to
         `['local-fs.target','network.target']`.
@@ -403,8 +406,8 @@ var parseArgs = function(command, options, args) {
 		process.exit(0);
 	}
 	if (!opts.dest) {
-		// default to system location
-		opts.dest = '/etc/systemd/system';
+		// default to system / user location
+		opts.dest = opts.user ? (process.env['HOME'] + '/.config/systemd/user/') : '/etc/systemd/system';
 	}
 	if (opts.verbose) logging.setLevel(logging.DEBUG);
 	logging.verbose("Using systemd root: #{opts.dest}");
@@ -433,12 +436,15 @@ var SystemCtl = function(opts) {
 	this.opts = opts;
 	this.mainTargets = opts.groups .. map(name -> "#{name}.target");
 };
+exports._SystemCtl = SystemCtl;
 
 SystemCtl.prototype._run = function(args, opts, quiet) {
 	if (this.opts.files_only) return null;
 	if (!opts) opts = {};
 	var _args = [];
-	// TODO: add --user option if opts.user
+	if(this.opts.user === true) {
+		args.unshift('--user');
+	}
 	args = _args.concat(args);
 	if (quiet !== true) logging.info(" - running: systemctl #{args.join(" ")}");
 	return child_process.run('systemctl', args, {stdio: 'inherit'} .. merge(opts));
@@ -705,7 +711,7 @@ function UnitFile(base, filename, unit) {
 	this.desiredLinks = [];
 
 	if (unit) {
-		assert.ok(UnitProto.isPrototypeOf(unit));
+		assert.ok(UnitProto.isPrototypeOf(unit), `invalid unit: $unit`);
 		unit.sections .. ownPropertyPairs() .. each {|[name, conf]|
 			this.addSection(name, conf);
 		}
@@ -812,15 +818,14 @@ var install = function(opts) {
 			fail("Duplicate systemd group detected (#{namespace}) - no files written");
 		}
 
-		var targetFile = mkUnitFile(group.unitFilename, group.unit);
+		var targetFile = mkUnitFile(group.unitFilename, group.unit());
 
 		var unitFiles = group.components .. ownPropertyPairs .. map (function([name, units]) {
 			var fqn = "#{namespace}-#{name}";
 			return units .. map(unit -> mkUnitFile("#{fqn}.#{unit.type}", unit));
 		}) .. concat .. toArray;
 
-		unitFiles.push(mkUnitFile(group.unitFilename, group.unit));
-		namespaces[namespace] = unitFiles;
+		namespaces[namespace] = [targetFile].concat(unitFiles);
 	};
 
 
@@ -860,7 +865,7 @@ var install = function(opts) {
 	}
 }
 
-exports.main = function(args) {
+exports._main = function(args) {
 	var commonOptions = [
 			{
 				name: 'dest',
@@ -888,6 +893,11 @@ exports.main = function(args) {
 			names: ['interactive', 'i'],
 			type: 'bool',
 			help: 'Prompt for confirmation before changing anything'
+		},
+		{
+			name: 'user',
+			type: 'bool',
+			help: 'Install / uninstall for systemd --user mode'
 		},
 		{
 			name: 'files-only',
@@ -1061,9 +1071,9 @@ Pass `--help` after a valid command to show command-specific help.";
 	action(opts);
 }
 
-exports.run = function(args) {
+exports._run = function(args) {
 	try {
-		exports.main(args);
+		exports._main(args);
 	} catch(e) {
 		logging.debug(String(e));
 		if (e.message) logging.error(e.message);
@@ -1072,5 +1082,5 @@ exports.run = function(args) {
 }
 
 if (require.main === module) {
-	exports.run();
+	exports._run();
 }

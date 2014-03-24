@@ -129,7 +129,10 @@
           @sd.Socket(),
           @sd.Timer(),
           @sd.Unit('unknowntype'),
-        ]
+        ],
+        'service': [
+          @sd.Service(),
+        ],
       });
       var baseSettings = {
         'Unit': {
@@ -146,24 +149,24 @@
             After: ['local-fs.target', 'network.target'],
             Requires: ['myapp-server.socket'],
           },
-          'Install': {
-            WantedBy: 'myapp.target',
-          },
           'Service': {
-            ExecStart: @sd.ConductanceArgs.concat("run", @env.configPath()),
+            ExecStart: @sd.ConductanceArgs.concat("serve", @env.configPath()),
+            SyslogIdentifier: 'myapp-server',
           },
         },
         socket: baseSettings,
         timer: baseSettings,
         unknowntype: baseSettings,
       });
-    }
 
-    @test("service is linked directly to target if no trigger units are given") {||
-      @sd.Group('myapp', {
-        'server': [ @sd.Service() ]
-      }) .. componentSettings('server') .. @getPath('service.Unit') .. @get('PartOf', null) .. @assert.eq(null);
-    };
+      // standalone service is linked directly to the group target
+      var standaloneService = group .. componentSettings('service') .. @get('service');
+      @logging.info(standaloneService);
+      standaloneService.Unit.PartOf .. @assert.eq('myapp.target');
+      standaloneService.Install .. @assert.eq({
+        WantedBy: 'myapp.target',
+      });
+    }
 
     @test("socket accepts a Listen key which can contain conductance ports") {||
       var settings = @sd.Group({'server': @sd.Socket({

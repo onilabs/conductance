@@ -25,12 +25,16 @@ exports.loadConfig = function(path) {
   configfile = configfile .. url.coerceToURL();
 
   // But we also want a plain path for config.path and logging
-  configpath = configfile .. url.toPath();
+  var configpath = configfile .. url.toPath();
 
   //----------------------------------------------------------------------
   // load config file
 
   logging.info("Loading config from #{configpath}");
+  
+  // XXX make sure configPath is set early, for .mho modules that rely on it:
+  env.set('config', {path:configpath});
+
   var config = require(configfile);
   env.set('config', {path:configpath, module: config});
   return config;
