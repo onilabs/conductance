@@ -1,0 +1,34 @@
+@ = require([
+	'mho:server',
+	'mho:server/systemd'
+]);
+
+var address = @Port(9776);
+
+exports.serve = function() {
+	@serve([
+		@Route("ping", {
+			GET: (req) -> req.response.end('OK')
+		})
+	]);
+};
+
+exports.systemd = @Group("myapp", {
+	'main': [
+		@Service(),
+		@Socket({
+			Listen: address,
+		}),
+	],
+	'service': @Service({
+		ExecStart: ['/bin/echo', 'service PING'],
+	}),
+	'timer': [
+		@Service({
+			ExecStart: ['/bin/echo', 'timer PING'],
+		}),
+		@Timer({
+			OnBootSec: '1m'
+		})
+	],
+});

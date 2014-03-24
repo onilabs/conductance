@@ -1,0 +1,27 @@
+// vim: syntax=sjs
+process.on('exit', function(code) {
+  console.log("__EXIT__ " + code);
+});
+
+var exitStatus = 0;
+try {
+  require('sjs:test/runner').run({
+    exit: false,
+    base: module.id,
+    modules: ['test-systemd']
+  });
+} catch(e) {
+  if (e.message) console.warn(String(e));
+  exitStatus=1;
+} finally {
+  var unitDest = (process.env['HOME']) + '/.config/systemd/user';
+  //console.warn("cleaning up: ", unitDest);
+  try {
+    require('sjs:nodejs/child-process').run('chmod', ['-R', 'g+w', unitDest]);
+  } catch(e) {
+    // some files are owned by the controlling user - we just do a best-effort chmod
+    // so that they can clean up the entire directory
+  }
+}
+
+process.exit(exitStatus);
