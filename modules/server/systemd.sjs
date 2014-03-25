@@ -53,6 +53,7 @@ var DEFAULT_GROUP = 'conductance';
 
 /**
   @class Group
+  @summary A set of related systemd components
   @function Group
   @param {optional String} [name="conductance"]
   @param {Object} [components]
@@ -248,9 +249,9 @@ GroupProto._processComponents = function(components, groupTarget) {
   @param {Object|null} [primarySettings]
   @param {optional Object} [additionalSettings]
   @desc
-    Creates a systemd unit, suitable for passing to [::Group].
+    Represents a systemd unit, suitable for passing to [::Group].
 
-    Generally, it's more convenient to use the shortcut functions to create
+    Generally, it's more convenient to use the shorthand functions to create
     units of standard types:
 
     - [::Service]
@@ -312,7 +313,7 @@ GroupProto._processComponents = function(components, groupTarget) {
      - `Exec*` values may be an array, in which case
        they will be escaped using [sjs:shell-quote::].
 
-     - Socket units may specify a [::Port] object (or array of such objects)
+     - Socket units may specify a [server::Port] object (or array of such objects)
        as a `Listen` setting. These will be formatted appropriately for systemd
        and moved to the `ListenStream` setting.
 
@@ -383,14 +384,53 @@ UnitProto.override = function(section, attrs) {
 
 var Unit = exports.Unit = object.Constructor(UnitProto);
 
+/**
+  @class Service
+  @summary A systemd service unit
+  @function Service
+  @param {Object|null} [serviceSettings]
+  @param {optional Object} [additionalSettings]
+  @summary Shorthand for creating a [::Unit] with type `'service'`
+
+  @class Socket
+  @summary A systemd socket unit
+  @function Socket
+  @param {Object|null} [socketSettings]
+  @param {optional Object} [additionalSettings]
+  @summary Shorthand for creating a [::Unit] with type `'socket'`
+
+  @class Timer
+  @summary A systemd timer unit
+  @function Timer
+  @param {Object|null} [timerSettings]
+  @param {optional Object} [additionalSettings]
+  @summary Shorthand for creating a [::Unit] with type `'timer'`
+*/
 exports.Service = () -> Unit.apply(null, ['service'].concat(arguments .. toArray));
 exports.Socket  = () -> Unit.apply(null, ['socket' ].concat(arguments .. toArray));
 exports.Timer   = () -> Unit.apply(null, ['timer'  ].concat(arguments .. toArray));
 
 /**
-  used by configs to define systemd actions which will launch conductance
-  (using the current node, sjs & conductance versions, regardless of what is on
-  $PATH etc)
+  @variable ConductanceArgs
+  @type Array
+  @summary Command-line arguments used to launch this conductance installation
+  @desc
+    This array contains the exact arguments used to launch this conductance
+    instance. You should use this in your service `ExecStart` settings
+    so that your service doesn't rely on $PATH.
+
+
+    ### Example:
+
+        var { Service, ConductanceArgs } = require('mho:server/systemd');
+
+        var service = Service({
+          ExecStart: ConductanceArgs.concat([exec, <module URL> ]);
+          // ...
+        });
+
+    Note: the [::Service] constructor sets a default `ExecStart` setting, so you
+    often don't need to set this yourself.
   */
 exports.ConductanceArgs = [
 	process.execPath,
@@ -542,6 +582,9 @@ SystemCtl.prototype._presentUnits = function() {
 	.. map (function(line) {
 			return line.trim().split(/\s/)[0];
 		});
+
+	// XXX: use FragmentPath to parse existing unit file, and ignore files which do not have
+	// CONDUCTANCE_FLAG or which have a differing CONDUCTANCE_GROUP_FLAG set to a different group
 
 	var units = this.opts.groups .. transform(function(namespace) {
 		return output
@@ -1034,9 +1077,9 @@ exports._main = function(args) {
 
   SERVICE ACTIONS:
     list:       List installed conductance units in the given group(s).
-    start:      Start conductance group(s) (noop if already running).
+    start:      Start conductance group(s) (noop for already-running units).
     stop:       Stop conductance group(s).
-    restart:    Restart conductance group(s).
+    restart:    Restart conductance group(s) (noop for inactive units).
     status:     Run systemctl status on conductance group(s).
     log:        Run journalctl on conductance group(s).
 
