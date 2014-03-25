@@ -167,8 +167,9 @@ GroupProto._addMandatorySettings = function(unit) {
 }
 
 GroupProto._processComponents = function(components, groupTarget) {
+	assert.object(components, "Group components");
 	components .. ownPropertyPairs .. each {|[key, units]|
-		if (!isArrayLike(units)) {
+		if (!Array.isArray(units)) {
 			// promote single unit object into an array
 			components[key] = [units];
 		}
@@ -183,6 +184,9 @@ GroupProto._processComponents = function(components, groupTarget) {
 
 		var fqn = "#{this.name}-#{name}";
 		var unitTypes = units .. map(u -> u.type);
+		if ((unitTypes .. seq.unique()).length < unitTypes.length) {
+			fail("#{fqn} component contains duplicate unit types");
+		}
 
 		// trigger types are units that will activate a service.
 		var triggerTypes = ['socket', 'timer'];
@@ -658,9 +662,10 @@ var confirm = function(opts, msg) {
 /**
  * Ensure directory exists
  */
-var ensureDir = function(dir) {
+var ensureDir = function(dir, quiet) {
 	if (!fs.exists(dir)) {
-		logging.info("#{dir} does not exist - creating it");
+		if(!quiet) logging.info("#{dir} does not exist - creating it");
+		ensureDir(path.dirname(dir), true);
 		fs.mkdir(dir);
 	}
 }

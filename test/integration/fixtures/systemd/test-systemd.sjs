@@ -124,9 +124,7 @@ var allUnits = startupUnits.concat([
 
 	@test.beforeEach {||
 		stopAll();
-		waitUntil(-> ctl._activeUnits() .. @tap(console.log) .. @eq([]));
-		ctl._activeUnits() .. @assert.eq([]);
-
+		waitUntil(-> ctl._activeUnits() .. @eq([]));
 	}
 
 	@test("starts only required units by default") {||
@@ -155,4 +153,27 @@ var allUnits = startupUnits.concat([
 		runAction('stop');
 		ctl._activeUnits() .. @sort .. @assert.eq([]);
 	}
+
+	@context("manual group control") {||
+		// these are more here to document what happens than to
+		// describe desired behaviour -
+		// ideally we'd like stop and restart of the group unit to
+		// propagate to _all_ units, but that would currently
+		// cause `install` to start _all_ units.
+
+		@test("starting group starts minimal units") {||
+			ctl.start(['myapp.target']);
+			ctl._activeUnits() .. @sort .. @assert.eq(startupUnits);
+		}
+
+		@test("restarting group restarts minimal services") {||
+			ctl.restart(['myapp.target']);
+			ctl._activeUnits() .. @sort .. @assert.eq(startupUnits);
+
+			assertRestarts(startupUnits, -> ctl.restart(['myapp.target']));
+
+			ctl.start(allUnits);
+			assertRestarts(allUnits, -> ctl.restart(['myapp.target']));
+		}
+	}.skip("not currently working as expected");
 }

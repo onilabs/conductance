@@ -93,6 +93,9 @@
       }
       messages .. @assert.eq(["WARN", "Unknown systemd unit section 'FOO' - did you mean 'Foo'?"]);
     }
+  }
+
+  @context("group") {||
 
     @test("adds mandatory properties to all units") {||
       var mandatoryProperties = {
@@ -175,6 +178,22 @@
 
       settings .. @getPath('socket.Socket.Listen', null) .. @assert.eq(null);
       settings .. @getPath('socket.Socket.ListenStream') .. @assert.eq(['2020', 'localhost:1234']);
+    }
+
+    @test("accepts a single unit per component") {||
+      @sd.Group({'server': @sd.Service()});
+    }
+
+    @context("error messages for invalid arguments") {||
+      @test("non-object") {||
+        @assert.raises({message: "object required (Group components)"}, -> @sd.Group('server'));
+      }
+      @test("old-style plain object") {||
+        @assert.raises({message: "Not a systemd.Unit object: { Service: {} }"}, -> @sd.Group({main: {Service: {}}}));
+      }
+      @test("duplicate unit types") {||
+        @assert.raises({message: "myapp-server component contains duplicate unit types"}, -> @sd.Group('myapp', {'server': [ @sd.Service(), @sd.Service() ]}));
+      }
     }
   }
 
