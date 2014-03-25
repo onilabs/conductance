@@ -462,12 +462,14 @@ SystemCtl.prototype._runUnits = function (action, units) {
 	return this._run([action].concat(units));
 }
 
+SystemCtl.prototype.installedUnits = -> installedUnits(this.opts) .. map(u -> u.name);
+
 SystemCtl.prototype.controlUnits = function() {
 	// controlUnits are those that should be started / stopped / etc.
 	// if `--all` is passed in as an option, this returns all installed units.
 	// Otherwise, this returns the per-group `.target` unit
 	if (this.opts.all) {
-		return installedUnits(this.opts) .. map(u -> u.name);
+		return this.installedUnits();
 	} else {
 		return this.mainTargets;
 	}
@@ -483,7 +485,7 @@ SystemCtl.prototype.status       = (units) -> this._runUnits('status', units);
 SystemCtl.prototype.stopUnwanted = function() {
 	// TODO: there should be a more specific call we can make here:
 	var unwanted = [];
-	this._runningUnits() .. each {|unitName|
+	this._presentUnits() .. each {|unitName|
 		var props = this._unitProperties(unitName, [
 			'LoadState',
 			'ActiveState',
@@ -524,14 +526,14 @@ SystemCtl.prototype._unitProperties = function(unit, propertyNames) {
 		.. each {|line|
 			line = line.trim();
 			if (!line) continue;
-			[key, val] = line .. string.split('=', 1);
+			var [key, val] = line .. string.split('=', 1);
 			props[key.trim()] = val.trim();
 		};
 	//logging.debug("Unit #{unit} has props:", props);
 	return props;
 };
 
-SystemCtl.prototype._runningUnits = function() {
+SystemCtl.prototype._presentUnits = function() {
 	if (this.opts.files_only) return [];
 
 	var output = this._run_output(['list-units', '--no-legend', '--no-pager', '--full']);
@@ -547,6 +549,17 @@ SystemCtl.prototype._runningUnits = function() {
 	}) .. concat .. toArray;
 	logging.debug("Currently running unit names: ", units);
 	return units;
+};
+
+SystemCtl.prototype._activeUnits = function() {
+	return this._presentUnits()
+		.. filter((name) =>
+			this._unitProperties(name, ['ActiveState'])['ActiveState'] == 'active')
+		.. toArray;
+};
+
+SystemCtl.prototype.reloadOrTryRestart = function(units) {
+	this._runUnits('reload-or-try-restart', units);
 };
 
 SystemCtl.prototype.restart = function(units) {
@@ -638,7 +651,7 @@ var installedUnits = function(opts, exclude) {
 		.. filter(is_conductance)
 		.. toArray
 		.. array.difference(exclude)
-		.. map(u -> new Unit(opts.dest, u));
+		.. map(u -> new UnitFile(opts.dest, u));
 }
 
 /**
@@ -708,7 +721,6 @@ function UnitFile(base, filename, unit) {
 	this.base = base;
 	this.name = filename;
 	this.sections = {};
-	this.desiredLinks = [];
 
 	if (unit) {
 		assert.ok(UnitProto.isPrototypeOf(unit), `invalid unit: $unit`);
@@ -858,11 +870,11 @@ var install = function(opts) {
 
 	if (opts.no_restart) {
 		logging.info("Starting new services ...");
-		ctl.start(ctl.mainTargets);
 	} else {
 		logging.info("Restarting services ...");
-		ctl.restart(ctl.mainTargets);
+		ctl.reloadOrTryRestart(ctl.installedUnits());
 	}
+	ctl.start(ctl.mainTargets);
 }
 
 exports._main = function(args) {
@@ -875,6 +887,11 @@ exports._main = function(args) {
 			{
 				names: ['verbose','v'],
 				type: 'bool',
+			},
+			{
+				name: 'user',
+				type: 'bool',
+				help: 'Run all systemd commands with the --user flag'
 			},
 			{
 				names: ['help','h'],
@@ -893,11 +910,6 @@ exports._main = function(args) {
 			names: ['interactive', 'i'],
 			type: 'bool',
 			help: 'Prompt for confirmation before changing anything'
-		},
-		{
-			name: 'user',
-			type: 'bool',
-			help: 'Install / uninstall for systemd --user mode'
 		},
 		{
 			name: 'files-only',
@@ -970,21 +982,19 @@ exports._main = function(args) {
 			break;
 
 		case "restart":
-			options = options.concat(allOpt);
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
 				ctl.reloadConfig();
-				ctl.restart(ctl.controlUnits());
+				ctl.reloadOrTryRestart(ctl.installedUnits());
 			};
 			break;
 
 		case "stop":
-			options = options.concat(allOpt);
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
-				ctl.stop(ctl.controlUnits());
+				ctl.stop(ctl.installedUnits());
 			};
 			break;
 
@@ -1001,16 +1011,14 @@ exports._main = function(args) {
 		case "log":
 			action = function(opts) {
 				var ctl = new SystemCtl(opts);
-				var units = installedUnits(opts);
-				ctl.log(units..map(u->u.name), opts._args);
+				ctl.log(ctl.installedUnits(), opts._args);
 			};
 			break;
 
 		case "status":
 			action = function(opts) {
 				var ctl = new SystemCtl(opts);
-				var units = installedUnits(opts);
-				ctl.status(units..map(u->u.name), opts._args);
+				ctl.status(ctl.installedUnits(), opts._args);
 			};
 			break;
 
@@ -1018,8 +1026,8 @@ exports._main = function(args) {
 			var usage = "Commands:
   SYSTEM MODIFICATION:
     install:    Install units from one or more .mho config files.
-                Also removes previously-installed units that are
-                no longer defined.
+                Removes previously-installed units with the same
+                group name that are no longer present.
 
     uninstall:  Remove all currently installed conductance units in
                 the given group(s).

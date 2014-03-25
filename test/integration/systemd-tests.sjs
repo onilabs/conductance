@@ -43,9 +43,17 @@ var lines = function(stream) {
   - the current $USER added to the sandbox group
   - ~sandbox/.config/systemd/ exists (and is recursively group-writable)
   - passwordless sudo for `systemctl start|stop user@{UID}.service`
+  - $ loginctl enable-linger sandbox
 
   It'd be better if we could do this with systemd-nspawn somehow,
   but that currently requires root anyway.
+
+  For debugging, you should:
+
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/dbus/user_bus_socket"
+
+  So that `systemctl --user` will work
+
   */
 
   var user = 'sandbox'; // XXX
@@ -77,16 +85,37 @@ var lines = function(stream) {
     @fs.writeFile(@path.join(unitBase, unit), "
       [Service]
       ExecStart=#{args .. require('sjs:shell-quote').quote()}
+      Restart=no
       SyslogIdentifier=#{unitName}
     ".replace(/^ */mg, ''));
 
+
+    @fs.writeFile(@path.join(unitBase, "dbus.service"), "
+      [Unit]
+      Requires=dbus.socket
+
+      [Service]
+      ExecStart=/usr/bin/dbus-daemon --session --address=systemd: --nofork --systemd-activation
+      ExecReload=/usr/bin/dbus-send --print-reply --session --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig
+    ".replace(/^ */mg, ''));
+
+    @fs.writeFile(@path.join(unitBase, "dbus.socket"), "
+      [Socket]
+      ListenStream=%t/dbus/user_bus_socket
+    ".replace(/^ */mg, ''));
+
     @path.join(unitBase, unit) .. groupWritable(user);
+    @path.join(unitBase, 'dbus.service') .. groupWritable(user);
+    @path.join(unitBase, 'dbus.socket') .. groupWritable(user);
 
     var cwd = process.cwd();
     process.chdir(unitBase + "/default.target.wants");
     try {
       if (!@fs.exists(unit)) {
         @fs.symlink("../#{unit}", unit);
+      }
+      if (!@fs.exists('dbus.socket')) {
+        @fs.symlink("../dbus.socket", "dbus.socket");
       }
     } finally {
       process.chdir(cwd);
