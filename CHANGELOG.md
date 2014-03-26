@@ -7,35 +7,38 @@ This changelog lists the most prominent, developer-visible changes in each relea
    - The format of the object passed into `Group` has changed. Previously,
      components were a plain object with unit-type keys, as in:
 
-     Group({
-       main: {
-         Service: { /* service properties */ },
-         Socket: { /* socket properties */ },
-       }
-     });
+            Group({
+              main: {
+                Service: { /* service properties */ },
+                Socket: { /* socket properties */ },
+              }
+            });
 
-     This did not allow the user to specify non-service properties (e.g properties
-     belonging in the `Unit` or `Install` section of the underlying systemd unit).
-     It also only supported the `socket` and `service` unit types - we have added
-     explicit support for `timer` units in version 0.5, but you can also create
-     arbitrary unit types as well.
+     This did not allow specifying non-service properties (e.g properties
+     belonging in the `Unit` or `Install` section of the underlying systemd unit),
+     which is supported by the new `Unit` object.
+
+     The previous code also only supported the `socket` and `service` unit types - we
+     have added explicit support for `timer` units in version 0.5, but you can also
+     create arbitrary unit types as well.
 
      The new format is for each component passed to the `Group` constructor to have
-     an array of `Unit` types, as in:
+     an array of `Unit` objects, as in:
 
-     Group({
-       main: [
-         Service({ /* service properties */ }, { /* (optional) additional properties */ }),
-         Socket({  /* socket properties */ }, { /* (optional) additional properties */ }),
-       ],
-     });
+            Group({
+              main: [
+                Service({ /* service properties */ }),
+                Socket( { /* socket properties  */ }),
+              ],
+            });
 
      You can also specify just a single `Unit`, rather than an array. Having an explicit object
      type allows us to use optional arguments, and provides better error handling / feedback
      than a nested untyped object.
 
-   - We've also refined the default properties added to units, to give groups better coherence
-     (services are more strongly tied to their group's `.target` unit).
+   - We've also refined the default properties added to units and how some of the
+     `conductance systemd` commands operate, to better ensure that the appropriate
+     units are started / stopped / restarted in concert.
 
 ## Version 0.4:
 
