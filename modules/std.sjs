@@ -95,6 +95,7 @@ if (hostenv === 'nodejs') {
     {id:'mho:server/route', name:'route'},
     'mho:server/response',
     'mho:server/generator',
+    'mho:server/storage'
   ]);
 }
 
@@ -166,6 +167,12 @@ module.exports = require(modules);
    - **isHttpError**: (function [mho:server/response::isHttpError])
    - **NotFound**: (function [mho:server/response::NotFound])
    - **ServerError**: (function [mho:server/response::ServerError])
+  
+  
+  ### Symbols from the [mho:server/storage](#mho%3Aserver%2Fstorage) module:
+  *(when in the nodejs environment)*
+  
+   - **Storage**: (class [mho:server/storage::Storage])
   
   
   ### Symbols from the [mho:surface](#mho%3Asurface) module:
