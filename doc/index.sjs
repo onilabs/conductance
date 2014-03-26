@@ -46,9 +46,9 @@ window.withBusyIndicator {|hideBusyIndicator|
 	var docsStyle   = RequireExternalStyle(Url.normalize('css/docs.css', module.id))
 	var searchStyle = RequireExternalStyle(Url.normalize('css/search.css', module.id));
 
-	exports.run = function(root) {
+	exports.run = function(root, defaultHubs) {
 		var libraries = Library.Collection();
-		var defaultHubs = ['sjs:','mho:'];
+		defaultHubs = defaultHubs || [['sjs:'],['mho:']];
 
 		var locationHash = ObservableVar(undefined);
 		var symbolAnchor = null; // anchor-within-hash part of location (e.g #sjs:sequence::transform~example)
@@ -72,7 +72,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 			return sym !== undefined ? renderer.renderSidebar(sym);
 		});
 
-		defaultHubs .. each(h -> libraries.add(h));
+		defaultHubs .. each(h -> libraries.add.apply(libraries, h));
 
 		var hubDebug = libraries.val .. transform(function(hubs) {
 			return JSON.stringify(hubs, null, '  ');
@@ -227,7 +227,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 			document.location.reload();
 		} and {
 			try {
-				exports.run(root);
+				exports.run.apply(null, arguments);
 			} catch(e) {
 				error.set(e);
 			}
