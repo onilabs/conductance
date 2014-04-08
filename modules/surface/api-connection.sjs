@@ -44,7 +44,7 @@ exports.withAPI = function(api, block) {
   while (1) {
     try {
       @connect(api, {
-        connectionMonitor: function() {
+        connectMonitor: function() {
           hold(300); // small delay before showing ui feedback
           document.body .. @appendContent(@Notice('Connecting...', {'class':'alert-warning'}), -> hold());
         }
