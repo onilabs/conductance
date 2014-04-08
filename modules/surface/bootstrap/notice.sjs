@@ -22,6 +22,7 @@ exports._fixedNoticeStyle = "
         right:0;
         height:0;
         text-align: center;
+        z-index: 2000;
 ";
 
 exports._fixedNoticeAlertStyle = "
