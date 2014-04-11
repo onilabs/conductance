@@ -276,7 +276,7 @@ var Responder = {
 
 /**
   @class Host
-  @summary Handle reqeusts for a given host
+  @summary Handle requests for a given host
   @function Host
   @param {String|RexExp} [hostName] Hostname to handle requests for
   @param {Array} [routes] Array of (possibly nested) [::Route] objects for this host
