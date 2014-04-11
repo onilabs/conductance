@@ -271,6 +271,9 @@ exports.StaticFormatMap = {
   xml  : { none : { mime: "text/xml" },
            src  : { mime: "text/plain" }
          },
+  png  : { none : { mime: "image/png" } },
+  jpg  : { none : { mime: "image/jpeg" } },
+  gif  : { none : { mime: "image/gif" } },
   mp4  : { none : { mime: "video/mp4" } },
   wav  : { none : { mime: "audio/wav" } },
   svg  : { none : { mime: "image/svg+xml" } },
