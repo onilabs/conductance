@@ -276,7 +276,7 @@ var Responder = {
 
 /**
   @class Host
-  @summary Handle requests for a given host
+  @summary Host descriptor for use in a [::run] server configuration.
   @function Host
   @param {String|RexExp} [hostName] Hostname to handle requests for
   @param {Array} [routes] Array of (possibly nested) [::Route] objects for this host
@@ -427,7 +427,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
 
 /**
   @class Route
-  @summary Custom Route handler
+  @summary Route descriptor for use in a [::run] server configuration.
   @function Route
   @param {optional RexExp|String} [path] Path to match
   @param {Object|Array} [handlers] handler object or array of sub-routes
@@ -473,6 +473,7 @@ exports.Route = Constructor(RouteProto);
 
 /**
   @class Port
+  @summary Port descriptor for use in a [::run] server configuration.
   @function Port
   @param {Number} [port]
   @param {optional String} [address] interface (IP address) to listen on
