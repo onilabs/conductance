@@ -43,6 +43,7 @@ var fail = function(msg) {
 	throw new Error(msg);
 }
 
+var CONDUCTANCE_PREFIX = 'X-Conductance-';
 var CONDUCTANCE_FLAG = 'X-Conductance-Generated';
 var CONDUCTANCE_FORMAT_FLAG = 'X-Conductance-Format';
 var CONDUCTANCE_FORMAT = exports._format = 1;
@@ -459,18 +460,10 @@ var parseArgs = function(command, options, args) {
 };
 
 /* Assert that no arguments were passed */
-var noargs = function(opts) {
+var noargs = function(opts, msg) {
 	if (opts._args.length > 0) {
-		fail("Extra arguments provided");
+		fail(msg || "Extra arguments provided");
 	}
-};
-
-/* run a systemctl command */
-var run_systemctl = function(opts, args) {
-	var _args = [];
-	args = _args.concat(args);
-	logging.info(" - running: systemctl #{args.join(" ")}");
-	return child_process.run('systemctl', args, {stdio:'inherit'});
 };
 
 /**
@@ -491,7 +484,12 @@ SystemCtl.prototype._run = function(args, opts, quiet) {
 	}
 	args = _args.concat(args);
 	if (quiet !== true) logging.info(" - running: systemctl #{args.join(" ")}");
-	return child_process.run('systemctl', args, {stdio: 'inherit'} .. merge(opts));
+	try {
+		return child_process.run('systemctl', args, {stdio:[0, 1, 'pipe']} .. merge(opts));
+	} catch(e) {
+		if (e.stderr) console.warn(e.stderr);
+		throw e;
+	}
 };
 
 SystemCtl.prototype._run_output = function(args) {
@@ -675,32 +673,87 @@ var ensureDir = function(dir, quiet) {
  * under the given groups.
  */
 var installedUnits = function(opts, exclude) {
-	var base = opts.dest;
 	exclude = (exclude || []) .. map(u -> u.name);
 
-	var unit_files = fs.readdir(base);
-	logging.debug("existing unit files:", unit_files);
-	var conductanceFlagRe = new RegExp("^#{CONDUCTANCE_FLAG} *= *true", "m")
-	var is_conductance = function(target) {
-		var validName = (
-			opts.groups .. any((namespace)
-				-> target .. string.startsWith("#{namespace}-")
-				|| target == "#{namespace}.target"));
+	var nameFilter = function(target) {
+		if (exclude .. seq.hasElem(target)) {
+			return false;
+		}
+		return opts.groups .. any((namespace) -> (
+			target .. string.startsWith("#{namespace}-") ||
+			target == "#{namespace}.target"));
+	};
 
-		if(validName) {
-			var contents = fs.readFile(path.join(base, target)).toString();
-			if (conductanceFlagRe.test(contents)) {
-				return true;
+	var keyFilter = function(keys, target) {
+		var group = keys[CONDUCTANCE_GROUP_FLAG];
+		if (group && !opts.groups .. seq.hasElem(group)) {
+			logging.debug(
+				"Unit #{target} belongs to group #{group}, not #{ opts.groups .. join("|")}"
+			);
+			return false;
+		}
+		return true;
+	};
+
+	return filterInstalledUnits(opts, nameFilter, keyFilter);
+}
+
+/**
+ * Like installedUnits(), but
+ * returns all units installed by conductance, regardless of group
+ */
+var allConductanceUnits = function(opts) {
+	return filterInstalledUnits(opts, null, null);
+}
+
+
+// helper used by installedUnits and allConductanceUnits
+var filterInstalledUnits = function(opts, nameFilter, keyFilter) {
+	var base = opts.dest;
+	var unit_files = fs.readdir(base);
+	logging.debug("installed unit files:", unit_files);
+
+	var rv = unit_files;
+	if(nameFilter) rv = rv .. filter(nameFilter);
+	rv = rv .. filter(function(target) {
+		try {
+			var keys = loadConductanceProperties(path.join(base, target));
+		} catch(e) {
+			switch(e.code) {
+				case 'EISDIR':
+				case 'ENOENT':
+					return false;
+					break;
+				default:
+					throw e;
 			}
 		}
-		return false;
-	};
-	return unit_files
-		.. filter(is_conductance)
-		.. toArray
-		.. array.difference(exclude)
+		if (!keys[CONDUCTANCE_FLAG]) {
+			logging.debug("Not a conductance unit: #{target}");
+			return false;
+		}
+		if (keyFilter) return keyFilter(keys, target);
+		return true;
+	});
+
+	return rv .. toArray
 		.. map(u -> new UnitFile(opts.dest, u));
-}
+};
+
+function loadConductanceProperties(unitPath) {
+	var contents = fs.readFile(unitPath).toString();
+	var trim = x -> x.trim();
+	var keys = contents.split('\n')
+		.. map(trim)
+		.. filter(line -> line .. string.startsWith(CONDUCTANCE_PREFIX))
+		.. map(line -> line .. string.split('=', 1) .. map(trim) .. toArray)
+		.. pairsToObject();
+	logging.debug("Conductance keys extracted:", keys)
+	
+	// convert flag to bool
+	keys[CONDUCTANCE_FLAG] = keys[CONDUCTANCE_FLAG] === 'true';
+	return keys;
+};
 
 /**
  * Execute a block in a specific director
@@ -715,16 +768,19 @@ var chdir = function(dir, block) {
 	}
 }
 
-var uninstallExistingUnits = function(opts, exclude) {
+var uninstallExistingUnits = exports._uninstallExistingUnits = function(opts, exclude) {
 	var old_units = installedUnits(opts, exclude);
-	var oldUnitNames = old_units .. map(u -> u.name);
-	logging.debug("old unit files:", oldUnitNames);
-	if (old_units.length > 0) {
+	uninstallUnits(opts, old_units);
+	return old_units;
+}
+
+var uninstallUnits = function(opts, units) {
+	if (units.length > 0) {
+		var unitNames = units .. map(u -> u.name);
 		logging.print(
-			["Uninstalling #{old_units.length} #{opts.groups .. join(",")} units from #{opts.dest}:"]
-			.concat(oldUnitNames).join("\n - "));
+			["Uninstalling #{unitNames.length} units from #{opts.dest}:"]
+			.concat(unitNames).join("\n - "));
 		confirm(opts);
-		var unitNames = old_units .. map(u -> u.name);
 		var ctl = new SystemCtl(opts);
 		try {
 			ctl.stop(unitNames);
@@ -732,14 +788,13 @@ var uninstallExistingUnits = function(opts, exclude) {
 			if (!opts.force) throw e;
 		}
 		ctl.uninstall(unitNames);
-		old_units .. each {|unit|
+		units .. each {|unit|
 			if (fs.exists(unit.path())) {
 				fs.unlink(unit.path());
 			}
 		}
 	}
-	return old_units;
-}
+};
 
 var firstDuplicate = function(arr) {
 	// assumes all values are truthy (or at least !== null)
@@ -751,13 +806,22 @@ var firstDuplicate = function(arr) {
 	return null;
 }
 
-var uninstall = function(opts) {
-	noargs(opts);
+var uninstall = exports._uninstall = function(opts) {
+	var tooMuchConfig = "uninstall --all accepts no group or config arguments";
+	noargs(opts, tooMuchConfig);
 	var base = opts.dest;
 	if (!fs.exists(base)) {
 		fail("#{base} does not exist");
 	}
-	uninstallExistingUnits(opts);
+
+	if(opts.all) {
+		if (opts.groups.length > 0) {
+			fail(tooMuchConfig);
+		}
+		uninstallUnits(opts, allConductanceUnits(opts));
+	} else {
+		uninstallExistingUnits(opts);
+	}
 }
 
 /**
@@ -858,7 +922,7 @@ var defaultConfig = function() {
 	return config;
 };
 
-var install = function(opts) {
+var install = exports._install = function(opts) {
 	var base = opts.dest;
 	var mkUnitFile = (name, unit) -> new UnitFile(opts.dest, name, unit);
 	ensureDir(opts.dest);
@@ -966,14 +1030,6 @@ exports._main = function(args) {
 		},
 	];
 
-	var allOpt = [
-		{
-			name: 'all',
-			type: 'bool',
-			help: 'Act on all units, not just .target units'
-		},
-	];
-
 	var groupOptions = [
 		{
 			names: ['config','c'],
@@ -995,6 +1051,7 @@ exports._main = function(args) {
 	// everything but `install` uses groupOptions, so we include it in the default set
 	var options = [commonOptions, groupOptions] .. concat .. toArray;
 	var action;
+	var shouldUseDefaultConfig = -> true;
 	switch(command) {
 		case "install":
 			options = commonOptions.concat(commonInstallOptions);
@@ -1006,8 +1063,14 @@ exports._main = function(args) {
 					name: 'force',
 					type: 'bool',
 					help: "Remove config files even if services can't be stopped",
-				}
+				},
+				{
+					name: 'all',
+					type: 'bool',
+					help: "Remove all conductance units (regardless of group)",
+				},
 			]] .. concat .. toArray;
+			shouldUseDefaultConfig = (opts) -> opts.all !== true;
 			action = uninstall;
 			break;
 
@@ -1047,7 +1110,13 @@ exports._main = function(args) {
 			break;
 
 		case "start":
-			options = options.concat(allOpt);
+			options = options.concat(
+				{
+					name: 'all',
+					type: 'bool',
+					help: 'Start all units, not just .target units'
+				}
+			);
 			action = function(opts) {
 				noargs(opts);
 				var ctl = new SystemCtl(opts);
@@ -1078,7 +1147,8 @@ exports._main = function(args) {
                 group name that are no longer present.
 
     uninstall:  Remove all currently installed conductance units in
-                the given group(s).
+                the given group(s), or in any group if `--all` is
+                specified.
 
   SERVICE ACTIONS:
     list:       List installed conductance units in the given group(s).
@@ -1110,7 +1180,7 @@ Pass `--help` after a valid command to show command-specific help.";
 			throw new Error("Use either --group or --config, not both.");
 		}
 
-		if (opts.group.length === 0 && opts.config.length === 0) {
+		if (opts.group.length === 0 && opts.config.length === 0 && shouldUseDefaultConfig(opts)) {
 			opts.config = [defaultConfig()];
 		}
 
@@ -1121,7 +1191,9 @@ Pass `--help` after a valid command to show command-specific help.";
 		}
 		delete opts.group;
 		delete opts.config;
-		logging.info("Groups: #{opts.groups .. join(", ")}");
+		if (opts.groups.length > 0) {
+			logging.info("Groups: #{opts.groups .. join(", ")}");
+		}
 	}
 
 	action(opts);

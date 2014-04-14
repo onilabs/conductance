@@ -1,0 +1,17 @@
+@ = require([
+	'mho:std',
+	{id: 'mho:server', name:'server'},
+	'mho:server/systemd'
+]);
+
+exports.systemd = @Group("otherapp", {
+	'service': @Service({
+		ExecStart: @ConductanceArgs.concat('exec', module.id, 'service'),
+	}),
+});
+
+if (require.main === module) {
+	var name = @argv()[0];
+	console.log(name + " PING");
+	hold(name == 'service' ? undefined : 10000);
+}

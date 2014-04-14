@@ -36,8 +36,12 @@ function runAction(action) {
 	@sd._main([action, '--config', config, '--user'].concat(Array.prototype.slice.call(arguments, 1)));
 };
 
+function installConfig(config) {
+	@sd._main(['install', config, '--user'].concat(arguments .. @slice(1) .. @toArray));
+};
+
 function install() {
-	@sd._main(['install', config, '--user'].concat(arguments .. @toArray));
+	installConfig.apply(null, [config].concat(arguments .. @toArray));
 };
 
 function assertRestarts(units, blk) {
@@ -111,10 +115,38 @@ var allUnits = startupUnits.concat([
 	}
 
 	@test("stops and removes previously-installed units") {||
-	}.skip("TODO");
+		installConfig(@url.normalize('./old_config.mho', module.id));
+		var oldUnit = 'myapp-old-service.service';
+		ctl._activeUnits() .. @sort .. @assert.contains(oldUnit);
+
+		install();
+		ctl._activeUnits() .. @sort .. @assert.notContains(oldUnit);
+	}
 
 	@test("stops and removes _all_ conductance units") {||
-	}.skip("TODO");
+		// install old & new configs
+		var ctl = new @sd._SystemCtl({groups:['myapp', 'otherapp'], user: true});
+
+		installConfig(@url.normalize('./secondary_config.mho', module.id));
+
+		ctl._activeUnits() .. @sort .. @assert.eq(
+			['otherapp-service.service', 'otherapp.target']
+			.concat(startupUnits) .. @sort
+		);
+		@sd._main(['uninstall', '--user', '--all']);
+		ctl._activeUnits() .. @assert.eq([]);
+	}
+
+	@test("disallows config argument when using `uninstall --all`") {||
+		@assert.raises({message: 'uninstall --all accepts no group or config arguments'},
+			-> @sd._main(['uninstall', '--all', '--config', config]));
+
+		@assert.raises({message: 'uninstall --all accepts no group or config arguments'},
+			-> @sd._main(['uninstall', '--all', 'foo']));
+
+		@assert.raises({message: 'uninstall --all accepts no group or config arguments'},
+			-> @sd._main(['uninstall', '--all', '--group', 'foo']));
+	}
 }
 
 @context("unit control") {||
