@@ -141,7 +141,7 @@ if (require.main === module) {
       };
 
       var unitFiles = function() {
-        return @fs.readdir(tmp.path);
+        return @fs.readdir(tmp.path) .. @sort();
       }
 
       var writeUnit = function(name, contents) {
