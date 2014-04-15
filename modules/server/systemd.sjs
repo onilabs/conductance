@@ -807,17 +807,12 @@ var firstDuplicate = function(arr) {
 }
 
 var uninstall = exports._uninstall = function(opts) {
-	var tooMuchConfig = "uninstall --all accepts no group or config arguments";
-	noargs(opts, tooMuchConfig);
 	var base = opts.dest;
 	if (!fs.exists(base)) {
 		fail("#{base} does not exist");
 	}
 
 	if(opts.all) {
-		if (opts.groups.length > 0) {
-			fail(tooMuchConfig);
-		}
 		uninstallUnits(opts, allConductanceUnits(opts));
 	} else {
 		uninstallExistingUnits(opts);
@@ -1044,37 +1039,43 @@ exports._main = function(args) {
 			help: "Specify group name to act on",
 			'default': [],
 		},
-	]
+	];
+
+	var allUnitsOptions = [
+		{
+			name: 'all',
+			type: 'bool',
+			help: "Act on all conductance units (regardless of group). If given, you should not pass any --config or --group options",
+		},
+	];
 
 	if (!args) args = require("sjs:sys").argv();
 	var command = args.shift();
 	// everything but `install` uses groupOptions, so we include it in the default set
 	var options = [commonOptions, groupOptions] .. concat .. toArray;
 	var action;
-	var shouldUseDefaultConfig = -> true;
+	var allReplacesGroupOptions = false;
+
 	switch(command) {
 		case "install":
 			options = commonOptions.concat(commonInstallOptions);
 			action = install;
 			break;
 		case "uninstall":
-			options = [commonOptions, commonInstallOptions, groupOptions, [
+			options = [commonOptions, commonInstallOptions, groupOptions, allUnitsOptions, [
 				{
 					name: 'force',
 					type: 'bool',
 					help: "Remove config files even if services can't be stopped",
 				},
-				{
-					name: 'all',
-					type: 'bool',
-					help: "Remove all conductance units (regardless of group)",
-				},
 			]] .. concat .. toArray;
-			shouldUseDefaultConfig = (opts) -> opts.all !== true;
+			allReplacesGroupOptions = true;
 			action = uninstall;
 			break;
 
 		case "list":
+			options = options.concat(allUnitsOptions);
+			allReplacesGroupOptions = true;
 			action = function(opts) {
 				noargs(opts);
 				installedUnits(opts) .. each(u -> console.log(u.name));
@@ -1180,8 +1181,10 @@ Pass `--help` after a valid command to show command-specific help.";
 			throw new Error("Use either --group or --config, not both.");
 		}
 
-		if (opts.group.length === 0 && opts.config.length === 0 && shouldUseDefaultConfig(opts)) {
-			opts.config = [defaultConfig()];
+		if (opts.group.length === 0 && opts.config.length === 0) {
+			if (!(allReplacesGroupOptions && opts.all)) {
+				opts.config = [defaultConfig()];
+			}
 		}
 
 		if (opts.config.length > 0) {
@@ -1193,6 +1196,14 @@ Pass `--help` after a valid command to show command-specific help.";
 		delete opts.config;
 		if (opts.groups.length > 0) {
 			logging.info("Groups: #{opts.groups .. join(", ")}");
+		}
+	}
+
+	if (allReplacesGroupOptions && opts.all) {
+		var tooMuchConfig = "#{command} --all accepts no group or config arguments";
+		noargs(opts, tooMuchConfig);
+		if (opts.groups.length > 0) {
+			fail(tooMuchConfig);
 		}
 	}
 
