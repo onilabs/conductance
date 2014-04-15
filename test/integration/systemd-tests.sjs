@@ -22,7 +22,12 @@ tests as that user, and then run them (with any additional args you pass in).
 
 
 if (!@isBrowser) {
-  var uid = @childProcess.run('id', ['-u', user], {stdio: ['ignore','pipe', process.stderr]}).stdout.trim();
+  var uid = null;
+  try {
+    uid = @childProcess.run('id', ['-u', user], {stdio: ['ignore','pipe', 'pipe']}).stdout.trim();
+  } catch (e) {
+    // pass
+  }
   var args = [process.execPath, @env.executable, 'exec', @url.normalize('./fixtures/systemd/run', module.id), '--color=on'];
   var manual_run_args = ['sudo', '-u', user, 'env', "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/#{uid}/dbus/user_bus_socket"].concat(args);
 
@@ -89,6 +94,7 @@ function printManualInstructions() {
 }
 
 function setupSandboxUser() {
+  @assert.ok(uid);
   cleanup();
   mkdir(unitBase, user);
   mkdir(unitBase + "/default.target.wants", user);
@@ -282,7 +288,7 @@ if (require.main === module) {
         if (process.env['CLEANUP'] !== 'false') cleanup();
       }
       rv .. @assert.eq(0, "tests failed");
-    }.skipIf(process.env['LOGNAME'] != 'tim', "TODO: get these tests working more portably").timeout(60);
+    }.skipIf(uid == null, "TODO: get these tests working more portably").timeout(60);
 
   }.skipIf(@isBrowser)
 }
