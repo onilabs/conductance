@@ -96,7 +96,7 @@ exports.run = function(args) {
       args: '<command> ...',
       desc: 'Conductance systemd integration',
       fn: function(args) {
-        require('./systemd').run(args);
+        require('./systemd')._run(args);
       }
     },
   ];

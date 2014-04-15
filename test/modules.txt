@@ -12,3 +12,4 @@ integration/documentation-tests.sjs
 integration/fs-tests.sjs
 integration/injection-tests.sjs
 integration/nodemon-tests.sjs
+integration/systemd-tests.sjs

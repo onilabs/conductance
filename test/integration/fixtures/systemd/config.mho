@@ -1,0 +1,52 @@
+@ = require([
+	'mho:std',
+	{id: 'mho:server', name:'server'},
+	'mho:server/systemd'
+]);
+
+var address = @Port(9776);
+
+exports.serve = function() {
+	@server.run({
+		address: address,
+		routes: [
+			@Route("ping", {
+				GET: (req) -> req.response.end('OK')
+			})
+		]
+	});
+};
+
+exports.systemd = @Group("myapp", {
+	'main': [
+		@Service(),
+		@Socket({
+			ListenStream: '%t/conductance.sock',
+		}),
+	],
+	'service': @Service({
+		ExecStart: @ConductanceArgs.concat('exec', module.id, 'service'),
+	}),
+	'cron': [
+		@Service({
+			ExecStart: @ConductanceArgs.concat('exec', module.id, 'cron'),
+		}),
+		@Timer({
+			OnActiveSec: '10m'
+		})
+	],
+	'background': [
+		@Service({
+			ExecStart: @ConductanceArgs.concat('exec', module.id, 'background'),
+		}),
+		@Timer({
+			OnBootSec: '0m'
+		})
+	],
+});
+
+if (require.main === module) {
+	var name = @argv()[0];
+	console.log(name + " PING");
+	hold(name == 'service' ? undefined : 10000);
+}
