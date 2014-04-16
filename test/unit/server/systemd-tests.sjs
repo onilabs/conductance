@@ -51,6 +51,12 @@
         },
       });
 
+      u.addSection('Service', {
+        Environment: [
+          'arrayOfString=value 1',
+        ],
+      });
+
       var file = new @stream.WritableStringStream();
       u._write(file);
       file.data .. normalizeFile .. @assert.eq('
@@ -62,9 +68,10 @@
       StringKey=StringVal
 
       [Service]
-      Environment=\'array1=val1 string2=2\'
-      Environment=\'array2=\"val2\"\'
-      Environment=\'object1=val1 object2=2\'
+      Environment=array1=\'val1 string2=2\'
+      Environment=array2=\'\"val2\"\'
+      Environment=arrayOfString=value 1
+      Environment=object1=\'val1 object2=2\'
       Environment=object2=2
       Environment=string1=1 string2=2
       ' .. normalizeFile);

@@ -94,9 +94,9 @@ var DEFAULT_GROUP = 'conductance';
                 Restart: 'always',
                 User: 'myapp',
                 Group: 'myapp',
-                Environment: [
-                  'NODE_ENV=production',
-                ],
+                Environment: {
+                  'NODE_ENV': 'production',
+                },
                 'ExecStart': ConductanceArgs.concat('serve', env.config().path),
               }),
               // use socket activation
@@ -117,6 +117,8 @@ var DEFAULT_GROUP = 'conductance';
     
 
 
+    For the possible types you can use as values to [::Service], [::Socket], etc, see
+    the documentatino for [::Unit].
     The following types are supported as setting values:
 
      - The `Environment` setting may be an
@@ -296,6 +298,8 @@ GroupProto._processComponents = function(components, groupTarget) {
      - `String`: this will be written to the configuration file without
        any processing.
 
+     - `null` or `undefined`: these settings will be ignored
+
      - `Array`: in general, Arrays will be repeated as
        multiple values of the same key, e.g: `{key: [1,2,3]}`
        will be converted to:
@@ -304,14 +308,22 @@ GroupProto._processComponents = function(components, groupTarget) {
            key=2
            key=3
 
-     However, There are some property-specific exceptions to the above conversion rules:
+       (read below for property-exceptions to this behaviour)
 
-     - A value for the `Environment` setting may be a
-       string, an array of pairs, or an object literal
-       (whose [sjs:object::ownPropertyPairs] will be used).
+     - all other non-string settings will be coerced into a String
 
-       If given a string, it will be written as-is to the configuration file.
-       If given an array or object, the keys and values will be escaped (so
+     There are some property-specific exceptions to the above conversion rules:
+
+     - A value for the `Environment` setting may be:
+
+        - a string: `"key=value"`
+        - an array of strings: `[["key1=value1", "key2=value2"]]`
+        - an array of pairs: `[["key1", "value1"], ["key2", "value2"]]`
+        - or an object literal: `{ "key1": "value1", "key2": "value2" }`
+
+       If given a string or array of strings, those strings will be written as-is
+       to the configuration file without any escaping.
+       If given an array of pairs or an object, the keys and values will be escaped (so
        that special characters and spaces are represented literally, rather than
        interpreted by systemd.
 
@@ -861,7 +873,15 @@ UnitFile.prototype.addSection = function(name, conf) {
 				val = val .. ownPropertyPairs;
 			}
 			// now turn pairs into env strings
-			val = val .. map([k,v] -> "#{k}=#{v}") .. map(s -> shell_quote.quote([s]));
+			val = val .. map(function(pair) {
+				if (isArrayLike(pair)) {
+					var [k, v] = pair;
+					return "#{k}=#{shell_quote.quote([v])}";
+				} else {
+					assert.string(pair, `Environment value: $pair`);
+					return pair;
+				}
+			});
 		}
 
 		if (val == null) continue;
