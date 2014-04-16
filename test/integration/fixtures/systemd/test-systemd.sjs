@@ -16,7 +16,7 @@ var waitUntil = function(blk) {
 			err = e;
 		}
 		if (tries++ >= 5) throw err || new Error("timeout exceeded");
-		console.log("wait ..");
+		@logging.print("wait ..");
 		hold(1000);
 	}
 };
@@ -32,12 +32,16 @@ var activationTime = (unit) -> ctl._unitProperties(unit, ['ActiveEnterTimestampM
 	.. parseInt();
 
 
+function main(args) {
+	return @sd._main([args[0]].concat('--user').concat(args.slice(1)));
+};
+
 function runAction(action) {
-	@sd._main([action, '--config', config, '--user'].concat(Array.prototype.slice.call(arguments, 1)));
+	return main([action, '--config', config, '--user'].concat(Array.prototype.slice.call(arguments, 1)));
 };
 
 function installConfig(config) {
-	@sd._main(['install', config, '--user'].concat(arguments .. @slice(1) .. @toArray));
+	return main(['install', config, '--user'].concat(arguments .. @slice(1) .. @toArray));
 };
 
 function install() {
@@ -81,37 +85,57 @@ var allUnits = startupUnits.concat([
 @context("installation") {||
 	@test.beforeEach {||
 		stopAll();
-		install();
 	}
 
-	@test("installs units in the appropriate .wants location") {||
-		@fs.readdir(unitDest) .. @assert.contains('multi-user.target.wants');
-		@fs.readdir(unitDest + '/multi-user.target.wants') .. @assert.eq(['myapp.target']);
-		@fs.readdir(unitDest + '/myapp.target.wants') .. @sort .. @assert.eq(groupDependencies .. @sort);
-	}
+	@context("upon installation") {||
+		// tests that run on the installed result
+		@test.beforeEach {||
+			install();
+		}
 
-	@test("starts necessary targets upon installation") {||
-		ctl._activeUnits() .. @sort .. @assert.eq(startupUnits .. @sort);
-	}
+		@test("installs units in the appropriate .wants location") {||
+			@fs.readdir(unitDest) .. @assert.contains('multi-user.target.wants');
+			@fs.readdir(unitDest + '/multi-user.target.wants') .. @assert.eq(['myapp.target']);
+			@fs.readdir(unitDest + '/myapp.target.wants') .. @sort .. @assert.eq(groupDependencies .. @sort);
+		}
 
-	@test("restarts (only) startup units on installation") {||
-		assertRestarts(startupUnits, install);
+		@test("starts necessary targets upon installation") {||
+			ctl._activeUnits() .. @sort .. @assert.eq(startupUnits .. @sort);
+		}
 
-		var runningUnits = ctl._activeUnits();
-		runningUnits .. @remove('myapp-main.service'); // XXX remove once resolved: http://lists.freedesktop.org/archives/systemd-devel/2014-March/018193.html
-		runningUnits .. @sort .. @assert.eq(startupUnits .. @sort);
-	}
+		@test("restarts (only) startup units on installation") {||
+			assertRestarts(startupUnits, install);
 
-	@test("restarts running non-startup on installation") {||
-		var unit = 'myapp-main.service';
-		startupUnits .. @assert.notContains(unit);
-		ctl.start([unit]);
-		ctl._activeUnits() .. @assert.contains(unit);
+			var runningUnits = ctl._activeUnits();
+			runningUnits .. @remove('myapp-main.service'); // XXX remove once resolved: http://lists.freedesktop.org/archives/systemd-devel/2014-March/018193.html
+			runningUnits .. @sort .. @assert.eq(startupUnits .. @sort);
+		}
 
-		var startTime = activationTime(unit);
-		install();
-		var newStartTime = activationTime(unit);
-		@assert.ok(newStartTime > startTime, "#{unit} didn't get restarted");
+		@test("restarts running non-startup on installation") {||
+			var unit = 'myapp-main.service';
+			startupUnits .. @assert.notContains(unit);
+			ctl.start([unit]);
+			ctl._activeUnits() .. @assert.contains(unit);
+
+			var startTime = activationTime(unit);
+			install();
+			var newStartTime = activationTime(unit);
+			@assert.ok(newStartTime > startTime, "#{unit} didn't get restarted");
+		}
+
+		@test("stops and removes _all_ conductance units") {||
+			// install old & new configs
+			var ctl = new @sd._SystemCtl({groups:['myapp', 'otherapp'], user: true});
+
+			installConfig(@url.normalize('./secondary_config.mho', module.id));
+
+			ctl._activeUnits() .. @sort .. @assert.eq(
+				['otherapp-service.service', 'otherapp.target']
+				.concat(startupUnits) .. @sort
+			);
+			@sd._main(['uninstall', '--user', '--all']);
+			ctl._activeUnits() .. @assert.eq([]);
+		}
 	}
 
 	@test("stops and removes previously-installed units") {||
@@ -123,19 +147,22 @@ var allUnits = startupUnits.concat([
 		ctl._activeUnits() .. @sort .. @assert.notContains(oldUnit);
 	}
 
-	@test("stops and removes _all_ conductance units") {||
-		// install old & new configs
-		var ctl = new @sd._SystemCtl({groups:['myapp', 'otherapp'], user: true});
+	@test("status returns success if units have run and exited successfully") {||
+		installConfig(@url.normalize('./service_config.mho', module.id));
 
-		installConfig(@url.normalize('./secondary_config.mho', module.id));
+		var unit = 'myapp-service.service';
+		ctl._activeUnits() .. @sort .. @assert.contains(unit);
 
-		ctl._activeUnits() .. @sort .. @assert.eq(
-			['otherapp-service.service', 'otherapp.target']
-			.concat(startupUnits) .. @sort
-		);
-		@sd._main(['uninstall', '--user', '--all']);
-		ctl._activeUnits() .. @assert.eq([]);
-	}
+		waitUntil(-> ctl._unitProperties(unit, ['ActiveState', 'SubState', 'Result']) .. @tap(@logging.print) .. @eq(
+			{
+				'ActiveState':'inactive',
+				'SubState':'dead',
+				'Result':'success',
+			}
+		));
+
+		@sd._main(['status', '--user', '--group', 'myapp']);
+	}.skip("TODO: blocked on https://bugs.freedesktop.org/show_bug.cgi?id=77507"); 
 
 	@test("disallows config argument when using `uninstall --all`") {||
 		@assert.raises({message: 'uninstall --all accepts no group or config arguments'},

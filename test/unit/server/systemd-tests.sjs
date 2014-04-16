@@ -28,7 +28,7 @@
       var u = new @sd._UnitFile('/ignored', 'test.service');
       u.addSection('Unit', {
         StringKey: 'StringVal',
-        ArrayKey: ['ArrayVal1', 'ArrayVal2'],
+        ArrayKey: ['ArrayVal1', 'ArrayVal2', 'aardvarkArrayVal'],
         ExecString: 'bash -c "echo 1"',
         ExecArray: ['bash', '-c', 'echo "1"'],
       });
@@ -63,17 +63,18 @@
       [Unit]
       ArrayKey=ArrayVal1
       ArrayKey=ArrayVal2
+      ArrayKey=aardvarkArrayVal
       ExecArray=bash -c \'echo "1"\'
       ExecString=bash -c "echo 1"
       StringKey=StringVal
 
       [Service]
+      Environment=string1=1 string2=2
       Environment=array1=\'val1 string2=2\'
       Environment=array2=\'\"val2\"\'
-      Environment=arrayOfString=value 1
       Environment=object1=\'val1 object2=2\'
       Environment=object2=2
-      Environment=string1=1 string2=2
+      Environment=arrayOfString=value 1
       ' .. normalizeFile);
     }
   }
@@ -176,6 +177,22 @@
       standaloneService.Install .. @assert.eq({
         WantedBy: 'myapp.target',
       });
+    }
+
+    @test("maintains ordering of array values") {||
+      var u = new @sd._UnitFile('/ignored', 'test.service');
+      u.addSection('Unit', {
+        ArrayKey: ['3', '2', '1']
+      });
+
+      var file = new @stream.WritableStringStream();
+      u._write(file);
+      file.data .. normalizeFile .. @assert.eq('
+      [Unit]
+      ArrayKey=3
+      ArrayKey=2
+      ArrayKey=1
+      ' .. normalizeFile)
     }
 
     @test("socket accepts a Listen key which can contain conductance ports") {||

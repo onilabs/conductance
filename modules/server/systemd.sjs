@@ -495,7 +495,7 @@ SystemCtl.prototype._run = function(args, opts, quiet) {
 		args.unshift('--user');
 	}
 	args = _args.concat(args);
-	if (quiet !== true) logging.info(" - running: systemctl #{args.join(" ")}");
+	logging[quiet === true ? 'debug' : 'info'](" - running: systemctl #{args.join(" ")}");
 	try {
 		return child_process.run('systemctl', args, {stdio:[0, 1, 'pipe']} .. merge(opts));
 	} catch(e) {
@@ -568,8 +568,9 @@ SystemCtl.prototype.stopUnwanted = function() {
 };
 
 SystemCtl.prototype._unitProperties = function(unit, propertyNames) {
+	assert.ok(propertyNames.length > 0, "must provide at least one property name");
 	var args = seq.concat(
-		['show'],
+		['show', '-p'],
 		propertyNames .. seq.intersperse('-p'),
 		['--', unit]) .. toArray;
 
@@ -906,7 +907,7 @@ var fst = pair -> pair[0];
 UnitFile.prototype._write = function(f) {
 	this.sections .. ownPropertyPairs .. each {|[name, params]|
 		f .. writeln("[#{name}]");
-		params .. seq.sort(array.cmp) .. each {|[key,val]|
+		params .. seq.sortBy([key, val] -> key) .. each {|[key,val]|
 			f .. writeln(key + '=' + val);
 		}
 		f .. writeln();
@@ -1236,7 +1237,13 @@ exports._run = function(args) {
 	} catch(e) {
 		logging.debug(String(e));
 		if (e.message) logging.error(e.message);
-		process.exit(1);
+		var rv = 1;
+
+		// pass-through exit codes from failed subcommands (typically systemctl)
+		if (e.code && e.code > 0 && e.code < 256) {
+			rv = e.code;
+		}
+		process.exit(rv);
 	}
 }
 
