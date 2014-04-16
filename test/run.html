@@ -12,7 +12,7 @@
       var logging = require('sjs:logging');
       // logging.setLevel(logging.DEBUG);
 
-      if (window.__karma__ && module.id.indexOf('/app/') == -1) {
+      if (typeof(__karma__) !== 'undefined' && module.id.indexOf('/app/') == -1) {
         throw new Error("run.html loaded as #{module.id}\nUnder karma, the test module should be:\n    /app/test/run.html\n");
       }
 

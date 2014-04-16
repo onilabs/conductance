@@ -191,7 +191,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 	};
 
 
-	exports.main = function(root) {
+	exports.main = function(root /*, ... */) {
 		// wraps `run` with error handling
 		var error = cutil.Condition();
 		window.onerror = function(e) {
