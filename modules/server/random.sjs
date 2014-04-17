@@ -14,7 +14,6 @@
 */
 
 var sjcl   = require('sjs:sjcl');
-var buffer = require('nodejs:buffer');
 var crypto = require('nodejs:crypto');
 
 while (!sjcl.random.isReady()) {
