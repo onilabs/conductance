@@ -1,4 +1,4 @@
-#!/usr/bin/env conductance
+#!conductance
 // vim: syntax=sjs:
 @ = require('sjs:std');
 @docutil = require('sjs:docutil');

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!bash
 set -eu
 gup --always
 find unit        -name '*-tests.sjs' | sort >> "$1"

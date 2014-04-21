@@ -1,2 +1,2 @@
-#!/bin/bash -eu
+#!bash -eu
 gup -u "$2/all"

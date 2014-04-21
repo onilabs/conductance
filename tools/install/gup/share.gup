@@ -1,4 +1,4 @@
-#!/bin/bash
+#!bash
 set -eu
 gup --always
 ls -1 "$2" | gup --contents

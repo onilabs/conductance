@@ -1,3 +1,3 @@
-#!/bin/bash
+#!bash
 set -eu
 gup -u linux.ok darwin.ok windows.ok

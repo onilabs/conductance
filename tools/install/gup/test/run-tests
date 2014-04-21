@@ -1,4 +1,4 @@
-#!/bin/bash
+#!bash
 set -eux
 gup -u *-tests.sjs ./run
 group="$(basename "$2" .ok)"

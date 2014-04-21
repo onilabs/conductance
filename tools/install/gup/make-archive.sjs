@@ -1,4 +1,4 @@
-#!/usr/bin/env sjs
+#!sjs
 
 @ = require('sjs:std');
 @stream = require('sjs:nodejs/stream');

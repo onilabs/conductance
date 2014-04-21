@@ -1,4 +1,4 @@
-#!/bin/bash
+#!bash
 set -eu
 root="../../.."
 prefix="$root/src/deps/bootstrap/less"
