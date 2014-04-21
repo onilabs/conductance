@@ -258,6 +258,16 @@ exports.systems = (function() {
         },
 
         {
+          platform: 'linux',
+          arch: 'x86',
+          host: -> posixBase .. merge({
+            proxy: proxy(9090),
+            host: 'fedora-19-x86.local',
+            user: 'sandbox',
+          }),
+        },
+
+        {
           platform: 'darwin',
           arch: 'x64',
           host: -> posixBase .. merge({

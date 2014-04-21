@@ -34,25 +34,26 @@ if [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
     exit 1
 fi
 
+PLATFORM="${OS}_x64"
 if [ "$UNAME" = "Darwin" ] ; then
     OS=darwin
-    if [ "i386" != "$(uname -p)" -o "1" != "$(sysctl -n hw.cpu64bit_capable 2>/dev/null || echo 0)" ] ; then
-
+    if [ "1" != "$(sysctl -n hw.cpu64bit_capable 2>/dev/null || echo 0)" ] ; then
         # Can't just test uname -m = x86_64, because Snow Leopard can
         # return other values.
-        log "Only 64-bit Intel processors are supported at this time."
+        log "Conductance currently only supports 64-bit Intel processors when running on OSX."
         exit 1
     fi
 elif [ "$UNAME" = "Linux" ] ; then
     OS=linux
     arch="$(uname -m)"
-    if [ "$arch" != "x86_64" ] ; then
-        log "Unsupported architecture: $ARCH"
-        log "Conductance only supports i686 and x86_64 for now."
+    if [ "$arch" = "i686" ]; then
+      PLATFORM="${OS}_x86"
+    elif [ "$arch" != "x86_64" ] ; then
+        log "Unsupported architecture: $arch"
+        log "Conductance currently only supports i686 and x86_64 when running on Linux"
         exit 1
     fi
 fi
-PLATFORM="${OS}_x64"
 
 DEST="$HOME/.conductance"
 if [ "$#" -gt 0 ]; then

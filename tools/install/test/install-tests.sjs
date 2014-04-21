@@ -218,6 +218,7 @@ hosts.systems .. each {|system|
 			var old_nodejs_hrefs = {
 				"platform_key": ["platform", "arch"]
 				, "linux_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-linux-x64.tar.gz"
+				, "linux_x86": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-linux-x86.tar.gz"
 				, "windows_x64": "http://nodejs.org/dist/v0.8.9/x64/node.exe"
 				, "windows_x86": "http://nodejs.org/dist/v0.8.9/node.exe"
 				, "darwin_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-darwin-x64.tar.gz"
@@ -228,13 +229,7 @@ hosts.systems .. each {|system|
 					// downgrade to last stable nodejs
 					var node = mf.data.node;
 					node.id = "0.8.9"
-					node.href = {
-						platform_key: node.href.platform_key
-						, "linux_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-linux-x64.tar.gz"
-						, "windows_x64": "http://nodejs.org/dist/v0.8.9/x64/node.exe"
-						, "windows_x86": "http://nodejs.org/dist/v0.8.9/node.exe"
-						, "darwin_x64": "http://nodejs.org/dist/v0.8.9/node-v0.8.9-darwin-x64.tar.gz"
-					};
+					node.href = old_nodejs_hrefs;
 					mf.version++;
 				}
 
@@ -698,9 +693,9 @@ hosts.systems .. each {|system|
 		}
 	}.timeout(90).skipIf(!host, "No host configured for this platform");
 
-	if (platform != 'windows') {
-		// don't need to check windows compatibility, since
-		// there was no v1 windows installer
+	if (platform != 'windows' && "#{platform}_#{arch}" != "linux_x86") {
+		// don't need to check windows or linux-x86 compatibility, since
+		// there was no v1 installer on those platforms
 		context("#{platform}_#{arch} forwards compatibility") {||
 			var v1Code = url.normalize('../tmp/v0.2.0.git', module.id) .. url.toPath();
 			var v1InstallRoot = path.join(v1Code, 'tools/install');

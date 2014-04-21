@@ -60,6 +60,7 @@
     , "href":
       { "platform_key": ["platform", "arch"]
       , "linux_x64": "http://nodejs.org/dist/v0.10.23/node-v0.10.23-linux-x64.tar.gz"
+      , "linux_x86": "http://nodejs.org/dist/v0.10.23/node-v0.10.23-linux-x86.tar.gz"
       , "windows_x64": "http://nodejs.org/dist/v0.10.23/x64/node.exe"
       , "windows_x86": "http://nodejs.org/dist/v0.10.23/node.exe"
       , "darwin_x64": "http://nodejs.org/dist/v0.10.23/node-v0.10.23-darwin-x64.tar.gz"
