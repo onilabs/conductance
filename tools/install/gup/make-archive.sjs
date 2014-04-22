@@ -1,4 +1,4 @@
-#!sjs
+#!../../../node_modules/stratifiedjs/sjs
 
 @ = require('sjs:std');
 @stream = require('sjs:nodejs/stream');

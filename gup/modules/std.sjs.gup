@@ -1,4 +1,4 @@
-#!conductance
+#!../../conductance
 // vim: syntax=sjs:
 /*
   Construct a conductance stdlib based on the current SJS one,

@@ -1,4 +1,4 @@
-#!sjs
+#!../../node_modules/stratifiedjs/sjs
 // vim: syntax=sjs:
 
 @ = require(['sjs:nodejs/fs', 'sjs:nodejs/child-process']);

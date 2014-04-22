@@ -1,4 +1,4 @@
-#!sjs
+#!../../../node_modules/stratifiedjs/sjs
 var fs = require("sjs:nodejs/fs");
 var path = require("nodejs:path");
 var object = require('sjs:object');
