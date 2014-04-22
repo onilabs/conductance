@@ -91,7 +91,7 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
 
     Instead, you should do this:
 
-        val.modify(function(items) { return items.concat(newItem); });
+        val.modify(function(items) { return items.concat([newItem]); });
 
     If you mutate the current value but a conflict occurs with other
     code trying to modify the same value, the results will likely
