@@ -3,4 +3,4 @@ set -eu
 root="../../.."
 prefix="$root/src/deps/bootstrap/less"
 gup -u "$root/node_modules/update" "$prefix/"*
-"$root/node_modules/.bin/recess" "$prefix/bootstrap.less" --compress > "$1"
+"$root/node_modules/recess/bin/recess" "$prefix/bootstrap.less" --compress > "$1"

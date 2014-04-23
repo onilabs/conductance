@@ -32,18 +32,7 @@ var addHeader = exports.addHeader = function(target) {
 
 if (require.main === module) {
   var [ stamp, _ ] = @argv();
-  function walkdir(path, cb) {
-    var files = @fs.readdir(path);
-    files .. @each {
-      |f|
-      if (@fs.isDirectory(path+"/"+f))
-        walkdir(path+"/"+f, cb);
-      else
-        cb(path+"/"+f);
-    };
-  }
-
-  walkdir("../modules") { |m|
+  require('../walkdir').walk("../modules") { |m|
     if (/.+\.(sjs|mho)$/.test(m)) {
       addHeader(m);
     }

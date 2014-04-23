@@ -1,0 +1,13 @@
+#!/bin/bash
+# runs all tests, and opens a tiled gnome-terminal window
+# showing each platform's logs.
+set -eu
+here="$(dirname "$0")"
+logs="linux.log darwin.log windows.log"
+(
+	cd "$here"
+	rm -f $logs
+	touch $logs
+	gnome-terminal --command "0install run http://gfxmonk.net/dist/0install/tail-logs.xml $logs" --working-directory="$(pwd)"
+)
+gup -j10 "$here/all" >/dev/null

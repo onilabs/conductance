@@ -1,4 +1,4 @@
 #!bash
 set -eu
 gup -u docs-changed sjs-lib-index.txt
-sjs sjs:compile/doc .
+node ../node_modules/stratifiedjs/sjs sjs:compile/doc .

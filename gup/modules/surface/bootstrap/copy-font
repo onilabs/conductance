@@ -1,5 +1,6 @@
 #!bash
 set -eu
-src=../../../src/deps/bootstrap/dist/"$2"
+cd ../../../src/deps/bootstrap/dist/
+src="$2"
 gup -u "$src"
 cp "$src" "$1"

@@ -1,8 +1,30 @@
-#!bash
-set -eu
-gup --always
-(
-	files="$(find . -type f -name '*.sjs' -o -name 'sjs-lib-index.txt')"
-	echo $files
-	echo "$files" | tr '\n' '\0' | xargs -0 grep '^[ *]*@'
-) | gup --contents
+#!../../node_modules/stratifiedjs/sjs
+// vim: syntax=sjs
+@ = require(['sjs:sequence', 'sjs:string']);
+@childProcess = require('sjs:nodejs/child-process');
+@childProcess.run('gup', ['--always'], {'stdio':'inherit'});
+@fs = require('sjs:nodejs/fs');
+@stream = require('sjs:nodejs/stream');
+
+var [dest] = require('sjs:sys').argv();
+
+var checksum = @childProcess.launch('gup', ['--contents'], {stdio: ['pipe', 1, 2]});
+
+var echo = function(line) {
+	checksum.stdin .. @stream.write(line + "\n");
+};
+
+require('../walkdir').walk('.') {|file|
+	var docLine = /^[ *]*@/;
+	if (file .. @endsWith(".sjs") || file .. @endsWith("sjs-lib-index.txt")) {
+		echo(file);
+		@fs.readFile(file, 'utf-8').split(/[\r\n]+/g) .. @each {|line|
+			if(docLine.test(line)) {
+				echo(line);
+			}
+		}
+	}
+}
+
+checksum.stdin.end();
+checksum .. @childProcess.wait();

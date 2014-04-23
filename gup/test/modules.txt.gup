@@ -1,6 +1,29 @@
-#!bash
-set -eu
-gup --always
-find unit        -name '*-tests.sjs' | sort >> "$1"
-find integration -name '*-tests.sjs' | sort >> "$1"
+#!../../node_modules/stratifiedjs/sjs
+// vim: syntax=sjs
+@ = require(['sjs:sequence', 'sjs:string']);
+@childProcess = require('sjs:nodejs/child-process');
+@fs = require('sjs:nodejs/fs');
+@stream = require('sjs:nodejs/stream');
+var {@walk} = require('../walkdir');
 
+var [dest] = require('sjs:sys').argv();
+
+@childProcess.run('gup', ['--always'], {stdio:'inherit'});
+
+function gen(dir) {
+  return @Stream() {|emit|
+    @walk(dir) {|file|
+      if (file .. @endsWith('-tests.sjs')) {
+        emit(file);
+      }
+    }
+  }
+}
+
+var contents = [gen('unit'), gen('integration')]
+  .. @map.par(@sort)
+  .. @concat()
+  .. @join('\n');
+dest .. @fs.writeFile(contents, 'utf-8');
+
+@childProcess.run('gup', ['--contents', dest], {stdio:'inherit'});
