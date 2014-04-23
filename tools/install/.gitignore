@@ -2,3 +2,4 @@
 /tmp/
 /manifest-*.json
 /test/fixtures/mock-cmd.exe
+/test/available-hosts

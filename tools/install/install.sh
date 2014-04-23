@@ -8,7 +8,7 @@ set -e
 
 # grab input from /dev/tty, as stdin may be the script itself
 STDIN=/dev/tty
-if [ -n "$CONDUCTANCE_HEADLESS" ]; then
+if [ -n "${CONDUCTANCE_HEADLESS:-}" ]; then
   STDIN=/dev/fd/0
 fi
 
@@ -28,13 +28,7 @@ trap cleanup EXIT
 
 # OS Check. Put here because here is where we download the precompiled
 # bundles that are arch specific.
-UNAME=$(uname)
-if [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
-    log "Sorry, this OS is not supported."
-    exit 1
-fi
-
-PLATFORM="${OS}_x64"
+UNAME="$(uname)"
 if [ "$UNAME" = "Darwin" ] ; then
     OS=darwin
     if [ "1" != "$(sysctl -n hw.cpu64bit_capable 2>/dev/null || echo 0)" ] ; then
@@ -43,17 +37,24 @@ if [ "$UNAME" = "Darwin" ] ; then
         log "Conductance currently only supports 64-bit Intel processors when running on OSX."
         exit 1
     fi
+    ARCH="x64"
 elif [ "$UNAME" = "Linux" ] ; then
     OS=linux
-    arch="$(uname -m)"
-    if [ "$arch" = "i686" ]; then
-      PLATFORM="${OS}_x86"
-    elif [ "$arch" != "x86_64" ] ; then
-        log "Unsupported architecture: $arch"
-        log "Conductance currently only supports i686 and x86_64 when running on Linux"
-        exit 1
+    uname_arch="$(uname -m)"
+    if [ "$uname_arch" = "i686" ]; then
+      ARCH="x86"
+    elif [ "$uname_arch" = "x86_64" ] ; then
+      ARCH="x64"
+    else
+      log "Unsupported architecture: $uname_arch"
+      log "Conductance currently only supports i686 and x86_64 when running on Linux"
+      exit 1
     fi
+else
+  log "Sorry, this OS ($UNAME) is not supported."
+  exit 1
 fi
+PLATFORM="${OS}_${ARCH}"
 
 DEST="$HOME/.conductance"
 if [ "$#" -gt 0 ]; then

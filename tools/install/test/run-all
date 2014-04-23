@@ -3,9 +3,10 @@
 # showing each platform's logs.
 set -eu
 here="$(dirname "$0")"
-logs="linux.log darwin.log windows.log"
 (
 	cd "$here"
+	gup -u available-hosts
+	logs="$(sed -e's/$/.log/' available-hosts | sort)"
 	rm -f $logs
 	touch $logs
 	gnome-terminal --command "0install run http://gfxmonk.net/dist/0install/tail-logs.xml $logs" --working-directory="$(pwd)"
