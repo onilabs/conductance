@@ -1,6 +1,6 @@
 var { Element, appendContent, Mechanism, Style, OnClick } = require('mho:surface');
 var { Input, Form, Button } = require('mho:surface/bootstrap/html');
-var { each, map, transform } = require('sjs:sequence');
+var { each, map, transform, wait } = require('sjs:sequence');
 var { ObservableVar } = require('mho:observable');
 var event = require('sjs:event');
 var assert = require('sjs:assert');
@@ -62,9 +62,9 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
       while(true) {
         var e;
         waitfor {
-          e = elem.getElementsByTagName('button')[0] .. event.wait('click');
+          e = elem.getElementsByTagName('button')[0] .. event.events('click') .. wait;
         } or {
-          e = elem .. event.wait('submit');
+          e = elem .. event.events('submit') .. wait;
         }
         e.preventDefault();
         var [name, url] = elem.getElementsByTagName('input') .. map(i -> i.value);
@@ -118,7 +118,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
     ");
     elem .. appendContent(widget) {|elem|
       if (onReady) onReady();
-      elem.getElementsByTagName("button")[0] .. event.wait('click');
+      elem.getElementsByTagName("button")[0] .. event.events('click') .. wait;
     }
   }
 };

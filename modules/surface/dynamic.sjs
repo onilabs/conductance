@@ -21,9 +21,9 @@
 
 var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode, Class } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
-var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
+var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform, wait } = require('sjs:sequence');
 var { split } = require('sjs:string');
-var { wait, when } = require('sjs:event');
+var { events } = require('sjs:event');
 
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
@@ -47,7 +47,7 @@ var resourceRegistry = {
           // display warning in console if it hasn't loaded by then.
           // XXX we should refactor the code to allow loading of stylesheets in parallel!
           waitfor {
-            desc.elem .. wait('load');
+            desc.elem .. events('load') .. wait;
           }
           or {
             hold(2000);
@@ -593,7 +593,7 @@ var On = (html, event, opts, f) -> html .. Mechanism(function(node) {
     f = opts;
     opts = {};
   }
-  node .. when(event, {queue: true} .. merge(opts), f);
+  node .. events(event, opts) .. each(f);
 });
 exports.On = On;
 

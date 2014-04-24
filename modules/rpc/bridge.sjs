@@ -90,7 +90,7 @@ Protocol:
 */
 
 var logging = require('sjs:logging');
-var { each, toArray, map, filter, transform, isStream, Stream, at, any } = require('sjs:sequence');
+var { each, toArray, map, filter, transform, isStream, Stream, at, any, wait } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
@@ -354,10 +354,10 @@ function unmarshallBlob(obj, connection) {
     // the data has arrived at the client, since it is being sent in a
     // http response. Hence the `wait` here:
     waitfor {
-      connection.dataReceived.wait();
+      connection.dataReceived .. wait();
     }
     or {
-      connection.sessionLost.wait();
+      connection.sessionLost .. wait();
       // XXX is this the right error to throw?
       throw new Error("session lost");
     }
@@ -437,7 +437,7 @@ function unmarshallStream(obj, connection) {
     [#features/api-module::].
 
   @variable BridgeConnection.sessionLost
-  @type sjs:event::Emitter
+  @type sjs:event::EventStream
   @summary The session has been lost
 
   @function BridgeConnection.__finally__
@@ -504,7 +504,7 @@ function BridgeConnection(transport, opts) {
           transport.send(args);
         }
       } or {
-        var err = sessionLost.wait();
+        var err = sessionLost .. wait();
         this.__finally__(); // XXX this should be a recoverable error, but we kill the connection
                             // for now as a workaround for mechanisms that drop unhandled errors
         throw err || TransportError("session lost");
@@ -619,7 +619,7 @@ function BridgeConnection(transport, opts) {
             // ignore exception; transport will be closed
           }
         } or {
-          sessionLost.wait();
+          sessionLost .. wait();
         }
         finally {
           delete executing_calls[call_no];

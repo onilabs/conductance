@@ -9,7 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event']);
+@ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event', 'sjs:sequence']);
 var {@warn} = require('sjs:logging');
 
 /**
@@ -69,7 +69,7 @@ exports.withAPI = function(api, block) {
             if (delay > 60*1000*10) // cap at 10 minutes
               delay = 60*1000*10;
           } or {
-            elem.querySelector('a') .. @wait('click', {handle:@preventDefault});
+            elem.querySelector('a') .. @events('click', {handle:@preventDefault}) .. @wait;
           }
         }
         continue;

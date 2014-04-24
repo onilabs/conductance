@@ -11,7 +11,7 @@
 
 var { Element, Mechanism, Attrib } = require('./base');
 var { replaceContent, appendContent, prependContent, Prop, removeNode, insertBefore } = require('./dynamic');
-var { HostEmitter } = require('sjs:event');
+var { events } = require('sjs:event');
 var { Stream, isStream, integers, each, map, transform, indexed, filter, sort, slice, any, toArray } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { shallowEq } = require('sjs:compare');
@@ -137,7 +137,7 @@ var Input = (type, value, attrs) ->
       }
       and {
         if (value.set) {
-          HostEmitter(node, 'input').stream() .. each { |ev|
+          events(node, 'input') .. each { |ev|
             value.set(node.value);
           }
         }
@@ -181,7 +181,7 @@ var Checkbox = value ->
       }
       and {
         if (value.set) {
-          HostEmitter(node, 'change').stream() .. each { |ev|
+          events(node, 'change') .. each { |ev|
             value.set(node.checked);
           }
         }
@@ -253,7 +253,7 @@ function SelectObserverMechanism(ft, state, updateSelected) {
       }
     } and {
       if (updateSelected) {
-        HostEmitter(node, 'change').stream() .. each {
+        events(node, 'change') .. each {
           |ev|
           if (!lastItems) continue;
           var new_selection = node.querySelectorAll('option') ..

@@ -3,7 +3,7 @@ waitfor {
 var {RequireExternalStyle, OnClick, Class, Mechanism, Element, removeNode, appendContent, Style} = require('mho:surface');
 } and {
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, join, transform } = seq;
+var {map, indexed, find, each, join, transform, wait } = seq;
 } and {
 var { ObservableVar, observe } = require('mho:observable');
 } and {
@@ -111,40 +111,32 @@ window.withBusyIndicator {|hideBusyIndicator|
 				var FORWARD_SLASH = (e) -> !action && e.which == 47;
 				var PLUS = (e) -> !action && e.which == 43 && e.shiftKey;
 
-				using (var searchClick = searchButton .. event.HostEmitter('click', {handle: preventDefault})) {
-					using (var searchShortcut = document.body .. event.HostEmitter('keypress', {filter: FORWARD_SLASH, handle: preventDefault})) {
-						using (var configClick = configureButton .. event.HostEmitter('click', {handle: preventDefault})) {
-							using (var configShortcut = document.body .. event.HostEmitter('keypress', {filter: PLUS, handle: preventDefault})) {
-								while(true) {
-									waitfor {
-										waitfor {
-											searchClick.wait();
-										} or {
-											searchShortcut.wait();
-										}
-										action = doSearch;
-									} or {
-										waitfor {
-											configClick.wait();
-										} or {
-											configShortcut.wait();
-										}
-										action = doConfig;
-									}
-									buttonContainer.classList.add('hidden');
-									try {
-										action();
-									} finally {
-										action = null;
-										buttonContainer.classList.remove('hidden');
-									}
-								}
-							}
+				while(true) {
+					waitfor {
+						waitfor {
+							searchButton .. event.events('click') .. wait();
+						} or {
+              document.body .. event.events('keypress', {filter: FORWARD_SLASH, handle: preventDefault}) .. wait();
 						}
+						action = doSearch;
+					} or {
+						waitfor {
+							configureButton .. event.events('click') .. wait();
+						} or {
+							document.body .. event.events('keypress', {filter: PLUS, handle: preventDefault}) .. wait();
+						}
+						action = doConfig;
+					}
+					buttonContainer.classList.add('hidden');
+					try {
+						action();
+					} finally {
+						action = null;
+						buttonContainer.classList.remove('hidden');
 					}
 				}
 			});
-
+    
 		var mainDisplay = [docsStyle, Element('div', symbolDocs, {"class":"mb-main mb-top"})];
 		var header = Element("div", [
 			toolbar,
@@ -155,7 +147,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 		var hint;
 		if (!window.localStorage || !window.localStorage['search-hint-shown']) {
 			hint =  `<div class='alert alert-warning'>Hint: You can press '/' to search the reference<a class='close' href='#'>&times;</a></div>` .. Mechanism(function(node) {
-				node.querySelector('a') .. event.wait('click', {handle: preventDefault});
+				node.querySelector('a') .. event.events('click', {handle: preventDefault}) .. wait;
 				if (window.localStorage)
 					window.localStorage['search-hint-shown'] = true;
 				node.parentNode.removeChild(node);
@@ -174,17 +166,24 @@ window.withBusyIndicator {|hideBusyIndicator|
 		], {'class':'documentationRoot'});
 
 		root .. appendContent(toplevel) {|elem|
-			using (var hashChange = event.HostEmitter(window, 'hashchange')) {
-				hideBusyIndicator();
-				
-				// preload search module in the background
-				spawn(hold(1000), require('./search'));
 
-				while(true) {
-					var location;
+      hideBusyIndicator();
+      
+      waitfor {
+        // preload search module in background:
+        hold(1000);
+        require('./search');
+      }
+      and {
+        function setLocationHash() {
+          var location;
 					[location, symbolAnchor] = document.location.hash.slice(1) .. str.split('~', 1) .. map(decodeURIComponent);
 					locationHash.set(location);
-					hashChange.wait();
+        }
+
+        setLocationHash();
+        window .. event.events('hashchange') .. each {||
+					setLocationHash();
 				}
 			}
 		};
@@ -194,7 +193,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 	exports.main = function(root /*, ... */) {
 		// wraps `run` with error handling
 		var error = cutil.Condition();
-		window.onerror = function(e) {
+		window.onerror = function(e) { console.log("Error type is #{typeof e}");
 			error.set(e);
 		};
 
@@ -217,9 +216,9 @@ window.withBusyIndicator {|hideBusyIndicator|
 				`, {"class":"error-contents"})) {|elem|
 					window.scrollTo(0,0);
 					waitfor {
-						elem.querySelector('button.reload') .. event.wait('click');
+						elem.querySelector('button.reload') .. event.events('click') .. wait;
 					} or {
-						elem.querySelector('button.restart') .. event.wait('click');
+						elem.querySelector('button.restart') .. event.events('click') .. wait;
 						document.location.hash = "";
 					}
 				}

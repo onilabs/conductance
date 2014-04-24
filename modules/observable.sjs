@@ -24,9 +24,9 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
   @desc
     A stream is said to be an "observable" if it consists of a
     *temporal* sequence of values representing some changing state
-    (e.g. that of an [::ObservableVar]). In contrast to an event stream
+    (e.g. that of an [::ObservableVar]). In contrast to an [sjs:event::EventStream]
     (e.g. a stream of 'click' events on a button), an observable always has
-    a 'current' value, which can be accessed using [sjs:sequence::first] or [::current].
+    a 'current' value, which can be accessed using [::current] (a synonym for [sjs:sequence::first]).
 */
 
 /**
@@ -41,6 +41,7 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
   @summary Get the current observable value.
 
   @function ObservableVar.set
+  @param {Object} [val] Value to set
   @summary Set a new observable value
   @desc
     **Note:** If this ObservableVar is shared by multiple pieces of

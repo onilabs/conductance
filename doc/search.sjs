@@ -1,7 +1,7 @@
 var {RequireExternalStyle, Class, Mechanism, Element, Style, appendContent, Checkbox, Attrib} = require('mho:surface');
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, toArray, filter, transform, first} = seq;
+var {map, indexed, find, each, toArray, filter, transform, first, wait} = seq;
 var { ObservableVar, observe } = require('mho:observable');
 var event = require('sjs:event');
 var dom = require('sjs:xbrowser/dom');
@@ -92,9 +92,10 @@ exports.run = (function() {
 
 			var inputWorker = function(input) {
 				waitfor {
-					event.when(input, 'input', {handle: dom.stopPropagation}) {|e|
-						query.put(input.value.trim().toLowerCase());
-					};
+					event.events(input, 'input', {handle: dom.stopPropagation}) ..
+            each {|e|
+						  query.put(input.value.trim().toLowerCase());
+					  };
 				} or {
 					var bindings = {
 						'Down':     -> changeSelected(+1),
@@ -111,11 +112,11 @@ exports.run = (function() {
 						33: 'PageUp',
 					};
 
-					event.when(input, 'keydown', {
+					event.events(input, 'keydown', {
 						transform: e -> { which: e.which, key: keycodes[e.which] },
 						filter: e -> e.which == ui.RETURN || (e.key && bindings .. hasOwn(e.key)),
 						handle: dom.preventDefault,
-					}) {|e|
+					}) .. each {|e|
 						if (e.which == ui.RETURN) {
 							return highlightedMatch .. first();
 						} else {
@@ -144,11 +145,11 @@ exports.run = (function() {
 							.. Class("selected", highlighted)
 							.. Mechanism(function(elem) {
 								waitfor {
-									elem .. event.wait('click');
+									elem .. event.events('click') .. wait();
 									done.set();
 								} and {
 									while (true) {
-										elem .. event.wait('mouseover');
+										elem .. event.events('mouseover') .. wait();
 										selectedMatch.set(m.id);
 									}
 								}
@@ -250,7 +251,7 @@ exports.run = (function() {
 				} or {
 					indexUpdate(input);
 				} or {
-					elem.querySelector('.cancel') .. event.wait('click');
+					elem.querySelector('.cancel') .. event.events('click') .. wait();
 				} or {
 					done.wait();
 					return selectedMatch.get();
