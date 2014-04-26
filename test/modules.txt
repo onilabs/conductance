@@ -1,4 +1,3 @@
-unit/observable-tests.sjs
 unit/server/formats-tests.sjs
 unit/server/route-tests.sjs
 unit/server/systemd-tests.sjs

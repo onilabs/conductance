@@ -5,7 +5,7 @@ var {RequireExternalStyle, OnClick, Class, Mechanism, Element, removeNode, appen
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, join, transform, wait } = seq;
 } and {
-var { ObservableVar, observe } = require('mho:observable');
+var { ObservableVar, observe } = require('sjs:observable');
 } and {
 var array = require('sjs:array');
 } and {

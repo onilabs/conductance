@@ -16,7 +16,7 @@ var { Stream, isStream, integers, each, map, transform, indexed, filter, sort, s
 var { isArrayLike } = require('sjs:array');
 var { shallowEq } = require('sjs:compare');
 var { override, merge } = require('sjs:object');
-var { observe } = require('../observable');
+var { observe } = require('sjs:observable');
 
 /**
   @summary Surface HTML elements

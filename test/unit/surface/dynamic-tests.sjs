@@ -1,9 +1,9 @@
 var {test, context, assert} = require('sjs:test/suite');
 context("dynamic") {||
-@ =require(['mho:surface', 'sjs:sequence', 'mho:observable', 'sjs:object']);
+@ =require(['mho:surface', 'sjs:sequence', 'sjs:observable', 'sjs:object']);
 
 var { @Select, @Div } = require('mho:surface/html');
-var {@ObservableVar, @observe} = require('mho:observable');
+var {@ObservableVar, @observe} = require('sjs:observable');
 @driver = require('sjs:xbrowser/driver');
 
 var click = function(elem) {

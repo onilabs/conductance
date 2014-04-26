@@ -36,6 +36,7 @@
   @require sjs:event
   @require sjs:sys
   @require sjs:url
+  @require sjs:observable
 */
 
 var hostenv = require('builtin:apollo-sys').hostenv;
@@ -57,6 +58,7 @@ var modules = [
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
+  'sjs:observable'
 ];
 
 if (hostenv === 'nodejs') {
@@ -84,8 +86,7 @@ if (hostenv === 'nodejs') {
 
 modules = modules.concat([
   {id:'mho:env', name:'env'},
-  {id:'mho:surface'},
-  {id:'mho:observable'},
+  {id:'mho:surface'}
 ]);
 
 if (hostenv === 'nodejs') {
@@ -135,15 +136,6 @@ module.exports = require(modules);
    - **server**: (module [mho:server](#mho%3Aserver))
    - **sys**: (module [sjs:sys](#sjs%3Asys))
    - **url**: (module [sjs:url](#sjs%3Aurl))
-  
-  ### Symbols from the [mho:observable](#mho%3Aobservable) module:
-  
-   - **changes**: (function [mho:observable::changes])
-   - **current**: (function [mho:observable::current])
-   - **isConflictError**: (function [mho:observable::isConflictError])
-   - **ObservableVar**: (class [mho:observable::ObservableVar])
-   - **observe**: (function [mho:observable::observe])
-  
   
   ### Symbols from the [mho:server](#mho%3Aserver) module:
   *(when in the nodejs environment)*
@@ -289,6 +281,15 @@ module.exports = require(modules);
    - **setPath**: (function [sjs:object::setPath])
    - **tap**: (function [sjs:object::tap])
    - **values**: (function [sjs:object::values])
+  
+  
+  ### Symbols from the [sjs:observable](#sjs%3Aobservable) module:
+  
+   - **changes**: (function [sjs:observable::changes])
+   - **current**: (function [sjs:observable::current])
+   - **isConflictError**: (function [sjs:observable::isConflictError])
+   - **ObservableVar**: (class [sjs:observable::ObservableVar])
+   - **observe**: (function [sjs:observable::observe])
   
   
   ### Symbols from the [sjs:quasi](#sjs%3Aquasi) module:

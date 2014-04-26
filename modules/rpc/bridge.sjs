@@ -34,7 +34,7 @@
      - Function
      - Error
      - [sjs:sequence::Stream]
-     - All [../observable::] types
+     - All [sjs:observable::] types
      - [::API]
 
     ### Wrapped functions

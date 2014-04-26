@@ -1,6 +1,6 @@
 // Conductance version of http://knockoutjs.com/examples/clickCounter.html
 
-var { ObservableVar, observe } = require('mho:observable');
+var { ObservableVar, observe } = require('sjs:observable');
 var { appendContent, Attrib, OnClick } = require('mho:surface');
 var { Button } = require('mho:surface/html');
 

@@ -2,7 +2,7 @@ var {RequireExternalStyle, Class, Mechanism, Element, Style, appendContent, Chec
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, toArray, filter, transform, first, wait} = seq;
-var { ObservableVar, observe } = require('mho:observable');
+var { ObservableVar, observe } = require('sjs:observable');
 var event = require('sjs:event');
 var dom = require('sjs:xbrowser/dom');
 var cutil = require('sjs:cutil');

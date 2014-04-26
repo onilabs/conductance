@@ -1,6 +1,6 @@
 // Conductance version of http://knockoutjs.com/examples/helloWorld.html
 
-var { ObservableVar } = require('mho:observable');
+var { ObservableVar } = require('sjs:observable');
 var { appendContent } = require('mho:surface');
 var { TextInput } = require('mho:surface/html');
 

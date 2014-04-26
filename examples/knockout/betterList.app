@@ -1,6 +1,6 @@
 // Conductance version of http://knockoutjs.com/examples/betterList.html
 
-var { ObservableVar, observe } = require('mho:observable');
+var { ObservableVar, observe } = require('sjs:observable');
 var { appendContent, Attrib, Prop, Style, OnClick } = require('mho:surface');
 var { difference } = require('sjs:array');
 var { Button, Form, TextInput, Select } = require('mho:surface/html');

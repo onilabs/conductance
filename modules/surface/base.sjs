@@ -65,7 +65,7 @@ exports._getDynOniSurfaceInit = ->
        inserting a String as HTML).
      - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
        to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
-       Typically, this will be an [observable::ObservableVar] or a Stream derived from one.
+       Typically, this will be an [sjs:observable::ObservableVar] or a Stream derived from one.
 
     Any other types will be coerced to a String wherever a HtmlFragment
     is required.
@@ -589,7 +589,7 @@ __js {
           }
           var args = observables.slice(0);
           args.push(function() { return arguments .. toArray });
-          require('../observable').observe.apply(null, args) .. each(onChange);
+          require('sjs:observable').observe.apply(null, args) .. each(onChange);
         };
       }
     } else {

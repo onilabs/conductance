@@ -28,8 +28,7 @@ var stdlibContents = (baseStdlibContents + "
 
 modules = modules.concat([
   {id:'mho:env', name:'env'},
-  {id:'mho:surface'},
-  {id:'mho:observable'},
+  {id:'mho:surface'}
 ]);
 
 if (hostenv === 'nodejs') {

@@ -1,7 +1,7 @@
 var { integers } = require('sjs:sequence');
 var { setStatus } = require('mho:server/response');
 var logging = require('sjs:logging');
-var { ObservableVar } = require('mho:observable');
+var { ObservableVar } = require('sjs:observable');
 
 exports.throwError = function(msg) { throw new Error(msg); }
 

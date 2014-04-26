@@ -1,7 +1,7 @@
 var { Element, appendContent, Mechanism, Style, OnClick } = require('mho:surface');
 var { Input, Form, Button } = require('mho:surface/bootstrap/html');
 var { each, map, transform, wait } = require('sjs:sequence');
-var { ObservableVar } = require('mho:observable');
+var { ObservableVar } = require('sjs:observable');
 var event = require('sjs:event');
 var assert = require('sjs:assert');
 var { remove } = require('sjs:array');
