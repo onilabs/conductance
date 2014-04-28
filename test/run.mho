@@ -3,8 +3,10 @@
 var { SystemRoutes,
       ExecutableDirectory,
       Filter,
+      ETagFilter,
     } = require('mho:server/route');
 var { Port, Route } = require('mho:server');
+var { setStatus } = require('mho:server/response');
 var url = require('sjs:url');
 var logging = require('sjs:logging');
 var helper = require('./helper');
@@ -20,6 +22,7 @@ var apiRegistry = require('mho:server/api-registry');
 var port = require('./conf/server.js').port;
 var karmaConfUrl = url.normalize('./conf/karma.js', module.id);
 var karmaConf = require(karmaConfUrl);
+var importTime = Date.now();
 
 var serverConfig = {
   address: Port(port),
@@ -59,6 +62,16 @@ var serverConfig = {
       });
     })(),
     SystemRoutes(),
+
+    Route('etagTest', {'GET':
+      function(req) {
+        req .. setStatus(200);
+        req.response.end("ok: #{req.url.params()["etag"]}");
+      }
+    }) .. ETagFilter(function(params) {
+      return "#{importTime}-#{params["etag"]}";
+    }),
+
     ExecutableDirectory(/(?=hello.api$)/, './test'),
     ExecutableDirectory('.'),
   ] .. Filter(function(req, block) {

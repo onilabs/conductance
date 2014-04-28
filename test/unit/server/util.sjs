@@ -12,11 +12,14 @@ exports.mockRequest = function(settings) {
       method: method,
     },
     response: (new @stream.WritableStringStream()) .. @extend({
-      writeHead: (h) -> this.head = h,
+      headers: {},
+      writeHead: (status) -> this.status = status,
+      setHeader: (k,v) -> this.headers[k]=v,
     }),
 
     result: -> {
-      head: this.response.head,
+      status: this.response.status,
+      headers: this.response.headers,
       body: this.response.data,
     }
   }

@@ -17,14 +17,19 @@
 */
 
 var { conductanceRoot, sjsRoot } = require('./env');
-var { setStatus, writeRedirectResponse, writeErrorResponse, isHttpError, HttpError, ServerError } = require('./response');
+var { setStatus, setHeader, writeRedirectResponse, writeErrorResponse, isHttpError, HttpError, ServerError } = require('./response');
 var { flatten } = require('sjs:array');
 var { isString, sanitize } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
-var { keys } = require('sjs:object');
+var { keys, ownPropertyPairs } = require('sjs:object');
 var { Route } = require('../server');
 var fs = require('sjs:nodejs/fs');
 var logging = require('sjs:logging');
+
+function checkEtag(t) {
+  if (!isString(t)) throw new Error("non-string etag: #{t}");
+  return t;
+}
 
 //----------------------------------------------------------------------
 
@@ -531,4 +536,61 @@ var Filter = exports.Filter = function(responder, fn) {
   };
   return (Array.isArray(responder)) ? flatten(responder) .. map(apply) : apply(responder);
 };
+
+
+// helper for ETagFilter, but also used by the file-server
+// module. Returns `true` if etag matched (and thus requires
+// no further response)
+var applyEtag = exports._applyEtag = function(req, currentEtag) {
+  if (currentEtag) {
+    // check for etag match
+    var lastSeen = req.request.headers["if-none-match"];
+    if (lastSeen) {
+      logging.debug("If-None-Matched: #{lastSeen}, current = #{currentEtag}");
+      // XXX wrt '-gzip': Apache attaches this prefix to ETags. We remove it here
+      // if present, so that we can run conductance behind an Apache reverse proxy.
+      // Clearly this is hackish and not a good place for it :-/
+      if (lastSeen.replace(/-gzip$/,'') == currentEtag) {
+        req .. setStatus(304);
+        req.response.end();
+        return true;
+      }
+      else {
+        logging.debug("#{req.url} outdated");
+      }  
+    }
+    else {
+      logging.debug("#{req.url}: requested without etag");
+    }
+    req .. setHeader("ETag", currentEtag);
+  }
+  return false;
+};
+
+/**
+  @function ETagFilter
+  @param {../server::Responder|Array} [responder]
+  @param {Function} [getETag]
+  @summary Add ETag header processing to a given route
+  @desc
+    This filter will terminate incoming requests
+    with a 304 not modified if the client's `If-None-Matched`
+    header matches the value returned by `getETag.call(req, params)`.
+
+    If the "If-None-Matched" header is missing or does not match the
+    current ETag value, the request is processed as normal but with the
+    "ETag" response header set to the current value.
+
+    **Note**: you should typically include a module-import timestamp in generated
+    ETag values, so that cached responses from a previous version of your server
+    are invalidated.
+*/
+exports.ETagFilter = function(handlers, getEtag) {
+  return Filter(handlers, function(req, block) {
+    var etag = "\"#{getEtag.call(req, req.url.params()) .. checkEtag}\"";
+    if (req .. applyEtag(etag, block)) return;
+
+    block();
+  });
+}
 
