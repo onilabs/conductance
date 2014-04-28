@@ -164,7 +164,6 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 
 		var toplevel = Element("div", [
-      mainStyle,
       searchStyle,
 			sidebar,
 			header,
@@ -193,6 +192,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 	exports.main = function(root /*, ... */) {
 		// wraps `run` with error handling
+		root .. appendContent(mainStyle);
 		var error = cutil.Condition();
 		window.onerror = function(e) {
 			error.set(e);
