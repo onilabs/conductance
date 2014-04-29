@@ -5,9 +5,10 @@ var {join} = require('sjs:sequence');
 var { Document, Element } = require('mho:surface');
 
 exports.content = function() {
+  var documentationHubs = this.documentationHubs || null;
   return Document(null, {
     title: "Conductance Documentation Browser",
-    main: 'index.sjs',
+    init: "require('index.sjs').main(document.body, #{JSON.stringify(documentationHubs)})",
     head: Element("script", null, {src: 'index.bundle.js'}),
     template: 'app-default',
     templateData: {

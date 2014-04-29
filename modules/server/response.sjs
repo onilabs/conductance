@@ -14,7 +14,8 @@
 */
 
 var { debug, info, verbose } = require('sjs:logging');
-var { Constructor } = require('sjs:object');
+var { Constructor, ownPropertyPairs } = require('sjs:object');
+var { each } = require('sjs:sequence');
 var assert = require('sjs:assert');
 var { sanitize } = require('sjs:string');
 var { mapQuasi } = require('sjs:quasi');
@@ -81,6 +82,10 @@ function setStatus(req, code /*, ... */) {
                                Array.prototype.slice.call(arguments,1));
 }
 exports.setStatus = setStatus;
+
+var setHeader = exports.setHeader = function setHeader(req, key, val) {
+  req.response.setHeader.call(req.response, key, val)
+}
 
 function writeRedirectResponse(req, location, status) {
   if (!status) status = 302; // moved temporarily

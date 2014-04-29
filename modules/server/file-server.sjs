@@ -24,7 +24,8 @@ var { override } = require('sjs:object');
 var { each, any } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
-var { setStatus, writeRedirectResponse, HttpError, NotFound } = require('./response');
+var { setStatus, setHeader, writeRedirectResponse, HttpError, NotFound } = require('./response');
+var { _applyEtag } = require('./route');
 var lruCache = require('sjs:lru-cache');
 
 function checkEtag(t) {
@@ -76,39 +77,17 @@ function formatResponse(req, item, settings) {
       etag = "\"#{item.etag .. checkEtag}\"";
   }
 
-  // check for etag match
-  if (etag) {
-    if (req.request.headers["if-none-match"]) {
-      debug("If-None-Matched: #{req.request.headers['if-none-match']}");
-      // XXX wrt '-gzip': Apache attaches this prefix to ETags. We remove it here
-      // if present, so that we can run conductance behind an Apache reverse proxy.
-      // Clearly this is hackish and not a good place for it :-/
-      if (req.request.headers["if-none-match"].replace(/-gzip$/,'') == etag) {
-        req .. setStatus(304);
-        req.response.end();
-        return;
-      }
-      else {
-        debug("#{req.url} outdated");
-      }  
-    }
-    else {
-      debug("#{req.url}: requested without etag");
-    }
-  }
-  else {
-    debug("no etag for #{req.url}");
+  if (_applyEtag(req, etag)) {
+    // sent 304; no further action needed
+    return;
   }
 
   // construct header:
-  var contentHeader = formatdesc.mime ? {"Content-Type":formatdesc.mime} : {};
-  if (etag)
-    contentHeader["ETag"] = etag;
-  
+  if (formatdesc.mime) req .. setHeader("Content-Type", formatdesc.mime);
   if(formatdesc.filter) {
     // There is a filter function defined for this filetype.
 
-    req .. setStatus(200, contentHeader);
+    req .. setStatus(200);
 
     if (req.request.method == "GET") { // as opposed to "HEAD"
       if (formatdesc.cache && etag) {
@@ -133,8 +112,8 @@ function formatResponse(req, item, settings) {
     // No filter function -> serve the file straight from disk
 
     if (item.length) {
-      contentHeader["Content-Length"] = item.length;
-      contentHeader["Accept-Ranges"] = "bytes";
+      req .. setHeader("Content-Length", item.length);
+      req .. setHeader("Accept-Ranges", "bytes");
     }
     var range;
     if (item.length && req.request.headers["range"] && 
@@ -146,16 +125,16 @@ function formatResponse(req, item, settings) {
       if (isNaN(from) || isNaN(to) || from<0 || to<from)
         req .. setStatus(416); // range not satisfiable
       else {
-        contentHeader["Content-Length"] = (to-from+1);
-        contentHeader["Content-Range"] = "bytes "+from+"-"+to+"/"+item.length;
-        req .. setStatus(206, contentHeader);
+        req .. setHeader("Content-Length", (to-from+1));
+        req .. setHeader("Content-Range", "bytes "+from+"-"+to+"/"+item.length);
+        req .. setStatus(206);
         if (req.request.method == "GET") // as opposed to "HEAD"
           stream.pump(input({start:from, end:to}), req.response);
       }
     }
     else {
       // normal request
-      req .. setStatus(200, contentHeader);
+      req .. setStatus(200);
 
       if (req.request.method == "GET") // as opposed to "HEAD"
         stream.pump(input(), req.response);
@@ -277,9 +256,8 @@ function generateFile(req, filePath, format, settings) {
 
   require.modules[resolved_path].etag = generator_file_mtime;
   var etag = generator.etag;
-  etag = "#{generator_file_mtime}-#{etag ? checkEtag(etag.call(req, params)) : Date.now()}";
-
   var params = req.url.params();
+  etag = "#{generator_file_mtime}-#{etag ? checkEtag(etag.call(req, params)) : Date.now()}";
 
   formatResponse(
     req,

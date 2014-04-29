@@ -48,7 +48,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 	exports.run = function(root, defaultHubs) {
 		var libraries = Library.Collection();
-		defaultHubs = defaultHubs || [['sjs:'],['mho:']];
+		defaultHubs = defaultHubs || {'sjs:': null, 'mho:': null};
 
 		var locationHash = ObservableVar(undefined);
 		var symbolAnchor = null; // anchor-within-hash part of location (e.g #sjs:sequence::transform~example)
@@ -72,7 +72,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 			return sym !== undefined ? renderer.renderSidebar(sym);
 		});
 
-		defaultHubs .. each(h -> libraries.add.apply(libraries, h));
+		defaultHubs .. ownPropertyPairs .. each(h -> libraries.add.apply(libraries, h));
 
 		var hubDebug = libraries.val .. transform(function(hubs) {
 			return JSON.stringify(hubs, null, '  ');
@@ -156,7 +156,6 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 
 		var toplevel = Element("div", [
-      mainStyle,
       searchStyle,
 			sidebar,
 			header,
@@ -192,6 +191,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 	exports.main = function(root /*, ... */) {
 		// wraps `run` with error handling
+		root .. appendContent(mainStyle);
 		var error = cutil.Condition();
 		window.onerror = function(e) {
 			error.set(e);

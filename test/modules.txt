@@ -8,6 +8,7 @@ integration/app-tests.sjs
 integration/bridge-tests.sjs
 integration/documentation-link-tests.sjs
 integration/documentation-tests.sjs
+integration/filter-tests.sjs
 integration/fs-tests.sjs
 integration/injection-tests.sjs
 integration/nodemon-tests.sjs
