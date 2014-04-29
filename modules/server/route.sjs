@@ -19,12 +19,15 @@
 var { conductanceRoot, sjsRoot } = require('./env');
 var { setStatus, setHeader, writeRedirectResponse, writeErrorResponse, isHttpError, HttpError, ServerError } = require('./response');
 var { flatten } = require('sjs:array');
-var { isString, sanitize } = require('sjs:string');
+var { isString, sanitize, endsWith } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
 var { keys, ownPropertyPairs } = require('sjs:object');
 var { Route } = require('../server');
 var fs = require('sjs:nodejs/fs');
+var nodePath = require('nodejs:path');
 var logging = require('sjs:logging');
+var assert = require('sjs:assert');
+var url = require('sjs:url');
 
 function checkEtag(t) {
   if (!isString(t)) throw new Error("non-string etag: #{t}");
@@ -536,6 +539,139 @@ var Filter = exports.Filter = function(responder, fn) {
   };
   return (Array.isArray(responder)) ? flatten(responder) .. map(apply) : apply(responder);
 };
+
+
+/* not documented, used mainly by DocumentationBrowser below */
+var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
+  // XXX: this scans the source dir recursively on every request.
+  // Probably fine for localhost use, as long as production
+  // deploys pregenerate their doc indexes rather than using this
+  // filter.
+  
+  if (arguments.length == 1) {
+    root = path;
+  }
+
+  if(!fs.exists(nodePath.join(root, 'sjs-lib-index.txt'))) {
+    throw new Error("Directory #{root} doesn't contain an sjs-lib-index.txt file");
+  }
+
+  if (path.length > 0 && !path .. endsWith("/")) {
+    path = path + "/";
+  }
+
+  root = nodePath.resolve(root);
+  return Route(
+    path + 'sjs-lib-index.json',
+    { GET:
+      function(req) {
+        var docs = require('sjs:compile/doc').summarizeLib(root);
+        req .. setStatus(200, {'Content-Type': 'text/json'});
+        req.response.end(JSON.stringify(docs));
+      }
+    }
+  );
+}
+
+/**
+  @function DocumentationBrowser
+  @param {String} [path] Route prefix
+  @param {Array} [hubs] An array of hubs to include in the documentation browser
+  @param {optional Object} [settings]
+  @setting {optional Boolean} [defaultHubs] If set to `false`, the default `sjs:` and `mho:` hubs are not included
+  @return An array of [../server::Responder]s
+  @desc
+    This function returns an array of [../server::Responder]s which will serve a
+    Conductance documentation browser under `<path>/`.
+
+    ## Hubs
+
+    The `hubs` argument should be an arry of objects which all contain a `name` property.
+    These hubs will be included in the documentation browser.
+
+    You can opt to have conductance serve your hub automatically if you pass `serve:true`
+    as well as a `path` attribute (the _on-disk_ location of your code). Alternatively,
+    you can point to existing libraries by passing a (full or relative) `url` property.
+
+    ## Accidentally serving secret content
+
+    You should be careful when setting `serve:true` in any `hub` argument. This
+    will currently make the _entire_ contents of the hub's `path` available
+    to all users of your server, regardless of file type.
+    For this reason, you should generally only
+    use this function when serving locally in development mode.
+
+    ## Documentation index
+
+    For each served hub that doesn't contain a documentation index (`sjs-lib-index.json`) file,
+    this function will include a route to generate the documentation index
+    each time it is accessed. This is not very efficient, but it's convenient
+    for local development use. If you are serving doecumentation publically, you should
+    use the [sjs:compile/doc::] module to generate this file ahead of time.
+
+    ## Example:
+
+        @server.run({
+          address: /* ... *\/,
+          routes: [
+            @route.SystemRoutes()
+            @route.DocumentationBrowser("docs", [
+              {
+                name: "app:",
+                path: path.join(serverRoot, "modules"),
+                serve: true,
+              },
+              {
+                name: "foolib:",
+                url: "http://example.com/foolib/modules/",
+              },
+            ]),
+
+            // ...
+
+          ]
+        });
+
+    This will serve the condutance documentation browser at `/docs/`, including
+    the `app:` and `foolib:` hubs. The source code for `app:` will be
+    automatically served under `http://localhost/docs/hubs/app%3A/`, while
+    the `foolib` hub will be loaded directly from its remote location.
+*/
+var DocumentationBrowser = exports.DocumentationBrowser = function(path, hubs, settings) {
+  var servedHubs = null;
+  if(!settings) settings = {};
+  if(!hubs) hubs = {};
+  var docHubs = (settings.defaultHubs === false) ? {} : {'sjs:': null, 'mho:': null};
+  var rv = [];
+
+  hubs .. ownPropertyPairs .. each {|[name, hub]|
+    if (hub.serve) {
+      var sourcePath = hub.path;
+      assert.string(sourcePath, "hub.path");
+
+      var hubRoute = "hubs/#{encodeURIComponent(name)}"
+      var fullHubRoute = "#{path}/#{hubRoute}";
+
+      if(!fs.exists(nodePath.join(sourcePath, 'sjs-lib-index.json'))) {
+        // add a handler to auto-generate documentation index
+        rv.push(DocumentationIndex(fullHubRoute, sourcePath));
+      }
+      rv.push(exports.StaticDirectory(fullHubRoute, nodePath.resolve(sourcePath)));
+      docHubs[name] = hubRoute;
+    } else {
+      assert.string(hub.url, "hub.url");
+      docHubs[name] = hub.url;
+    }
+  }
+
+  // serve the /doc subdirectory of conductance under <path>/
+  rv.push(exports.ExecutableDirectory(path, url.normalize('../../doc', module.id) .. url.toPath()) .. exports.Filter(function(req, block) {
+    req.documentationHubs = docHubs;
+    block();
+  }));
+
+  return rv;
+}
 
 
 // helper for ETagFilter, but also used by the file-server
