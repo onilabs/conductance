@@ -345,6 +345,7 @@ module.exports = require(modules);
    - **sort**: (function [sjs:sequence::sort])
    - **sortBy**: (function [sjs:sequence::sortBy])
    - **Stream**: (class [sjs:sequence::Stream])
+   - **tailbuffer**: (function [sjs:sequence::tailbuffer])
    - **take**: (function [sjs:sequence::take])
    - **takeWhile**: (function [sjs:sequence::takeWhile])
    - **toArray**: (function [sjs:sequence::toArray])
