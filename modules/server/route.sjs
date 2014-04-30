@@ -57,7 +57,7 @@ function AllowCORS(route, allow, settings) {
     // (the previous API only had a single `settings` arg)
     if (typeof(allow) == 'object' && !allow .. isString()) {
       settings = allow;
-      allow = null;
+      allow = settings.origins;
     }
   }
   if (allow == null) allow = "*";
