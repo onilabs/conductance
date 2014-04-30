@@ -19,7 +19,7 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
-var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode, Class } = require('./base');
+var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode, Class, Attrib } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform, wait } = require('sjs:sequence');
 var { split } = require('sjs:string');
@@ -568,7 +568,7 @@ exports.Prop = Prop;
   @return {::Element}
   @hostenv xbrowser
 */
-exports.Enabled = (html, obs) -> html .. Class('disabled', obs .. transform(x->!x));
+exports.Enabled = (html, obs) -> html .. Attrib('disabled', obs .. transform(x->!x));
 
 
 //----------------------------------------------------------------------
