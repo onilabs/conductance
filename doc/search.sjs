@@ -1,7 +1,7 @@
 var {RequireExternalStyle, Class, Mechanism, Element, Style, appendContent, Checkbox, Attrib} = require('mho:surface');
 var {Checkbox} = require('mho:surface/html');
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, toArray, filter, transform, first, wait} = seq;
+var {map, indexed, find, each, toArray, filter, transform, first} = seq;
 var { ObservableVar, observe } = require('sjs:observable');
 var event = require('sjs:event');
 var dom = require('sjs:xbrowser/dom');
@@ -145,11 +145,11 @@ exports.run = (function() {
 							.. Class("selected", highlighted)
 							.. Mechanism(function(elem) {
 								waitfor {
-									elem .. event.events('click') .. wait();
+									elem .. event.wait('click');
 									done.set();
 								} and {
 									while (true) {
-										elem .. event.events('mouseover') .. wait();
+										elem .. event.wait('mouseover');
 										selectedMatch.set(m.id);
 									}
 								}
@@ -251,7 +251,7 @@ exports.run = (function() {
 				} or {
 					indexUpdate(input);
 				} or {
-					elem.querySelector('.cancel') .. event.events('click') .. wait();
+					elem.querySelector('.cancel') .. event.wait('click');
 				} or {
 					done.wait();
 					return selectedMatch.get();

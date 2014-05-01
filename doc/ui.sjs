@@ -1,7 +1,7 @@
 var {Element, Mechanism, Style, Class, prependContent, removeNode, RawHTML} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
-     reduce, reverse, join, find, hasElem, wait
+     reduce, reverse, join, find, hasElem
      } = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, startsWith, endsWith, strip} = string;
@@ -40,9 +40,9 @@ var withOverlay = exports.withOverlay = (function() {
 			waitfor {
 				return block(elem);
 			} or {
-				elem .. event.events('click', {filter: e -> e.target === elem}) .. wait;
+				elem .. event.wait('click', {filter: e -> e.target === elem});
 			} or {
-				document.body .. event.events('keydown', {filter: e -> e.which == ESCAPE}) .. wait;
+				document.body .. event.wait('keydown', {filter: e -> e.which == ESCAPE});
 			}
 		} finally {
 			removeNode(elem);

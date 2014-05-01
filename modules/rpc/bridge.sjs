@@ -90,13 +90,13 @@ Protocol:
 */
 
 var logging = require('sjs:logging');
-var { each, toArray, map, filter, transform, isStream, Stream, at, any, wait } = require('sjs:sequence');
+var { each, toArray, map, filter, transform, isStream, Stream, at, any } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
 var { isString, startsWith } = require('sjs:string');
 var { isFunction, exclusive } = require('sjs:function');
-var { Emitter } = require('sjs:event');
+var { Emitter, wait } = require('sjs:event');
 var { ownKeys, keys, propertyPairs } = require('sjs:object');
 var http = require('sjs:http');
 var Url = require('sjs:url');

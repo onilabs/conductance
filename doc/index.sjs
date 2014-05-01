@@ -3,7 +3,7 @@ waitfor {
 var {RequireExternalStyle, OnClick, Class, Mechanism, Element, removeNode, appendContent, Style} = require('mho:surface');
 } and {
 var seq = require('sjs:sequence');
-var {map, indexed, find, each, join, transform, wait } = seq;
+var {map, indexed, find, each, join, transform } = seq;
 } and {
 var { ObservableVar, observe } = require('sjs:observable');
 } and {
@@ -114,16 +114,16 @@ window.withBusyIndicator {|hideBusyIndicator|
 				while(true) {
 					waitfor {
 						waitfor {
-							searchButton .. event.events('click') .. wait();
+							searchButton .. event.wait('click');
 						} or {
-              document.body .. event.events('keypress', {filter: FORWARD_SLASH, handle: preventDefault}) .. wait();
+              document.body .. event.wait('keypress', {filter: FORWARD_SLASH, handle: preventDefault});
 						}
 						action = doSearch;
 					} or {
 						waitfor {
-							configureButton .. event.events('click') .. wait();
+							configureButton .. event.wait('click');
 						} or {
-							document.body .. event.events('keypress', {filter: PLUS, handle: preventDefault}) .. wait();
+							document.body .. event.wait('keypress', {filter: PLUS, handle: preventDefault});
 						}
 						action = doConfig;
 					}
@@ -147,7 +147,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 		var hint;
 		if (!window.localStorage || !window.localStorage['search-hint-shown']) {
 			hint =  `<div class='alert alert-warning'>Hint: You can press '/' to search the reference<a class='close' href='#'>&times;</a></div>` .. Mechanism(function(node) {
-				node.querySelector('a') .. event.events('click', {handle: preventDefault}) .. wait;
+				node.querySelector('a') .. event.wait('click', {handle: preventDefault});
 				if (window.localStorage)
 					window.localStorage['search-hint-shown'] = true;
 				node.parentNode.removeChild(node);
@@ -216,9 +216,9 @@ window.withBusyIndicator {|hideBusyIndicator|
 				`, {"class":"error-contents"})) {|elem|
 					window.scrollTo(0,0);
 					waitfor {
-						elem.querySelector('button.reload') .. event.events('click') .. wait;
+						elem.querySelector('button.reload') .. event.wait('click');
 					} or {
-						elem.querySelector('button.restart') .. event.events('click') .. wait;
+						elem.querySelector('button.restart') .. event.wait('click');
 						document.location.hash = "";
 					}
 				}
