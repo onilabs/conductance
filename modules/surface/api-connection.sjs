@@ -69,7 +69,7 @@ exports.withAPI = function(api, block) {
             if (delay > 60*1000*10) // cap at 10 minutes
               delay = 60*1000*10;
           } or {
-            elem.querySelector('a') .. @events('click', {handle:@preventDefault}) .. @wait;
+            elem.querySelector('a') .. @wait('click', {handle:@preventDefault});
           }
         }
         continue;
