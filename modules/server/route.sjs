@@ -39,33 +39,53 @@ function checkEtag(t) {
 /**
   @function AllowCORS
   @param {../server::Responder|Array} [responder]
-  @param {Settings} [options]
-  @setting {String} [origins] Access-Control-Allow-Origin value
-  @default "*"
+  @param {optional String|Function} [allow="*"] Access-Control-Allow-Origin value or filter
+  @param {optional Settings} [options]
   @setting {String} [methods] Access-Control-Allow-Methods value
   @default "GET,PUT,POST,HEAD,DELETE"
   @setting {String} [headers] Access-Control-Allow-Headers value
   @default "origin, content-type"
   @summary Allow Cross-Origin-Resource-Sharing for the given responder
   @return A copy of the given responder with CORS enabled.
+  @desc
+    If `allow` is a function, it will be called as `allow.call(req, origin)`.
+    It should return `true` if the given origin is allowed, `false` otherwise.
 */
-function AllowCORS(route, settings, allowedMethods) {
-  var allowedOrigins = (settings && settings.origins) || "*";
+function AllowCORS(route, allow, settings) {
+  if (arguments.length == 2) {
+    // for backwards compatibility, we treat an `allow` object as `settings`
+    // (the previous API only had a single `settings` arg)
+    if (typeof(allow) == 'object' && !allow .. isString()) {
+      settings = allow;
+      allow = settings.origins;
+    }
+  }
+  if (allow == null) allow = "*";
+  if (!settings) settings = {};
   var allowedMethods = (settings && settings.methods) || "GET,PUT,POST,HEAD,DELETE";
   var allowedHeaders = (settings && settings.headers) || "origin, content-type";
+  var setAllow;
+  if (allow .. isString()) {
+    setAllow = req -> req.response.setHeader("Access-Control-Allow-Origin", allow);
+  } else {
+    setAllow = function(req) {
+      var origin = req.request.headers.origin;
+      if (!origin) return;
+      if (allow.call(req, origin)) {
+        req.response.setHeader("Access-Control-Allow-Origin", origin);
+      }
+    }
+  }
   return route
     .. Filter(function(req, block) {
-      req.response.setHeader("Access-Control-Allow-Origin", allowedOrigins);
-      if (req.method === 'OPTIONS') {
+      setAllow(req);
+      if (req.request.method === 'OPTIONS') {
         // preflight requests should be preventable by giving POST
         // requests a text/plain mime type
         logging.verbose('Performance warning: preflight OPTIONS request.');
-        req .. setStatus(200,
-                        {
-                          "Access-Control-Allow-Origin": allowedOrigins,
-                          "Access-Control-Allow-Methods": allowedMethods,
-                          "Access-Control-Allow-Headers": allowedHeaders,
-                        });
+        req.response.setHeader("Access-Control-Allow-Methods", allowedMethods),
+        req.response.setHeader("Access-Control-Allow-Headers", allowedHeaders),
+        req .. setStatus(200);
         req.response.end();
       } else {
         block();
@@ -519,7 +539,7 @@ exports.LogRequests = function(responder, level) {
             block();
           } finally {
             var diff = startTime - (new Date().getTime());
-            logging.debug("#{req.method} request took #{diff} ms");
+            logging.debug("#{req.request.method} request took #{diff} ms");
           }
         });
 

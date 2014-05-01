@@ -10,6 +10,7 @@ exports.mockRequest = function(settings) {
     url: @url.parse(url),
     request: {
       method: method,
+      headers: settings.headers || {},
     },
     response: (new @stream.WritableStringStream()) .. @extend({
       headers: {},

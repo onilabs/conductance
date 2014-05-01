@@ -22,5 +22,11 @@ notifications:
     on_success: change
     on_failure: always
 
+branches:
+  # build only master and release braches
+  only:
+    - master
+    - /^\d+(\.\d+)+$/
+
 script: "./conductance test/run.mho $a --show-failed"
 
