@@ -1,8 +1,3 @@
-if (typeof(__filename) == 'undefined') {
-	// SJS
-	var __filename = decodeURIComponent(module.id.substr(7));
-}
-
 // This script can process any manifest format v1 or v2
 var FORMATS = [1, 2];
 exports.FORMATS = FORMATS;
@@ -30,6 +25,19 @@ var http = require('http');
 var https = require('https');
 var PROTO_MODS = {http: http, https: https};
 var IS_WINDOWS = os.platform().toLowerCase().indexOf('win') === 0;
+
+if (typeof(__filename) == 'undefined') {
+	// SJS
+	var __filename;
+  if (!IS_WINDOWS) {
+    __filename = decodeURIComponent(module.id.substr(7));
+  }
+  else {
+    // XXX in SJS we could just use @url.toPath. Is there a a reason
+    // why this script needs to also work from JS?
+    __filename = module.id.substr(8).replace(/(\/)/g,'\\');
+  }
+}
 
 var child_process = require('child_process');
 
