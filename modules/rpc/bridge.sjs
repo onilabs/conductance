@@ -565,6 +565,7 @@ function BridgeConnection(transport, opts) {
       }
       catch (e) {
         if (!throwing) {
+          sessionLost.emit(e);
           logging.info("Error while receiving; terminating BridgeConnection: #{e}");
           break;
         }
