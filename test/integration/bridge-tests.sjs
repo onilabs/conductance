@@ -138,10 +138,6 @@ context() {||
       rv .. assert.eq('pong');
     }
 
-    test('exposes connection object') {||
-      require(url).connect((a, c) -> c.reconnect .. assert.ok());
-    }.skip("TODO: update for new API");
-
     test('reestablishes connection') {||
       var log = [];
       require(url).connect({status:true}) {|api, connection|
@@ -167,34 +163,6 @@ context() {||
         'ping', 'disconnected', 'connected', /* no pong; it was aborted */
         'ping', 'pong']);
     }.skip("Currently aborts entire connection, to err on safe side (workaround for uncaught errors in strata)");
-
-    test('resumes in-progress calls') {||
-      var log = [];
-      require(url).connect({status:true}) {|api, connection|
-        var status = connection.status;
-        waitfor {
-          log.push(api.callme(function() {
-            log.push("+callback");
-            hold(500);
-            log.push("-callback");
-            return "result";
-          }));
-        } or {
-          api.breakConnection(50);
-          hold();
-        } or {
-          logStatusChanges(log, status);
-        }
-      }
-      log .. assert.eq([
-        'connected',
-        '+callback',
-        'disconnected',
-        '-callback',
-        'connected',
-        'result']);
-    }.skip("TODO: update for new API");
-
 
     test("serves .api from relative directory") {||
       // hello.api is configured to be served from "./test",
@@ -231,140 +199,6 @@ context() {||
         s.drivers .. each(d -> d.__finally__());
       }
 
-      test('server-side observables are resolved consistently when one client is offline') { |s|
-        require(url).connect {|api|
-          var c1, c2;
-
-          api.withSharedVariable {|v|
-            // now, we make two iframe clients with mockable HTTP stacks:
-            waitfor {
-              c1 = s.Client('1');
-              c1.ready = Condition();
-              c1.gotValue = Condition();
-              c1.polling = Condition();
-            } and {
-              c2 = s.Client('2');
-              c2.ready = Condition();
-              c2.gotValue = Condition();
-            }
-
-            var polling = Emitter();
-            var disconnected = Condition();
-            var orig_request = c1.lib.http.request;
-
-            c1.lib.http.request = function() {
-              if (disconnected.isSet) {
-                logging.info("still disconnected - denying HTTP request");
-                throw new Error("intentionally disconnected by test suite");
-              }
-              if ((arguments[0] .. at(-1)).cmd .. startsWith('poll_')) {
-                // intercept poll requests
-                c1.polling.set();
-                waitfor {
-                  disconnected.wait();
-                  logging.info("throwing error in poll()");
-                  throw new Error("disconnect intentionally triggered by test suite");
-                } or {
-                  return orig_request.apply(this, arguments);
-                } finally {
-                  c1.polling.clear();
-                }
-              } else {
-                return orig_request.apply(this, arguments);
-              }
-            }
-            
-            var run = function(client) {
-              client.lib.api.connect({server:prefix, status:true}) {|api, connection|
-                logging.info("#{client.id}: connected");
-                client.connection = connection;
-                waitfor {
-                  logStatusChanges(client.log, connection.status);
-                } or {
-                  var v = api.sharedVariable();
-                  var observeReady = Condition();
-                  waitfor {
-                    v.observe {|val|
-                      logging.info("client #{client.id}: observed #{val}");
-                      client.log.push(val.join('|'));
-                      client.gotValue.set();
-                      observeReady.set();
-                    }
-                  } and {
-                    observeReady.wait();
-                    client.push = v.push.bind(v);
-                    client.ready.set();
-                  }
-                }
-              }
-            };
-
-            var waitForLog = function(log) {
-              [c1, c2] .. each {|client|
-                while (! client.log .. hasElem(log)) {
-                  logging.debug("waiting for client #{client.id} to see log: #{log}");
-                  client.gotValue.clear();
-                  client.gotValue.wait();
-                }
-                logging.debug("client #{client.id} has now seen log: #{log}");
-                client.gotValue.clear();
-              }
-            };
-
-            waitfor {
-              run(c1);
-            } or {
-              run(c2);
-            } or {
-              waitfor {
-                c1.ready.wait();
-              } and {
-                c2.ready.wait();
-              }
-
-              c1.log .. assert.eq(['connected', '']);
-              c2.log .. assert.eq(['connected', '']);
-
-              c1.push('1.1');
-              waitForLog('1.1');
-
-              logging.info("Awaiting disconnect");
-              waitfor {
-                c1.connection.disconnected.wait();
-              } and {
-                disconnected.set();
-              }
-
-              logging.info("Adding a value from each client");
-              waitfor {
-                c1.push('1.2');
-              } and {
-                // give c1 a head start, so that if 2.1
-                // appears first on the server then
-                // c1 was clearly held up by reconnecting
-                hold(100);
-                waitfor {
-                  c2.push('2.1');
-                } and {
-                  logging.info("awaiting c2 value");
-                  c2.gotValue.wait();
-                  c2.gotValue.clear();
-                }
-                c2.log .. assert.eq(['connected', '', '1.1', '1.1|2.1']);
-                c1.log .. assert.eq(['connected', '', '1.1', 'disconnected']);
-                hold(1000);
-                logging.info("allowing reconnect");
-                disconnected.clear();
-              }
-
-              // wait until both have seen final event
-              waitForLog('1.1|2.1|1.2');
-            }
-          }
-          c2.log .. assert.eq(['connected', '', '1.1', '1.1|2.1', '1.1|2.1|1.2']);
-          c1.log .. assert.eq(['connected', '', '1.1', 'disconnected', 'connected', '1.1|2.1', '1.1|2.1|1.2']);
-        }
-      }.skip("TODO: update for new API");
     }.browserOnly().timeout(15);
   }
 }
