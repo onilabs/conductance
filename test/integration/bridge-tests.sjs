@@ -72,6 +72,43 @@ context('bridge error handling') {||
     };
   };
 
+  test('retract server side execution initiated by client on broken connection'){||
+    try{ 
+      bridge.connect(apiid, {server: helper.getRoot()}){
+        |connection|
+        waitfor{
+          connection.api.detectRetractionAfterDelay(100);
+        } or {
+          hold(30); // CALL_BATCH_PERIOD + 10
+          connection.__finally__();
+        }
+      }
+    } catch(e){}
+
+    bridge.connect(apiid, {server: helper.getRoot()}){
+      |connection|
+      assert.truthy(connection.api.didDetectRetraction());
+    } 
+  }.browserOnly();
+
+  test('throw exception when calling client function after broken connection'){||
+    var someFuncExecuted = false;
+    try {
+      bridge.connect(apiid, {server: helper.getRoot()}){
+        |connection|
+        var someFunc = function(){someFuncExecuted = true};
+        connection.api.checkErrorThrownOnCallingFuncAfterDelay(someFunc, 100);
+        hold(30); //CALL_BATCH_PERIOD + 10
+        connection.__finally__();
+      }
+    } catch(e){}
+    assert.falsy(someFuncExecuted);
+    bridge.connect(apiid, {server: helper.getRoot()}){
+      |connection|
+      assert.truthy(connection.api.wasErrorThrown());
+    } 
+  }.browserOnly();
+
 }
 
 function waitforSuccess(block) {
