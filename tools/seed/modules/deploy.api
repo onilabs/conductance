@@ -1,0 +1,212 @@
+@ = require('mho:std');
+@stream = require('sjs:nodejs/stream');
+@state = require('app:state');
+@crypto = require('nodejs:crypto');
+var here = @url.normalize('./', module.id) .. @url.toPath;
+var tmpRoot = @path.join(here, '../tmp');
+var destRoot = @path.join(here, '../apps');
+var credentialsRoot = @path.join(here, '../credentials');
+var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
+
+var withTmp = function(block) {
+  var path, opened;
+  try {
+    while (true) {
+      var idx = Math.round(Math.random() * 100000);
+      opened = false;
+      path = @path.join(tmpRoot, String(idx));
+      try {
+        @fs.withWriteStream(path) {|stream|
+          opened = true;
+          block(stream, path);
+        }
+        break;
+      } catch(e) {
+        if (!opened && e.code == 'EEXIST') {
+          continue;
+        }
+        throw e;
+      }
+    }
+  } finally {
+    if (opened) {
+      @fs.unlink(path);
+    }
+  }
+};
+
+var locks = {};
+var apps = {};
+
+var stopApp = function(appname) {
+  @assert.fail("TODO: stopApp");
+  //var proc = apps[appname];
+  //if (proc) {
+  //  proc.kill();
+  //  proc.wait();
+  //  delete apps[appname];
+  //}
+};
+
+var startApp = function(appname) {
+  // ensure stopped
+  stopApp(appname);
+
+  // TODO: logging
+  apps[appname] = @childProcess.launch(ConductanceArgs[0], ConductanceArgs.slice(1).concat(['serve']), {stdio:['ignore','ignore','ignore']});
+};
+
+var appWrapper = function(appname) {
+  return {
+    name: appname,
+    start: -> startApp(appname),
+    stop: -> stopApp(appname),
+  }
+};
+
+var validAppName = name -> /^[a-zA-Z0-9][-_a-zA-Z0-9]*$/.test(name);
+
+var loadUsers = function() {
+  return @fs.readFile(@path.join(credentialsRoot, 'users.json'), 'utf-8') .. JSON.parse() .. @get('users');
+};
+
+exports.deploy = function(appname, uploader) {
+  if (!validAppName(appname)) {
+    throw new Error("invalid application name");
+  }
+
+  var startingState = @state.load();
+  // first, check that the uploader is authorized
+  
+  var users = loadUsers();
+  var authorizedKeys = users .. @ownValues() .. @transform(u -> u .. @get('keys')) .. @concat .. @map(function(keyStr) {
+    var [type, key, comment] = keyStr .. @split(/ +/, 2);
+    return {type:type, data: key};
+  });
+
+  // create a shared secret (to secure the communication)
+  var dh = @crypto.getDiffieHellman('modp5');
+  dh.generateKeys();
+
+  var dhKeys = {
+    'public': dh.getPublicKey(),
+    'private': dh.getPrivateKey(),
+  };
+
+  // send a signed copy of this DH key along with the server's public key:
+  console.log("DHPUB:", dhKeys['public']);
+  var challengeResponse = uploader.handshake({
+    dhKey: dhKeys['public'],
+    signature: 'TODO',
+    publicKey: 'TODO',
+    users: authorizedKeys,
+  });
+  @info("client response", challengeResponse);
+
+  // the client has accepted out identity, and returned
+  //   publicKey: DH key
+  //   userIndex: index into `authorizedKeys` array
+  //   signature: DH key signed with user's private key
+  var userIdentity = authorizedKeys .. @at(challengeResponse .. @get('userIndex'));
+  var userIdentityPEM = "#{userIdentity.type} #{userIdentity.data}" .. require('ssh-key-to-pem').sshKeyToPEM;
+  var clientSignature = challengeResponse .. @get('signature');
+
+  var verifier = @crypto.createVerify('sha1');
+  var clientDhKey = challengeResponse .. @get('publicKey');
+  verifier .. @stream.write(clientDhKey);
+  verifier .. @stream.end();
+  if(!verifier.verify(userIdentityPEM, clientSignature, 'base64')) {
+    throw new Error("Client sent an invalid signature");
+  }
+
+  // Now that we have sent our DH key to the client, and received theirs.
+  // Both sides have verified (if they want) that the other party is the
+  // owner of the expected (long-lived) public key
+  
+  if (Object.hasOwnProperty.call(locks, appname)) {
+    var date = locks[appname];
+    @assert.ok(date);
+    throw new Error("a deploy for #{appname} is already running (since #{date.toUTCString()})...");
+  }
+  locks[appname] = new Date();
+
+  var ephemeralSecret = dh.computeSecret(clientDhKey);
+  var hmac = @crypto.createHmac('sha256', ephemeralSecret);
+  var decipher = @crypto.createDecipher('aes256', ephemeralSecret);
+
+  try {
+    var expectedSize = 0;
+    withTmp {|outstream, tmpfile|
+      console.log("receiving #{appname} -> #{tmpfile}");
+
+      // pump stream into tempfile _and_ the hmac function
+      // note that we delay by exactly one chunk - the final chunk is not part of the file
+      waitfor {
+        uploader.stream .. @each {|chunk|
+          waitfor {
+            decipher .. @stream.write(chunk);
+          } and {
+            hmac .. @stream.write(chunk);
+          }
+        }
+        decipher .. @stream.end();
+      } and {
+        while(true) {
+          var chunk = decipher .. @stream.read();
+          if (chunk == null) break;
+          //console.log("got #{chunk.length} bytes ...");
+          expectedSize += chunk.length;
+          outstream .. @stream.write(chunk);
+        }
+        outstream .. @stream.end();
+      }
+
+      var expectedDigest = hmac.digest();
+      var claimedDigest = uploader.digest();
+      @info("Claimed digest ", claimedDigest, "expected", expectedDigest);
+      if (!@eq(claimedDigest, expectedDigest)) {
+        throw new Error("HMAC validation failed");
+      }
+
+      // OK, we've validated the stream's authenticity.
+      console.log("upload done (#{expectedSize}b), unpacking");
+      var tmpdest = @path.join(destRoot, "_" + appname);
+      var finaldest = @path.join(destRoot, appname);
+      
+      // XXX
+      var cleanup = -> @childProcess.run('rm', ['-rf',tmpdest], {stdio:'inherit'});
+
+      if (@fs.exists(tmpdest)) {
+        cleanup();
+      }
+      @fs.mkdir(tmpdest);
+      try {
+        @fs.stat(tmpfile).size .. @assert.eq(expectedSize, "uploaded file size");
+        @childProcess.run('file', [tmpfile], {stdio:'inherit'});
+        @childProcess.run('tar', ['xzf', tmpfile, '-C', tmpdest], {stdio:'inherit'});
+
+        // sanity check that we have a valid config.mho
+        @childProcess.run(ConductanceArgs[0], ConductanceArgs.slice(1).concat([
+          'exec',
+          @path.join(tmpdest, 'config.mho'),
+        ]), {stdio:'inherit'});
+
+        // before we modify anything, kill the old app (if any)
+        stopApp(appname);
+          
+        // overwrite dir
+        @fs.rename(tmpdest, finaldest);
+
+        // and start it
+        @assert.fail("TODO: start app...");
+        //startApp(appname);
+        return appWrapper(appname);
+      } catch (e) {
+        cleanup();
+        throw e;
+      }
+    }
+  } finally {
+    locks[appname] = null;
+  }
+}

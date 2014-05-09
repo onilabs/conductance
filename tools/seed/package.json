@@ -1,0 +1,9 @@
+{
+  "name": "conductance-seed",
+  "private" : true,
+  "dependencies": {
+    "fs-ext": "*",
+    "ssh-agent": "*",
+    "ssh-key-to-pem": "*"
+  }
+}

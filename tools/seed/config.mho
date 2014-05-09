@@ -1,0 +1,71 @@
+// Germination server
+
+@ = require('mho:std');
+@server = require('mho:server');
+require.hubs.push(['app:', @url.normalize('./modules/', module.id)]);
+
+//----------------------------------------------------------------------
+// function invoked by `conductance serve`
+exports.serve = function(args) {
+  require('app:state').acquire();
+  var parser = require('sjs:dashdash').createParser({
+    options: [
+      {
+        names: ['host'],
+        type: 'string',
+        help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
+        'default': 'localhost',
+      },
+      {
+        names: ['port'],
+        type: 'number',
+        help: 'serve on port (default: 7079)',
+        'default': 7079,
+      },
+      {
+        names: ['ssl'],
+        type: 'bool',
+        help: 'serve over https (NOTE: uses the default conductance certificate, use for testing only)',
+        'default': false,
+      },
+    ]
+  });
+  try {
+    var opts = parser.parse(args);
+  } catch(e) {
+    console.error('Error: ', e.message);
+    process.exit(1);
+  }
+
+  if (opts.help) {
+    console.log("  config.mho options:\n");
+    console.log(parser.help({includeEnv:true}));
+    process.exit(0);
+  }
+
+  var routes = [
+        @route.SystemRoutes(),
+        @route.ExecutableDirectory('', @url.normalize('./modules/', module.id) .. @url.toPath),
+      ] .. @route.LogRequests(@logging.INFO);
+
+  var host = opts.host == 'any' ? null : opts.host;
+  var port = opts.port;
+  var ssl = opts.ssl;
+
+  var address = @Port(port, host);
+  if (opts.ssl) {
+    address = address.ssl({
+      key: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.key"),
+      cert: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.crt")
+    });
+  }
+
+  if (opts.cors) {
+    routes = routes .. @route.AllowCORS;
+  };
+
+  @server.run({
+    address: address,
+    routes: routes,
+  });
+};
