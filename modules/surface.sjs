@@ -435,7 +435,7 @@ module.exports = require(modules);
 @altsyntax element .. Enabled(obs)
 @summary Add a `disabled` attribute to element when obs is not truthy
 @param {::HtmlFragment} [element]
-@param {observable::Observable} [obs] Observable
+@param {sjs:observable::Observable} [obs] Observable
 @return {::Element}
 @hostenv xbrowser
 
