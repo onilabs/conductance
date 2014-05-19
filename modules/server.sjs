@@ -238,7 +238,7 @@ function findMatchingRoute(routes, req, path) {
     } else {
       return !!(matchResult = route.matches(req));
     }
-  });
+  }, undefined);
   if (!route) {
     throw NotFound("No handler matched request");
   }

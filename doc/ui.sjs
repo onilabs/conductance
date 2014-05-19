@@ -138,7 +138,7 @@ exports.renderer = function(libraries, rootSymbol) {
 	}
 
 	function makeRequireSnippet(fullModulePath, name) {
-		if(fullModulePath .. find(p -> p .. startsWith('#'))) {
+		if(fullModulePath .. find(p -> p .. startsWith('#'), false)) {
 			// documentation URL - not actually importable
 			return undefined;
 		}
@@ -282,7 +282,7 @@ exports.renderer = function(libraries, rootSymbol) {
 					rv.push(Element("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
 				}
 
-				var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor');
+				var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor', undefined);
 				if (constructor) {
 					var [name, child] = constructor;
 					var childSymbol = symbol.child(name);

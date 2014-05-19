@@ -68,7 +68,7 @@ exports.run = (function() {
 
 				// if we had something selected but now it's gone,
 				// unset selectedMatch
-				if (selected && ! rv .. seq.find(r -> r.id == selected)) {
+				if (selected && ! rv .. seq.find(r -> r.id == selected, false)) {
 					selectedMatch.set(null);
 				}
 				results.set(rv);

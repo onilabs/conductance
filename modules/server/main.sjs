@@ -146,7 +146,7 @@ exports.run = function(args) {
     }
   }
 
-  var action = actions .. find(a -> a.name == command);
+  var action = actions .. find(a -> a.name == command, undefined);
   verbosity += (action ? action.defaultVerbosity) || 0;
 
   switch(verbosity) {

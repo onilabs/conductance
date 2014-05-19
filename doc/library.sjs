@@ -65,7 +65,7 @@ CollectionProto.get = function(name) {
 	if (arguments.length === 0) {
 		return this._libraries .. first();
 	}
-	var lib = this.get() .. ownValues .. find(l -> l.name == name);
+	var lib = this.get() .. ownValues .. find(l -> l.name == name, undefined);
 	assert.ok(lib, "library not found: #{name}");
 	return lib;
 };
@@ -78,7 +78,7 @@ CollectionProto.add = function(name, url) {
 		if (url === name) url = "";
 	}
 	if(!url) throw new Error("Missing URL");
-	if (this.val.get() .. find([n, u] -> u === url || n === name)) {
+	if (this.val.get() .. find([n, u] -> u === url || n === name, false)) {
 		throw new Error("Library already added");
 	}
 	this._cacheUrl(url, name);
