@@ -1,6 +1,5 @@
 #!/usr/bin/env sjs
 @ = require('sjs:std');
-var { @forward } = require('./forward');
 var { @quote } = require('sjs:shell-quote');
 var Connection = require('nodejs:ssh2');
 
@@ -211,9 +210,18 @@ var proxyConnections = exports.proxyConnections = function(sshConn, port, block)
 				try {
 					@info("proxy start [active=#{strata.length}]");
 					sshConn .. forwardOut(port) {|stream|
-						@forward(conn, stream);
+						waitfor {
+							conn .. @pump(stream);
+							stream.end();
+						} and {
+							stream .. @pump(conn);
+							conn.end();
+						}
 					}
+				} catch(e) {
+					@warn("Error in connection handler:\n#{e}");
 				} finally {
+					conn.end();
 					strata .. @remove(s) .. @assert.ok();
 				}
 			}());

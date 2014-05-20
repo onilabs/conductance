@@ -9,14 +9,34 @@
 					@info("Connecting to server #{name}");
 					api.connect(name) {|server|
 						@info("pinging...", server);
-						@mainContent .. @appendContent(@Button("x")) {|elem|
+						@mainContent .. @appendContent(@Button("x")) {|disconnectButton|
 							waitfor {
-								while(true) {
-									var pong = server.ping('HELLO');
-									@info("PING: #{pong}");
-									hold(2000);
+								var appNames = server.appNames;
+								console.log(server.appNames);
+								@mainContent.. @appendContent(appNames .. @transform(function(names) {
+									return @UnorderedList(names .. @map(app -> @Button(`app: ${app}`) .. @Mechanism(function(btn) {
+										while(true) {
+											btn .. @wait('click');
+											waitfor {
+												console.log("showing app: #{app}");
+												btn.parentNode .. @appendContent(@Div(`Details for ${app}...`)) {||
+													hold();
+												}
+											} or {
+												btn .. @wait('click');
+												console.log('hiding again');
+											}
+										}
+									})));
+								})) {||
+									hold();
 								}
-							} or { elem .. @wait('click'); }
+							//	while(true) {
+							//		var pong = server.ping('HELLO');
+							//		@info("PING: #{pong}");
+							//		hold(2000);
+							//	}
+							} or { disconnectButton .. @wait('click'); }
 						}
 					}
 				} finally {

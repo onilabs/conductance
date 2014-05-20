@@ -1,7 +1,8 @@
 @ = require('mho:std');
 @stream = require('sjs:nodejs/stream');
-@state = require('app:state');
+@state = require('./state');
 @crypto = require('nodejs:crypto');
+@tempfile = require('sjs:nodejs/tempfile');
 var here = @url.normalize('./', module.id) .. @url.toPath;
 var tmpRoot = @path.join(here, '../tmp');
 var destRoot = @path.join(here, '../apps');
@@ -41,6 +42,13 @@ var withTmp = function(block) {
 
 var locks = {};
 var apps = {};
+
+var getAppNames = function() {
+  return @fs.readdir(destRoot) .. @sort();
+};
+exports.appNames = @ObservableVar();
+exports.appNames.refresh = -> this.set(getAppNames());
+exports.appNames.refresh();
 
 var stopApp = function(appname) {
   @assert.fail("TODO: stopApp");
@@ -140,8 +148,8 @@ exports.deploy = function(appname, uploader) {
 
   try {
     var expectedSize = 0;
-    withTmp {|outstream, tmpfile|
-      console.log("receiving #{appname} -> #{tmpfile}");
+    @tempfile.TemporaryFile({prefix:"conductance-deploy-"}) {|tmpfile|
+      console.log("receiving #{appname} -> #{tmpfile.path}");
 
       // pump stream into tempfile _and_ the hmac function
       // note that we delay by exactly one chunk - the final chunk is not part of the file
@@ -155,6 +163,7 @@ exports.deploy = function(appname, uploader) {
         }
         decipher .. @stream.end();
       } and {
+        var outstream = tmpfile.writeStream();
         while(true) {
           var chunk = decipher .. @stream.read();
           if (chunk == null) break;
@@ -185,9 +194,9 @@ exports.deploy = function(appname, uploader) {
       }
       @fs.mkdir(tmpdest);
       try {
-        @fs.stat(tmpfile).size .. @assert.eq(expectedSize, "uploaded file size");
-        @childProcess.run('file', [tmpfile], {stdio:'inherit'});
-        @childProcess.run('tar', ['xzf', tmpfile, '-C', tmpdest], {stdio:'inherit'});
+        @fs.fstat(tmpfile).size .. @assert.eq(expectedSize, "uploaded file size");
+        @childProcess.run('file', [tmpfile.path], {stdio:'inherit'});
+        @childProcess.run('tar', ['xzf', tmpfile.path, '-C', tmpdest], {stdio:'inherit'});
 
         // sanity check that we have a valid config.mho
         @childProcess.run(ConductanceArgs[0], ConductanceArgs.slice(1).concat([
@@ -200,6 +209,7 @@ exports.deploy = function(appname, uploader) {
           
         // overwrite dir
         @fs.rename(tmpdest, finaldest);
+        exports.appNames.refresh();
 
         // and start it
         @assert.fail("TODO: start app...");

@@ -1,0 +1,70 @@
+// Default conductance configuration
+
+@ = require('mho:std');
+
+var server = require('mho:server');
+
+//----------------------------------------------------------------------
+// function invoked by `conductance serve`
+exports.serve = function(args) {
+  var parser = require('sjs:dashdash').createParser({
+    options: [
+      {
+        name: 'self',
+        type: 'bool',
+        help: 'deploy directly to this machine, rather than connecting to another',
+      },
+      {
+        names: ['help', 'h'],
+        type: 'bool',
+      },
+      {
+        names: ['host'],
+        type: 'string',
+        help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
+        'default': 'localhost',
+      },
+      {
+        names: ['port'],
+        type: 'number',
+        help: 'serve on port (default: 7075)',
+        'default': 7075,
+      },
+    ]
+  });
+  try {
+    var opts = parser.parse(args);
+  } catch(e) {
+    console.error('Error: ', e.message);
+    process.exit(1);
+  }
+
+  if (opts.help) {
+    console.log("  default_config.mho options:\n");
+    console.log(parser.help({includeEnv:true}));
+    process.exit(0);
+  }
+
+  @env.set('deployLoopback', opts.self);
+
+  var routes = [
+        @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),
+        @route.SystemRoutes(),
+        @route.ExecutableDirectory(process.cwd()),
+      ] .. @route.LogRequests(@logging.INFO);
+
+  if (process.env.NODE_ENV !== 'production') {
+    // show stacktraces
+    routes = routes .. @route.DeveloperMode();
+  }
+
+  var host = opts.host == 'any' ? null : opts.host;
+  var port = opts.port;
+
+  var address = @Port(port, host);
+  @server.run({
+    address: address,
+    routes: routes,
+    debug: @info,
+  });
+};
