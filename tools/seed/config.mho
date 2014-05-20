@@ -6,7 +6,7 @@ require.hubs.push(['app:', @url.normalize('./modules/', module.id)]);
 
 //----------------------------------------------------------------------
 // function invoked by `conductance serve`
-exports.serve = function(args) {
+var serve = function(args) {
   require('app:state').acquire();
   var parser = require('sjs:dashdash').createParser({
     options: [
@@ -68,4 +68,35 @@ exports.serve = function(args) {
     address: address,
     routes: routes,
   });
+};
+
+exports.serve = function(args) {
+  waitfor {
+    var stdin = process.stdin;
+    var event = require('sjs:event');
+    var seq   = require('sjs:sequence');
+    var iface = require("nodejs:readline").createInterface(stdin, process.stdout);
+    try {
+      while(true) {
+        if (stdin.destroyed) break;
+        var answer = null;
+        waitfor {
+          waitfor (answer) {
+            iface.question('', resume);
+          }
+          console.log("GOT INPUT: #{answer}");
+        } or {
+          // documentation claims close happens on `iface`, but
+          // it seems to occur on `stdin` in pracice. So we wait for either:
+          event.wait([iface, stdin], 'close');
+        }
+        if (answer == null) break;
+      }
+    } finally {
+      iface.close();
+    }
+    console.warn("stdin loop ended");
+  } or {
+    serve.apply(this.arguments);
+  }
 };

@@ -8,6 +8,10 @@ var destRoot = @path.join(here, '../apps');
 var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
+exports.ping = function() {
+  return 'PONG!';
+};
+
 var withTmp = function(block) {
   var path, opened;
   try {

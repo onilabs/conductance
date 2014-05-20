@@ -1,0 +1,37 @@
+@ = require('mho:std');
+@ssh = require('./ssh');
+var credentials = {
+	'localhost': -> {
+		host: 'localhost',
+		port: 22,
+		username: 'tim',
+		//debug: console.log,
+		privateKey: @fs.readFile(process.env.HOME + '/.ssh/id_rsa')
+	},
+};
+console.log(credentials);
+
+exports.serverNames = -> credentials .. @ownKeys .. @toArray;
+
+exports.connect = function(name, block) {
+	@assert.string(name, "name");
+	var creds = (credentials .. @get(name))();
+	@ssh.Connect(creds) {|conn|
+		//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance') {||
+			conn .. @ssh.proxyConnections(7079) {|path|
+				@info("Proxied: #{path}");
+				var apiInfo = @http.json('http:///deploy.api?format=json', {socketPath: path});
+				@info('API INFO:', apiInfo);
+				var transport = require('mho:rpc/aat-client').openTransport('http:///', {socketPath: path});
+				@info('transport', transport);
+				require('mho:rpc/bridge').connect('XXX', {transport: transport, api:apiInfo}) {|conn|
+					@info("got remote API", conn);
+					block(conn.api);
+				}
+				//@info("got local proxy: #{path}");
+				////@http.get('/', {'path':path}) .. @console.log();
+				//hold();
+			}
+		//}
+	}
+};
