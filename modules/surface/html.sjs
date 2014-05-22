@@ -120,9 +120,16 @@ var { observe } = require('sjs:observable');
   @function Input
   @summary A plain HTML 'input' element 
   @param  {String} [type]
-  @param  {String|sjs:sequence::Stream} [value]
-  @param  {optional Object} [attrs]
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
   @return {surface::Element}
+  @desc
+    When the element is inserted into the document, its value 
+    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
+    element's value will be updated every time `value` changes. If
+    `value` is an [sjs:observable::ObservableVar] (as identified by being a
+    [sjs:sequence::Stream] and having a `set` function), then `value` will
+    be updated to reflect any manual changes to the element's value.
 */
 var Input = (type, value, attrs) ->
   Element('input', {'type':type} .. merge(attrs||{})) ..
@@ -153,9 +160,17 @@ exports.Input = Input;
 /**
   @function TextInput
   @summary A plain HTML 'input' element with type='text'
-  @param  {String|sjs:sequence::Stream} [value]
-  @param  {optional Object} [attrs]
+  @param  {String} [type]
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
   @return {surface::Element}
+  @desc
+    When the element is inserted into the document, its value 
+    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
+    element's value will be updated every time `value` changes. If
+    `value` is an [sjs:observable::ObservableVar] (as identified by being a
+    [sjs:sequence::Stream] and having a `set` function), then `value` will
+    be updated to reflect any manual changes to the element's value.
 */
 var TextInput = (value, attrs) -> Input('text', value, attrs);
 exports.TextInput = TextInput;
@@ -165,8 +180,15 @@ exports.TextInput = TextInput;
 /**
   @function Checkbox
   @summary A HTML 'checkbox' widget
-  @param  {Boolean|sjs:sequence::Stream} [value] Value.
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
   @return {surface::Element}
+  @desc
+    When the element is inserted into the document, its value 
+    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
+    element's value will be updated every time `value` changes. If
+    `value` is an [sjs:observable::ObservableVar] (as identified by being a
+    [sjs:sequence::Stream] and having a `set` function), then `value` will
+    be updated to reflect any manual changes to the element's value.
 */
 var Checkbox = value ->
   Element('input') ..

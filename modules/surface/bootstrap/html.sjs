@@ -72,20 +72,34 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
 
 /**
   @function Input
-  @param  {String} [type]
-  @param {String|sjs:sequence::Stream} [value]
-  @param {optional Object} [attribs]
   @summary <input class="form-control">
+  @param  {String} [type]
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
   @return {surface::Element}
+  @desc
+    When the element is inserted into the document, its value 
+    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
+    element's value will be updated every time `value` changes. If
+    `value` is an [sjs:observable::ObservableVar] (as identified by being a
+    [sjs:sequence::Stream] and having a `set` function), then `value` will
+    be updated to reflect any manual changes to the element's value.
 */
 exports.Input = wrapWithClass(base_html.Input, 'form-control');
 
 /**
   @function TextInput
-  @param {String|sjs:sequence::Stream} [value]
-  @param {optional Object} [attribs]
   @summary [../html::TextInput] with class "form-control"
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
   @return {surface::Element}
+  @desc
+    When the element is inserted into the document, its value 
+    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
+    element's value will be updated every time `value` changes. If
+    `value` is an [sjs:observable::ObservableVar] (as identified by being a
+    [sjs:sequence::Stream] and having a `set` function), then `value` will
+    be updated to reflect any manual changes to the element's value.
 */
 exports.TextInput = wrapWithClass(base_html.TextInput, 'form-control');
 
