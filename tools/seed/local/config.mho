@@ -51,7 +51,7 @@ exports.serve = function(args) {
         @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),
         @route.SystemRoutes(),
         @route.ExecutableDirectory(process.cwd()),
-      ] .. @route.LogRequests(@logging.INFO);
+      ];
 
   if (process.env.NODE_ENV !== 'production') {
     // show stacktraces

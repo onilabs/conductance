@@ -1,28 +1,76 @@
-@ = require('mho:std');
+@ = require(['mho:std', 'sjs:nodejs/tempfile']);
 var deployLoopback = @env.get('deployLoopback');
 @warn("deployLoopback: #{deployLoopback}");
+
+@settings = require('./settings');
+exports.servers = @settings.servers;
+
+
+var Deployment = function(remote, server) {
+	this.deploy = function(appId, info) {
+		var app = server.app(appId);
+		var settings = app.values .. @first();
+		info("Deploying #{settings.name}");
+		var root = settings .. @get('path');
+		@info("deploying #{appId} from #{root}");
+
+		// XXX we should be able to use `tar` output directly,
+		// but https://github.com/joyent/node/issues/6595
+		@TemporaryFile {|tmp|
+			try {
+				@childProcess.run('tar', ['-cvzf', tmp.path, '-C', root, '.'], {stdio: ['ignore', 'ignore',2]});
+			} catch(e) {
+				throw new Error("`tar` failed: #{e}");
+			}
+
+			var payload = @Stream(function(emit) {
+				console.log("READING!");
+				var stream = tmp.readStream();
+				var i=0;
+				var chunk;
+				var chunks=[];
+				var lastTime = 0;
+				var send = function(chunk) {
+					if (chunks.length > 0) {
+						console.log("[> chunk #{i}: #{chunks.length}]");
+						console.log("[= chunk #{i++}: #{chunks.length}]");
+						emit(Buffer.concat(chunks));
+						chunks = [];
+					}
+				};
+				while(true) {
+					chunk = stream .. @read();
+					if (chunk == null) {
+						send();
+						break;
+					}
+					chunks.push(chunk);
+
+					var now = Date.now();
+					if (Math.abs(now - lastTime) > 200) {
+						// if last round-trip was less than 200ms ago, keep accumulating
+						lastTime = now;
+						send();
+					}
+				}
+			});
+			remote.deploy(appId, payload);
+		}
+	};
+};
+
+
+var connect = function(creds) {
+};
+
 if (deployLoopback) {
 	// for easy testing: cut out the middle-man, and let the browser talk directly to the deployment API
-	exports.serverNames = -> [['[loopback]']];
-	exports.connect = function(_, block) {
+	connect = function(creds, block) {
 		block(require('../modules/deploy.api'));
 	}
 } else {
 	@ssh = require('./ssh');
-	var credentials = {
-		'localhost': -> {
-			host: 'localhost',
-			port: 22,
-			username: 'tim',
-			//debug: console.log,
-			privateKey: @fs.readFile(process.env.HOME + '/.ssh/id_rsa')
-		},
-	};
-	exports.serverNames = -> credentials .. @ownKeys .. @toArray;
-
-	exports.connect = function(name, block) {
-		@assert.string(name, "name");
-		var creds = (credentials .. @get(name))();
+	connect = function(creds, block) {
 		@ssh.Connect(creds) {|conn|
 			//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance') {||
 				conn .. @ssh.proxyConnections(7079) {|path|
@@ -40,3 +88,37 @@ if (deployLoopback) {
 		}
 	};
 }
+
+exports.connect = function(serverId, block) {
+	@assert.string(serverId);
+	var server = @settings.server(serverId);
+	var creds = server.values .. @first();
+	
+	// process privateKey
+	var pkDef = creds .. @get('privateKey', null);
+	var agentDef = creds .. @get('agent', null);
+	if (pkDef !== null) {
+		var pk;
+		switch(pkDef.type) {
+			case 'key':
+				@debug("reading ssh key #{pkDef.name}");
+				pk = @fs.readFile(@path.join(process.env .. @get('HOME'), '.ssh', pkDef .. @get('name')));
+				break;
+			case 'file':
+				@debug("reading ssh key file #{pkDef.path}");
+				pk = @fs.readFile(pkDef .. @get('path'));
+				break;
+			default:
+				@assert.fail("Unknown private key type: #{pkDef.type}");
+		}
+		creds = @merge(creds, {privateKey: pk});
+	} else if (agent !== null) {
+		// use env
+		creds.agent = agent === true ? process.env .. @get('SSH_AUTH_SOCK') : agent;
+		@debug("Using SSH agent socket #{creds.agent}");
+	}
+
+	connect(creds) {|api|
+		block(new Deployment(api, server));
+	}
+};
