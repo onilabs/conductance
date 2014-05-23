@@ -262,9 +262,8 @@ if (require.main === module) {
 	Connect({
 		host: 'localhost',
 		port: 22,
-		username: 'tim',
 		//debug: console.log,
-		privateKey: @fs.readFile(process.env.HOME + '/.ssh/id_rsa')
+		sshAgent: process.env['SSH_AUTH_SOCK'],
 	}) {|conn|
 		//conn .. installConductance('/tmp/condy');
 		//conn .. runSeed('/home/tim/dev/oni/conductance') {||

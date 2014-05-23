@@ -57,6 +57,8 @@ var Deployment = function(remote, server) {
 			remote.deploy(appId, payload);
 		}
 	};
+
+	this.ctl = appId -> remote.getApp(appId);
 };
 
 

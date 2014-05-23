@@ -1,0 +1,26 @@
+// Default conductance configuration
+
+@ = require('mho:std');
+
+var server = require('mho:server');
+
+//----------------------------------------------------------------------
+// function invoked by `conductance serve`
+exports.serve = function(args) {
+  var routes = [
+        @route.SystemRoutes(),
+        @route.ExecutableDirectory(@url.normalize('./', module.id) .. @url.toPath),
+      ] .. @route.LogRequests(@logging.INFO);
+
+  if (process.env.NODE_ENV !== 'production') {
+    // show stacktraces
+    routes = routes .. @route.DeveloperMode();
+  }
+
+  var address = @Port(8026);
+  @server.run({
+    address: address,
+    routes: routes,
+    debug: @info,
+  });
+};

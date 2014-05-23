@@ -27,7 +27,6 @@ var editWidget = function(values) {
 			} and {
 				elem .. @events('change') .. @each {|evt|
 					var val = elem.value;
-					console.log("Change: ", val);
 					try {
 						val = JSON.parse(val);
 					} catch(e) {
@@ -45,19 +44,22 @@ var editWidget = function(values) {
 var appWidget = function(deployment, app) {
 	@info("app: ", app);
 	var appName = app.values .. @transform(a -> a.name);
+	var appCtl = deployment.ctl(app .. @get('id'));
+	var runningState = appCtl.pid .. @transform(pid -> pid === null ? "Stopped" : `Running (PID $pid)`);
+	var statusClass = appCtl.pid .. @transform(pid -> "glyphicon-#{pid === null ? "stop" : "play"}");
+
 	var appDetail = `
-		<h1>${appName}</h1>
+		<h1>
+		${@Span(null, {'class':['glyphicon']}) .. @Class(statusClass)}
+		${appName}</h1>
 		<div>
 			<div class="status row">
 				<div class="col-sm-8">
-					<span class="glyphicon glyphicon-play"></span>
 					<ul>
-						<li>Running</li>
-						<li>PID 1234 (+2 children)</li>
-						<li>Since 12:05 (15m)</li>
+						<li>$runningState</li>
 						<li>
-							$@Button("Stop")
-							$@Button("Restart")
+							${@Button("Stop") .. @OnClick(-> appCtl.stop())}
+							${@Button("Start") .. @OnClick(-> appCtl.start())}
 						</li>
 					</ul>
 				</div>
@@ -95,6 +97,30 @@ var appWidget = function(deployment, app) {
 						}),
 					])
 			</div>
+			${@Pre(null) .. @Mechanism(function(elem) {
+				appCtl.tailLogs(100) .. @each {|chunk|
+					if (chunk == null) {
+						@info("logs reset");
+						elem.innerText = "";
+					} else {
+						var bottom = elem.scrollTop + elem.offsetHeight;
+						var contentSize = elem.scrollHeight;
+						var following = (bottom >= contentSize);
+						elem.innerText += chunk;
+						if (following) {
+							elem.scrollTop = elem.scrollHeight;
+						}
+					}
+				}
+			}) .. @Style('
+				{
+					height: 200px;
+					width: 100%;
+					overflow:auto;
+					white-space: pre;
+					word-wrap: normal;
+				}
+			')}
 		</div>
 	`;
 
@@ -102,13 +128,11 @@ var appWidget = function(deployment, app) {
 		while(true) {
 			btn .. @wait('click');
 			waitfor {
-				console.log("showing app: #{app.id}");
 				btn.parentNode .. @appendContent(appDetail) {||
 					hold();
 				}
 			} or {
 				btn .. @wait('click');
-				console.log('hiding again');
 			}
 		}
 	});

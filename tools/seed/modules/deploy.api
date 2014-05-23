@@ -3,6 +3,8 @@
 @state = require('./state');
 @crypto = require('nodejs:crypto');
 @tempfile = require('sjs:nodejs/tempfile');
+var { @follow } = require('./follow');
+var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var here = @url.normalize('./', module.id) .. @url.toPath;
 var tmpRoot = @path.join(here, '../tmp');
 var destRoot = @path.join(here, '../apps');
@@ -40,8 +42,199 @@ var withTmp = function(block) {
   }
 };
 
-var locks = {};
-var apps = {};
+var getApp = (function() {
+  var apps = {};
+
+  var AppCtl = function(id) {
+    var appBase = @path.join(destRoot, id);
+    var pidPath = @path.join(appBase, "pid");
+    var logPath = @path.join(appBase, 'log');
+    var lock = @Semaphore();
+    var recheckPid = @Emitter();
+
+    var tailLogs = function(count) {
+      if(count === undefined) count = 100;
+      return @Stream(function(emit) {
+        var ready = @Condition();
+        var buf = [];
+        waitfor {
+          @follow(logPath, 'utf-8') .. @each {|lines|
+            if (lines === null) {
+              buf = [null];
+            } else {
+              buf = buf.concat(lines);
+            }
+            ready.set();
+          }
+        } and {
+          while(true) {
+            ready.wait();
+            ready.clear();
+            waitfor {
+              ready.wait();
+            } or {
+              // give some hold time to accumulate more data
+              hold(100);
+              if (buf[0] === null) {
+                emit(null);
+                buf = buf.slice(1);
+              }
+              if (buf.length == 0) continue;
+              var contents = buf;
+              if (buf.length > count) {
+                contents = [' ... ' ].concat(buf.slice(-count));
+              }
+              buf = [];
+              emit(contents.join('\n') + '\n');
+            }
+          }
+        }
+      });
+    };
+
+    var safe = function(f) {
+      var rv = function() {
+        lock.synchronize {||
+          return f.apply(this, arguments);
+        }
+      };
+      rv.unsafe = f; // allow calling `f` directly if you already have the lock
+      return rv;
+    };
+
+    var _groupRunning = (pid) -> @childProcess.isRunning(-pid, 0);
+
+    var getPid = function() {
+      var pid = null;
+      try {
+        pid = parseInt(@fs.readFile(pidPath).toString('ascii'), 10);
+      } catch(e) {
+        if (e.code !== 'ENOENT') throw e;
+      }
+
+      if (pid !== null && _groupRunning(pid)) {
+        // check the actual proc (XXX linux-only)
+        var exe = @fs.readlink("/proc/#{pid}/exe") .. @path.basename;
+        @debug("pid #{pid} is process #{exe}");
+        if (!/node/.test(exe)) {
+          @warn("pid #{pid} is running, but is not a nodejs process! (#{exe})");
+          pid = null;
+        }
+        return pid;
+      } else {
+        return null;
+      }
+    } .. safe();
+
+    var isRunning = function() {
+      return getPid.unsafe() !== null;
+    } .. safe();
+
+    var pidStream = @Stream(function(emit) {
+      var pid = getPid();
+      emit(pid);
+      while(true) {
+        waitfor {
+          hold(5000); // XXX use waitpid() or some sort of pipe() notification for killed processes
+        } or {
+          recheckPid .. @wait();
+        }
+        var last = pid;
+        pid = getPid();
+        if (pid !== last) emit(pid);
+      }
+    });
+
+    var startApp = function(throwing) {
+      var pid = getPid.unsafe();
+      if (pid !== null) {
+        if (throwing) @assert.fail("app already running!");
+        else return false;
+      }
+      var stdio = ['ignore'];
+      // truncate file
+      @fs.open(logPath, 'w') .. @fs.close();
+      // then open it twice in append mode (for stdout & stderr)
+      waitfor {
+        stdio[1] = @fs.open(logPath, 'a');
+      } and {
+        stdio[2] = @fs.open(logPath, 'a');
+      }
+      // XXX does having two file descriptors pointing to the same place
+      // lead to interleaving that could otherwise be avoided by
+      // using dup()?
+
+      try {
+        var child = @childProcess.launch(process.execPath,
+          ConductanceArgs.slice(1).concat([
+            '-vvv',
+            'serve',
+            @path.join(appBase, 'code', 'config.mho'),
+          ]),
+          {
+            // XXX send stdout to logfile, too
+            stdio: stdio,
+            detached: true,
+            env: process.env .. @merge({
+              RUN_USER: 'tim', // XXX
+              PIDFILE: pidPath,
+              SJS_INIT: @path.join(@url.normalize('./run-shim.sjs', module.id) .. @url.toPath()),
+            }),
+          }
+        );
+        console.log("launched child process: #{child.pid}");
+      } finally {
+        stdio.slice(1) .. @each(@fs.close);
+        spawn(function() {hold(400); recheckPid.emit();}());
+      }
+      return true;
+    } .. safe();
+
+    var stopApp = function() {
+      var pid = getPid.unsafe();
+      if (pid == null) {
+        @debug("stopApp(#{id}) - not running");
+        recheckPid.emit();
+        return false;
+      }
+      @info("Stopping app #{id}, PID #{pid}");
+      var timeouts = [
+        [0, 'INT', 100],
+        [1000, 'INT', 1000],
+        [3000, 'TERM', 1000],
+        [5000, 'KILL', 1000],
+      ];
+      var dead = false;
+      timeouts .. @each {|[pre, sig, post]|
+        dead = !_groupRunning(pid);
+        if(dead) break;
+        hold(pre);
+        @info("killing #{pid} with #{sig}");
+        process.kill(-pid, 'SIG' + sig);
+        hold(post);
+      }
+      recheckPid.emit();
+      if (!dead) throw new Error("could not terminate app");
+    } .. safe();
+
+    return {
+      pid: pidStream,
+      start: startApp,
+      stop: stopApp,
+      tailLogs: tailLogs,
+      synchronize: -> lock.synchronize.apply(lock, arguments),
+    }
+  };
+
+  return function(id) {
+    var rv = apps[id];
+    if(!apps..@hasOwn(id)) {
+      rv = apps[id] = AppCtl(id);
+    }
+    return rv;
+  };
+})();
+exports.getApp = getApp;
 
 var getAppNames = function() {
   return @fs.readdir(destRoot) .. @sort();
@@ -50,54 +243,26 @@ exports.appNames = @ObservableVar();
 exports.appNames.refresh = -> this.set(getAppNames());
 exports.appNames.refresh();
 
-var stopApp = function(appname) {
-  @assert.fail("TODO: stopApp");
-  //var proc = apps[appname];
-  //if (proc) {
-  //  proc.kill();
-  //  proc.wait();
-  //  delete apps[appname];
-  //}
-};
-
-var startApp = function(appname) {
-  // ensure stopped
-  stopApp(appname);
-
-  // TODO: logging
-  apps[appname] = @childProcess.launch(ConductanceArgs[0], ConductanceArgs.slice(1).concat(['serve']), {stdio:['ignore','ignore','ignore']});
-};
-
-var appWrapper = function(appname) {
-  return {
-    name: appname,
-    start: -> startApp(appname),
-    stop: -> stopApp(appname),
-  }
-};
-
 var validAppName = name -> /^[a-zA-Z0-9][-_a-zA-Z0-9]*$/.test(name);
-
-var loadUsers = function() {
-  return @fs.readFile(@path.join(credentialsRoot, 'users.json'), 'utf-8') .. JSON.parse() .. @get('users');
+var tryRename = function(src, dest) {
+  try {
+    @fs.rename(src, dest);
+  } catch(e) {
+    if (e.code === 'ENOENT') return;
+    throw e;
+  }
 };
 
-exports.deploy = function(appname, stream) {
-  if (!validAppName(appname)) {
-    throw new Error("invalid application name: #{appname}");
+exports.deploy = function(id, stream) {
+  if (!validAppName(id)) {
+    throw new Error("invalid application name: #{id}");
   }
 
-  if (Object.hasOwnProperty.call(locks, appname)) {
-    var date = locks[appname];
-    @assert.ok(date);
-    throw new Error("a deploy for #{appname} is already running (since #{date.toUTCString()})...");
-  }
-  locks[appname] = new Date();
-
-  try {
+  var app = getApp(id);
+  app.synchronize {||
     var expectedSize = 0;
     @tempfile.TemporaryFile({prefix:"conductance-deploy-"}) {|tmpfile|
-      console.log("receiving #{appname} -> #{tmpfile.path}");
+      console.log("receiving #{id} -> #{tmpfile.path}");
 
       var outstream = tmpfile.writeStream();
       stream .. @each {|chunk|
@@ -108,8 +273,8 @@ exports.deploy = function(appname, stream) {
 
       console.log("upload done (#{expectedSize}b), unpacking");
       @assert.ok(expectedSize > 0, "can't deploy an empty file");
-      var tmpdest = @path.join(destRoot, "_" + appname);
-      var finaldest = @path.join(destRoot, appname);
+      var tmpdest = @path.join(destRoot, id, "_code");
+      var finaldest = @path.join(destRoot, id, "code");
       
       // XXX
       var cleanup = -> @childProcess.run('rm', ['-rf',tmpdest], {stdio:'inherit'});
@@ -117,10 +282,9 @@ exports.deploy = function(appname, stream) {
       if (@fs.exists(tmpdest)) {
         cleanup();
       }
-      @fs.mkdir(tmpdest);
+      @mkdirp(tmpdest);
       try {
         @fs.fstat(tmpfile.file).size .. @assert.eq(expectedSize, "uploaded file size");
-        @childProcess.run('file', [tmpfile.path], {stdio:'inherit'});
         @childProcess.run('tar', ['xzf', tmpfile.path, '-C', tmpdest], {stdio:'inherit'});
 
         // sanity check that we have a valid config.mho
@@ -130,22 +294,19 @@ exports.deploy = function(appname, stream) {
         ]), {stdio:'inherit'});
 
         // before we modify anything, kill the old app (if any)
-        stopApp(appname);
+        app.stop.unsafe();
           
         // overwrite dir
+        tryRename(finaldest, finaldest + '.old');
         @fs.rename(tmpdest, finaldest);
-        exports.appNames.refresh();
+        tryRename(finaldest + '.old', tmpdest);
 
         // and start it
-        @assert.fail("TODO: start app...");
-        //startApp(appname);
-        return appWrapper(appname);
+        app.start.unsafe();
       } catch (e) {
         cleanup();
         throw e;
       }
     }
-  } finally {
-    locks[appname] = null;
   }
 }
