@@ -506,7 +506,7 @@ function BridgeConnection(transport, opts) {
         and {
           // make the call.
           var args = marshall(['call', call_no, api, method, toArray(args)], connection);
-          transport.send(args);
+          if (transport) transport.send(args);
         }
       } or {
         var err = sessionLost .. wait();
@@ -533,6 +533,17 @@ function BridgeConnection(transport, opts) {
         transport.__finally__();
         transport = null;
       }
+
+      executing_calls .. ownValues .. each {|s|
+        spawn(function() {
+          try {
+            s.abort();
+          } catch(e) {
+            logging.warn("Error while aborting executing call: #{e}");
+          }
+        }());
+      }
+      executing_calls = {};
     },
   };
 

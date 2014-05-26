@@ -58,18 +58,79 @@ context('bridge error handling') {||
 
   var destroyMethods = ['destroyConnection', 'breakConnection'];
   destroyMethods .. each {|method|
-    test("throws connection error from #{method}") {||
-      var log = [];
-      assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
-      bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
-          log.push(connection.api.ping());
-          connection.api[method](50);
-          hold(500);
-          log.push(connection.api.ping());
-        }
-      };
-      log .. assert.eq([ 'pong' ]);
+    var destroy = function(api, log) {
+      api[method](50);
+      hold(500);
+      return api.ping();
     };
+
+    context("destroyed with #{method}") {||
+      test.beforeEach {|s|
+        s.log = [];
+        s.push = function(obj) {
+          logging.info("log.push: #{obj}");
+          s.log.push(obj);
+        }
+      }
+
+      test("throws connection error") {|s|
+        assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
+        bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
+            s.push(connection.api.ping());
+            s.push(connection.api .. destroy());
+          }
+        };
+        s.log .. assert.eq([ 'pong' ]);
+      };
+
+      test("retracts all running calls") {|s|
+        // ideally this would not be necessary, but long-running methods invoked
+        // by a remote function may never receive a retraction (since the remote cannot send one)
+        // To be safe. we abort _all_ running calls when we see a ConnectionError
+        assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
+          bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
+            connection.api.callme {||
+              try {
+                spawn(function() {
+                  hold(200);
+                  s.push(connection.api .. destroy());
+                }());
+                s.push("running");
+                hold(1000);
+              } retract {
+                s.push("retracted");
+              } finally {
+                s.push("finally");
+              }
+            }
+          }
+        }
+        s.log .. assert.eq(['running', 'retracted', 'finally']);
+      }
+
+      test("retracts all pending calls") {|s|
+        // ideally this would not be necessary, but long-running methods invoked
+        // by a remote function may never receive a retraction (since the remote cannot send one)
+        // To be safe. we abort _all_ running calls when we see a ConnectionError
+        assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
+          bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
+            spawn(function() {
+              hold(200);
+              s.push(connection.api .. destroy());
+            }());
+            try {
+              s.push("running");
+              connection.api.hold();
+            } retract {
+              s.push("retracted");
+            } finally {
+              s.push("finally");
+            }
+          }
+        }
+        s.log .. assert.eq(['running', 'retracted', 'finally']);
+      }
+    }
   };
 
 }

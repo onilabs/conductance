@@ -7,6 +7,8 @@ exports.throwError = function(msg) { throw new Error(msg); }
 
 exports.callme = function(f) { return f(); }
 
+exports.hold = function() { hold(); }
+
 var transport = function() {
   if (!exports._transport)
     throw new Error("Test harness error: exports._transport not set by server config");

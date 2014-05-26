@@ -213,8 +213,7 @@ function openTransport(server) {
       // prod receiver:
       if (receive_q.length && resume_receive) resume_receive();
     } catch (e) {
-      this.close();
-      throw e;
+      this.close(e);
     }
   }
 
@@ -273,7 +272,7 @@ function openTransport(server) {
       return receive_q.shift();
     }),
 
-    close: function() {
+    close: function(e) {
       if (!this.closed) {
         this.closed = true;
         if (transport_id_suffix.length) {
@@ -288,7 +287,11 @@ function openTransport(server) {
       }
       this.active = false;
       if (poll_stratum) poll_stratum.abort();
-      if (resume_receive) spawn(resume_receive(new Error('transport closed')));
+      if (resume_receive) {
+        spawn(resume_receive(new Error("transport closed#{e ? ": " + e.message : ""}")));
+      } else {
+        if (e) throw e;
+      }
     }
   };
 
