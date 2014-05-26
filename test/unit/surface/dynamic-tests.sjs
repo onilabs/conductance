@@ -1,8 +1,7 @@
 var {test, context, assert} = require('sjs:test/suite');
 context("dynamic") {||
-@ =require(['mho:surface', 'sjs:sequence', 'sjs:observable', 'sjs:object']);
+@ =require(['sjs:test/std', 'mho:surface', 'sjs:sequence', 'sjs:observable', 'sjs:object', 'mho:surface/html']);
 
-var { @Select, @Div } = require('mho:surface/html');
 var {@ObservableVar, @observe} = require('sjs:observable');
 @driver = require('sjs:xbrowser/driver');
 
@@ -40,6 +39,19 @@ context("observable widget content") {||
         elem.textContent.split(' ') .. @at(-1) .. assert.eq("third");
       }
     });
+  }
+}
+
+context("textarea widget") {||
+  // textarea doesn't contain HTML, only values
+  test("should contain contents") {||
+    var obs = @ObservableVar("initial value");
+    document.body .. @appendContent(@TextArea(obs)) {|elem|
+      elem.value .. @assert.eq("initial value");
+      obs.set("new value");
+      hold(0);
+      elem.value .. @assert.eq("new value");
+    }
   }
 }
 

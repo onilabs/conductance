@@ -108,7 +108,7 @@ var { observe } = require('sjs:observable');
   'Canvas', 'Map', 'Area', 'Svg', 'Math',
   'Table', 'Caption', 'ColGroup', 'Col', 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
   'Form', 'FieldSet', 'Legend', 'Label', /* 'Input', */ 'Button', /* 'Select', */
-  'DataList', 'OptGroup', 'Option', 'TextArea', 'KeyGen', 'Output', 'Progress', 'Meter',
+  'DataList', 'OptGroup', 'Option', /*'TextArea', */ 'KeyGen', 'Output', 'Progress', 'Meter',
   'Details', 'Summary', 'MenuItem', 'Menu',
 ] .. each {|name|
   var tag = name.toLowerCase();
@@ -174,6 +174,38 @@ exports.Input = Input;
 */
 var TextInput = (value, attrs) -> Input('text', value, attrs);
 exports.TextInput = TextInput;
+
+//----------------------------------------------------------------------
+/**
+  @function TextArea
+  @summary A plain HTML 'textarea' element
+  @param  {String|sjs:sequence::Stream} [value]
+  @param  {optional Object} [attrs]
+  @return {surface::Element}
+*/
+var TextArea = (value, attrs) ->
+  Element('textarea', attrs||{}) ..
+  Mechanism(function(node) {
+    value = value || "";
+    if (isStream(value)) {
+      waitfor {
+        value .. each {|val|
+          if (node.value !== val)
+            node.value = val;
+        }
+      }
+      and {
+        if (value.set) {
+          events(node, 'input') .. each { |ev|
+            value.set(node.value);
+          }
+        }
+      }
+    } else {
+      node.value = value;
+    }
+  });
+exports.TextArea = TextArea;
 
 
 //----------------------------------------------------------------------
