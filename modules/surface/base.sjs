@@ -677,8 +677,9 @@ __js {
 //----------------------------------------------------------------------
 
 // helper mechanism for making observable classes dynamic:
-function StreamClassMechanism(ft, cls, current) {
+function StreamClassMechanism(ft, cls) {
   return ft .. Mechanism(function(node) {
+    var current;
     cls .. each {
       |clsname|
       __js {
@@ -799,9 +800,7 @@ function Class(element, clsname, val) {
   if (isStream(clsname)) {
     __js    if (arguments.length > 2)
       throw new Error('Class(.) argument error: Cannot have a boolean toggle in combination with an observable class name');
-    var current = clsname .. first;
-    classes.push(current);
-    element = element .. StreamClassMechanism(clsname, current);
+    element = element .. StreamClassMechanism(clsname);
   }
   else {
     // !isStream(clsname)
