@@ -36,7 +36,8 @@ exports.errorHandler = function() {
   return @Element("script", "
     (function() {
       var errorIndicatorShown = false;
-      window.onerror = function() {
+      var onerror = function() {
+        onerror.triggered = true;
         window.inhibit_auto_busy_indicator = true;
         if (typeof(rainbow) !== 'undefined' && rainbow.hide) rainbow.hide();
         if (errorIndicatorShown) return;
@@ -49,6 +50,8 @@ exports.errorHandler = function() {
             \"</div>\"+
           \"</div>\");
       };
+      onerror.triggered = false;
+      window.onerror = onerror;
       window.onbeforeunload = function() {
         // don't show error indicator when we're navigating away
         errorIndicatorShown=true;

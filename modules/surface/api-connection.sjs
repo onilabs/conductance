@@ -58,6 +58,7 @@ exports.withAPI = function(api, block) {
       if (@isTransportError(e)) {
         @warn("Connection error: #{e}");
         hold(300); // small delay before showing ui feedback
+        if (window.onerror && window.onerror.triggered) return;
 
         document.body .. @appendContent(@Notice(
           `Not connected. Reconnect in ${@Countdown(Math.floor(delay/1000))}s. ${@Element('a', "Try Now", {href:'#'})}`,
