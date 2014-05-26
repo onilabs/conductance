@@ -212,88 +212,93 @@ else
   isNodeJSBuffer = -> false;
 
 function marshall(value, connection) {
+  try {
 
-  // XXX we can't use JSON.stringify(., replacer), because certain
-  // values (such as Dates) will have been converted to strings by the
-  // time the replacer sees them *sigh*
-  // Instead we prepare a 'stringifyable object first:
- 
-  var stringifyable = {};
+    // XXX we can't use JSON.stringify(., replacer), because certain
+    // values (such as Dates) will have been converted to strings by the
+    // time the replacer sees them *sigh*
+    // Instead we prepare a 'stringifyable object first:
+  
+    var stringifyable = {};
 
-  function processProperties(value, root) {
-    return value .. propertyPairs ..
-      filter([name,val] -> name != 'toString' && !name.. startsWith('_') && root[name] !== val) ..
-      transform([name, val] -> [name, prepare(val)]);
-  }
+    function processProperties(value, root) {
+      return value .. propertyPairs ..
+        filter([name,val] -> name != 'toString' && !name.. startsWith('_') && root[name] !== val) ..
+        transform([name, val] -> [name, prepare(val)]);
+    }
 
-  function withProperties(dest, value, root) {
-    var props;
-    processProperties(value, root) .. each {|[name, val]|
-      if (!props) props = dest.props = {};
-      props[name] = val;
+    function withProperties(dest, value, root) {
+      var props;
+      processProperties(value, root) .. each {|[name, val]|
+        if (!props) props = dest.props = {};
+        props[name] = val;
+      }
+      return dest;
     }
-    return dest;
-  }
 
-  function prepare(value) {
-    var rv = value;
-    if (typeof value === 'function') {
-      if (isStream(value)) {
-        // XXX we want to batch up streams
-        rv = { __oni_type: 'stream', id: connection.publishFunction(value) };
+    function prepare(value) {
+      var rv = value;
+      if (typeof value === 'function') {
+        if (isStream(value)) {
+          // XXX we want to batch up streams
+          rv = { __oni_type: 'stream', id: connection.publishFunction(value) };
+        }
+        else {
+          // a normal function
+          // XXX we'll be calling the function with the wrong 'this' object
+          rv = { __oni_type: 'func', id: connection.publishFunction(value) };
+        }
+        rv = rv .. withProperties(value, Function.prototype);
       }
-      else {
-        // a normal function
-        // XXX we'll be calling the function with the wrong 'this' object
-        rv = { __oni_type: 'func', id: connection.publishFunction(value) };
+      else if (value instanceof Date) {
+        rv = { __oni_type: 'date', val: value.getTime() };
       }
-      rv = rv .. withProperties(value, Function.prototype);
+      else if (isArrayLike(value)) {
+        rv = value .. map(prepare);
+      }
+      else if (typeof value === 'object' && value !== null) {
+        var descriptor;
+        if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
+          rv = prepare(descriptor.wrapLocal(value));
+          rv = { __oni_type: 'custom_marshalled', proxy: rv, wrap: descriptor.wrapRemote };
+        }
+        else if (value instanceof Error || value._oniE) {
+          rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack };
+        }
+        else if (value.__oni_type == 'api') {
+          // publish on the connection:
+          connection.publishAPI(value);
+          // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
+          var methods = keys(value.obj) .. 
+            filter(name -> typeof value.obj[name] === 'function') ..
+            toArray;
+          rv = { __oni_type:'api', id: value.id, methods: methods};
+        }
+        else if (value.__oni_type === 'blob') {
+          // send the blob as 'data'
+          var id = ++connection.sent_blob_counter;
+          connection.sendBlob(id, value.obj);
+          rv = { __oni_type: 'blob', id:id };
+        }
+        else if (isBinaryData(value) || isNodeJSBuffer(value)) {
+          var id = ++connection.sent_blob_counter;
+          connection.sendBlob(id, value);
+          rv = { __oni_type: 'blob', id:id };
+        }
+        else {
+          // a normal object -> traverse it
+          rv = processProperties(value, Object.prototype) .. pairsToObject;
+        }
+      }
+      return rv;
     }
-    else if (value instanceof Date) {
-      rv = { __oni_type: 'date', val: value.getTime() };
-    }
-    else if (isArrayLike(value)) {
-      rv = value .. map(prepare);
-    }
-    else if (typeof value === 'object' && value !== null) {
-      var descriptor;
-      if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
-        rv = prepare(descriptor.wrapLocal(value));
-        rv = { __oni_type: 'custom_marshalled', proxy: rv, wrap: descriptor.wrapRemote };
-      }
-      else if (value instanceof Error || value._oniE) {
-        rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack };
-      }
-      else if (value.__oni_type == 'api') {
-        // publish on the connection:
-        connection.publishAPI(value);
-        // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
-        var methods = keys(value.obj) .. 
-          filter(name -> typeof value.obj[name] === 'function') ..
-          toArray;
-        rv = { __oni_type:'api', id: value.id, methods: methods};
-      }
-      else if (value.__oni_type === 'blob') {
-        // send the blob as 'data'
-        var id = ++connection.sent_blob_counter;
-        connection.sendBlob(id, value.obj);
-        rv = { __oni_type: 'blob', id:id };
-      }
-      else if (isBinaryData(value) || isNodeJSBuffer(value)) {
-        var id = ++connection.sent_blob_counter;
-        connection.sendBlob(id, value);
-        rv = { __oni_type: 'blob', id:id };
-      }
-      else {
-        // a normal object -> traverse it
-        rv = processProperties(value, Object.prototype) .. pairsToObject;
-      }
-    }
+
+    var rv = value .. prepare .. JSON.stringify;
     return rv;
+  } catch(e) {
+    e.message = "Error marshalling value: #{e.message || ""}";
+    throw e;
   }
-
-  var rv = value .. prepare .. JSON.stringify;
-  return rv;
 }
 
 function unmarshall(str, connection) {
