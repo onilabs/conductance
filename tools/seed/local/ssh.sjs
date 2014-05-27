@@ -208,7 +208,7 @@ var proxyConnections = exports.proxyConnections = function(sshConn, port, block)
 			var s = spawn(function() {
 				hold(0);
 				try {
-					@info("proxy start [active=#{strata.length}]");
+					@debug("proxy start [active=#{strata.length}]");
 					sshConn .. forwardOut(port) {|stream|
 						waitfor {
 							conn .. @pump(stream);

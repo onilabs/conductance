@@ -46,28 +46,35 @@ cleanup();
 
 var defaultSettings = {
 	app: {
-		version: 1,
+		configVersion: 1,
 	},
 	server: {
-		version: 1,
+		configVersion: 1,
 	},
 };
 
 var dbLock = @Semaphore();
 var objectCache = (function() {
 	var cache = {};
-	return function(key, collection, cons) {
+	var rv = function(key, collection, cons) {
+		if (arguments.length == 2) {
+			cons = collection;
+			collection = null;
+		}
 		@assert.string(key);
 		var rv;
 		if (cache .. @hasOwn(key)) {
 			rv = cache[key];
-			//rv.values.reload();
 		} else {
 			cache[key] = rv = cons(key);
-			collection.update();
+			if (collection) collection.update();
 		}
 		return rv;
 	};
+	rv.del = function(key) {
+		delete cache[key];
+	};
+	return rv;
 })();
 
 var suppressIdentical = function(s) {
@@ -82,21 +89,35 @@ var suppressIdentical = function(s) {
 	});
 };
 
-var Settings = function(key) {
+var Settings = function(key, base, missingOK) {
 	@assert.string(key);
 	var values = @ObservableVar();
 	var rv = values .. suppressIdentical;
 	rv.reload = function() {
 		console.log("loading settings for #{key}");
-		values.set(store.get(key).toString('utf-8') .. JSON.parse());
+		var val = {};
+		try {
+			val = store.get(key).toString('utf-8') .. JSON.parse()
+		} catch(e) {
+			if (!(missingOK && e .. isNotFound())) {
+				throw e;
+			}
+		}
+		values.set(base .. @merge(val));
 	};
 
 	rv._save = function() {
-		console.log("saving settings for #{key}:");
+		console.log("saving settings for #{key}");
 		store.put(
 			new Buffer(key, 'ascii'),
-			new Buffer(values.get() .. JSON.stringify(), 'utf-8'), {sync:true});
-	}
+			new Buffer(values.get() .. JSON.stringify(), 'utf-8'),
+			{sync:true});
+	};
+
+	rv.destroy = function() {
+		@info("destroying settings #{key}");
+		store.del(new Buffer(key, 'ascii'), {sync:true});
+	};
 
 	rv.modify = function(f) {
 		if (values.modify(f)) {
@@ -108,9 +129,9 @@ var Settings = function(key) {
 	return rv;
 };
 
-var genUnique = function(genKey, doc) {
+var genUnique = function(genKey) {
 	var key, id;
-	var contents = new Buffer(JSON.stringify(doc), 'utf-8');
+	var contents = new Buffer(JSON.stringify({}), 'utf-8');
 	dbLock.synchronize {||
 		while(true) {
 			id = @crypto.randomBytes(4).toString('hex');
@@ -145,41 +166,49 @@ var Collection = function(prefix, cons) {
 };
 
 var servers = Collection('server:', getServer);
-function getServer(serverId) {
+function getServer(serverId, props) {
 	@assert.optionalString(serverId, 'serverId');
 	var genKey = id -> "server:#{id}";
-	var [key, serverId] = serverId ? [genKey(serverId), serverId] : genUnique(genKey, defaultSettings .. @get('server'));
+	var [key, serverId] = serverId ? [genKey(serverId), serverId] : genUnique(genKey);
 
 	return objectCache(key, servers, function() {
-		var serverId = key .. @split(':', 1) .. @at(1);
-		var prefix = "app:#{serverId}/";
-
-		var apps = Collection(prefix, getApp);
-		function getApp(appId) {
-			@assert.optionalString(appId, 'appId');
-			var genKey = id -> prefix + id;
-			var [key, appId] = appId ? [genKey(appId), appId] : genUnique(genKey, defaultSettings .. @get('app'));
-			var rv = objectCache(key, apps, function() {
-				console.log("app: key=#{key}");
-				return {
-					id: appId,
-					values: Settings(key),
-				};
-			});
-			return rv;
-		};
-
 		console.log("server: key=#{key}");
+		var vals = Settings(key, defaultSettings .. @get('server'));
+		if (props) { // allow specifying properties upon construction
+			vals.modify(obj -> obj .. @merge(props));
+		}
 		return {
 			id: serverId,
-			values: Settings(key),
-			apps: apps.items,
-			app: getApp,
+			config: vals,
+			destroy: function() {
+				vals.destroy();
+				objectCache.del(key);
+				servers.update();
+			}.bind(this),
 		};
 	});
 };
 exports.server = getServer;
 exports.servers = servers.items;
+
+exports.app = function(serverId, appId, props) {
+	@assert.string(serverId, 'serverId');
+	@assert.optionalString(appId, 'appId');
+	var genKey = id -> "app:#{serverId}/#{id}";
+	var [key, appId] = appId ? [genKey(appId), appId] : genUnique(genKey);
+	var rv = objectCache(key, function() {
+		var vals = Settings(key, defaultSettings .. @get('app'), true);
+		console.log("app: key=#{key}");
+		if (props) {
+			vals.modify(o -> o .. @merge(props));
+		}
+		return {
+			id: appId,
+			config: vals,
+		};
+	});
+	return rv;
+};
 
 if (require.main === module) {
 	console.log("---- dump ----");

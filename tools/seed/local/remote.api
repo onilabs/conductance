@@ -4,13 +4,87 @@ var deployLoopback = @env.get('deployLoopback');
 
 @settings = require('./settings');
 exports.servers = @settings.servers;
+exports.createServer = function(props) {
+	return @settings.server(null, props);
+};
 
+var untangleConfig = function(conf) {
+	var SERVER_CONFIG = ['name', 'centralVersion'];
+	var server = {}, local = {};
+	conf .. @ownPropertyPairs .. @each {|[k,v]|
+		if (SERVER_CONFIG .. @hasElem(k)) {
+			server[k] = v;
+		} else {
+			local[k] = v;
+		}
+	}
+	return [server, local];
+}
 
-var Deployment = function(remote, server) {
-	this.deploy = function(appId, info) {
+var Deployment = function(remote, serverInfo) {
+	var serverId = serverInfo .. @get('id');
+	this.apps = remote.apps .. @transform(function(remoteApps) {
+		@info("transforming remote apps: #{remoteApps}");
+		@assert.arrayOfObject(remoteApps);
+		return remoteApps .. @map(function(app) {
+			@info("transforming remote app: #{app}");
+			var appId = app .. @get('id');
+			var localSettings = @settings.app(serverId, appId);
+			var combinedConfig = @observe(app.config, localSettings.config, function(conf, local) {
+				@assert.ok(conf, 'remote config is undefined');
+				@assert.ok(local, 'local config is undefined');
+				return local .. @merge(conf);
+			});
+
+			combinedConfig.modify = function(func) {
+				var modifyPart = function(settings, f, idx) {
+					return settings.modify(function(current, unmodified) {
+						var newval = f(current, unmodified);
+						if (newval === unmodified) return unmodified;
+						newval = untangleConfig(newval)[idx];
+						if (current .. @eq(newval)) return unmodified;
+						return newval;
+					});
+				};
+
+				waitfor {
+					localSettings.config .. modifyPart(func, 1);
+				} and {
+					app.config .. modifyPart(func, 0);
+				}
+			};
+
+			return {
+				config: combinedConfig,
+				ctl: app,
+				id: appId,
+			};
+		}) .. @sortBy(app -> app.config .. @first() .. @get('name'));
+	});
+
+	this.createApp = function(props) {
+		var [server, local] = untangleConfig(props);
+		var localSettings = @settings.app(serverId, null, local);
+		var config = localSettings.config .. @first();
+		@info("Created local app settings", config);
+		var remoteApp = remote.createApp(localSettings .. @get('id'), server);
+		remoteApp .. @assert.ok();
+		@info("Created app: #{app}");
+	};
+
+	this.destroyApp = function(id) {
+		// TODO: also delete local app settings?
+		// Not bothering yet, as they are trivially small and will need
+		// garbage collection on all hosts that didn't trigger this deletion anyway.
+		remote.destroyApp(id);
+	};
+
+	this.deploy = function(appId, log) {
+		@assert.string(appId);
+		var appSettings = @settings.app(server.id, appId);
 		var app = server.app(appId);
-		var settings = app.values .. @first();
-		info("Deploying #{settings.name}");
+		var settings = app.config .. @first();
+		log("Deploying #{settings.name}");
 		var root = settings .. @get('path');
 		@info("deploying #{appId} from #{root}");
 
@@ -54,16 +128,13 @@ var Deployment = function(remote, server) {
 					}
 				}
 			});
-			remote.deploy(appId, payload);
+			remote.deploy(payload);
 		}
 	};
-
-	this.ctl = appId -> remote.getApp(appId);
 };
 
 
-var connect = function(creds) {
-};
+var connect;
 
 if (deployLoopback) {
 	// for easy testing: cut out the middle-man, and let the browser talk directly to the deployment API
@@ -94,9 +165,10 @@ if (deployLoopback) {
 exports.connect = function(serverId, block) {
 	@assert.string(serverId);
 	var server = @settings.server(serverId);
-	var creds = server.values .. @first();
+	var creds = server.config .. @first() .. @clone();
 	
 	// process privateKey
+	@info("Connecting via SSH with credentials", creds);
 	var pkDef = creds .. @get('privateKey', null);
 	var agentDef = creds .. @get('agent', null);
 	if (pkDef !== null) {
@@ -113,10 +185,10 @@ exports.connect = function(serverId, block) {
 			default:
 				@assert.fail("Unknown private key type: #{pkDef.type}");
 		}
-		creds = @merge(creds, {privateKey: pk});
-	} else if (agent !== null) {
+		creds.privateKey = pk;
+	} else if (agentDef !== null) {
 		// use env
-		creds.agent = agent === true ? process.env .. @get('SSH_AUTH_SOCK') : agent;
+		creds.agent = agentDef === true ? process.env .. @get('SSH_AUTH_SOCK') : agentDef;
 		@debug("Using SSH agent socket #{creds.agent}");
 	}
 

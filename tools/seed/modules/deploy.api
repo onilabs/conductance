@@ -5,14 +5,22 @@
 @tempfile = require('sjs:nodejs/tempfile');
 var { @follow } = require('./follow');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
+var { @rimraf } = require('sjs:nodejs/rimraf');
 var here = @url.normalize('./', module.id) .. @url.toPath;
 var tmpRoot = @path.join(here, '../tmp');
 var destRoot = @path.join(here, '../apps');
 var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
+var validAppName = name -> /^[a-zA-Z0-9][-_a-zA-Z0-9]*$/.test(name);
+
 exports.ping = function() {
   return 'PONG!';
+};
+
+var DEFAULT_CONFIG = {
+  centralVersion: 1,
+  name: "unknown",
 };
 
 var withTmp = function(block) {
@@ -45,10 +53,16 @@ var withTmp = function(block) {
 var getApp = (function() {
   var apps = {};
 
-  var AppCtl = function(id) {
+  var App = function(id) {
+    @assert.string(id, 'appId');
+    if (!validAppName(id)) {
+      throw new Error("invalid application name: #{id}");
+    }
+
     var appBase = @path.join(destRoot, id);
     var pidPath = @path.join(appBase, "pid");
     var logPath = @path.join(appBase, 'log');
+    var configPath = @path.join(appBase, 'config.json');
     var lock = @Semaphore();
     var recheckPid = @Emitter();
 
@@ -129,6 +143,34 @@ var getApp = (function() {
     var isRunning = function() {
       return getPid.unsafe() !== null;
     } .. safe();
+
+    var config = (function() {
+      var loadConfig = function() {
+        var loaded = {};
+        try {
+          loaded = @fs.readFile(configPath, 'utf-8') .. JSON.parse();
+        } catch(e) {
+          if (e.code !== 'ENOENT') throw e;
+          loaded = {};
+        }
+        return DEFAULT_CONFIG .. @merge(loaded);
+      } .. safe();
+
+      var saveConfig = function(conf) {
+        @logging.info("saving app config: #{conf}");
+        @mkdirp(appBase);
+        @fs.writeFile(configPath, JSON.stringify(conf, null, '  '), 'utf-8');
+      } .. safe();
+
+      var val = @ObservableVar(loadConfig());
+      var rv = val .. @transform(x -> x);
+      rv.modify = function(f) {
+        if (val.modify(f)) {
+          saveConfig(val.get());
+        }
+      }
+      return rv;
+    })();
 
     var pidStream = @Stream(function(emit) {
       var pid = getPid();
@@ -217,33 +259,109 @@ var getApp = (function() {
       if (!dead) throw new Error("could not terminate app");
     } .. safe();
 
+    var deploy = function(stream) {
+      @mkdirp(appBase);
+      var expectedSize = 0;
+      @tempfile.TemporaryFile({prefix:"conductance-deploy-"}) {|tmpfile|
+        console.log("receiving #{id} -> #{tmpfile.path}");
+
+        var outstream = tmpfile.writeStream();
+        stream .. @each {|chunk|
+          expectedSize += chunk.length;
+          outstream .. @stream.write(chunk);
+        }
+        outstream .. @stream.end();
+
+        console.log("upload done (#{expectedSize}b), unpacking");
+        @assert.ok(expectedSize > 0, "can't deploy an empty file");
+        var tmpdest = @path.join(appBase, "_code");
+        var finaldest = @path.join(appBase, "code");
+        
+        var cleanup = -> @rimraf(tmpdest);
+
+        if (@fs.exists(tmpdest)) {
+          cleanup();
+        }
+        @mkdirp(tmpdest);
+        try {
+          @fs.fstat(tmpfile.file).size .. @assert.eq(expectedSize, "uploaded file size");
+          @childProcess.run('tar', ['xzf', tmpfile.path, '-C', tmpdest], {stdio:'inherit'});
+
+          // sanity check that we have a valid config.mho
+          @childProcess.run(ConductanceArgs[0], ConductanceArgs.slice(1).concat([
+            'exec',
+            @path.join(tmpdest, 'config.mho'),
+          ]), {stdio:'inherit'});
+
+          // before we modify anything, kill the old app (if any)
+          stopApp.unsafe();
+            
+          // overwrite dir
+          tryRename(finaldest, finaldest + '.old');
+          @fs.rename(tmpdest, finaldest);
+          tryRename(finaldest + '.old', tmpdest);
+
+          // and start it
+          startApp.unsafe();
+        } catch (e) {
+          cleanup();
+          throw e;
+        }
+      }
+    } .. safe();
+
     return {
+      id: id,
+      config: config,
       pid: pidStream,
       start: startApp,
       stop: stopApp,
       tailLogs: tailLogs,
-      synchronize: -> lock.synchronize.apply(lock, arguments),
+      deploy: deploy,
+      synchronize: lock.synchronize.bind(lock),
     }
   };
+
 
   return function(id) {
     var rv = apps[id];
     if(!apps..@hasOwn(id)) {
-      rv = apps[id] = AppCtl(id);
+      rv = apps[id] = App(id);
     }
     return rv;
   };
 })();
 exports.getApp = getApp;
-
-var getAppNames = function() {
-  return @fs.readdir(destRoot) .. @sort();
+exports.createApp = function(id, props) {
+  var app = getApp(id);
+  app.config.modify(-> props);
+  appCollection.reload();
+  return app;
 };
-exports.appNames = @ObservableVar();
-exports.appNames.refresh = -> this.set(getAppNames());
-exports.appNames.refresh();
 
-var validAppName = name -> /^[a-zA-Z0-9][-_a-zA-Z0-9]*$/.test(name);
+var appCollection = (function() {
+  var val = @ObservableVar([]);
+  var rv = {
+    items: val .. @transform(function(ids) {
+      return ids .. @map(function(id) {
+        @info("Fetching app #{id}");
+        return getApp(id);
+      });
+    }),
+    reload: function() {
+      val.modify(function(current, unchanged) {
+        var newval = @fs.readdir(destRoot) .. @sort();
+        if (newval .. @eq(current)) return unchanged;
+        return newval;
+      });
+    },
+  };
+  rv.reload();
+  return rv;
+})();
+
+exports.apps = appCollection.items;
+
 var tryRename = function(src, dest) {
   try {
     @fs.rename(src, dest);
@@ -253,60 +371,13 @@ var tryRename = function(src, dest) {
   }
 };
 
-exports.deploy = function(id, stream) {
-  if (!validAppName(id)) {
-    throw new Error("invalid application name: #{id}");
-  }
+exports.destroyApp = function(id) {
+  // getApp does this anyway, but paranoia
+  @assert.ok(validAppName(id), "invalid app id");
 
-  var app = getApp(id);
-  app.synchronize {||
-    var expectedSize = 0;
-    @tempfile.TemporaryFile({prefix:"conductance-deploy-"}) {|tmpfile|
-      console.log("receiving #{id} -> #{tmpfile.path}");
-
-      var outstream = tmpfile.writeStream();
-      stream .. @each {|chunk|
-        expectedSize += chunk.length;
-        outstream .. @stream.write(chunk);
-      }
-      outstream .. @stream.end();
-
-      console.log("upload done (#{expectedSize}b), unpacking");
-      @assert.ok(expectedSize > 0, "can't deploy an empty file");
-      var tmpdest = @path.join(destRoot, id, "_code");
-      var finaldest = @path.join(destRoot, id, "code");
-      
-      // XXX
-      var cleanup = -> @childProcess.run('rm', ['-rf',tmpdest], {stdio:'inherit'});
-
-      if (@fs.exists(tmpdest)) {
-        cleanup();
-      }
-      @mkdirp(tmpdest);
-      try {
-        @fs.fstat(tmpfile.file).size .. @assert.eq(expectedSize, "uploaded file size");
-        @childProcess.run('tar', ['xzf', tmpfile.path, '-C', tmpdest], {stdio:'inherit'});
-
-        // sanity check that we have a valid config.mho
-        @childProcess.run(ConductanceArgs[0], ConductanceArgs.slice(1).concat([
-          'exec',
-          @path.join(tmpdest, 'config.mho'),
-        ]), {stdio:'inherit'});
-
-        // before we modify anything, kill the old app (if any)
-        app.stop.unsafe();
-          
-        // overwrite dir
-        tryRename(finaldest, finaldest + '.old');
-        @fs.rename(tmpdest, finaldest);
-        tryRename(finaldest + '.old', tmpdest);
-
-        // and start it
-        app.start.unsafe();
-      } catch (e) {
-        cleanup();
-        throw e;
-      }
-    }
+  getApp(id).synchronize {||
+    @info("Destroying app #{id}");
+    @rimraf(@path.join(destRoot, id));
+    appCollection.reload();
   }
 }

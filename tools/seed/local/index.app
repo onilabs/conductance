@@ -1,4 +1,5 @@
 @ = require(['mho:std', 'mho:app']);
+@logging.setLevel(@logging.DEBUG);
 
 var appSettings = function(server, app) {
 	var settings;
@@ -19,7 +20,12 @@ var editWidget = function(values) {
 	});
 	return @Div([
 		errDisplay,
-		@TextArea() .. @Mechanism(function(elem) {
+		@TextArea() .. @Style('
+			{
+				width: 50%;
+				height: 400px;
+			}
+		') .. @Mechanism(function(elem) {
 			waitfor {
 				values .. @each {|val|
 					elem.value = JSON.stringify(val, null, '  ');
@@ -41,16 +47,16 @@ var editWidget = function(values) {
 	]);
 };
 
-var appWidget = function(deployment, app) {
+var appWidget = function(server, app) {
 	@info("app: ", app);
-	var appName = app.values .. @transform(a -> a.name);
-	var appCtl = deployment.ctl(app .. @get('id'));
+	var appName = app.config .. @transform(a -> a.name);
+	var appCtl = app.ctl;
 	var runningState = appCtl.pid .. @transform(pid -> pid === null ? "Stopped" : `Running (PID $pid)`);
 	var statusClass = appCtl.pid .. @transform(pid -> "glyphicon-#{pid === null ? "stop" : "play"}");
 
 	var appDetail = `
 		<h1>
-		${@Span(null, {'class':['glyphicon']}) .. @Class(statusClass)}
+		${@Span(null, {'class':'glyphicon'}) .. @Class(statusClass)}
 		${appName}</h1>
 		<div>
 			<div class="status row">
@@ -73,7 +79,7 @@ var appWidget = function(deployment, app) {
 								try {
 									@withBusyIndicator {||
 										waitfor {
-											deployment.deploy(app.id, @info);
+											server.deploy(app.id, @info);
 										} or {
 											click .. @wait();
 											@warn("cancelled!");
@@ -89,11 +95,16 @@ var appWidget = function(deployment, app) {
 							while(true) {
 								click .. @wait();
 								waitfor {
-									elem.parentNode .. @appendContent(editWidget(app.values), ->hold());
+									elem.parentNode .. @appendContent(editWidget(app.config), ->hold());
 								} or {
 									click .. @wait();
 								}
 							}
+						}),
+
+						@Button("[delete]") .. @Mechanism(function(elem) {
+							elem .. @wait('click');
+							server.destroyApp(app .. @get('id'));
 						}),
 					])
 			</div>
@@ -138,11 +149,20 @@ var appWidget = function(deployment, app) {
 	});
 };
 
-var showServer = function(deployment, apps) {
-	@mainContent .. @appendContent(@Button("x")) {|disconnectButton|
+var showServer = function(server, container) {
+	var apps = server.apps;
+	container .. @appendContent(@Button("[disconnect]")) {|disconnectButton|
 		waitfor {
-			@mainContent.. @appendContent(apps .. @transform(function(apps) {
-				return @UnorderedList(apps .. @map(app -> appWidget(deployment, app)));
+			@debug("Apps[outer]:", apps);
+			container .. @appendContent(apps .. @transform(function(apps) {
+				@info("Apps[inner]:", apps);
+				var appWidgets = apps .. @map(app -> appWidget(server, app));
+
+				var addApp = @Button('[+]') .. @OnClick(function() {
+					server.createApp({name:"TODO"});
+				});
+
+				return @UnorderedList(appWidgets.concat([addApp]));
 			}), -> hold());
 		} or { disconnectButton .. @wait('click'); }
 	}
@@ -150,28 +170,50 @@ var showServer = function(deployment, apps) {
 
 @withBusyIndicator {|ready|
 	@withAPI('./remote.api') {|api|
+		console.log(api);
+		console.log("API.servers = #{api.servers}");
 		var buttons = api.servers .. @transform(function(servers) {
 			return servers .. @map(function(server) {
 				@info("Server: ", server);
 				var enabled = @ObservableVar(true);
 				var id = server.id;
-				var apps = server.apps;
-				var serverName = server.values .. @transform(s -> s.name);
-				return @Button(serverName) .. @Enabled(enabled) .. @OnClick(function() {
-					enabled.set(false);
-					try {
-						@info("Connecting to server #{name}");
-						api.connect(id) {|deployment|
-							showServer(deployment, apps);
+				var serverName = server.config .. @transform(s -> s.name);
+				return [
+					@Button(serverName) .. @Enabled(enabled) .. @OnClick(function(evt) {
+						enabled.set(false);
+						try {
+							@info("Connecting to server #{name}");
+							api.connect(id) {|serverApi|
+								@debug("Connected to server");
+								showServer(serverApi, evt.target.parentNode);
+							}
+						} finally {
+							enabled.set(true);
 						}
-					} finally {
-						enabled.set(true);
-					}
-				});
+					}),
+					@Button('[edit]') .. @Mechanism(function(elem) {
+						var container = elem.parentNode;
+						var clicks = elem .. @events('click');
+						clicks .. @each {||
+							container .. @appendContent(editWidget(server.config), -> clicks .. @wait());
+						}
+					}),
+					@Button('[delete]') .. @OnClick(function() {
+						server.destroy();
+					}),
+				];
 			});
 		});
 
+		var addServer = @Button('[+]') .. @OnClick(function() {
+			api.createServer({name:"TODO"});
+		});
+
+		var serverList = buttons .. @transform(function(buttons) {
+			return @UnorderedList(buttons.concat([addServer]));
+		});
+
 		ready();
-		@mainContent .. @appendContent(buttons, ->hold());
+		@mainContent .. @appendContent(serverList, ->hold());
 	}
 }
