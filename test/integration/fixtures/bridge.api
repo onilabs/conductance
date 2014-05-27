@@ -60,3 +60,31 @@ exports.integers = integers;
 
 exports.ping = -> "pong";
 exports.hostenv = -> require('sjs:sys').hostenv;
+
+
+var retractionDetected;
+exports.detectRetractionAfterDelay = function(delay){
+  retractionDetected = false;
+  try {
+    hold(delay);
+  } retract {
+    retractionDetected = true; 
+  }
+}
+exports.didDetectRetraction = -> retractionDetected;
+
+var errorThrown;
+exports.checkErrorThrownOnCallingFuncAfterDelay = function(func, delay){
+  errorThrown = false;
+  function caller(){
+    hold(delay);
+    try{
+      func()
+    }catch(e){
+      errorThrown = true;
+    }
+  }
+  spawn caller();
+}
+exports.wasErrorThrown = -> errorThrown;
+
