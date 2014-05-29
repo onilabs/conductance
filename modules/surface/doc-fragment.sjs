@@ -49,20 +49,12 @@ exports.errorHandler = function() {
               \" An uncaught error occurred. Reload the page to try again.\"+
             \"</div>\"+
           \"</div>\");
-        if (arguments.length > 4 && window.console && window.console.error) {"+
-          /* chrome provides the actual exception as arguments[4],
-             which allows access to the real, non-truncated toString() */
-          "
-          window.console.error(arguments[4].toString());
-          return true;
-        }
-        return false;
       };
       onerror.triggered = false;
       window.onerror = onerror;
       window.onbeforeunload = function() {
-        // don't show error indicator when we're navigating away
-        errorIndicatorShown=true;
+        // ignore errors when we're navigating away
+        window.onerror = function() { return true; };
       }
     })();
   ");
