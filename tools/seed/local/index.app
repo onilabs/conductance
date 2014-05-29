@@ -22,8 +22,8 @@ var editWidget = function(values) {
 		errDisplay,
 		@TextArea() .. @Style('
 			{
-				width: 50%;
-				height: 400px;
+				width: 100%;
+				height: 200px;
 			}
 		') .. @Mechanism(function(elem) {
 			waitfor {
@@ -49,7 +49,7 @@ var editWidget = function(values) {
 
 var appWidget = function(server, app) {
 	@info("app: ", app);
-	var appName = app.config .. @transform(a -> a.name);
+	var appName = app.config.central .. @transform(a -> a.name);
 	var appCtl = app.ctl;
 	var runningState = appCtl.pid .. @transform(pid -> pid === null ? "Stopped" : `Running (PID $pid)`);
 	var statusClass = appCtl.pid .. @transform(pid -> "glyphicon-#{pid === null ? "stop" : "play"}");
@@ -90,12 +90,16 @@ var appWidget = function(server, app) {
 								}
 							}
 						}),
-						@Button("Settings") .. @Mechanism(function(elem) {
+						@Button("[edit]") .. @Mechanism(function(elem) {
 							var click = elem .. @events('click');
 							while(true) {
 								click .. @wait();
 								waitfor {
-									elem.parentNode .. @appendContent(editWidget(app.config), ->hold());
+									waitfor {
+										elem.parentNode .. @appendContent([@H3("central settings"), editWidget(app.config.central)], ->hold());
+									} and {
+										elem.parentNode .. @appendContent([@H3("deploy settings"), editWidget(app.config.local)], ->hold());
+									}
 								} or {
 									click .. @wait();
 								}

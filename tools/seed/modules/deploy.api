@@ -3,6 +3,9 @@
 @state = require('./state');
 @crypto = require('nodejs:crypto');
 @tempfile = require('sjs:nodejs/tempfile');
+@nodeFs = require('nodejs:fs');
+@fsExt = require('nodejs:fs-ext');
+@constants = require('nodejs:constants');
 var { @follow } = require('./follow');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var { @rimraf } = require('sjs:nodejs/rimraf');
@@ -12,14 +15,19 @@ var destRoot = @path.join(here, '../apps');
 var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
-var validAppName = name -> /^[a-zA-Z0-9][-_a-zA-Z0-9]*$/.test(name);
+var validAppName = function(name) {
+  if (/^[a-zA-Z0-9][-_a-zA-Z0-9]*$/.test(name)) {
+    return name;
+  }
+  throw new Error("Invalid app identifier: #{name}");
+}
 
 exports.ping = function() {
   return 'PONG!';
 };
 
 var DEFAULT_CONFIG = {
-  centralVersion: 1,
+  version: 1,
   name: "unknown",
 };
 
@@ -55,9 +63,7 @@ var getApp = (function() {
 
   var App = function(id) {
     @assert.string(id, 'appId');
-    if (!validAppName(id)) {
-      throw new Error("invalid application name: #{id}");
-    }
+    validAppName(id);
 
     var appBase = @path.join(destRoot, id);
     var pidPath = @path.join(appBase, "pid");
@@ -151,24 +157,23 @@ var getApp = (function() {
           loaded = @fs.readFile(configPath, 'utf-8') .. JSON.parse();
         } catch(e) {
           if (e.code !== 'ENOENT') throw e;
+          @warn("no config found at #{configPath}");
           loaded = {};
         }
+        @info("Loaded config:", loaded);
         return DEFAULT_CONFIG .. @merge(loaded);
       } .. safe();
 
-      var saveConfig = function(conf) {
-        @logging.info("saving app config: #{conf}");
-        @mkdirp(appBase);
-        @fs.writeFile(configPath, JSON.stringify(conf, null, '  '), 'utf-8');
-      } .. safe();
-
       var val = @ObservableVar(loadConfig());
-      var rv = val .. @transform(x -> x);
+      var rv = val .. @transform(x -> DEFAULT_CONFIG .. @merge(x));
       rv.modify = function(f) {
         if (val.modify(f)) {
-          saveConfig(val.get());
+          var conf = val.get();
+          @logging.info("saving app config:", conf);
+          @mkdirp(appBase);
+          @fs.writeFile(configPath, JSON.stringify(conf, null, '  '), 'utf-8');
         }
-      }
+      } .. safe();
       return rv;
     })();
 
@@ -197,14 +202,38 @@ var getApp = (function() {
       // truncate file
       @fs.open(logPath, 'w') .. @fs.close();
       // then open it twice in append mode (for stdout & stderr)
+      // XXX does having two file descriptors pointing to the same place
+      // lead to interleaving that could otherwise be avoided by
+      // using dup()?
       waitfor {
         stdio[1] = @fs.open(logPath, 'a');
       } and {
         stdio[2] = @fs.open(logPath, 'a');
       }
-      // XXX does having two file descriptors pointing to the same place
-      // lead to interleaving that could otherwise be avoided by
-      // using dup()?
+
+      // node does a terrible job of closing open file descriptors (may be
+      // improved in 0.12). So we need to manually mark everything as cloexec.
+      // XXX this is not portable
+      // XXX we use *Sync functions to make sure nobody is opening new file descriptors behind our back
+
+      @nodeFs.readdirSync("/proc/#{process.pid}/fd") .. @each {|fd|
+        fd = parseInt(fd, 10);
+        var flags;
+        try {
+          flags = fd .. @fsExt.fcntlSync('getfd');
+        } catch(e) {
+          if (e.code === 'EBADF') {
+            // presumably the file descriptor used to read /proc/PID/fd - ignore
+            continue;
+          }
+        }
+        var cloexec = flags | @constants.FD_CLOEXEC;
+        if (flags !== cloexec) {
+          // clexec flag not yet set:
+          fd .. @fsExt.fcntlSync('setfd', cloexec);
+        }
+        ((fd .. @fsExt.fcntlSync('getfd')) & @constants.FD_CLOEXEC) .. @assert.ok('CLOEXEC not set');
+      }
 
       try {
         var child = @childProcess.launch(process.execPath,
@@ -333,6 +362,9 @@ var getApp = (function() {
 })();
 exports.getApp = getApp;
 exports.createApp = function(id, props) {
+  if (@fs.exists(@path.join(appBase, id .. validAppName()))) {
+    throw new Error("App #{id} already exists");
+  }
   var app = getApp(id);
   app.config.modify(-> props);
   appCollection.reload();
@@ -373,7 +405,7 @@ var tryRename = function(src, dest) {
 
 exports.destroyApp = function(id) {
   // getApp does this anyway, but paranoia
-  @assert.ok(validAppName(id), "invalid app id");
+  id .. validAppName();
 
   getApp(id).synchronize {||
     @info("Destroying app #{id}");

@@ -8,19 +8,6 @@ exports.createServer = function(props) {
 	return @settings.server(null, props);
 };
 
-var untangleConfig = function(conf) {
-	var SERVER_CONFIG = ['name', 'centralVersion'];
-	var server = {}, local = {};
-	conf .. @ownPropertyPairs .. @each {|[k,v]|
-		if (SERVER_CONFIG .. @hasElem(k)) {
-			server[k] = v;
-		} else {
-			local[k] = v;
-		}
-	}
-	return [server, local];
-}
-
 var Deployment = function(remote, serverInfo) {
 	var serverId = serverInfo .. @get('id');
 	this.apps = remote.apps .. @transform(function(remoteApps) {
@@ -30,44 +17,23 @@ var Deployment = function(remote, serverInfo) {
 			@info("transforming remote app: #{app}");
 			var appId = app .. @get('id');
 			var localSettings = @settings.app(serverId, appId);
-			var combinedConfig = @observe(app.config, localSettings.config, function(conf, local) {
-				@assert.ok(conf, 'remote config is undefined');
-				@assert.ok(local, 'local config is undefined');
-				return local .. @merge(conf);
-			});
-
-			combinedConfig.modify = function(func) {
-				var modifyPart = function(settings, f, idx) {
-					return settings.modify(function(current, unmodified) {
-						var newval = f(current, unmodified);
-						if (newval === unmodified) return unmodified;
-						newval = untangleConfig(newval)[idx];
-						if (current .. @eq(newval)) return unmodified;
-						return newval;
-					});
-				};
-
-				waitfor {
-					localSettings.config .. modifyPart(func, 1);
-				} and {
-					app.config .. modifyPart(func, 0);
-				}
-			};
-
 			return {
-				config: combinedConfig,
+				config: {
+					central: app.config, // stored on server
+					local: localSettings.config, // stored per-client
+				},
 				ctl: app,
 				id: appId,
 			};
-		}) .. @sortBy(app -> app.config .. @first() .. @get('name'));
+		}) .. @sortBy(app -> app.config.central .. @first() .. @get('name'));
 	});
 
 	this.createApp = function(props) {
-		var [server, local] = untangleConfig(props);
+		var {central, local} = props;
 		var localSettings = @settings.app(serverId, null, local);
 		var config = localSettings.config .. @first();
 		@info("Created local app settings", config);
-		var remoteApp = remote.createApp(localSettings .. @get('id'), server);
+		var remoteApp = remote.createApp(localSettings .. @get('id'), central);
 		remoteApp .. @assert.ok();
 		@info("Created app: #{app}");
 	};
@@ -81,12 +47,12 @@ var Deployment = function(remote, serverInfo) {
 
 	this.deploy = function(appId, log) {
 		@assert.string(appId);
-		var appSettings = @settings.app(server.id, appId);
-		var app = server.app(appId);
-		var settings = app.config .. @first();
-		log("Deploying #{settings.name}");
+		var localAppSettings = @settings.app(serverInfo.id, appId);
+		var settings = localAppSettings.config .. @first();
 		var root = settings .. @get('path');
-		@info("deploying #{appId} from #{root}");
+		var app = remote.getApp(appId);
+		var config = app.config .. @first();
+		@info("deploying #{config.name} (#{appId}) from #{root}");
 
 		// XXX we should be able to use `tar` output directly,
 		// but https://github.com/joyent/node/issues/6595
@@ -128,7 +94,7 @@ var Deployment = function(remote, serverInfo) {
 					}
 				}
 			});
-			remote.deploy(payload);
+			app.deploy(payload);
 		}
 	};
 };
@@ -144,16 +110,18 @@ if (deployLoopback) {
 } else {
 	@ssh = require('./ssh');
 	connect = function(creds, block) {
+		//creds.debug = @info;
 		@ssh.Connect(creds) {|conn|
-			//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance') {||
-				conn .. @ssh.proxyConnections(7079) {|path|
-					@info("Proxied: #{path}");
+			var seedPort = 7079;
+			// XXX make this path portable
+			//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance', seedPort) {||
+				conn .. @ssh.proxyConnections(seedPort) {|path|
+					@debug("Proxied: #{path}");
 					var apiInfo = @http.json('http:///deploy.api?format=json', {socketPath: path});
-					@info('API INFO:', apiInfo);
+					@debug('API INFO:', apiInfo);
 					var transport = require('mho:rpc/aat-client').openTransport('http:///', {socketPath: path});
-					@info('transport', transport);
+					@debug('transport', transport);
 					require('mho:rpc/bridge').connect('XXX', {transport: transport, api:apiInfo}) {|conn|
-						@info("got remote API", conn);
 						block(conn.api);
 					}
 				}

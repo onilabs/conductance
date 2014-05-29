@@ -7,7 +7,7 @@ var quoteCmds = function(commands) {
 	return command .. @map(@quote) .. @join('; ');
 }
 
-var terminate = function(conn) {
+var terminate = function(conn, force) {
 	@debug("terminating connection");
 	// shutdown procedure
 	waitfor {
@@ -21,7 +21,9 @@ var terminate = function(conn) {
 		} and {
 			conn.end();
 		}
+		@info("connection ended");
 	} or {
+		if (!force) hold(); // wait indefinitely
 		hold(1000);
 		@warn("connection didn't terminate in 5s; exiting");
 	}
@@ -57,7 +59,6 @@ var exec = function(conn, command, block) {
 			emit(chunk);
 		}
 	});
-	//if (!block) return stream;
 
 	var exitStatus;
 	waitfor {
@@ -114,7 +115,7 @@ var Connect = exports.Connect = function(opts, block) {
 			block(conn);
 		}
 	} finally {
-		conn .. terminate();
+		conn .. terminate(true);
 	}
 };
 
@@ -163,11 +164,13 @@ var installConductance = function(conn, root) {
 	}
 }
 
-var runSeed = exports.runSeed = function(conn, root, block) {
+var runSeed = exports.runSeed = function(conn, root, port, block) {
 	conn .. exec(`
-		set -eux;
+		set -eux
+		set -o pipefail
 		cd $root/tools/seed
-		exec ../../conductance -vvv serve
+		# XXX what about when the seed needs a restart?
+		exec ../../conductance -v serve --port $port --use-existing
 	`) {|out|
 		out.setEncoding('utf-8');
 		var response;
@@ -177,7 +180,7 @@ var runSeed = exports.runSeed = function(conn, root, block) {
 			waitfor {
 				out .. @lines .. @each { |line|
 					line = line.trim();
-					@warn('CONDUCTANCE OUT: ' + line);
+					@info('[seed]: ' + line);
 					if (line .. @startsWith("Conductance serving address:")) {
 						ready.set();
 					}
@@ -185,6 +188,8 @@ var runSeed = exports.runSeed = function(conn, root, block) {
 			} and {
 				ready.wait();
 				block();
+				@info("block complete - terminating seed server");
+				out .. terminate();
 			}
 		} or {
 			out .. @wait('exit');
@@ -266,7 +271,7 @@ if (require.main === module) {
 		sshAgent: process.env['SSH_AUTH_SOCK'],
 	}) {|conn|
 		//conn .. installConductance('/tmp/condy');
-		//conn .. runSeed('/home/tim/dev/oni/conductance') {||
+		//conn .. runSeed('/home/tim/dev/oni/conductance', 7079) {||
 			console.log("PID: #{process.pid}");
 			conn .. proxyConnections(7079) {|path|
 				@info("got local proxy: #{path}");

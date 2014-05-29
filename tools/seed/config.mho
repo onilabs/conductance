@@ -4,10 +4,22 @@
 @server = require('mho:server');
 require.hubs.push(['app:', @url.normalize('./modules/', module.id)]);
 
+var VERSION = 1;
+
+var runningServerInfo = function(port) {
+  try {
+    var info = @http.json("http://localhost:#{port}/version");
+    // XXX what should we do on version mismatch?
+    return info;
+  } catch(e) {
+    if (e.message .. @contains('ECONNREFUSED')) return false;
+    throw e;
+  }
+}
+
 //----------------------------------------------------------------------
 // function invoked by `conductance serve`
 var serve = function(args) {
-  require('app:state').acquire();
   var parser = require('sjs:dashdash').createParser({
     options: [
       {
@@ -19,8 +31,14 @@ var serve = function(args) {
       {
         names: ['port'],
         type: 'number',
-        help: 'serve on port (default: 7079)',
-        'default': 7079,
+        help: 'serve on port',
+        'default': null,
+      },
+      {
+        names: ['use-existing'],
+        type: 'bool',
+        help: 'just exit successfully if there\'s already a server running',
+        'default': false,
       },
       {
         names: ['ssl'],
@@ -43,13 +61,43 @@ var serve = function(args) {
     process.exit(0);
   }
 
+  var versionInfo = {
+    version: VERSION,
+    config: module.id,
+    pid: process.pid,
+    node_env: process.NODE_ENV || null,
+  };
+
   var routes = [
         @route.SystemRoutes(),
+        @Route('version', {GET: function(req) {
+          req .. @setHeader('content-type', 'text/json; charset=utf-8');
+          req .. @setStatus(200);
+          req.response.end(JSON.stringify(versionInfo, null, '  '));
+        }}),
         @route.ExecutableDirectory('', @url.normalize('./modules/', module.id) .. @url.toPath),
-      ] .. @route.LogRequests(@logging.INFO);
+      ];
 
   var host = opts.host == 'any' ? null : opts.host;
   var port = opts.port;
+  if (!opts.port) {
+    console.warn("Please specify --port");
+    process.exit(1);
+  }
+
+  try {
+    require('app:state').acquire();
+  } catch(e) {
+    if (!opts.use_existing) throw e;
+    @info("Couldn't acquire lockfile - checking for an existing server on port #{port}");
+    var serverInfo = runningServerInfo(port);
+    if (serverInfo) {
+      console.warn("Server already running on port #{port}:", serverInfo);
+      return;
+    }
+    throw e;
+  }
+
   var ssl = opts.ssl;
 
   var address = @Port(port, host);
@@ -60,10 +108,6 @@ var serve = function(args) {
     });
   }
 
-  if (opts.cors) {
-    routes = routes .. @route.AllowCORS;
-  };
-
   @server.run({
     address: address,
     routes: routes,
@@ -72,30 +116,9 @@ var serve = function(args) {
 
 exports.serve = function(args) {
   waitfor {
-    var stdin = process.stdin;
-    var event = require('sjs:event');
-    var seq   = require('sjs:sequence');
-    var iface = require("nodejs:readline").createInterface(stdin, process.stdout);
-    try {
-      while(true) {
-        if (stdin.destroyed) break;
-        var answer = null;
-        waitfor {
-          waitfor (answer) {
-            iface.question('', resume);
-          }
-          console.log("GOT INPUT: #{answer}");
-        } or {
-          // documentation claims close happens on `iface`, but
-          // it seems to occur on `stdin` in pracice. So we wait for either:
-          event.wait([iface, stdin], 'close');
-        }
-        if (answer == null) break;
-      }
-    } finally {
-      iface.close();
-    }
-    console.warn("stdin loop ended");
+    // XXX shouldn't the process automatically get killed on HUP or something?
+    process.stdin .. @wait('close');
+    console.warn("STDIN CLOSED");
   } or {
     serve.apply(this.arguments);
   }

@@ -30,7 +30,7 @@ var keysWithPrefix = function(prefix) {
 };
 
 var cleanup = function() {
-	;['app:','server:'] .. @each{|prefix|
+	;['server:'] .. @each{|prefix|
 		prefixed(prefix) .. @toArray .. @each {|[k,v]|
 			//console.log("checking key #{k}, ", v);
 			v = v.toString('utf-8') .. JSON.parse();
@@ -46,10 +46,10 @@ cleanup();
 
 var defaultSettings = {
 	app: {
-		configVersion: 1,
+		version: 1,
 	},
 	server: {
-		configVersion: 1,
+		version: 1,
 	},
 };
 
@@ -107,7 +107,8 @@ var Settings = function(key, base, missingOK) {
 	};
 
 	rv._save = function() {
-		console.log("saving settings for #{key}");
+		@info("saving settings for #{key}");
+		@debug(values.get());
 		store.put(
 			new Buffer(key, 'ascii'),
 			new Buffer(values.get() .. JSON.stringify(), 'utf-8'),
