@@ -327,6 +327,6 @@ function searchIndex(query, index) {
 			}
 		}
 	}
-	results.noResults = results.length == 0;
+	results.noResults = results.length === 0 && index.length > 0;
 	return results;
 }
