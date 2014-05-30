@@ -42,8 +42,6 @@ window.withBusyIndicator {|hideBusyIndicator|
 		logging.setLevel(logging.DEBUG);
 	}
 
-	var mainStyle   = RequireExternalStyle(Url.normalize('css/main.css', module.id))
-	var docsStyle   = RequireExternalStyle(Url.normalize('css/docs.css', module.id))
 	var searchStyle = RequireExternalStyle(Url.normalize('css/search.css', module.id));
 
 	exports.run = function(root, defaultHubs) {
@@ -137,7 +135,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 				}
 			});
     
-		var mainDisplay = [docsStyle, Element('div', symbolDocs, {"class":"mb-main mb-top"})];
+		var mainDisplay = [Element('div', symbolDocs, {"class":"mb-main mb-top"})];
 		var header = Element("div", [
 			toolbar,
 	//		`<h1>Conductance docs</h1>`
@@ -191,7 +189,6 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 	exports.main = function(root /*, ... */) {
 		// wraps `run` with error handling
-		root .. appendContent(mainStyle);
 		var error = cutil.Condition();
 		window.onerror = function(e) {
 			error.set(e);

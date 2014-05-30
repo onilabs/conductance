@@ -64,6 +64,8 @@ exports.run = (function() {
 				lastQuery = query;
 
 				var rv = searchIndex(query, index.get());
+				if (lastQuery !== query) return; // this search has expired
+
 				var selected = selectedMatch.get();
 
 				// if we had something selected but now it's gone,
@@ -183,27 +185,27 @@ exports.run = (function() {
 				var disabled = ObservableVar(false);
 				var enabledWidget = Checkbox(lib.searchEnabled) .. Attrib("disabled", disabled);
 				libraryStatus.push(Element("li", `${enabledWidget} <span class="hub">${lib.name}</span> ${loaded}`, {"class":"libraryStatus"}));
-				var idx = lib.loadIndex();
-				if (idx === null) {
-					loaded.set("No search index");
-					disabled.set(true);
-				} else {
-					if (lib.searchEnabled.get()) {
-						logging.debug("Added library #{lib.name} to index");
-						index.set(index.get() .. indexWith(lib) .. toArray);
+				spawn(function() {
+					// load each index in background
+					var idx = lib.loadIndex();
+					if (idx === null) {
+						loaded.set("No search index");
+						disabled.set(true);
+					} else {
+						loaded.set("");
 					}
-					loaded.set("");
-				}
+				}());
 			};
 
 			var indexUpdate = function() {
 				libraries.get() .. ownValues .. each.par {|lib|
+					lib.loadIndex(); // wait until library is loaded
 					lib.searchEnabled .. each {|val|
 						if (val) {
 							// add to index
-							index.set(index.get() .. indexWith(lib) .. toArray);
+							index.modify(current -> current .. indexWith(lib) .. toArray);
 						} else {
-							index.set(index.get() .. indexWithout(lib) .. toArray);
+							index.modify(current -> current .. indexWithout(lib) .. toArray);
 						}
 					}
 				}
@@ -282,7 +284,7 @@ function searchIndex(query, index) {
 			results.overflow = true;
 			break;
 		}
-		if (count++ % 50 == 0) hold(0); // keep UI responsive
+		if (count++ % 100 == 0) hold(0); // keep UI responsive
 		__js {
 			var idLower = id.toLowerCase();
 			var words = queryWords.slice();

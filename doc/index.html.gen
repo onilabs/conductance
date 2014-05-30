@@ -4,12 +4,23 @@ var {readFile} = require('sjs:nodejs/fs');
 var {join} = require('sjs:sequence');
 var { Document, Element } = require('mho:surface');
 
+var Stylesheet = h -> Element("link", null, {"rel":"stylesheet", "href":h});
+
+exports.headContent = function(root) {
+  root = root || "";
+  return [
+    Element("script", null, {src: root + 'index.bundle.js'}),
+    Stylesheet(root + 'css/main.css'),
+    Stylesheet(root + 'css/docs.css'),
+  ];
+};
+
 exports.content = function() {
   var documentationHubs = this.documentationHubs || null;
   return Document(null, {
     title: "Conductance Documentation Browser",
     init: "require('index.sjs').main(document.body, #{JSON.stringify(documentationHubs)})",
-    head: Element("script", null, {src: 'index.bundle.js'}),
+    head: exports.headContent(),
     template: 'app-default',
     templateData: {
       showBusyIndicator: true,
