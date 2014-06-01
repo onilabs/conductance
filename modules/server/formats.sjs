@@ -286,6 +286,12 @@ exports.StaticFormatMap = {
   app  : { none : { mime: "text/plain" } },
   api  : { none : { mime: "text/plain" } },
   md   : { none : { mime: "text/plain" } },
+
+  ttf  : { none : { mime: "application/x-font-ttf",
+                    // give fonts an expiry of access + 1 month: 
+                    expires: -> new Date(Date.now() + 1000*60*60*24*30)
+                  }
+         }
 };
 
 /**

@@ -84,6 +84,7 @@ function formatResponse(req, item, settings) {
 
   // construct header:
   if (formatdesc.mime) req .. setHeader("Content-Type", formatdesc.mime);
+  if (formatdesc.expires) req .. setHeader("Expires", formatdesc.expires().toUTCString());
   if(formatdesc.filter) {
     // There is a filter function defined for this filetype.
 
