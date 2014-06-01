@@ -15,10 +15,11 @@
 *   any manual edits will be LOST      *
 * ------------------------------------ */
 
-/* ------------------------------------ *
+/* ----------------------------------- *
 * NOTE:                                *
 *   This file is auto-generated        *
 *   any manual edits will be LOST      *
+*   (edit src/build/std.sjs instead)   *
 * ------------------------------------ */
 /**
   // metadata for sjs:bundle:

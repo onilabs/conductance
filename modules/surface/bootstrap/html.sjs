@@ -138,14 +138,24 @@ exports.Icon = name -> @Element('span', '', { 'class': "glyphicon glyphicon-#{na
 exports.Row = (content, attribs) -> @Element('div', content, attribs) .. @Class('row');
 
 /**
-  @function ColSm
-  @param {Number} [num]
+  @function Col
+  @param {String} [col_classes] String of `col-*` classes to apply to the col
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attribs]
-  @summary <div class="col-sm-{num}">
   @return {surface::Element}
+  @desc
+    `col_classes` is a space-separated list of `col-*` classes that 
+    should be applied to the col (`N` designates an integer between 1-12, `M` an integer between 0-11):
+
+    * **width**: one or more of `xs-N`, `sm-N`, `md-N`, `lg-N`.
+    * **offset**: one or more of `xs-offset-M`, `sm-offset-M`, `md-offset-M`, `lg-offset-M`.
+    * **pulling left**: one or more of `xs-pull-M`, `sm-pull-M`, `md-pull-M`, `lg-pull-M`.
+    * **pushing right**: one or more of `xs-push-M`, `sm-push-M`, `md-push-M`, `lg-push-M`.
 */
-exports.ColSm = (n, content, attribs) -> @Element('div', content, attribs) .. @Class("col-sm-#{n}");
+exports.Col = (col_classes, content, attribs) ->
+  @Element('div', content, attribs) .. 
+    @Class(col_classes.split(' ') .. 
+           @map(cls->'col-'+cls) .. @join(' '));
 
 /**
   @function Container

@@ -470,7 +470,7 @@
                 "Row": {
                   "type": "function"
                 },
-                "ColSm": {
+                "Col": {
                   "type": "function"
                 },
                 "Container": {
@@ -551,6 +551,9 @@
               "type": "function"
             },
             "TextInput": {
+              "type": "function"
+            },
+            "TextArea": {
               "type": "function"
             },
             "Checkbox": {

@@ -52,7 +52,7 @@ exports.generateDirListing = function(dir) {
   return @Container(
       `$@H1(`<a href='/'>$@Icon('folder-open')</a>&nbsp;/&nbsp;${dir.path .. Crumbs}`)
        <hr>
-       $@Row([@ColSm(6, folders), @ColSm(6, files)])
+       $@Row([@Col('sm-6', folders), @Col('sm-6', files)])
        <hr>
        <p class='text-right'><small>℧ oni labs conductance server</small></p>
       `);
