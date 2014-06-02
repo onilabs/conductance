@@ -133,14 +133,19 @@ context('bridge error handling') {||
     }
   };
 
+  var CALL_BATCH_PERIOD = 20;   // bridge implementation detail
+
+  var MAX_ROUNDTRIP = CALL_BATCH_PERIOD + 100; // roundtrip time between client & server.
+                                               // If a single call takes longer than this, tests may fail.
+
   test('retract server side execution initiated by client on broken connection'){||
-    try{ 
+    try{
       bridge.connect(apiid, {server: helper.getRoot()}){
         |connection|
         waitfor{
-          connection.api.detectRetractionAfterDelay(100);
+          connection.api.detectRetractionAfterDelay(2*MAX_ROUNDTRIP);
         } or {
-          hold(30); // CALL_BATCH_PERIOD + 10
+          hold(MAX_ROUNDTRIP);
           connection.__finally__();
         }
       }
@@ -149,7 +154,7 @@ context('bridge error handling') {||
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
       assert.truthy(connection.api.didDetectRetraction());
-    } 
+    }
   }.browserOnly();
 
   test('throw exception when calling client function after broken connection'){||
@@ -158,8 +163,8 @@ context('bridge error handling') {||
       bridge.connect(apiid, {server: helper.getRoot()}){
         |connection|
         var someFunc = function(){someFuncExecuted = true};
-        connection.api.checkErrorThrownOnCallingFuncAfterDelay(someFunc, 100);
-        hold(30); //CALL_BATCH_PERIOD + 10
+        connection.api.checkErrorThrownOnCallingFuncAfterDelay(someFunc, 2*MAX_ROUNDTRIP);
+        hold(MAX_ROUNDTRIP);
         connection.__finally__();
       }
     } catch(e){}
