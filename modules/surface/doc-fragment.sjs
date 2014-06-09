@@ -154,10 +154,60 @@ exports.busyIndicator = function(showImmediately, opts) {
 exports.bootstrapCss = function() {
   return @Element("link", null, {
     rel: 'stylesheet',
-    href: "/__mho/surface/bootstrap/bootstrap-vanilla-3.css",
-    media: 'screen'
+    href: "/__mho/surface/bootstrap/bootstrap-vanilla-3.css"
+//    media: 'screen'
   });
 };
+
+/**
+  @function conductanceCss
+  @return [surface::HtmlFragment]
+  @summary Conductance CSS styles
+  @desc
+    Place within <head> after [::bootstrapCss]
+*/
+
+var colors = {
+  OniLabsRed:          `#b9090b`,
+  OniLabsRedHighlight: `#c43133`
+};
+
+exports.conductanceCss = function() {
+  return `<style type="text/css">
+            @font-face {
+              font-family: Montserrat;
+              src: url('/__mho/surface/fonts/Montserrat/Montserrat-Regular.ttf');
+            }
+            
+            h1, h2, h3, h4, .lead, .btn {
+              font-family: 'Montserrat';
+            }
+
+            a { color: ${colors.OniLabsRed}; }
+            a:hover, a:active { color: ${colors.OniLabsRedHighlight}; }
+
+            code {
+              color:#333;
+            }
+
+            code, pre {
+              background-color: #FEFAFA;
+              border: 1px solid #F5E1E1;
+            }
+
+            .btn-primary { 
+              background-color: ${colors.OniLabsRed}; 
+              border-color: ${colors.OniLabsRedHighlight};  
+            }
+            .btn-primary:hover, .btn-primary:active, .btn-primary:focus { 
+              background-color: ${colors.OniLabsRedHighlight}; 
+              border-color: ${colors.OniLabsRedHighlight}; 
+            }
+
+          </style>
+         `;
+};
+
 
 /**
   @function bootstrapJavascript

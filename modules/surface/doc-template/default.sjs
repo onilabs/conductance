@@ -13,7 +13,7 @@
   @type template
   @summary The default template for [surface::Document] objects.
   @desc
-    This template includes Twitter Bootstrap and jQuery, but provides no [mho:app::] module
+    This template includes Twitter Bootstrap (with Conductance styling), but provides no [mho:app::] module
 
   @directive @template-title
   @summary Set the document title
@@ -38,6 +38,7 @@ exports.Document = settings ->
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     ${frag.bootstrapCss()}
+    ${frag.conductanceCss()}
     ${ settings.head }
     ${ settings.script }
   </head>

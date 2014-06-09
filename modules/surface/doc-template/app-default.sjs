@@ -14,7 +14,7 @@
   @summary The default template for "*.app" modules (see [mho:#features/app-module::])
   @desc
 
-    This template includes Bootstrap styles, and exposes
+    This template includes Twitter Bootstrap (with Conductance styling), and exposes
     a fully-featured [mho:app::] module.
 
     ### Symbols exported in mho:app
@@ -182,6 +182,7 @@ exports.Document = function(data, settings) {
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     ${frag.bootstrapCss()}
+    ${frag.conductanceCss()}
     ${showErrorDialog ? frag.errorHandler()}
     ${frag.busyIndicator(showBusyIndicator)}
     <script type='text/sjs' module='mho:app'>
