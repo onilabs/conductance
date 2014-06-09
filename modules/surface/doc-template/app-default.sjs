@@ -62,37 +62,6 @@
     `window.onerror` once your application is successfully loaded.
 
 
-  @directive @template-wrap-content
-  @summary Enable / disable the default <div class="container"> wrapper
-  @desc
-    By default, the `app-default` template wraps the body of a page in
-    a <div class="container"> element.
-  
-    You can disable this with:
-  
-        /**
-          @template-wrap-content false
-         *\/
-  
-
-
-
-  @directive @template-use-bootstrap
-  @summary Disable twitter bootstrap CSS/JS
-  @desc
-    If set to false, the default Twitter Bootstrap CSS and JavaScript
-    will not be included in the document.
-  
-  
-  
-  @directive @template-use-api
-  @summary Disable API utilities
-  @desc
-    If set to false, the default API connection functionality
-    (from [surface/api-connection]) won't be exported from the `mho:app` module.
-
-
-  
   @directive @template-show-busy-indicator
   @summary Begin the busy indicator on page load
   @desc
@@ -204,40 +173,30 @@ var { toBool } = require('sjs:docutil');
 exports.Document = function(data, settings) {
   var showErrorDialog = settings.showErrorDialog .. toBool !== false;
   var showBusyIndicator = settings.showBusyIndicator .. toBool === true;
-  var wrapContent = settings.wrapContent ..toBool;
-  var appModule = settings.appModule .. toBool !== false;
-  var includeBootstrap = settings.useBootstrap .. toBool !== false;
-  var includeAPI = settings.useApi .. toBool !== false;
 
-  var content = data.body;
-  if (wrapContent !== false) content = `<div class='container'>${content}</div>`;
+  var content = `<div class='container'>${data.body}</div>`;
 
   return `<!DOCTYPE html>
 <html>
   <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    ${includeBootstrap ? frag.bootstrapCss()}
+    ${frag.bootstrapCss()}
     ${showErrorDialog ? frag.errorHandler()}
     ${frag.busyIndicator(showBusyIndicator)}
-    ${appModule ? `
     <script type='text/sjs' module='mho:app'>
       withBusyIndicator {
         ||
 
         waitfor {
           exports = module.exports = require([
-                                    'mho:surface/${includeBootstrap ? `bootstrap/`}html',
-                                  ${includeAPI ? `
-                                      {id:'mho:surface/api-connection',
-                                        include: ['withAPI']
-                                      },
-                                  `}
-                                  ${includeBootstrap ? `
-                                    {id:'mho:surface/bootstrap/notice',
-                                      include: ['Notice']
+                                    'mho:surface/bootstrap/html',
+                                    { id:'mho:surface/api-connection',
+                                      include: ['withAPI']
                                     },
-                                  `}
+                                    { id:'mho:surface/bootstrap/notice',
+                                      include: ['Notice']
+                                    }
                                   ]);
         } and {
           @ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event']);
@@ -245,15 +204,15 @@ exports.Document = function(data, settings) {
 
         // ui entry points:
         exports.body = document.body;
-        exports.mainContent = document.body${includeBootstrap ? `.firstChild`};
+        exports.mainContent = document.body.firstChild;
         exports.withBusyIndicator = withBusyIndicator;
       }
-    </script>`}
+    </script>
     ${ data.head }
     ${ data.script }
   </head>
   <body>${content}
-    ${includeBootstrap ? frag.bootstrapJavascript()}
+    ${frag.bootstrapJavascript()}
   </body>
 </html>`;
 }
