@@ -27,9 +27,6 @@
             "@template": {
               "type": "directive"
             },
-            "@template-title": {
-              "type": "directive"
-            },
             "@bundle": {
               "type": "directive"
             }
