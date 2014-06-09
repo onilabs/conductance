@@ -10,10 +10,24 @@
  */
 
 /**
+  @type template
   @summary A minimal template for [surface::Document] objects.
   @desc
     This template is the most minimal document template - it contains
     no default CSS styles or additional javascript.
+
+  @directive @template-title
+  @summary Set the document title
+  @desc
+    This allows you to set an initial <title> content for
+    the .app.
+
+    ### Example:
+
+        /**
+          @template-title Conductance Chat Demo
+         *\/
+
 */
 exports.Document = settings -> `<!DOCTYPE html>
 <html>

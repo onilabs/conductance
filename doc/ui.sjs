@@ -1,7 +1,7 @@
 var {Element, Mechanism, Style, Class, prependContent, removeNode, RawHTML} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
-     reduce, reverse, join, find, hasElem
+     reduce, reverse, join, find, hasElem, at
      } = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, startsWith, endsWith, strip} = string;
@@ -374,6 +374,7 @@ exports.renderer = function(libraries, rootSymbol) {
 				children['module'] .. then(HeaderTable("Sub-Topics")),
 				children['syntax']   .. then(HeaderTable("Syntax")),
 				children['feature']   .. then(HeaderTable("Features")),
+        children['directive'] .. then(HeaderTable("Directives")),
 				children['function'] .. then(HeaderTable("Functions")),
 				children['variable'] .. then(HeaderTable("Variables")),
 				children['class']    .. then(HeaderTable("Classes")),
@@ -381,6 +382,27 @@ exports.renderer = function(libraries, rootSymbol) {
 			{"class": "symbols"}));
 		return rv;
 	}
+
+  function makeTemplateView(docs, symbol) {
+    var rv = [];
+    rv.push(`<h2>The ${symbol.name} template</h2>`);
+
+    rv.push(Element('div', makeSummaryHTML(docs, symbol), 
+                    {"class":"mb-summary"}));
+    rv.push(makeDescriptionHTML(docs, symbol));
+
+		var children = collectModuleChildren(docs, symbol);
+
+    rv.push(
+      Element("div", [
+        children['directive'] .. then(HeaderTable("Directives")),
+        children['function'] .. then(HeaderTable("Functions")),
+				children['variable'] .. then(HeaderTable("Variables"))
+      ] .. filter .. toArray,
+              {"class": "symbols"}));
+    
+    return rv;
+  }
 
 	function makeModuleView(docs, symbol) {
 		var rv = [];
@@ -498,6 +520,9 @@ exports.renderer = function(libraries, rootSymbol) {
 					case 'doc':
 						view = makeDocView(docs, symbol);
 						break;
+          case 'template':
+            view = makeTemplateView(docs, symbol);
+            break;
 					default:
 						logging.debug("defaulting to symbol view for docs", docs);
 						view = makeSymbolView(docs, symbol);
@@ -578,9 +603,25 @@ exports.renderer = function(libraries, rootSymbol) {
         case 'doclib':
         case 'doc':
           break;
+        case 'directive':
+        case 'template':
+          if (symbol.parent().docs().type === 'template') {
+            snippet = Element('div', 
+                              `<code>/** @template ${
+                                         symbol.fullModulePath .. at(-1)
+                                         } */</code>`) .. 
+              Class('mb-require');
+          }
+          break;
         default:
           if ((!symbol.className || docs.type == 'ctor') && docs.type !== 'class') {
-            snippet = makeRequireSnippet(symbol.fullModulePath, symbol.name);
+            var parent = symbol.parent();
+            var symbol_path;
+            if (parent && parent.docs().type === 'template')
+              symbol_path = ['mho:app'];
+            else
+              symbol_path = symbol.fullModulePath;
+            snippet = makeRequireSnippet(symbol_path, symbol.name);
           }
       }
       content.push(snippet);
@@ -595,7 +636,7 @@ exports.Hub = function(name) {
 };
 
 // TODO: shouldn't need !important decl here, battling with
-// bootsrap
+// bootstrap
 var errorText = exports.errorText = Style("{
     color: rgb(190, 29, 29) !important;
 }");

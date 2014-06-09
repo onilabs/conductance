@@ -11,36 +11,59 @@
 
 /**
 @type doc
-@summary Client-side application modules
+@summary Client-side application files
 @desc
-  The `.app` file format is a module that is intended to form
+  The `.app` file format is intended to form
   the main logic of a client-side application.
 
-  `.app` files are served by conductance with default
-  HTML boilerplate which wraps the contents of the `.app` file
-  in a plain HTML document.
+  `.app` files contain Stratified JavaScript code, but are served by Conductance as HTML documents. 
+  The file's code will be executed on the client-side on document load.
 
-  In addition to the main (StratifiedJS) content of an `.app` file,
-  conductance will scan [sjs:#language/metadata::] comments (those beginning with `/**`)
-  for certain directives. These directives are documented on this page,
-  and allow you to control the HTML boilerplate used.
+  ### Customizing how the `.app` file gets served
 
-  ### Builtin features
+  Before serving the file, Conductance will scan any [sjs:#language/metadata::] comments 
+  (those beginning with `/**`) for certain directives that allow you to control how exactly the app will be served.
 
-  The `app-default` template (the default HTML template for `.app` files)
-  includes [Twitter Bootstrap](http://getbootstrap.com/) CSS, as well as its
-  javascript dependencies. The default template also makes available
-  a number of utilities via the [mho:app::] module.
+  E.g. the [::@template] directive allows you to specify the template that is used to create the 
+  app's initial HTML. 
 
-  You can customise the template used with the [::@template] directive.
+  ### Templates
 
-  ### Code reuse:
+  Conductance comes with various built-in templates that can be found at 
+  [surface/doc-template/::]. If no template is specified, `.app` files will use the 
+  [surface/doc-template/app-default::] template.
 
-  `.app` modules cannot be imported by other modules, so they are
+  Metadata directives can also be used to set template-specific
+  customization options. These are all prefixed with `@template-`, e.g.: `@template-title` ([surface/doc-template/app-default::@template-title]).
+
+  ### 'mho:app' module
+
+  Most document templates provide a module `mho:app` ([mho:app::]) with 
+  application-specific functionality. The functionality provided by this 
+  module varies from template to template; see the documentation for the 
+  particular template for details on the symbols being made available.
+
+  `mho:app` can be imported just like any other module,
+  using [sjs:#language/builtins::require]. It can only be imported by
+  client-side code, i.e. from the `*.app` file, and (transitively) from
+  any modules loaded by the `*.app` file.
+
+  The `mho:app` modules provided by Conductance's builtin templates
+  have been carefully constructed so that there are no names that
+  clash with `mho:std`. This enables you to use the common idiom of:
+
+      @ = require(['mho:app', 'mho:std'])
+
+
+  ### Code reuse
+
+  `.app` files cannot be imported by other modules, so they are
   not an appropriate place for reusable code. Reusable code
-  should typically be placed in separate `.sjs` modules.
+  should typically be placed in separate `.sjs` modules (which you can load 
+  into your `.app` file using [sjs:#language/builtins::require]).
 
-@feature @template
+
+@directive @template
 @summary Use a custom HTML template
 @desc
   To specify a template for a given `.app` file, use the @template
@@ -60,118 +83,8 @@
   template module. Custom templates will be loaded via
   [surface::loadTemplate].
 
-@feature @template-title
-@summary Set the document title
-@desc
-  This allows you to set an initial <title> content for
-  the .app:
 
-  ### Availability:
-
-   - all templates
-
-
-  ### Example:
-
-      /**
-        @template-title Conductance Chat Demo
-       *\/
-
-
-@feature @template-show-error-dialog
-@summary Enable / disable the default error dialog (`app-default`)
-@desc
-  By default, the `app-default` template installs a simple
-  handler for `window.onerror`, which removes all application UI
-  and shows a simple error notification. This ensures that
-  the user knows when something has gone wrong, but you may wish
-  to disable it if you install your own error handling.
-
-  ### Availability:
-
-   - `app-default`
-
-
-  ### Example:
-
-      /**
-        @ template-show-error-dialog false
-       *\/
-
-  **Note:** Even if you have your own error handling, the default
-  error indicator can be useful for early-stage errors. For example,
-  it is installed before the StratifiedJS runtime or your `.app`'s main
-  script are loaded - a network error or a load-time error in your `.app`
-  file will typically go unreported if you disable the builtin error handler.
-
-  Instead of disabling this feature, it's often better to just override
-  `window.onerror` once your application is successfully loaded.
-
-@feature @template-wrap-content
-@summary Enable / disable the default <div class="container"> wrapper (`app-default`)
-@desc
-  By default, the `app-default` template wraps the body of a page in
-  a <div class="container"> element.
-
-  You can disable this with:
-
-      /**
-        @ template-wrap-content false
-       *\/
-
-  ### Availability:
-
-   - `app-default`
-
-
-@feature @template-use-bootstrap
-@summary Disable twitter bootstrap CSS/JS (`app-default`)
-@desc
-  If set to false, the default twitter bootstrap CSS and Javascript
-  will not be included in the document.
-
-  ### Availability:
-
-   - `app-default`
-
-@feature @template-use-api
-@summary Disable API utilities (`app-default`)
-@desc
-  If set to false, the default API connection functionality
-  (from [surface/api-connection]) won't be exported from the `mho:app` module.
-
-  ### Availability:
-
-   - `app-default`
-
-@feature @template-show-busy-indicator
-@summary Begin the busy indicator on page load (`app-default`)
-@desc
-  If set, the busy indicator (as shown by
-  [app::withBusyIndicator] will be shown immedately on page load,
-  rather than some time after your app's main module has started executing.
-
-  The indicator is shown until the completion of the first call to
-  [app::withBusyIndicator] - if you do not call this function, the
-  indicator will be shown indefinitely (which is why this
-  feature is not enabled by default).
-
-  If your app does use [app::withBusyIndicator], you should
-  generally use this flag as well so that there isn't a gap between
-  page load and displaying the busy indicator.
-  test \`backticks
-
-  ### Availability:
-
-   - `app-default`
-
-  ### Example:
-
-      /**
-        @template-show-busy-indicator
-      *\/
-
-@feature @bundle
+@directive @bundle
 @summary Bundle this module's dependencies in a single .js file
 @desc
   By default, `.sjs` modules used by an `.app` are loaded

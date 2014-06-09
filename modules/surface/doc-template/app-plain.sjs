@@ -10,9 +10,31 @@
  */
 
 /**
+  @type template
   @summary A minimal template for `.app` modules
   @desc
-    This template includes no default styles or additional javascript.
+    ### Symbols exported in mho:app
+
+    In addition to the symbols documented below, app-plain's `mho:app` module
+    exports all the HTML builders provided by
+    [surface/html::].
+
+  @directive @template-title
+  @summary Set the document title
+  @desc
+    This allows you to set an initial <title> content for
+    the .app.
+
+    ### Example:
+
+        /**
+          @template-title Conductance Chat Demo
+         *\/
+
+
+  @variable mainContent
+  @summary Alias for (`document.body`)
+
 */
 
 exports.Document = settings ->

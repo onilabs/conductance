@@ -10,9 +10,23 @@
  */
 
 /**
+  @type template
   @summary The default template for [surface::Document] objects.
   @desc
-    This template includes twitter Bootstrap and jQuery.
+    This template includes Twitter Bootstrap and jQuery, but provides no [mho:app::] module
+
+  @directive @template-title
+  @summary Set the document title
+  @desc
+    This allows you to set an initial <title> content for
+    the .app.
+
+    ### Example:
+
+        /**
+          @template-title Conductance Chat Demo
+         *\/
+
 */
 
 var frag = require('../doc-fragment');

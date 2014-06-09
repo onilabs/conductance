@@ -25,31 +25,16 @@
           "type": "module",
           "children": {
             "@template": {
-              "type": "feature"
+              "type": "directive"
             },
             "@template-title": {
-              "type": "feature"
-            },
-            "@template-show-error-dialog": {
-              "type": "feature"
-            },
-            "@template-wrap-content": {
-              "type": "feature"
-            },
-            "@template-use-bootstrap": {
-              "type": "feature"
-            },
-            "@template-use-api": {
-              "type": "feature"
-            },
-            "@template-show-busy-indicator": {
-              "type": "feature"
+              "type": "directive"
             },
             "@bundle": {
-              "type": "feature"
+              "type": "directive"
             }
           },
-          "summary": "Client-side application modules"
+          "summary": "Client-side application files"
         },
         "gen-module": {
           "type": "module",
@@ -83,20 +68,7 @@
     },
     "app": {
       "type": "module",
-      "children": {
-        "withBusyIndicator": {
-          "type": "function"
-        },
-        "mainContent": {
-          "type": "variable"
-        },
-        "withAPI": {
-          "type": "function"
-        },
-        "Notice": {
-          "type": "function"
-        }
-      },
+      "children": {},
       "summary": "Client side app utilities"
     },
     "env": {
@@ -523,26 +495,72 @@
           "children": {
             "app-default": {
               "type": "module",
-              "children": {},
-              "summary": "The default template for \".app\" modules"
+              "children": {
+                "@template-title": {
+                  "type": "directive"
+                },
+                "@template-show-error-dialog": {
+                  "type": "directive"
+                },
+                "@template-wrap-content": {
+                  "type": "directive"
+                },
+                "@template-use-bootstrap": {
+                  "type": "directive"
+                },
+                "@template-use-api": {
+                  "type": "directive"
+                },
+                "@template-show-busy-indicator": {
+                  "type": "directive"
+                },
+                "withBusyIndicator": {
+                  "type": "function"
+                },
+                "mainContent": {
+                  "type": "variable"
+                },
+                "withAPI": {
+                  "type": "function"
+                },
+                "Notice": {
+                  "type": "function"
+                }
+              },
+              "summary": "The default template for \"*.app\" modules (see [mho:#features/app-module::])"
             },
             "app-plain": {
               "type": "module",
-              "children": {},
+              "children": {
+                "@template-title": {
+                  "type": "directive"
+                },
+                "mainContent": {
+                  "type": "variable"
+                }
+              },
               "summary": "A minimal template for `.app` modules"
             },
             "default": {
               "type": "module",
-              "children": {},
+              "children": {
+                "@template-title": {
+                  "type": "directive"
+                }
+              },
               "summary": "The default template for [surface::Document] objects."
             },
             "plain": {
               "type": "module",
-              "children": {},
+              "children": {
+                "@template-title": {
+                  "type": "directive"
+                }
+              },
               "summary": "A minimal template for [surface::Document] objects."
             }
           },
-          "summary": "Templates for use with [surface::Document]"
+          "summary": "Templates for [mho:#features/app-module::]s (or for manual use with [surface::Document])"
         },
         "html": {
           "type": "module",
