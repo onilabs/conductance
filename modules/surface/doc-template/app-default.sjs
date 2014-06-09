@@ -85,6 +85,18 @@
           @template-show-busy-indicator
         *\/
 
+  
+  @directive @template-fluid
+  @summary Determines whether the grid will be fluid and full-width or centered and scaled in discrete steps (Default: **false**)
+  @desc
+
+     ### Example:
+     
+         /**
+           @template-fluid true
+         *\/
+    
+
 
   @function withBusyIndicator
   @param {Function} [block]
@@ -173,8 +185,9 @@ var { toBool } = require('sjs:docutil');
 exports.Document = function(data, settings) {
   var showErrorDialog = settings.showErrorDialog .. toBool !== false;
   var showBusyIndicator = settings.showBusyIndicator .. toBool === true;
+  var fluid = settings.fluid .. toBool === true;
 
-  var content = `<div class='container'>${data.body}</div>`;
+  var content = `<div class='${fluid?'container-fluid':'container'}'>${data.body}</div>`;
 
   return `<!DOCTYPE html>
 <html>

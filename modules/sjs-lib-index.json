@@ -481,6 +481,9 @@
             "bootstrapCss": {
               "type": "function"
             },
+            "conductanceCss": {
+              "type": "function"
+            },
             "bootstrapJavascript": {
               "type": "function"
             }
@@ -499,16 +502,10 @@
                 "@template-show-error-dialog": {
                   "type": "directive"
                 },
-                "@template-wrap-content": {
-                  "type": "directive"
-                },
-                "@template-use-bootstrap": {
-                  "type": "directive"
-                },
-                "@template-use-api": {
-                  "type": "directive"
-                },
                 "@template-show-busy-indicator": {
+                  "type": "directive"
+                },
+                "@template-fluid": {
                   "type": "directive"
                 },
                 "withBusyIndicator": {
