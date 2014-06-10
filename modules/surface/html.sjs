@@ -39,9 +39,10 @@ var { observe } = require('sjs:observable');
     ## Clashing names
 
     A small number of HTML tags do not have constructors in this module, since they would clash with names (and functionality)
-    already provided in [mho:std::]. Currently this is just:
+    already provided in [mho:std::] or other modules. Currently these are:
 
       - `Style`
+      - `Col`
 
     If you do need to create one of these elements directly, you should use [../surface::Element], e.g. `Element('style', ...)`.
 
@@ -106,7 +107,7 @@ var { observe } = require('sjs:observable');
   'Ins', 'Del',
   'Img', 'Iframe', 'Embed', 'Object', 'Param', 'Video', 'Audio', 'Source', 'Track',
   'Canvas', 'Map', 'Area', 'Svg', 'Math',
-  'Table', 'Caption', 'ColGroup', 'Col', 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
+  'Table', 'Caption', 'ColGroup', /* 'Col' ,*/ 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
   'Form', 'FieldSet', 'Legend', 'Label', /* 'Input', */ 'Button', /* 'Select', */
   'DataList', 'OptGroup', 'Option', /*'TextArea', */ 'KeyGen', 'Output', 'Progress', 'Meter',
   'Details', 'Summary', 'MenuItem', 'Menu',
