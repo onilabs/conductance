@@ -1,3 +1,3 @@
 # twitter bootstrap lib
-bootstrap/ git@github.com:twbs/bootstrap.git 32468b087b615d1ed710f9118ff4f669cc5ad5e8
+bootstrap/ git@github.com:twbs/bootstrap.git bbdaf0f244f24ce55171b8dadbdae72fdf6a62d2
 

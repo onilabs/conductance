@@ -33,6 +33,7 @@
 // Mixin for generating new styles
 .btn-styles(@btn-color: #555) {
   #gradient > .vertical(@start-color: @btn-color; @end-color: darken(@btn-color, 12%));
+  .reset-filter(); // Disable gradients for IE9 because filter bleeds through rounded corners
   background-repeat: repeat-x;
   border-color: darken(@btn-color, 14%);
 
@@ -62,9 +63,9 @@
 .btn-default { .btn-styles(@btn-default-bg); text-shadow: 0 1px 0 #fff; border-color: #ccc; }
 .btn-primary { .btn-styles(@btn-primary-bg); }
 .btn-success { .btn-styles(@btn-success-bg); }
+.btn-info    { .btn-styles(@btn-info-bg); }
 .btn-warning { .btn-styles(@btn-warning-bg); }
 .btn-danger  { .btn-styles(@btn-danger-bg); }
-.btn-info    { .btn-styles(@btn-info-bg); }
 
 
 

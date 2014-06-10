@@ -1,6 +1,25 @@
-#!bash
+#!env sjs
+@ = require(['sjs:std']);
+
+/*
+  xxx bootstrap have switched from recess to grunt-contrib-less 
+  for now we'll just use their precompiled css
+
 set -eu
 root="../../.."
 prefix="$root/src/deps/bootstrap/less"
 gup -u "$root/node_modules/update" "$prefix/"*
 "$root/node_modules/recess/bin/recess" "$prefix/bootstrap.less" --compress > "$1"
+*/
+
+
+
+var [outputFile, target] = @argv();
+console.log(outputFile);
+console.log(target);
+
+var source = @fs.readFile('../../../src/deps/bootstrap/dist/css/bootstrap.min.css').toString();
+source = source.replace(/\.\.\/fonts/g, 'fonts');
+
+@fs.writeFile(outputFile, source);
+
