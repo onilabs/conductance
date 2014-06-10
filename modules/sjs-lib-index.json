@@ -415,9 +415,6 @@
                 "Button": {
                   "type": "function"
                 },
-                "Btn": {
-                  "type": "function"
-                },
                 "Table": {
                   "type": "function"
                 },
@@ -433,6 +430,9 @@
                 "Select": {
                   "type": "function"
                 },
+                "Btn": {
+                  "type": "function"
+                },
                 "Icon": {
                   "type": "function"
                 },
@@ -445,10 +445,22 @@
                 "Container": {
                   "type": "function"
                 },
-                "Label": {
+                "ListGroup": {
                   "type": "function"
                 },
                 "PageHeader": {
+                  "type": "function"
+                },
+                "Panel": {
+                  "type": "function"
+                },
+                "PanelBody": {
+                  "type": "function"
+                },
+                "PanelHeading": {
+                  "type": "function"
+                },
+                "PanelTitle": {
                   "type": "function"
                 },
                 "doModal": {
@@ -506,6 +518,9 @@
                   "type": "directive"
                 },
                 "@template-fluid": {
+                  "type": "directive"
+                },
+                "@template-mho-style": {
                   "type": "directive"
                 },
                 "withBusyIndicator": {
