@@ -20,8 +20,10 @@
     and functionality.
 */
 
-var base_html = require('../html');
+//----------------------------------------------------------------------
+// BASIC HTML ELEMENTS, SPECIALIZED WITH BS STYLES
 
+var base_html = require('../html');
 
 // export all elements from surface/html.sjs:
 
@@ -41,25 +43,7 @@ __js function wrapWithClass(baseElement, cls) {
   @summary <button class="btn">
   @return {surface::Element}
 */
-exports.Button = wrapWithClass(base_html.Button, 'btn');
-
-/**
-  @function Btn
-  @summary Bootstrap-style button ("class='btn'") with additional `btn-*` classes applied.
-  @param {String} [btn_classes] String of `btn-*` classes to apply to the button
-  @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
-  @return {surface::Element}
-  @desc
-    `btn_classes` is a space-separated list of `btn-*` classes that should be applied to the 
-    button:
-    
-    * **style**: `default`, `primary`, `success`, `info`, `warning`, `danger`, or `link`
-    * **sizing**: `lg`, `sm`, or `xs`
-    * **block-level**: `block`
-*/
-exports.Btn = (btn_classes, content, attribs) -> 
-  (wrapWithClass(base_html.Button, 'btn '+(btn_classes.split(' ') .. @map(cls->'btn-'+cls) .. @join(' '))))(content, attribs);
+exports.Button = wrapWithClass(base_html.Button, 'btn btn-default');
 
 /**
   @function Table
@@ -120,6 +104,30 @@ exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
 */
 exports.Select = wrapWithClass(base_html.Select, 'form-control');
 
+
+//----------------------------------------------------------------------
+// LOW-LEVEL BOOTSTRAP-SPECIFIC ELEMENTS:
+
+
+/**
+  @function Btn
+  @summary Bootstrap-style button ("class='btn'") with additional `btn-*` classes applied.
+  @param {String} [btn_classes] String of `btn-*` classes to apply to the button
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
+  @return {surface::Element}
+  @desc
+    `btn_classes` is a space-separated list of `btn-*` classes that should be applied to the 
+    button:
+    
+    * **style**: `default`, `primary`, `success`, `info`, `warning`, `danger`, or `link`
+    * **sizing**: `lg`, `sm`, or `xs` (or none)
+    * **block-level**: `block` (or none)
+*/
+exports.Btn = (btn_classes, content, attribs) -> 
+  (wrapWithClass(base_html.Button, 'btn '+(btn_classes.split(' ') .. @map(cls->'btn-'+cls) .. @join(' '))))(content, attribs);
+
+
 /**
   @function Icon
   @param {String} [name]
@@ -166,17 +174,19 @@ exports.Col = (col_classes, content, attribs) ->
 */
 exports.Container = (content, attribs) -> @Element('div', content, attribs) .. @Class('container');
 
+
 /**
-  @function Label
-  @param {surface::HtmlFragment} [content]
+  @function ListGroup
+  @param {Array} [items] Array of [surface::HtmlFragment]s
   @param {optional Object} [attribs]
-  @summary <label class="label [label-{attribs.type}]">
+  @summary <ul class='list-group'><li class='list-group-item'>...</li>...</ul>
   @return {surface::Element}
 */
-exports.Label = function (content, attribs) {
-  attribs = attribs || {};
-  return @Element('label', content, attribs) .. @Class("label #{attribs.type ? "label-#{attribs.type}" : ''}");
-}
+exports.ListGroup = (items, attribs) -> @Element('ul', 
+                                                 items .. 
+                                                 @map(item -> base_html.Li(item, {'class':'list-group-item'})),
+                                                 {'class':'list-group'});
+
 
 /**
   @function PageHeader
@@ -186,6 +196,58 @@ exports.Label = function (content, attribs) {
   @return {surface::Element}
 */
 exports.PageHeader = (content, attribs) -> @Element('div', `<h1>$content</h1>`, attribs) .. @Class('page-header');
+
+/**
+  @function Panel
+  @summary Bootstrap-style panel ("<div class='panel'>") with additional `panel-*` classes applied.
+  @param {String} [panel_classes] String of `panel-*` classes to apply to the button
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
+  @return {surface::Element}
+  @desc
+    `panel_classes` is a space-separated list of `panel-*` classes that should be applied to the 
+    panel:
+    
+    * **context**: `default`, `primary`, `success`, `info`, `warning`, or `danger`
+*/
+exports.Panel = (panel_classes, content, attribs) ->
+  @Element('div', content, attribs) .. 
+    @Class('panel '+ panel_classes.split(' ') .. 
+                       @map(cls->'panel-'+cls) .. @join(' '));
+
+/**
+  @function PanelBody
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
+  @summary <div class="panel-body">
+  @return {surface::Element}
+*/
+exports.PanelBody = (content, attribs) -> @Element('div', content, attribs) .. 
+                                            @Class('panel-body');
+
+/**
+  @function PanelHeading
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
+  @summary <div class="panel-heading">
+  @return {surface::Element}
+*/
+exports.PanelHeading = (content, attribs) -> @Element('div', content, attribs) .. 
+                                               @Class('panel-heading');
+
+/**
+  @function PanelTitle
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
+  @summary <h3 class='panel-title'>
+  @return {surface::Element}
+*/
+exports.PanelTitle = (content, attribs) -> @Element('h3', content, attribs) .. 
+                                                  @Class('panel-title');
+
+//----------------------------------------------------------------------
+// HIGH-LEVEL BOOTSTRAP-SPECIFIC CONSTRUCTS:
+
 
 /**
   @function doModal
