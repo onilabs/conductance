@@ -96,6 +96,15 @@
            @template-fluid true
          *\/
     
+  @directive @template-mho-style
+  @summary Determines whether to apply Conductance ('mho') styles or use plain Twitter bootstrap styling (Default: **true**)
+  @desc
+
+     ### Example:
+     
+         /**
+           @template-mho-style false
+         *\/
 
 
   @function withBusyIndicator
@@ -186,6 +195,7 @@ exports.Document = function(data, settings) {
   var showErrorDialog = settings.showErrorDialog .. toBool !== false;
   var showBusyIndicator = settings.showBusyIndicator .. toBool === true;
   var fluid = settings.fluid .. toBool === true;
+  var useMhoStyle = settings.mhoStyle .. toBool !== false;
 
   var content = `<div class='${fluid?'container-fluid':'container'}'>${data.body}</div>`;
 
@@ -195,7 +205,7 @@ exports.Document = function(data, settings) {
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     ${frag.bootstrapCss()}
-    ${frag.conductanceCss()}
+    ${useMhoStyle ? frag.conductanceCss()}
     ${showErrorDialog ? frag.errorHandler()}
     ${frag.busyIndicator(showBusyIndicator)}
     <script type='text/sjs' module='mho:app'>

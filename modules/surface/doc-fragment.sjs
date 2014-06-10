@@ -179,12 +179,12 @@ exports.conductanceCss = function() {
               src: url('/__mho/surface/fonts/Montserrat/Montserrat-Regular.ttf');
             }
             
-            h1, h2, h3, h4, .lead, .btn {
+            h1, h2, h3, h4, h5, h6, .lead, .btn {
               font-family: 'Montserrat';
             }
 
-            a { color: ${colors.OniLabsRed}; }
-            a:hover, a:active { color: ${colors.OniLabsRedHighlight}; }
+            a, .btn-link { color: ${colors.OniLabsRed}; }
+            a:hover, a:active, .btn-link:hover, .btn-link:active { color: ${colors.OniLabsRedHighlight}; }
 
             code {
               color:#333;
@@ -193,6 +193,10 @@ exports.conductanceCss = function() {
             code, pre {
               background-color: #FEFAFA;
               border: 1px solid #F5E1E1;
+            }
+
+            pre > code {
+              border: none;
             }
 
             .btn-primary { 
