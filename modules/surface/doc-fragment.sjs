@@ -12,7 +12,7 @@
 var { readFile } = require('sjs:nodejs/fs');
 var { toPath } = require('sjs:url');
 var { sanitize: escapeXML } = require('sjs:string');
-@ = require('./base');
+@ = require(['./base','sjs:object']);
 
 /**
   @summary Components for use in custom [./static::Document] templates
@@ -160,17 +160,45 @@ exports.bootstrapCss = function() {
 };
 
 /**
+  @variable bootstrapColors 
+  @summary Object with default bootstrap CSS colors
+  @desc
+    Useful for exposing in a `mho:app` file
+*/
+var bootstrapColors = exports.bootstrapColors = {
+  gray_darker: "#222",
+  gray_dark:   "#333",
+  gray:        "#555",
+  gray_light:  "#999",
+  gray_lighter:"#eee",
+  primary:     "#428bca",
+  success:     "#5cb85c",
+  info:        "#5bc0de",
+  warning:     "#f0ad4e",
+  danger:      "#d9534f"
+};
+
+/**
+  @variable mhoColors 
+  @summary Object with default mho CSS colors
+  @desc
+    Useful for exposing in a `mho:app` file
+*/
+var mhoColors = exports.mhoColors = bootstrapColors .. @merge({
+  onilabs_red:          "#b9090b",
+  primary:              "#b9090b",
+  onilabs_redhighlight: "#c43133",
+  bootstrap:            bootstrapColors
+});
+
+
+/**
   @function conductanceCss
   @return [surface::HtmlFragment]
   @summary Conductance CSS styles
   @desc
     Place within <head> after [::bootstrapCss]
 */
-
-var colors = {
-  OniLabsRed:          `#b9090b`,
-  OniLabsRedHighlight: `#c43133`
-};
 
 exports.conductanceCss = function() {
   return `<style type="text/css">
@@ -183,8 +211,8 @@ exports.conductanceCss = function() {
               font-family: 'Montserrat';
             }
 
-            a, .btn-link { color: ${colors.OniLabsRed}; }
-            a:hover, a:active, .btn-link:hover, .btn-link:active { color: ${colors.OniLabsRedHighlight}; }
+            a, .btn-link { color: ${mhoColors.onilabs_red}; }
+            a:hover, a:active, .btn-link:hover, .btn-link:active { color: ${mhoColors.onilabs_redhighlight}; }
 
             code {
               color:#333;
@@ -200,12 +228,12 @@ exports.conductanceCss = function() {
             }
 
             .btn-primary { 
-              background-color: ${colors.OniLabsRed}; 
-              border-color: ${colors.OniLabsRedHighlight};  
+              background-color: ${mhoColors.onilabs_red}; 
+              border-color: ${mhoColors.onilabs_redhighlight};  
             }
             .btn-primary:hover, .btn-primary:active, .btn-primary:focus { 
-              background-color: ${colors.OniLabsRedHighlight}; 
-              border-color: ${colors.OniLabsRedHighlight}; 
+              background-color: ${mhoColors.onilabs_redhighlight}; 
+              border-color: ${mhoColors.onilabs_redhighlight}; 
             }
 
           </style>

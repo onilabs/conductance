@@ -493,6 +493,12 @@
             "bootstrapCss": {
               "type": "function"
             },
+            "bootstrapColors": {
+              "type": "variable"
+            },
+            "mhoColors": {
+              "type": "variable"
+            },
             "conductanceCss": {
               "type": "function"
             },
@@ -527,6 +533,12 @@
                   "type": "function"
                 },
                 "mainContent": {
+                  "type": "variable"
+                },
+                "body": {
+                  "type": "variable"
+                },
+                "colors": {
                   "type": "variable"
                 },
                 "withAPI": {

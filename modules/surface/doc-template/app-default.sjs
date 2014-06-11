@@ -165,7 +165,33 @@
 
 
   @variable mainContent
-  @summary The topmost container element
+  @summary Main content container DOM element
+
+  @variable body
+  @summary Document body DOM element
+
+  @variable colors
+  @summary Object with CSS color definitions
+  @desc
+    If the template uses plain bootstrap styling ([::@template-mho-style] set to `false`), 
+    this will be an object with members:
+
+      * `gray_darker`
+      * `gray_dark`
+      * `gray`
+      * `gray_light`
+      * `gray_lighter`
+      * `primary`
+      * `success`
+      * `info`
+      * `warning`
+      * `danger`
+
+    For 'mho' styling ([::@template-mho-style] set to `true`), it will additionally contain:
+
+      * `onilabs_red`
+      * `onilabs_redhighlight`
+      * `bootstrap` (an object with the default bootstrap colors, e.g. `bootstrap.primary`)
 
   @function withAPI
   @param {Object} [api] api module
@@ -226,8 +252,10 @@ exports.Document = function(data, settings) {
           @ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event']);
         }
 
-        // ui entry points:
+
+        // ui helpers:
         exports.body = document.body;
+        exports.colors = ${JSON.stringify(useMhoStyle ? frag.mhoColors : frag.bootstrapColors)};
         exports.mainContent = document.body.firstChild;
         exports.withBusyIndicator = withBusyIndicator;
       }
