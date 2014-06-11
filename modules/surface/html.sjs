@@ -29,8 +29,7 @@ var { observe } = require('sjs:observable');
      - A
      - Div
      - Span
-     - Input
-     - Ol, Ul, Li, Dl, Dt, etc
+     - Li, Dl, Dt, etc
      - H1 ... H6
      - BlockQuote, THead, TBody, FigCaption, DataLost, OptGroup, TextArea, MenuItem, etc
 
@@ -50,15 +49,7 @@ var { observe } = require('sjs:observable');
 
         A("Click me!", {href: "http://example.com/"});
 
-        Ul([
-          Li("item 1"),
-          Li("item 2"),
-        ]);
-
-        Ul(`
-          <li>item 1</li>
-          <li>item 2</li>
-        `);
+        P(`Elements can be $Em(`nested`)`)
 
         Br();
 
@@ -100,7 +91,7 @@ var { observe } = require('sjs:observable');
   'Article', 'Aside',
   'H1','H2','H3','H4','H5','H6',
   'Header', 'Footer', 'Address', 'Main',
-  'P','Hr','Pre', 'BlockQuote', 'Ol', 'Ul', 'Li','Dl','Dt','Dd','Figure','FigCaption','Div',
+  'P','Hr','Pre', 'BlockQuote', /* 'Ol', 'Ul', */ 'Li','Dl','Dt','Dd','Figure','FigCaption','Div',
   'A','Em','Strong','Small','S','Cite','Q','Dfn','Abbr','Data', 'Time', 'Code', 'Var',
   'Samp', 'Kbd', 'Sub', 'Sup', 'I', 'B', 'U', 'Mark', 'Ruby', 'Rt', 'Rp',
   'Bdi', 'Bdo', 'Span', 'Br', 'Wbr',
@@ -127,10 +118,9 @@ var { observe } = require('sjs:observable');
   @desc
     When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If
-    `value` is an [sjs:observable::ObservableVar] (as identified by being a
-    [sjs:sequence::Stream] and having a `set` function), then `value` will
-    be updated to reflect any manual changes to the element's value.
+    element's value will be updated every time `value` changes. If, in addition,
+    `value` has a `set` method, (e.g. it is an [sjs:observable::ObservableVar]), 
+    then `value` will be updated to reflect any manual changes to the element's value.
 */
 var Input = (type, value, attrs) ->
   Element('input', {'type':type} .. merge(attrs||{})) ..
@@ -168,10 +158,9 @@ exports.Input = Input;
   @desc
     When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If
-    `value` is an [sjs:observable::ObservableVar] (as identified by being a
-    [sjs:sequence::Stream] and having a `set` function), then `value` will
-    be updated to reflect any manual changes to the element's value.
+    element's value will be updated every time `value` changes. If, in addition,
+    `value` has a `set` method, (e.g. it is an [sjs:observable::ObservableVar]), 
+    then `value` will be updated to reflect any manual changes to the element's value.
 */
 var TextInput = (value, attrs) -> Input('text', value, attrs);
 exports.TextInput = TextInput;
@@ -180,9 +169,15 @@ exports.TextInput = TextInput;
 /**
   @function TextArea
   @summary A plain HTML 'textarea' element
-  @param  {String|sjs:sequence::Stream} [value]
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
   @param  {optional Object} [attrs]
   @return {surface::Element}
+  @desc
+    When the element is inserted into the document, its value 
+    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
+    element's value will be updated every time `value` changes. If, in addition,
+    `value` has a `set` method, (e.g. it is an [sjs:observable::ObservableVar]), 
+    then `value` will be updated to reflect any manual changes to the element's value.
 */
 var TextArea = (value, attrs) ->
   Element('textarea', attrs||{}) ..
@@ -218,10 +213,9 @@ exports.TextArea = TextArea;
   @desc
     When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If
-    `value` is an [sjs:observable::ObservableVar] (as identified by being a
-    [sjs:sequence::Stream] and having a `set` function), then `value` will
-    be updated to reflect any manual changes to the element's value.
+    element's value will be updated every time `value` changes. If, in addition,
+    `value` has a `set` method, (e.g. it is an [sjs:observable::ObservableVar]), 
+    then `value` will be updated to reflect any manual changes to the element's value.
 */
 var Checkbox = value ->
   Element('input') ..
@@ -378,21 +372,31 @@ var _map = function(items, fn) {
   return items .. map(fn);
 }
 /**
-  @function UnorderedList
-  @param {Array} [items]
+  @function Ul
+  @param {Array|sjs:sequence::Stream} [items]
   @param {optional Object} [attrs]
   @return {surface::Element}
   @summary Create a `<ul>` element, wrapping each element of`items` in a `<li>`
+  @desc
+    If `items` is a [sjs:sequence::Stream], then that stream is expected 
+    to have [sjs:observable::Observable] semantics and consist of 
+    elements of Array type. The list content will be updated every time the 
+    observable changes.
 */
-exports.UnorderedList = (items, attrs) -> exports.Ul(items .. _map(exports.Li), attrs);
+exports.Ul = (items, attrs) -> Element('ul', items .. _map(exports.Li), attrs);
 /**
-  @function OrderedList
+  @function Ol
   @param {Array} [items]
   @param {optional Object} [attrs]
   @return {surface::Element}
   @summary Create a `<ol>` element, wrapping each element of`items` in a `<li>`
+  @desc
+    If `items` is a [sjs:sequence::Stream], then that stream is expected 
+    to have [sjs:observable::Observable] semantics and consist of 
+    elements of Array type. The list content will be updated every time the 
+    observable changes.
 */
-exports.OrderedList = (items, attrs) -> exports.Ol(items .. _map(exports.Li), attrs);
+exports.Ol = (items, attrs) -> Element('ol', items .. _map(exports.Li), attrs);
 
 /**
   @function Submit
