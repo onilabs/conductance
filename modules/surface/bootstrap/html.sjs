@@ -139,17 +139,15 @@ exports.Icon = name -> @Element('span', '', { 'class': "glyphicon glyphicon-#{na
 /**
   @function Row
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
   @summary <div class="row">
   @return {surface::Element}
 */
-exports.Row = (content, attribs) -> @Element('div', content, attribs) .. @Class('row');
+exports.Row = content -> @Element('div', content, {'class':'row'});
 
 /**
   @function Col
   @param {String} [col_classes] String of `col-*` classes to apply to the col
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
   @return {surface::Element}
   @desc
     `col_classes` is a space-separated list of `col-*` classes that 
@@ -160,49 +158,51 @@ exports.Row = (content, attribs) -> @Element('div', content, attribs) .. @Class(
     * **pulling left**: one or more of `xs-pull-M`, `sm-pull-M`, `md-pull-M`, `lg-pull-M`.
     * **pushing right**: one or more of `xs-push-M`, `sm-push-M`, `md-push-M`, `lg-push-M`.
 */
-exports.Col = (col_classes, content, attribs) ->
-  @Element('div', content, attribs) .. 
-    @Class(col_classes.split(' ') .. 
-           @map(cls->'col-'+cls) .. @join(' '));
+exports.Col = (col_classes, content) ->
+  @Element('div', content, {'class': col_classes.split(' ') .. 
+                                       @map(cls->'col-'+cls) .. @join(' ')});
 
 /**
   @function Container
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
   @summary <div class="container">
   @return {surface::Element}
 */
-exports.Container = (content, attribs) -> @Element('div', content, attribs) .. @Class('container');
+exports.Container = content -> @Element('div', content, {'class':'container'});
 
+/**
+  @function Lead
+  @param {surface::HtmlFragment} [content]
+  @summary Lead body paragraph <p class='lead'>...</p>
+  @return {surface:Element}
+*/
+exports.Lead = content -> @Element('p', content, {'class':'lead'});
 
 /**
   @function ListGroup
   @param {Array} [items] Array of [surface::HtmlFragment]s
-  @param {optional Object} [attribs]
   @summary <ul class='list-group'><li class='list-group-item'>...</li>...</ul>
   @return {surface::Element}
 */
-exports.ListGroup = (items, attribs) -> @Element('ul', 
-                                                 items .. 
-                                                 @map(item -> base_html.Li(item, {'class':'list-group-item'})),
-                                                 {'class':'list-group'});
+exports.ListGroup = items -> @Element('ul', 
+                                      items .. 
+                                      @map(item -> base_html.Li(item, {'class':'list-group-item'})),
+                                      {'class':'list-group'});
 
 
 /**
   @function PageHeader
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
   @summary <div class="page-header"><h1>{content}</h1></div>
   @return {surface::Element}
 */
-exports.PageHeader = (content, attribs) -> @Element('div', `<h1>$content</h1>`, attribs) .. @Class('page-header');
+exports.PageHeader = content -> @Element('div', `<h1>$content</h1>`, {'class':'page-header'});
 
 /**
   @function Panel
   @summary Bootstrap-style panel ("<div class='panel'>") with additional `panel-*` classes applied.
   @param {String} [panel_classes] String of `panel-*` classes to apply to the button
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
   @return {surface::Element}
   @desc
     `panel_classes` is a space-separated list of `panel-*` classes that should be applied to the 
@@ -210,40 +210,34 @@ exports.PageHeader = (content, attribs) -> @Element('div', `<h1>$content</h1>`, 
     
     * **context**: `default`, `primary`, `success`, `info`, `warning`, or `danger`
 */
-exports.Panel = (panel_classes, content, attribs) ->
-  @Element('div', content, attribs) .. 
-    @Class('panel '+ panel_classes.split(' ') .. 
-                       @map(cls->'panel-'+cls) .. @join(' '));
+exports.Panel = (panel_classes, content) ->
+  @Element('div', content, 
+           { 'class': 'panel '+ panel_classes.split(' ') .. 
+                                 @map(cls->'panel-'+cls) .. @join(' ') });
 
 /**
   @function PanelBody
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
   @summary <div class="panel-body">
   @return {surface::Element}
 */
-exports.PanelBody = (content, attribs) -> @Element('div', content, attribs) .. 
-                                            @Class('panel-body');
+exports.PanelBody = content -> @Element('div', content, {'class':'panel-body'});
 
 /**
   @function PanelHeading
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
   @summary <div class="panel-heading">
   @return {surface::Element}
 */
-exports.PanelHeading = (content, attribs) -> @Element('div', content, attribs) .. 
-                                               @Class('panel-heading');
+exports.PanelHeading = content -> @Element('div', content, {'class':'panel-heading'});
 
 /**
   @function PanelTitle
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
   @summary <h3 class='panel-title'>
   @return {surface::Element}
 */
-exports.PanelTitle = (content, attribs) -> @Element('h3', content, attribs) .. 
-                                                  @Class('panel-title');
+exports.PanelTitle = content -> @Element('h3', content, {'class':'panel-title'});
 
 //----------------------------------------------------------------------
 // HIGH-LEVEL BOOTSTRAP-SPECIFIC CONSTRUCTS:
