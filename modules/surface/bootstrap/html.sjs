@@ -20,6 +20,24 @@
     and functionality.
 */
 
+// xxx helper that's also in ../html.sjs.
+// map each value of a stream of input if it is an Observable / Stream, else
+// just `map` them.
+function _map(items, fn) {
+  if (@isStream(items))
+    return items .. @transform(val -> @map(val, fn));
+  return items .. @map(fn);
+}
+
+function hasClass(elem,cls) {
+  return @isElement(elem) && (elem._normalizeClasses().indexOf(cls) !== -1);
+}
+
+function prefixClasses(classes, prefix) {
+  if (!classes) return '';
+  return classes.split(' ') .. @map(cls -> prefix+cls) .. @join(' ');
+}
+
 //----------------------------------------------------------------------
 // BASIC HTML ELEMENTS, SPECIALIZED WITH BS STYLES
 
@@ -125,7 +143,7 @@ exports.Select = wrapWithClass(base_html.Select, 'form-control');
     * **block-level**: `block` (or none)
 */
 exports.Btn = (btn_classes, content, attribs) -> 
-  (wrapWithClass(base_html.Button, 'btn '+(btn_classes.split(' ') .. @map(cls->'btn-'+cls) .. @join(' '))))(content, attribs);
+  (wrapWithClass(base_html.Button, 'btn '+prefixClasses(btn_classes,'btn-')))(content, attribs);
 
 
 /**
@@ -159,8 +177,7 @@ exports.Row = content -> @Element('div', content, {'class':'row'});
     * **pushing right**: one or more of `xs-push-M`, `sm-push-M`, `md-push-M`, `lg-push-M`.
 */
 exports.Col = (col_classes, content) ->
-  @Element('div', content, {'class': col_classes.split(' ') .. 
-                                       @map(cls->'col-'+cls) .. @join(' ')});
+  @Element('div', content, {'class': prefixClasses(col_classes,'col-') });
 
 /**
   @function Container
@@ -181,13 +198,29 @@ exports.Lead = content -> @Element('p', content, {'class':'lead'});
 /**
   @function ListGroup
   @param {Array} [items] Array of [surface::HtmlFragment]s
-  @summary <ul class='list-group'><li class='list-group-item'>...</li>...</ul>
+  @summary <div class='list-group'><div class='list-group-item'>...</div>...</div>
   @return {surface::Element}
 */
-exports.ListGroup = items -> @Element('ul', 
+exports.ListGroup = items -> @Element('div', 
                                       items .. 
-                                      @map(item -> base_html.Li(item, {'class':'list-group-item'})),
+                                      _map(item -> item .. hasClass('list-group-item') ? item : base_html.Div(item, {'class':'list-group-item'})),
                                       {'class':'list-group'});
+
+
+/**
+  @function ListGroupItem
+  @summary XXX document me
+*/
+exports.ListGroupItem = function(/*cls, content*/) {
+  if (arguments.length > 1)
+    var [cls,content] = arguments;
+  else {
+    cls = '';
+    content = arguments[0];
+  }
+    
+  return @Element('div', content, {'class': 'list-group-item '+prefixClasses(cls, 'list-group-item-') });
+}
 
 
 /**
@@ -212,8 +245,7 @@ exports.PageHeader = content -> @Element('div', `<h1>$content</h1>`, {'class':'p
 */
 exports.Panel = (panel_classes, content) ->
   @Element('div', content, 
-           { 'class': 'panel '+ panel_classes.split(' ') .. 
-                                 @map(cls->'panel-'+cls) .. @join(' ') });
+           { 'class': 'panel '+ prefixClasses(panel_classes, 'panel-') });
 
 /**
   @function PanelBody
