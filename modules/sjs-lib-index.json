@@ -445,6 +445,9 @@
                 "Container": {
                   "type": "function"
                 },
+                "Lead": {
+                  "type": "function"
+                },
                 "ListGroup": {
                   "type": "function"
                 },
@@ -601,10 +604,10 @@
             "Select": {
               "type": "function"
             },
-            "UnorderedList": {
+            "Ul": {
               "type": "function"
             },
-            "OrderedList": {
+            "Ol": {
               "type": "function"
             },
             "Submit": {
