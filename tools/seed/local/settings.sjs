@@ -162,7 +162,11 @@ var identity = x -> x;
 var Collection = function(prefix, cons) {
 	var rv = @ObservableVar(keysWithPrefix(prefix) .. @transform(cons));
 	rv.items = rv .. @transform(identity);
-	rv.update = -> rv.modify(identity); // stream is lazy, so we don't actually need to change its value
+	// TODO: we need to do this to get around debouncing in ObservableVar.
+	// an ObservableObject would make this unnecessary
+	var initial = rv .. @first();
+	var cloneInitial = function() { return @Stream(-> initial.apply(this, arguments)); };
+	rv.update = -> rv.modify(cloneInitial);
 	return rv;
 };
 

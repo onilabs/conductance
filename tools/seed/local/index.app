@@ -1,4 +1,6 @@
+require.hubs.unshift(['seed:', '/modules/']);
 @ = require(['mho:std', 'mho:app']);
+@form = require('./form');
 @logging.setLevel(@logging.DEBUG);
 
 var appSettings = function(server, app) {
@@ -11,53 +13,77 @@ var appSettings = function(server, app) {
 	`, {'class':'settings'});
 };
 
-var editWidget = function(values) {
-	var jsonVal = values .. @transform(x -> JSON.stringify(x, null, '  '));
-	var err = @ObservableVar();
-	var errDisplay = err .. @transform(function(err) {
-		if (!err) return undefined;
-		return @Div(err, {"class":"error"});
-	});
-	return @Div([
-		errDisplay,
-		@TextArea() .. @Style('
-			{
-				width: 100%;
-				height: 200px;
-			}
-		') .. @Mechanism(function(elem) {
-			waitfor {
-				values .. @each {|val|
-					elem.value = JSON.stringify(val, null, '  ');
-				}
-			} and {
-				elem .. @events('change') .. @each {|evt|
-					var val = elem.value;
-					try {
-						val = JSON.parse(val);
-					} catch(e) {
-						err.set("Invalid JSON");
-						continue;
-					}
-					err.set(null);
-					values.modify(o -> val);
-				}
-			}
-		})
-	]);
-};
+var pairObject = function(k,v) {
+	var rv = {};
+	rv[k]=v;
+	return rv;
+}
+
 
 var appWidget = function(server, app) {
 	@info("app: ", app);
 	var appName = app.config.central .. @transform(a -> a.name);
 	var appCtl = app.ctl;
-	var runningState = appCtl.pid .. @transform(pid -> pid === null ? "Stopped" : `Running (PID $pid)`);
-	var statusClass = appCtl.pid .. @transform(pid -> "glyphicon-#{pid === null ? "stop" : "play"}");
+	var pidEvent = @Emitter();
+	//var pid = @observe(appCtl.pid, x -> x);
+	var pid = (function(stream) {
+		var abort = null;
+		var emitters = [];
+		var none = {};
+		var current = none;
+		return @Stream(function(emit) {
+			emitters.push(emit);
+			try {
+				if(emitters.length == 1) {
+					@assert.eq(abort, null);
+					loop = spawn(function() {
+						waitfor {
+							stream .. @each {|val|
+								current = val;
+								emitters .. @each(e -> e(val));
+							}
+						} or {
+							waitfor() {
+								abort = resume;
+							}
+						}
+					}());
+				} else {
+					// new observer, may have missed out on initial value:
+					if (current !== none) emit(current);
+				}
+			} retract {
+				emitters .. @remove(emit);
+				if (loop && emitters.length === 0) {
+					spawn(abort());
+					abort = null;
+					current = none;
+				}
+			}
+		});
+	})(appCtl.pid);
+
+	var runningState = pid .. @transform(pid -> pid === null ? "Stopped" : `Running (PID $pid)`);
+	var statusClass = pid .. @transform(pid -> "glyphicon-#{pid === null ? "stop" : "play"}");
+
 
 	var appDetail = `
 		<h1>
 		${@Span(null, {'class':'glyphicon'}) .. @Class(statusClass)}
-		${appName}</h1>
+		${appName}
+		${@Button("[edit]") .. @Mechanism(function(elem) {
+			var container = elem.parentNode;
+			var clicks = elem .. @events('click');
+			clicks .. @each {||
+				waitfor {
+					container .. @form.appConfigEditor(app.config);
+				} or {
+					clicks .. @wait();
+					console.log("edit cancelled");
+				}
+			}
+		})}
+		</h1>
 		<div>
 			<div class="status row">
 				<div class="col-sm-8">
@@ -87,21 +113,6 @@ var appWidget = function(server, app) {
 									}
 								} finally {
 									elem.disabled = false;
-								}
-							}
-						}),
-						@Button("[edit]") .. @Mechanism(function(elem) {
-							var click = elem .. @events('click');
-							while(true) {
-								click .. @wait();
-								waitfor {
-									waitfor {
-										elem.parentNode .. @appendContent([@H3("central settings"), editWidget(app.config.central)], ->hold());
-									} and {
-										elem.parentNode .. @appendContent([@H3("deploy settings"), editWidget(app.config.local)], ->hold());
-									}
-								} or {
-									click .. @wait();
 								}
 							}
 						}),
@@ -174,7 +185,6 @@ var showServer = function(server, container) {
 
 @withBusyIndicator {|ready|
 	@withAPI('./remote.api') {|api|
-		console.log(api);
 		console.log("API.servers = #{api.servers}");
 		var buttons = api.servers .. @transform(function(servers) {
 			return servers .. @map(function(server) {
@@ -196,15 +206,22 @@ var showServer = function(server, container) {
 						}
 					}),
 					@Button('[edit]') .. @Mechanism(function(elem) {
-						var container = elem.parentNode;
 						var clicks = elem .. @events('click');
 						clicks .. @each {||
-							container .. @appendContent(editWidget(server.config), -> clicks .. @wait());
+							waitfor {
+								console.log("edit starting!");
+								elem.parentNode .. @form.serverConfigEditor(server.config);
+								console.log("edit done!");
+							} or {
+								clicks .. @wait();
+								console.log("edit Cancelled!");
+							}
 						}
 					}),
 					@Button('[delete]') .. @OnClick(function() {
 						server.destroy();
 					}),
+					@Div(null, {'class':'edit-container'}),
 				];
 			});
 		});
