@@ -430,6 +430,9 @@
                 "Select": {
                   "type": "function"
                 },
+                "Badge": {
+                  "type": "function"
+                },
                 "Btn": {
                   "type": "function"
                 },
@@ -449,6 +452,12 @@
                   "type": "function"
                 },
                 "ListGroup": {
+                  "type": "function"
+                },
+                "ListGroupItem": {
+                  "type": "function"
+                },
+                "xxx": {
                   "type": "function"
                 },
                 "PageHeader": {
@@ -635,6 +644,12 @@
           }
         },
         "isElement": {
+          "type": "function"
+        },
+        "isElementWithClass": {
+          "type": "function"
+        },
+        "isElementOfType": {
           "type": "function"
         },
         "ensureElement": {

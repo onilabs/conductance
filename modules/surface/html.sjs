@@ -373,20 +373,31 @@ var _map = function(items, fn) {
 }
 /**
   @function Ul
-  @param {Array|sjs:sequence::Stream} [items]
+  @param {Array|sjs:sequence::Stream|undefined} [items]
   @param {optional Object} [attrs]
   @return {surface::Element}
-  @summary Create a `<ul>` element, wrapping each element of`items` in a `<li>`
+  @summary Create a `<ul>` element, wrapping each element of `items` in a `<li>` 
+           as required.
   @desc
     If `items` is a [sjs:sequence::Stream], then that stream is expected 
     to have [sjs:observable::Observable] semantics and consist of 
     elements of Array type. The list content will be updated every time the 
     observable changes.
+
+    Any elements in `item` that isn't a `<li>` {surface::Element} will be wrapped 
+    with a `<li>` {surface::Element}.
 */
-exports.Ul = (items, attrs) -> Element('ul', items .. _map(exports.Li), attrs);
+
+__js function wrapLi(item) { 
+  if (@isElementOfType(item, 'li')) return item;
+  return exports.Li(item);
+}
+
+exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attrs);
+
 /**
   @function Ol
-  @param {Array} [items]
+  @param {Array|sjs:sequence::Stream|undefined} [items]
   @param {optional Object} [attrs]
   @return {surface::Element}
   @summary Create a `<ol>` element, wrapping each element of`items` in a `<li>`
@@ -395,8 +406,11 @@ exports.Ul = (items, attrs) -> Element('ul', items .. _map(exports.Li), attrs);
     to have [sjs:observable::Observable] semantics and consist of 
     elements of Array type. The list content will be updated every time the 
     observable changes.
+
+    Any elements in `item` that isn't a `<li>` {surface::Element} will be wrapped 
+    with a `<li>` {surface::Element}.
 */
-exports.Ol = (items, attrs) -> Element('ol', items .. _map(exports.Li), attrs);
+exports.Ol = (items, attrs) -> Element('ol', items ? items .. _map(wrapLi), attrs);
 
 /**
   @function Submit

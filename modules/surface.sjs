@@ -74,6 +74,16 @@ module.exports = require(modules);
 @param {Object} [element]
 @return {Boolean}
 
+@function isElementWithClass
+@param {Object} [element]
+@param {String} [class_name] CSS Class
+@return {Boolean} `true` if `element` is an {::Element} and has the CSS class `class_name`
+
+@function isElementOfType
+@param {Object} [element]
+@param {String} [type] Tag name (e.g. "li" or "div")
+@return {Boolean} `true` if `element` is an {::Element} and has the given `type`.
+
 @function ensureElement
 @param {::HtmlFragment} [html]
 @return {::Element}

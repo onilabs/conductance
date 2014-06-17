@@ -395,6 +395,33 @@ __js {
 }
 
 /**
+   @function isElementWithClass
+   @param {Object} [element]
+   @param {String} [class_name] CSS Class
+   @return {Boolean} `true` if `element` is an {::Element} and has the CSS class `class_name`
+*/
+__js {
+  function isElementWithClass(elem,cls) {
+    return isElement(elem) && (elem._normalizeClasses().indexOf(cls) !== -1);
+  }
+  exports.isElementWithClass = isElementWithClass;
+}
+
+/**
+   @function isElementOfType
+   @param {Object} [element]
+   @param {String} [type] Tag name (e.g. "li" or "div")
+   @return {Boolean} `true` if `element` is an {::Element} and has the given `type`.
+*/
+__js {
+  function isElementOfType(elem, type) {
+    return isElement(elem) && (elem.tag == type);
+  }
+  exports.isElementOfType = isElementOfType;
+}
+
+
+/**
   @function ensureElement
   @param {::HtmlFragment} [html]
   @return {::Element}
@@ -430,6 +457,8 @@ __js {
   }
   exports.cloneElement = cloneElement;
 }
+
+
 
 //----------------------------------------------------------------------
 

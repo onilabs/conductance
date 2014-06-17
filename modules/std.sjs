@@ -182,6 +182,8 @@ module.exports = require(modules);
    - **insertAfter**: (function [mho:surface::insertAfter])
    - **insertBefore**: (function [mho:surface::insertBefore])
    - **isElement**: (function [mho:surface::isElement])
+   - **isElementOfType**: (function [mho:surface::isElementOfType])
+   - **isElementWithClass**: (function [mho:surface::isElementWithClass])
    - **loadTemplate**: (function [mho:surface::loadTemplate])
    - **Mechanism**: (function [mho:surface::Mechanism])
    - **On**: (function [mho:surface::On])
