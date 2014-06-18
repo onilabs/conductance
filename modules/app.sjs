@@ -14,7 +14,7 @@
   @hostenv xbrowser
   @desc
     This module contains client-side application-specific functionality. 
-    For applications that have an `*.app` file (see [#features/app-module::]) as their
+    For applications that have an `*.app` file (see [mho:#features/app-module::]) as their
     main entry point, it will be provided by the *document template*. If you use a custom
     document template, or a custom (not `*.app`) client-side entry point, then this module 
     will not be available by default.

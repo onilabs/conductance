@@ -89,7 +89,7 @@
     var failures = [];
     hubs .. @each {|hub|
       var root = libraries.get(hub);
-      function checkSymbol(symbol) {
+      function checkSymbol(symbol, parent) {
 
         function accumulateAssertions(fn) {
           try {
@@ -107,14 +107,21 @@
         var id = symbol.path .. @join('|');
         if (id in checked) return;
         checked[id] = true;
-        var docs = symbol.docs();
+        try {
+          var docs = symbol.docs();
+        } catch(e) {
+          if(parent) {
+            @warn("Error fetching docs", symbol.path, "for child of ", parent);
+          }
+          throw e;
+        }
 
         accumulateAssertions( -> checkAllTypeReferences(docs, symbol));
         accumulateAssertions( -> checkMarkdownLinks(docs.summary, symbol));
         accumulateAssertions( -> checkMarkdownLinks(docs.desc, symbol));
 
         docs.children .. @ownPropertyPairs .. @each {|[name, {type}]|
-          checkSymbol(symbol.child(name, type));
+          checkSymbol(symbol.child(name, type), symbol.path);
         }
       }
 
