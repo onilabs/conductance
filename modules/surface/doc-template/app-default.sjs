@@ -66,15 +66,16 @@
   @summary Begin the busy indicator on page load
   @desc
     If set, the busy indicator (as shown by
-    [app::withBusyIndicator]) will be shown immedately on page load,
-    rather than some time after your app's main module has started executing.
+    [::withBusyIndicator]) will be shown
+    immedately on page load, rather than some time after your app's main
+    module has started executing.
   
     The indicator is shown until the completion of the first call to
-    [app::withBusyIndicator] - if you do not call this function, the
+    [::withBusyIndicator] - if you do not call this function, the
     indicator will be shown indefinitely (which is why this
     feature is not enabled by default).
   
-    If your app does use [app::withBusyIndicator], you should
+    If your app does use [::withBusyIndicator], you should
     generally use this flag as well so that there isn't a gap between
     page load and displaying the busy indicator.
     

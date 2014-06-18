@@ -76,6 +76,6 @@
   code will have to recover from this accordingly.
 
   To connect to an API in a way that automatically handles connection failures
-  and attempts to reconnect if the connection is lost, you may want to use [app::withAPI].
+  and attempts to reconnect if the connection is lost, you may want to use [surface/api-connection::withAPI].
 
 */
