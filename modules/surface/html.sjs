@@ -129,6 +129,7 @@ var Input = (type, value, attrs) ->
     if (isStream(value)) {
       waitfor {
         value .. each {|val|
+          val = val || "";
           if (node.value !== val)
             node.value = val;
         }
@@ -186,6 +187,7 @@ var TextArea = (value, attrs) ->
     if (isStream(value)) {
       waitfor {
         value .. each {|val|
+          val = val || "";
           if (node.value !== val)
             node.value = val;
         }
