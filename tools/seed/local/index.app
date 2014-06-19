@@ -96,7 +96,7 @@ var appWidget = function(server, app) {
 					</ul>
 				</div>
 				<div class="col-sm-4">
-					$@UnorderedList([
+					$@Ul([
 						@Button("Deploy") .. @Mechanism(function(elem) {
 							var click = elem .. @events('click');
 							while(true) {
@@ -177,7 +177,7 @@ var showServer = function(server, container) {
 					server.createApp({name:"TODO"});
 				});
 
-				return @UnorderedList(appWidgets.concat([addApp]));
+				return @Ul(appWidgets.concat([addApp]));
 			}), -> hold());
 		} or { disconnectButton .. @wait('click'); }
 	}
@@ -231,7 +231,7 @@ var showServer = function(server, container) {
 		});
 
 		var serverList = buttons .. @transform(function(buttons) {
-			return @UnorderedList(buttons.concat([addServer]));
+			return @Ul(buttons.concat([addServer]));
 		});
 
 		ready();
