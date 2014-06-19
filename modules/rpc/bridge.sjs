@@ -706,7 +706,7 @@ exports.connect = function(api_name, opts, block) {
         var apiinfo = http.json([api_name, {format:'json'}]);
       }
       catch(e) {
-        throw TransportError(e);
+        throw TransportError(e.message);
       }
       // catch syntax errors in the api module; don't throw as transport errors:
       if (apiinfo.error) throw new Error(apiinfo.error);
