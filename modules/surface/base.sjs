@@ -25,21 +25,21 @@ var array = require('sjs:array');
 var func = require('sjs:function');
 
 //----------------------------------------------------------------------
-// counters which will be used to generate style & mechanism ids
+// counters which will be used to generate css & mechanism ids
 
 // To keep the static & dynamic worlds from colliding, we initialize
 // these from the global variable __oni_surface_init if present (it is
 // added for static documents - see static.sjs::Document)
 
-var gStyleCounter = 0;
+var gCSSCounter = 0;
 var gMechanismCounter = 0;
 
 if (typeof __oni_surface_init !== 'undefined') {
-  [gStyleCounter, gMechanismCounter] = __oni_surface_init;
+  [gCSSCounter, gMechanismCounter] = __oni_surface_init;
 }
 
 exports._getDynOniSurfaceInit = -> 
-  "__oni_surface_init = [#{gStyleCounter+1}, #{gMechanismCounter+1}];\n";
+  "__oni_surface_init = [#{gCSSCounter+1}, #{gMechanismCounter+1}];\n";
 
 
 /**
@@ -89,16 +89,16 @@ exports._getDynOniSurfaceInit = ->
 */
 __js var FragmentBase = {
   appendTo: function(target) {
-    target.style .. extendStyle(this.style);
+    target.css .. extendCSS(this.css);
     target.mechanisms .. extend(this.mechanisms);
     target.externalScripts .. extend(this.externalScripts);
-    target.externalStyles .. extend(this.externalStyles);
+    target.externalCSS .. extend(this.externalCSS);
   },
   _init: function() {
-    this.style = {};
+    this.css = {};
     this.mechanisms = {};
     this.externalScripts = {};
-    this.externalStyles = {};
+    this.externalCSS = {};
   },
 };
 
@@ -112,10 +112,10 @@ var CollapsedFragmentProto = Object.create(FragmentBase);
 __js CollapsedFragmentProto .. extend({
   toString:        -> "html::CollapsedFragment [#{this.content}]",
   getHtml:         -> this.content,        // string
-  getStyleDefs:    -> this.style,          // { style_id : [ref_count, def], ... }
+  getCSSDefs:      -> this.css,          // { css_id : [ref_count, def], ... }
   getMechanisms:   -> this.mechanisms,     // { mechanism_id : code, ... }
   getExternalScripts: -> this.externalScripts,     // { url: true, ... }
-  getExternalStyles: -> this.externalStyles, // { url: true, ... }
+  getExternalCSS: -> this.externalCSS, // { url: true, ... }
   appendTo: func.seq(CollapsedFragmentProto.appendTo, function(target) {
     target.content += this.content;
   }),
@@ -124,7 +124,7 @@ __js CollapsedFragmentProto .. extend({
   }),
 });
 
-__js function extendStyle(target, src) {
+__js function extendCSS(target, src) {
   propertyPairs(src) .. each(function([id,def]) {
     if (target[id])
       target[id] = [target[id][0]+def[0], def[1]];
@@ -348,7 +348,7 @@ ElementProto.appendTo = function(target) {
 };
 
 ElementProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
-  // append inner contents (as well as adding this element's styles, mechanisms, etc)
+  // append inner contents (as well as adding this element's css, mechanisms, etc)
   if (this.content != null) {
     appendFragmentTo(target, this.content, this.tag);
   }
@@ -449,10 +449,10 @@ __js {
     if (!isElement(ft)) return ensureElement(ft);
     var rv = Object.create(ElementProto);
     rv._init(ft.tag, ft.content, ft.attribs);
-    rv.style = clone(ft.style);
+    rv.css = clone(ft.css);
     rv.mechanisms = clone(ft.mechanisms);
     rv.externalScripts = clone(ft.externalScripts);
-    rv.externalStyles = clone(ft.externalStyles);
+    rv.externalCSS = clone(ft.externalCSS);
     return rv;
   }
   exports.cloneElement = cloneElement;
@@ -462,9 +462,9 @@ __js {
 
 //----------------------------------------------------------------------
 
-// Style classes
+// CSS-related classes
 
-__js var InternalStyleDefProto = {
+__js var InternalCSSDefProto = {
   getHtml: -> "<style type='text/css'>#{escapeForTag(this.content, 'style')}</style>",
   createElement: function() {
     // xbrowser env only
@@ -480,22 +480,22 @@ __js var InternalStyleDefProto = {
   }
 };
 
-__js function InternalStyleDef(content, parent_class, mech) {
-  var rv = Object.create(InternalStyleDefProto);
+__js function InternalCSSDef(content, parent_class, mech) {
+  var rv = Object.create(InternalCSSDefProto);
   rv.content = content;
   rv.mechanism = mech;
   return rv;
 }
 
 /**
-  @function Style
-  @altsyntax element .. Style(style)
+  @function CSS
+  @altsyntax element .. CSS(style)
   @param {optional ::HtmlFragment} [element]
   @param {String|sjs:quasi::Quasi} [style]
   @return {::Element|Function}
   @summary Add CSS style to an element
   @desc
-    Style should be a CSS string, which will be automatically
+    `style` should be a CSS string, which will be automatically
     scoped to all instances of the given widget.
 
     The following additional syntax is supported:
@@ -547,41 +547,41 @@ __js function InternalStyleDef(content, parent_class, mech) {
     any [sjs:sequence::Stream] values, the style will be recomputed and updated
     whenever any of the composite stream values changes.
 
-    If `element` is not provided, `Style` will
+    If `element` is not provided, `CSS` will
     return a cached style function which can later be
     called on a [::HtmlFragment] to apply the given style.
     When reusing styles, it is more efficient to create an
-    intermediate `Style` function in this way, because it
+    intermediate `CSS` function in this way, because it
     ensures that underlying <style> elements are re-used.
 
-    If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
+    If `CSS` is applied to a [::HtmlFragment] that is not of class [::Element], 
     `element` will automatically be wrapped using [::ensureElement].
 */
 
 __js {
-  function Style(/* [opt] ft, style */) {
-    var id = ++gStyleCounter, styledef;
-    var class_name = "_oni_style#{id}_";
+  function CSS(/* [opt] ft, style */) {
+    var id = ++gCSSCounter, cssdef;
+    var class_name = "_oni_css#{id}_";
     
-    function setStyle(ft) {
+    function setCSS(ft) {
       ft = cloneElement(ft);
       
-      if (!ft.style[id])
-        ft.style[id] = [1,styledef];
+      if (!ft.css[id])
+        ft.css[id] = [1,cssdef];
       else
-        ft.style[id] = [ft.style[id][0]+1, styledef];
+        ft.css[id] = [ft.css[id][0]+1, cssdef];
       
       var classes = ft._normalizeClasses();
-      if (classes.indexOf('_oni_style_') == -1)
-        classes.push(' _oni_style_');
+      if (classes.indexOf('_oni_css_') == -1)
+        classes.push(' _oni_css_');
       if (classes.indexOf(class_name) == -1)
         classes.push(class_name);
       return ft;
     }
 
-    var selector = '_oni_style_.' + class_name;
+    var selector = '_oni_css_.' + class_name;
 
-    var styleMechanism;
+    var cssMechanism;
     var content = arguments.length == 1 ? arguments[0] : arguments[1];
     if (content .. isQuasi) {
       var q = content;
@@ -606,7 +606,7 @@ __js {
       // if render collected any observables, set up a mechanism:
       if (observables.length) {
         content = ""; // leave blank until we have observable values
-        styleMechanism = function(elem) {
+        cssMechanism = function(elem) {
           var onChange = function(values) {
             var content = render(null, values);
             if (elem.styleSheet) {
@@ -624,16 +624,16 @@ __js {
     } else {
       content = scope(content, selector);
     }
-    styledef = InternalStyleDef(content, class_name, styleMechanism);
+    cssdef = InternalCSSDef(content, class_name, cssMechanism);
     
     if (arguments.length == 1) {
-      return setStyle;
+      return setCSS;
     }
     else /* if (arguments == 2) */{
-      return setStyle(arguments[0]);
+      return setCSS(arguments[0]);
     }
   }
-  exports.Style = Style;
+  exports.CSS = CSS;
 }
 
 //----------------------------------------------------------------------
@@ -933,24 +933,24 @@ exports.RequireExternalScript = function(url) {
 };
 
 /**
-  @function RequireExternalStyle
+  @function RequireExternalCSS
   @summary Declare a dependency on an external `.css` file
   @param {String} [url]
   @return {::HtmlFragment}
   @desc
-    You can place `RequireExternalStyle` anywhere in a [::HtmlFragment], it
+    You can place `RequireExternalCSS` anywhere in a [::HtmlFragment], it
     has no content. The first time the fragment is inserted into the document, the
     external script will be loaded and executed. If the url specified has already been
     loaded in this way, it will not be reloaded or re-executed.
 
-    Note that unlike [::Style], external stylesheets
+    Note that unlike [::CSS], external stylesheets
     will not be scoped to any particular element -
     they will be applied globally.
 
 */
-exports.RequireExternalStyle = function(url) {
+exports.RequireExternalCSS = function(url) {
   var rv = CollapsedFragment();
-  rv.externalStyles[url] = true;
+  rv.externalCSS[url] = true;
   return rv;
 };
 

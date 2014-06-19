@@ -38,7 +38,7 @@ exports.NoticeStyle = function() {
   var style;
   return function() {
     if (!style) {
-      style = @Style("
+      style = @CSS("
         {
           #{exports._fixedNoticeStyle}
         }
@@ -56,7 +56,7 @@ exports.NoticeStyle = function() {
   @summary Create a floating notice
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [settings]
-  @setting {surface::Style} [style]
+  @setting {surface::CSS} [style]
   @setting {String} [class] additional class to place on notice
   @desc
     The notice contains a default style which sets

@@ -1,4 +1,4 @@
-var {Element, Mechanism, Style, Class, prependContent, removeNode, RawHTML} = require('mho:surface');
+var {Element, Mechanism, CSS, Class, prependContent, removeNode, RawHTML} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
      reduce, reverse, join, find, hasElem, at
@@ -18,7 +18,7 @@ var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
 
 var withOverlay = exports.withOverlay = (function() {
-	var overlay = Element("div") .. Style('{
+	var overlay = Element("div") .. CSS('{
 		position: fixed;
 		left:0;
 		top:0;
@@ -637,6 +637,6 @@ exports.Hub = function(name) {
 
 // TODO: shouldn't need !important decl here, battling with
 // bootstrap
-var errorText = exports.errorText = Style("{
+var errorText = exports.errorText = CSS("{
     color: rgb(190, 29, 29) !important;
 }");

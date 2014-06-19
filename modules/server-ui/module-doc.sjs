@@ -11,7 +11,7 @@
 
 @ = require(['mho:std', 'mho:surface/bootstrap/html']);
 
-var LinenumberStyle = @Style("
+var LinenumberStyle = @CSS("
   { padding-right:1em; 
     white-space: nowrap;
     vertical-align: top;

@@ -89,14 +89,14 @@ module.exports = require(modules);
 @return {::Element}
 @summary Wrap a [::HtmlFragment] in an [::Element] with tag name 'surface-ui', if it isn't already one.
 
-@function Style
-@altsyntax element .. Style(style)
+@function CSS
+@altsyntax element .. CSS(style)
 @param {optional ::HtmlFragment} [element]
 @param {String|sjs:quasi::Quasi} [style]
 @return {::Element|Function}
 @summary Add CSS style to an element
 @desc
-  Style should be a CSS string, which will be automatically
+  `style` should be a CSS string, which will be automatically
   scoped to all instances of the given widget.
 
   The following additional syntax is supported:
@@ -148,14 +148,14 @@ module.exports = require(modules);
   any [sjs:sequence::Stream] values, the style will be recomputed and updated
   whenever any of the composite stream values changes.
 
-  If `element` is not provided, `Style` will
+  If `element` is not provided, `CSS` will
   return a cached style function which can later be
   called on a [::HtmlFragment] to apply the given style.
   When reusing styles, it is more efficient to create an
-  intermediate `Style` function in this way, because it
+  intermediate `CSS` function in this way, because it
   ensures that underlying <style> elements are re-used.
 
-  If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  If `CSS` is applied to a [::HtmlFragment] that is not of class [::Element], 
   `element` will automatically be wrapped using [::ensureElement].
 
 @function Mechanism
@@ -298,17 +298,17 @@ module.exports = require(modules);
   widget is used. For SJS-based dependencies, this function is unnecessary
   (just use `require`).
 
-@function RequireExternalStyle
+@function RequireExternalCSS
 @summary Declare a dependency on an external `.css` file
 @param {String} [url]
 @return {::HtmlFragment}
 @desc
-  You can place `RequireExternalStyle` anywhere in a [::HtmlFragment], it
+  You can place `RequireExternalCSS` anywhere in a [::HtmlFragment], it
   has no content. The first time the fragment is inserted into the document, the
   external script will be loaded and executed. If the url specified has already been
   loaded in this way, it will not be reloaded or re-executed.
 
-  Note that unlike [::Style], external stylesheets
+  Note that unlike [::CSS], external stylesheets
   will not be scoped to any particular element -
   they will be applied globally.
 
@@ -420,11 +420,11 @@ module.exports = require(modules);
     module functions ([::appendContent], etc).
 
   * `removeNode` will abort any [::Mechanism]s running on the node
-    and release any [::Style] references.
+    and release any [::CSS] references.
 
   * Note that you can remove DOM nodes inserted using surface module functions also
     using normal DOM operations (e.g. removeChild), however any [::Mechanism]s that might
-    be running on the content will not be aborted, and [::Style] references will not be 
+    be running on the content will not be aborted, and [::CSS] references will not be 
     released. This might change in future versions of the library.
 
 @function Prop

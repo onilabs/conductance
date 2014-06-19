@@ -1,7 +1,7 @@
 // Conductance version of http://knockoutjs.com/examples/simpleList.html
 
 var { ObservableVar, observe } = require('sjs:observable');
-var { appendContent, Mechanism, Attrib, Style, Prop } = require('mho:surface');
+var { appendContent, Mechanism, Attrib, CSS, Prop } = require('mho:surface');
 var { Button, Form, TextInput, Select } = require('mho:surface/html');
 
 
@@ -35,7 +35,7 @@ document.body .. appendContent(
              <p>Your items:</p>
              ${
                Select({multiple:true, items: items}) ..
-                 Style("{ width: 50em; height: 10em;}")
+                 CSS("{ width: 50em; height: 10em;}")
              }
              `) .. Prop('onsubmit', addItem)
       }

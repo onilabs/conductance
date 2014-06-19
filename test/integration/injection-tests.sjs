@@ -76,7 +76,7 @@ context("static file generation") {||
 }
 
 context("dynamic content generation") {||
-	var {Element, appendContent, Style} = require('mho:surface');
+	var {Element, appendContent, CSS} = require('mho:surface');
 
 	test("encodes data inside a regular html tag") {||
 		document.body .. appendContent(Element("div", payloadString)) {|elem|
@@ -101,7 +101,7 @@ context("dynamic content generation") {||
 	}
 
 	test("encodes data inside a CSS block") {|s|
-		document.body .. appendContent(Element("div", "text") .. Style("{background-image: #{payloadCss} }")) {|elem|
+		document.body .. appendContent(Element("div", "text") .. CSS("{background-image: #{payloadCss} }")) {|elem|
 			// getComputedStyle is not always synchronous
 			waitforSuccess(-> window.getComputedStyle(elem)['background-image'] .. assert.eq(payloadCss));
 		}

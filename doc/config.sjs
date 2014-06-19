@@ -1,4 +1,4 @@
-var { Element, appendContent, Mechanism, Style, OnClick } = require('mho:surface');
+var { Element, appendContent, Mechanism, CSS, OnClick } = require('mho:surface');
 var { Input, Form, Button } = require('mho:surface/bootstrap/html');
 var { each, map, transform } = require('sjs:sequence');
 var { ObservableVar } = require('sjs:observable');
@@ -77,14 +77,14 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
           formError.set(`<strong>Error:</strong> ${e.message}`);
         }
       }
-    }) .. Style("
+    }) .. CSS("
       input, label { display:inline-block; }
       label { min-width: 5em; }
       button { margin-left:5em; }
     ");
 
     var widget = Element("div", `
-      ${Button('x') .. Style("{float:right;}")}
+      ${Button('x') .. CSS("{float:right;}")}
       ${currentLibraries}
 
       ${disabledLibraries}
@@ -92,7 +92,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
       <h3>Custom hub</h3>
       ${addForm}
     `, {'class': 'config'})
-    .. Style("
+    .. CSS("
       { position: absolute;
         left: 0;
         top:0;

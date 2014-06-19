@@ -28,16 +28,16 @@ var { events, wait } = require('sjs:event');
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
 // the document
-var stylesInstalled = {};
+var cssInstalled = {};
 var mechanismsInstalled = {};
 
 var resourceRegistry = {
-  useStyleDefs: function(defs) {
+  useCSSDefs: function(defs) {
     propertyPairs(defs) .. each {
       |[id, [cnt,def]]|
       var desc;
-      if (!(desc = stylesInstalled[id])) {
-        desc = stylesInstalled[id] = { ref_count: cnt, elem: def.createElement(), mechanism: def.mechanism };
+      if (!(desc = cssInstalled[id])) {
+        desc = cssInstalled[id] = { ref_count: cnt, elem: def.createElement(), mechanism: def.mechanism };
         (document.head || document.getElementsByTagName("head")[0] /* IE<9 */).appendChild(desc.elem);
         if (desc.mechanism) {
           desc.elem.__oni_mech = spawn(desc.mechanism.call(desc.elem, desc.elem));
@@ -60,15 +60,15 @@ var resourceRegistry = {
       }
     }   
   },
-  unuseStyleDefs: function(defs) {
+  unuseCSSDefs: function(defs) {
     keys(defs) .. each { 
       |id|
-      this.unuseStyle(id);
+      this.unuseCSS(id);
     }
   },
-  unuseStyle: function(id) {
-    var desc = stylesInstalled[id];
-    if (!desc) { console.log("Warning: Trying to unuse unknown style #{id}"); return; }
+  unuseCSS: function(id) {
+    var desc = cssInstalled[id];
+    if (!desc) { console.log("Warning: Trying to unuse unknown css #{id}"); return; }
     if (--desc.ref_count === 0) {
       if (desc.elem.__oni_mech) {
         desc.elem.__oni_mech.abort();
@@ -76,7 +76,7 @@ var resourceRegistry = {
       }
       // XXX might actually want to cache this for a while
       desc.elem.parentNode.removeChild(desc.elem);
-      delete stylesInstalled[id];
+      delete cssInstalled[id];
     }
   },
   // XXX no real need to go through the whole use/unuse machinery for
@@ -140,14 +140,14 @@ function stopMechanisms(parent, include_parent) {
   }
 }
 
-function unuseStyles(elems) {
+function unuseCSS(elems) {
   elems .. each {
     |elem|
     (elem.getAttribute('class')||'') .. split(' ') .. each {
       |cls|
-      var matches = /_oni_style(\d+)_/.exec(cls);
+      var matches = /_oni_css(\d+)_/.exec(cls);
       if (!matches) continue;
-      resourceRegistry.unuseStyle(matches[1]);
+      resourceRegistry.unuseCSS(matches[1]);
     }
   }
 }
@@ -212,14 +212,14 @@ function insertHtml(html, doInsertHtml) {
     |url| require('sjs:xbrowser/dom').script(url);
   }
 
-  // load external style:
-  keys(html.getExternalStyles()) .. each {
+  // load external css:
+  keys(html.getExternalCSS()) .. each {
     |url| require('sjs:xbrowser/dom').css(url);
   }
 
-  // install styles and mechanisms
-  var styles = html.getStyleDefs();
-  resourceRegistry.useStyleDefs(styles);
+  // install css and mechanisms
+  var css = html.getCSSDefs();
+  resourceRegistry.useCSSDefs(css);
   var mechs = html.getMechanisms();
   resourceRegistry.useMechanisms(mechs);
 
@@ -227,7 +227,7 @@ function insertHtml(html, doInsertHtml) {
     doInsertHtml(html);
   }
   catch (e) {
-    resourceRegistry.unuseStyleDefs(styles);
+    resourceRegistry.unuseCSSDefs(css);
     throw e;
   }
   finally {
@@ -279,7 +279,7 @@ function nodes(parent, before_node, after_node) {
 function replaceContent(parent_element, html) {
   insertHtml(html, function(html) {
     stopMechanisms(parent_element);
-    parent_element.querySelectorAll('._oni_style_') .. unuseStyles();
+    parent_element.querySelectorAll('._oni_css_') .. unuseCSS();
 
     parent_element.innerHTML = html.getHtml();
 
@@ -507,11 +507,11 @@ exports.insertAfter = insertAfter;
        module functions ([::appendContent], etc).
 
      * `removeNode` will abort any [::Mechanism]s running on the node
-       and release any [::Style] references.
+       and release any [::CSS] references.
 
      * Note that you can remove DOM nodes inserted using surface module functions also
        using normal DOM operations (e.g. removeChild), however any [::Mechanism]s that might
-       be running on the content will not be aborted, and [::Style] references will not be 
+       be running on the content will not be aborted, and [::CSS] references will not be 
        released. This might change in future versions of the library.
 */
 function removeNode(node) { 
@@ -520,10 +520,10 @@ function removeNode(node) {
   if (node.parentNode)
     node.parentNode.removeChild(node);
   
-  // if node is an element, unuse our styles and all styles below us
+  // if node is an element, unuse our CSS and all CSS used below us
   if (node.querySelectorAll)
-    concat([node], node.querySelectorAll('._oni_style_')) ..
-    unuseStyles();
+    concat([node], node.querySelectorAll('._oni_css_')) ..
+    unuseCSS();
 }
 exports.removeNode = removeNode;
 

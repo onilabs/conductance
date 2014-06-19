@@ -80,7 +80,7 @@ exports.Document = function(content, settings) {
   }
 
   var styleLinkTag = url -> `<link rel='stylesheet' href='${url}'>`;
-  headContent = headContent.concat(keys(content.getExternalStyles()) .. map(styleLinkTag));
+  headContent = headContent.concat(keys(content.getExternalCSS()) .. map(styleLinkTag));
 
   var scriptTag = url -> `<script src="${url}"></script>`;
   headContent = headContent.concat(keys(content.getExternalScripts()) .. map(scriptTag));
@@ -88,10 +88,10 @@ exports.Document = function(content, settings) {
   if(externalScripts)
     headContent = headContent.concat(externalScripts .. map(scriptTag));
 
-  var styleDefs = values(content.getStyleDefs()) ..
+  var cssDefs = values(content.getCSSDefs()) ..
       map([ref_count,def] -> def.getHtml() .. html.RawHTML());
 
-  headContent = headContent.concat(styleDefs);
+  headContent = headContent.concat(cssDefs);
 
   headContent.push(`<script src='/__sjs/stratified.js' asyc='true'></script>`);
 

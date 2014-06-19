@@ -1,7 +1,7 @@
 // Conductance version of http://knockoutjs.com/examples/betterList.html
 
 var { ObservableVar, observe } = require('sjs:observable');
-var { appendContent, Attrib, Prop, Style, OnClick } = require('mho:surface');
+var { appendContent, Attrib, Prop, CSS, OnClick } = require('mho:surface');
 var { difference } = require('sjs:array');
 var { Button, Form, TextInput, Select } = require('mho:surface/html');
 
@@ -51,7 +51,7 @@ document.body .. appendContent(
    <p>Your values:</p>
    ${ 
      Select({multiple:true, items: allItems, selected: selectedItems}) .. 
-       Style("{ width: 50em; height: 10em;}") 
+       CSS("{ width: 50em; height: 10em;}") 
    }
    <div>
     ${ 

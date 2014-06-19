@@ -174,6 +174,7 @@ module.exports = require(modules);
    - **Attrib**: (function [mho:surface::Attrib])
    - **Autofocus**: (function [mho:surface::Autofocus])
    - **Class**: (function [mho:surface::Class])
+   - **CSS**: (function [mho:surface::CSS])
    - **Document**: (function [mho:surface::Document])
    - **Element**: (class [mho:surface::Element])
    - **Enabled**: (function [mho:surface::Enabled])
@@ -193,9 +194,8 @@ module.exports = require(modules);
    - **RawHTML**: (function [mho:surface::RawHTML])
    - **removeNode**: (function [mho:surface::removeNode])
    - **replaceContent**: (function [mho:surface::replaceContent])
+   - **RequireExternalCSS**: (function [mho:surface::RequireExternalCSS])
    - **RequireExternalScript**: (function [mho:surface::RequireExternalScript])
-   - **RequireExternalStyle**: (function [mho:surface::RequireExternalStyle])
-   - **Style**: (function [mho:surface::Style])
   
   
   ### Symbols from the [sjs:array](#sjs%3Aarray) module:

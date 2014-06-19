@@ -649,7 +649,7 @@
         "ensureElement": {
           "type": "function"
         },
-        "Style": {
+        "CSS": {
           "type": "function"
         },
         "Mechanism": {
@@ -673,7 +673,7 @@
         "RequireExternalScript": {
           "type": "function"
         },
-        "RequireExternalStyle": {
+        "RequireExternalCSS": {
           "type": "function"
         },
         "replaceContent": {

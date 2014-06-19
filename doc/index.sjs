@@ -1,6 +1,6 @@
 //TODO: use merging require([.])
 waitfor {
-var {RequireExternalStyle, OnClick, Class, Mechanism, Element, removeNode, appendContent, Style} = require('mho:surface');
+var {RequireExternalCSS, OnClick, Class, Mechanism, Element, removeNode, appendContent, CSS} = require('mho:surface');
 } and {
 var seq = require('sjs:sequence');
 var {map, indexed, find, each, join, transform } = seq;
@@ -42,7 +42,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 		logging.setLevel(logging.DEBUG);
 	}
 
-	var searchStyle = RequireExternalStyle(Url.normalize('css/search.css', module.id));
+	var searchStyle = RequireExternalCSS(Url.normalize('css/search.css', module.id));
 
 	exports.run = function(root, defaultHubs) {
 		var libraries = Library.Collection();
