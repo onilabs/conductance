@@ -35,6 +35,12 @@ var serve = function(args) {
         'default': null,
       },
       {
+        names: ['anonymous'],
+        type: 'bool',
+        help: 'allow full access to everyone',
+        'default': false,
+      },
+      {
         names: ['use-existing'],
         type: 'bool',
         help: 'just exit successfully if there\'s already a server running',
@@ -60,6 +66,8 @@ var serve = function(args) {
     console.log(parser.help({includeEnv:true}));
     process.exit(0);
   }
+
+  @env.set('anonymous-access', opts.anonymous);
 
   var versionInfo = {
     version: VERSION,

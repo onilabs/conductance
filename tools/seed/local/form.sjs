@@ -27,60 +27,77 @@ function formBlock(errors, configs) {
 };
 
 function InputBuilder(source, errors) {
-	return function Input(name, desc, validators) {
-		var err = errors .. @transform(o -> o[name]);
-		var obs = @ObservableVar(source[name]);
-		if (validators && !Array.isArray(validators)) validators = [validators];
-		obs.set = function(v) {
-			v = v.trim();
-			if (validators) {
-				var ok = true;
-				try {
-					validators .. @each(f -> f(v));
-				} catch(e) {
-					errors.modify(errors -> errors .. @merge(pairObject(name, e.message)));
-					return;
-				}
-				errors.modify(function(errors, unchanged) {
-					if (!errors .. @hasOwn(name)) {
-						return unchanged;
+	function buildInput(cons, transform, name, desc, validators) {
+			var err = errors .. @transform(o -> o[name]);
+			var obs = @ObservableVar(source[name]);
+			if (validators && !Array.isArray(validators)) validators = [validators];
+			obs.set = function(v) {
+				v = transform(v);
+				if (validators) {
+					var ok = true;
+					try {
+						validators .. @each(f -> f(v));
+					} catch(e) {
+						errors.modify(errors -> errors .. @merge(pairObject(name, e.message)));
+						return;
 					}
-					var rv = errors .. @clone();
-					delete rv[name];
-					return rv;
-				});
+					errors.modify(function(errors, unchanged) {
+						if (!errors .. @hasOwn(name)) {
+							return unchanged;
+						}
+						var rv = errors .. @clone();
+						delete rv[name];
+						return rv;
+					});
+				}
+				source[name] = v;
 			}
-			source[name] = v;
-		}
 
 
-		var errorText = err .. @transform(function(e) {
-			if (e) return @Span(e) .. @Class("errorDescription help-text text-danger");
-		});
+			var errorText = err .. @transform(function(e) {
+				if (e) return @Span(e) .. @Class("errorDescription help-text text-danger");
+			});
 
-		return [
-			@Div(`
-				<label for="$name" class="col-sm-2">$desc:</label>
-				<div class="col-sm-8">
-					${@TextInput(obs, {'class':'form-control col-sm-6'})}
-					$errorText
-				</div>`, {'class':"form-group"}) .. @Class('has-error', err)
-				.. @Style("{width:500px}")
-			,
-		];
-	}
+			return [
+				@Div(`
+					<label for="$name" class="col-sm-2">$desc:</label>
+					<div class="col-sm-8">
+						${cons(obs, {'class':'form-control col-sm-6'})}
+						$errorText
+					</div>`, {'class':"form-group"}) .. @Class('has-error', err)
+					.. @Style("{width:500px}")
+				,
+			];
+	};
+	return {
+		Input: function (name, desc, validators) {
+			return buildInput(@TextInput, (v -> v.strip()), name, desc, validators);
+		},
+
+		Checkbox: function(name, desc, validators) {
+			var transform = function(v) {
+				@assert.bool(v);
+				return v;
+			};
+				
+			return buildInput(@TextInput, transform, name, desc, validators);
+		},
+	};
 };
 
 var serverConfigEditor = exports.serverConfigEditor = function(container, conf) {
 	var current = conf .. @first();
 	var errors = @ObservableVar({});
-	var Input = InputBuilder(current, errors);
+	var {Input, Checkbox} = InputBuilder(current, errors);
+	@info("Got server config:", current);
 
 	container.querySelector('.edit-container') .. @appendContent(
 		@Form([
 			Input('name', 'Name', @validate.required),
 			Input('host', 'Host', @validate.required),
 			Input('port', 'Port', [@validate.optionalNumber, @validate.required]),
+			Input('username', 'User', @validate.required),
+			Checkbox('ssh', 'Use SSH'),
 			saveButton,
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle(),
 		formBlock(errors, [[conf, current]])
@@ -95,8 +112,8 @@ var appConfigEditor = exports.appConfigEditor = function(sibling, conf) {
 		var currentLocal = local .. @first();
 	}
 	var errors = @ObservableVar({});
-	var LocalInput = InputBuilder(currentLocal, errors);
-	var CentralInput = InputBuilder(currentCentral, errors);
+	var {Input: LocalInput} = InputBuilder(currentLocal, errors);
+	var {Input: CentralInput} = InputBuilder(currentCentral, errors);
 
 	sibling .. @insertAfter(
 		@Form([

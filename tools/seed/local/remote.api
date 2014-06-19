@@ -1,6 +1,6 @@
 @ = require(['mho:std', 'sjs:nodejs/tempfile']);
 var deployLoopback = @env.get('deployLoopback');
-@warn("deployLoopback: #{deployLoopback}");
+@info("deployLoopback: #{deployLoopback}");
 
 @settings = require('./settings');
 exports.servers = @settings.servers;
@@ -104,28 +104,37 @@ var connect;
 
 if (deployLoopback) {
 	// for easy testing: cut out the middle-man, and let the browser talk directly to the deployment API
+	@env.set('anonymous-access', true);
+	@warn("Allowing anonymous access - only use this during development");
 	connect = function(creds, block) {
 		block(require('../modules/deploy.api'));
 	}
 } else {
-	@ssh = require('./ssh');
+	@bridge = require('mho:rpc/bridge');
 	connect = function(creds, block) {
-		//creds.debug = @info;
-		@ssh.Connect(creds) {|conn|
-			var seedPort = 7079;
-			// XXX make this path portable
-			//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance', seedPort) {||
-				conn .. @ssh.proxyConnections(seedPort) {|path|
-					@debug("Proxied: #{path}");
-					var apiInfo = @http.json('http:///deploy.api?format=json', {socketPath: path});
-					@debug('API INFO:', apiInfo);
-					var transport = require('mho:rpc/aat-client').openTransport('http:///', {socketPath: path});
-					@debug('transport', transport);
-					require('mho:rpc/bridge').connect('XXX', {transport: transport, api:apiInfo}) {|conn|
-						block(conn.api);
+		if (creds.ssh) {
+			if (!@ssh) @ssh = require('./ssh');
+			//creds.debug = @info;
+			@ssh.Connect(creds) {|conn|
+				var seedPort = 7079;
+				// XXX make this path portable
+				//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance', seedPort) {||
+					conn .. @ssh.proxyConnections(seedPort) {|path|
+						@debug("Proxied: #{path}");
+						var apiInfo = @http.json('http:///deploy.api?format=json', {socketPath: path});
+						@debug('API INFO:', apiInfo);
+						var transport = require('mho:rpc/aat-client').openTransport('http:///', {socketPath: path});
+						@debug('transport', transport);
+						@bridge.connect('XXX', {transport: transport, api:apiInfo}) {|conn|
+							block(conn.api);
+						}
 					}
-				}
-			//}
+				//}
+			}
+		} else {
+			@bridge.connect("https://#{creds.host}:#{creds.port || 443}") {|conn|
+				block(conn.api);
+			}
 		}
 	};
 }
@@ -134,33 +143,45 @@ exports.connect = function(serverId, block) {
 	@assert.string(serverId);
 	var server = @settings.server(serverId);
 	var creds = server.config .. @first() .. @clone();
-	
-	// process privateKey
-	@info("Connecting via SSH with credentials", creds);
-	var pkDef = creds .. @get('privateKey', null);
-	var agentDef = creds .. @get('agent', null);
-	if (pkDef !== null) {
-		var pk;
-		switch(pkDef.type) {
-			case 'key':
-				@debug("reading ssh key #{pkDef.name}");
-				pk = @fs.readFile(@path.join(process.env .. @get('HOME'), '.ssh', pkDef .. @get('name')));
-				break;
-			case 'file':
-				@debug("reading ssh key file #{pkDef.path}");
-				pk = @fs.readFile(pkDef .. @get('path'));
-				break;
-			default:
-				@assert.fail("Unknown private key type: #{pkDef.type}");
+
+	if (creds.ssh) {
+		// process privateKey
+		@info("Connecting via SSH with credentials", creds);
+		var pkDef = creds .. @get('privateKey', null);
+		var agentDef = creds .. @get('agent', null);
+		if (pkDef !== null) {
+			var pk;
+			switch(pkDef.type) {
+				case 'key':
+					@debug("reading ssh key #{pkDef.name}");
+					pk = @fs.readFile(@path.join(process.env .. @get('HOME'), '.ssh', pkDef .. @get('name')));
+					break;
+				case 'file':
+					@debug("reading ssh key file #{pkDef.path}");
+					pk = @fs.readFile(pkDef .. @get('path'));
+					break;
+				default:
+					@assert.fail("Unknown private key type: #{pkDef.type}");
+			}
+			creds.privateKey = pk;
+		} else if (agentDef !== null) {
+			// use env
+			creds.agent = agentDef === true ? process.env .. @get('SSH_AUTH_SOCK') : agentDef;
+			@debug("Using SSH agent socket #{creds.agent}");
 		}
-		creds.privateKey = pk;
-	} else if (agentDef !== null) {
-		// use env
-		creds.agent = agentDef === true ? process.env .. @get('SSH_AUTH_SOCK') : agentDef;
-		@debug("Using SSH agent socket #{creds.agent}");
+
+		connect(creds) {|api|
+			// over SSH, assume deployment is available anonymously
+			api = api.anonymous;
+			block(new Deployment(api, server));
+		}
+	} else {
+		// over HTTP(s), perform auth to the API
+		connect(creds) {|api|
+			// XXX this is going over cleartext - should we do it directly via index.app?
+			api = api.authenticate(creds .. @get('user'), greds .. @get('password'));
+			block(new Deployment(api, server));
+		}
 	}
 
-	connect(creds) {|api|
-		block(new Deployment(api, server));
-	}
 };
