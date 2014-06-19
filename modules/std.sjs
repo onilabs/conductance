@@ -196,6 +196,7 @@ module.exports = require(modules);
    - **replaceContent**: (function [mho:surface::replaceContent])
    - **RequireExternalCSS**: (function [mho:surface::RequireExternalCSS])
    - **RequireExternalScript**: (function [mho:surface::RequireExternalScript])
+   - **Style**: (function [mho:surface::Style])
   
   
   ### Symbols from the [sjs:array](#sjs%3Aarray) module:

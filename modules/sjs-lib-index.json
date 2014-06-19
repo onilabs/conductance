@@ -661,6 +661,9 @@
         "Id": {
           "type": "function"
         },
+        "Style": {
+          "type": "function"
+        },
         "Class": {
           "type": "function"
         },

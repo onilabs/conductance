@@ -144,9 +144,12 @@ module.exports = require(modules);
             }
           }
 
-  If `style` is a [sjs:quasi::Quasi] containing
-  any [sjs:sequence::Stream] values, the style will be recomputed and updated
-  whenever any of the composite stream values changes.
+  If `style` is a [sjs:quasi::Quasi] containing any
+  [sjs:sequence::Stream] values, the style will be recomputed and
+  updated whenever any one of the composite stream values
+  changes. This only works in a dynamic (xbrowser) context; in a
+  static [::Document] context an error will be thrown if a Stream is
+  encountered.
 
   If `element` is not provided, `CSS` will
   return a cached style function which can later be
@@ -221,6 +224,25 @@ module.exports = require(modules);
 
   If `Id` is applied to a [::HtmlFragment] that is not of class [::Element], 
   `element` will automatically be wrapped using [::ensureElement].
+
+@function Style
+@altsyntax element .. Style(style)
+@summary Add to an element's "style" attribute
+@param {::HtmlFragment} [element]
+@param {String} [style]
+@return {::Element}
+@desc
+  Returns a copy of `element` with `style` added to the 
+  element's "style" attribute.
+
+  To replace the "style" attribute entirely rather
+  than adding to it, use [::Attrib]`('style', newVal)`.
+
+  For a richer way to add styling, see [::CSS].
+
+  If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
+
 
 @function Class
 @altsyntax element .. Class(class, [flag])
