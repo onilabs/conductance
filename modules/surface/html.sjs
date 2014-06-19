@@ -9,7 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
-var { Element, Mechanism, Attrib } = require('./base');
+var { Element, Mechanism, Attrib, isElementOfType } = require('./base');
 var { replaceContent, appendContent, prependContent, Prop, removeNode, insertBefore } = require('./dynamic');
 var { events } = require('sjs:event');
 var { Stream, isStream, integers, each, map, transform, indexed, filter, sort, slice, any, toArray } = require('sjs:sequence');
@@ -391,7 +391,7 @@ var _map = function(items, fn) {
 */
 
 __js function wrapLi(item) { 
-  if (@isElementOfType(item, 'li')) return item;
+  if (isElementOfType(item, 'li')) return item;
   return exports.Li(item);
 }
 
