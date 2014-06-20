@@ -1,16 +1,26 @@
 @ = require(['mho:std', 'mho:app']);
 @validate = require('seed:validate');
 
-var formStyle = @Style('{ }');
+var formStyle = @CSS('{ }');
 var saveButton = `<button type="submit" class="btn btn-default">Save</button>`;
+var loginButton = `<button type="submit" class="btn btn-default">Connect</button>`;
 
+var pairObject = function(k,v) {
+	var rv = {};
+	rv[k]=v;
+	return rv;
+}
+
+var initialFocus = @Mechanism(function(elem) {
+	elem.focus();
+});
 
 function formBlock(errors, configs) {
 	return function(elem) {
 		elem .. @events('submit', {handle: @stopEvent}) .. @each {||
 			hold(0); // allow errors to propagate
 			if (!errors .. @first() .. @eq({})) {
-				console.warn("validation errors remaining - ignoring submit");
+				@warn("validation errors remaining - ignoring submit");
 				continue;
 			}
 
@@ -19,14 +29,26 @@ function formBlock(errors, configs) {
 					return val .. @merge(current);
 				});
 			}
-
-			console.log("SUBMIT");
 			break;
 		}
 	};
 };
 
+var errorText = err -> err .. @transform(function(e) {
+	if (e) return @Span(e) .. @Class("errorDescription help-text text-danger");
+});
+
+
+var inputField = function(name, desc, widget) {
+	return @Div(`<label for="$name" class="col-xs-2">$desc:</label>
+		<div class="col-xs-8">
+			$widget
+		</div>`,
+		{'class':"form-group"});
+};
+
 function InputBuilder(source, errors) {
+	if (!errors) errors = @ObservableVar({});
 	function buildInput(cons, transform, name, desc, validators) {
 			var err = errors .. @transform(o -> o[name]);
 			var obs = @ObservableVar(source[name]);
@@ -53,25 +75,18 @@ function InputBuilder(source, errors) {
 				source[name] = v;
 			}
 
-
-			var errorText = err .. @transform(function(e) {
-				if (e) return @Span(e) .. @Class("errorDescription help-text text-danger");
-			});
-
 			return [
-				@Div(`
-					<label for="$name" class="col-sm-2">$desc:</label>
-					<div class="col-sm-8">
-						${cons(obs, {'class':'form-control col-sm-6'})}
-						$errorText
-					</div>`, {'class':"form-group"}) .. @Class('has-error', err)
-					.. @Style("{width:500px}")
-				,
+				inputField(name, desc, [
+					cons(obs, {'class':'form-control col-xs-6'}),
+					errorText(err)
+				])
+				.. @Class('has-error', err)
+				.. @Style("width:500px"),
 			];
 	};
 	return {
 		Input: function (name, desc, validators) {
-			return buildInput(@TextInput, (v -> v.strip()), name, desc, validators);
+			return buildInput(@TextInput, (v -> v.trim()), name, desc, validators);
 		},
 
 		Checkbox: function(name, desc, validators) {
@@ -80,7 +95,7 @@ function InputBuilder(source, errors) {
 				return v;
 			};
 				
-			return buildInput(@TextInput, transform, name, desc, validators);
+			return buildInput(@Checkbox, transform, name, desc, validators);
 		},
 	};
 };
@@ -125,6 +140,23 @@ var appConfigEditor = exports.appConfigEditor = function(sibling, conf) {
 	);
 };
 
+exports.loginDialog = function(sibling, username, error) {
+	var password = @ObservableVar();
+	sibling .. @insertAfter(
+		@Form([
+			errorText(error),
+			inputField('password', 'Password', @TextInput(password) .. initialFocus()),
+			loginButton,
+		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()) {
+		|elem|
+		elem .. @events('submit', {handle: @stopEvent}) .. @each {||
+			var pass = password .. @first();
+			@info("returning password:", pass);
+			if (pass.length > 0) return pass;
+		}
+	};
+};
+
 var editWidget = function(values) {
 	var jsonVal = values .. @transform(x -> JSON.stringify(x, null, '  '));
 	var err = @ObservableVar();
@@ -135,10 +167,8 @@ var editWidget = function(values) {
 	return @Div([
 		errDisplay,
 		@TextArea() .. @Style('
-			{
-				width: 100%;
-				height: 200px;
-			}
+			width: 100%;
+			height: 200px;
 		') .. @Mechanism(function(elem) {
 			waitfor {
 				values .. @each {|val|

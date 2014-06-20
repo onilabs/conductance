@@ -1,14 +1,29 @@
 @deploy  = require('./deploy');
 @env = require('mho:env');
 
-var ANONYMOUS = new @deploy.User('local', null);
+var ANONYMOUS = new @deploy.User('_local', null);
 
-exports.authenticate = function(user, password) {
-  if (user !== password) {
-    // XXX actual authentication ;)
+// TODO: actual authentication ;)
+exports.getToken = function(username, password) {
+  if (username !== password) {
     return false;
   }
-  return @deploy.Api(new @deploy.User(123, user));
+  return {
+    username: username,
+    id: 123,
+    ok: true,
+  };
+};
+
+var InvalidToken = new Error("Invalid token");
+InvalidToken.invalid_token = true;
+
+exports.authenticate = function(token) {
+  var {id, ok, username} = token;
+  if (!ok) {
+    throw InvalidToken;
+  }
+  return @deploy.Api(new @deploy.User(id, username));
 };
 
 if (@env.get('anonymous-access', false) === true) {

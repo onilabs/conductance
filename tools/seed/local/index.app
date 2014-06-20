@@ -1,24 +1,10 @@
+/**
+ @template-show-busy-indicator
+*/
 require.hubs.unshift(['seed:', '/modules/']);
 @ = require(['mho:std', 'mho:app']);
 @form = require('./form');
 @logging.setLevel(@logging.DEBUG);
-
-var appSettings = function(server, app) {
-	var settings;
-	@withBusyIndicator {|ready|
-		settings = server.settings();
-	}
-	return @Div(`
-		
-	`, {'class':'settings'});
-};
-
-var pairObject = function(k,v) {
-	var rv = {};
-	rv[k]=v;
-	return rv;
-}
-
 
 var appWidget = function(server, app) {
 	@info("app: ", app);
@@ -139,13 +125,11 @@ var appWidget = function(server, app) {
 					}
 				}
 			}) .. @Style('
-				{
 					height: 200px;
 					width: 100%;
 					overflow:auto;
 					white-space: pre;
 					word-wrap: normal;
-				}
 			')}
 		</div>
 	`;
@@ -195,11 +179,34 @@ var showServer = function(server, container) {
 				return [
 					@Button(serverName) .. @Enabled(enabled) .. @OnClick(function(evt) {
 						enabled.set(false);
+						var initialConfig = server.config .. @first();
+						var authenticationError = @ObservableVar(null);
+						var isAuthenticated = initialConfig.ssh || initialConfig.token;
+
 						try {
-							@info("Connecting to server #{name}");
-							api.connect(id) {|serverApi|
-								@debug("Connected to server");
-								showServer(serverApi, evt.target.parentNode);
+							while(true) {
+								while (!isAuthenticated) {
+									@info("Getting auth token...");
+									var password = @form.loginDialog(evt.target, initialConfig.username, authenticationError);
+									@info("trying login with password: " + password);
+									isAuthenticated = api.authenticate(id, password);
+									if (!isAuthenticated) authenticationError.set("Invalid credentials");
+									@debug("Is authenticated:", isAuthenticated);
+									if (isAuthenticated === null) return;
+								}
+
+								@info("Connecting to server #{name}");
+								try {
+									api.connect(id) {|serverApi|
+										@debug("Connected to server");
+										showServer(serverApi, evt.target.parentNode);
+									}
+									break;
+								} catch(e) {
+									if (!e.invalid_token) throw e;
+									@info("Invalid token error caught");
+									isAuthenticated = false;
+								}
 							}
 						} finally {
 							enabled.set(true);

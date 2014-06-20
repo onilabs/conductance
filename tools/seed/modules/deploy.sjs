@@ -20,7 +20,7 @@ var User = exports.User = function(id, nickname) {
 };
 
 var alphanumeric = function(name) {
-  if (/^[a-zA-Z0-9]+$/.test(name)) {
+  if (/^_?[a-zA-Z0-9]+$/.test(name)) {
     return name;
   }
   throw new Error("Invalid app identifier: #{name}");

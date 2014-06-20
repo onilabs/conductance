@@ -132,7 +132,10 @@ if (deployLoopback) {
 				//}
 			}
 		} else {
-			@bridge.connect("https://#{creds.host}:#{creds.port || 443}") {|conn|
+			var prefix = "https://";
+			// XXX we should probably lock this down to testing use only, somehow
+			if (creds.host .. @contains("://")) prefix = "";
+			@bridge.connect("#{prefix}#{creds.host}:#{creds.port || 443}") {|conn|
 				block(conn.api);
 			}
 		}
@@ -178,10 +181,23 @@ exports.connect = function(serverId, block) {
 	} else {
 		// over HTTP(s), perform auth to the API
 		connect(creds) {|api|
-			// XXX this is going over cleartext - should we do it directly via index.app?
-			api = api.authenticate(creds .. @get('user'), greds .. @get('password'));
+			api = api.authenticate(creds .. @get('token'));
 			block(new Deployment(api, server));
 		}
 	}
-
 };
+
+exports.authenticate = function(serverId, password) {
+	// XXX this is going over cleartext between index.app and the local server
+	var server = @settings.server(serverId);
+	var creds = server.config .. @first();
+	var user = creds .. @get('username');
+	connect(creds) {|api|
+		@info("Logging in as: #{user}");
+		var token = api.getToken(user, password);
+		@info("Got token:", token);
+		if (!token) return false;
+		server.config.modify(c -> c .. @merge({token: token}));
+		return true;
+	}
+}
