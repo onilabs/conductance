@@ -272,6 +272,20 @@ module.exports = require(modules);
   If `Class` is applied to a [::HtmlFragment] that is not of class [::Element], 
   `element` will automatically be wrapped using [::ensureElement].
 
+@function Content
+@altsyntax element .. Content(content)
+@summary Add to an element's "style" attribute
+@param {::HtmlFragment} [element]
+@param {::HtmlFragment} [content]
+@return {::Element}
+@desc
+  Returns a copy of `element` with `content` added to the 
+  element's content.
+
+  If `Content` is applied to a [::HtmlFragment] that is not of class [::Element], 
+  `element` will automatically be wrapped using [::ensureElement].
+
+
 @function RawHTML
 @summary Cast a string into raw HTML
 @param {String} [html]

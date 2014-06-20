@@ -667,6 +667,9 @@
         "Class": {
           "type": "function"
         },
+        "Content": {
+          "type": "function"
+        },
         "RawHTML": {
           "type": "function"
         },
