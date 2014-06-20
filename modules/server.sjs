@@ -11,6 +11,7 @@
 
 /**
   @summary The Conductance webserver
+  @hostenv nodejs
 */
 
 var cutil = require('sjs:cutil');

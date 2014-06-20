@@ -11,6 +11,7 @@
 
 /**
   @summary Routing objects for use in the Conductance web server
+  @hostenv nodejs
   @desc
     See [server::run] and [#features/mho-file::] for more details
     on configuring and running the Conductance web server.
@@ -41,12 +42,10 @@ function checkEtag(t) {
   @param {../server::Responder|Array} [responder]
   @param {optional String|Function} [allow="*"] Access-Control-Allow-Origin value or filter
   @param {optional Settings} [options]
-  @setting {String} [methods] Access-Control-Allow-Methods value
-  @default "GET,PUT,POST,HEAD,DELETE"
-  @setting {String} [headers] Access-Control-Allow-Headers value
-  @default "origin, content-type"
+  @setting {String} [methods="GET,PUT,POST,HEAD,DELETE"] Access-Control-Allow-Methods value
+  @setting {String} [headers="origin, content-type"] Access-Control-Allow-Headers value
   @summary Allow Cross-Origin-Resource-Sharing for the given responder
-  @return A copy of the given responder with CORS enabled.
+  @return {../server::Responder|Array} A copy of the given responder(s) with CORS enabled.
   @desc
     If `allow` is a function, it will be called as `allow.call(req, origin)`.
     It should return `true` if the given origin is allowed, `false` otherwise.
@@ -151,7 +150,7 @@ exports.ErrorResponse = ErrorResponse;
    @param {optional RegExp|String} [path] Path to match
    @param {Integer} [port] Port to redirec to
    @param {optional Integer} [status=302] HTTP response code
-   @returns {../server::Route}
+   @return {../server::Route}
    @summary Creates a [../server::Route] that redirects requests to a different port on the same server
 */
 function PortRedirect(/*path, port, status*/) {
@@ -188,7 +187,7 @@ exports.PortRedirect = PortRedirect;
    @param {optional RegExp|String} [path] Path to match
    @param {String} [host] Fully qualified URL of host to redirect to (without trailing slash)
    @param {optional Integer} [status=302] HTTP response code
-   @returns {../server::Route}
+   @return {../server::Route}
    @summary Creates a [../server::Route] that redirects requests to a different host 
 */
 function HostRedirect(/* path, host, status */) {
@@ -224,7 +223,7 @@ exports.HostRedirect = HostRedirect;
    @param {optional RegExp|String} [path] Path to match
    @param {Function} [rewrite] URL rewriting function
    @param {optional Integer} [status=302] HTTP response code
-   @returns {../server::Route}
+   @return {../server::Route}
    @summary Creates a [../server::Route] that redirects requests to a different host 
    @desc
      `rewrite` will be called with a request URL encoded as an object by [sjs:url::parse], and needs to return the rewritten URL as a string
@@ -286,7 +285,7 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
    @function ExecutableDirectory
    @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem
-   @returns {../server::Route}
+   @return {../server::Route}
    @summary Creates a [../server::Route] that serves executable, code and static files from the local filesystem
    @desc
 
@@ -331,7 +330,7 @@ var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
    @function CodeDirectory
    @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem
-   @returns {../server::Route}
+   @return {../server::Route}
    @summary Creates a [../server::Route] that serves code and static files from the local filesystem
    @desc
       - Serves the given directory with [./formats::StaticFormatMap] as well as the [./formats::Code] extension.
@@ -346,7 +345,7 @@ var CodeDirectory = exports.CodeDirectory = createDirectoryMapper({
    @function StaticDirectory
    @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem
-   @returns {../server::Route}
+   @return {../server::Route}
    @summary Creates a [../server::Route] that serves static files from the local filesystem
    @desc
       - Serves the given directory with [./formats::StaticFormatMap].
@@ -415,7 +414,7 @@ exports.SystemCodeRoutes = SystemCodeRoutes;
   @param {../server::Responder|Array} [responder]
   @param {Object} [headers]
   @summary Set multiple response headers
-  @return A copy of `responder` which sets the given headers for every request.
+  @return {../server::Responder|Array} A copy of `responder` which sets the given headers for every request.
   @desc
     ### Example:
     
@@ -440,7 +439,7 @@ exports.SetHeaders = function(responder, headers) {
   @param {String} [headerName]
   @param {String} [value]
   @summary Set a single response header
-  @return A copy of `responder` which sets the given header for every request.
+  @return {../server::Responder|Array} A copy of `responder` which sets the given header for every request.
   @desc
     See also [::SetHeaders]
 */
@@ -455,7 +454,7 @@ exports.SetHeader = function(responder, k, v) {
   @function DeveloperMode
   @altsyntax responder .. DeveloperMode()
   @param {../server::Responder|Array} [responder]
-  @return A copy of `responder` with development mode enabled
+  @return {../server::Responder|Array} A copy of `responder` with development mode enabled
   @summary Include stack traces for server-side errors
   @desc
     Developer mode sends server-side errors to the client as a stacktrace.
@@ -501,7 +500,7 @@ exports.DeveloperMode = function(responder) {
   @param {../server::Responder|Array} [responder]
   @param {Number} [level] A log level from [sjs:logging::]
   @summary Log requests via the [sjs:logging::] module
-  @return A copy of `responder` which logs request boundaries (start/end) at the given log level
+  @return {../server::Responder|Array} A copy of `responder` which logs request boundaries (start/end) at the given log level
 */
 exports.LogRequests = function(responder, level) {
   if (level === undefined) level = logging.INFO;
@@ -520,7 +519,7 @@ exports.LogRequests = function(responder, level) {
   @summary Add a filter function to the given route(s) or host(s)
   @param {../server::Responder|Array} [responder]
   @param {Function} [func] The filter to add
-  @return A copy of `responder` with the given filter.
+  @return {../server::Responder|Array} A copy of `responder` with the given filter.
   @desc
   
     The filter function will receive two arguments: `req` and `block`.
@@ -595,11 +594,12 @@ var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
 
 /**
   @function DocumentationBrowser
+  @summary Generate routes for serving a conductance documentation browser
   @param {String} [path] Route prefix
   @param {Array} [hubs] An array of hubs to include in the documentation browser
   @param {optional Object} [settings]
   @setting {optional Boolean} [defaultHubs] If set to `false`, the default `sjs:` and `mho:` hubs are not included
-  @return An array of [../server::Responder]s
+  @return {Array} An array of [../server::Responder]s
   @desc
     This function returns an array of [../server::Responder]s which will serve a
     Conductance documentation browser under `<path>/`.

@@ -116,7 +116,7 @@ function isBinaryData(obj) {
 /**
   @function isTransportError
   @param {Error} [err]
-  @return Boolean
+  @return {Boolean}
   @summary Returns whether `err` is a [::TransportError]
 */
 var { isTransportError, TransportError } = require('./error');
@@ -746,6 +746,7 @@ exports.connect = function(api_name, opts, block) {
 
 /**
   @function accept
+  @summary Accept a connection request and return a [::BridgeConnection]
   @param {Function} [getAPI]
   @param {Transport} [transport]
   @return {::BridgeConnection}

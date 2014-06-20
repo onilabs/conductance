@@ -386,8 +386,8 @@ var _map = function(items, fn) {
     elements of Array type. The list content will be updated every time the 
     observable changes.
 
-    Any elements in `item` that isn't a `<li>` {surface::Element} will be wrapped 
-    with a `<li>` {surface::Element}.
+    Any elements in `item` that isn't a `<li>` [surface::Element] will be wrapped 
+    with a `<li>` [surface::Element].
 */
 
 __js function wrapLi(item) { 
@@ -409,8 +409,8 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
     elements of Array type. The list content will be updated every time the 
     observable changes.
 
-    Any elements in `item` that isn't a `<li>` {surface::Element} will be wrapped 
-    with a `<li>` {surface::Element}.
+    Any element in `item` that isn't a `<li>` [surface::Element] will be wrapped 
+    with a `<li>` [surface::Element].
 */
 exports.Ol = (items, attrs) -> Element('ol', items ? items .. _map(wrapLi), attrs);
 

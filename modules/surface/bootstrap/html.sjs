@@ -164,6 +164,7 @@ exports.Row = content -> @Element('div', content, {'class':'row'});
 
 /**
   @function Col
+  @summary <div class="col `col_classes`">
   @param {String} [col_classes] String of `col-*` classes to apply to the col
   @param {surface::HtmlFragment} [content]
   @return {surface::Element}
@@ -281,7 +282,7 @@ exports.PanelTitle = content -> @Element('h3', content, {'class':'panel-title'})
   @altsyntax doModal([settings]) { |dialog| ... }
   @param {Object} [settings] 
   @param {Function} [block] Function bounding lifetime of dialog; will be called with DOM node of dialog as first argument.
-  @return `undefined` if the dialog is dismissed with the close button, by clicking on the backdrop or typing 'Escape', other equal to the return value of `block`
+  @return {Object} `undefined` if the dialog is dismissed with the close button, by clicking on the backdrop or typing 'Escape', other equal to the return value of `block`
   @setting {surface::HtmlFragment} [body]
   @setting {optional surface::HtmlFragment} [header] Content of header. Takes precedence over `title` if both are given.
   @setting {optional surface::HtmlFragment} [title] Title to display in a `<h4 class='modal-title'>` in the header.

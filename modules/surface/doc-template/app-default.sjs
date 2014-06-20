@@ -12,6 +12,7 @@
 /**
   @type template
   @summary The default template for "*.app" modules (see [mho:#features/app-module::])
+  @hostenv nodejs
   @desc
 
     This template includes Twitter Bootstrap (with Conductance styling), and exposes
@@ -23,6 +24,13 @@
     exports all the HTML builders provided by
     [surface/bootstrap/html::].
 
+
+  @require mho:surface/bootstrap/html
+  @require mho:surface/bootstrap/notice
+  @require mho:surface/api-connection
+  @require mho:surface
+  @require sjs:xbrowser/dom
+  @require sjs:event
     
   @directive @template-title
   @summary Set the document title
@@ -204,15 +212,6 @@
   @param {surface/HtmlFragment} [content]
   @param {optional Settings} [settings]
   @summary alias for [surface/bootstrap/notice::Notice]
-
-
-
-  @require mho:surface/bootstrap/html
-  @require mho:surface/bootstrap/notice
-  @require mho:surface/api-connection
-  @require mho:surface
-  @require sjs:xbrowser/dom
-  @require sjs:event
 */
 
 var frag = require('../doc-fragment');

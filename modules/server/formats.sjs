@@ -11,6 +11,7 @@
 
 /**
   @summary File-format configuration for the conductance server
+  @hostenv nodejs
 */
 
 var env = require('./env');
@@ -374,7 +375,7 @@ exports.Code = Code;
 
 /**
   @function Jsonp
-  @base .. Jsonp
+  @altsyntax base .. Jsonp
   @param {::FormatMap} [base]
   @summary return a copy of `base` with mappings for serving JSON files via jsonp
   @return {::FormatMap}

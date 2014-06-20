@@ -31,6 +31,9 @@ exports.CSSDocument = function(content, parent_class) {
 
 /**
   @function Document
+  @hostenv nodejs
+  @summary Generate a static document
+  @return {string}
   @param {surface::HtmlFragment} [content] Document content
   @param {Settings} [settings]
   @setting {surface::HtmlFragment} [title] Document title
@@ -153,6 +156,8 @@ exports.Document = function(content, settings) {
 
 /**
   @function loadTemplate
+  @hostenv nodejs
+  @summary Load a template module
   @param {String} [name] template name or module URL
   @param {optional String} [base] base URL
   @desc

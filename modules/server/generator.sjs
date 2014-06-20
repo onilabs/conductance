@@ -18,6 +18,7 @@
 
 /**
   @summary Utilities for generator (`.gen`) modules
+  @hostenv nodejs
 */
 
 /**

@@ -12,6 +12,7 @@
 /**
   @type template
   @summary The default template for [surface::Document] objects.
+  @hostenv nodejs
   @desc
     This template includes Twitter Bootstrap (with Conductance styling), but provides no [mho:app::] module
 

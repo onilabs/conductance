@@ -34,6 +34,7 @@ function Crumbs(path) {
 
 /**
    @function generateDirListing
+   @summary Generate a directory listing
    @param {Object} [dir] Object describing directory
    @return {HtmlFragment}
 */

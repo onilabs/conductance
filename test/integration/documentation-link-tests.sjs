@@ -120,8 +120,11 @@
         accumulateAssertions( -> checkMarkdownLinks(docs.summary, symbol));
         accumulateAssertions( -> checkMarkdownLinks(docs.desc, symbol));
 
-        docs.children .. @ownPropertyPairs .. @each {|[name, {type}]|
-          checkSymbol(symbol.child(name, type), symbol.path);
+        if (docs.children) {
+          @info("Checking children of #{id}");
+          docs.children .. @ownPropertyPairs .. @each {|[name, {type}]|
+            checkSymbol(symbol.child(name, type), symbol.path);
+          }
         }
       }
 

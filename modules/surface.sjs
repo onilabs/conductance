@@ -72,17 +72,20 @@ module.exports = require(modules);
 
 @function isElement
 @param {Object} [element]
+@summary Test whether `element` is an [::Element]
 @return {Boolean}
 
 @function isElementWithClass
 @param {Object} [element]
 @param {String} [class_name] CSS Class
-@return {Boolean} `true` if `element` is an {::Element} and has the CSS class `class_name`
+@summary Test whether `element` is an [::Element] with CSS class `class_name`
+@return {Boolean}
 
 @function isElementOfType
 @param {Object} [element]
 @param {String} [type] Tag name (e.g. "li" or "div")
-@return {Boolean} `true` if `element` is an {::Element} and has the given `type`.
+@summary Test whether `element` is an [::Element] of type `type`.
+@return {Boolean}
 
 @function ensureElement
 @param {::HtmlFragment} [html]
@@ -495,6 +498,9 @@ module.exports = require(modules);
   See also [::On].
 
 @function Document
+@hostenv nodejs
+@summary Generate a static document
+@return {string}
 @param {surface::HtmlFragment} [content] Document content
 @param {Settings} [settings]
 @setting {surface::HtmlFragment} [title] Document title
@@ -522,6 +528,8 @@ module.exports = require(modules);
 
 
 @function loadTemplate
+@hostenv nodejs
+@summary Load a template module
 @param {String} [name] template name or module URL
 @param {optional String} [base] base URL
 @desc

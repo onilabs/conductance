@@ -37,6 +37,7 @@ HttpErrorProto.writeTo = function(req) {
 
 /**
   @class HttpError
+  @summary HTTP error object
   @constructor HttpError
   @nonew
   @param {Number} [code]

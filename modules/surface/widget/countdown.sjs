@@ -10,6 +10,15 @@
  */
 
 @ = require('mho:surface');
+
+/**
+  @function Countdown
+  @return {surface::HtmlFragment}
+  @summary Create a countdown widget
+  @desc
+    This widget will display the number of seconds,
+    counting down to 0.
+*/
 exports.Countdown = function(seconds) {
   return @Element('span', seconds) .. @Mechanism(function(node) {
     while (seconds > 0) {

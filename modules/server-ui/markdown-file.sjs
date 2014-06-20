@@ -16,6 +16,7 @@
 
 /**
    @function generateMarkdown
+   @summary Generate HTML from a Markdown file
    @param {String} [src] Markdown file source
    @return {HtmlFragment}
 */

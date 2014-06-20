@@ -15,6 +15,7 @@
 
 /**
   @summary Utilities for defining systemd units
+  @hostenv nodejs
 */
 
 var fs = require('sjs:nodejs/fs');
@@ -251,10 +252,7 @@ GroupProto._processComponents = function(components, groupTarget) {
 
 /**
   @class Unit
-  @function Unit
-  @param {String} [type]
-  @param {Object|null} [primarySettings]
-  @param {optional Object} [additionalSettings]
+  @summary A systemd unit
   @desc
     Represents a systemd unit, suitable for passing to [::Group].
 
@@ -357,6 +355,10 @@ GroupProto._processComponents = function(components, groupTarget) {
         will not (and therefore won't be started until needed, e.g via
         socket activation).
 
+  @function Unit
+  @param {String} [type]
+  @param {Object|null} [primarySettings]
+  @param {optional Object} [additionalSettings]
 
 */
 var titleCase = (s) -> s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();

@@ -385,6 +385,7 @@ __js {
 /**
   @function isElement
   @param {Object} [element]
+  @summary Test whether `element` is an [::Element]
   @return {Boolean}
 */
 __js {
@@ -396,7 +397,8 @@ __js {
    @function isElementWithClass
    @param {Object} [element]
    @param {String} [class_name] CSS Class
-   @return {Boolean} `true` if `element` is an {::Element} and has the CSS class `class_name`
+   @summary Test whether `element` is an [::Element] with CSS class `class_name`
+   @return {Boolean}
 */
 __js {
   function isElementWithClass(elem,cls) {
@@ -409,7 +411,8 @@ __js {
    @function isElementOfType
    @param {Object} [element]
    @param {String} [type] Tag name (e.g. "li" or "div")
-   @return {Boolean} `true` if `element` is an {::Element} and has the given `type`.
+   @summary Test whether `element` is an [::Element] of type `type`.
+   @return {Boolean}
 */
 __js {
   function isElementOfType(elem, type) {

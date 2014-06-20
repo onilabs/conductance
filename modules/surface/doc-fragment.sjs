@@ -16,13 +16,14 @@ var { sanitize: escapeXML } = require('sjs:string');
 
 /**
   @summary Components for use in custom [./static::Document] templates
+  @hostenv nodejs
 */
 
 var escapeCssAttr = (style) -> style.replace(/\s+/g, '') .. escapeXML;
 
 /**
   @function errorHandler
-  @return [surface::HtmlFragment]
+  @return {surface::HtmlFragment}
   @summary Plain JavaScript content to set up a default `window.onerror` handler
   @desc
     Usage: place in <head> content, after [bootstrapCss].
@@ -63,7 +64,7 @@ exports.errorHandler = function() {
 var rainbowContents = readFile(require.url('./rainbow.min.js') .. toPath);
 /**
   @function busyIndicator
-  @return [surface::HtmlFragment]
+  @return {surface::HtmlFragment}
   @param {Boolean} [showImmediately] whether to show the indicator on page load (default false)
   @param {Settings} [settings]
   @summary <script> tags to define `window.withBusyIndicator`
@@ -146,7 +147,7 @@ exports.busyIndicator = function(showImmediately, opts) {
 
 /**
   @function bootstrapCss
-  @return [surface::HtmlFragment]
+  @return {surface::HtmlFragment}
   @summary Bootstrap CSS styles
   @desc
     Place within <head>.
@@ -160,7 +161,7 @@ exports.bootstrapCss = function() {
 };
 
 /**
-  @variable bootstrapColors 
+  @variable bootstrapColors
   @summary Object with default bootstrap CSS colors
   @desc
     Useful for exposing in a `mho:app` file
@@ -194,7 +195,7 @@ var mhoColors = exports.mhoColors = bootstrapColors .. @merge({
 
 /**
   @function conductanceCss
-  @return [surface::HtmlFragment]
+  @return {surface::HtmlFragment}
   @summary Conductance CSS styles
   @desc
     Place within <head> after [::bootstrapCss]
@@ -243,7 +244,7 @@ exports.conductanceCss = function() {
 
 /**
   @function bootstrapJavascript
-  @return [surface::HtmlFragment]
+  @return {surface::HtmlFragment}
   @summary Bootstrap CSS styles
   @desc
     Typically, this is placed at the end of the <body>

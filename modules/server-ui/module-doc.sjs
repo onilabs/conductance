@@ -19,6 +19,13 @@ var LinenumberStyle = @CSS("
   a { color: #ccc; }
 ");
 
+/**
+   @function generateModuleDoc
+   @summary Generate a HTML description of a StratifiedJS module
+   @param {String} [path] module path
+   @param {String} [src] module source code
+   @return {HtmlFragment}
+*/
 exports.generateModuleDoc = function(path, src) {
   return @Container(
     `$@PageHeader(`$path <small class='pull-right'>(<a href='${@url.build(path,{format:"src"})}'>raw source</a>)</small>`)
