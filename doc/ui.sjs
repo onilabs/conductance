@@ -461,6 +461,7 @@ exports.renderer = function(libraries, rootSymbol) {
 
 	function listChildren(parent, symbol) {
 		var docs = parent.skeletonDocs();
+		if (!docs.children) return [];
 		var getType = prop -> prop[1].type;
 		return docs.children
 		.. ownPropertyPairs

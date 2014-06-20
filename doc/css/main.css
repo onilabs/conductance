@@ -126,6 +126,10 @@ h1 {
 	border: none;
 }
 
+.error-contents button {
+	color:black;
+}
+
 .mb-main {
 	padding: 15px;
 }
