@@ -6,6 +6,29 @@ require.hubs.unshift(['seed:', '/modules/']);
 @form = require('./form');
 @logging.setLevel(@logging.DEBUG);
 
+var appStyle = @CSS("
+	.header .btn-group {
+		float:right;
+	}
+
+	.log-panel .panel-body {
+		padding:0;
+		pre {
+			margin:0;
+			border: none;
+			background: #444448;
+			color: white;
+			border-radius: 0;
+
+			min-height: 50%;
+			max-height: 500px;
+			width: 100%;
+			overflow:auto;
+			white-space: pre;
+			word-wrap: normal;
+		}
+	}
+");
 var appWidget = function(server, app) {
 	@info("app: ", app);
 	var appName = app.config.central .. @transform(a -> a.name);
@@ -49,15 +72,105 @@ var appWidget = function(server, app) {
 		});
 	})(appCtl.pid);
 
-	var runningState = pid .. @transform(pid -> pid === null ? "Stopped" : `Running (PID $pid)`);
 	var statusClass = pid .. @transform(pid -> "glyphicon-#{pid === null ? "stop" : "play"}");
+	var statusColorClass = pid .. @transform(pid -> "text-#{pid === null ? "danger" : "success"}");
 
+	var statusIcon = pid .. @transform(pid ->
+		pid == null
+		? @Span(null, {'class':'glyphicon glyphicon-stop text-danger'})
+		: @Span(null, {'class':'glyphicon glyphicon-play text-success'})
+	);
+	var isRunning = pid .. @transform(pid -> pid != null);
+	var isStopped = pid .. @transform(pid -> pid == null);
+	var disabled = (elem, cond) -> elem .. @Class('disabled', cond);
 
-	var appDetail = `
-		<h1>
-		${@Span(null, {'class':'glyphicon'}) .. @Class(statusClass)}
-		${appName}
-		${@Button("[edit]") .. @Mechanism(function(elem) {
+	var appDetail = @Div(`
+		<div class="header">
+
+			<div class="btn-group">
+				${@Button(["stop ", @Icon('stop')])  .. disabled(isStopped) .. @OnClick(-> appCtl.stop())}
+				${@Button(["start ", @Icon('play')]) .. disabled(isRunning) .. @OnClick(-> appCtl.start())}
+				${@Button(["deploy ", @Icon('cloud-upload')]) .. @Mechanism(function(elem) {
+					var click = elem .. @events('click');
+					while(true) {
+						click .. @wait();
+						elem.disabled = true;
+						try {
+							@withBusyIndicator {||
+								waitfor {
+									server.deploy(app.id, @info);
+								} or {
+									click .. @wait();
+									@warn("cancelled!");
+								}
+							}
+						} finally {
+							elem.disabled = false;
+						}
+					}
+				})}
+			</div>
+
+			${@H3([
+				@Span(null, {'class':'glyphicon'}) .. @Class(statusClass),
+				`&nbsp;`,
+				appName,
+			]) .. @Class(statusColorClass)}
+		</div>
+		<div class="row">
+			<div class="log-panel panel panel-default">
+				<div class="panel-heading">
+					<h1 class="panel-title">
+						$@Button(@Icon('list')) Recent console output
+					</h1>
+				</div>
+				<div class="panel-body">
+					${@Pre(null) .. @Mechanism(function(elem) {
+						appCtl.tailLogs(100) .. @each {|chunk|
+							if (chunk == null) {
+								@info("logs reset");
+								elem.innerText = "";
+							} else {
+								var bottom = elem.scrollTop + elem.offsetHeight;
+								var contentSize = elem.scrollHeight;
+								var following = (bottom >= contentSize);
+								elem.innerText += chunk;
+								if (following) {
+									elem.scrollTop = elem.scrollHeight;
+								}
+							}
+						}
+					})}
+				</div>
+			</div>
+		</div>
+	`) .. appStyle();
+
+	var detailShown = @ObservableVar(false);
+	var disclosureClass = detailShown .. @transform(
+		shown -> 'glyphicon-chevron-' + (shown ? 'up' : 'down')
+	);
+
+	return [
+		@Button([`app: ${appName} `, @Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass)]) .. @Mechanism(function(btn) {
+			while(true) {
+				btn .. @wait('click');
+				waitfor {
+					detailShown.set(true);
+					try {
+						btn.parentNode .. @appendContent(appDetail) {||
+							hold();
+						}
+					} finally {
+						detailShown.set(false);
+					}
+				} or {
+					btn .. @wait('click');
+				}
+			}
+		}),
+	
+		@Button(@Icon('cog')) .. @Mechanism(function(elem) {
 			var container = elem.parentNode;
 			var clicks = elem .. @events('click');
 			clicks .. @each {||
@@ -68,96 +181,25 @@ var appWidget = function(server, app) {
 					console.log("edit cancelled");
 				}
 			}
-		})}
-		</h1>
-		<div>
-			<div class="status row">
-				<div class="col-sm-8">
-					<ul>
-						<li>$runningState</li>
-						<li>
-							${@Button("Stop") .. @OnClick(-> appCtl.stop())}
-							${@Button("Start") .. @OnClick(-> appCtl.start())}
-						</li>
-					</ul>
-				</div>
-				<div class="col-sm-4">
-					$@Ul([
-						@Button("Deploy") .. @Mechanism(function(elem) {
-							var click = elem .. @events('click');
-							while(true) {
-								click .. @wait();
-								elem.disabled = true;
-								try {
-									@withBusyIndicator {||
-										waitfor {
-											server.deploy(app.id, @info);
-										} or {
-											click .. @wait();
-											@warn("cancelled!");
-										}
-									}
-								} finally {
-									elem.disabled = false;
-								}
-							}
-						}),
+		}),
 
-						@Button("[delete]") .. @Mechanism(function(elem) {
-							elem .. @wait('click');
-							server.destroyApp(app .. @get('id'));
-						}),
-					])
-			</div>
-			${@Pre(null) .. @Mechanism(function(elem) {
-				appCtl.tailLogs(100) .. @each {|chunk|
-					if (chunk == null) {
-						@info("logs reset");
-						elem.innerText = "";
-					} else {
-						var bottom = elem.scrollTop + elem.offsetHeight;
-						var contentSize = elem.scrollHeight;
-						var following = (bottom >= contentSize);
-						elem.innerText += chunk;
-						if (following) {
-							elem.scrollTop = elem.scrollHeight;
-						}
-					}
-				}
-			}) .. @Style('
-					height: 200px;
-					width: 100%;
-					overflow:auto;
-					white-space: pre;
-					word-wrap: normal;
-			')}
-		</div>
-	`;
-
-	return @Button(`app: ${appName}`) .. @Mechanism(function(btn) {
-		while(true) {
-			btn .. @wait('click');
-			waitfor {
-				btn.parentNode .. @appendContent(appDetail) {||
-					hold();
-				}
-			} or {
-				btn .. @wait('click');
-			}
-		}
-	});
+		@Button(@Icon('minus-sign')) .. @Mechanism(function(elem) {
+			elem .. @wait('click');
+			server.destroyApp(app .. @get('id'));
+		}),
+	];
 };
 
 var showServer = function(server, container) {
 	var apps = server.apps;
-	container .. @appendContent(@Button("[disconnect]")) {|disconnectButton|
+	container .. @appendContent(@Button(@Icon('off'))) {|disconnectButton|
 		waitfor {
 			@debug("Apps[outer]:", apps);
 			container .. @appendContent(apps .. @transform(function(apps) {
 				@info("Apps[inner]:", apps);
 				var appWidgets = apps .. @map(app -> appWidget(server, app));
 
-				var addApp = @Button('[+]') .. @OnClick(function() {
+				var addApp = @Button(@Icon('plus-sign')) .. @OnClick(function() {
 					server.createApp({name:"TODO"});
 				});
 
@@ -189,7 +231,9 @@ var showServer = function(server, container) {
 									@info("Getting auth token...");
 									var password = @form.loginDialog(evt.target, initialConfig.username, authenticationError);
 									@info("trying login with password: " + password);
-									isAuthenticated = api.authenticate(id, password);
+									withBusyIndicator {||
+										isAuthenticated = api.authenticate(id, password);
+									}
 									if (!isAuthenticated) authenticationError.set("Invalid credentials");
 									@debug("Is authenticated:", isAuthenticated);
 									if (isAuthenticated === null) return;
@@ -212,7 +256,7 @@ var showServer = function(server, container) {
 							enabled.set(true);
 						}
 					}),
-					@Button('[edit]') .. @Mechanism(function(elem) {
+					@Button(@Icon('cog')) .. @Mechanism(function(elem) {
 						var clicks = elem .. @events('click');
 						clicks .. @each {||
 							waitfor {
@@ -225,15 +269,22 @@ var showServer = function(server, container) {
 							}
 						}
 					}),
-					@Button('[delete]') .. @OnClick(function() {
+					@Button(@Icon('minus-sign')) .. @OnClick(function() {
 						server.destroy();
 					}),
+					@Button(@Icon('log-out')) .. @OnClick(function() {
+						server.config.modify(function(conf) {
+							conf = conf .. @clone();
+							delete conf['token'];
+							return conf;
+						});
+					}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
 					@Div(null, {'class':'edit-container'}),
 				];
 			});
 		});
 
-		var addServer = @Button('[+]') .. @OnClick(function() {
+		var addServer = @Button(@Icon('plus-sign')) .. @OnClick(function() {
 			api.createServer({name:"TODO"});
 		});
 
@@ -241,7 +292,9 @@ var showServer = function(server, container) {
 			return @Ul(buttons.concat([addServer]));
 		});
 
-		ready();
-		@mainContent .. @appendContent(serverList, ->hold());
+		@mainContent .. @appendContent(serverList) {||
+			ready();
+			hold();
+		}
 	}
 }

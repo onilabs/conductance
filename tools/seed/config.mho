@@ -52,6 +52,7 @@ var serve = function(args) {
         help: 'serve over https (NOTE: uses the default conductance certificate, use for testing only)',
         'default': false,
       },
+      { name: 'help', type:'bool'},
     ]
   });
   try {

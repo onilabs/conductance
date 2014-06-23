@@ -35,7 +35,7 @@ var Deployment = function(remote, serverInfo) {
 		@info("Created local app settings", config);
 		var remoteApp = remote.createApp(localSettings .. @get('id'), central);
 		remoteApp .. @assert.ok();
-		@info("Created app: #{app}");
+		@info("Created app: #{remoteApp}");
 	};
 
 	this.destroyApp = function(id) {
@@ -135,7 +135,7 @@ if (deployLoopback) {
 			var prefix = "https://";
 			// XXX we should probably lock this down to testing use only, somehow
 			if (creds.host .. @contains("://")) prefix = "";
-			@bridge.connect("#{prefix}#{creds.host}:#{creds.port || 443}") {|conn|
+			@bridge.connect("#{prefix}#{creds.host}:#{creds.port || 443}/deploy.api", {}) {|conn|
 				block(conn.api);
 			}
 		}

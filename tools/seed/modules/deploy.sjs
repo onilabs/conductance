@@ -15,6 +15,7 @@ var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
 var User = exports.User = function(id, nickname) {
+  @assert.ok(id != null);
   this.id = id;
   this.nickname = nickname;
 };
@@ -42,7 +43,7 @@ var tryRename = function(src, dest) {
 
 var getUserAppRoot = function(user) {
   @assert.ok(user instanceof User);
-  return @path.join(here, '../apps', user.id .. alphanumeric);
+  return @path.join(here, '../apps', String(user.id) .. alphanumeric);
 };
 
 var getAppPath = function(user, id) {
@@ -377,7 +378,7 @@ var AppCollection = function(user) {
   return rv;
 };
 
-function createApp(user, id, props) {
+function createApp(appCollection, user, id, props) {
   if (getAppPath(user, id) .. @fs.exists()) {
     throw new Error("App #{id} already exists");
   }
@@ -387,7 +388,7 @@ function createApp(user, id, props) {
   return app;
 };
 
-function destroyApp(user, id) {
+function destroyApp(appCollection, user, id) {
   getApp(user, id).synchronize {||
     @info("Destroying app #{id}");
     @rimraf(getAppPath(user, id));
@@ -404,7 +405,7 @@ exports.Api = function(user) {
     user: user.id,
     apps: appCollection.items,
     getApp: id -> getApp(user, id),
-    createApp: (id, props) -> destroyApp(user, id, props),
-    destroyApp: id -> destroyApp(user, id),
+    createApp: (id, props) -> appCollection .. createApp(user, id, props),
+    destroyApp: id -> appCollection .. destroyApp(user, id),
   };
 };
