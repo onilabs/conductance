@@ -11,6 +11,17 @@ var appStyle = @CSS("
 		float:right;
 	}
 
+	.log-panel .panel-heading {
+		border-bottom-width: 0;
+		border-bottom-left-radius:4px;
+		border-bottom-right-radius:4px;
+	}
+	.log-panel.has-body .panel-heading {
+		border-bottom-width: 1px;
+		border-bottom-left-radius:0;
+		border-bottom-right-radius:0;
+	}
+
 	.log-panel .panel-body {
 		padding:0;
 		pre {
@@ -120,27 +131,50 @@ var appWidget = function(server, app) {
 		<div class="row">
 			<div class="log-panel panel panel-default">
 				<div class="panel-heading">
-					<h1 class="panel-title">
-						$@Button(@Icon('list')) Recent console output
-					</h1>
-				</div>
-				<div class="panel-body">
-					${@Pre(null) .. @Mechanism(function(elem) {
-						appCtl.tailLogs(100) .. @each {|chunk|
-							if (chunk == null) {
-								@info("logs reset");
-								elem.innerText = "";
-							} else {
-								var bottom = elem.scrollTop + elem.offsetHeight;
-								var contentSize = elem.scrollHeight;
-								var following = (bottom >= contentSize);
-								elem.innerText += chunk;
-								if (following) {
-									elem.scrollTop = elem.scrollHeight;
+					<h3 class="panel-title">
+						${@Button(@Icon('list'))
+						.. @Mechanism(function(elem) {
+							var clicks = elem .. @events('click', {handle:@stopEvent});
+							var panelRoot = elem.parentNode.parentNode.parentNode;
+							var container = panelRoot.querySelector('.panel-body');
+							console.log("CONTAIN:", container);
+							var hasBody = "has-body";
+							var content = @Pre(null) .. @Mechanism(function(elem) {
+								appCtl.tailLogs(100) .. @each {|chunk|
+									if (chunk == null) {
+										@info("logs reset");
+										elem.innerText = "";
+									} else {
+										var bottom = elem.scrollTop + elem.offsetHeight;
+										var contentSize = elem.scrollHeight;
+										var following = (bottom >= contentSize);
+										elem.innerText += chunk;
+										if (following) {
+											elem.scrollTop = elem.scrollHeight;
+										}
+									}
+								}
+							});
+
+							var containerCls = panelRoot.classList;
+							while(true) {
+								clicks .. @wait();
+								waitfor {
+									containerCls.add(hasBody);
+									try {
+										container .. @appendContent(content, ->hold());
+									} finally {
+										containerCls.remove(hasBody);
+									}
+								} or {
+									clicks .. @wait();
 								}
 							}
-						}
-					})}
+						})
+					} Recent console output
+					</h3>
+				</div>
+				<div class="panel-body">
 				</div>
 			</div>
 		</div>
