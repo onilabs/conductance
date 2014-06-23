@@ -2,13 +2,35 @@
  @template-show-busy-indicator
 */
 require.hubs.unshift(['seed:', '/modules/']);
-@ = require(['mho:std', 'mho:app']);
+@ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom']);
 @form = require('./form');
 @logging.setLevel(@logging.DEBUG);
+
+var appListStyle = @CSS("
+	{
+		margin-top: 1em;
+	}
+
+	.glyphicon {
+		float:right;
+	}
+
+	li {
+		background: #f5f5f5;
+		padding-left: 2em;
+		font-size: 0.9em;
+	}
+	li:first-child {
+		font-size: 1.1em;
+		background: white;
+		padding-left:1em;
+	}
+");
 
 var appStyle = @CSS("
 	.header .btn-group {
 		float:right;
+		padding-top: 15px;
 	}
 
 	.log-panel .panel-heading {
@@ -20,6 +42,15 @@ var appStyle = @CSS("
 		border-bottom-width: 1px;
 		border-bottom-left-radius:0;
 		border-bottom-right-radius:0;
+	}
+
+	.log-panel {
+		margin-top: 5px;
+		.panel-heading {
+			padding: 10px;
+			background-color: #fbfbfb;
+			border-color: #DADADA;
+		}
 	}
 
 	.log-panel .panel-body {
@@ -94,9 +125,11 @@ var appWidget = function(server, app) {
 	var isRunning = pid .. @transform(pid -> pid != null);
 	var isStopped = pid .. @transform(pid -> pid == null);
 	var disabled = (elem, cond) -> elem .. @Class('disabled', cond);
+	var logsVisible = @ObservableVar(false);
+	var logDisclosureClass = logsVisible .. @transform(vis -> "glyphicon-chevron-#{vis ? 'up':'down'}");
 
 	var appDetail = @Div(`
-		<div class="header">
+		<div class="header row">
 
 			<div class="btn-group">
 				${@Button(["stop ", @Icon('stop')])  .. disabled(isStopped) .. @OnClick(-> appCtl.stop())}
@@ -129,15 +162,14 @@ var appWidget = function(server, app) {
 			]) .. @Class(statusColorClass)}
 		</div>
 		<div class="row">
-			<div class="log-panel panel panel-default">
+			${@Div(`
 				<div class="panel-heading">
 					<h3 class="panel-title">
-						${@Button(@Icon('list'))
+						${@A([@Span(null, {'class':'glyphicon pull-right'}) .. @Class(logDisclosureClass), " Recent console output"])
 						.. @Mechanism(function(elem) {
 							var clicks = elem .. @events('click', {handle:@stopEvent});
-							var panelRoot = elem.parentNode.parentNode.parentNode;
+							var panelRoot = @findNode('.log-panel', elem);
 							var container = panelRoot.querySelector('.panel-body');
-							console.log("CONTAIN:", container);
 							var hasBody = "has-body";
 							var content = @Pre(null) .. @Mechanism(function(elem) {
 								appCtl.tailLogs(100) .. @each {|chunk|
@@ -156,88 +188,102 @@ var appWidget = function(server, app) {
 								}
 							});
 
-							var containerCls = panelRoot.classList;
 							while(true) {
 								clicks .. @wait();
 								waitfor {
-									containerCls.add(hasBody);
+									logsVisible.set(true);
 									try {
 										container .. @appendContent(content, ->hold());
 									} finally {
-										containerCls.remove(hasBody);
+										logsVisible.set(false);
 									}
 								} or {
 									clicks .. @wait();
 								}
 							}
 						})
-					} Recent console output
+					}
 					</h3>
 				</div>
 				<div class="panel-body">
 				</div>
-			</div>
+			`, {'class':'log-panel panel panel-default'}) .. @Class('has-body', logsVisible)}
 		</div>
 	`) .. appStyle();
 
 	var detailShown = @ObservableVar(false);
 	var disclosureClass = detailShown .. @transform(
-		shown -> 'glyphicon-chevron-' + (shown ? 'up' : 'down')
+		shown -> 'glyphicon-chevron-' + (shown ? 'left' : 'right')
 	);
 
 	return [
-		@Button([`app: ${appName} `, @Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass)]) .. @Mechanism(function(btn) {
-			while(true) {
-				btn .. @wait('click');
-				waitfor {
-					detailShown.set(true);
-					try {
-						btn.parentNode .. @appendContent(appDetail) {||
-							hold();
+		@Div([
+			@Ul([
+				@A([appName, " ", @Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass)]) .. @Mechanism(function(btn) {
+					while(true) {
+						btn .. @wait('click');
+						waitfor {
+							detailShown.set(true);
+							try {
+								btn.parentNode.parentNode.parentNode.nextSibling .. @appendContent(appDetail) {||
+									hold();
+								}
+							} finally {
+								detailShown.set(false);
+							}
+						} or {
+							btn .. @wait('click');
 						}
-					} finally {
-						detailShown.set(false);
 					}
-				} or {
-					btn .. @wait('click');
-				}
-			}
-		}),
-	
-		@Button(@Icon('cog')) .. @Mechanism(function(elem) {
-			var container = elem.parentNode;
-			var clicks = elem .. @events('click');
-			clicks .. @each {||
-				waitfor {
-					container .. @form.appConfigEditor(app.config);
-				} or {
-					clicks .. @wait();
-					console.log("edit cancelled");
-				}
-			}
-		}),
+				}),
+			
+				@A(['Settings', @Icon('cog')]) .. @Mechanism(function(elem) {
+					var container = elem.parentNode;
+					var clicks = elem .. @events('click');
+					clicks .. @each {||
+						waitfor {
+							container .. @form.appConfigEditor(app.config);
+						} or {
+							clicks .. @wait();
+							console.log("edit cancelled");
+						}
+					}
+				}),
 
-		@Button(@Icon('minus-sign')) .. @Mechanism(function(elem) {
-			elem .. @wait('click');
-			server.destroyApp(app .. @get('id'));
-		}),
+				@A(['Delete', @Icon('minus-sign')]) .. @Mechanism(function(elem) {
+					elem .. @wait('click');
+					server.destroyApp(app .. @get('id'));
+				}),
+			] .. @map(item -> @Li(item, {'class':'list-group-item'})), {'class':'list-group'}) .. appListStyle(),
+		], {'class':'col-sm-4'}),
+
+		@Div(null, {'class':'col-sm-8 app-detail'}),
 	];
 };
 
 var showServer = function(server, container) {
 	var apps = server.apps;
-	container .. @appendContent(@Button(@Icon('off'))) {|disconnectButton|
+
+	var addApp = @Button([@Icon('plus'), ' new app']) .. @OnClick(function() {
+		server.createApp({name:"TODO"});
+	});
+
+	container .. @appendContent(
+		@Div(
+			@Div([
+				addApp,
+				@Button(@Icon('off'), {'class':'disconnect'})
+			], {'class':'btn-group center'}) .. @Style('margin-top: 15px;')
+		)) {|container|
+
+		var disconnectButton = container.querySelector('.disconnect');
 		waitfor {
 			@debug("Apps[outer]:", apps);
 			container .. @appendContent(apps .. @transform(function(apps) {
 				@info("Apps[inner]:", apps);
-				var appWidgets = apps .. @map(app -> appWidget(server, app));
+				var appWidgets = apps .. @map(app -> @Div(appWidget(server, app), {'class':'row'}));
 
-				var addApp = @Button(@Icon('plus-sign')) .. @OnClick(function() {
-					server.createApp({name:"TODO"});
-				});
-
-				return @Ul(appWidgets.concat([addApp]));
+				return appWidgets;
 			}), -> hold());
 		} or { disconnectButton .. @wait('click'); }
 	}
@@ -245,89 +291,117 @@ var showServer = function(server, container) {
 
 @withBusyIndicator {|ready|
 	@withAPI('./remote.api') {|api|
+		
 		console.log("API.servers = #{api.servers}");
+		var activeServer = @ObservableVar(null);
+
+		var displayCurrentServer = function(elem) {
+			activeServer .. @each(function(server) {
+				if (!server) return;
+				var id = server.id;
+
+				elem .. @appendContent(@Div(null)) {|elem|
+					console.log("DISPLAYING", server);
+					var initialConfig = server.config .. @first();
+					var authenticationError = @ObservableVar(null);
+					var isAuthenticated = initialConfig.ssh || initialConfig.token;
+
+					waitfor {
+						while(true) {
+							while (!isAuthenticated) {
+								@info("Getting auth token...");
+								var password = @form.loginDialog(elem, initialConfig.username, authenticationError);
+								@info("trying login with password: " + password);
+								withBusyIndicator {||
+									isAuthenticated = api.authenticate(id, password);
+								}
+								if (!isAuthenticated) authenticationError.set("Invalid credentials");
+								@debug("Is authenticated:", isAuthenticated);
+								if (isAuthenticated === null) return;
+							}
+
+							@info("Connecting to server #{id}");
+							try {
+								api.connect(id) {|serverApi|
+									@debug("Connected to server");
+									showServer(serverApi, elem);
+								}
+								break;
+							} catch(e) {
+								if (!e.invalid_token) throw e;
+								@info("Login required");
+								isAuthenticated = false;
+							}
+						}
+						activeServer.set(null);
+					} or {
+						var new_ = activeServer .. @changes() .. @wait();
+						console.error("CANCEL", new_);
+					} catch(e) {
+						activeServer.set(null);
+						throw e;
+					}
+				};
+			});
+		};
+
 		var buttons = api.servers .. @transform(function(servers) {
 			return servers .. @map(function(server) {
 				@info("Server: ", server);
-				var enabled = @ObservableVar(true);
-				var id = server.id;
 				var serverName = server.config .. @transform(s -> s.name);
-				return [
-					@Button(serverName) .. @Enabled(enabled) .. @OnClick(function(evt) {
-						enabled.set(false);
-						var initialConfig = server.config .. @first();
-						var authenticationError = @ObservableVar(null);
-						var isAuthenticated = initialConfig.ssh || initialConfig.token;
+				var button = @A(serverName) .. @OnClick(function(evt) {
+					activeServer.set(server);
+				});
 
-						try {
-							while(true) {
-								while (!isAuthenticated) {
-									@info("Getting auth token...");
-									var password = @form.loginDialog(evt.target, initialConfig.username, authenticationError);
-									@info("trying login with password: " + password);
-									withBusyIndicator {||
-										isAuthenticated = api.authenticate(id, password);
-									}
-									if (!isAuthenticated) authenticationError.set("Invalid credentials");
-									@debug("Is authenticated:", isAuthenticated);
-									if (isAuthenticated === null) return;
-								}
-
-								@info("Connecting to server #{name}");
-								try {
-									api.connect(id) {|serverApi|
-										@debug("Connected to server");
-										showServer(serverApi, evt.target.parentNode);
-									}
-									break;
-								} catch(e) {
-									if (!e.invalid_token) throw e;
-									@info("Invalid token error caught");
-									isAuthenticated = false;
+				var dropdownItems = @Li([
+					@A(@Span(null, {'class':'caret'}), {'class':'dropdown-toggle', 'data-toggle':'dropdown'}),
+					@Ul([
+						@A([@Icon('cog'), ' settings']) .. @Mechanism(function(elem) {
+							var clicks = elem .. @events('click');
+							clicks .. @each {||
+								waitfor {
+									console.log("edit starting!");
+									@findNode('ul.nav', elem).parentNode .. @form.serverConfigEditor(server.config);
+									console.log("edit done!");
+								} or {
+									clicks .. @wait();
+									console.log("edit Cancelled!");
 								}
 							}
-						} finally {
-							enabled.set(true);
-						}
-					}),
-					@Button(@Icon('cog')) .. @Mechanism(function(elem) {
-						var clicks = elem .. @events('click');
-						clicks .. @each {||
-							waitfor {
-								console.log("edit starting!");
-								elem.parentNode .. @form.serverConfigEditor(server.config);
-								console.log("edit done!");
-							} or {
-								clicks .. @wait();
-								console.log("edit Cancelled!");
-							}
-						}
-					}),
-					@Button(@Icon('minus-sign')) .. @OnClick(function() {
-						server.destroy();
-					}),
-					@Button(@Icon('log-out')) .. @OnClick(function() {
-						server.config.modify(function(conf) {
-							conf = conf .. @clone();
-							delete conf['token'];
-							return conf;
-						});
-					}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
-					@Div(null, {'class':'edit-container'}),
-				];
+						}),
+						@A([@Icon('minus-sign'), ' delete']) .. @OnClick(function() {
+							server.destroy();
+						}),
+						@A([@Icon('log-out'), ' forget credentials']) .. @OnClick(function() {
+							server.config.modify(function(conf) {
+								conf = conf .. @clone();
+								delete conf['token'];
+								return conf;
+							});
+						}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
+					], {'class':'dropdown-menu'}),
+				], {'class':'dropdown'});
+
+				return @Li([button, dropdownItems])
+					.. @Class('active', activeServer .. @transform(s -> s === server));
 			});
 		});
 
-		var addServer = @Button(@Icon('plus-sign')) .. @OnClick(function() {
+		var addServer = @Li(@A(@Icon('plus-sign')) .. @OnClick(function() {
 			api.createServer({name:"TODO"});
-		});
+		}));
 
 		var serverList = buttons .. @transform(function(buttons) {
-			return @Ul(buttons.concat([addServer]));
+			return @Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'});
 		});
 
-		@mainContent .. @appendContent(serverList) {||
+		@mainContent .. @appendContent([
+			serverList,
+			@Div(null, {'class':'edit-container'}),
+			@Div(),
+		]) {|_, _, content|
 			ready();
+			displayCurrentServer(content),
 			hold();
 		}
 	}
