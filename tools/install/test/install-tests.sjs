@@ -718,6 +718,7 @@ hosts.systems .. each {|system|
 
 			test.beforeAll {||
 				console.warn();
+				childProcess.run('gup', ['-u', v1Code], {'stdio':'inherit'});
 				childProcess.run('gup', ['-j5', '-u', oldManifestPath, manifestPath, newManifestPath], {'stdio':'inherit'});
 
 				var oldManifestContents = fs.readFile(oldManifestPath, 'utf-8');

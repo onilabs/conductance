@@ -6,7 +6,7 @@ commit="$(basename "$dest" .git)"
 commit="$(git rev-parse "$commit")"
 if [ ! -d "$dest/.git" ]; then
 	mkdir -p "$2"
-	cd "$2" && git init
+	(cd "$2" && git init)
 fi
 cd "$2"
 if ! git checkout "$commit"; then
