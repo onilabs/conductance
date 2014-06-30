@@ -20,6 +20,16 @@ context("serving files") {||
 		http.get(rel(url.encode('%20special characters') + '/' + url.encode('%20awkward %2f characters.sjs'))) .. assert.ok();
 	}
 
+	test("Accessing a file outside the document root") {||
+		assert.raises(
+			{filter: e -> e.status === 404},
+			-> http.get(rel('../../../../../etc/hosts')));
+
+		assert.raises(
+			{filter: e -> e.status === 403},
+			-> http.get(rel('%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/hosts')));
+	}
+
 	test("Can't access source code of .api files") {||
 		var url = rel('hello.api');
 		http.get(url) .. /rpc\/bridge/.test() .. assert.ok(); // client-side connection code
