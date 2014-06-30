@@ -1,5 +1,5 @@
 { "format": 2
-, "version": 8
+, "version": 9
 , "manifest_url": "https://conductance.io/install/manifest-v2.json"
 , "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from https://conductance.io/"
 , "wrappers":
@@ -18,8 +18,8 @@
   }
 , "data":
   { "conductance":
-    { "id": "0.4.0"
-    , "href": "https://github.com/onilabs/conductance/tarball/1ca84a55175863f0f642030dcda2919c7361cc84"
+    { "id": "0.4.1"
+    , "href": "https://github.com/onilabs/conductance/tarball/87103848f3d6622a94e9f9f4dfbfe932efffe27f"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
