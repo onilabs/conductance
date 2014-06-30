@@ -28,6 +28,8 @@ var { setStatus, setHeader, writeRedirectResponse, HttpError, NotFound } = requi
 var { _applyEtag } = require('./route');
 var lruCache = require('sjs:lru-cache');
 
+var Forbidden = -> HttpError(403, 'Forbidden', 'Invalid Path' );
+
 function checkEtag(t) {
   if (!isString(t)) throw new Error("non-string etag: #{t}");
   return t;
@@ -304,6 +306,8 @@ exports.MappedDirectoryHandler = function(root, settings) {
   // ExecutableDirectory and CodeDirectory will selectively enable more dynamic
   // (and less safe) behaviour.
   
+  root = path.normalize(root);
+
   settings = { mapIndexToDir:   true,
                allowDirListing: true,
                allowGenerators: false,
@@ -326,6 +330,11 @@ exports.MappedDirectoryHandler = function(root, settings) {
 
 
     var file = relativePath ? path.join(root, relativePath) : root;
+
+    if (file.indexOf(root) !== 0) {
+      throw Forbidden();
+    }
+
     if (process.platform == 'win32')
       file = file.replace(/\\/g, '/');
 
