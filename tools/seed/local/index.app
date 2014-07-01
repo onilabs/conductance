@@ -6,6 +6,25 @@ require.hubs.unshift(['seed:', '/modules/']);
 @form = require('./form');
 @logging.setLevel(@logging.DEBUG);
 
+document.body .. @appendContent(@GlobalCSS("
+	body {
+		.container {
+			min-height: 500px;
+			background: white;
+			box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
+			padding-top: 1em;
+		}
+		background: #555562;
+	}
+
+	.clickable, a, button {
+		cursor: pointer;
+		&:hover {
+			color: #b9090b;
+		}
+	}
+"));
+
 var appListStyle = @CSS("
 	{
 		margin-top: 1em;
@@ -30,7 +49,8 @@ var appListStyle = @CSS("
 var appStyle = @CSS("
 	.header .btn-group {
 		float:right;
-		padding-top: 15px;
+		//padding-top: 15px;
+		font-size: 0.9em;
 	}
 
 	.log-panel .panel-heading {
@@ -129,7 +149,7 @@ var appWidget = function(server, app) {
 	var logDisclosureClass = logsVisible .. @transform(vis -> "glyphicon-chevron-#{vis ? 'up':'down'}");
 
 	var appDetail = @Div(`
-		<div class="header row">
+		<div class="header">
 
 			<div class="btn-group">
 				${@Button(["stop ", @Icon('stop')])  .. disabled(isStopped) .. @OnClick(-> appCtl.stop())}
@@ -161,11 +181,14 @@ var appWidget = function(server, app) {
 				appName,
 			]) .. @Class(statusColorClass)}
 		</div>
-		<div class="row">
+		<div class="clearfix">
 			${@Div(`
 				<div class="panel-heading">
-					<h3 class="panel-title">
-						${@A([@Span(null, {'class':'glyphicon pull-right'}) .. @Class(logDisclosureClass), " Recent console output"])
+					${@H3(
+						[@Span(null, {'class':'glyphicon pull-right'}) .. @Class(logDisclosureClass),
+						"Output"
+						],
+						{'class': "panel-title clickable"})
 						.. @Mechanism(function(elem) {
 							var clicks = elem .. @events('click', {handle:@stopEvent});
 							var panelRoot = @findNode('.log-panel', elem);
@@ -203,7 +226,6 @@ var appWidget = function(server, app) {
 							}
 						})
 					}
-					</h3>
 				</div>
 				<div class="panel-body">
 				</div>
@@ -216,16 +238,20 @@ var appWidget = function(server, app) {
 		shown -> 'glyphicon-chevron-' + (shown ? 'left' : 'right')
 	);
 
+	var listButton = function(content) {
+		return @Li(content, {'class':'list-group-item clickable'});
+	};
+
 	return [
 		@Div([
 			@Ul([
-				@A([appName, " ", @Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass)]) .. @Mechanism(function(btn) {
+				listButton([appName, " ", @Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass)]) .. @Mechanism(function(btn) {
 					while(true) {
 						btn .. @wait('click');
 						waitfor {
 							detailShown.set(true);
 							try {
-								btn.parentNode.parentNode.parentNode.nextSibling .. @appendContent(appDetail) {||
+								@findNode('.row', btn).querySelector('.app-detail') .. @appendContent(appDetail) {||
 									hold();
 								}
 							} finally {
@@ -237,7 +263,7 @@ var appWidget = function(server, app) {
 					}
 				}),
 			
-				@A(['Settings', @Icon('cog')]) .. @Mechanism(function(elem) {
+				listButton(['Settings', @Icon('cog')]) .. @Mechanism(function(elem) {
 					var container = elem.parentNode;
 					var clicks = elem .. @events('click');
 					clicks .. @each {||
@@ -250,11 +276,11 @@ var appWidget = function(server, app) {
 					}
 				}),
 
-				@A(['Delete', @Icon('minus-sign')]) .. @Mechanism(function(elem) {
+				listButton(['Delete', @Icon('minus-sign')]) .. @Mechanism(function(elem) {
 					elem .. @wait('click');
 					server.destroyApp(app .. @get('id'));
 				}),
-			] .. @map(item -> @Li(item, {'class':'list-group-item'})), {'class':'list-group'}) .. appListStyle(),
+			], {'class':'list-group'}) .. appListStyle(),
 		], {'class':'col-sm-4'}),
 
 		@Div(null, {'class':'col-sm-8 app-detail'}),
@@ -297,9 +323,16 @@ var showServer = function(server, container) {
 
 		var displayCurrentServer = function(elem) {
 			activeServer .. @each(function(server) {
-				if (!server) return;
-				var id = server.id;
+				if (!server) {
+					elem .. @appendContent(`<h1>Click something!</h1>`) {||
+					// TODO: do a "detached each" instead of explicitly waiting for
+					// this in each loop
+						activeServer .. @changes .. @wait();
+					}
+					return;
+				}
 
+				var id = server.id;
 				elem .. @appendContent(@Div(null)) {|elem|
 					console.log("DISPLAYING", server);
 					var initialConfig = server.config .. @first();
@@ -356,7 +389,7 @@ var showServer = function(server, container) {
 				var dropdownItems = @Li([
 					@A(@Span(null, {'class':'caret'}), {'class':'dropdown-toggle', 'data-toggle':'dropdown'}),
 					@Ul([
-						@A([@Icon('cog'), ' settings']) .. @Mechanism(function(elem) {
+						@A([@Icon('cog'), ' Settings']) .. @Mechanism(function(elem) {
 							var clicks = elem .. @events('click');
 							clicks .. @each {||
 								waitfor {
@@ -369,7 +402,7 @@ var showServer = function(server, container) {
 								}
 							}
 						}),
-						@A([@Icon('minus-sign'), ' delete']) .. @OnClick(function() {
+						@A([@Icon('remove'), ' Delete']) .. @OnClick(function() {
 							server.destroy();
 						}),
 						@A([@Icon('log-out'), ' forget credentials']) .. @OnClick(function() {
