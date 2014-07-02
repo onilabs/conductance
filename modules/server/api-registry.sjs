@@ -36,6 +36,7 @@ exports.registerAPI = function(moduleid) {
   var apiid = module_desc.apiid = createID(4);
   api_by_apiid[apiid] = merge(module_desc.exports, {__oni_apiid: apiid});
 
+
   return apiid;
 };
 

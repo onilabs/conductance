@@ -90,7 +90,6 @@ EndpointProto.connect = function(block) {
 
 EndpointProto._connect = function(block) {
 	@bridge.connect(this.server, {}) { |conn|
-		console.log("endpoing calling block=", block);
 		block(conn.api);
 	}
 }

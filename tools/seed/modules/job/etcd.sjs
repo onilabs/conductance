@@ -83,7 +83,11 @@ exports.changes = function(client, key, opts) {
 
 exports.values = function(client, key, opts) {
 	return exports.changes.apply(null, arguments)
-		.. @filter(change -> change.action === 'set' || change.action === 'get')
+		//.. @filter(function(change) {
+		//	if (change.action === 'set' || change.action === 'get' || change.action === 'create') return true;
+		//	console.log("Skipping non-value change type: #{change.action}");
+		//})
+		.. @filter(change -> change.action === 'set' || change.action === 'get' || change.action === 'create')
 		.. @transform(change -> change.node);
 }
 
@@ -108,7 +112,7 @@ exports.err = {
 
 var keyFn = function(prefix) {
 	return function(id) {
-		@assert.ok(id !== undefined);
+		@assert.ok(id !== undefined, "no ID given (key prefix #{prefix})");
 		return id === null ? prefix : "#{prefix}#{id}";
 	}
 }

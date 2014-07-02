@@ -32,8 +32,9 @@ var getAppPath = exports.getAppPath = function(user, id) {
   return @path.join(getUserAppRoot(user), id .. @alphanumeric);
 }
 
+var appRunRoot = @path.join(dataRoot, 'run', 'app');
 var getAppRunPath = function(user, id) {
-  return @path.join(dataRoot, 'run', 'app', String(user.id) .. @alphanumeric, id .. @alphanumeric);
+  return @path.join(appRunRoot, String(user.id) .. @alphanumeric, id .. @alphanumeric);
 }
 
 var tryRename = function(src, dest) {
@@ -44,6 +45,14 @@ var tryRename = function(src, dest) {
     throw e;
   }
 };
+
+var writeAtomically = function(path, contents) {
+  // atomic on POSIX, but not necessarily on Windows
+  var tmp = path + '.tmp';
+  @fs.writeFile(tmp, contents);
+  @fs.rename(tmp, path);
+};
+
 
 var semaphoreWrapper = function() {
   var lock = @Semaphore();
@@ -72,11 +81,38 @@ var etcd = @env.get('etcd');
 exports.localAppState = (function() {
   var apps = {};
 
+  var getPidPath = root -> @path.join(root, "pid");
+
+  var _groupRunning = (pid) -> @childProcess.isRunning(-pid, 0);
+
+  var _getPid = function(pidPath) {
+    var pid = null;
+    try {
+      pid = parseInt(@fs.readFile(pidPath).toString('ascii'), 10);
+    } catch(e) {
+      if (e.code !== 'ENOENT') throw e;
+    }
+
+    if (pid !== null && _groupRunning(pid)) {
+      // check the actual proc (XXX linux-only)
+      var exe = @fs.readlink("/proc/#{pid}/exe") .. @path.basename;
+      @debug("pid #{pid} is process #{exe}");
+      if (!/node/.test(exe)) {
+        @warn("pid #{pid} is running, but is not a nodejs process! (#{exe})");
+        pid = null;
+      }
+      return pid;
+    } else {
+      return null;
+    }
+  };
+
+
   var App = function(user, id) {
     @assert.string(id, 'appId');
     var appBase = getAppPath(user, id);
     var appRunBase = getAppRunPath(user, id);
-    var pidPath = @path.join(appRunBase, "pid");
+    var pidPath = getPidPath(appRunBase);
     var logPath = @path.join(appRunBase, 'log');
     var configPath = @path.join(appBase, 'config.json');
     var recheckPid = @Emitter();
@@ -121,29 +157,9 @@ exports.localAppState = (function() {
 
     var safe = semaphoreWrapper();
 
-    var _groupRunning = (pid) -> @childProcess.isRunning(-pid, 0);
-
     var getPid = function() {
-      var pid = null;
-      try {
-        pid = parseInt(@fs.readFile(pidPath).toString('ascii'), 10);
-      } catch(e) {
-        if (e.code !== 'ENOENT') throw e;
-      }
-
-      if (pid !== null && _groupRunning(pid)) {
-        // check the actual proc (XXX linux-only)
-        var exe = @fs.readlink("/proc/#{pid}/exe") .. @path.basename;
-        @debug("pid #{pid} is process #{exe}");
-        if (!/node/.test(exe)) {
-          @warn("pid #{pid} is running, but is not a nodejs process! (#{exe})");
-          pid = null;
-        }
-        return pid;
-      } else {
-        return null;
-      }
-    } .. safe();
+      return _getPid(pidPath);
+    } .. safe;
 
     var isRunning = function() {
       return getPid.unsafe() !== null;
@@ -175,7 +191,7 @@ exports.localAppState = (function() {
       // XXX this needs to be a _remote_ rsync once slaves run
       // on separate machines
       @info("syncing current code for app #{id}");
-      var codeSource = @path.join(appRunBase, "code");
+      var codeSource = @path.join(appBase, "code");
       var codeDest = @path.join(appRunBase, "code");
       @mkdirp(codeSource);
       @mkdirp(codeDest);
@@ -223,24 +239,31 @@ exports.localAppState = (function() {
       }
 
       try {
+        var args = ConductanceArgs.slice(1);
+        
+        // add setuid shim
+        args.unshift(
+          @path.join(@url.normalize('../job/run-shim.js', module.id) .. @url.toPath())
+        );
+
         var child = @childProcess.launch(process.execPath,
-          ConductanceArgs.slice(1).concat([
+          args.concat([
             '-vvv',
             'serve',
-            @path.join(appRunBase, 'code', 'config.mho'),
+            @path.join(appRunBase, 'code', 'config.mho')
           ]),
           {
             stdio: stdio,
             detached: true,
-            // XXX run run-shim directly, instead of messing with SJS_INIT
             env: process.env .. @merge({
               RUN_USER: 'tim', // XXX
-              PIDFILE: pidPath,
-              SJS_INIT: @path.join(@url.normalize('../job/run-shim.sjs', module.id) .. @url.toPath()),
             }),
           }
         );
-        console.log("launched child process: #{child.pid}");
+
+        @info("launched child process: #{child.pid}");
+        pidPath .. writeAtomically(String(child.pid));
+
       } finally {
         stdio.slice(1) .. @each(@fs.close);
         spawn(function() {hold(400); recheckPid.emit();}());
@@ -291,16 +314,35 @@ exports.localAppState = (function() {
     }
   };
 
-  return function(user, id) {
+  var getGlobalId = (user, id) -> "#{user.id .. @alphanumeric()}/#{id .. @alphanumeric()}";
+
+  var getApp = function(user, id) {
     @assert.ok(user instanceof @User);
     @assert.string(id);
-    var globalId = "#{user.id .. @alphanumeric()}/#{id .. @alphanumeric()}";
+    var globalId = getGlobalId(user, id);
     var rv = apps[globalId];
     if(!apps..@hasOwn(globalId)) {
       rv = apps[globalId] = App(user, id);
     }
     return rv;
   };
+  getApp.runningApps = @Stream(function(emit) {
+    var root = appRunRoot;
+    @mkdirp(root);
+    @fs.readdir(root) .. @each {|userId|
+      var path = @path.join(root, userId);
+      if (!@fs.stat(path).isDirectory()) continue;
+      @fs.readdir(path) .. @each {|appId|
+        var pidPath = getPidPath(@path.join(path, appId));
+        if (_getPid(pidPath) !== null) {
+          var user = new @User(userId, null);
+          var globalId = getGlobalId(user, appId);
+          emit([globalId, getApp(user, appId)]);
+        }
+      }
+    }
+  });
+  return getApp;
 })();
 
 // master app state (for use on master). Provides central control
@@ -379,22 +421,23 @@ exports.masterAppState = (function() {
           @childProcess.run('tar', ['xzf', tmpfile.path, '-C', tmpdest], {stdio:'inherit'});
 
           // sanity check that we have a config.mho
-          @assert.ok(@path.exists(@path.join(tmpdest, 'config.mho')), "no config.mho found in code!");
+          @assert.ok(@fs.exists(@path.join(tmpdest, 'config.mho')), "no config.mho found in code!");
+
+          // stop app so that nothing is trying to run code while we're modifying it
+          stopApp();
 
           // overwrite dir
           tryRename(finaldest, finaldest + '.old');
           @fs.rename(tmpdest, finaldest);
           tryRename(finaldest + '.old', tmpdest);
 
-          // and start it
+          // and restart it
           startApp();
         } catch (e) {
-          cleanup();
+          //cleanup();
           throw e;
         }
       }
-
-      etcd .. @job_master.sync_code();
     } .. safe();
 
     var endpointStream = @Stream(function(emit) {
@@ -411,7 +454,6 @@ exports.masterAppState = (function() {
           }
         } else {
           etcd .. @etcd.values(@etcd.slave_endpoint(serverId), {initial:true}) .. @each {|url|
-            console.log("got endpoint:", url.value);
             if (last !== url.value) {
               last = url.value;
               emit(@Endpoint(url.value));

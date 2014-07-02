@@ -8,27 +8,13 @@ exports.servers = @settings.servers;
 exports.createServer = function(props) {
 	return @settings.server(null, props);
 };
-
 var Deployment = function(endpoint, serverInfo) {
 	this.endpoint = endpoint;
 	var serverId = serverInfo .. @get('id');
-	//this.apps = remote.apps .. @transform(function(remoteApps) {
-	//	@info("transforming remote apps: #{remoteApps}");
-	//	@assert.arrayOfObject(remoteApps);
-	//	return remoteApps .. @map(function(app) {
-	//		@info("transforming remote app: #{app}");
-	//		var appId = app .. @get('id');
-	//		var localSettings = @settings.app(serverId, appId);
-	//		return {
-	//			config: {
-	//				central: app.config, // stored on server
-	//				local: localSettings.config, // stored per-client
-	//			},
-	//			ctl: app,
-	//			id: appId,
-	//		};
-	//	}) .. @sortBy(app -> app.config.central .. @first() .. @get('name'));
-	//});
+
+	this.appConfig = function(appId) {
+		return @settings.app(serverId, appId).config;
+	};
 
 	this.addApp = function(props) {
 		var {central, local} = props;
@@ -43,51 +29,57 @@ var Deployment = function(endpoint, serverInfo) {
 		var localAppSettings = @settings.app(serverInfo.id, appId);
 		var settings = localAppSettings.config .. @first();
 		var root = settings .. @get('path');
-		var app = remote.getApp(appId);
-		var config = app.config .. @first();
-		@info("deploying #{config.name} (#{appId}) from #{root}");
-
-		// XXX we should be able to use `tar` output directly,
-		// but https://github.com/joyent/node/issues/6595
-		@TemporaryFile {|tmp|
-			try {
-				@childProcess.run('tar', ['-cvzf', tmp.path, '-C', root, '.'], {stdio: ['ignore', 'ignore',2]});
-			} catch(e) {
-				throw new Error("`tar` failed: #{e}");
+		endpoint.connect {|remote|
+			if (remote.authenticate) {
+				console.log(serverInfo);
+				remote = remote.authenticate(serverInfo.config .. @first() .. @get('token'));
 			}
+			var app = remote.getApp(appId);
+			var config = app.config .. @first();
+			@info("deploying #{config.name} (#{appId}) from #{root}");
 
-			var payload = @Stream(function(emit) {
-				console.log("READING!");
-				var stream = tmp.readStream();
-				var i=0;
-				var chunk;
-				var chunks=[];
-				var lastTime = 0;
-				var send = function(chunk) {
-					if (chunks.length > 0) {
-						console.log("[> chunk #{i}: #{chunks.length}]");
-						console.log("[= chunk #{i++}: #{chunks.length}]");
-						emit(Buffer.concat(chunks));
-						chunks = [];
-					}
-				};
-				while(true) {
-					chunk = stream .. @read();
-					if (chunk == null) {
-						send();
-						break;
-					}
-					chunks.push(chunk);
-
-					var now = Date.now();
-					if (Math.abs(now - lastTime) > 200) {
-						// if last round-trip was less than 200ms ago, keep accumulating
-						lastTime = now;
-						send();
-					}
+			// XXX we should be able to use `tar` output directly,
+			// but https://github.com/joyent/node/issues/6595
+			@TemporaryFile {|tmp|
+				try {
+					@childProcess.run('tar', ['-cvzf', tmp.path, '-C', root, '.'], {stdio: ['ignore', 'ignore',2]});
+				} catch(e) {
+					throw new Error("`tar` failed: #{e}");
 				}
-			});
-			app.deploy(payload);
+
+				var payload = @Stream(function(emit) {
+					console.log("READING!");
+					var stream = tmp.readStream();
+					var i=0;
+					var chunk;
+					var chunks=[];
+					var lastTime = 0;
+					var send = function(chunk) {
+						if (chunks.length > 0) {
+							console.log("[> chunk #{i}: #{chunks.length}]");
+							console.log("[= chunk #{i++}: #{chunks.length}]");
+							emit(Buffer.concat(chunks));
+							chunks = [];
+						}
+					};
+					while(true) {
+						chunk = stream .. @read();
+						if (chunk == null) {
+							send();
+							break;
+						}
+						chunks.push(chunk);
+
+						var now = Date.now();
+						if (Math.abs(now - lastTime) > 200) {
+							// if last round-trip was less than 200ms ago, keep accumulating
+							lastTime = now;
+							send();
+						}
+					}
+				});
+				app.deploy(payload);
+			}
 		}
 	};
 };

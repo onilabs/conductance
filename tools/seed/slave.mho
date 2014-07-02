@@ -50,13 +50,13 @@ exports.serve = function(args) {
 			routes: routes,
 		});
 	} or {
-		exports.run_slave(opts.hostname || @os.hostname());
+		exports.run_slave(opts.hostname || @os.hostname(), true);
 	}
 }
 
 @slave = require('seed:job/slave');
-exports.run_slave = function(id) {
-	@slave.main(@env.get('etcd'), id, exports.url_root);
+exports.run_slave = function(id, singleton) {
+	@slave.main(@env.get('etcd'), id, exports.url_root, singleton);
 }
 
 exports.url_root = "http://" + @os.hostname() + ":#{port.port}/";

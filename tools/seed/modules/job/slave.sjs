@@ -10,38 +10,87 @@ var HEARTBEAT_INTERVAL = 1000 * 60 * 1; // 1 minute
 var load = 0;
 
 
-exports.main = function(client, id, server_root) {
-	var info = -> @info.apply(null, ["[client##{id}]"].concat(arguments .. @toArray()));
-	var endpoint_url = server_root + "app.api";
+exports.main = function(client, serverId, serverRoot, singleton) {
+	var info = -> @info.apply(null, ["[client##{serverId}]"].concat(arguments .. @toArray()));
+	var endpoint_url = serverRoot + "app.api";
 	info("connecting...");
-	client.set(@etcd.slave_endpoint(id), endpoint_url);
-	client.set(@etcd.slave_load(id), load);
+	client.set(@etcd.slave_endpoint(serverId), endpoint_url);
+
+	if(singleton) { // only one slave per host should be set to singleton
+		@app.localAppState.runningApps .. @each {|[id, app]|
+			info("adopting already-running app: #{id}");
+			spawn(appRunLoop(client, serverId, info, app, id, true));
+		}
+	}
+
+	client.set(@etcd.slave_load(serverId), load);
 	try {
 		waitfor {
-			discoverNewRequests(client, id, info);
+			discoverNewRequests(client, serverId, info);
 		} and {
 			while(true) {
 				hold(HEARTBEAT_INTERVAL);
-				client.set(@etcd.slave_endpoint(id), endpoint_url);
-				client.set(@etcd.slave_load(id), load);
+				client.set(@etcd.slave_endpoint(serverId), endpoint_url);
+				client.set(@etcd.slave_load(serverId), load);
 			}
 		}
 	} finally {
 		try {
-			client.del(@etcd.slave_endpoint(id));
+			client.del(@etcd.slave_endpoint(serverId));
 		} catch(e) {
-			@error("Couldn't mark slave as offline: #{e}");
+			if (!@env.get('deployLoopback', false)) {
+				@error("Couldn't mark slave as offline: #{e}");
+			}
 		}
 	}
 };
 
 
-function runApp(id, block) {
-	waitfor {
-		app.start();
-	} or {
-		stop.wait();
-		return "stopped";
+function appRunLoop(client, serverId, info, app, id, alreadyRunning) {
+	var endpointKey = @etcd.app_endpoint(id);
+	try {
+		client.set(endpointKey, serverId);
+		load += 1;
+		waitfor {
+			if (!alreadyRunning) {
+				app.stop();
+				info("running app #{id}");
+				app.start(true);
+			}
+			app.wait();
+		} or {
+			info("watching app ops: #{@etcd.app_op(id)}");
+			client
+				.. @etcd.values(@etcd.app_op(id) +"/", {recursive:true})
+				.. @each
+			{|node|
+				try {
+					info("saw app op:", node.value);
+					switch(node.value) {
+						case "stop":
+							info("stopping app #{id}");
+							app.stop();
+							@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
+							break;
+						case "start":
+							info("ignoring duplicate [start] request");
+							break;
+						default:
+							throw new Error("Unknown app op:", node.value);
+					}
+				} finally {
+					info("deleting app op:", node.value);
+					client.del(node.key, {});
+				}
+			}
+		}
+	} catch(e) {
+		@error(String(e));
+	} finally {
+		info("app #{id} ended");
+		app.stop();
+		@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
+		load-=1;
 	}
 }
 
@@ -62,48 +111,28 @@ function discoverNewRequests(client, serverId, info) {
 			continue;
 		}
 		var id = key .. @removeLeading(prefix);
-		info("starting job for app #{id}");
 		
-		// XXX make this waitable?
-		spawn(function() {
-			var endpointKey = @etcd.app_endpoint(id);
-			client.set(endpointKey, serverId);
-			load += 1;
-			try {
-				// clear out any previous actions
-				@etcd.tryOp(-> client.del("app/op/#{id}"));
-				var [userId, appId] = id.split('/');
-				var user = new @User(userId, "(slave)");
-				var app = @app.localAppState(user, appId);
-				waitfor {
-					app.start(true);
-					app.wait();
-				} or {
-					info("watching app ops for #{id}");
-					client
-						.. @etcd.values(@etcd.app_op(id))
-						.. @each
-					{|node|
-						info("saw app op:", node.value);
-						switch(node.value) {
-							case "stop":
-								@info("stopping app #{app.id}");
-								app.stop();
-								break;
-							case "start":
-								info("ignoring duplicate [start] request");
-								break;
-							default:
-								throw new Error("Unknown app op:", node.value);
-						}
-					}
-				}
-			} finally {
-				info("app ended");
-				app.stop();
-				@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
-				load-=1;
+		// clear out any previous actions
+		var existingOps;
+		try {
+			existingOps = client.get(@etcd.app_op(id), {recursive:true}).node.nodes;
+		} catch(e) {
+			if (e.errorCode !== @etcd.err.KEY_NOT_FOUND) {
+				throw e;
 			}
-		}());
+		}
+		;(existingOps || []) .. @each {|existing|
+			if (existing .. @get('createdIndex') < node .. @get('createdIndex')) {
+				info("deleting previous op for app #{id}: #{existing.value}");
+				client.del(existing.key);
+			}
+		};
+
+		info("starting job for app #{id}");
+		var [userId, appId] = id.split('/');
+		var user = new @User(userId, "(slave)");
+		var app = @app.localAppState(user, appId);
+		// XXX make this waitable?
+		spawn(appRunLoop(client, serverId, info, app, id, false));
 	}
 }

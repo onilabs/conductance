@@ -12,12 +12,22 @@ exports.monitorClusterChanges = function(client) {
 };
 
 var op = function(client, op, id) {
-	var key = op === 'start' ? @etcd.app_job(id) : @etcd.app_op(id);
-	@info("performing action [#{op}] on [#{key}]");
-	var created = client.set(key, op).node;
+	@info("performing action [#{op}] on [#{id}]");
+	var created;
+	if (op === 'start') {
+		created = client.set(@etcd.app_job(id), op).node;
+	} else {
+		var hasEndpoint = @etcd.tryOp(-> client.get(@etcd.app_endpoint(id)), [@etcd.err.KEY_NOT_FOUND]);
+		if (!hasEndpoint) {
+			@info("skipping `#{op}` request - there is no endpoint");
+			return false;
+		}
+		created = client.create(@etcd.app_op(id), op).node;
+	}
 	@info("submitted op #{op}", created);
 	var change = client.watch(created .. @get('key'), {waitIndex: created .. @get('modifiedIndex') + 1});
 	@info("op accepted! #{id}!#{op}");
+	return true;
 }
 
 exports.start = (client, id) -> op(client, 'start', id);

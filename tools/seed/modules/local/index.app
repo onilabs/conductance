@@ -166,7 +166,7 @@ var appWidget = function(token, localServer, remoteServer, app) {
 						try {
 							@withBusyIndicator {||
 								waitfor {
-									server.deploy(app.id, @info);
+									localServer.deploy(app.id, @info);
 								} or {
 									click .. @wait();
 									@warn("cancelled!");
@@ -272,7 +272,10 @@ var appWidget = function(token, localServer, remoteServer, app) {
 					var clicks = elem .. @events('click');
 					clicks .. @each {||
 						waitfor {
-							container .. @form.appConfigEditor(app.config);
+							container .. @form.appConfigEditor({
+								central: app.config,
+								local: localServer.appConfig(app.id),
+							});
 						} or {
 							clicks .. @wait();
 							console.log("edit cancelled");
