@@ -76,7 +76,7 @@ function discoverNewRequests(client, serverId, info) {
 				var user = new @User(userId, "(slave)");
 				var app = @app.localAppState(user, appId);
 				waitfor {
-					app.start();
+					app.start(true);
 					app.wait();
 				} or {
 					info("watching app ops for #{id}");

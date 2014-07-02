@@ -21,7 +21,7 @@ var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
 var dataRoot = @env.get('dataRoot');
-var appRoot = @path.join(dataRoot, 'apps');
+var appRoot = @path.join(dataRoot, 'app');
 
 var getUserAppRoot = exports.getUserAppRoot = function(user) {
   @assert.ok(user instanceof @User);
@@ -30,6 +30,10 @@ var getUserAppRoot = exports.getUserAppRoot = function(user) {
 
 var getAppPath = exports.getAppPath = function(user, id) {
   return @path.join(getUserAppRoot(user), id .. @alphanumeric);
+}
+
+var getAppRunPath = function(user, id) {
+  return @path.join(dataRoot, 'run', 'app', String(user.id) .. @alphanumeric, id .. @alphanumeric);
 }
 
 var tryRename = function(src, dest) {
@@ -70,10 +74,10 @@ exports.localAppState = (function() {
 
   var App = function(user, id) {
     @assert.string(id, 'appId');
-    var destRoot = getUserAppRoot(user);
     var appBase = getAppPath(user, id);
-    var pidPath = @path.join(appBase, "pid");
-    var logPath = @path.join(appBase, 'log');
+    var appRunBase = getAppRunPath(user, id);
+    var pidPath = @path.join(appRunBase, "pid");
+    var logPath = @path.join(appRunBase, 'log');
     var configPath = @path.join(appBase, 'config.json');
     var recheckPid = @Emitter();
 
@@ -167,6 +171,20 @@ exports.localAppState = (function() {
         if (throwing) @assert.fail("app already running!");
         else return false;
       }
+
+      // XXX this needs to be a _remote_ rsync once slaves run
+      // on separate machines
+      @info("syncing current code for app #{id}");
+      var codeSource = @path.join(appRunBase, "code");
+      var codeDest = @path.join(appRunBase, "code");
+      @mkdirp(codeSource);
+      @mkdirp(codeDest);
+      
+      @childProcess.run('rsync', ['-az', '--delete',
+        codeSource + "/",
+        codeDest,
+      ], { stdio: 'inherit'});
+
       var stdio = ['ignore'];
       // truncate file
       @fs.open(logPath, 'w') .. @fs.close();
@@ -209,7 +227,7 @@ exports.localAppState = (function() {
           ConductanceArgs.slice(1).concat([
             '-vvv',
             'serve',
-            @path.join(appBase, 'code', 'config.mho'),
+            @path.join(appRunBase, 'code', 'config.mho'),
           ]),
           {
             stdio: stdio,
@@ -360,11 +378,8 @@ exports.masterAppState = (function() {
           @fs.fstat(tmpfile.file).size .. @assert.eq(expectedSize, "uploaded file size");
           @childProcess.run('tar', ['xzf', tmpfile.path, '-C', tmpdest], {stdio:'inherit'});
 
-          // sanity check that we have a valid config.mho
-          @childProcess.run(ConductanceArgs[0], ConductanceArgs.slice(1).concat([
-            'exec',
-            @path.join(tmpdest, 'config.mho'),
-          ]), {stdio:'inherit'});
+          // sanity check that we have a config.mho
+          @assert.ok(@path.exists(@path.join(tmpdest, 'config.mho')), "no config.mho found in code!");
 
           // overwrite dir
           tryRename(finaldest, finaldest + '.old');
