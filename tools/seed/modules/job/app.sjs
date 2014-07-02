@@ -1,36 +1,36 @@
+// Provides access to an app's state (on the machine where the app is running).
+
 @ = require('mho:std');
 @stream = require('sjs:nodejs/stream');
-@state = require('./state');
 @crypto = require('nodejs:crypto');
 @tempfile = require('sjs:nodejs/tempfile');
 @nodeFs = require('nodejs:fs');
 @fsExt = require('nodejs:fs-ext');
 @constants = require('nodejs:constants');
+@etcd = require('./etcd');
+@job_master = require('./master');
+var { @User } = require('../auth/user');
+var { @Endpoint } = require('../endpoint');
 var { @follow } = require('./follow');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var { @rimraf } = require('sjs:nodejs/rimraf');
+var { @alphanumeric } = require('../validate');
 var here = @url.normalize('./', module.id) .. @url.toPath;
 var tmpRoot = @path.join(here, '../tmp');
 var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
-var User = exports.User = function(id, nickname) {
-  @assert.ok(id != null);
-  this.id = id;
-  this.nickname = nickname;
+var dataRoot = @env.get('dataRoot');
+var appRoot = @path.join(dataRoot, 'apps');
+
+var getUserAppRoot = exports.getUserAppRoot = function(user) {
+  @assert.ok(user instanceof @User);
+  return @path.join(appRoot, String(user.id) .. @alphanumeric);
 };
 
-var alphanumeric = function(name) {
-  if (/^_?[a-zA-Z0-9]+$/.test(name)) {
-    return name;
-  }
-  throw new Error("Invalid app identifier: #{name}");
+var getAppPath = exports.getAppPath = function(user, id) {
+  return @path.join(getUserAppRoot(user), id .. @alphanumeric);
 }
-
-var DEFAULT_CONFIG = {
-  version: 1,
-  name: "unknown",
-};
 
 var tryRename = function(src, dest) {
   try {
@@ -41,18 +41,31 @@ var tryRename = function(src, dest) {
   }
 };
 
-var getUserAppRoot = function(user) {
-  @assert.ok(user instanceof User);
-  return @path.join(here, '../apps', String(user.id) .. alphanumeric);
-};
-
-var getAppPath = function(user, id) {
-  return @path.join(getUserAppRoot(user), id .. alphanumeric);
+var semaphoreWrapper = function() {
+  var lock = @Semaphore();
+  var wrapper = function(f) {
+    var rv = function() {
+      lock.synchronize {||
+        return f.apply(this, arguments);
+      }
+    };
+    rv.unsafe = f; // allow calling `f` directly if you already have the lock
+    return rv;
+  };
+  wrapper.lock = lock;
+  return wrapper;
 }
 
-// getApp needs to be a module-level function, as it
-// contains process-wide state
-var getApp = (function() {
+var DEFAULT_CONFIG = {
+  version: 1,
+  name: "unknown",
+};
+
+var etcd = @env.get('etcd');
+
+// local app state (exposed by slaves). Provides information
+// on a directly running app
+exports.localAppState = (function() {
   var apps = {};
 
   var App = function(user, id) {
@@ -62,58 +75,47 @@ var getApp = (function() {
     var pidPath = @path.join(appBase, "pid");
     var logPath = @path.join(appBase, 'log');
     var configPath = @path.join(appBase, 'config.json');
-    var lock = @Semaphore();
     var recheckPid = @Emitter();
 
-    var tailLogs = function(count) {
+    var tailLogs = function(count, emit) {
       if(count === undefined) count = 100;
-      return @Stream(function(emit) {
-        var ready = @Condition();
-        var buf = [];
-        waitfor {
-          @follow(logPath, 'utf-8') .. @each {|lines|
-            if (lines === null) {
-              buf = [null];
-            } else {
-              buf = buf.concat(lines);
-            }
-            ready.set();
+      var ready = @Condition();
+      var buf = [];
+      waitfor {
+        @follow(logPath, 'utf-8') .. @each {|lines|
+          if (lines === null) {
+            buf = [null];
+          } else {
+            buf = buf.concat(lines);
           }
-        } and {
-          while(true) {
+          ready.set();
+        }
+      } and {
+        while(true) {
+          ready.wait();
+          ready.clear();
+          waitfor {
             ready.wait();
-            ready.clear();
-            waitfor {
-              ready.wait();
-            } or {
-              // give some hold time to accumulate more data
-              hold(100);
-              if (buf[0] === null) {
-                emit(null);
-                buf = buf.slice(1);
-              }
-              if (buf.length == 0) continue;
-              var contents = buf;
-              if (buf.length > count) {
-                contents = [' ... ' ].concat(buf.slice(-count));
-              }
-              buf = [];
-              emit(contents.join('\n') + '\n');
+          } or {
+            // give some hold time to accumulate more data
+            hold(100);
+            if (buf[0] === null) {
+              emit(null);
+              buf = buf.slice(1);
             }
+            if (buf.length == 0) continue;
+            var contents = buf;
+            if (buf.length > count) {
+              contents = [' ... ' ].concat(buf.slice(-count));
+            }
+            buf = [];
+            emit(contents.join('\n') + '\n');
           }
         }
-      });
+      }
     };
 
-    var safe = function(f) {
-      var rv = function() {
-        lock.synchronize {||
-          return f.apply(this, arguments);
-        }
-      };
-      rv.unsafe = f; // allow calling `f` directly if you already have the lock
-      return rv;
-    };
+    var safe = semaphoreWrapper();
 
     var _groupRunning = (pid) -> @childProcess.isRunning(-pid, 0);
 
@@ -143,33 +145,6 @@ var getApp = (function() {
       return getPid.unsafe() !== null;
     } .. safe();
 
-    var config = (function() {
-      var loadConfig = function() {
-        var loaded = {};
-        try {
-          loaded = @fs.readFile(configPath, 'utf-8') .. JSON.parse();
-        } catch(e) {
-          if (e.code !== 'ENOENT') throw e;
-          @warn("no config found at #{configPath}");
-          loaded = {};
-        }
-        @info("Loaded config:", loaded);
-        return DEFAULT_CONFIG .. @merge(loaded);
-      } .. safe();
-
-      var val = @ObservableVar(loadConfig());
-      var rv = val .. @transform(x -> DEFAULT_CONFIG .. @merge(x));
-      rv.modify = function(f) {
-        if (val.modify(f)) {
-          var conf = val.get();
-          @logging.info("saving app config:", conf);
-          @mkdirp(appBase);
-          @fs.writeFile(configPath, JSON.stringify(conf, null, '  '), 'utf-8');
-        }
-      } .. safe();
-      return rv;
-    })();
-
     var pidStream = @Stream(function(emit) {
       var pid = getPid();
       emit(pid);
@@ -186,6 +161,7 @@ var getApp = (function() {
     });
 
     var startApp = function(throwing) {
+      @info("Starting app: #{id}");
       var pid = getPid.unsafe();
       if (pid !== null) {
         if (throwing) @assert.fail("app already running!");
@@ -236,13 +212,13 @@ var getApp = (function() {
             @path.join(appBase, 'code', 'config.mho'),
           ]),
           {
-            // XXX send stdout to logfile, too
             stdio: stdio,
             detached: true,
+            // XXX run run-shim directly, instead of messing with SJS_INIT
             env: process.env .. @merge({
               RUN_USER: 'tim', // XXX
               PIDFILE: pidPath,
-              SJS_INIT: @path.join(@url.normalize('./run-shim.sjs', module.id) .. @url.toPath()),
+              SJS_INIT: @path.join(@url.normalize('../job/run-shim.sjs', module.id) .. @url.toPath()),
             }),
           }
         );
@@ -253,6 +229,12 @@ var getApp = (function() {
       }
       return true;
     } .. safe();
+
+    var waitApp = function() {
+      pidStream .. @each {|pid|
+        if (pid === null) break;
+      }
+    };
 
     var stopApp = function() {
       var pid = getPid.unsafe();
@@ -281,11 +263,80 @@ var getApp = (function() {
       if (!dead) throw new Error("could not terminate app");
     } .. safe();
 
+    return {
+      id: id,
+      pid: pidStream,
+      tailLogs: tailLogs,
+      start: startApp,
+      wait: waitApp,
+      stop: stopApp,
+    }
+  };
+
+  return function(user, id) {
+    @assert.ok(user instanceof @User);
+    @assert.string(id);
+    var globalId = "#{user.id .. @alphanumeric()}/#{id .. @alphanumeric()}";
+    var rv = apps[globalId];
+    if(!apps..@hasOwn(globalId)) {
+      rv = apps[globalId] = App(user, id);
+    }
+    return rv;
+  };
+})();
+
+// master app state (for use on master). Provides central control
+// for an app (id, code, endpoint, start / stop, etc).
+exports.masterAppState = (function() {
+  var apps = {};
+
+  var App = function(user, id) {
+    @assert.string(id, 'appId');
+    var appId = "#{user.id}/#{id}";
+    var appBase = getAppPath(user, id);
+    var configPath = @path.join(appBase, 'config.json');
+    var safe = semaphoreWrapper();
+
+    var config = (function() {
+      var loadConfig = function() {
+        var loaded = {};
+        try {
+          loaded = @fs.readFile(configPath, 'utf-8') .. JSON.parse();
+        } catch(e) {
+          if (e.code !== 'ENOENT') throw e;
+          @warn("no config found at #{configPath}");
+          loaded = {};
+        }
+        @info("Loaded config:", loaded);
+        return DEFAULT_CONFIG .. @merge(loaded);
+      } .. safe();
+
+      var val = @ObservableVar(loadConfig());
+      var rv = val .. @transform(x -> DEFAULT_CONFIG .. @merge(x));
+      rv.modify = function(f) {
+        if (val.modify(f)) {
+          var conf = val.get();
+          @logging.info("saving app config:", conf);
+          @mkdirp(appBase);
+          @fs.writeFile(configPath, JSON.stringify(conf, null, '  '), 'utf-8');
+        }
+      } .. safe();
+      return rv;
+    })();
+
+    var startApp = function() {
+      etcd .. @job_master.start(appId);
+    };
+
+    var stopApp = function() {
+      etcd .. @job_master.stop(appId);
+    };
+
     var deploy = function(stream) {
       @mkdirp(appBase);
       var expectedSize = 0;
       @tempfile.TemporaryFile({prefix:"conductance-deploy-"}) {|tmpfile|
-        console.log("receiving #{id} -> #{tmpfile.path}");
+        @info("receiving #{id} -> #{tmpfile.path}");
 
         var outstream = tmpfile.writeStream();
         stream .. @each {|chunk|
@@ -294,7 +345,7 @@ var getApp = (function() {
         }
         outstream .. @stream.end();
 
-        console.log("upload done (#{expectedSize}b), unpacking");
+        @info("upload done (#{expectedSize}b), unpacking");
         @assert.ok(expectedSize > 0, "can't deploy an empty file");
         var tmpdest = @path.join(appBase, "_code");
         var finaldest = @path.join(appBase, "code");
@@ -315,39 +366,61 @@ var getApp = (function() {
             @path.join(tmpdest, 'config.mho'),
           ]), {stdio:'inherit'});
 
-          // before we modify anything, kill the old app (if any)
-          stopApp.unsafe();
-            
           // overwrite dir
           tryRename(finaldest, finaldest + '.old');
           @fs.rename(tmpdest, finaldest);
           tryRename(finaldest + '.old', tmpdest);
 
           // and start it
-          startApp.unsafe();
+          startApp();
         } catch (e) {
           cleanup();
           throw e;
         }
       }
+
+      etcd .. @job_master.sync_code();
     } .. safe();
+
+    var endpointStream = @Stream(function(emit) {
+      var key = @etcd.app_endpoint(appId);
+      @etcd.tryOp(-> etcd.set(key, "", {prevExist: false})); // explicitly `null` the key if it's not yet set
+
+      var last = undefined;
+      etcd .. @etcd.values(key, {initial:true}) .. @each {|node|
+        var serverId = node.value;
+        if (serverId === '') {
+          if (last !== null) {
+            last = null;
+            emit(null);
+          }
+        } else {
+          etcd .. @etcd.values(@etcd.slave_endpoint(serverId), {initial:true}) .. @each {|url|
+            console.log("got endpoint:", url.value);
+            if (last !== url.value) {
+              last = url.value;
+              emit(@Endpoint(url.value));
+            }
+          }
+        }
+      }
+    });
 
     return {
       id: id,
       config: config,
-      pid: pidStream,
       start: startApp,
       stop: stopApp,
-      tailLogs: tailLogs,
       deploy: deploy,
-      synchronize: lock.synchronize.bind(lock),
+      synchronize: safe.lock.synchronize.bind(safe.lock),
+      endpoint: endpointStream,
     }
   };
 
   return function(user, id) {
-    @assert.ok(user instanceof User);
+    @assert.ok(user instanceof @User);
     @assert.string(id);
-    var globalId = "#{user.id .. alphanumeric()}/#{id .. alphanumeric()}";
+    var globalId = "#{user.id .. @alphanumeric()}/#{id .. @alphanumeric()}";
     var rv = apps[globalId];
     if(!apps..@hasOwn(globalId)) {
       rv = apps[globalId] = App(user, id);
@@ -355,57 +428,3 @@ var getApp = (function() {
     return rv;
   };
 })();
-
-var AppCollection = function(user) {
-  var basePath = getUserAppRoot(user);
-  var val = @ObservableVar([]);
-  var rv = {
-    items: val .. @transform(function(ids) {
-      return ids .. @map(function(id) {
-        @info("Fetching app #{id}");
-        return getApp(user, id);
-      });
-    }),
-    reload: function() {
-      val.modify(function(current, unchanged) {
-        var newval = @fs.readdir(basePath) .. @sort();
-        if (newval .. @eq(current)) return unchanged;
-        return newval;
-      });
-    },
-  };
-  rv.reload();
-  return rv;
-};
-
-function createApp(appCollection, user, id, props) {
-  if (getAppPath(user, id) .. @fs.exists()) {
-    throw new Error("App #{id} already exists");
-  }
-  var app = getApp(user, id);
-  app.config.modify(-> props);
-  appCollection.reload();
-  return app;
-};
-
-function destroyApp(appCollection, user, id) {
-  getApp(user, id).synchronize {||
-    @info("Destroying app #{id}");
-    @rimraf(getAppPath(user, id));
-    appCollection.reload();
-  }
-}
-
-exports.Api = function(user) {
-  @assert.ok(user instanceof User);
-  @mkdirp(getUserAppRoot(user));
-  var appCollection = AppCollection(user);
-
-  return {
-    user: user.id,
-    apps: appCollection.items,
-    getApp: id -> getApp(user, id),
-    createApp: (id, props) -> appCollection .. createApp(user, id, props),
-    destroyApp: id -> appCollection .. destroyApp(user, id),
-  };
-};

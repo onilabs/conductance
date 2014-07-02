@@ -1,0 +1,167 @@
+@ = require(['mho:std', 'sjs:nodejs/tempfile']);
+var { @Endpoint } = require('../endpoint');
+var deployLoopback = @env.get('deployLoopback');
+@info("deployLoopback: #{deployLoopback}");
+
+@settings = require('./settings');
+exports.servers = @settings.servers;
+exports.createServer = function(props) {
+	return @settings.server(null, props);
+};
+
+var Deployment = function(endpoint, serverInfo) {
+	this.endpoint = endpoint;
+	var serverId = serverInfo .. @get('id');
+	//this.apps = remote.apps .. @transform(function(remoteApps) {
+	//	@info("transforming remote apps: #{remoteApps}");
+	//	@assert.arrayOfObject(remoteApps);
+	//	return remoteApps .. @map(function(app) {
+	//		@info("transforming remote app: #{app}");
+	//		var appId = app .. @get('id');
+	//		var localSettings = @settings.app(serverId, appId);
+	//		return {
+	//			config: {
+	//				central: app.config, // stored on server
+	//				local: localSettings.config, // stored per-client
+	//			},
+	//			ctl: app,
+	//			id: appId,
+	//		};
+	//	}) .. @sortBy(app -> app.config.central .. @first() .. @get('name'));
+	//});
+
+	this.addApp = function(props) {
+		var {central, local} = props;
+		var localSettings = @settings.app(serverId, null, local);
+		var config = localSettings.config .. @first();
+		@info("Created local app settings", config);
+		return localSettings;
+	};
+
+	this.deploy = function(appId, log) {
+		@assert.string(appId);
+		var localAppSettings = @settings.app(serverInfo.id, appId);
+		var settings = localAppSettings.config .. @first();
+		var root = settings .. @get('path');
+		var app = remote.getApp(appId);
+		var config = app.config .. @first();
+		@info("deploying #{config.name} (#{appId}) from #{root}");
+
+		// XXX we should be able to use `tar` output directly,
+		// but https://github.com/joyent/node/issues/6595
+		@TemporaryFile {|tmp|
+			try {
+				@childProcess.run('tar', ['-cvzf', tmp.path, '-C', root, '.'], {stdio: ['ignore', 'ignore',2]});
+			} catch(e) {
+				throw new Error("`tar` failed: #{e}");
+			}
+
+			var payload = @Stream(function(emit) {
+				console.log("READING!");
+				var stream = tmp.readStream();
+				var i=0;
+				var chunk;
+				var chunks=[];
+				var lastTime = 0;
+				var send = function(chunk) {
+					if (chunks.length > 0) {
+						console.log("[> chunk #{i}: #{chunks.length}]");
+						console.log("[= chunk #{i++}: #{chunks.length}]");
+						emit(Buffer.concat(chunks));
+						chunks = [];
+					}
+				};
+				while(true) {
+					chunk = stream .. @read();
+					if (chunk == null) {
+						send();
+						break;
+					}
+					chunks.push(chunk);
+
+					var now = Date.now();
+					if (Math.abs(now - lastTime) > 200) {
+						// if last round-trip was less than 200ms ago, keep accumulating
+						lastTime = now;
+						send();
+					}
+				}
+			});
+			app.deploy(payload);
+		}
+	};
+};
+
+
+exports.getServer = function(serverId) {
+	@assert.string(serverId);
+	var server = @settings.server(serverId);
+	var creds = server.config .. @first() .. @clone();
+
+	var endpoint = function() {
+		if (creds.ssh) {
+			return {
+				connect: function(block) {
+					// process privateKey
+					@info("Connecting via SSH with credentials", creds);
+					var pkDef = creds .. @get('privateKey', null);
+					var agentDef = creds .. @get('agent', null);
+					if (pkDef !== null) {
+						var pk;
+						switch(pkDef.type) {
+							case 'key':
+								@debug("reading ssh key #{pkDef.name}");
+								pk = @fs.readFile(@path.join(process.env .. @get('HOME'), '.ssh', pkDef .. @get('name')));
+								break;
+							case 'file':
+								@debug("reading ssh key file #{pkDef.path}");
+								pk = @fs.readFile(pkDef .. @get('path'));
+								break;
+							default:
+								@assert.fail("Unknown private key type: #{pkDef.type}");
+						}
+						creds.privateKey = pk;
+					} else if (agentDef !== null) {
+						// use env
+						creds.agent = agentDef === true ? process.env .. @get('SSH_AUTH_SOCK') : agentDef;
+						@debug("Using SSH agent socket #{creds.agent}");
+					}
+
+					if (deployLoopback) {
+						block(require('../modules/deploy.api').anonymous);
+					} else {
+						if (!@ssh) @ssh = require('./ssh');
+						//creds.debug = @info;
+						@ssh.Connect(creds) {|conn|
+							var seedPort = 7079;
+							// XXX make this path portable
+							//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance', seedPort) {||
+								conn .. @ssh.proxyConnections(seedPort) {|path|
+									@debug("Proxied: #{path}");
+									var apiInfo = @http.json('http:///deploy.api?format=json', {socketPath: path});
+									@debug('API INFO:', apiInfo);
+									var transport = require('mho:rpc/aat-client').openTransport('http:///', {socketPath: path});
+									@debug('transport', transport);
+									@bridge.connect('XXX', {transport: transport, api:apiInfo}) {|conn|
+										// over SSH, assume deployment is available anonymously
+										block(conn.api.anonymous);
+									}
+								}
+							//}
+						}
+					}
+				}
+			};
+
+		} else {
+			// for http(s) connections, return the endpoint directly
+			var prefix = "https://";
+			// XXX we should probably lock this down to testing use only, somehow
+			if (creds.host .. @contains("://")) prefix = "";
+			return @Endpoint("#{prefix}#{creds.host}:#{creds.port || 443}/deploy.api");
+		}
+	}();
+
+	return new Deployment(endpoint, server);
+};
+

@@ -7,3 +7,10 @@ exports.required = function(n) {
 	if (n == '') throw new Error("required");
 };
 
+exports.alphanumeric = function(name) {
+	if (/^_?[a-zA-Z0-9]+$/.test(name)) {
+		return name;
+	}
+	throw new Error("Not alphanumeric: #{name}");
+}
+

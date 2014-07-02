@@ -1,0 +1,15 @@
+@deploy  = require('./deploy');
+@user = require('../auth/user');
+@env = require('mho:env');
+
+exports.getToken = @user.getToken;
+
+exports.authenticate = function(token) {
+  var user = @user.authenticate(token);
+  return @deploy.Api(user);
+};
+
+if (@env.get('anonymous-access', false) === true) {
+  // provide an anonymous API if the server allows it
+  exports.anonymous = @deploy.Api(@user.ANONYMOUS);
+}

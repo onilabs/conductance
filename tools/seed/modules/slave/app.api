@@ -1,0 +1,16 @@
+@app  = require('../job/app');
+@user = require('../auth/user');
+@env = require('mho:env');
+
+exports.authenticate = function(token) {
+  var user = @user.authenticate(token);
+  return {
+    getApp: function(id) {
+      var app = @app.localAppState(user, id);
+      return {
+        tailLogs: app.tailLogs,
+        pid: app.pid,
+      }
+    },
+  }
+};

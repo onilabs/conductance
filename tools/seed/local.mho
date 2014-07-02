@@ -1,8 +1,8 @@
 // Default conductance configuration
 
 @ = require('mho:std');
-
-var server = require('mho:server');
+require('./modules/hub');
+var root = @url.normalize('./', module.id .. @url.toPath);
 
 //----------------------------------------------------------------------
 // function invoked by `conductance serve`
@@ -12,7 +12,7 @@ exports.serve = function(args) {
       {
         name: 'self',
         type: 'bool',
-        help: 'deploy directly to this machine, rather than connecting to another',
+        help: 'run an entire cluster locally (for development)',
       },
       {
         names: ['help', 'h'],
@@ -40,7 +40,7 @@ exports.serve = function(args) {
   }
 
   if (opts.help) {
-    console.log("  default_config.mho options:\n");
+    console.log("options:\n");
     console.log(parser.help({includeEnv:true}));
     process.exit(0);
   }
@@ -50,8 +50,8 @@ exports.serve = function(args) {
   var routes = [
         @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),
         @route.SystemRoutes(),
-        @route.CodeDirectory('modules', @path.join(process.cwd(), '../modules')),
-        @route.ExecutableDirectory(process.cwd()),
+        @route.CodeDirectory('modules', @path.join(root, 'modules')),
+        @route.ExecutableDirectory(@path.join(root, 'modules/local')),
       ];
 
   if (process.env.NODE_ENV !== 'production') {
@@ -63,9 +63,34 @@ exports.serve = function(args) {
   var port = opts.port;
 
   var address = @Port(port, host);
-  @server.run({
-    address: address,
-    routes: routes,
-    debug: @info,
-  });
+  waitfor {
+    if (@env.get('deployLoopback')) {
+      @logging.setLevel(@logging.INFO);
+      require('./bin/etcd.sjs').withEtcd {|etcd|
+        @info("etcd running...");
+        @env.set('etcd', etcd);
+        waitfor {
+          @warn("Allowing anonymous access - only use this during development");
+          require('./master.mho').serve(['--port','7079', '--cors', '--anonymous']);
+        } and {
+          var slave = require('./slave.mho');
+          var hostname = require('nodejs:os').hostname();
+          waitfor {
+            slave.serve(['--hostname', hostname + "_0", '--cors']);
+          } or {
+            // run a few extra slaves (re-using the one /api endpoint)
+            [1, 2, 3] .. @each.par {|id|
+              slave.run_slave(hostname + "_" + id);
+            }
+          }
+        }
+      }
+    }
+  } and {
+    @server.run({
+      address: address,
+      routes: routes,
+      debug: @debug,
+    });
+  }
 };

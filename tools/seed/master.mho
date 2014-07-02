@@ -1,8 +1,8 @@
 // Germination server
 
 @ = require('mho:std');
-@server = require('mho:server');
-require.hubs.push(['app:', @url.normalize('./modules/', module.id)]);
+require('./modules/hub');
+@etcd = require('seed:job/etcd');
 
 var VERSION = 1;
 
@@ -16,6 +16,11 @@ var runningServerInfo = function(port) {
     throw e;
   }
 }
+
+@env.set('dataRoot', @url.normalize('./data', module.id) .. @url.toPath);
+
+// XXX configurable
+@env.lazy('etcd', -> new (require('seed:job/etcd').Etcd)('localhost',4001));
 
 //----------------------------------------------------------------------
 // function invoked by `conductance serve`
@@ -52,6 +57,12 @@ var serve = function(args) {
         help: 'serve over https (NOTE: uses the default conductance certificate, use for testing only)',
         'default': false,
       },
+      {
+        names: ['cors'],
+        type: 'bool',
+        help: 'allow cors',
+        'default': false,
+      },
       { name: 'help', type:'bool'},
     ]
   });
@@ -84,8 +95,12 @@ var serve = function(args) {
           req .. @setStatus(200);
           req.response.end(JSON.stringify(versionInfo, null, '  '));
         }}),
-        @route.ExecutableDirectory('', @url.normalize('./modules/', module.id) .. @url.toPath),
+        @route.ExecutableDirectory('', @url.normalize('./modules/master', module.id) .. @url.toPath),
       ];
+
+  if (opts.cors) {
+    routes = routes .. @route.AllowCORS();
+  }
 
   var host = opts.host == 'any' ? null : opts.host;
   var port = opts.port;
@@ -95,7 +110,7 @@ var serve = function(args) {
   }
 
   try {
-    require('app:state').acquire();
+    require('seed:master/state').acquire();
   } catch(e) {
     if (!opts.use_existing) throw e;
     @info("Couldn't acquire lockfile - checking for an existing server on port #{port}");
@@ -117,10 +132,20 @@ var serve = function(args) {
     });
   }
 
-  @server.run({
-    address: address,
-    routes: routes,
-  });
+  // discard operations from previous master
+  var etcd = @env.get('etcd');
+  @etcd.tryOp( -> etcd.del('app/op/', {recursive:true}));
+
+  waitfor {
+    require('seed:job/master').main(etcd, {
+      balanceTime: 20,
+    });
+  } or {
+    @server.run({
+      address: address,
+      routes: routes,
+    });
+  }
 };
 
 exports.serve = function(args) {
@@ -129,6 +154,6 @@ exports.serve = function(args) {
     process.stdin .. @wait('close');
     console.warn("STDIN CLOSED");
   } or {
-    serve.apply(this.arguments);
+    serve.apply(this,arguments);
   }
 };

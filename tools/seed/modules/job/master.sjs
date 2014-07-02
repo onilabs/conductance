@@ -1,35 +1,42 @@
-@ = require(['sjs:std', './util']);
+@ = require(['sjs:std', '../util']);
 @etcd = require('./etcd');
 
 exports.monitorClusterChanges = function(client) {
 	var info = -> @info.apply(null, ["[monitor]"].concat(arguments .. @toArray()));
 	while(true) {
 		info("watching for slaves...");
-		client .. @etcd.changes('slave/state', {recursive:true}) .. @each {|change|
+		client .. @etcd.changes(@etcd.slave_endpoint(null), {recursive:true}) .. @each {|change|
 			info("saw change: " + change.node.key + "=" + change.node.value);
 		}
 	}
 };
 
-exports.op = function(client, op, id) {
-	var prefix = "app/#{op === 'start'?'job':'op'}/";
-	@info("performing action [#{op}] on [#{prefix}#{id}]");
-	var created = client.set(prefix + id, op).node;
+var op = function(client, op, id) {
+	var key = op === 'start' ? @etcd.app_job(id) : @etcd.app_op(id);
+	@info("performing action [#{op}] on [#{key}]");
+	var created = client.set(key, op).node;
 	@info("submitted op #{op}", created);
 	var change = client.watch(created .. @get('key'), {waitIndex: created .. @get('modifiedIndex') + 1});
 	@info("op accepted! #{id}!#{op}");
 }
 
+exports.start = (client, id) -> op(client, 'start', id);
+exports.stop = (client, id) -> op(client, 'stop', id);
+exports.sync_code = (client, id) -> op(client, 'sync_code', id);
+
 exports.balanceJobs = function(client) {
 	@info("balancing jobs");
-	var servers = client.get('/slave/status', {'recursive':true})
+	var prefix = @etcd.slave_endpoint(null);
+	var servers = client.get(prefix, {'recursive':true})
 		.. @getPath('node.nodes')
 		.. @filter(obj -> obj .. @get('value'))
-		.. @map(obj -> obj .. @get('key') .. @removeLeading('/slave/status/'));
-	//@info("Running servers: ", servers);
-	var loads = client.get('/slave/load', {'recursive':true})
+		.. @map(obj -> obj .. @get('key') .. @removeLeading(prefix));
+	@info("Running servers: ", servers);
+
+	prefix = @etcd.slave_load(null);
+	var loads = client.get(prefix, {'recursive':true})
 		.. @getPath('node.nodes')
-		.. @filter(obj -> servers .. @hasElem(obj .. @get('key') .. @removeLeading('/slave/load/')))
+		.. @filter(obj -> servers .. @hasElem(obj .. @get('key') .. @removeLeading(prefix)))
 		.. @map(function(node) { node.value = parseInt(node.value, 10); return node;})
 		.. @toArray();
 
