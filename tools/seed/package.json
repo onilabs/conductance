@@ -1,8 +1,10 @@
 {
   "name": "conductance-seed",
   "private" : true,
-  "dependencies": {
-    "fs-ext": "git://github.com/gfxmonk/node-fs-ext.git#4c77f466a42e92e3aee72a68d9fb37b0513cbd35",
-    "ssh2": "~0.2.25"
+  "dependencies":
+    { "fs-ext": "git://github.com/gfxmonk/node-fs-ext.git#4c77f466a42e92e3aee72a68d9fb37b0513cbd35"
+    , "ssh2": "~0.2.25"
+    , "ssh-agent": "~0.2.2"
+    , "node-etcd": "^2.1.1"
   }
 }
