@@ -97,7 +97,7 @@ var { isArrayLike } = require('sjs:array');
 var { isString, startsWith } = require('sjs:string');
 var { isFunction, exclusive } = require('sjs:function');
 var { Emitter, wait } = require('sjs:event');
-var { ownKeys, keys, propertyPairs } = require('sjs:object');
+var { ownKeys, keys, propertyPairs, get } = require('sjs:object');
 var http = require('sjs:http');
 var Url = require('sjs:url');
 var global = require('sjs:sys').getGlobal();
@@ -665,10 +665,10 @@ function BridgeConnection(transport, opts) {
 /**
   @function connect
   @summary Connect to a remote API
-  @param {String} [api_name] API id
+  @param {String|Object} [api] .api URL (or pre-fetched apiinfo)
   @param {Settings} [settings]
   @param {optional Function} [block]
-  @setting {String} [server] Server address
+  @setting {String} [server] Server root
   @setting {Transport} [transport] Optional existing transport to use
   @setting {Function} [connectMonitor] Optional function to run while connecting
   @return {::BridgeConnection} if block is not given
@@ -680,6 +680,9 @@ function BridgeConnection(transport, opts) {
     successful or unsuccessful connection. If `connectMonitor` returns
     before a connection is established, the pending connection attempt
     will be aborted and connect will throw a [::TransportError].
+
+    If `api` is an apiinfo object (rather than a URL) string, you must also
+    provide either a `server` or `transport setting.
 
     If `block` is given, it will be called with a single [::BridgeConnection]
     argument. This block will be retracted automatically when the connection
@@ -699,24 +702,31 @@ function BridgeConnection(transport, opts) {
 */
 exports.connect = function(api_name, opts, block) {
   var transport = opts.transport;
-  var server = opts.server || Url.normalize('/', api_name);
+  var apiinfo = null;
+  if (isString(api_name)) {
+    apiinfo = api_name;
+    api_name = null;
+  }
   waitfor {
     waitfor {
-      try {
-        var apiinfo = http.json([api_name, {format:'json'}]);
+      if (!transport) {
+        var server = opts.server || Url.normalize('/', api_name);
+        transport = require('./aat-client').openTransport(server);
       }
-      catch(e) {
-        throw TransportError(e.message);
+    }
+    and {
+      if (!apiinfo) {
+        try {
+          apiinfo = http.json([api_name, {format:'json'}]);
+        }
+        catch(e) {
+          throw TransportError(e.message);
+        }
       }
       // catch syntax errors in the api module; don't throw as transport errors:
       if (apiinfo.error) throw new Error(apiinfo.error);
     }
-    and {
-      if (!transport) {
-        transport = require('./aat-client').openTransport(server);
-      }
-    }
-    var connection = BridgeConnection(transport, opts .. merge({throwing:true, api:apiinfo.id}));
+    var connection = BridgeConnection(transport, opts .. merge({throwing:true, api:apiinfo .. get('id')}));
   }
   or {
     if (opts.connectMonitor) {

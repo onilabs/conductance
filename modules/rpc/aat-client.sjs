@@ -124,7 +124,7 @@ __js function parseResponse(content) {
    @param {optional String} [server='/'] AAT server to connect to
    @return {::Transport}
 */
-function openTransport(server) {
+function openTransport(server, requestOpts) {
   server = server || url.normalize(SERVER_PREFIX, module.id);
   
   var transport_id_suffix = '';
@@ -132,6 +132,7 @@ function openTransport(server) {
   var receive_q = [];
   var resume_receive;
   var poll_stratum;
+  if (!requestOpts) requestOpts = null;
 
   function poll_loop() {
     try {
@@ -147,7 +148,7 @@ function openTransport(server) {
             { method: 'POST',
               headers: {'Content-Type': 'text/plain; charset=utf-8'},
               response: 'arraybuffer'
-            });
+            } .. @extend(requestOpts));
         }
         or {
           hold(SERVER_PING_INTERVAL);
@@ -181,7 +182,7 @@ function openTransport(server) {
     var response;
     try {
       try {
-        response = http.request(url, opts .. @extend({response:'arraybuffer'}));
+        response = http.request(url, opts .. @extend({response:'arraybuffer'}) .. @extend(requestOpts));
       } catch(e) {
         throw TransportError(e.message);
       }
