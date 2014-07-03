@@ -640,6 +640,25 @@ __js {
   exports.CSS = CSS;
 }
 
+/**
+  @function GlobalCSS
+  @param {String} [style]
+  @return {::HtmlFragment}
+  @summary Create a global CSS style
+  @desc
+    Creates a widget which (when inserted into the document)
+    adds the given `style` CSS rules. Unlike [::CSS], the attached style
+    will not be scoped to any particular widget.
+*/
+exports.GlobalCSS = function(content) {
+  var f = Object.create(FragmentBase);
+  var id = ++gCSSCounter;
+  var cssdef = InternalCSSDef(scope(content));
+  f._init();
+  f.css[id] = [1, cssdef];
+  return f;
+};
+
 //----------------------------------------------------------------------
 
 /**
