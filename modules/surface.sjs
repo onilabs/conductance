@@ -164,6 +164,15 @@ module.exports = require(modules);
   If `CSS` is applied to a [::HtmlFragment] that is not of class [::Element], 
   `element` will automatically be wrapped using [::ensureElement].
 
+@function GlobalCSS
+@param {String} [style]
+@return {::HtmlFragment}
+@summary Create a global CSS style
+@desc
+  Creates a widget which (when inserted into the document)
+  adds the given `style` CSS rules. Unlike [::CSS], the attached style
+  will not be scoped to any particular widget.
+
 @function Mechanism
 @altsyntax element .. Mechanism(mechanism)
 @param {optional ::HtmlFragment} [element]

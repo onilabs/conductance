@@ -652,6 +652,9 @@
         "CSS": {
           "type": "function"
         },
+        "GlobalCSS": {
+          "type": "function"
+        },
         "Mechanism": {
           "type": "function"
         },

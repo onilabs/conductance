@@ -180,6 +180,7 @@ module.exports = require(modules);
    - **Element**: (class [mho:surface::Element])
    - **Enabled**: (function [mho:surface::Enabled])
    - **ensureElement**: (function [mho:surface::ensureElement])
+   - **GlobalCSS**: (function [mho:surface::GlobalCSS])
    - **Id**: (function [mho:surface::Id])
    - **insertAfter**: (function [mho:surface::insertAfter])
    - **insertBefore**: (function [mho:surface::insertBefore])
