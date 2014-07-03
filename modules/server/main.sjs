@@ -248,7 +248,7 @@ exports.serve = function(args, initial_argv) {
   try {
     config.serve(args);
   } catch(e) {
-    process.stdout.write("\nOni Conductance exiting with fatal error:\n#{e.toString()}\n\n");
+    console.error("\nOni Conductance exiting with fatal error:\n#{e.toString()}\n");
     process.exit(1);
   }
 }
