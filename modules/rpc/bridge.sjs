@@ -786,7 +786,6 @@ exports.connect = function(api_name, opts, block) {
     and {
       if (!apiinfo) {
         try {
-          console.log("getting apiinfo from ", api_name);
           apiinfo = http.json([api_name, {format:'json'}]);
         }
         catch(e) {
