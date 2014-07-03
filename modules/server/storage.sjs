@@ -17,6 +17,15 @@
 
 @ = require('sjs:std');
 
+__js function annotateError(err, orig) {
+  // XXX leveldown should really have better types
+  var type = orig.message;
+  var idx = type.indexOf(':');
+  if (idx !== -1) type = type.slice(0, idx);
+  err.type = type;
+  return err;
+}
+
 /**
    @class Storage
    @summary LevelDB database session
@@ -57,7 +66,7 @@ function Storage(location, options, block) {
       if (!err) db.close(@fn.nop);
     })()
   }
-  if (err) throw new Error("Failed to open database at #{location}: #{err}");
+  if (err) throw new Error("Failed to open database at #{location}: #{err}") .. annotateError(err);
   
   var itf = {
     /**
@@ -71,7 +80,7 @@ function Storage(location, options, block) {
       waitfor (var err) {
         db.put(key, value, options || {}, resume);
       }
-      if (err) throw new Error(err);
+      if (err) throw new Error(err) .. annotateError(err);
     },
     /**
        @function Storage.get
@@ -86,7 +95,7 @@ function Storage(location, options, block) {
       waitfor (var err, val) {
         db.get(key, options || {}, resume);
       }
-      if (err) throw new Error("Error retrieving #{key} from database at #{location}: #{err}");
+      if (err) throw new Error("Error retrieving #{key} from database at #{location}: #{err}") .. annotateError(err);
       return val;
     },
     /**
@@ -99,7 +108,7 @@ function Storage(location, options, block) {
       waitfor (var err) {
         db.del(key, options || {}, resume);
       }
-      if (err) throw new Error("Error deleting #{key} from database at #{location}: #{err}");
+      if (err) throw new Error("Error deleting #{key} from database at #{location}: #{err}") .. annotateError(err);
     },
     /**
        @function Storage.batch
@@ -111,7 +120,7 @@ function Storage(location, options, block) {
       waitfor (var err) {
         db.batch(ops, options || {}, resume);
       }
-      if (err) throw new Error("Error in batch operation for database at #{location}: #{err}");
+      if (err) throw new Error("Error in batch operation for database at #{location}: #{err}") .. annotateError(err);
     },
     /**
        @function Storage.query
@@ -127,7 +136,7 @@ function Storage(location, options, block) {
             waitfor (var err, key, value) {
               iterator.next(resume);
             }
-            if (err) throw new Error("Error advancing iterator for database at #{location}");
+            if (err) throw new Error("Error advancing iterator for database at #{location}") .. annotateError(err);
             if (!key) return; // end
             receiver([key, value]);
           }
@@ -136,7 +145,7 @@ function Storage(location, options, block) {
           waitfor (var err) {
             iterator.end(resume);
           }
-          if (err) throw new Error("Error closing iterator for database at #{location}");
+          if (err) throw new Error("Error closing iterator for database at #{location}") .. annotateError(err);
         }
       });
     },
@@ -148,7 +157,7 @@ function Storage(location, options, block) {
       waitfor (var err) {
         db.close(resume);
       }
-      if (err) throw new Error("Error closing database at #{location}");
+      if (err) throw new Error("Error closing database at #{location}") .. annotateError(err);
       db = undefined; 
     }
   }
