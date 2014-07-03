@@ -703,7 +703,7 @@ function BridgeConnection(transport, opts) {
 exports.connect = function(api_name, opts, block) {
   var transport = opts.transport;
   var apiinfo = null;
-  if (isString(api_name)) {
+  if (!isString(api_name)) {
     apiinfo = api_name;
     api_name = null;
   }
