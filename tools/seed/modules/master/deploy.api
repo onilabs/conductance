@@ -1,5 +1,5 @@
 @deploy  = require('./deploy');
-@user = require('../auth/user');
+@user = require('./user');
 @env = require('mho:env');
 
 exports.getToken = @user.getToken;

@@ -4,6 +4,7 @@
 require('/modules/hub');
 @ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom']);
 @form = require('./form');
+@user = require('seed:auth/user');
 @logging.setLevel(@logging.DEBUG);
 
 document.body .. @appendContent(@GlobalCSS("
@@ -355,29 +356,29 @@ var showServer = function(token, localServer, remoteServer, container) {
 
 					waitfor {
 						while(true) {
-							while (!token) {
-								@info("Getting auth token...");
-								var password = @form.loginDialog(elem, initialConfig.username, authenticationError);
-								if (password === null) return;
-								@info("trying login with password: " + password);
-								withBusyIndicator {||
-									updateToken(api.authenticate(id, password));
-								}
-								if (!token) authenticationError.set("Invalid credentials");
-								@debug("Is authenticated:", token);
-							}
-
 							@info("Connecting to server #{id}");
 							try {
 								var localServer = api.getServer(id);
 								localServer.endpoint.connect {|remoteServer|
 									@debug("Connected to server:", remoteServer);
-									if (remoteServer.authenticate) remoteServer = remoteServer.authenticate(token);
+									if (remoteServer.authenticate) {
+										while (!token) {
+											@info("Getting auth token...");
+											var password = @form.loginDialog(elem, initialConfig.username, authenticationError);
+											if (password === null) return;
+											withBusyIndicator {||
+												updateToken(remoteServer.getToken(initialConfig.username, password));
+											}
+											if (!token) authenticationError.set("Invalid credentials");
+											@debug("Is authenticated:", token);
+										}
+										remoteServer = remoteServer.authenticate(token);
+									}
 									showServer(token, localServer, remoteServer, elem);
 								}
 								break;
 							} catch(e) {
-								if (!e.invalid_token) throw e;
+								if(!@user.isAuthenticationError(e)) throw e;
 								@info("Login required");
 								updateToken(null);
 							}
