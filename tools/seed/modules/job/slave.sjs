@@ -7,11 +7,25 @@ var { @alphanumeric } = require('../validate');
 
 var HEARTBEAT_INTERVAL = 1000 * 60 * 1; // 1 minute
 
-var load = 0;
-
-
 exports.main = function(client, serverId, serverRoot, singleton) {
 	var info = -> @info.apply(null, ["[client##{serverId}]"].concat(arguments .. @toArray()));
+	var load = 0;
+	var withLoad = function(block) {
+		load += 1;
+		try {
+			return block();
+		} finally {
+			load -= 1;
+		}
+	};
+	withLoad.currentValue = -> load;
+
+	var heartbeat = function() {
+		client.set(@etcd.slave_endpoint(serverId), endpoint_url);
+		@info("load for #{serverId} = #{load}");
+		client.set(@etcd.slave_load(serverId), load);
+	};
+
 	var endpoint_url = serverRoot + "app.api";
 	info("connecting...");
 	client.set(@etcd.slave_endpoint(serverId), endpoint_url);
@@ -19,19 +33,17 @@ exports.main = function(client, serverId, serverRoot, singleton) {
 	if(singleton) { // only one slave per host should be set to singleton
 		@app.localAppState.runningApps .. @each {|[id, app]|
 			info("adopting already-running app: #{id}");
-			spawn(appRunLoop(client, serverId, info, app, id, true));
+			spawn(appRunLoop(client, serverId, info, app, id, withLoad, true));
 		}
 	}
-
-	client.set(@etcd.slave_load(serverId), load);
+	heartbeat();
 	try {
 		waitfor {
-			discoverNewRequests(client, serverId, info);
+			discoverNewRequests(client, serverId, info, withLoad);
 		} and {
 			while(true) {
 				hold(HEARTBEAT_INTERVAL);
-				client.set(@etcd.slave_endpoint(serverId), endpoint_url);
-				client.set(@etcd.slave_load(serverId), load);
+				heartbeat();
 			}
 		}
 	} finally {
@@ -46,67 +58,67 @@ exports.main = function(client, serverId, serverRoot, singleton) {
 };
 
 
-function appRunLoop(client, serverId, info, app, id, alreadyRunning) {
+function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 	var endpointKey = @etcd.app_endpoint(id);
 	var portMappingKey = @etcd.app_port_mappings(id);
 	var portMappingValue = null;
-	try {
-		client.set(endpointKey, serverId);
-		load += 1;
-		waitfor {
-			if (!alreadyRunning) {
-				app.stop();
-				info("running app #{id}");
-				app.start(true);
-			}
-			var portBindings = app.getPortBindings();
-			@info("got port bindings:", app.getPortBindings());
-			portMappingValue = "#{@env.get('publicAddress')},#{portBindings.join(",")}";
-			client.set(portMappingKey, portMappingValue);
-			app.wait();
-		} or {
-			info("watching app ops: #{@etcd.app_op(id)}");
-			client
-				.. @etcd.values(@etcd.app_op(id) +"/", {recursive:true})
-				.. @each
-			{|node|
-				try {
-					info("saw app op:", node.value);
-					switch(node.value) {
-						case "stop":
-							info("stopping app #{id}");
-							app.stop();
-							@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
-							break;
-						case "start":
-							info("ignoring duplicate [start] request");
-							break;
-						default:
-							throw new Error("Unknown app op:", node.value);
+	withLoad {||
+		try {
+			client.set(endpointKey, serverId);
+			waitfor {
+				if (!alreadyRunning) {
+					app.stop();
+					info("running app #{id}");
+					app.start(true);
+				}
+				var portBindings = app.getPortBindings();
+				@info("got port bindings:", app.getPortBindings());
+				portMappingValue = "#{@env.get('publicAddress')},#{portBindings.join(",")}";
+				client.set(portMappingKey, portMappingValue);
+				app.wait();
+			} or {
+				info("watching app ops: #{@etcd.app_op(id)}");
+				client
+					.. @etcd.values(@etcd.app_op(id) +"/", {recursive:true})
+					.. @each
+				{|node|
+					try {
+						info("saw app op:", node.value);
+						switch(node.value) {
+							case "stop":
+								info("stopping app #{id}");
+								app.stop();
+								@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
+								break;
+							case "start":
+								info("ignoring duplicate [start] request");
+								break;
+							default:
+								throw new Error("Unknown app op:", node.value);
+						}
+					} finally {
+						info("deleting app op:", node.value);
+						client.del(node.key, {});
 					}
-				} finally {
-					info("deleting app op:", node.value);
-					client.del(node.key, {});
+				}
+			}
+		} catch(e) {
+			@error(String(e));
+		} finally {
+			info("app #{id} ended");
+			app.stop();
+			waitfor {
+				@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
+			} and {
+				if (portMappingValue !== null) {
+					@etcd.tryOp(-> client.compareAndDelete(portMappingKey, portMappingValue, {}));
 				}
 			}
 		}
-	} catch(e) {
-		@error(String(e));
-	} finally {
-		info("app #{id} ended");
-		app.stop();
-		waitfor {
-			@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
-		} and {
-			if (portMappingValue !== null) {
-				@etcd.tryOp(-> client.compareAndDelete(portMappingKey, portMappingValue, {}));
-			}
-		}
-		load-=1;
 	}
 }
 
-function discoverNewRequests(client, serverId, info) {
+function discoverNewRequests(client, serverId, info, withLoad) {
 	info("handling new requests");
 	var prefix = @etcd.app_job(null);
 	client
@@ -114,7 +126,7 @@ function discoverNewRequests(client, serverId, info) {
 		.. @each
 	{|node|
 		@debug("saw op:", node.value);
-		hold(load * 1000); // 1s per load
+		hold(withLoad.currentValue() * 500); // 0.5s per load
 		@debug("accepting op:", node.value);
 		var key = node .. @get('key');
 		var del = -> client.compareAndDelete(key, node .. @get('value'), {prevIndex: node .. @get('modifiedIndex')});
@@ -145,6 +157,6 @@ function discoverNewRequests(client, serverId, info) {
 		var user = new @User(userId, "(slave)");
 		var app = @app.localAppState(user, appId);
 		// XXX make this waitable?
-		spawn(appRunLoop(client, serverId, info, app, id, false));
+		spawn(appRunLoop(client, serverId, info, app, id, withLoad, false));
 	}
 }

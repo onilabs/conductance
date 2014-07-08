@@ -22,6 +22,8 @@ var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 var dataRoot = @env.get('dataRoot');
 var appRoot = @path.join(dataRoot, 'app');
 exports.getAppRoot = -> appRoot;
+var conductanceRoot = @path.dirname(require.resolve('mho:').path .. @url.toPath);
+var sjsRoot =         @path.dirname(require.resolve('sjs:').path .. @url.toPath);
 
 var expected_exe_name = /docker/;
 
@@ -280,6 +282,7 @@ exports.localAppState = (function() {
         var readOnly = (path) -> "#{path}:#{path}:ro";
         var state = @path.join(appRunBase, "run");
         @mkdirp(state);
+
         args = [
           "docker",
           "run",
@@ -292,7 +295,8 @@ exports.localAppState = (function() {
           "--volume", readOnly(codeDest),
           "--volume", state,
           "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
-          "--volume", readOnly(@path.join(process.env.HOME, 'dev/oni')),
+          "--volume", readOnly(conductanceRoot),
+          "--volume", readOnly(sjsRoot),
           "--workdir", codeDest,
           "local/conductance-slave.base",
         ].concat(args);

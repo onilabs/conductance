@@ -59,6 +59,7 @@ exports.balanceJobs = function(client) {
 	loads .. @each {|load|
 		if (load .. @get('value') > avg*2) {
 			@error("server #{load.key} is more than 2* average load!");
+			// XXX actually do some balancing!
 		}
 	}
 };
