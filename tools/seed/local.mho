@@ -69,9 +69,19 @@ exports.serve = function(args) {
       require('./bin/etcd.sjs').withEtcd {|etcd|
         @info("etcd running...");
         @env.set('etcd', etcd);
+
+        @env.set('publicAddress', 'localhost.self');
+        /* ^^ used for development, requires dnsmasq config:
+          $ cat /etc/dnsmasq.d/self.conf
+          address=/.self/127.0.0.1
+        */
+
+        @env.set('internalAddress', 'localhost');
         waitfor {
           @warn("Allowing anonymous access - only use this during development");
           require('./master.mho').serve(['--port','7079', '--cors', '--anonymous']);
+        } and {
+          require('./proxy.mho').serve([]);
         } and {
           var slave = require('./slave.mho');
           var hostname = require('nodejs:os').hostname();

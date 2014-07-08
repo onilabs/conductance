@@ -1,4 +1,4 @@
-@ = require(['sjs:std', '../util']);
+@ = require(['mho:std', '../util']);
 @etcd = require('./etcd');
 @os = require('nodejs:os');
 @app = require('./app');
@@ -48,6 +48,8 @@ exports.main = function(client, serverId, serverRoot, singleton) {
 
 function appRunLoop(client, serverId, info, app, id, alreadyRunning) {
 	var endpointKey = @etcd.app_endpoint(id);
+	var portMappingKey = @etcd.app_port_mappings(id);
+	var portMappingValue = null;
 	try {
 		client.set(endpointKey, serverId);
 		load += 1;
@@ -57,6 +59,10 @@ function appRunLoop(client, serverId, info, app, id, alreadyRunning) {
 				info("running app #{id}");
 				app.start(true);
 			}
+			var portBindings = app.getPortBindings();
+			@info("got port bindings:", app.getPortBindings());
+			portMappingValue = "#{@env.get('publicAddress')},#{portBindings.join(",")}";
+			client.set(portMappingKey, portMappingValue);
 			app.wait();
 		} or {
 			info("watching app ops: #{@etcd.app_op(id)}");
@@ -89,7 +95,13 @@ function appRunLoop(client, serverId, info, app, id, alreadyRunning) {
 	} finally {
 		info("app #{id} ended");
 		app.stop();
-		@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
+		waitfor {
+			@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
+		} and {
+			if (portMappingValue !== null) {
+				@etcd.tryOp(-> client.compareAndDelete(portMappingKey, portMappingValue, {}));
+			}
+		}
 		load-=1;
 	}
 }

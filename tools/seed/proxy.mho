@@ -1,0 +1,133 @@
+@ = require('mho:std');
+@os = require('nodejs:os');
+@etcd = require('seed:job/etcd');
+@stream = require('sjs:nodejs/stream');
+var { @removeLeading } = require('seed:util');
+
+var port = @Port(8088);
+
+exports.serve = function(args) {
+	var parser = require('sjs:dashdash').createParser({
+		options: [
+			{
+				names: ['help', 'h'],
+				type: 'bool',
+			},
+		]
+	});
+	try {
+		var opts = parser.parse(args);
+	} catch(e) {
+		console.error('Error: ', e.message);
+		process.exit(1);
+	}
+
+	if (opts.help) {
+		console.log("options:\n");
+		console.log(parser.help({includeEnv:true}));
+		process.exit(0);
+	}
+
+	var proxies = {};
+
+	var nodeHttp = require('nodejs:http');
+	var proxyAgent = new nodeHttp.Agent();
+	proxyAgent.maxSockets = 2048;
+
+	var proxyRoute = function(proto, listenPort) {
+		listenPort = String(listenPort);
+		return @Route(/^/, {'*': function(req) {
+			//console.log(req);
+			var destRoute = proxies[listenPort];
+			console.log(JSON.stringify(proxies));
+			@info("destRoute[#{listenPort}]: ", destRoute);
+			if (destRoute) {
+				var subdomain = req.url.host .. @rsplit('.', 2) .. @at(0);
+				@info("proxying subdomain: #{subdomain}");
+				destRoute = destRoute[subdomain];
+				@info("destRoute: ", destRoute);
+				if (destRoute) {
+					var [destHost, destPort] = destRoute;
+					var dest = "#{proto}://#{destHost}:#{destPort}#{req.url.path}";
+					if (req.url.query) dest += "?#{req.url.query}";
+					var opts = {
+						method: req.request.method,
+						response: 'raw',
+						body: req.body,
+						agent: proxyAgent,
+						throwing: false,
+					};
+					@info("PROXY -> #{dest}");
+					var response = @http.request(dest, opts);
+
+					req.response.writeHead(response.statusCode, response.headers);
+					response .. @stream.pump(req.response);
+					req.response.end();
+					return;
+				}
+			}
+			throw @NotFound();
+		}});
+	};
+
+	waitfor {
+		@server.run([
+			{
+				address: @Port(8080),
+				routes: [proxyRoute('http', 8080)],
+			},
+			{
+				address: @Port(4043),
+				routes: [proxyRoute('https', 4043)],
+			},
+		]);
+	} or {
+		var keyPrefix = @etcd.app_port_mappings(null);
+
+		var process = function(change) {
+			@info("CHANGE:", change);
+			var action = change.action || 'set';
+			node = change.node || change;
+			var getKey = function() {
+				var key = node.key .. @removeLeading(keyPrefix) .. @split('/');
+				@assert.ok(key.length == 2);
+				return key .. @reverse() .. @join('.');
+			};
+
+			switch(action) {
+				case 'set':
+					// initial "node" is actually a bunch of nodes, so recursively process those:
+					if (node .. @hasOwn('nodes')) {
+						node.nodes .. @each(process);
+						return;
+					}
+					if (node.dir) return;
+					var mappings = node.value .. @split(',');
+					var host = mappings.shift();
+					var key = getKey();
+					mappings = mappings .. @each {|mapping|
+						var [pub, internal] = mapping.split(':');
+						@info("will proxy port #{pub} to port #{internal} on host #{host}");
+						if (!proxies .. @hasOwn(pub)) {
+							proxies[pub] = {};
+						}
+						proxies[pub][key] = [host, internal];
+					}
+					break;
+				
+				case "delete":
+					var key = getKey();
+					@info("Deleting routes for #{key}");
+					proxies .. @ownValues .. @each {|apps|
+						delete apps[key];
+					}
+					break;
+
+				default:
+					@info("ignoring proxy change type #{action}");
+			}
+		};
+
+		@env.get('etcd') .. @etcd.changes(keyPrefix, {recursive:true, initial:true}) .. @each(process);
+	}
+}

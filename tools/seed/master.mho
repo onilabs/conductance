@@ -58,6 +58,12 @@ var serve = function(args) {
         'default': false,
       },
       {
+        names: ['internal-address'],
+        type: 'string',
+        help: 'internal ip (or hostname) accessible via SSH to slaves',
+        'default': 'localhost',
+      },
+      {
         names: ['cors'],
         type: 'bool',
         help: 'allow cors',
@@ -80,6 +86,7 @@ var serve = function(args) {
   }
 
   @env.set('anonymous-access', opts.anonymous);
+  @env.set('internalAddress', opts.internal_address);
 
   var versionInfo = {
     version: VERSION,

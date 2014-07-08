@@ -1,0 +1,20 @@
+#!bash -eux
+
+head_tag="conductance-base"
+tag="local/$head_tag"
+basedir="."
+dockerfile="Dockerfile"
+
+gup -u service "$dockerfile"
+
+previous_id="$(docker images -q "$tag")"
+docker build -t "$tag" "$basedir"
+new_id="$(docker images -q "$tag")"
+head_id="$(docker images -q "$head_tag")"
+
+if [ "$previous_id" != "$new_id" -a -n "$head_id" ]; then
+	echo "built image has changed - removing old $head_tag tag ..." >&2
+	docker rmi -f "$head_tag"
+fi
+
+touch "$1"

@@ -1,5 +1,6 @@
-@ = require(['sjs:std', '../util']);
+@ = require(['mho:std', '../util']);
 @etcd = require('./etcd');
+@os = require('nodejs:os');
 
 exports.monitorClusterChanges = function(client) {
 	var info = -> @info.apply(null, ["[monitor]"].concat(arguments .. @toArray()));
@@ -63,22 +64,20 @@ exports.balanceJobs = function(client) {
 };
 
 exports.main = function(client, opts) {
-	var balanceTime = (opts .. @get('balanceTime')) * 1000;
-	waitfor {
-		exports.monitorClusterChanges(client);
-	} or {
-		while(true) {
-			hold(balanceTime);
-			exports.balanceJobs(client);
+	var appRoot = require('./app').getAppRoot();
+	var appRepository = "#{@env.get('internalAddress')}:#{appRoot}";
+	client.set(@etcd.master_app_repository(), appRepository);
+	try {
+		var balanceTime = (opts .. @get('balanceTime')) * 1000;
+		waitfor {
+			exports.monitorClusterChanges(client);
+		} or {
+			while(true) {
+				hold(balanceTime);
+				exports.balanceJobs(client);
+			}
 		}
+	} finally {
+		@etcd.tryOp(-> client.compareAndDelete(@etcd.master_app_repository(), appRepository));
 	}
 };
-
-if (require.main === module) {
-	exports.main(
-		new @etcd.Etcd(),
-		{
-			balanceTime: 60 * 10,
-		}
-	);
-}

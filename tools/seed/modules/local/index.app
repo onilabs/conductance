@@ -23,6 +23,10 @@ document.body .. @appendContent(@GlobalCSS("
 			color: #b9090b;
 		}
 	}
+
+	a.appLink, a.appLink:hover, a.appLink:visited {
+		color:inherit;
+	}
 "));
 
 var appListStyle = @CSS("
@@ -182,7 +186,7 @@ var appWidget = function(token, localServer, remoteServer, app) {
 			${@H3([
 				@Span(null, {'class':'glyphicon'}) .. @Class(statusClass),
 				`&nbsp;`,
-				appName,
+				`<a class="appLink" href="${app.publicUrl}">$appName</a>`,
 			]) .. @Class(statusColorClass)}
 		</div>
 		<div class="clearfix">

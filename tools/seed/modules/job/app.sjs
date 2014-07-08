@@ -8,7 +8,6 @@
 @fsExt = require('nodejs:fs-ext');
 @constants = require('nodejs:constants');
 @etcd = require('./etcd');
-@job_master = require('./master');
 var { @User } = require('../auth/user');
 var { @Endpoint } = require('../endpoint');
 var { @follow } = require('./follow');
@@ -22,6 +21,9 @@ var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
 var dataRoot = @env.get('dataRoot');
 var appRoot = @path.join(dataRoot, 'app');
+exports.getAppRoot = -> appRoot;
+
+var expected_exe_name = /docker/;
 
 var getUserAppRoot = exports.getUserAppRoot = function(user) {
   @assert.ok(user instanceof @User);
@@ -35,6 +37,15 @@ var getAppPath = exports.getAppPath = function(user, id) {
 var appRunRoot = @path.join(dataRoot, 'run', 'app');
 var getAppRunPath = function(user, id) {
   return @path.join(appRunRoot, String(user.id) .. @alphanumeric, id .. @alphanumeric);
+}
+
+var getMasterCodePath = function(user, appId) {
+  var key = @etcd.master_app_repository();
+  var root = etcd.get(key) .. @getPath('node.value');
+  if (root .. @startsWith('localhost:')) {
+    root = root.slice('localhost:'.length);
+  }
+  return @path.join(root, String(user.id), appId, "code");
 }
 
 var tryRename = function(src, dest) {
@@ -97,8 +108,8 @@ exports.localAppState = (function() {
       // check the actual proc (XXX linux-only)
       var exe = @fs.readlink("/proc/#{pid}/exe") .. @path.basename;
       @debug("pid #{pid} is process #{exe}");
-      if (!/node/.test(exe)) {
-        @warn("pid #{pid} is running, but is not a nodejs process! (#{exe})");
+      if (!expected_exe_name.test(exe)) {
+        @warn("pid #{pid} is running, but is not a #{expected_exe_name.source} process! (#{exe})");
         pid = null;
       }
       return pid;
@@ -110,6 +121,8 @@ exports.localAppState = (function() {
 
   var App = function(user, id) {
     @assert.string(id, 'appId');
+    var globalId = "#{user.id}/#{id}";
+    var machineName = "#{user.id}_#{id}";
     var appBase = getAppPath(user, id);
     var appRunBase = getAppRunPath(user, id);
     var pidPath = getPidPath(appRunBase);
@@ -181,26 +194,6 @@ exports.localAppState = (function() {
     });
 
     var startApp = function(throwing) {
-      @info("Starting app: #{id}");
-      var pid = getPid.unsafe();
-      if (pid !== null) {
-        if (throwing) @assert.fail("app already running!");
-        else return false;
-      }
-
-      // XXX this needs to be a _remote_ rsync once slaves run
-      // on separate machines
-      @info("syncing current code for app #{id}");
-      var codeSource = @path.join(appBase, "code");
-      var codeDest = @path.join(appRunBase, "code");
-      @mkdirp(codeSource);
-      @mkdirp(codeDest);
-      
-      @childProcess.run('rsync', ['-az', '--delete',
-        codeSource + "/",
-        codeDest,
-      ], { stdio: 'inherit'});
-
       var stdio = ['ignore'];
       // truncate file
       @fs.open(logPath, 'w') .. @fs.close();
@@ -212,6 +205,37 @@ exports.localAppState = (function() {
         stdio[1] = @fs.open(logPath, 'a');
       } and {
         stdio[2] = @fs.open(logPath, 'a');
+      }
+
+      function log() {
+        var formatted = @logging.formatMessage(@logging.INFO, arguments)[1] + "\n";
+        formatted = new Buffer(formatted);
+        stdio[1] .. @fs.write(formatted,0, formatted.length,null);
+      }
+
+      @info("Starting app: #{id}");
+      var pid = getPid.unsafe();
+      if (pid !== null) {
+        if (throwing) @assert.fail("app already running!");
+        else return false;
+      }
+
+      log("Syncing code...");
+      @info("syncing current code for app #{id}");
+      var codeSource = getMasterCodePath(user, id);
+      var codeDest = @path.join(appRunBase, "code");
+      @mkdirp(codeDest);
+      
+      var cmd = ['rsync', '-az', '--delete',
+        codeSource + "/",
+        codeDest,
+      ];
+      @info("Running:", cmd);
+      try {
+        @childProcess.run(cmd[0], cmd.slice(1), { stdio: 'inherit'});
+      } catch(e) {
+        log("Code sync failed.");
+        throw e;
       }
 
       // node does a terrible job of closing open file descriptors (may be
@@ -238,32 +262,54 @@ exports.localAppState = (function() {
         ((fd .. @fsExt.fcntlSync('getfd')) & @constants.FD_CLOEXEC) .. @assert.ok('CLOEXEC not set');
       }
 
+      // Make sure there's no leftover container
+      // (`docker run -rm` is not 100% reliable)
+      // XXX an idempotent `rm` would be much better...
       try {
-        var args = ConductanceArgs.slice(1);
-        
-        // add setuid shim
-        args.unshift(
-          @path.join(@url.normalize('../job/run-shim.js', module.id) .. @url.toPath())
-        );
+        @childProcess.run("docker", ["rm", machineName], {stdio:['ignore',1,'pipe']});
+      } catch(e) {
+        if (!/Error: No such container: /.test(e.stderr)) {
+          @error(e.stderr);
+          throw e;
+        }
+      }
 
-        var child = @childProcess.launch(process.execPath,
-          args.concat([
+      try {
+        var args = ConductanceArgs;
+        var runUser = "app";
+        var readOnly = (path) -> "#{path}:#{path}:ro";
+        var state = @path.join(appRunBase, "run");
+        @mkdirp(state);
+        args = [
+          "docker",
+          "run",
+          "--rm=true",
+          "--publish", "8080",
+          "--publish", "4043",
+          "--name", machineName,
+          "--hostname", machineName,
+          "--user", runUser,
+          "--volume", readOnly(codeDest),
+          "--volume", state,
+          "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
+          "--volume", readOnly(@path.join(process.env.HOME, 'dev/oni')),
+          "--workdir", codeDest,
+          "local/conductance-slave.base",
+        ].concat(args);
+        @info("Running", args);
+        var child = @childProcess.launch(args[0],
+          args.slice(1).concat([
             '-vvv',
             'serve',
-            @path.join(appRunBase, 'code', 'config.mho')
           ]),
           {
             stdio: stdio,
             detached: true,
-            env: process.env .. @merge({
-              RUN_USER: 'tim', // XXX
-            }),
           }
         );
 
         @info("launched child process: #{child.pid}");
         pidPath .. writeAtomically(String(child.pid));
-
       } finally {
         stdio.slice(1) .. @each(@fs.close);
         spawn(function() {hold(400); recheckPid.emit();}());
@@ -296,7 +342,7 @@ exports.localAppState = (function() {
         dead = !_groupRunning(pid);
         if(dead) break;
         hold(pre);
-        @info("killing #{pid} with #{sig}");
+        @info("killing pid #{pid} with #{sig}");
         process.kill(-pid, 'SIG' + sig);
         hold(post);
       }
@@ -304,11 +350,44 @@ exports.localAppState = (function() {
       if (!dead) throw new Error("could not terminate app");
     } .. safe();
 
+    var getPortBindings = function() {
+      var tries = 10;
+      var inspectOutput;
+      while(true) {
+        @info("getting docker metadata for image #{machineName}");
+        try {
+          inspectOutput = @childProcess.run('docker', ['inspect', machineName], {stdio:['ignore', 'pipe', 2]}).stdout;
+          break;
+        } catch(e) {
+          if(getPid() === null) throw new Error("process died");
+          hold(1000);
+          if (tries<=0) throw new Error("Failed to collect docker metadata");
+          tries--;
+        }
+      }
+      var containerInfo = inspectOutput .. JSON.parse();
+      @assert.eq(containerInfo.length, 1, containerInfo.length);
+      var portBindings = [];
+      containerInfo[0]
+        .. @getPath('HostConfig.PortBindings')
+        .. @ownPropertyPairs .. @each {|[k,v]|
+          if (!k .. @endsWith('/tcp')) continue;
+          [k,] = k.split('/');
+          k = parseInt(k, 10);
+          v .. @filter(v -> v .. @hasOwn('HostPort')) .. @toArray();
+          if (v.length > 0) {
+            portBindings.push("#{k}:#{v[0] .. @get('HostPort')}");
+          }
+        };
+      return portBindings;
+    };
+
     return {
       id: id,
       pid: pidStream,
       tailLogs: tailLogs,
       start: startApp,
+      getPortBindings: getPortBindings,
       wait: waitApp,
       stop: stopApp,
     }
@@ -384,6 +463,7 @@ exports.masterAppState = (function() {
       return rv;
     })();
 
+    @job_master = require('./master');
     var startApp = function() {
       etcd .. @job_master.start(appId);
     };
@@ -471,6 +551,7 @@ exports.masterAppState = (function() {
       deploy: deploy,
       synchronize: safe.lock.synchronize.bind(safe.lock),
       endpoint: endpointStream,
+      publicUrl: "http://#{id}.#{user.id}.#{@env.get('publicAddress')}:8080/",
     }
   };
 

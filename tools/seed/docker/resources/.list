@@ -1,0 +1,7 @@
+authorized_keys
+deploy-key
+deploy-key.pub
+fedora.repo
+fedora-updates.repo
+github-hosts
+site.pp

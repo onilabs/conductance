@@ -1,5 +1,8 @@
 #!bash -eux
 gup -u package.json
 npm install --production
-gup -u ../../node_modules/leveldown/build
-gup -u tools/etcd
+gup -u \
+	../../node_modules/leveldown/build \
+	tools/etcd \
+	docker/all \
+	;

@@ -55,8 +55,13 @@ exports.changes = function(client, key, opts) {
 
 		if (emitInitial) {
 			//console.log("grabbing initial: " + key);
-			var initial = client.get(key, opts);
-			emit(initial)
+			var initial;
+			var got = exports.tryOp(function() {
+				initial = client.get(key, opts);
+			}, [exports.err.KEY_NOT_FOUND]);
+			if (got) {
+				emit(initial)
+			}
 		}
 
 		while(true) {
@@ -122,6 +127,8 @@ exports.slave_load = keyFn("/slave/load/");
 exports.app_job = keyFn("/app/job/");
 exports.app_op = keyFn("/app/op/");
 exports.app_endpoint = keyFn("/app/endpoint/");
+exports.app_port_mappings = keyFn("/app/portmap/");
+exports.master_app_repository = () -> "/master/app_repository";
 
 if (require.main === module) {
 	require('sjs:wraplib/inspect').inspect(exports);
