@@ -196,6 +196,9 @@ exports.localAppState = (function() {
     });
 
     var startApp = function(throwing) {
+      var codeDest = @path.join(appRunBase, "code");
+      @mkdirp(codeDest);
+
       var stdio = ['ignore'];
       // truncate file
       @fs.open(logPath, 'w') .. @fs.close();
@@ -225,8 +228,6 @@ exports.localAppState = (function() {
       log("Syncing code...");
       @info("syncing current code for app #{id}");
       var codeSource = getMasterCodePath(user, id);
-      var codeDest = @path.join(appRunBase, "code");
-      @mkdirp(codeDest);
       
       var cmd = ['rsync', '-az', '--delete',
         codeSource + "/",

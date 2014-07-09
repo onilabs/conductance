@@ -108,6 +108,15 @@ exports.tryOp = function(fn, allowed_errors) {
 	return true;
 }
 
+exports.hasValue = function(client, key) {
+	// returns false on no such key, or if key exists with a blank value
+	var value;
+	if (!exports.tryOp(function() {
+		value = client.get(key).node.value;
+	}, exports.err.KEY_NOT_FOUND)) return false;
+	return value.length > 0;
+}
+
 exports.err = {
 	KEY_NOT_FOUND: 100,
 	TEST_FAILED: 101,

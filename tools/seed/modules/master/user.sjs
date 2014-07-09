@@ -115,7 +115,6 @@ var Token = {
 		@assert.string(t);
 		var [uid, exp, contents] = t .. @split('|', 2);
 		exp = parseInt(exp, intBase);
-		uid = parseInt(uid, intBase);
 		return {
 			uid: uid,
 			expires: new Date(exp * 1000),
@@ -124,8 +123,7 @@ var Token = {
 	},
 	encode: function(t) {
 		var {uid, expires, contents} = t;
-		uid = uid.toString(intBase);
-		expires = expires.getTime().toString(intBase);
+		expires = Math.floor(expires.getTime() / 1000).toString(intBase);
 		return [uid, expires, contents].join('|');
 	},
 	hashed: function(token) {
@@ -152,7 +150,7 @@ var hashPassword = function(password, opts) {
 
 var PASSWORD_SETTINGS = {
 	iterations: 10000,
-	keylen: 32, // XXX is this bits or bytes?
+	keylen: 32, // (in bytes)
 };
 // XXX upgrade users to latest password settings on login
 
@@ -215,6 +213,7 @@ exports.getToken = function(username, password) {
 		return Token.encode(secretToken);
 	} catch(e) {
 		@info("failed to authenticate user: #{e.message}");
+		//@info(String(e)); // XXX remove
 	}
 	return null;
 	throw @user.AuthenticationError();
@@ -222,17 +221,17 @@ exports.getToken = function(username, password) {
 
 exports.authenticate = function(tokenStr) {
 	try {
-		@info("checking token", tokenStr);
 		var token = Token.decode(tokenStr);
-		if (token.expires.getTime() < Date.now().getTime()) {
+		if (token.expires.getTime() < Date.now()) {
 			throw @user.AuthenticationError();
 		}
 		var storedToken = Token.hashed(token) .. Token.encode();
 		var user = getUser(token.uid);
 		@assert.ok(user.tokens .. @hasElem(storedToken), "token not found");
+		return new @user.User(token.uid, user.name);
 	} catch(e) {
 		@info("failed to authenticate token: #{e.message}");
-		@info(String(e)); // XXX remove
+		//@info(String(e)); // XXX remove
 		throw @user.AuthenticationError();
 	}
 };

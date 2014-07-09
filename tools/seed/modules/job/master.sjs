@@ -18,11 +18,12 @@ var op = function(client, op, id) {
 	if (op === 'start') {
 		created = client.set(@etcd.app_job(id), op).node;
 	} else {
-		var hasEndpoint = @etcd.tryOp(-> client.get(@etcd.app_endpoint(id)), [@etcd.err.KEY_NOT_FOUND]);
+		var hasEndpoint = client .. @etcd.hasValue(@etcd.app_endpoint(id));
 		if (!hasEndpoint) {
 			@info("skipping `#{op}` request - there is no endpoint");
 			return false;
 		}
+		@info("sending #{op} op to endpoint", client.get(@etcd.app_endpoint(id)));
 		created = client.create(@etcd.app_op(id), op).node;
 	}
 	@info("submitted op #{op}", created);

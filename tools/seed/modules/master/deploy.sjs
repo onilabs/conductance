@@ -45,7 +45,7 @@ function destroyApp(appCollection, user, id) {
 }
 
 exports.Api = function(user) {
-  @assert.ok(user instanceof @User);
+  @assert.ok(user instanceof @User, `invalid user: $user`);
   @mkdirp(@app.getUserAppRoot(user));
   var appCollection = AppCollection(user);
 

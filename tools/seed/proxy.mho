@@ -59,6 +59,7 @@ exports.serve = function(args) {
 					};
 					@info("PROXY -> #{dest}");
 					var response = @http.request(dest, opts);
+					//@info(response.statusCode);
 
 					req.response.writeHead(response.statusCode, response.headers);
 					response .. @stream.pump(req.response);
@@ -116,6 +117,7 @@ exports.serve = function(args) {
 					break;
 				
 				case "delete":
+				case "compareAndDelete":
 					var key = getKey();
 					@info("Deleting routes for #{key}");
 					proxies .. @ownValues .. @each {|apps|
