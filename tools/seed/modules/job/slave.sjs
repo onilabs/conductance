@@ -5,9 +5,7 @@
 var { @User } = require('../auth/user');
 var { @alphanumeric } = require('../validate');
 
-var HEARTBEAT_INTERVAL = 1000 * 60 * 1; // 1 minute
-
-exports.main = function(client, serverId, serverRoot, singleton) {
+exports.main = function(client, serverId, singleton) {
 	var info = -> @info.apply(null, ["[client##{serverId}]"].concat(arguments .. @toArray()));
 	var load = 0;
 	var withLoad = function(block) {
@@ -21,38 +19,24 @@ exports.main = function(client, serverId, serverRoot, singleton) {
 	withLoad.currentValue = -> load;
 
 	var heartbeat = function() {
-		client.set(@etcd.slave_endpoint(serverId), endpoint_url);
 		@info("load for #{serverId} = #{load}");
 		client.set(@etcd.slave_load(serverId), load);
 	};
 
-	var endpoint_url = serverRoot + "app.api";
 	info("connecting...");
-	client.set(@etcd.slave_endpoint(serverId), endpoint_url);
-
-	if(singleton) { // only one slave per host should be set to singleton
-		@app.localAppState.runningApps .. @each {|[id, app]|
-			info("adopting already-running app: #{id}");
-			spawn(appRunLoop(client, serverId, info, app, id, withLoad, true));
+	var endpoint_url = @env.get('publicAddress')('slave') + "app.api";
+	client .. @etcd.advertiseEndpoint(serverId, endpoint_url) {||
+		if(singleton) { // only one slave per host should be set to singleton
+			@app.localAppState.runningApps .. @each {|[id, app]|
+				info("adopting already-running app: #{id}");
+				spawn(appRunLoop(client, serverId, info, app, id, withLoad, true));
+			}
 		}
-	}
-	heartbeat();
-	try {
+		heartbeat();
 		waitfor {
 			discoverNewRequests(client, serverId, info, withLoad);
 		} and {
-			while(true) {
-				hold(HEARTBEAT_INTERVAL);
-				heartbeat();
-			}
-		}
-	} finally {
-		try {
-			client.del(@etcd.slave_endpoint(serverId));
-		} catch(e) {
-			if (!@env.get('deployLoopback', false)) {
-				@error("Couldn't mark slave as offline: #{e}");
-			}
+			@etcd.heartbeat(heartbeat);
 		}
 	}
 };
@@ -73,7 +57,7 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 				}
 				var portBindings = app.getPortBindings();
 				@info("got port bindings:", app.getPortBindings());
-				portMappingValue = "#{@env.get('publicAddress')},#{portBindings.join(",")}";
+				portMappingValue = "#{@env.get('publicHost')},#{portBindings.join(",")}";
 				client.set(portMappingKey, portMappingValue);
 				app.wait();
 			} or {

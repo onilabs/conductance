@@ -1,0 +1,4 @@
+@user = require('./user');
+exports.validateToken = function(token) {
+  @user.authenticate(token);
+};

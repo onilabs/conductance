@@ -2,6 +2,8 @@
 var { @warn } = require('sjs:logging');
 var wraplib = require('sjs:wraplib');
 var etcd = require('nodejs:node-etcd');
+var HEARTBEAT_INTERVAL = 1000 * 60 * 1; // 1 minute
+
 
 exports.Etcd = etcd;
 wraplib.annotate(exports, {
@@ -138,6 +140,33 @@ exports.app_op = keyFn("/app/op/");
 exports.app_endpoint = keyFn("/app/endpoint/");
 exports.app_port_mappings = keyFn("/app/portmap/");
 exports.master_app_repository = () -> "/master/app_repository";
+
+exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
+	var key = exports.slave_endpoint(serverId);
+	client.set(key, endpoint);
+	try {
+		waitfor {
+			block();
+		} or {
+			exports.heartbeat(-> client.set(key, endpoint));
+		}
+	} finally {
+		try {
+			exports.tryOp(-> client.compareAndDelete(key, endpoint, {}));
+		} catch(e) {
+			if (!@env.get('deployLoopback', false)) {
+				@error("Couldn't mark node as offline: #{e}");
+			}
+		}
+	}
+};
+
+exports.heartbeat = function(beat) {
+	while(true) {
+		hold(HEARTBEAT_INTERVAL);
+		beat();
+	}
+};
 
 if (require.main === module) {
 	require('sjs:wraplib/inspect').inspect(exports);

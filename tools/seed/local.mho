@@ -7,16 +7,11 @@ var root = @url.normalize('./', module.id .. @url.toPath);
 //----------------------------------------------------------------------
 // function invoked by `conductance serve`
 exports.serve = function(args) {
-  var parser = require('sjs:dashdash').createParser({
-    options: [
+  var opts = args .. require('seed:env').parse([
       {
         name: 'self',
         type: 'bool',
         help: 'run an entire cluster locally (for development)',
-      },
-      {
-        names: ['help', 'h'],
-        type: 'bool',
       },
       {
         names: ['host'],
@@ -30,20 +25,7 @@ exports.serve = function(args) {
         help: 'serve on port (default: 7075)',
         'default': 7075,
       },
-    ]
-  });
-  try {
-    var opts = parser.parse(args);
-  } catch(e) {
-    console.error('Error: ', e.message);
-    process.exit(1);
-  }
-
-  if (opts.help) {
-    console.log("options:\n");
-    console.log(parser.help({includeEnv:true}));
-    process.exit(0);
-  }
+    ]);
 
   @env.set('deployLoopback', opts.self);
 
@@ -70,16 +52,10 @@ exports.serve = function(args) {
         @info("etcd running...");
         @env.set('etcd', etcd);
 
-        @env.set('publicAddress', 'localhost.self');
-        /* ^^ used for development, requires dnsmasq config:
-          $ cat /etc/dnsmasq.d/self.conf
-          address=/.self/127.0.0.1
-        */
-
         @env.set('internalAddress', 'localhost');
         waitfor {
           @warn("Allowing anonymous access - only use this during development");
-          require('./master.mho').serve(['--port','7079', '--cors', '--anonymous']);
+          require('./master.mho').serve(['--cors', '--anonymous']);
         } and {
           require('./proxy.mho').serve([]);
         } and {

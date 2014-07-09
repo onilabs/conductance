@@ -69,17 +69,19 @@ exports.main = function(client, opts) {
 	var appRoot = require('./app').getAppRoot();
 	var appRepository = "#{@env.get('internalAddress')}:#{appRoot}";
 	client.set(@etcd.master_app_repository(), appRepository);
-	try {
-		var balanceTime = (opts .. @get('balanceTime')) * 1000;
-		waitfor {
-			exports.monitorClusterChanges(client);
-		} or {
-			while(true) {
-				hold(balanceTime);
-				exports.balanceJobs(client);
+	client .. @etcd.advertiseEndpoint('master', @env.get('publicAddress')('master')) {||
+		try {
+			var balanceTime = (opts .. @get('balanceTime')) * 1000;
+			waitfor {
+				exports.monitorClusterChanges(client);
+			} or {
+				while(true) {
+					hold(balanceTime);
+					exports.balanceJobs(client);
+				}
 			}
+		} finally {
+			@etcd.tryOp(-> client.compareAndDelete(@etcd.master_app_repository(), appRepository));
 		}
-	} finally {
-		@etcd.tryOp(-> client.compareAndDelete(@etcd.master_app_repository(), appRepository));
 	}
 };

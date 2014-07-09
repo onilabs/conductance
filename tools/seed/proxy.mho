@@ -4,29 +4,8 @@
 @stream = require('sjs:nodejs/stream');
 var { @removeLeading } = require('seed:util');
 
-var port = @Port(8088);
-
 exports.serve = function(args) {
-	var parser = require('sjs:dashdash').createParser({
-		options: [
-			{
-				names: ['help', 'h'],
-				type: 'bool',
-			},
-		]
-	});
-	try {
-		var opts = parser.parse(args);
-	} catch(e) {
-		console.error('Error: ', e.message);
-		process.exit(1);
-	}
-
-	if (opts.help) {
-		console.log("options:\n");
-		console.log(parser.help({includeEnv:true}));
-		process.exit(0);
-	}
+	var opts = args .. require('seed:env').parse([]);
 
 	var proxies = {};
 
@@ -34,13 +13,13 @@ exports.serve = function(args) {
 	var proxyAgent = new nodeHttp.Agent();
 	proxyAgent.maxSockets = 2048;
 
-	var proxyRoute = function(proto, listenPort) {
-		listenPort = String(listenPort);
+	var proxyRoute = function(proto, publicPort) {
+		publicPort = String(publicPort);
 		return @Route(/^/, {'*': function(req) {
 			//console.log(req);
-			var destRoute = proxies[listenPort];
+			var destRoute = proxies[publicPort];
 			console.log(JSON.stringify(proxies));
-			@info("destRoute[#{listenPort}]: ", destRoute);
+			@info("destRoute[#{publicPort}]: ", destRoute);
 			if (destRoute) {
 				var subdomain = req.url.host .. @rsplit('.', 2) .. @at(0);
 				@info("proxying subdomain: #{subdomain}");
@@ -74,11 +53,11 @@ exports.serve = function(args) {
 	waitfor {
 		@server.run([
 			{
-				address: @Port(8080),
+				address: @Port(@env.get('port-proxy-http')),
 				routes: [proxyRoute('http', 8080)],
 			},
 			{
-				address: @Port(4043),
+				address: @Port(@env.get('port-proxy-https')),
 				routes: [proxyRoute('https', 4043)],
 			},
 		]);
@@ -86,7 +65,7 @@ exports.serve = function(args) {
 		var keyPrefix = @etcd.app_port_mappings(null);
 
 		var process = function(change) {
-			@info("CHANGE:", change);
+			//@info("CHANGE:", change);
 			var action = change.action || 'set';
 			node = change.node || change;
 			var getKey = function() {

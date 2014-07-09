@@ -433,6 +433,7 @@ exports.localAppState = (function() {
 // for an app (id, code, endpoint, start / stop, etc).
 exports.masterAppState = (function() {
   var apps = {};
+  var publicUrlBase = @env.get('publicAddress')('proxy-http') .. @url.parse();
 
   var App = function(user, id) {
     @assert.string(id, 'appId');
@@ -556,7 +557,7 @@ exports.masterAppState = (function() {
       deploy: deploy,
       synchronize: safe.lock.synchronize.bind(safe.lock),
       endpoint: endpointStream,
-      publicUrl: "http://#{id}.#{user.id}.#{@env.get('publicAddress')}:8080/",
+      publicUrl: "#{publicUrlBase.protocol}://#{id}.#{user.id}.#{publicUrlBase.authority}/",
     }
   };
 

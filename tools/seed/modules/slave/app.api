@@ -1,9 +1,21 @@
+@ = require('mho:std');
 @app  = require('../job/app');
 @user = require('../auth/user');
-@env = require('mho:env');
+@bridge = require('mho:rpc/bridge');
+@etcd = require('../job/etcd');
+
+var etcd = @env.get('etcd');
 
 exports.authenticate = function(token) {
-  var user = @user.authenticate(token);
+  var master_endpoint = etcd.get(@etcd.slave_endpoint('master')) .. @getPath('node.value');
+  var user;
+  @bridge.connect(@url.normalize('/user.api', master_endpoint), {}) {|conn|
+    user = conn.api.validateToken(token);
+  }
+  // wrap remote user into a local object
+  @assert.ok(user);
+  var user = new @user.User(user.id, user.name);
+
   return {
     getApp: function(id) {
       var app = @app.localAppState(user, id);
