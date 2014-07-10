@@ -292,7 +292,13 @@ exports.StaticFormatMap = {
                     // give fonts an expiry of access + 1 month: 
                     expires: -> new Date(Date.now() + 1000*60*60*24*30)
                   }
+         },
+  woff : { none : { mime: "application/font-woff",
+                    // give fonts an expiry of access + 1 month: 
+                    expires: -> new Date(Date.now() + 1000*60*60*24*30)
+                  }
          }
+
 };
 
 /**
