@@ -66,7 +66,8 @@ var inputField = function(name, desc, widget) {
 function InputBuilder(source, errors) {
 	if (!errors) errors = @ObservableVar({});
 	function buildInput(cons, transform, name, desc, validators) {
-			var obs = @ObservableVar(source[name]);
+			var latestValue = source[name];
+			var obs = @ObservableVar(latestValue);
 			var err = errors .. @transform(o -> o[name]);
 			if (validators && !Array.isArray(validators)) validators = [validators];
 
@@ -96,6 +97,7 @@ function InputBuilder(source, errors) {
 			obs.set = (function(orig) {
 				return function(v) {
 					v = transform(v);
+					latestValue = transform(v);
 					if (!validate(v)) return;
 					source[name] = v;
 					orig.apply(this,arguments);
@@ -104,12 +106,12 @@ function InputBuilder(source, errors) {
 
 			var rv = inputField(name, desc, [
 						cons(obs, {'class':'form-control col-xs-6'})
-							.. @On('blur', function(e) { validate(e.target.value .. transform); })
+							.. @On('blur', function(e) { validate(latestValue); })
 						,errorText(err)
 				])
 				.. @Class('has-error', err)
 				.. @Style("width:500px");
-			rv.value = obs:
+			rv.value = obs;
 			return rv;
 	};
 	return {
@@ -142,8 +144,8 @@ var serverConfigEditor = exports.serverConfigEditor = function(container, conf) 
 			Input('name', 'Name', @validate.required),
 			Input('host', 'Host', @validate.required),
 			Input('port', 'Port', [@validate.optionalNumber, @validate.required]),
-			usernameInput .. @Class("hidden", useSsh.value .. @transform(x -> !x)),
 			useSsh,
+			usernameInput .. @Class("hidden", useSsh.value .. @transform(x -> !x)),
 			saveButton,
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle(),
 		formBlock(errors, [[conf, current]])
@@ -192,8 +194,7 @@ exports.loginDialog = function(sibling, conf, actions) {
 			userInput,
 			passwordInput,
 			signupButton,
-			loginButton .. @OnClick(function() {
-			}),
+			loginButton,
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()) {|formElem|
 
 		var credentials = -> [
