@@ -2,3 +2,8 @@
 exports.validateToken = function(token) {
   @user.authenticate(token);
 };
+
+exports.createUser = function(username, password) {
+  var user = @user.create(username, password);
+  return @user.getToken(username, password);
+};

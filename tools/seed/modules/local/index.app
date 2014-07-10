@@ -345,9 +345,7 @@ var showServer = function(token, localServer, remoteServer, container) {
 
 				var id = server.id;
 				elem .. @appendContent(@Div(null)) {|elem|
-					console.log("DISPLAYING", server);
 					var initialConfig = server.config .. @first();
-					var authenticationError = @ObservableVar(null);
 					var token = initialConfig.ssh || initialConfig.token;
 					var updateToken = function(newToken) {
 						server.config.modify(c -> c .. @merge({token: newToken}));
@@ -364,12 +362,27 @@ var showServer = function(token, localServer, remoteServer, container) {
 									if (remoteServer.authenticate) {
 										while (!token) {
 											@info("Getting auth token...");
-											var password = @form.loginDialog(elem, initialConfig.username, authenticationError);
-											if (password === null) return;
-											withBusyIndicator {||
-												updateToken(remoteServer.getToken(initialConfig.username, password));
-											}
-											if (!token) authenticationError.set("Invalid credentials");
+											var username, password;
+											[username, password, token] = @form.loginDialog(
+												elem, server.config, {
+												login: function(username, password) {
+													withBusyIndicator {||
+														return remoteServer.getToken(username, password);
+													}
+												},
+												signup: function(username, password) {
+													withBusyIndicator {||
+														localServer.endpoint.relative('/user.api').connect {|auth|
+															return auth.createUser(username, password);
+														}
+													}
+												},
+											});
+
+											server.config.modify(existing -> existing .. @merge({
+													token:token,
+													username: username
+												}));
 											@debug("Is authenticated:", token);
 										}
 										remoteServer = remoteServer.authenticate(token);
@@ -386,7 +399,6 @@ var showServer = function(token, localServer, remoteServer, container) {
 						activeServer.set(null);
 					} or {
 						var new_ = activeServer .. @changes() .. @wait();
-						console.error("CANCEL", new_);
 					} catch(e) {
 						activeServer.set(null);
 						throw e;
@@ -400,7 +412,7 @@ var showServer = function(token, localServer, remoteServer, container) {
 				@info("Server: ", server);
 				var serverName = server.config .. @transform(s -> s.name);
 				var button = @A(serverName) .. @OnClick(function(evt) {
-					activeServer.set(server);
+					activeServer.modify(current -> current === server ? null : server);
 				});
 
 				var dropdownItems = @Li([
@@ -422,11 +434,15 @@ var showServer = function(token, localServer, remoteServer, container) {
 						@A([@Icon('remove'), ' Delete']) .. @OnClick(function() {
 							server.destroy();
 						}),
-						@A([@Icon('log-out'), ' forget credentials']) .. @OnClick(function() {
+						@A([@Icon('log-out'), ' Log out']) .. @OnClick(function() {
 							server.config.modify(function(conf) {
 								conf = conf .. @clone();
 								delete conf['token'];
 								return conf;
+							});
+							activeServer.modify(function(current, unmodified) {
+								if (current === server) return null;
+								return unmodified;
 							});
 						}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
 					], {'class':'dropdown-menu'}),

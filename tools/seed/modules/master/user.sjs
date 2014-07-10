@@ -136,6 +136,7 @@ var Token = {
 }
 
 var hashPassword = function(password, opts) {
+	if (password.length == 0) throw new Error("blank password");
 	var { salt, iterations, keylen } = opts;
 	@assert.string(salt);
 	var saltBuf = new Buffer(salt, "base64");
@@ -199,7 +200,6 @@ exports.getToken = function(username, password) {
 	try {
 		withUser(uid) {|user, save|
 			var expectedHash = user.password.hash;
-			@debug(user.password);
 			var givenHash = hashPassword(password, user.password).toString('base64');
 			if (!@eq(givenHash, expectedHash)) {
 				throw @user.AuthenticationError();
@@ -213,7 +213,7 @@ exports.getToken = function(username, password) {
 		return Token.encode(secretToken);
 	} catch(e) {
 		@info("failed to authenticate user: #{e.message}");
-		//@info(String(e)); // XXX remove
+		@info(String(e)); // XXX remove
 	}
 	return null;
 	throw @user.AuthenticationError();
@@ -231,7 +231,7 @@ exports.authenticate = function(tokenStr) {
 		return new @user.User(token.uid, user.name);
 	} catch(e) {
 		@info("failed to authenticate token: #{e.message}");
-		//@info(String(e)); // XXX remove
+		@info(String(e)); // XXX remove
 		throw @user.AuthenticationError();
 	}
 };

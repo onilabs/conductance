@@ -48,6 +48,7 @@ exports.defaults = function() {
 
 	def('etcd-host', 'localhost');
 	def('etcd-port', 4001);
+	def('etcd-proto', 'http'); // XXX no support for https yet...
 	def('etcd', function() {
 		return new @etcd.Etcd(this.get('etcd-host'), this.get('etcd-port'));
 	}, true);

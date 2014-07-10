@@ -48,9 +48,8 @@ exports.serve = function(args) {
   waitfor {
     if (@env.get('deployLoopback')) {
       @logging.setLevel(@logging.INFO);
-      require('./bin/etcd.sjs').withEtcd {|etcd|
-        @info("etcd running...");
-        @env.set('etcd', etcd);
+      require('./bin/etcd.sjs').withEtcd {||
+        @info("etcd is running");
 
         @env.set('internalAddress', 'localhost');
         waitfor {

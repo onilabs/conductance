@@ -4,6 +4,7 @@
 var formStyle = @CSS('{ }');
 var saveButton = `<button type="submit" class="btn btn-default">Save</button>`;
 var loginButton = `<button type="submit" class="btn btn-default">Connect</button>`;
+var signupButton = `<a class="btn btn-success signup">Sign up</a>`;
 
 var pairObject = function(k,v) {
 	var rv = {};
@@ -11,17 +12,32 @@ var pairObject = function(k,v) {
 	return rv;
 }
 
+var withoutKey = function(o, key) {
+	o = o .. @clone();
+	delete o[key];
+	return o;
+}
+
 var initialFocus = @Mechanism(function(elem) {
 	elem.focus();
 });
 
-function formBlock(errors, configs) {
+function hasErrors(errors) {
+	hold(0); // allow errors to propagate
+	var currentErrors = errors .. @first();
+	if (!currentErrors .. @eq({})) {
+		@warn("validation errors remaining - ignoring submit", currentErrors);
+		return true;
+	}
+	return false;
+}
+
+function formBlock(errors, configs, block) {
 	return function(elem) {
 		elem .. @events('submit', {handle: @stopEvent}) .. @each {||
-			hold(0); // allow errors to propagate
-			if (!errors .. @first() .. @eq({})) {
-				@warn("validation errors remaining - ignoring submit");
-				continue;
+			if (hasErrors(errors)) continue;
+			if (block) {
+				if (!block()) continue;
 			}
 
 			configs .. @each.par {|[obs, current]|
@@ -50,18 +66,19 @@ var inputField = function(name, desc, widget) {
 function InputBuilder(source, errors) {
 	if (!errors) errors = @ObservableVar({});
 	function buildInput(cons, transform, name, desc, validators) {
-			var err = errors .. @transform(o -> o[name]);
 			var obs = @ObservableVar(source[name]);
+			var err = errors .. @transform(o -> o[name]);
 			if (validators && !Array.isArray(validators)) validators = [validators];
-			obs.set = function(v) {
-				v = transform(v);
+
+			var validate = function(v) {
+				//@info("Validating #{name} value: #{v}");
 				if (validators) {
-					var ok = true;
 					try {
 						validators .. @each(f -> f(v));
 					} catch(e) {
 						errors.modify(errors -> errors .. @merge(pairObject(name, e.message)));
-						return;
+						//@info("NOT OK: #{e.message}");
+						return false;
 					}
 					errors.modify(function(errors, unchanged) {
 						if (!errors .. @hasOwn(name)) {
@@ -72,17 +89,28 @@ function InputBuilder(source, errors) {
 						return rv;
 					});
 				}
-				source[name] = v;
-			}
+				//@info("OK");
+				return true;
+			};
 
-			return [
-				inputField(name, desc, [
-					cons(obs, {'class':'form-control col-xs-6'}),
-					errorText(err)
+			obs.set = (function(orig) {
+				return function(v) {
+					v = transform(v);
+					if (!validate(v)) return;
+					source[name] = v;
+					orig.apply(this,arguments);
+				};
+			})(obs.set);
+
+			var rv = inputField(name, desc, [
+						cons(obs, {'class':'form-control col-xs-6'})
+							.. @On('blur', function(e) { validate(e.target.value .. transform); })
+						,errorText(err)
 				])
 				.. @Class('has-error', err)
-				.. @Style("width:500px"),
-			];
+				.. @Style("width:500px");
+			rv.value = obs:
+			return rv;
 	};
 	return {
 		Input: function (name, desc, validators) {
@@ -106,13 +134,16 @@ var serverConfigEditor = exports.serverConfigEditor = function(container, conf) 
 	var {Input, Checkbox} = InputBuilder(current, errors);
 	@info("Got server config:", current);
 
+	var useSsh = Checkbox('ssh', 'Use SSH');
+	var usernameInput = Input('username', 'User', @validate.required);
+ 
 	container.querySelector('.edit-container') .. @appendContent(
 		@Form([
 			Input('name', 'Name', @validate.required),
 			Input('host', 'Host', @validate.required),
 			Input('port', 'Port', [@validate.optionalNumber, @validate.required]),
-			Input('username', 'User', @validate.required),
-			Checkbox('ssh', 'Use SSH'),
+			usernameInput .. @Class("hidden", useSsh.value .. @transform(x -> !x)),
+			useSsh,
 			saveButton,
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle(),
 		formBlock(errors, [[conf, current]])
@@ -140,21 +171,67 @@ var appConfigEditor = exports.appConfigEditor = function(sibling, conf) {
 	);
 };
 
-exports.loginDialog = function(sibling, username, error) {
+exports.loginDialog = function(sibling, conf, actions) {
+	var current = conf .. @first();
+	var originalValues = conf .. @first();
+	var errors = @ObservableVar({});
+
+	var {Input} = InputBuilder(current, errors);
+	@info("Got server config:", current);
+
 	var password = @ObservableVar();
+	var userInput = Input('username', 'User', @validate.required);
+	var passwordInput = Input('password', 'Password', @validate.required);
+	var password = passwordInput.value;
+	// if username is given, focus the password field
+	if (current.username) passwordInput = passwordInput .. initialFocus();
+
 	sibling .. @insertAfter(
 		@Form([
-			errorText(error),
-			inputField('password', 'Password', @TextInput(password) .. initialFocus()),
-			loginButton,
-		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()) {
-		|elem|
-		elem .. @events('submit', {handle: @stopEvent}) .. @each {||
-			var pass = password .. @first();
-			@info("returning password:", pass);
-			if (pass.length > 0) return pass;
+			errorText(errors .. @transform(e -> e.global)),
+			userInput,
+			passwordInput,
+			signupButton,
+			loginButton .. @OnClick(function() {
+			}),
+		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()) {|formElem|
+
+		var credentials = -> [
+			@first(userInput.value) || "",
+			@first(password) || "",
+		];
+		
+		var actionLoop = function(elem, events, actionName) {
+			@assert.ok(actions[actionName]);
+			elem .. @events(events, {handle:@stopEvent}) .. @each {||
+				errors.modify(c -> c .. withoutKey('global'));
+				if (hasErrors(errors)) continue;
+				@info("performing #{actionName} action");
+				var creds = credentials();
+				try {
+					var token = actions[actionName].apply(null, creds);
+				} catch(e) {
+					//@warn(String(e));
+					errors.modify(c -> c .. @merge({global:e.message}));
+					continue;
+				}
+
+				if (token) {
+					creds.push(token);
+					return creds;
+				} else {
+					errors.modify(c -> c .. @merge({global:"Invalid credentials"}));
+					continue;
+				}
+			}
+		};
+
+		waitfor {
+			return formElem .. actionLoop('submit', 'login');
+		} or {
+			return formElem.querySelector(".signup").. actionLoop('click', 'signup');
 		}
-	};
+	}
 };
 
 var editWidget = function(values) {

@@ -94,6 +94,10 @@ EndpointProto._connect = function(block) {
 	}
 }
 
+EndpointProto.relative = function(url) {
+	return exports.Endpoint(@url.normalize(url, this.server));
+};
+
 EndpointProto .. @bridge.setMarshallingDescriptor({
 	wrapLocal: (x) -> x._props,
 	wrapRemote: ['seed:endpoint', 'unmarshallEndpoint'],

@@ -4,7 +4,7 @@ exports.optionalNumber = function(n) {
 };
 
 exports.required = function(n) {
-	if (n == '') throw new Error("required");
+	if (!n || n == '') throw new Error("required");
 };
 
 exports.alphanumeric = function(name) {

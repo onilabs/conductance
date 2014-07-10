@@ -1,18 +1,19 @@
 @ = require('mho:std');
 @etcd = require('seed:job/etcd');
 
-function awaitRunningServer(proto, host, port) {
-	var root = "#{proto}://#{host}:#{port}/v2/";
+var port = -> @env.get('etcd-port');
+var host = -> @env.get('etcd-host');
+var proto = -> @env.get('etcd-proto');
+var root_url = -> "#{proto()}://#{host()}:#{port()}/v2/";
+var etcd = -> @env.get('etcd');
+
+function awaitRunningServer() {
+	var root = root_url();
 	waitfor {
 		while(true) {
-			try {
-				@http.get(root + "keys/");
-				@info("Found server on #{root}");
+			if (exports.isRunning(root)) {
 				break;
-			} catch(e) {
-				if (!e.message .. @contains('ECONNREFUSED')) {
-					throw e;
-				}
+			} else {
 				hold(1000);
 			}
 		}
@@ -23,11 +24,31 @@ function awaitRunningServer(proto, host, port) {
 	}
 }
 
+exports.isRunning = function(root) {
+	root = root || root_url();
+	try {
+		@http.get(root + "keys/");
+		@info("Found server on #{root}");
+		return true;
+	} catch(e) {
+		if (!e.message .. @contains('ECONNREFUSED')) {
+			throw e;
+		}
+	}
+	return false;
+};
+
 exports.withEtcd = function(block) {
-	waitfor {
-		@childProcess.run(@url.normalize('./etcd', module.id) .. @url.toPath, {'stdio':'inherit'});
-	} or {
-		awaitRunningServer('http', 'localhost', 4001);
-		block(new @etcd.Etcd('localhost', 4001));
+	if (exports.isRunning()) {
+		@info("Using existing etcd server");
+		block();
+	} else {
+		@info("Starting new etcd server");
+		waitfor {
+			@childProcess.run(@url.normalize('./etcd', module.id) .. @url.toPath, {'stdio':'inherit'});
+		} or {
+			awaitRunningServer();
+			block();
+		}
 	}
 };

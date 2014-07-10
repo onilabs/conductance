@@ -119,8 +119,8 @@ var serve = function(args) {
 
   waitfor {
     require('seed:job/master').main(etcd, {
-      balanceTime: 5,
-      //balanceTime: 10 * 60,
+      //balanceTime: 5,
+      balanceTime: 10 * 60,
     });
   } or {
     @server.run({

@@ -3,7 +3,6 @@
 var msg = "Authentication error";
 var AuthenticationError = exports.AuthenticationError = function() {
   var rv = new Error(msg);
-  //rv.authentication_error = true;
   return rv;
 }
 
