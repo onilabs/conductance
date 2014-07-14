@@ -183,7 +183,7 @@ exports.create = function(username, password) {
 	}
 };
 
-var EXPIRY_DAYS = 7;
+var EXPIRY_DAYS = 14;
 exports.getToken = function(username, password) {
 	var now = new Date().getTime();
 	var expires = new Date(now + (1000 * 60 * 60 * 24 * EXPIRY_DAYS));
@@ -207,7 +207,7 @@ exports.getToken = function(username, password) {
 			var serializedToken = Token.encode(dbToken);
 			@verbose("Adding token to user: ", dbToken);
 			if (!user.tokens) user.tokens = [];
-			user.tokens.push(serializedToken);
+			user.tokens = [serializedToken].concat(user.tokens.slice(0,9));
 			save(user);
 		}
 		return Token.encode(secretToken);

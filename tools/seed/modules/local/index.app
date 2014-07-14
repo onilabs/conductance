@@ -4,12 +4,13 @@
 require('/modules/hub');
 @ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom']);
 @form = require('./form');
+@modal = require('./modal');
 @user = require('seed:auth/user');
 @logging.setLevel(@logging.DEBUG);
 
 document.body .. @appendContent(@GlobalCSS("
 	body {
-		.container {
+		> .container {
 			min-height: 500px;
 			background: white;
 			box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
@@ -99,6 +100,30 @@ var appStyle = @CSS("
 
 var constant = function(val) {
 	return @Stream(emit -> (emit(val), hold()));
+};
+
+var confirmDelete = function(thing) {
+	@modal.withOverlay({title:"Confirm Deletion"}) {|elem|
+		elem .. @appendContent(`
+			<div>
+				<p>Really delete $thing?</p>
+				<a class="btn pull-left btn-default">Cancel</a>
+				<a class="btn pull-right btn-danger">Delete it</a>
+			</div>
+		`) {|elem|
+			var buttons = elem.querySelectorAll('.btn');
+			@assert.ok(buttons.length === 2, String(buttons.length));
+			var cancel = buttons.item(0);
+			var confirm = buttons.item(1);
+			waitfor {
+				cancel .. @wait('click');
+				return false;
+			} or {
+				confirm .. @wait('click');
+				return true;
+			}
+		}
+	}
 };
 
 var appWidget = function(token, localServer, remoteServer, app) {
@@ -272,25 +297,21 @@ var appWidget = function(token, localServer, remoteServer, app) {
 					}
 				}),
 			
-				listButton(['Settings', @Icon('cog')]) .. @Mechanism(function(elem) {
-					var container = elem.parentNode;
-					var clicks = elem .. @events('click');
-					clicks .. @each {||
-						waitfor {
-							container .. @form.appConfigEditor({
+				listButton(['Settings', @Icon('cog')])
+				.. @OnClick(function(e) {
+					@modal.withOverlay({title:`$appName Settings`}) {|elem|
+						elem .. @form.appConfigEditor({
 								central: app.config,
 								local: localServer.appConfig(app.id),
 							});
-						} or {
-							clicks .. @wait();
-							console.log("edit cancelled");
-						}
 					}
 				}),
 
-				listButton(['Delete', @Icon('minus-sign')]) .. @Mechanism(function(elem) {
-					elem .. @wait('click');
-					remoteServer.destroyApp(app .. @get('id'));
+				listButton(['Delete', @Icon('minus-sign')]) .. @OnClick(function() {
+					if (!confirmDelete(appName)) return;
+					@withBusyIndicator {||
+						remoteServer.destroyApp(app .. @get('id'));
+					}
 				}),
 			], {'class':'list-group'}) .. appListStyle(),
 		], {'class':'col-sm-4'}),
@@ -363,21 +384,28 @@ var showServer = function(token, localServer, remoteServer, container) {
 										while (!token) {
 											@info("Getting auth token...");
 											var username, password;
-											[username, password, token] = @form.loginDialog(
-												elem, server.config, {
-												login: function(username, password) {
-													withBusyIndicator {||
-														return remoteServer.getToken(username, password);
-													}
-												},
-												signup: function(username, password) {
-													withBusyIndicator {||
-														localServer.endpoint.relative('/user.api').connect {|auth|
-															return auth.createUser(username, password);
+											var loginResult = @modal.withOverlay({title:initialConfig.name}) {|elem|
+												@form.loginDialog(elem, server.config, {
+													login: function(username, password) {
+														withBusyIndicator {||
+															return remoteServer.getToken(username, password);
 														}
-													}
-												},
-											});
+													},
+													signup: function(username, password) {
+														withBusyIndicator {||
+															localServer.endpoint.relative('/user.api').connect {|auth|
+																return auth.createUser(username, password);
+															}
+														}
+													},
+												});
+											};
+											if (!loginResult) {
+												activeServer.set(null);
+												break;
+											}
+
+											[username, password, token] = loginResult;
 
 											server.config.modify(existing -> existing .. @merge({
 													token:token,
@@ -418,21 +446,16 @@ var showServer = function(token, localServer, remoteServer, container) {
 				var dropdownItems = @Li([
 					@A(@Span(null, {'class':'caret'}), {'class':'dropdown-toggle', 'data-toggle':'dropdown'}),
 					@Ul([
-						@A([@Icon('cog'), ' Settings']) .. @Mechanism(function(elem) {
-							var clicks = elem .. @events('click');
-							clicks .. @each {||
-								waitfor {
-									console.log("edit starting!");
-									@findNode('ul.nav', elem).parentNode .. @form.serverConfigEditor(server.config);
-									console.log("edit done!");
-								} or {
-									clicks .. @wait();
-									console.log("edit Cancelled!");
-								}
+						@A([@Icon('cog'), ' Settings']) .. @OnClick(function(e) {
+							@modal.withOverlay({title:`Server Settings`}) {|elem|
+									elem .. @form.serverConfigEditor(server.config);
 							}
 						}),
 						@A([@Icon('remove'), ' Delete']) .. @OnClick(function() {
-							server.destroy();
+							if (!confirmDelete(`server $serverName`)) return;
+							@withBusyIndicator {||
+								server.destroy();
+							}
 						}),
 						@A([@Icon('log-out'), ' Log out']) .. @OnClick(function() {
 							server.config.modify(function(conf) {
@@ -463,9 +486,8 @@ var showServer = function(token, localServer, remoteServer, container) {
 
 		@mainContent .. @appendContent([
 			serverList,
-			@Div(null, {'class':'edit-container'}),
 			@Div(),
-		]) {|_, _, content|
+		]) {|_, content|
 			ready();
 			displayCurrentServer(content),
 			hold();
