@@ -6,6 +6,7 @@ require('/modules/hub');
 @form = require('./form');
 @modal = require('./modal');
 @user = require('seed:auth/user');
+var { @route } = require('./my-route');
 @logging.setLevel(@logging.DEBUG);
 
 document.body .. @appendContent(@GlobalCSS("
@@ -267,7 +268,30 @@ var appWidget = function(token, localServer, remoteServer, app) {
 		</div>
 	`) .. appStyle();
 
-	var detailShown = @ObservableVar(false);
+	var detailShown = @route .. @transform(function(state) {
+		var apps = state.apps;
+		return apps .. @hasElem(app.id);
+	});
+	detailShown.get = -> detailShown .. @first();
+	detailShown.set = function(val) {
+		@route.modify(function(state, unmodified) {
+			var apps = state.apps;
+			var currently = apps .. @hasElem(app.id);
+			if (val) {
+				if (!currently) {
+					return state .. @merge({apps: apps.concat([app.id])});
+				}
+			} else {
+				var apps = apps.slice();
+				if (currently) {
+					apps .. @remove(app.id);
+					return state .. @merge({apps:apps});
+				}
+			}
+			return unmodified;
+		});
+	};
+
 	var disclosureClass = detailShown .. @transform(
 		shown -> 'glyphicon-chevron-' + (shown ? 'left' : 'right')
 	);
@@ -279,22 +303,8 @@ var appWidget = function(token, localServer, remoteServer, app) {
 	return [
 		@Div([
 			@Ul([
-				listButton([appName, " ", @Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass)]) .. @Mechanism(function(btn) {
-					while(true) {
-						btn .. @wait('click');
-						waitfor {
-							detailShown.set(true);
-							try {
-								@findNode('.row', btn).querySelector('.app-detail') .. @appendContent(appDetail) {||
-									hold();
-								}
-							} finally {
-								detailShown.set(false);
-							}
-						} or {
-							btn .. @wait('click');
-						}
-					}
+				listButton([appName, " ", @Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass)]) .. @OnClick(function(btn) {
+					detailShown.set(!detailShown.get());
 				}),
 			
 				listButton(['Settings', @Icon('cog')])
@@ -316,7 +326,8 @@ var appWidget = function(token, localServer, remoteServer, app) {
 			], {'class':'list-group'}) .. appListStyle(),
 		], {'class':'col-sm-4'}),
 
-		@Div(null, {'class':'col-sm-8 app-detail'}),
+		@Div(detailShown .. @transform(show -> show ? appDetail : null),
+			{'class':'col-sm-8 app-detail'}),
 	];
 };
 
@@ -349,9 +360,16 @@ var showServer = function(token, localServer, remoteServer, container) {
 
 @withBusyIndicator {|ready|
 	@withAPI('./remote.api') {|api|
-		
-		console.log("API.servers = #{api.servers}");
-		var activeServer = @ObservableVar(null);
+		var serverEq = function(a, b) {
+			return a == b || (a ? a.id) == (b ? b.id);
+		};
+		var activeServer = @observe(@route, api.servers, function(state, servers) {
+			var id = state.server;
+			if (!id) return null;
+			return servers .. @find(s -> s.id === id, null);
+		});
+		activeServer.get = -> activeServer .. @first();
+		activeServer.set = val -> @route.set({server: val ? val.id : null});
 
 		var displayCurrentServer = function(elem) {
 			activeServer .. @each(function(server) {
@@ -440,7 +458,7 @@ var showServer = function(token, localServer, remoteServer, container) {
 				@info("Server: ", server);
 				var serverName = server.config .. @transform(s -> s.name);
 				var button = @A(serverName) .. @OnClick(function(evt) {
-					activeServer.modify(current -> current === server ? null : server);
+					activeServer.set(server);
 				});
 
 				var dropdownItems = @Li([
@@ -463,16 +481,13 @@ var showServer = function(token, localServer, remoteServer, container) {
 								delete conf['token'];
 								return conf;
 							});
-							activeServer.modify(function(current, unmodified) {
-								if (current === server) return null;
-								return unmodified;
-							});
+							if (activeServer.get() === server) activeServer.set(null);
 						}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
 					], {'class':'dropdown-menu'}),
 				], {'class':'dropdown'});
 
 				return @Li([button, dropdownItems])
-					.. @Class('active', activeServer .. @transform(s -> s === server));
+					.. @Class('active', activeServer .. @transform(s -> serverEq(s, server)));
 			});
 		});
 
