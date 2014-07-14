@@ -246,80 +246,85 @@ exports.localAppState = (function() {
       // XXX this is not portable
       // XXX we use *Sync functions to make sure nobody is opening new file descriptors behind our back
 
-      @nodeFs.readdirSync("/proc/#{process.pid}/fd") .. @each {|fd|
-        fd = parseInt(fd, 10);
-        var flags;
+      try {
+        @nodeFs.readdirSync("/proc/#{process.pid}/fd") .. @each {|fd|
+          fd = parseInt(fd, 10);
+          var flags;
+          try {
+            flags = fd .. @fsExt.fcntlSync('getfd');
+          } catch(e) {
+            if (e.code === 'EBADF') {
+              // presumably the file descriptor used to read /proc/PID/fd - ignore
+              continue;
+            }
+          }
+          var cloexec = flags | @constants.FD_CLOEXEC;
+          if (flags !== cloexec) {
+            // clexec flag not yet set:
+            fd .. @fsExt.fcntlSync('setfd', cloexec);
+          }
+          ((fd .. @fsExt.fcntlSync('getfd')) & @constants.FD_CLOEXEC) .. @assert.ok('CLOEXEC not set');
+        }
+
+        // Make sure there's no leftover container
+        // (`docker run -rm` is not 100% reliable)
+        // XXX an idempotent `rm` would be much better...
         try {
-          flags = fd .. @fsExt.fcntlSync('getfd');
+          @childProcess.run("docker", ["rm", machineName], {stdio:['ignore',1,'pipe']});
         } catch(e) {
-          if (e.code === 'EBADF') {
-            // presumably the file descriptor used to read /proc/PID/fd - ignore
-            continue;
+          if (!/Error: No such container: /.test(e.stderr)) {
+            @error(e.stderr);
+            throw e;
           }
         }
-        var cloexec = flags | @constants.FD_CLOEXEC;
-        if (flags !== cloexec) {
-          // clexec flag not yet set:
-          fd .. @fsExt.fcntlSync('setfd', cloexec);
-        }
-        ((fd .. @fsExt.fcntlSync('getfd')) & @constants.FD_CLOEXEC) .. @assert.ok('CLOEXEC not set');
-      }
 
-      // Make sure there's no leftover container
-      // (`docker run -rm` is not 100% reliable)
-      // XXX an idempotent `rm` would be much better...
-      try {
-        @childProcess.run("docker", ["rm", machineName], {stdio:['ignore',1,'pipe']});
+        try {
+          var args = ConductanceArgs;
+          var runUser = "app";
+          var readOnly = (path) -> "#{path}:#{path}:ro";
+          var state = @path.join(appRunBase, "run");
+          @mkdirp(state);
+
+          args = [
+            "docker",
+            "run",
+            "--rm=true",
+            "--publish", "8080",
+            "--publish", "4043",
+            "--name", machineName,
+            "--hostname", machineName,
+            "--user", runUser,
+            "--volume", readOnly(codeDest),
+            "--volume", state,
+            "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
+            "--volume", readOnly(conductanceRoot),
+            "--volume", readOnly(sjsRoot),
+            "--workdir", codeDest,
+            "local/conductance-slave.base",
+          ].concat(args);
+          @info("Running", args);
+          var child = @childProcess.launch(args[0],
+            args.slice(1).concat([
+              '-vvv',
+              'serve',
+            ]),
+            {
+              stdio: stdio,
+              detached: true,
+            }
+          );
+
+          @info("launched child process: #{child.pid}");
+          pidPath .. writeAtomically(String(child.pid));
+        } finally {
+          stdio.slice(1) .. @each(@fs.close);
+          spawn(function() {hold(400); recheckPid.emit();}());
+        }
+        return true;
       } catch(e) {
-        if (!/Error: No such container: /.test(e.stderr)) {
-          @error(e.stderr);
-          throw e;
-        }
+        log(e.message);
+        throw e;
       }
-
-      try {
-        var args = ConductanceArgs;
-        var runUser = "app";
-        var readOnly = (path) -> "#{path}:#{path}:ro";
-        var state = @path.join(appRunBase, "run");
-        @mkdirp(state);
-
-        args = [
-          "docker",
-          "run",
-          "--rm=true",
-          "--publish", "8080",
-          "--publish", "4043",
-          "--name", machineName,
-          "--hostname", machineName,
-          "--user", runUser,
-          "--volume", readOnly(codeDest),
-          "--volume", state,
-          "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
-          "--volume", readOnly(conductanceRoot),
-          "--volume", readOnly(sjsRoot),
-          "--workdir", codeDest,
-          "local/conductance-slave.base",
-        ].concat(args);
-        @info("Running", args);
-        var child = @childProcess.launch(args[0],
-          args.slice(1).concat([
-            '-vvv',
-            'serve',
-          ]),
-          {
-            stdio: stdio,
-            detached: true,
-          }
-        );
-
-        @info("launched child process: #{child.pid}");
-        pidPath .. writeAtomically(String(child.pid));
-      } finally {
-        stdio.slice(1) .. @each(@fs.close);
-        spawn(function() {hold(400); recheckPid.emit();}());
-      }
-      return true;
     } .. safe();
 
     var waitApp = function() {
