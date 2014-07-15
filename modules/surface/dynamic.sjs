@@ -24,6 +24,7 @@ var { propertyPairs, keys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { events, wait } = require('sjs:event');
+var { waitforAll, StratumAborted } = require('sjs:cutil');
 
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
@@ -170,41 +171,74 @@ function StreamNodes(elem) {
     filter({nodeValue} -> nodeValue.indexOf('surface_stream')!== -1);
 }
 
-function runMechanisms(elem, content_only) {
-  if (elem.nodeType == 1) {
+function awaitStratumError(s) {
+  // ignores stratum cancellation
+  try {
+    s.value();
+  } catch(e) {
+    if (!(e instanceof StratumAborted)) throw e;
+  }
+};
 
-    var elems = elem.querySelectorAll('[data-oni-mechanisms]') ..
-      concat((!content_only && elem.hasAttribute('data-oni-mechanisms')) ? [elem] : []) ..
-      reverse; // we want to start mechanisms in post-order; querySelectorAll is pre-order
+__js var fakeArray = { push: -> null };
 
-    var streams = StreamNodes(elem) .. toArray;
+function runMechanisms(elems, await) {
+  var rv = await ? [] : fakeArray;
+  var addMech = function(elem, mech) {
+    var s = spawn mechanismsInstalled[mech].func.call(elem, elem);
+    elem.__oni_mechs.push(s);
+    rv.push(s);
+  };
 
-    elems .. each {
-        |elem|
-        elem.__oni_mechs = [];
-        elem.getAttribute('data-oni-mechanisms').split(' ') ..
-          filter .. // only truthy elements
-          each {
-            |mech|
-            elem.__oni_mechs.push(spawn mechanismsInstalled[mech].func.call(elem, elem));
-          }
+  elems .. each {|elem|
+    if (elem.nodeType == 1) {
+
+      var elems = elem.querySelectorAll('[data-oni-mechanisms]') ..
+        concat(elem.hasAttribute('data-oni-mechanisms') ? [elem] : []) ..
+        reverse; // we want to start mechanisms in post-order; querySelectorAll is pre-order
+
+      var streams = StreamNodes(elem) .. toArray;
+
+      elems .. each {
+          |elem|
+          elem.__oni_mechs = [];
+          elem.getAttribute('data-oni-mechanisms').split(' ') ..
+            filter .. // only truthy elements
+            each {
+              |mech|
+              elem .. addMech(mech);
+            }
+        }
+      
+      // start streams:
+      streams .. each { 
+        |node| 
+        var [,mech] = node.nodeValue.split("|");
+        node.__oni_mechs = [];
+        node .. addMech(mech);
       }
-    
-    // start streams:
-    streams .. each { 
-      |node| 
-      var [,mech] = node.nodeValue.split("|");
-      node.__oni_mechs = [spawn mechanismsInstalled[mech].func.call(node, node)];
+    }
+    else if (elem.nodeValue.indexOf('surface_stream') !== -1) {
+      // we assume nodetype == 8 (comment node)
+      var [,mech] = elem.nodeValue.split("|");
+      elem.__oni_mechs = [];
+      elem .. addMech(mech);
     }
   }
-  else if (elem.nodeValue.indexOf('surface_stream') !== -1) {
-    // we assume nodetype == 8 (comment node)
-    var [,mech] = elem.nodeValue.split("|");
-    elem.__oni_mechs = [spawn mechanismsInstalled[mech].func.call(elem,elem)];
+
+  if (await) {
+    return spawn(function() {
+      try {
+        waitforAll(awaitStratumError, rv);
+        hold();
+      } finally {
+        rv .. each(s -> s.abort());
+      }
+    }());
   }
 }
 
-function insertHtml(html, doInsertHtml) {
+function insertHtml(html, block, doInsertHtml) {
   html = collapseHtmlFragment(html);
   
   // load external scripts:
@@ -224,7 +258,8 @@ function insertHtml(html, doInsertHtml) {
   resourceRegistry.useMechanisms(mechs);
 
   try {
-    doInsertHtml(html);
+    var inserted = doInsertHtml(html) .. toArray;
+    var mechResult = inserted .. runMechanisms(block);
   }
   catch (e) {
     resourceRegistry.unuseCSSDefs(css);
@@ -234,6 +269,22 @@ function insertHtml(html, doInsertHtml) {
     // now they have been run (or not), we can tell the resource registry to
     // remove the mechanisms again
     resourceRegistry.unuseMechanisms(propertyPairs(mechs) .. map([id, code] -> id) .. toArray);
+  }
+
+
+  if (block) {
+    try {
+      waitfor {
+        return block.apply(null, inserted);
+      } or {
+        mechResult.value();
+      }
+    }
+    finally {
+      inserted .. each(removeNode);
+    }
+  } else {
+    return inserted;
   }
 }
 
@@ -268,22 +319,25 @@ function nodes(parent, before_node, after_node) {
    @function replaceContent
    @altsyntax parent_element .. replaceContent(html)
    @summary Replace the content of a DOM element with a [::HtmlFragment]
-   @param {DOMElement} [parent_element] 
+   @param {DOMElement} [parent_element]
    @param {::HtmlFragment} [html] Html to insert
+   @param {optional Function} [block] Function bounding lifetime of inserted content
+   @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
    @hostenv xbrowser
    @desc
-     ### Example:
-
-         document.body .. replaceContent(`<h1>Hello, world</h1>`)
+     * See [::appendContent] for notes on the semantics and return value.
+     * The original content of `parent_element` is not restored when `block`
+       completes - this function simply removes all existing content and then
+       acts like [::appendContent] on the now-empty node.
 */
-function replaceContent(parent_element, html) {
-  insertHtml(html, function(html) {
-    stopMechanisms(parent_element);
-    parent_element.querySelectorAll('._oni_css_') .. unuseCSS();
-
+function replaceContent(parent_element, html, block) {
+  var inserted_nodes = nodes(parent_element);
+  return insertHtml(html, block, function(html) {
+    while (parent_element.firstChild) {
+      removeNode(parent_element.firstChild);
+    };
     parent_element.innerHTML = html.getHtml();
-
-    parent_element .. runMechanisms(true);
+    return inserted_nodes;
   });
 }
 exports.replaceContent = replaceContent;
@@ -341,23 +395,10 @@ exports.replaceContent = replaceContent;
 function appendContent(parent_element, html, block) {
   var inserted_nodes = nodes(parent_element, parent_element.lastChild, null);
   
-  insertHtml(html, function(html) {
+  return insertHtml(html, block, function(html) {
     parent_element.insertAdjacentHTML('beforeend', html.getHtml());
-    
-    inserted_nodes = inserted_nodes .. toArray;
-    inserted_nodes .. each(runMechanisms);
-  });
-
-  if (block) {
-    try {
-      return block.apply(null, inserted_nodes);
-    }
-    finally {
-      inserted_nodes .. each(removeNode);
-    }
-  }
-  else
     return inserted_nodes;
+  });
 }
 exports.appendContent = appendContent;
 
@@ -377,23 +418,10 @@ exports.appendContent = appendContent;
 function prependContent(parent_element, html, block) {
   var inserted_nodes = nodes(parent_element, null, parent_element.firstChild);
 
-  insertHtml(html, function(html) {
+  return insertHtml(html, block, function(html) {
     parent_element.insertAdjacentHTML('afterbegin', html.getHtml());
-
-    inserted_nodes = inserted_nodes .. toArray;
-    inserted_nodes .. each(runMechanisms);
-  });
-
-  if (block) {
-    try {
-      return block.apply(null, inserted_nodes);
-    }
-    finally {
-      inserted_nodes .. each(removeNode);
-    }
-  }
-  else
     return inserted_nodes;
+  });
 }
 exports.prependContent = prependContent;
 
@@ -414,10 +442,10 @@ exports.prependContent = prependContent;
 function insertBefore(sibling, html, block) {
   var inserted_nodes = nodes(sibling.parentNode, sibling.previousSibling, sibling);
 
-  insertHtml(html, function(html) {
+  return insertHtml(html, block, function(html) {
     if (sibling.insertAdjacentHTML)
       sibling.insertAdjacentHTML('beforebegin', html.getHtml());
-    else { 
+    else {
       // we're inserting before a non-element node (or on an old
       // browser without `insertAdjacentHTML` support) 
       var parent = sibling.parentNode;
@@ -429,20 +457,8 @@ function insertBefore(sibling, html, block) {
       }
     }
 
-    inserted_nodes =  inserted_nodes .. toArray;
-    inserted_nodes .. each(runMechanisms);
-  });
-
-  if (block) {
-    try {
-      return block.apply(null, inserted_nodes);
-    }
-    finally { 
-      inserted_nodes .. each(removeNode);
-    }
-  }
-  else
     return inserted_nodes;
+  });
 }
 exports.insertBefore = insertBefore;
 
@@ -463,10 +479,10 @@ exports.insertBefore = insertBefore;
 function insertAfter(sibling, html, block) {
   var inserted_nodes = nodes(sibling.parentNode, sibling, sibling.nextSibling);
 
-  insertHtml(html, function(html) {
+  return insertHtml(html, block, function(html) {
     if (sibling.insertAdjacentHTML)
       sibling.insertAdjacentHTML('afterend', html.getHtml());
-    else { console.log("WWW");
+    else {
       // we're inserting before a non-element node (or on an old
       // browser without `insertAdjacentHTML` support) 
       var parent = sibling.parentNode;
@@ -478,20 +494,8 @@ function insertAfter(sibling, html, block) {
         parent.insertBefore(node, ref);
       }
     }
-    inserted_nodes = inserted_nodes .. toArray;
-    inserted_nodes .. each(runMechanisms);
-  });
-
-  if (block) {
-    try {
-      return block.apply(null, inserted_nodes);
-    }
-    finally {
-      inserted_nodes .. each(removeNode);
-    }
-  }
-  else
     return inserted_nodes;
+  });
 }
 exports.insertAfter = insertAfter;
 
@@ -511,10 +515,10 @@ exports.insertAfter = insertAfter;
 
      * Note that you can remove DOM nodes inserted using surface module functions also
        using normal DOM operations (e.g. removeChild), however any [::Mechanism]s that might
-       be running on the content will not be aborted, and [::CSS] references will not be 
+       be running on the content will not be aborted, and [::CSS] references will not be
        released. This might change in future versions of the library.
 */
-function removeNode(node) { 
+function removeNode(node) {
   // stop our mechanism and all mechanisms below us
   stopMechanisms(node, true);
   if (node.parentNode)

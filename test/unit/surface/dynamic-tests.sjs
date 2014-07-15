@@ -17,6 +17,57 @@ context("void elements") {||
   }
 }
 
+context("block-scoped insertion method error handling") {||
+  var cls = "should-be-removed";
+  var content = @Element("div", [], {"class": cls});
+  var expectedError = new Error("error thrown by mechanism");
+  var throwyContent = @Element("div", [
+    @Element("div", [], {'class':cls}) .. @Mechanism(function(elem) {
+      elem.classList.contains(cls) .. @assert.ok(elem.getAttribute("class"));
+      hold(100);
+      throw Object.create(expectedError);
+    })
+  ], {'class':cls});
+
+  test.beforeEach {|s|
+    var div = @Element("div");
+    [s.container] = document.body .. @appendContent(div);
+    [s.containerFirst] = s.container .. @appendContent(div);
+    [s.containerLast] = s.container .. @appendContent(div);
+  }
+
+  test.afterEach {|s|
+    var remainingElements = document.querySelectorAll(".#{cls}");
+    var length = remainingElements.length;
+    @removeNode(s.container);
+    @assert.eq(length, 0, "#{length} elements didn't get cleaned up!");
+  }
+
+  ;[
+    ["appendContent", "container", 2],
+    ["prependContent", "container", 0],
+    ["replaceContent", "container", 0],
+    ["insertBefore", "containerLast", 1],
+    ["insertAfter", "containerFirst", 1],
+  ] .. @each {|[method, subject, expectedIndex]|
+    test(method) {|s|
+      @assert.suspends( -> s[subject] .. @[method](content) {|elem|
+        s.container.childNodes[expectedIndex] .. @assert.eq(elem);
+        hold(10);
+      });
+
+      @assert.raises({inherits: expectedError},
+        -> s[subject] .. @[method](throwyContent, -> hold(1000)));
+      
+      if (method .. @startsWith("replace")) {
+        s.container.childNodes.length .. @assert.eq(0);
+      } else {
+        s.container.childNodes.length .. @assert.eq(2);
+      }
+    }
+  }
+}
+
 context("observable widget content") {||
   test("should reflect changes made before & after insertion") {||
     var content = @ObservableVar("first");
