@@ -45,7 +45,8 @@ exports.withEtcd = function(block) {
 	} else {
 		@info("Starting new etcd server");
 		waitfor {
-			@childProcess.run(@url.normalize('./etcd', module.id) .. @url.toPath, {'stdio':'inherit'});
+			var bin = process.env['ETCD_BIN'] || 'etcd';
+			@childProcess.run(bin, {'stdio':'inherit'});
 		} or {
 			awaitRunningServer();
 			block();

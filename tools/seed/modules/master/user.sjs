@@ -4,11 +4,7 @@ var { @mkdirp } = require('sjs:nodejs/mkdirp');
 @storage = require('mho:server/storage');
 @crypto = require('nodejs:crypto');
 
-if (require.main === module) {
-	@assert.ok(@fs.exists(@env.set('dataRoot', 'data')));
-}
-
-var config_root = @path.join(@env.get('dataRoot'), 'user');
+var config_root = @path.join(@env.get('data-root'), 'user');
 @debug("CONFIG_ROOT:", config_root);
 
 @mkdirp(config_root);
@@ -107,6 +103,8 @@ var withUser = function(uid, block) {
 	}
 }
 
+// password storage based on recommendations in:
+// http://nakedsecurity.sophos.com/2013/11/20/serious-security-how-to-store-your-users-passwords-safely/
 
 var intBase = 32;
 var contentsEncoding = 'base64';

@@ -17,11 +17,6 @@ var runningServerInfo = function(port) {
   }
 }
 
-@env.set('dataRoot', @url.normalize('./data', module.id) .. @url.toPath);
-
-// XXX configurable
-@env.lazy('etcd', -> new (require('seed:job/etcd').Etcd)('localhost',4001));
-
 //----------------------------------------------------------------------
 // function invoked by `conductance serve`
 var serve = function(args) {
@@ -138,4 +133,13 @@ exports.serve = function(args) {
   } or {
     serve.apply(this,arguments);
   }
+};
+
+exports.systemd = function() {
+  @systemd = require('./common.mho').systemdWrap;
+  return @systemd.Group("seed-master", {
+    "server": [
+      @systemd.Service(),
+    ]
+  });
 };

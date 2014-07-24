@@ -1,6 +1,7 @@
 #!bash -eux
 gup -u package.json
 npm install --production
+mkdir -p data
 gup -u \
 	../../node_modules/leveldown/build \
 	tools/etcd \

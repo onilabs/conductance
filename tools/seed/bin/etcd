@@ -1,5 +1,0 @@
-#!/bin/bash
-set -eu
-here="$(dirname "$0")"
-cd "$here/.."
-exec tools/etcd/bin/etcd --data-dir=data/etcd --name="$(hostname)" "$@"

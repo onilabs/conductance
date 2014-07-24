@@ -1,4 +1,7 @@
 var env = require('mho:env');
+@fs = require('sjs:nodejs/fs');
+@assert = require('sjs:assert');
+@url = require('sjs:url');
 @etcd = require('./job/etcd');
 
 var def = function(key,val, lazy) {
@@ -60,4 +63,9 @@ exports.defaults = function() {
 	// master & slave conductance API ports
 	def('port-master', 7079);
 	def('port-slave', 7072);
+
+	// path overrides from $ENV
+	var dataDir = process.env['SEED_DATA'] || (@url.normalize('../data', module.id) .. @url.toPath);
+	@assert.ok(@fs.exists(dataDir), "data dir does not exist: #{dataDir}");
+	def('data-root', dataDir);
 };

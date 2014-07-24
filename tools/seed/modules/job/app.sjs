@@ -19,7 +19,7 @@ var tmpRoot = @path.join(here, '../tmp');
 var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
-var dataRoot = @env.get('dataRoot');
+var dataRoot = @env.get('data-root');
 var appRoot = @path.join(dataRoot, 'app');
 exports.getAppRoot = -> appRoot;
 var conductanceRoot = @path.dirname(require.resolve('mho:').path .. @url.toPath);
@@ -229,7 +229,7 @@ exports.localAppState = (function() {
       @info("syncing current code for app #{id}");
       var codeSource = getMasterCodePath(user, id);
       
-      var cmd = ['rsync', '-az', '--delete',
+      var cmd = ['rsync', '-az', '--chmod=go-w' '--delete',
         codeSource + "/",
         codeDest,
       ];
