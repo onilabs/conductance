@@ -361,7 +361,7 @@ GroupProto._processComponents = function(components, groupTarget) {
   @param {optional Object} [additionalSettings]
 
 */
-var titleCase = (s) -> s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+var titleCase = (s) -> s.charAt(0).toUpperCase() + s.slice(1);
 
 var UnitProto = Object.create({});
 UnitProto._init = function(type, attrs, sections) {
