@@ -1,3 +1,4 @@
+#!/usr/bin/env sjs
 // This script creates required runtime directories (as root)
 // NOTE: this script is run AS ROOT, so don't do anything dumb ;)
 @childProcess = require('sjs:nodejs/child-process');

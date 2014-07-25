@@ -229,7 +229,7 @@ exports.localAppState = (function() {
       @info("syncing current code for app #{id}");
       var codeSource = getMasterCodePath(user, id);
       
-      var cmd = ['rsync', '-az', '--chmod=go-w' '--delete',
+      var cmd = ['rsync', '-az', '--chmod=go-w', '--delete',
         codeSource + "/",
         codeDest,
       ];

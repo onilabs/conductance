@@ -19,7 +19,7 @@ var runningServerInfo = function(port) {
 
 //----------------------------------------------------------------------
 // function invoked by `conductance serve`
-var serve = function(args) {
+exports.serve = function(args) {
   var opts = args .. require('seed:env').parse([
     {
       names: ['host'],
@@ -125,15 +125,15 @@ var serve = function(args) {
   }
 };
 
-exports.serve = function(args) {
-  waitfor {
-    // XXX shouldn't the process automatically get killed on HUP or something?
-    process.stdin .. @wait('close');
-    console.warn("STDIN CLOSED");
-  } or {
-    serve.apply(this,arguments);
-  }
-};
+//exports.serve = function(args) {
+//  waitfor {
+//    // XXX shouldn't the process automatically get killed on HUP or something?
+//    process.stdin .. @wait('close');
+//    console.warn("STDIN CLOSED");
+//  } or {
+//    serve.apply(this,arguments);
+//  }
+//};
 
 exports.systemd = function() {
   @systemd = require('./common.mho').systemdWrap;

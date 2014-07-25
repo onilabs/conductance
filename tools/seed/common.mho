@@ -25,7 +25,7 @@ exports.systemdWrap = @merge(@systemd, {
 			"seed-common-dirs.service"
 		]);
 
-		extra.Requires = (extra.After || []).concat([
+		extra.After = (extra.After || []).concat([
 			"seed-common-dirs.service"
 		]);
 

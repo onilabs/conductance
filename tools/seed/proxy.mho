@@ -1,4 +1,5 @@
 @ = require('mho:std');
+require('./modules/hub');
 @os = require('nodejs:os');
 @etcd = require('seed:job/etcd');
 @stream = require('sjs:nodejs/stream');
@@ -64,7 +65,7 @@ exports.serve = function(args) {
 	} or {
 		var keyPrefix = @etcd.app_port_mappings(null);
 
-		var process = function(change) {
+		var handle = function(change) {
 			//@info("CHANGE:", change);
 			var action = change.action || 'set';
 			node = change.node || change;
@@ -76,9 +77,9 @@ exports.serve = function(args) {
 
 			switch(action) {
 				case 'set':
-					// initial "node" is actually a bunch of nodes, so recursively process those:
+					// initial "node" is actually a bunch of nodes, so recursively handle those:
 					if (node .. @hasOwn('nodes')) {
-						node.nodes .. @each(process);
+						node.nodes .. @each(handle);
 						return;
 					}
 					if (node.dir) return;
@@ -109,6 +110,6 @@ exports.serve = function(args) {
 			}
 		};
 
-		@env.get('etcd') .. @etcd.changes(keyPrefix, {recursive:true, initial:true}) .. @each(process);
+		@env.get('etcd') .. @etcd.changes(keyPrefix, {recursive:true, initial:true}) .. @each(handle);
 	}
 }

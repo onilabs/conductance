@@ -45,8 +45,20 @@ exports.withEtcd = function(block) {
 	} else {
 		@info("Starting new etcd server");
 		waitfor {
-			var bin = process.env['ETCD_BIN'] || 'etcd';
-			@childProcess.run(bin, {'stdio':'inherit'});
+
+			// set up some defaults so we don't have to define everytthing
+			// for development
+			if (!process.env.ETCD_DATA_DIR) {
+				process.env.ETCD_DATA_DIR = @url.normalize('../data/etcd', module.id) .. @url.toPath();
+			};
+
+			if (!process.env.ETCD_NAME) {
+				process.env.ETCD_NAME = require('nodejs:os').hostname();
+			};
+
+			var bin = process.env['ETCD_BIN'] ||
+				(@url.normalize('../tools/etcd/bin/etcd', module.id) .. @url.toPath);
+			@childProcess.run(bin, [], {'stdio':'inherit'});
 		} or {
 			awaitRunningServer();
 			block();
