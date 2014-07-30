@@ -12,8 +12,9 @@ exports.monitorClusterChanges = function(client) {
 	}
 };
 
-var op = function(client, op, id) {
+var op = function(client, op, id, timeout) {
 	@info("performing action [#{op}] on [#{id}]");
+	timeout = timeout || 10;
 	var created;
 	if (op === 'start') {
 		created = client.set(@etcd.app_job(id), op).node;
@@ -27,9 +28,21 @@ var op = function(client, op, id) {
 		created = client.create(@etcd.app_op(id), op).node;
 	}
 	@info("submitted op #{op}", created);
-	var change = client.watch(created .. @get('key'), {waitIndex: created .. @get('modifiedIndex') + 1});
-	@info("op accepted! #{id}!#{op}");
-	return true;
+	var key = created .. @get('key');
+	var modifiedIndex = created .. @get('modifiedIndex');
+	waitfor {
+		var change = client.watch(key, {waitIndex: modifiedIndex + 1});
+		@info("op accepted! #{id}!#{op}");
+		return true;
+	} or {
+		hold(timeout * 1000);
+		@warn("#{timeout}s timeout reached, cancelling op #{id}!#{op}");
+		var del = -> client.compareAndDelete(key, op, {prevIndex: modifiedIndex});
+		if (!@etcd.tryOp(del)) {
+			@warn("delete failed!");
+		}
+		throw new Error("#{op} operation failed");
+	}
 }
 
 exports.start = (client, id) -> op(client, 'start', id);

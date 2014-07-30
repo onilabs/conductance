@@ -49,7 +49,7 @@ exports.serve = function(args) {
       names: ['internal-address'],
       type: 'string',
       help: 'internal ip (or hostname) accessible via SSH to slaves',
-      'default': 'localhost',
+      'default': false,
     },
     {
       names: ['cors'],
@@ -59,7 +59,10 @@ exports.serve = function(args) {
     },
   ]);
   @env.set('anonymous-access', opts.anonymous);
-  @env.set('internalAddress', opts.internal_address);
+  if (!@env.has('internalAddress')) {
+    @assert.ok(opts.internal_address, "--internal-address");
+    @env.set('internalAddress', opts.internal_address);
+  }
 
   var versionInfo = {
     version: VERSION,

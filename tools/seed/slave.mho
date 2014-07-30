@@ -1,5 +1,6 @@
 @ = require('mho:std');
 @os = require('nodejs:os');
+require('./modules/hub');
 
 exports.serve = function(args) {
 	var opts = args .. require('seed:env').parse([
@@ -36,7 +37,7 @@ exports.serve = function(args) {
 	}
 }
 
-@slave = require('seed:job/slave');
 exports.run_slave = function(id, singleton) {
-	@slave.main(@env.get('etcd'), id, singleton);
+	var slave = require('seed:job/slave');
+	slave.main(@env.get('etcd'), id, singleton);
 }

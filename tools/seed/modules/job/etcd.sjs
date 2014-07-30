@@ -1,9 +1,8 @@
-@ = require(['sjs:object', 'sjs:sequence', {id:'sjs:assert',name:'assert'}]);
-var { @warn } = require('sjs:logging');
+@ = require('mho:std');
 var wraplib = require('sjs:wraplib');
 var etcd = require('nodejs:node-etcd');
 var HEARTBEAT_INTERVAL = 1000 * 60 * 1; // 1 minute
-
+var deployLoopback = @env.get('deployLoopback', false);
 
 exports.Etcd = etcd;
 wraplib.annotate(exports, {
@@ -154,7 +153,7 @@ exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
 		try {
 			exports.tryOp(-> client.compareAndDelete(key, endpoint, {}));
 		} catch(e) {
-			if (!@env.get('deployLoopback', false)) {
+			if (!deployLoopback) {
 				@error("Couldn't mark node as offline: #{e}");
 			}
 		}

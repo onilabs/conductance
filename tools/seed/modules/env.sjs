@@ -3,7 +3,12 @@ var env = require('mho:env');
 @assert = require('sjs:assert');
 @url = require('sjs:url');
 @etcd = require('./job/etcd');
+@logging = require('sjs:logging');
 var { @at } = require('sjs:sequence');
+
+if (process.env['SEED_LOG_LEVEL']) {
+	@logging.setLevel(@logging[process.env['SEED_LOG_LEVEL']]);
+}
 
 var def = function(key,val, lazy) {
 	@assert.ok(val != null, "Undefined env key: #{key}");
@@ -64,11 +69,16 @@ exports.defaults = function() {
 		return def;
 	};
 
-	def('etcd-host', 'localhost');
-	def('etcd-port', portFromEnv('ETCD_ADDR', 4001, addr -> addr.split(':') .. @at(-1)));
+	var etcdAddr = (process.env['ETCD_ADDR'] || 'localhost:4001').split(':');
+
+	def('etcd-host', etcdAddr[0]);
+	def('etcd-port', etcdAddr[1]);
 	def('etcd-proto', 'http'); // XXX no support for https yet...
 	def('etcd', function() {
-		return new @etcd.Etcd(this.get('etcd-host'), this.get('etcd-port'));
+		var host = this.get('etcd-host');
+		var port = this.get('etcd-port');
+		@logging.info("Connecting to etcd #{host}:#{port}");
+		return new @etcd.Etcd(host, port);
 	}, true);
 
 	// ports which proxy server should run on
