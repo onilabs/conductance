@@ -283,7 +283,7 @@ module.exports = require(modules);
 
 @function Content
 @altsyntax element .. Content(content)
-@summary Add to an element's "style" attribute
+@summary Add to an element's content
 @param {::HtmlFragment} [element]
 @param {::HtmlFragment} [content]
 @return {::Element}
@@ -364,13 +364,16 @@ module.exports = require(modules);
 @function replaceContent
 @altsyntax parent_element .. replaceContent(html)
 @summary Replace the content of a DOM element with a [::HtmlFragment]
-@param {DOMElement} [parent_element] 
+@param {DOMElement} [parent_element]
 @param {::HtmlFragment} [html] Html to insert
+@param {optional Function} [block] Function bounding lifetime of inserted content
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
 @hostenv xbrowser
 @desc
-  ### Example:
-
-      document.body .. replaceContent(`<h1>Hello, world</h1>`)
+  * See [::appendContent] for notes on the semantics and return value.
+  * The original content of `parent_element` is not restored when `block`
+    completes - this function simply removes all existing content and then
+    acts like [::appendContent] on the now-empty node.
 
 @function appendContent
 @altsyntax parent_element .. appendContent(html) { |node1, node2, ...| ... }
@@ -472,7 +475,7 @@ module.exports = require(modules);
 
   * Note that you can remove DOM nodes inserted using surface module functions also
     using normal DOM operations (e.g. removeChild), however any [::Mechanism]s that might
-    be running on the content will not be aborted, and [::CSS] references will not be 
+    be running on the content will not be aborted, and [::CSS] references will not be
     released. This might change in future versions of the library.
 
 @function Prop
@@ -502,18 +505,21 @@ module.exports = require(modules);
 @summary Adds an event handler on an element
 @param {::HtmlFragment} [element]
 @param {String} [event] Name of the event, e.g. 'click'
-@param {optional Object} [settings] Settings as described at [sjs:event::when]. By default, `queue` is set to `true`.
+@param {optional Object} [settings] Settings as described at [sjs:event::events].
 @param {Function} [event_handler] 
 @return {::Element}
 @hostenv xbrowser
 @desc
   Sets an event handler on the element's DOM once it is inserted into the document.
 
+  Note that no buffering of events takes place: any events emitted
+  while `event_handler` is blocked will have no effect.     
+
 @function OnClick
 @altsyntax element .. OnClick([settings], event_handler)
 @summary Adds a 'click' event handler on an element
 @param {::HtmlFragment} [element]
-@param {optional Object} [settings] Settings as described at [sjs:event::when]. By default, `queue` is set to `true`.
+@param {optional Object} [settings] Settings as described at [sjs:event::events].
 @param {Function} [event_handler] 
 @return {::Element}
 @hostenv xbrowser

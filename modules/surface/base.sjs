@@ -924,7 +924,7 @@ exports.Class = Class;
 /**
   @function Content
   @altsyntax element .. Content(content)
-  @summary Add to an element's "style" attribute
+  @summary Add to an element's content
   @param {::HtmlFragment} [element]
   @param {::HtmlFragment} [content]
   @return {::Element}

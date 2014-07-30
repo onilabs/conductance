@@ -584,12 +584,15 @@ exports.Enabled = (html, obs) -> html .. Attrib('disabled', obs .. transform(x->
   @summary Adds an event handler on an element
   @param {::HtmlFragment} [element]
   @param {String} [event] Name of the event, e.g. 'click'
-  @param {optional Object} [settings] Settings as described at [sjs:event::when]. By default, `queue` is set to `true`.
+  @param {optional Object} [settings] Settings as described at [sjs:event::events].
   @param {Function} [event_handler] 
   @return {::Element}
   @hostenv xbrowser
   @desc
     Sets an event handler on the element's DOM once it is inserted into the document.
+
+    Note that no buffering of events takes place: any events emitted
+    while `event_handler` is blocked will have no effect.     
 */
 var On = (html, event, opts, f) -> html .. Mechanism(function(node) {
   if (!f) {
@@ -606,7 +609,7 @@ exports.On = On;
   @altsyntax element .. OnClick([settings], event_handler)
   @summary Adds a 'click' event handler on an element
   @param {::HtmlFragment} [element]
-  @param {optional Object} [settings] Settings as described at [sjs:event::when]. By default, `queue` is set to `true`.
+  @param {optional Object} [settings] Settings as described at [sjs:event::events].
   @param {Function} [event_handler] 
   @return {::Element}
   @hostenv xbrowser
