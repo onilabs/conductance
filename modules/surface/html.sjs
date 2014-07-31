@@ -152,7 +152,6 @@ exports.Input = Input;
 /**
   @function TextInput
   @summary A plain HTML 'input' element with type='text'
-  @param  {String} [type]
   @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
   @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
   @return {surface::Element}
