@@ -181,7 +181,9 @@ module.exports = require(modules);
 @return {::Element|Function}
 @desc
   Whenever an instance of the returned element is inserted into the
-  document, `mechanism` will be called with its first argument and
+  document using [::appendContent] or one of the surface module's other \
+  content insertion functions, `mechanism` will be called 
+  with its first argument and
   `this` pointer both set to `element`s DOM node.
 
   When `element` is removed from the document using [::removeNode],
@@ -385,6 +387,9 @@ module.exports = require(modules);
 @hostenv xbrowser
 
 @desc
+
+  * Any [::Mechanism]s contained in `html` will be started in post-order (i.e. mechanisms on inner 
+    DOM nodes before mechanisms on more outer DOM nodes).
 
   * If no function `block` is provided, `appendContent` returns an
     array containing the DOM elements and comment nodes that have

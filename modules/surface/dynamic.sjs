@@ -194,8 +194,9 @@ function runMechanisms(elems, await) {
     if (elem.nodeType == 1) {
 
       var elems = elem.querySelectorAll('[data-oni-mechanisms]') ..
+        reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
         concat(elem.hasAttribute('data-oni-mechanisms') ? [elem] : []) ..
-        reverse; // we want to start mechanisms in post-order; querySelectorAll is pre-order
+        toArray;
 
       var streams = StreamNodes(elem) .. toArray;
 
@@ -354,6 +355,9 @@ exports.replaceContent = replaceContent;
    @hostenv xbrowser
 
    @desc
+
+     * Any [::Mechanism]s contained in `html` will be started in post-order (i.e. mechanisms on inner 
+       DOM nodes before mechanisms on more outer DOM nodes).
 
      * If no function `block` is provided, `appendContent` returns an
        array containing the DOM elements and comment nodes that have

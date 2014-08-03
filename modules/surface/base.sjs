@@ -670,7 +670,9 @@ exports.GlobalCSS = function(content) {
   @return {::Element|Function}
   @desc
     Whenever an instance of the returned element is inserted into the
-    document, `mechanism` will be called with its first argument and
+    document using [::appendContent] or one of the surface module's other \
+    content insertion functions, `mechanism` will be called 
+    with its first argument and
     `this` pointer both set to `element`s DOM node.
 
     When `element` is removed from the document using [::removeNode],
