@@ -86,7 +86,7 @@
 
     @test("titlecases default section") {||
       @sd.Unit('foo', {}).sections .. @ownKeys() .. @toArray() .. @assert.eq(['Foo']);
-      @sd.Unit('fooBar', {}).sections .. @ownKeys() .. @toArray() .. @assert.eq(['Foobar']);
+      @sd.Unit('fooBar', {}).sections .. @ownKeys() .. @toArray() .. @assert.eq(['FooBar']);
     }
 
     @test("warns on suspicious section names") {||
@@ -96,10 +96,10 @@
         formatter: (log) -> [log.level].concat(log.args),
         console: { log: messages.push.bind(messages) },
       })) {
-        var sections = @sd.Unit('unit', null, {'FOO': {}}).sections .. @ownKeys() .. @toArray();
-        sections .. @assert.eq(['FOO']);
+        var sections = @sd.Unit('unit', null, {'foo': {}}).sections .. @ownKeys() .. @toArray();
+        sections .. @assert.eq(['foo']);
       }
-      messages .. @assert.eq(["WARN", "Unknown systemd unit section 'FOO' - did you mean 'Foo'?"]);
+      messages .. @assert.eq(["WARN", "Unknown systemd unit section 'foo' - did you mean 'Foo'?"]);
     }
   }
 
