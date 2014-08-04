@@ -93,4 +93,6 @@ exports.defaults = function() {
 	var dataDir = process.env['SEED_DATA'] || (@url.normalize('../data', module.id) .. @url.toPath);
 	@assert.ok(@fs.exists(dataDir), "data dir does not exist: #{dataDir}");
 	def('data-root', dataDir);
+
+	def('key-store', -> process.env['SEED_KEYS'] || null, true);
 };

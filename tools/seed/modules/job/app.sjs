@@ -20,6 +20,7 @@ var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
 var dataRoot = @env.get('data-root');
+var keyStore = @env('key-store');
 var appRoot = @path.join(dataRoot, 'app');
 exports.getAppRoot = -> appRoot;
 var conductanceRoot = @path.dirname(require.resolve('mho:').path .. @url.toPath);
@@ -229,7 +230,12 @@ exports.localAppState = (function() {
       @info("syncing current code for app #{id}");
       var codeSource = getMasterCodePath(user, id);
       
-      var cmd = ['rsync', '-az', '--chmod=go-w', '--delete',
+      // make ssh stateless. XXX is there any risk to disabling host key checking here?
+      var sshCmd = 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no';
+      if(keyStore) {
+        sshCmd += "  -o IdentityFile=#{@path.join(keyStore, "key-slave_ssh_id")}";
+      }
+      var cmd = ['rsync', '-az', '-e', sshCmd, '--chmod=go-w', '--delete',
         codeSource + "/",
         codeDest,
       ];
@@ -300,7 +306,7 @@ exports.localAppState = (function() {
             "--volume", readOnly(conductanceRoot),
             "--volume", readOnly(sjsRoot),
             "--workdir", codeDest,
-            "local/conductance-slave.base",
+            "local/conductance-base",
           ].concat(args);
           @info("Running", args);
           var child = @childProcess.launch(args[0],

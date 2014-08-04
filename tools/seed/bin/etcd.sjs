@@ -7,7 +7,7 @@ var proto = -> @env.get('etcd-proto');
 var root_url = -> "#{proto()}://#{host()}:#{port()}/v2/";
 var etcd = -> @env.get('etcd');
 
-function awaitRunningServer() {
+exports.awaitRunningServer = function awaitRunningServer() {
 	var root = root_url();
 	waitfor {
 		while(true) {
@@ -60,7 +60,7 @@ exports.withEtcd = function(block) {
 				(@url.normalize('../tools/etcd/bin/etcd', module.id) .. @url.toPath);
 			@childProcess.run(bin, [], {'stdio':'inherit'});
 		} or {
-			awaitRunningServer();
+			exports.awaitRunningServer();
 			block();
 		}
 	}

@@ -1,11 +1,12 @@
-#!bash -eux
+#!/usr/bin/bash
+set -eux
 
 head_tag="conductance-base"
 tag="local/$head_tag"
 basedir="."
 dockerfile="Dockerfile"
 
-gup -u service "$dockerfile"
+${GUP_EXE:-gup} -u service "$dockerfile"
 
 previous_id="$(docker images -q "$tag")"
 docker build -t "$tag" "$basedir"
