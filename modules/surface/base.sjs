@@ -153,52 +153,28 @@ exports.isFragment = isFragment;
   @return {::CollapsedFragment}
 */
 
-// helper for streaming content:
-var gSentinelCounter = 0;
-
-function isSentinelNode(node, type, sentinel) {
-  // nodeType '8' is a comment node
-  if (node.nodeType !== 8 || node.nodeValue.indexOf("surface_sentinel_#{type}") == -1) return false;
-  var [,id] = node.nodeValue.split('|');
-  return id == sentinel; 
-}
-exports.isSentinelNode = isSentinelNode;
 
 function StreamingContent(stream) {
   var dyn = require('./dynamic');
   
   function mechanism(node) {
-    var sentinel = ++gSentinelCounter, have_inserted = false;
-    try {
-      stream .. each { 
-        |val|
-        if (have_inserted) {
-          // remove previously inserted content between `node` and the sentinel
-          do {
-            var inserted = node.nextSibling;
-            dyn.removeNode(inserted);
-          } while (!(inserted .. isSentinelNode('stream', sentinel)));
-        }
-        else
-          have_inserted = true;
-        var anchor = node.nextSibling;
-        if (anchor) {
-          // we've got an anchor for 'insertBefore'
-          anchor .. dyn.insertBefore([val,`<!-- surface_sentinel_stream |$sentinel| -->`]);
-        }
-        else {
-          // we're appending to the end
-          node.parentNode .. dyn.appendContent([val, `<!-- surface_sentinel_stream |$sentinel| -->`]);
+    stream .. each.track {
+      |val|
+      var anchor = node.nextSibling;
+      if (anchor) {
+        // we've got an anchor for 'insertBefore'
+        anchor .. dyn.insertBefore(val) { 
+          ||
+          // We hold until aborted (when content gets removed from doc
+          // and we get retracted, or when a new stream value arrives
+          // and 'each.track' aborts us)
+          // On abortion, insertBefore will clean up our content.
+          hold();
         }
       }
-    }
-    retract {
-      if (have_inserted) {
-        // remove previously inserted content between `node` and the sentinel
-        do {
-          var inserted = node.nextSibling;
-          dyn.removeNode(inserted);
-        } while (!(inserted .. isSentinelNode('stream', sentinel)));
+      else {
+        // we're appending to the end:
+        node.parentNode .. dyn.appendContent(val) { || hold(); }
       }
     }
   }

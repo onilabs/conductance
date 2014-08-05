@@ -19,7 +19,7 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
-var { ensureElement, Mechanism, collapseHtmlFragment, isSentinelNode, Class, Attrib } = require('./base');
+var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
