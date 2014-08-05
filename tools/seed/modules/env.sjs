@@ -49,9 +49,10 @@ exports.parse = function(args, options) {
 
 exports.defaults = function() {
 	var PROD = process.env.NODE_ENV === 'production';
+	def('production', PROD);
 
-	def('publicHost', 'localhost.self');
-	/* ^^ used for development, requires dnsmasq config:
+	def('publicHost', process.env['SEED_PUBLIC_ADDRESS'] || 'localhost.self');
+	/* ^^ localhost.self is used for development, requires dnsmasq config:
 		$ cat /etc/dnsmasq.d/self.conf
 		address=/.self/127.0.0.1
 	*/

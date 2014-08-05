@@ -3,8 +3,8 @@
   "private" : true,
   "dependencies":
     { "fs-ext": "git://github.com/gfxmonk/node-fs-ext.git#4c77f466a42e92e3aee72a68d9fb37b0513cbd35"
-    , "ssh2": "~0.2.25"
-    , "ssh-agent": "~0.2.2"
     , "node-etcd": "^2.1.1"
+    , "leveldown": "^0.10.2"
+    , "conductance": "git://github.com/onilabs/conductance.git#691246864369a55aa88379a65abda3dfb8f486ac"
   }
 }

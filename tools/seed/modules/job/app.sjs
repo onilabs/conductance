@@ -19,6 +19,7 @@ var tmpRoot = @path.join(here, '../tmp');
 var credentialsRoot = @path.join(here, '../credentials');
 var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
+var production = @env.get('production');
 var dataRoot = @env.get('data-root');
 var keyStore = @env('key-store');
 var appRoot = @path.join(dataRoot, 'app');
@@ -284,6 +285,7 @@ exports.localAppState = (function() {
           }
         }
 
+        log("Building environment...");
         try {
           var args = ConductanceArgs;
           var runUser = "app";
@@ -300,14 +302,20 @@ exports.localAppState = (function() {
             "--name", machineName,
             "--hostname", machineName,
             "--user", runUser,
+            "--workdir", codeDest,
             "--volume", readOnly(codeDest),
             "--volume", state,
+          ].concat(production ? [
+            "--volume", readOnly('/nix/store'),
+          ] : [
+            // kinda hacky - just ensure that we have all required paths in dev
+            // (it's harmless to add paths that we only need on some boxes)
             "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
             "--volume", readOnly(conductanceRoot),
             "--volume", readOnly(sjsRoot),
-            "--workdir", codeDest,
-            "local/conductance-base",
-          ].concat(args);
+          ]).concat([
+            "local/conductance-base", // image name
+          ]).concat(args);
           @info("Running", args);
           var child = @childProcess.launch(args[0],
             args.slice(1).concat([
@@ -367,35 +375,37 @@ exports.localAppState = (function() {
     } .. safe();
 
     var getPortBindings = function() {
-      var tries = 10;
+      var tries = 30;
       var inspectOutput;
       while(true) {
         @info("getting docker metadata for image #{machineName}");
         try {
           inspectOutput = @childProcess.run('docker', ['inspect', machineName], {stdio:['ignore', 'pipe', 2]}).stdout;
+
+          var containerInfo = inspectOutput .. JSON.parse();
+          @assert.eq(containerInfo.length, 1, containerInfo.length);
+          var portBindings = [];
+          containerInfo[0]
+            .. @getPath('HostConfig.PortBindings')
+            .. @ownPropertyPairs .. @each {|[k,v]|
+              if (!k .. @endsWith('/tcp')) continue;
+              [k,] = k.split('/');
+              k = parseInt(k, 10);
+              v = v .. @filter(v -> v .. @hasOwn('HostPort')) .. @toArray();
+              if (v.length > 0) {
+                portBindings.push("#{k}:#{v[0] .. @get('HostPort') .. @assert.ok("blank HostPort")}");
+              }
+            };
+          return portBindings;
           break;
         } catch(e) {
           if(getPid() === null) throw new Error("process died");
           hold(1000);
           if (tries<=0) throw new Error("Failed to collect docker metadata");
+          @debug("Retrying after error: #{e.message}");
           tries--;
         }
       }
-      var containerInfo = inspectOutput .. JSON.parse();
-      @assert.eq(containerInfo.length, 1, containerInfo.length);
-      var portBindings = [];
-      containerInfo[0]
-        .. @getPath('HostConfig.PortBindings')
-        .. @ownPropertyPairs .. @each {|[k,v]|
-          if (!k .. @endsWith('/tcp')) continue;
-          [k,] = k.split('/');
-          k = parseInt(k, 10);
-          v .. @filter(v -> v .. @hasOwn('HostPort')) .. @toArray();
-          if (v.length > 0) {
-            portBindings.push("#{k}:#{v[0] .. @get('HostPort')}");
-          }
-        };
-      return portBindings;
     };
 
     return {
