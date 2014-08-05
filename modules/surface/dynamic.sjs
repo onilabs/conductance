@@ -26,6 +26,11 @@ var { split } = require('sjs:string');
 var { events, wait } = require('sjs:event');
 var { waitforAll, StratumAborted } = require('sjs:cutil');
 
+// DOM Node Types:
+var ELEMENT_NODE = 1;
+var TEXT_NODE    = 3;
+var COMMENT_NODE = 8;
+
 //----------------------------------------------------------------------
 // global ref counted resource registry that adds/removes resources to
 // the document
@@ -157,7 +162,7 @@ function unuseCSS(elems) {
 // returns a stream of comment nodes:
 function CommentNodes(node) {
   return Stream(function(r) {
-    if (node.nodeType !== 1 /*ELEMENT_NODE*/) return;
+    if (node.nodeType !== ELEMENT_NODE) return;
     var walker = document.createTreeWalker(
       node, NodeFilter.SHOW_COMMENT, null, false);
     while (walker.nextNode()) {
@@ -191,7 +196,7 @@ function runMechanisms(elems, await) {
   };
 
   elems .. each {|elem|
-    if (elem.nodeType == 1) {
+    if (elem.nodeType === ELEMENT_NODE) {
 
       var elems = elem.querySelectorAll('[data-oni-mechanisms]') ..
         reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
@@ -220,7 +225,7 @@ function runMechanisms(elems, await) {
       }
     }
     else if (elem.nodeValue.indexOf('surface_stream') !== -1) {
-      // we assume nodetype == 8 (comment node)
+      // we assume nodetype == COMMENT_NODE
       var [,mech] = elem.nodeValue.split("|");
       elem.__oni_mechs = [];
       elem .. addMech(mech);
@@ -232,7 +237,7 @@ function runMechanisms(elems, await) {
       try {
         waitforAll(awaitStratumError, rv);
         hold();
-      } finally {
+      } finally { 
         rv .. each(s -> s.abort());
       }
     }());
@@ -276,7 +281,7 @@ function insertHtml(html, block, doInsertHtml) {
   if (block) {
     try {
       waitfor {
-        return block.apply(null, inserted);
+        return block.apply(null, inserted .. filterElementsAndComments .. toArray);
       } or {
         mechResult.value();
       }
@@ -285,34 +290,26 @@ function insertHtml(html, block, doInsertHtml) {
       inserted .. each(removeNode);
     }
   } else {
-    return inserted;
+    return inserted .. filterElementsAndComments .. toArray;
   }
 }
 
-// generate a stream of element & comment nodes between the two
-// boundary points. The stream will be used to start mechanisms on
+// generate a stream of nodes between the two
+// boundary points. 
 function nodes(parent, before_node, after_node) {
-
-  // make sure we have stable reference points; text nodes get
-  // collected together when we insert something
-  while (before_node && 
-         before_node.nodeType != 1 && 
-         before_node.nodeType != 8)
-    before_node = before_node.previousSibling;
-  while (after_node && 
-         after_node.nodeType != 1 &&
-         after_node.nodeType != 8) 
-    after_node = after_node.nextSibling;
-
   return Stream(function(r) {
     var node = before_node ? before_node.nextSibling :
       parent.firstChild;
     while (node != after_node) {
-      if (node.nodeType == 1 || node.nodeType == 8) r(node);
+      r(node);
       node = node.nextSibling;
     }
   });
 }
+
+// filter elements & comment nodes from the given node stream:
+var filterElementsAndComments = s -> s .. filter(node -> node.nodeType == ELEMENT_NODE ||
+                                                         node.nodeType == COMMENT_NODE);
 
 //----------------------------------------------------------------------
 
@@ -323,7 +320,7 @@ function nodes(parent, before_node, after_node) {
    @param {DOMElement} [parent_element]
    @param {::HtmlFragment} [html] Html to insert
    @param {optional Function} [block] Function bounding lifetime of inserted content
-   @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
    @hostenv xbrowser
    @desc
      * See [::appendContent] for notes on the semantics and return value.
@@ -351,10 +348,12 @@ exports.replaceContent = replaceContent;
    @param {DOMElement} [parent_element] 
    @param {::HtmlFragment} [html] Html to append
    @param {optional Function} [block] Function bounding lifetime of appended content
-   @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
    @hostenv xbrowser
 
    @desc
+
+     * See also [::replaceContent], [::prependContent], [::insertBefore] and [::insertAfter].
 
      * Any [::Mechanism]s contained in `html` will be started in post-order (i.e. mechanisms on inner 
        DOM nodes before mechanisms on more outer DOM nodes).
@@ -368,17 +367,6 @@ exports.replaceContent = replaceContent;
        the DOM elements and comment nodes that have been appended. When `block` 
        exits (normally, by exception or by retraction), the appended nodes will be removed.
        Any [::Mechanism]s running on the inserted nodes will be aborted.
-
-     * When using the `block`-form of `appendContent`, note that only
-       inserted DOM *elements* and comment nodes will be cleaned up,
-       not text nodes. In particular this means that inserted
-       top-level text content will remain in the document after
-       `block` returns.  E.g. when appending the fragment
-
-           `foo<div>bar</div>baz`
-
-       only the `<div>` will be removed after `block` returns. "foo" and "baz" will 
-       remain in the document. This behaviour might change in future versions of conductance.
 
      ### Examples:
 
@@ -413,7 +401,7 @@ exports.appendContent = appendContent;
    @param {DOMElement} [parent_element] 
    @param {::HtmlFragment} [html] Html to prepend
    @param {optional Function} [block] Function bounding lifetime of prepended content
-   @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
    @hostenv xbrowser
 
    @desc
@@ -436,11 +424,10 @@ exports.prependContent = prependContent;
    @param {DOMNode} [sibling_node] Sibling before which to insert
    @param {::HtmlFragment} [html] Html to insert
    @param {optional Function} [block] Function bounding lifetime of inserted content
-   @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
    @hostenv xbrowser
 
    @desc
-     * `sibling_node` should be a DOM *element* or comment node.
      * See [::appendContent] for notes on the semantics and return value.
 */
 function insertBefore(sibling, html, block) {
@@ -473,11 +460,10 @@ exports.insertBefore = insertBefore;
    @param {DOMNode} [sibling_node] Sibling before which to insert
    @param {::HtmlFragment} [html] Html to insert
    @param {optional Function} [block] Function bounding lifetime of inserted content
-   @return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+   @return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
    @hostenv xbrowser
 
    @desc
-     * `sibling_node` should be a DOM *element* or comment node.
      * See [::appendContent] for notes on the semantics and return value.
 */
 function insertAfter(sibling, html, block) {

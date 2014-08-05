@@ -369,7 +369,7 @@ module.exports = require(modules);
 @param {DOMElement} [parent_element]
 @param {::HtmlFragment} [html] Html to insert
 @param {optional Function} [block] Function bounding lifetime of inserted content
-@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
 @hostenv xbrowser
 @desc
   * See [::appendContent] for notes on the semantics and return value.
@@ -383,10 +383,12 @@ module.exports = require(modules);
 @param {DOMElement} [parent_element] 
 @param {::HtmlFragment} [html] Html to append
 @param {optional Function} [block] Function bounding lifetime of appended content
-@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
 @hostenv xbrowser
 
 @desc
+
+  * See also [::replaceContent], [::prependContent], [::insertBefore] and [::insertAfter].
 
   * Any [::Mechanism]s contained in `html` will be started in post-order (i.e. mechanisms on inner 
     DOM nodes before mechanisms on more outer DOM nodes).
@@ -400,17 +402,6 @@ module.exports = require(modules);
     the DOM elements and comment nodes that have been appended. When `block` 
     exits (normally, by exception or by retraction), the appended nodes will be removed.
     Any [::Mechanism]s running on the inserted nodes will be aborted.
-
-  * When using the `block`-form of `appendContent`, note that only
-    inserted DOM *elements* and comment nodes will be cleaned up,
-    not text nodes. In particular this means that inserted
-    top-level text content will remain in the document after
-    `block` returns.  E.g. when appending the fragment
-
-        `foo<div>bar</div>baz`
-
-    only the `<div>` will be removed after `block` returns. "foo" and "baz" will 
-    remain in the document. This behaviour might change in future versions of conductance.
 
   ### Examples:
 
@@ -434,7 +425,7 @@ module.exports = require(modules);
 @param {DOMElement} [parent_element] 
 @param {::HtmlFragment} [html] Html to prepend
 @param {optional Function} [block] Function bounding lifetime of prepended content
-@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
 @hostenv xbrowser
 
 @desc
@@ -446,11 +437,10 @@ module.exports = require(modules);
 @param {DOMNode} [sibling_node] Sibling before which to insert
 @param {::HtmlFragment} [html] Html to insert
 @param {optional Function} [block] Function bounding lifetime of inserted content
-@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
 @hostenv xbrowser
 
 @desc
-  * `sibling_node` should be a DOM *element* or comment node.
   * See [::appendContent] for notes on the semantics and return value.
 
 @function insertAfter
@@ -459,11 +449,10 @@ module.exports = require(modules);
 @param {DOMNode} [sibling_node] Sibling before which to insert
 @param {::HtmlFragment} [html] Html to insert
 @param {optional Function} [block] Function bounding lifetime of inserted content
-@return {Array|void} `void` if `block` has been provided; array of inserted DOM nodes otherwise
+@return {Array|void} `void` if `block` has been provided; array of inserted DOM elements otherwise
 @hostenv xbrowser
 
 @desc
-  * `sibling_node` should be a DOM *element* or comment node.
   * See [::appendContent] for notes on the semantics and return value.
 
 @function removeNode
