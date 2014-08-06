@@ -350,8 +350,9 @@ var showServer = function(token, localServer, remoteServer, container) {
 		var disconnectButton = container.querySelector('.disconnect');
 		waitfor {
 			container .. @appendContent(apps .. @transform(function(apps) {
-				var appWidgets = apps .. @map(app -> @Div(appWidget(token, localServer, remoteServer, app), {'class':'row'}));
-
+				var appWidgets = apps .. @map(app ->
+					@Div(appWidget(token, localServer, remoteServer, app), {'class':'row'})
+				);
 				return appWidgets;
 			}), -> hold());
 		} or { disconnectButton .. @wait('click'); }
@@ -363,23 +364,19 @@ var showServer = function(token, localServer, remoteServer, container) {
 		var serverEq = function(a, b) {
 			return a == b || (a ? a.id) == (b ? b.id);
 		};
+
 		var activeServer = @observe(@route, api.servers, function(state, servers) {
 			var id = state.server;
 			if (!id) return null;
 			return servers .. @find(s -> s.id === id, null);
-		}) .. @squeeze;
+		}) .. @dedupe;
 		activeServer.get = -> activeServer .. @first();
 		activeServer.set = val -> @route.set({server: val ? val.id : null});
 
 		var displayCurrentServer = function(elem) {
-			activeServer .. @each(function(server) {
+			activeServer .. @each.track(function(server) {
 				if (!server) {
-					elem .. @appendContent(`<h1>Click something!</h1>`) {||
-					// TODO: do a "detached each" instead of explicitly waiting for
-					// this in each loop
-						activeServer .. @changes .. @wait();
-					}
-					return;
+					elem .. @appendContent(`<h1>Click something!</h1>`, ->hold());
 				}
 
 				var id = server.id;
@@ -391,7 +388,7 @@ var showServer = function(token, localServer, remoteServer, container) {
 						token = newToken;
 					};
 
-					waitfor {
+					try {
 						while(true) {
 							@info("Connecting to server #{id}");
 							try {
@@ -443,8 +440,6 @@ var showServer = function(token, localServer, remoteServer, container) {
 							}
 						}
 						activeServer.set(null);
-					} or {
-						var new_ = activeServer .. @changes() .. @wait();
 					} catch(e) {
 						activeServer.set(null);
 						throw e;
