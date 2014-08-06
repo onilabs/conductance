@@ -756,13 +756,23 @@ function StreamAttribMechanism(ft, name, obs) {
   @summary Add a HTML attribute to an element
   @param {::HtmlFragment} [element]
   @param {String} [name] Attribute name
-  @param {String|sjs:sequence::Stream} [value] Attribute value
+  @param {Boolean|String|sjs:sequence::Stream} [value] Attribute value
   @return {::Element}
   @desc
     `value` can be an [sjs:sequence::Stream], but only in a
     dynamic (xbrowser) context; if `val` is a Stream and
     this element is used in a static [::Document], an error will
     be thrown.
+
+    If `value` is a boolean (or `value` is a a stream that yields a
+    boolean), then the attribute will be set to the string `'true'` if
+    `value` is `true`. If the value is `false`, then the attribute will 
+    not be set at all (in a dynamic context, where `value` is a stream 
+    yielding `false`, the attribute will be removed from the element if present).
+
+    If `value` is not boolean, then it will be cast to a string. This means that
+    `Div() .. Attrib('foo', undefined)` yields `<div foo='undefined'></div>` and not
+    `<div foo></div>` or `<div></div>` as one might expect. 
 
     If `Attrib` is applied to a [::HtmlFragment] that is not of class [::Element], 
     `element` will automatically be wrapped using [::ensureElement].

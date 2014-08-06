@@ -530,7 +530,7 @@ exports.removeNode = removeNode;
   @summary Add a javascript property to an element
   @param {::HtmlFragment} [element]
   @param {String} [name] Property name
-  @param {String|sjs:sequence::Stream} [value] Property value
+  @param {Object|sjs:sequence::Stream} [value] Property value
   @return {::Element}
   @hostenv xbrowser
   @desc
