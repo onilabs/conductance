@@ -1,4 +1,6 @@
+#!/usr/bin/env conductance
 @ = require('mho:std');
+require('../modules/hub');
 @etcd = require('seed:job/etcd');
 
 var port = -> @env.get('etcd-port');
@@ -65,3 +67,8 @@ exports.withEtcd = function(block) {
 		}
 	}
 };
+
+if (require.main === module) {
+	require('seed:env').defaults();
+	exports.withEtcd(->hold());
+}

@@ -367,7 +367,7 @@ var showServer = function(token, localServer, remoteServer, container) {
 			var id = state.server;
 			if (!id) return null;
 			return servers .. @find(s -> s.id === id, null);
-		});
+		}) .. @squeeze;
 		activeServer.get = -> activeServer .. @first();
 		activeServer.set = val -> @route.set({server: val ? val.id : null});
 

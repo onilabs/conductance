@@ -160,13 +160,10 @@ var genUnique = function(genKey) {
 
 var identity = x -> x;
 var Collection = function(prefix, cons) {
-	var rv = @ObservableVar(keysWithPrefix(prefix) .. @transform(cons));
+	var gen = keysWithPrefix(prefix) .. @transform(cons);
+	var rv = @ObservableVar(gen .. @toArray);
 	rv.items = rv .. @transform(identity);
-	// TODO: we need to do this to get around debouncing in ObservableVar.
-	// an ObservableObject would make this unnecessary
-	var initial = rv .. @first();
-	var cloneInitial = function() { return @Stream(-> initial.apply(this, arguments)); };
-	rv.update = -> rv.modify(cloneInitial);
+	rv.update = -> rv.set(gen .. @toArray);
 	return rv;
 };
 
