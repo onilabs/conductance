@@ -185,17 +185,16 @@ var EXPIRY_DAYS = 14;
 exports.getToken = function(username, password) {
 	var now = new Date().getTime();
 	var expires = new Date(now + (1000 * 60 * 60 * 24 * EXPIRY_DAYS));
-	var contents = randomBytes(20);
-	var uid = getUid(username);
-	var secretToken = {
-		uid:uid,
-		expires: expires,
-		contents: contents.toString(contentsEncoding),
-	};
-
-	var dbToken = Token.hashed(secretToken);
-
 	try {
+		var uid = getUid(username);
+		var secretToken = {
+			uid:uid,
+			expires: expires,
+			contents: randomBytes(20).toString(contentsEncoding),
+		};
+
+		var dbToken = Token.hashed(secretToken);
+
 		withUser(uid) {|user, save|
 			var expectedHash = user.password.hash;
 			var givenHash = hashPassword(password, user.password).toString('base64');
