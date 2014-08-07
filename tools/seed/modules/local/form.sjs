@@ -1,22 +1,11 @@
 @ = require(['mho:std', 'mho:app']);
 @validate = require('seed:validate');
+@form = require('./generic-form');
 
 var formStyle = @CSS('{ }');
 var saveButton = `<button type="submit" class="btn btn-primary">Save</button>`;
 var loginButton = `<button type="submit" class="btn btn-primary">Connect</button>`;
 var signupButton = `<a class="btn btn-success signup">Sign up</a>`;
-
-var pairObject = function(k,v) {
-	var rv = {};
-	rv[k]=v;
-	return rv;
-}
-
-var withoutKey = function(o, key) {
-	o = o .. @clone();
-	delete o[key];
-	return o;
-}
 
 var initialFocus = (function() {
 	var baseMech = @Mechanism(function(elem) {
@@ -33,135 +22,48 @@ var initialFocus = (function() {
 	}
 })();
 
-function hasErrors(errors) {
-	hold(0); // allow errors to propagate
-	var currentErrors = errors .. @first();
-	if (!currentErrors .. @eq({})) {
-		@warn("validation errors remaining - ignoring submit", currentErrors);
-		return true;
-	}
-	return false;
-}
-
-function formBlock(errors, configs, block) {
-	return function(elem) {
-		elem .. @events('submit', {handle: @stopEvent}) .. @each {||
-			if (hasErrors(errors)) continue;
-			if (block) {
-				if (!block()) continue;
-			}
-
-			@withBusyIndicator {||
-				configs .. @each.par {|[obs, current]|
-					obs.modify(function(val) {
-						return val .. @merge(current);
-					});
-				}
-			}
-			break;
-		}
+function formControl(form, cons) {
+	return function(field) {
+		return [
+			cons(field.value, {'class':'form-control'}) .. @On('blur', form.validate),
+			field.error .. @form.formatError,
+		]
 	};
 };
 
-var errorText = err -> err .. @transform(function(e) {
-	if (e) return @Span(e) .. @Class("errorDescription help-text text-danger");
-});
-
-
-var inputField = function(name, desc, widget) {
-	return @Div(`<label for="$name" class="col-xs-4">$desc:</label>
+var formGroup = function(desc, cons, val) {
+	return @Div(`<label for="${val.name}" class="col-xs-4">$desc:</label>
 		<div class="col-xs-8">
-			$widget
+			$cons(val)
 		</div>`,
 		{'class':"form-group"});
 };
 
-function InputBuilder(source, errors) {
-	if (!errors) errors = @ObservableVar({});
-	function buildInput(cons, transform, name, desc, validators) {
-			var latestValue = source[name];
-			var obs = @ObservableVar(latestValue);
-			var err = errors .. @transform(o -> o[name]);
-			if (validators && !Array.isArray(validators)) validators = [validators];
-
-			var validate = function(v) {
-				//@info("Validating #{name} value: #{v}");
-				if (validators) {
-					try {
-						validators .. @each(f -> f(v));
-					} catch(e) {
-						errors.modify(errors -> errors .. @merge(pairObject(name, e.message)));
-						//@info("NOT OK: #{e.message}");
-						return false;
-					}
-					errors.modify(function(errors, unchanged) {
-						if (!errors .. @hasOwn(name)) {
-							return unchanged;
-						}
-						var rv = errors .. @clone();
-						delete rv[name];
-						return rv;
-					});
-				}
-				//@info("OK");
-				return true;
-			};
-
-			obs.set = (function(orig) {
-				return function(v) {
-					v = transform(v);
-					latestValue = transform(v);
-					if (!validate(v)) return;
-					source[name] = v;
-					orig.apply(this,arguments);
-				};
-			})(obs.set);
-
-			var rv = inputField(name, desc, [
-						cons(obs, {'class':'form-control col-xs-6'})
-							.. @On('blur', function(e) { validate(latestValue); })
-						,errorText(err)
-				])
-				.. @Class('has-error', err);
-			rv.value = obs;
-			return rv;
-	};
-	return {
-		Input: function (name, desc, validators) {
-			return buildInput(@TextInput, (v -> v.trim()), name, desc, validators);
-		},
-
-		Checkbox: function(name, desc, validators) {
-			var transform = function(v) {
-				@assert.bool(v);
-				return v;
-			};
-				
-			return buildInput(@Checkbox, transform, name, desc, validators);
-		},
-	};
-};
-
 var serverConfigEditor = exports.serverConfigEditor = function(container, conf) {
 	var current = conf .. @first();
-	var errors = @ObservableVar({});
-	var {Input, Checkbox} = InputBuilder(current, errors);
 	@info("Got server config:", current);
+	var form = @form.Form(current);
+	var Input = form .. formControl(@TextInput);
+	var Checkbox = form .. formControl(@Checkbox);
 
-	var useSsh = Checkbox('ssh', 'Use SSH');
-	var usernameInput = Input('username', 'User', @validate.required);
+	var useSsh = form.field('ssh', {validate: @assert.bool});
+	var usernameInput = formGroup('User', Input, form.field('username', {validate: @validate.required}));
  
 	container .. @appendContent(
 		@Form([
-			Input('name', 'Name', @validate.required),
-			Input('host', 'Host', @validate.required),
-			Input('port', 'Port', [@validate.optionalNumber, @validate.required]),
-			useSsh,
-			usernameInput .. @Class("hidden", useSsh.value .. @transform(x -> !x)),
+			formGroup('Name', Input, form.field('name', {validate:@validate.required})),
+			formGroup('Host', Input, form.field('host', {validate:@validate.required})),
+			formGroup('Port', Input, form.field('port', {validate:[@validate.required, @validate.optionalNumber]})),
+			formGroup('Use SSH', Checkbox, useSsh),
+			formGroup('User', Input,
+				form.field('username', {validate: @validate.required})
+			) .. @Class("hidden", useSsh.value .. @transform(x -> !x)),
 			@Div(saveButton, {'class':'pull-right'}),
-		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle(),
-		formBlock(errors, [[conf, current]])
-	);
+		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
+	) {|elem|
+		var newvals = form.wait(elem);
+		conf.modify(current -> current .. @merge(newvals));
+	};
 };
 
 var fileBrowseCss = @CSS('
@@ -237,22 +139,16 @@ var fileBrowseCss = @CSS('
 			padding: 0.3em 0.8em;
 		}
 	}
-
-	{
-		
-	}
 ');
 var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 	var { central, local } = conf;
 	waitfor {
-		var currentCentral = central .. @first();
+		var centralForm = @form.Form(central .. @first());
 	} and {
 		var currentLocal = local .. @first();
 	}
-	var errors = @ObservableVar({});
-	var {Input: LocalInput} = InputBuilder(currentLocal, errors);
-	var {Input: CentralInput} = InputBuilder(currentCentral, errors);
 
+	var localForm = @form.Form(currentLocal);
 	var currentDir = currentLocal.path;
 
 	var Button = function(contents, action) {
@@ -308,58 +204,85 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 		]) .. @Class("file-browser") .. fileBrowseCss, -> result.wait());
 	};
 
+	var entireForm = {
+		validate: -> [centralForm, localForm] .. @all(f -> f.validate()),
+	};
+
+	var TextInput = entireForm .. formControl(@TextInput);
+	var Checkbox = entireForm .. formControl(@Checkbox);
+
 	parent .. @appendContent(
 		@Form([
-			CentralInput('name', 'Name', @validate.required) .. initialFocus('input'),
-			LocalInput('path', 'Local path', @validate.required),
+			formGroup('Name', TextInput, centralForm.field('name', {validate: @validate.required})) .. initialFocus('input'),
+			//CentralInput('name', 'Name', @validate.required) .. initialFocus('input'),
+			formGroup('Local path', TextInput, centralForm.field('path', {validate: @validate.required})),
+			//LocalInput('path', 'Local path', @validate.required),
 			Button("browse...", e -> browseFiles(e.target.parentNode)),
 			@Div(saveButton, {'class':'pull-right'}),
-		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle(),
-		formBlock(errors, [[central, currentCentral], [local, currentLocal]])
-	);
+		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
+	) {
+		|elem|
+		elem .. @events('submit', {handle:@stopEvent}) .. @each {||
+			if(!entireForm.validate()) continue;
+			@withBusyIndicator {||
+				waitfor {
+					central.modify(v -> v .. @merge(centralForm.values()));
+				} and {
+					local.modify(v -> v .. @merge(localForm.values()));
+				}
+			}
+			break;
+		}
+	}
 };
 
 exports.loginDialog = function(parent, conf, actions) {
 	var current = conf .. @first();
-	var originalValues = conf .. @first();
-	var errors = @ObservableVar({});
-
-	var {Input} = InputBuilder(current, errors);
 	@info("Got server config:", current);
-
 	var password = @ObservableVar();
-	var userInput = Input('username', 'User', @validate.required);
-	var passwordInput = Input('password', 'Password', @validate.required);
-	var password = passwordInput.value;
+	var form = @form.Form(current);
+
+	var TextInput = form .. formControl(@TextInput);
+
+	var userField = form.field('username', {validate:@validate.required});
+
+	var passwordField = @form.Field(password, {
+		source: password,
+		form: form,
+		validate: @validate.required,
+	});
+
+	var passwordInput = formGroup('Password', TextInput, passwordField);
 	// if username is given, focus the password field
-	if (current.username) passwordInput = passwordInput .. initialFocus();
+	if (current.username) passwordInput = passwordInput .. initialFocus('input');
 
 	parent .. @appendContent(
 		@Form([
-			errorText(errors .. @transform(e -> e.global)),
-			userInput,
+			form.error .. @form.formatError,
+			formGroup('User', TextInput, userField),
 			passwordInput,
 			signupButton,
 			@Div(loginButton, {'class':'pull-right'}),
-		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()) {|formElem|
+		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
+	) {|formElem|
 
 		var credentials = -> [
-			@first(userInput.value) || "",
+			@first(userField.value) || "",
 			@first(password) || "",
 		];
 		
 		var actionLoop = function(elem, events, actionName) {
 			@assert.ok(actions[actionName]);
 			elem .. @events(events, {handle:@stopEvent}) .. @each {||
-				errors.modify(c -> c .. withoutKey('global'));
-				if (hasErrors(errors)) continue;
+				form.error.set(null);
+				if(!form.validate()) continue;
 				@info("performing #{actionName} action");
 				var creds = credentials();
 				try {
 					var token = actions[actionName].apply(null, creds);
 				} catch(e) {
 					//@warn(String(e));
-					errors.modify(c -> c .. @merge({global:e.message}));
+					form.error.set(e.message);
 					continue;
 				}
 
@@ -367,7 +290,7 @@ exports.loginDialog = function(parent, conf, actions) {
 					creds.push(token);
 					return creds;
 				} else {
-					errors.modify(c -> c .. @merge({global:"Invalid credentials"}));
+					form.error.set("Invalid credentials");
 					continue;
 				}
 			}
