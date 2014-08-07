@@ -9,6 +9,7 @@ var withOverlay = exports.withOverlay = (function() {
 		top:0;
 		bottom: 0;
 		right:0;
+		overflow:auto;
 		background-color: rgba(0,0,0,0.6);
 		z-index:99;
 	}

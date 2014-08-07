@@ -164,7 +164,85 @@ var serverConfigEditor = exports.serverConfigEditor = function(container, conf) 
 	);
 };
 
-var appConfigEditor = exports.appConfigEditor = function(parent, conf) {
+var fileBrowseCss = @CSS('
+	.browse-display {
+		background: white;
+		border-radius: 4px;
+		border: 1px solid #ccc;
+	}
+
+	.file-list {
+		height: 20em;
+		overflow:auto;
+		margin:0;
+		padding:0;
+
+		li {
+			list-style-type:none;
+			margin:0;
+			padding:0.3em 0.4em;
+			overflow:hidden;
+			display:block;
+			&:last-child {
+				border-bottom: none;
+			}
+			.glyphicon {
+				font-size:0.9em;
+				padding-right: 0.7em;
+				padding-left: 0.3em;
+				color: #bbb;
+			}
+			&.file {
+				color: #888;
+			}
+			&.directory {
+				cursor:pointer;
+				font-weight:bold;
+			}
+		}
+	}
+
+	.top-bar {
+		width:100%;
+		height:2em;
+		border-bottom: 1px solid #ddd;
+		position:relative;
+		overflow:hidden;
+
+		.location {
+			z-index:0;
+			color: #777;
+			width: 100%;
+			padding-top: 0.2em;
+			white-space: nowrap;
+			direction:rtl;
+			padding-left: 3em;
+			padding-right:0.5em;
+			display:block;
+		}
+
+		button {
+			z-index:99;
+			text-align:center;
+			width: 2.5em;
+			height: 2em;
+			position: absolute;
+			left:0;
+
+			background:white;
+			border:none;
+			border-right: 1px solid #ccc;
+			border-radius: 0;
+			border-top-left-radius:4px;
+			padding: 0.3em 0.8em;
+		}
+	}
+
+	{
+		
+	}
+');
+var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 	var { central, local } = conf;
 	waitfor {
 		var currentCentral = central .. @first();
@@ -175,10 +253,66 @@ var appConfigEditor = exports.appConfigEditor = function(parent, conf) {
 	var {Input: LocalInput} = InputBuilder(currentLocal, errors);
 	var {Input: CentralInput} = InputBuilder(currentCentral, errors);
 
+	var currentDir = currentLocal.path;
+
+	var Button = function(contents, action) {
+		return @Button(contents) .. @OnClick({handle:@stopEvent}, action);
+	};
+
+	var fileSortOrder = function(a,b) {
+		return @cmp(
+			[a.directory ? 0 : 1, a.name],
+			[b.directory ? 0 : 1, b.name]
+		);
+	};
+	var browseFiles = function(parent) {
+		var fileBrowser = api.fileBrowser(currentDir);
+		var currentLocation = fileBrowser.location .. @mirror();
+		var result = @Condition();
+
+		var isConductanceDirectory = currentLocation .. @transform(
+			loc -> loc.contents .. @find(entry -> entry.name === 'config.mho', null) !== null
+		);
+
+		return parent .. @appendContent(@Div([
+			@P(@Strong("Local path:")),
+			@Div([
+				@Div([
+						Button(@Icon("chevron-up"), -> fileBrowser.goUp()),
+						currentLocation .. @transform(l -> `&lrm;${l.path}&lrm;`) .. @Class('location'),
+					],
+					{'class':'top-bar'}),
+				@Ul(
+					currentLocation .. @transform(function(loc) {
+						return loc.contents .. @sort(fileSortOrder) .. @map(function(entry) {
+							var isDirectory = entry.directory;
+							console.log(entry);
+							var rv = @Li([
+									@Icon(isDirectory ? 'folder-open' : 'file'),
+									entry.name
+								], {'class':isDirectory ? "directory":"file"});
+							if (isDirectory) {
+								rv = rv .. @OnClick({handle:@stopEvent}, -> fileBrowser.goInto(entry.name));
+							}
+							return rv;
+						});
+					}),
+					{'class':'file-list'}
+				),
+			], {'class':'browse-display'}),
+			Button("cancel", -> result.set(currentDir)),
+			Button("select", -> result.set((currentLocation .. @first()).path))
+				.. @Enabled(isConductanceDirectory)
+				.. @Attrib("title", isConductanceDirectory .. @transform(valid -> valid ? null : "This directory doesn't contain a config.mho file"))
+			,
+		]) .. @Class("file-browser") .. fileBrowseCss, -> result.wait());
+	};
+
 	parent .. @appendContent(
 		@Form([
 			CentralInput('name', 'Name', @validate.required) .. initialFocus('input'),
 			LocalInput('path', 'Local path', @validate.required),
+			Button("browse...", e -> browseFiles(e.target.parentNode)),
 			@Div(saveButton, {'class':'pull-right'}),
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle(),
 		formBlock(errors, [[central, currentCentral], [local, currentLocal]])

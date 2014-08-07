@@ -1,63 +1,14 @@
-@ = require(['mho:std', 'mho:server/systemd']);
-@systemd = require('mho:server/systemd');
-var here = @url.normalize('./', module.id) .. @url.toPath();
+@ = require(['mho:std']);
 
-
-// vars defined:
-//SEED_ROOT="${root}/seed";
-//SEED_VAR="${var_root}"
-//SEED_DATA="${var_root}/data";
-//CERT_ROOT="${var_root}/certs";
-//ETCD_DATA_DIR="${var_root}/etcd";
-//ETCD_BIN="${pkgs.etcd}/bin/etcd";
-//ETCD_PEERS_FILE="${var_root}/etcd-peers";
-
-var envFile = @path.join(here, 'env.vars');
-
-exports.systemdWrap = @merge(@systemd, {
-	Service: function(opts, extra) {
-		// wrap service in common dependencies
-		extra = extra ? @clone(extra) : {};
-		opts = opts ? @clone(opts) : {};
-
-		opts.EnvironmentFile = envFile;
-		extra.Requires = (extra.Requires || []).concat([
-			"seed-common-dirs.service"
-		]);
-
-		extra.After = (extra.After || []).concat([
-			"seed-common-dirs.service"
-		]);
-
-		extra.Wants = (extra.Wants || []).concat([
-			"etcd.socket"
-		]);
-		return @systemd.Service.call(@systemd, opts, extra);
-	},
-});
-
-exports.systemd = -> @Group("seed", {
-	dirs: @Service({
-		"Type": "oneshot", // run all commands and wait for their completion
-		"Restart":"no",
-		"EnvironmentFile": envFile,
-		"ExecStart": @ConductanceArgs.slice(0, 2).concat([@path.join(here, 'setup.sjs')]),
-	}),
-	etcd: [
-		@Socket({
-			ListenStream: [
-				//XXX parameterise?
-				'127.0.0.1:4001', // internal etcd api
-				'0.0.0.0:7001',   // public etcd port
-			]
-		}),
-		@Service({
-			EnvironmentFile: envFile,
-			ExecStart: "${ETCD_BIN}",
-			Restart: "always",
-			RestartSec: "10s",
-			User: "etcd",
-		}),
-	],
-});
+exports.routeOptions = function(route) {
+  route = route .. @route.SetHeaders({
+    "Cache-control": "no-cache",
+    "Expires": "-1",
+  });
+  if (@env.get('production') === false) {
+    // show stacktraces
+    route = route .. @route.DeveloperMode();
+  }
+  return route;
+};
 

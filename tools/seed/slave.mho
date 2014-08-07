@@ -3,6 +3,7 @@
 require('./modules/hub');
 
 exports.serve = function(args) {
+	var common = require('./common.mho');
 	var opts = args .. require('seed:env').parse([
 		{
 			name: 'hostname',
@@ -20,7 +21,7 @@ exports.serve = function(args) {
 	var routes = [
 		@route.SystemRoutes(),
 		@route.ExecutableDirectory('', @url.normalize('./modules/slave', module.id) .. @url.toPath),
-	];
+	] .. common.routeOptions();
 	if (opts.cors) {
 		routes = routes .. @route.AllowCORS();
 	}

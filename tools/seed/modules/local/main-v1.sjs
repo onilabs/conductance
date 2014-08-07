@@ -124,32 +124,21 @@ var confirmDelete = function(thing) {
 	}
 };
 
-var appWidget = function(token, localServer, remoteServer, app) {
+var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	@info("app: ", app);
 
 	var endpoint = app.endpoint .. @mirror();
 
 	var appState = @Stream(function(emit) {
 		app.endpoint .. @each.track {|endpoint|
-			waitfor {
-				if (endpoint === null) {
-					emit(null);
-				} else {
-					console.log("got new endpoint:", endpoint);
-					try {
-						endpoint.connect {|api|
-							if (api.authenticate) api = api.authenticate(token);
-							console.log("EMITTING ENDPOINT");
-							emit(api.getApp(app.id));
-							hold();
-						}
-					} finally {
-						console.log("ENDPOINT DONE");
-					}
+			if (endpoint === null) {
+				emit(null);
+			} else {
+				endpoint.connect {|api|
+					if (api.authenticate) api = api.authenticate(token);
+					emit(api.getApp(app.id));
+					hold();
 				}
-			} or {
-				app.endpoint .. @skip(1) .. @wait();
-				@info("switching to new endpoint...");
 			}
 		}
 	}) .. @mirror;
@@ -307,7 +296,7 @@ var appWidget = function(token, localServer, remoteServer, app) {
 				listButton(['Settings', @Icon('cog')])
 				.. @OnClick(function(e) {
 					@modal.withOverlay({title:`$appName Settings`}) {|elem|
-						elem .. @form.appConfigEditor({
+						elem .. @form.appConfigEditor(localApi, {
 								central: app.config,
 								local: localServer.appConfig(app.id),
 							});
@@ -328,7 +317,7 @@ var appWidget = function(token, localServer, remoteServer, app) {
 	];
 };
 
-var showServer = function(token, localServer, remoteServer, container) {
+var showServer = function(token, localApi, localServer, remoteServer, container) {
 	var apps = remoteServer.apps;
 
 	var addApp = @Button([@Icon('plus'), ' new app']) .. @OnClick(function() {
@@ -348,7 +337,7 @@ var showServer = function(token, localServer, remoteServer, container) {
 		waitfor {
 			container .. @appendContent(apps .. @transform(function(apps) {
 				var appWidgets = apps .. @map(app ->
-					@Div(appWidget(token, localServer, remoteServer, app), {'class':'row'})
+					@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
 				);
 				return appWidgets;
 			}), -> hold());
@@ -429,7 +418,7 @@ var showServer = function(token, localServer, remoteServer, container) {
 										}
 										remoteServer = remoteServer.authenticate(token);
 									}
-									showServer(token, localServer, remoteServer, elem);
+									showServer(token, api, localServer, remoteServer, elem);
 								}
 								break;
 							} catch(e) {
@@ -440,7 +429,7 @@ var showServer = function(token, localServer, remoteServer, container) {
 						}
 						activeServer.set(null);
 					} catch(e) {
-						activeServer.set(null);
+						//activeServer.set(null);
 						throw e;
 					}
 				};

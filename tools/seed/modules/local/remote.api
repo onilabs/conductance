@@ -157,3 +157,38 @@ exports.getServer = function(serverId) {
 	return new Deployment(endpoint, server);
 };
 
+exports.fileBrowser = function(root) {
+	var home = process.env['HOME'] || '/';
+	if (!root || !@fs.exists(root)) {
+		root = home;
+	}
+	root = @ObservableVar(root);
+	var location = root .. @transform(function(path) {
+		var contents = [];
+		try {
+			contents = @fs.readdir(path) .. @map.par(5, function(name) {
+				var fullpath = @path.join(path, name);
+				var stat = @fs.stat(fullpath);
+				return {
+					directory: stat.isDirectory(),
+					name: name,
+				};
+			});
+		} catch(e) {
+			@warn("Error listing #{root}: #{e}");
+		}
+
+		return {
+			path: @path.normalize(path),
+			contents: contents,
+		};
+	});
+
+	var rv = {
+		location: location,
+		goInto: name -> root.modify(c -> @path.join(c, name)),
+		goUp: -> rv.goInto('..'),
+		goHome: -> root.set(home),
+	};
+	return rv;
+};

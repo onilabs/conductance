@@ -20,6 +20,7 @@ var runningServerInfo = function(port) {
 //----------------------------------------------------------------------
 // function invoked by `conductance serve`
 exports.serve = function(args) {
+  var common = require('./common.mho');
   var opts = args .. require('seed:env').parse([
     {
       names: ['host'],
@@ -78,19 +79,19 @@ exports.serve = function(args) {
   };
 
   var routes = [
-        @route.SystemRoutes(),
-        @Route('version', {GET: function(req) {
-          req .. @setHeader('content-type', 'text/json; charset=utf-8');
-          req .. @setStatus(200);
-          req.response.end(JSON.stringify(versionInfo, null, '  '));
-        }}),
+    @route.SystemRoutes(),
+    @Route('version', {GET: function(req) {
+      req .. @setHeader('content-type', 'text/json; charset=utf-8');
+      req .. @setStatus(200);
+      req.response.end(JSON.stringify(versionInfo, null, '  '));
+    }}),
 
-        // override modules/master to be executable
-        @route.ExecutableDirectory('master', @url.normalize('./modules/master', module.id) .. @url.toPath),
+    // override modules/master to be executable
+    @route.ExecutableDirectory('master', @url.normalize('./modules/master', module.id) .. @url.toPath),
 
-        // and present the rest of modules as code-only (not executable)
-        @route.CodeDirectory('modules', @url.normalize('./modules', module.id) .. @url.toPath),
-      ];
+    // and present the rest of modules as code-only (not executable)
+    @route.CodeDirectory('modules', @url.normalize('./modules', module.id) .. @url.toPath),
+  ] .. common.routeOptions();
 
   if (opts.cors) {
     @info("Allowing all CORS requests");
