@@ -57,6 +57,12 @@ exports.serve = function(args) {
       help: 'allow cors',
       'default': false,
     },
+    {
+      names: ['allow-origin'],
+      type: 'string',
+      'default':null,
+      help: 'allow specific CORS origin',
+    },
   ]);
   @env.set('anonymous-access', opts.anonymous);
   if (!@env.has('internalAddress')) {
@@ -78,11 +84,20 @@ exports.serve = function(args) {
           req .. @setStatus(200);
           req.response.end(JSON.stringify(versionInfo, null, '  '));
         }}),
-        @route.ExecutableDirectory('', @url.normalize('./modules/master', module.id) .. @url.toPath),
+
+        // override modules/master to be executable
+        @route.ExecutableDirectory('master', @url.normalize('./modules/master', module.id) .. @url.toPath),
+
+        // and present the rest of modules as code-only (not executable)
+        @route.CodeDirectory('modules', @url.normalize('./modules', module.id) .. @url.toPath),
       ];
 
   if (opts.cors) {
+    @info("Allowing all CORS requests");
     routes = routes .. @route.AllowCORS();
+  } else if (opts.allow_origin) {
+    @info("Allowing CORS requests only from #{opts.allow_origin}");
+    routes = routes .. @route.AllowCORS(opts.allow_origin);
   }
 
   var host = opts.host == 'any' ? null : opts.host;

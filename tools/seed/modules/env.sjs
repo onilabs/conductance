@@ -48,6 +48,7 @@ exports.parse = function(args, options) {
 };
 
 exports.defaults = function() {
+	def('seed-api-version', 1);
 	var PROD = process.env.NODE_ENV === 'production';
 	def('production', PROD);
 

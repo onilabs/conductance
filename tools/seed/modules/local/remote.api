@@ -120,7 +120,7 @@ exports.getServer = function(serverId) {
 					}
 
 					if (deployLoopback) {
-						block(require('../modules/deploy.api').anonymous);
+						block(require('../master/deploy.api').anonymous);
 					} else {
 						if (!@ssh) @ssh = require('./ssh');
 						//creds.debug = @info;
@@ -130,7 +130,7 @@ exports.getServer = function(serverId) {
 							//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance', seedPort) {||
 								conn .. @ssh.proxyConnections(seedPort) {|path|
 									@debug("Proxied: #{path}");
-									var apiInfo = @http.json('http:///deploy.api?format=json', {socketPath: path});
+									var apiInfo = @http.json('http:///master/deploy.api?format=json', {socketPath: path});
 									@debug('API INFO:', apiInfo);
 									var transport = require('mho:rpc/aat-client').openTransport('http:///', {socketPath: path});
 									@debug('transport', transport);
@@ -150,7 +150,7 @@ exports.getServer = function(serverId) {
 			var prefix = "https://";
 			// XXX we should probably lock this down to testing use only, somehow
 			if (creds.host .. @contains("://")) prefix = "";
-			return @Endpoint("#{prefix}#{creds.host}:#{creds.port || 443}/deploy.api");
+			return @Endpoint("#{prefix}#{creds.host}:#{creds.port || 443}/master/deploy.api");
 		}
 	}();
 

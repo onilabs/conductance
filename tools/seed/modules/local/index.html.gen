@@ -1,0 +1,25 @@
+@ = require('mho:std');
+
+var serverRoot = @env.get('ui-server');
+if (!serverRoot) serverRoot = '';
+serverRoot += "/";
+
+@info("Using server root: #{serverRoot}");
+
+exports.content = function() {
+  return @Document(null, {
+    title: "Conductance Seed",
+    init: "
+      require.hubs.push(['seed:', '#{serverRoot}modules/']);
+      require('seed:local/main-v#{@env.get('seed-api-version')}').main()
+    ",
+    template: 'app-default',
+    templateData: {
+      showBusyIndicator: true,
+      appModule: false,
+      //wrapContent: false
+    }
+  });
+};
+
+exports.etag = @moduleTimestamp();

@@ -1,6 +1,3 @@
-/**
- @template-show-busy-indicator
-*/
 require('/modules/hub');
 @ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom']);
 @form = require('./form');
@@ -360,7 +357,9 @@ var showServer = function(token, localServer, remoteServer, container) {
 };
 
 @withBusyIndicator {|ready|
-	@withAPI('./remote.api') {|api|
+	// NOTE: we explicitly use /remote.api, not ./remote
+	// (this module might live on the master, which does NOT provide remote.api)
+	@withAPI('/remote.api') {|api|
 		var serverEq = function(a, b) {
 			return a == b || (a ? a.id) == (b ? b.id);
 		};

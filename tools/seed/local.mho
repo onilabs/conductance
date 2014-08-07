@@ -14,6 +14,18 @@ exports.serve = function(args) {
         help: 'run an entire cluster locally (for development)',
       },
       {
+        name: 'local',
+        type: 'bool',
+        help: 'use local UI, rather than current master',
+      },
+      {
+        name: 'master-address',
+        type: 'string',
+        //XXX point this to production
+        'default': 'http://localhost:7071',
+        help: 'override master location (for testing)',
+      },
+      {
         names: ['host'],
         type: 'string',
         help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
@@ -28,6 +40,7 @@ exports.serve = function(args) {
     ]);
 
   @env.set('deployLoopback', opts.self);
+  @env.set('ui-server', opts.local ? null : opts.master_address);
 
   var routes = [
         @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),
@@ -54,7 +67,7 @@ exports.serve = function(args) {
         @env.set('internalAddress', 'localhost');
         waitfor {
           @warn("Allowing anonymous access - only use this during development");
-          require('./master.mho').serve(['--cors', '--anonymous']);
+          require('./master.mho').serve(["--allow-origin=http://localhost:#{port}", '--anonymous']);
         } and {
           require('./proxy.mho').serve([]);
         } and {
