@@ -143,7 +143,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 		}
 	}) .. @mirror;
 
-	var pid = appState .. @transform(state -> state == null ? [null] : state.pid) .. @concat;
+	var isRunning = appState .. @transform(state -> state == null ? [null] : state.isRunning) .. @concat .. @mirror;
 
 	var tailLogs = function(limit, block) {
 		appState .. @each.track(function(state) {
@@ -164,16 +164,14 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	");
 	var appName = app.config .. @transform(a -> a.name);
 
-	var statusClass = pid .. @transform(pid -> "glyphicon-#{pid === null ? "stop" : "play"}");
-	var statusColorClass = pid .. @transform(pid -> "text-#{pid === null ? "danger" : "success"}");
+	var statusClass = isRunning .. @transform(ok -> "glyphicon-#{ok ? "play" : "stop"}");
+	var statusColorClass = isRunning .. @transform(ok -> "text-#{ok ? "success" : "danger"}");
 
-	var statusIcon = pid .. @transform(pid ->
-		pid == null
+	var statusIcon = isRunning .. @transform(ok -> ok
 		? @Span(null, {'class':'glyphicon glyphicon-stop text-danger'})
 		: @Span(null, {'class':'glyphicon glyphicon-play text-success'})
 	);
-	var isRunning = pid .. @transform(pid -> pid != null);
-	var isStopped = pid .. @transform(pid -> pid == null);
+	var isStopped = isRunning .. @transform(ok -> !ok);
 	var disabled = (elem, cond) -> elem .. @Class('disabled', cond);
 	var logsVisible = @ObservableVar(false);
 	var logDisclosureClass = logsVisible .. @transform(vis -> "glyphicon-chevron-#{vis ? 'up':'down'}");
@@ -457,7 +455,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 						}
 						activeServer.set(null);
 					} catch(e) {
-						//activeServer.set(null);
+						activeServer.set(null);
 						throw e;
 					}
 				};

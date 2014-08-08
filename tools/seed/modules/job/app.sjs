@@ -52,6 +52,9 @@ var getMasterCodePath = function(user, appId) {
   return @path.join(root, String(user.id), appId, "code");
 }
 
+var getGlobalId = (user, id) -> "#{user.id .. @alphanumeric()}/#{id .. @alphanumeric()}";
+var getMachineName = (user, id) -> "#{user.id .. @alphanumeric()}_#{id .. @alphanumeric()}";
+
 var tryRename = function(src, dest) {
   try {
     @fs.rename(src, dest);
@@ -91,45 +94,54 @@ var DEFAULT_CONFIG = {
 
 var etcd = @env.get('etcd');
 
+function tryRunDocker(cmd, stdout) {
+  // runs a docker command
+  // returns the standard result (truthy) if it completed successfully,
+  // and `false` if the container doesn't exist.
+  // Throws the original error if the command failed for
+  // any other reason.
+  try {
+    var rv = @childProcess.run('docker', cmd, {stdio:['ignore',stdout === undefined ? 1 : stdout,'pipe']});
+    return rv;
+  } catch(e) {
+    if (!/Error: No such (image or )?container: /.test(e.stderr)) {
+      @error(e.stderr);
+      throw e;
+    }
+    return false;
+  }
+}
+
+var _isRunning = function(machineName) {
+  var rv = tryRunDocker(['inspect', '--format', '{{.State.Running}}', machineName], 'pipe');
+  if(rv === false) {
+    return false; // no such container
+  }
+  var output = rv.stdout;
+  switch(output.trim()) {
+    case 'true': return true;
+    case 'false': return false;
+    default: throw new Error("Unknown running state: #{output}".trim())
+  }
+}
+
+var _awaitExit = function(machineName) {
+  tryRunDocker(['attach', '--no-stdin', '--sig-proxy=false', machineName]);
+};
+
+
 // local app state (exposed by slaves). Provides information
 // on a directly running app
 exports.localAppState = (function() {
   var apps = {};
 
-  var getPidPath = root -> @path.join(root, "pid");
-
-  var _groupRunning = (pid) -> @childProcess.isRunning(-pid, 0);
-
-  var _getPid = function(pidPath) {
-    var pid = null;
-    try {
-      pid = parseInt(@fs.readFile(pidPath).toString('ascii'), 10);
-    } catch(e) {
-      if (e.code !== 'ENOENT') throw e;
-    }
-
-    if (pid !== null && _groupRunning(pid)) {
-      // check the actual proc (XXX linux-only)
-      var exe = @fs.readlink("/proc/#{pid}/exe") .. @path.basename;
-      @debug("pid #{pid} is process #{exe}");
-      if (!expected_exe_name.test(exe)) {
-        @warn("pid #{pid} is running, but is not a #{expected_exe_name.source} process! (#{exe})");
-        pid = null;
-      }
-      return pid;
-    } else {
-      return null;
-    }
-  };
-
-
   var App = function(user, id) {
     @assert.string(id, 'appId');
-    var globalId = "#{user.id}/#{id}";
-    var machineName = "#{user.id}_#{id}";
+    //var globalId = getGlobalId(user, id);
+    var machineName = getMachineName(user, id);
     var appBase = getAppPath(user, id);
     var appRunBase = getAppRunPath(user, id);
-    var pidPath = getPidPath(appRunBase);
+    //var pidPath = getPidPath(appRunBase);
     var logPath = @path.join(appRunBase, 'log');
     var configPath = @path.join(appBase, 'config.json');
     var recheckPid = @Emitter();
@@ -174,28 +186,28 @@ exports.localAppState = (function() {
 
     var safe = semaphoreWrapper();
 
-    var getPid = function() {
-      return _getPid(pidPath);
-    } .. safe;
-
     var isRunning = function() {
-      return getPid.unsafe() !== null;
+      return _isRunning(machineName);
     } .. safe();
 
-    var pidStream = @Stream(function(emit) {
-      var pid = getPid();
-      emit(pid);
+    var awaitExit = function() {
+      return _awaitExit(machineName);
+    } .. safe();
+
+    var isRunningStream = @Stream(function(emit) {
       while(true) {
-        waitfor {
-          hold(5000); // XXX use waitpid() or some sort of pipe() notification for killed processes
-        } or {
-          recheckPid .. @wait();
+        if(isRunning()) {
+          waitfor {
+            emit(true);
+          } and {
+            awaitExit(machineName);
+          }
         }
-        var last = pid;
-        pid = getPid();
-        if (pid !== last) emit(pid);
+        emit(false);
+        recheckPid .. @wait();
       }
-    });
+    // XXX: add @dedupe
+    }) .. @mirror;
 
     var startApp = function(throwing) {
       var codeDest = @path.join(appRunBase, "code");
@@ -221,8 +233,7 @@ exports.localAppState = (function() {
       }
 
       @info("Starting app: #{id}");
-      var pid = getPid.unsafe();
-      if (pid !== null) {
+      if(isRunning.unsafe()) {
         if (throwing) @assert.fail("app already running!");
         else return false;
       }
@@ -276,102 +287,78 @@ exports.localAppState = (function() {
         // Make sure there's no leftover container
         // (`docker run -rm` is not 100% reliable)
         // XXX an idempotent `rm` would be much better...
-        try {
-          @childProcess.run("docker", ["rm", machineName], {stdio:['ignore',1,'pipe']});
-        } catch(e) {
-          if (!/Error: No such container: /.test(e.stderr)) {
-            @error(e.stderr);
-            throw e;
-          }
-        }
+        tryRunDocker(["rm", machineName]);
 
         log("Building environment...");
-        try {
-          var args = ConductanceArgs;
-          var runUser = "app";
-          var readOnly = (path) -> "#{path}:#{path}:ro";
-          var state = @path.join(appRunBase, "run");
-          @mkdirp(state);
+        var args = ConductanceArgs;
+        var runUser = "app";
+        var readOnly = (path) -> "#{path}:#{path}:ro";
+        var state = @path.join(appRunBase, "run");
+        @mkdirp(state);
 
-          args = [
-            "docker",
-            "run",
-            "--rm=true",
-            "--publish", "8080",
-            "--publish", "4043",
-            "--name", machineName,
-            "--hostname", machineName,
-            "--user", runUser,
-            "--workdir", codeDest,
-            "--volume", readOnly(codeDest),
-            "--volume", state,
-          ].concat(production ? [
-            "--volume", readOnly('/nix/store'),
-          ] : [
-            // kinda hacky - just ensure that we have all required paths in dev
-            // (it's harmless to add paths that we only need on some boxes)
-            "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
-            "--volume", readOnly(conductanceRoot),
-            "--volume", readOnly(sjsRoot),
-          ]).concat([
-            "local/conductance-base", // image name
-          ]).concat(args);
-          @info("Running", args);
-          var child = @childProcess.launch(args[0],
-            args.slice(1).concat([
-              '-vvv',
-              'serve',
-            ]),
-            {
-              stdio: stdio,
-              detached: true,
-            }
-          );
+        args = [
+          "docker",
+          "run",
+          "--rm=true",
+          "--publish", "8080",
+          "--publish", "4043",
+          "--name", machineName,
+          "--hostname", machineName,
+          "--user", runUser,
+          "--workdir", codeDest,
+          "--volume", readOnly(codeDest),
+          "--volume", state,
+        ].concat(production ? [
+          "--volume", readOnly('/nix/store'),
+        ] : [
+          // kinda hacky - just ensure that we have all required paths in dev
+          // (it's harmless to add paths that we only need on some boxes)
+          "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
+          "--volume", readOnly(conductanceRoot),
+          "--volume", readOnly(sjsRoot),
+        ]).concat([
+          "local/conductance-base", // image name
+        ]).concat(args);
+        @info("Running", args);
+        var child = @childProcess.launch(args[0],
+          args.slice(1).concat([
+            '-vvv',
+            'serve',
+          ]),
+          {
+            stdio: stdio,
+            detached: true,
+          }
+        );
 
-          @info("launched child process: #{child.pid}");
-          pidPath .. writeAtomically(String(child.pid));
-        } finally {
-          stdio.slice(1) .. @each(@fs.close);
-          spawn(function() {hold(400); recheckPid.emit();}());
+        @info("launched child process: #{child.pid}");
+        var tries = 100;
+        // wait until docker reports this container as running
+        while(true) {
+          if (isRunning.unsafe()) break;
+          if (!@childProcess.isRunning(child.pid)) {
+            if(!@childProcess.isRunning(child.pid)) throw new Error("process died");
+          }
+          if(tries <= 0) {
+            throw new Error("timed out waiting for app start");
+          }
+          hold(500);
+          tries--;
         }
+        recheckPid.emit();
         return true;
       } catch(e) {
         log(e.message);
         throw e;
+      } finally {
+        stdio.slice(1) .. @each(@fs.close);
       }
     } .. safe();
 
-    var waitApp = function() {
-      pidStream .. @each {|pid|
-        if (pid === null) break;
-      }
-    };
-
     var stopApp = function() {
-      var pid = getPid.unsafe();
-      if (pid == null) {
-        @debug("stopApp(#{id}) - not running");
-        recheckPid.emit();
-        return false;
-      }
-      @info("Stopping app #{id}, PID #{pid}");
-      var timeouts = [
-        [0, 'INT', 100],
-        [1000, 'INT', 1000],
-        [3000, 'TERM', 1000],
-        [5000, 'KILL', 1000],
-      ];
-      var dead = false;
-      timeouts .. @each {|[pre, sig, post]|
-        dead = !_groupRunning(pid);
-        if(dead) break;
-        hold(pre);
-        @info("killing pid #{pid} with #{sig}");
-        process.kill(-pid, 'SIG' + sig);
-        hold(post);
-      }
+      @info("Stopping app #{machineName}");
+      tryRunDocker(["stop", machineName]);
       recheckPid.emit();
-      if (!dead) throw new Error("could not terminate app");
     } .. safe();
 
     var getPortBindings = function() {
@@ -399,7 +386,7 @@ exports.localAppState = (function() {
           return portBindings;
           break;
         } catch(e) {
-          if(getPid() === null) throw new Error("process died");
+          if(!@childProcess.isRunning(child.pid)) throw new Error("process died");
           hold(1000);
           if (tries<=0) throw new Error("Failed to collect docker metadata");
           @debug("Retrying after error: #{e.message}");
@@ -410,16 +397,14 @@ exports.localAppState = (function() {
 
     return {
       id: id,
-      pid: pidStream,
+      isRunning: isRunningStream,
       tailLogs: tailLogs,
       start: startApp,
       getPortBindings: getPortBindings,
-      wait: waitApp,
+      wait: awaitExit,
       stop: stopApp,
-    }
+    };
   };
-
-  var getGlobalId = (user, id) -> "#{user.id .. @alphanumeric()}/#{id .. @alphanumeric()}";
 
   var getApp = function(user, id) {
     @assert.ok(user instanceof @User);
@@ -437,10 +422,10 @@ exports.localAppState = (function() {
     @fs.readdir(root) .. @each {|userId|
       var path = @path.join(root, userId);
       if (!@fs.stat(path).isDirectory()) continue;
+      var user = new @User(userId, null);
       @fs.readdir(path) .. @each {|appId|
-        var pidPath = getPidPath(@path.join(path, appId));
-        if (_getPid(pidPath) !== null) {
-          var user = new @User(userId, null);
+        var machineName = getMachineName(user, appId);
+        if (_isRunning(machineName)) {
           var globalId = getGlobalId(user, appId);
           emit([globalId, getApp(user, appId)]);
         }
@@ -454,7 +439,7 @@ exports.localAppState = (function() {
 // for an app (id, code, endpoint, start / stop, etc).
 exports.masterAppState = (function() {
   var apps = {};
-  var publicUrlBase = @env.get('publicAddress')('proxy-http') .. @url.parse();
+  var publicUrlBase = @env.get('publicAddress')('proxy', 'proxy-http') .. @url.parse();
 
   var App = function(user, id) {
     @assert.string(id, 'appId');

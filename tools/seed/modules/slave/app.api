@@ -21,7 +21,7 @@ exports.authenticate = function(token) {
       var app = @app.localAppState(user, id);
       return {
         tailLogs: app.tailLogs,
-        pid: app.pid,
+        isRunning: app.isRunning,
       }
     },
   }

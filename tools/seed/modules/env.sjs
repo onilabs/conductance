@@ -52,14 +52,21 @@ exports.defaults = function() {
 	var PROD = process.env.NODE_ENV === 'production';
 	def('production', PROD);
 
-	def('publicHost', process.env['SEED_PUBLIC_ADDRESS'] || 'localhost.self');
+	var selfHost = 'localhost.self';
+	def('host-self', process.env['SEED_PUBLIC_ADDRESS'] || selfHost);
+	def('host-proxy', process.env['SEED_PROXY_HOST'] || selfHost);
 	/* ^^ localhost.self is used for development, requires dnsmasq config:
 		$ cat /etc/dnsmasq.d/self.conf
 		address=/.self/127.0.0.1
 	*/
-	def('publicAddress', function(type, proto) {
-		var port = env.get("port-#{type}");
-		return "#{proto || "http"}://#{env.get('publicHost')}:#{port}/"
+	def('publicAddress', function(server, service, proto) {
+		if(arguments.length === 1) {
+			service = server;
+			server = 'self'
+		}
+		var port = env.get("port-#{service}");
+		var host = env.get("host-#{server}");
+		return "#{proto || "http"}://#{host}:#{port}/"
 	});
 
 	var portFromEnv = function(name, def, xform) {

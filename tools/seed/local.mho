@@ -20,7 +20,7 @@ exports.serve = function(args) {
         help: 'use local UI, rather than current master',
       },
       {
-        name: 'master-address',
+        name: 'master',
         type: 'string',
         //XXX point this to production
         'default': 'http://localhost:7071',
@@ -41,7 +41,7 @@ exports.serve = function(args) {
     ]);
 
   @env.set('deployLoopback', opts.self);
-  @env.set('ui-server', opts.local ? null : opts.master_address);
+  @env.set('ui-server', opts.local ? null : opts.master);
 
   var routes = [
     @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),

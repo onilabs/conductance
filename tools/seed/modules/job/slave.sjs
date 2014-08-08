@@ -27,6 +27,7 @@ exports.main = function(client, serverId, singleton) {
 	var endpoint_url = @env.get('publicAddress')('slave') + "app.api";
 	client .. @etcd.advertiseEndpoint(serverId, endpoint_url) {||
 		if(singleton) { // only one slave per host should be set to singleton
+			@info("checking for running apps...");
 			@app.localAppState.runningApps .. @each {|[id, app]|
 				info("adopting already-running app: #{id}");
 				spawn(appRunLoop(client, serverId, info, app, id, withLoad, true));
@@ -57,7 +58,7 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 				}
 				var portBindings = app.getPortBindings();
 				@info("got port bindings:", app.getPortBindings());
-				portMappingValue = "#{@env.get('publicHost')},#{portBindings.join(",")}";
+				portMappingValue = "#{@env.get('host-self')},#{portBindings.join(",")}";
 				client.set(portMappingKey, portMappingValue);
 				app.wait();
 			} or {
