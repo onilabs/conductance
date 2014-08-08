@@ -166,7 +166,7 @@ exports.fileBrowser = function(root) {
 	var location = root .. @transform(function(path) {
 		var contents = [];
 		try {
-			contents = @fs.readdir(path) .. @map.par(5, function(name) {
+			contents = @fs.readdir(path) .. @filter(n -> n.charAt(0) !== '.') .. @map.par(5, function(name) {
 				var fullpath = @path.join(path, name);
 				var stat = @fs.stat(fullpath);
 				return {

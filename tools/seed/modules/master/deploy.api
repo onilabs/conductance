@@ -1,3 +1,4 @@
+@logging = require('sjs:logging');
 @deploy  = require('./deploy');
 @user = require('./user');
 @env = require('mho:env');
@@ -6,6 +7,7 @@ exports.getToken = @user.getToken;
 
 exports.authenticate = function(token) {
   var user = @user.authenticate(token);
+  @logging.info("Authenticated user #{user}");
   return @deploy.Api(user);
 };
 

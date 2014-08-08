@@ -527,8 +527,8 @@ exports.masterAppState = (function() {
           @fs.fstat(tmpfile.file).size .. @assert.eq(expectedSize, "uploaded file size");
           @childProcess.run('tar', ['xzf', tmpfile.path, '-C', tmpdest], {stdio:'inherit'});
 
-          // sanity check that we have a config.mho
-          @assert.ok(@fs.exists(@path.join(tmpdest, 'config.mho')), "no config.mho found in code!");
+          //// sanity check that we have a config.mho
+          //@assert.ok(@fs.exists(@path.join(tmpdest, 'config.mho')), "no config.mho found in code!");
 
           // stop app so that nothing is trying to run code while we're modifying it
           stopApp();

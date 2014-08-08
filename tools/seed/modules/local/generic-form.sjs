@@ -58,7 +58,7 @@ function Field(source, opts) {
 	@assert.ok(source, "source not given");
 	var name = opts.name;
 
-	if (!(source .. @isStream && source.set)) {
+	if (!(source .. @isStream && source.modify)) {
 		if(source .. @isStream) source = source .. @first;
 		source = @ObservableVar(source);
 	}
@@ -69,6 +69,7 @@ function Field(source, opts) {
 	var def = opts['default'];
 
 	var get = function(val) {
+		console.log("getting #{name} from", val);
 		if (!name) return val;
 		return val .. @get(name, def);
 	};
@@ -76,13 +77,16 @@ function Field(source, opts) {
 
 	var value = source .. @transform(get);
 	value.set = function(v) {
+		console.log("Setting fiedl #{name} to #{v}");
 		if (transform) v = transform(v);
 		source.modify(function(current, unchanged) {
 			if (!name) return v;
 			if (current[name] === v) return unchanged;
+			console.log("updated: ", current .. @merge(pairObject(name, v)));
 			return current .. @merge(pairObject(name, v));
 		});
 	};
+	value.get = -> get(source.get());
 
 	var rv = {
 		name: name,

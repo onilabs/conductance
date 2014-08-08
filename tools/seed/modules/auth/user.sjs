@@ -22,3 +22,6 @@ var User = exports.User = function(id, nickname) {
   this.id = id;
   this.nickname = nickname;
 };
+User.prototype.toString = function() {
+  return "User(#{this.id}, #{this.nickname})";
+};

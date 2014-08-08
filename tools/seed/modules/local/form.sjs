@@ -22,12 +22,23 @@ var initialFocus = (function() {
 	}
 })();
 
+function formControlGroup(form, cons, extras) {
+	return function(field) {
+		return @Div([
+			extras.before,
+			cons(field.value, {'class':'form-control'}) .. @On('blur', form.validate),
+			extras.after,
+			field.error .. @form.formatError,
+		], {'class':'input-group'});
+	};
+};
+
 function formControl(form, cons) {
 	return function(field) {
 		return [
 			cons(field.value, {'class':'form-control'}) .. @On('blur', form.validate),
 			field.error .. @form.formatError,
-		]
+		];
 	};
 };
 
@@ -68,9 +79,11 @@ var serverConfigEditor = exports.serverConfigEditor = function(container, conf) 
 
 var fileBrowseCss = @CSS('
 	.browse-display {
+		clear:both;
 		background: white;
 		border-radius: 4px;
 		border: 1px solid #ccc;
+		margin-bottom: 15px;
 	}
 
 	.file-list {
@@ -114,10 +127,11 @@ var fileBrowseCss = @CSS('
 		.location {
 			z-index:0;
 			color: #777;
-			width: 100%;
+			max-width: 100%;
 			padding-top: 0.2em;
 			white-space: nowrap;
 			direction:rtl;
+			text-align:left;
 			padding-left: 3em;
 			padding-right:0.5em;
 			display:block;
@@ -149,10 +163,9 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 	}
 
 	var localForm = @form.Form(currentLocal);
-	var currentDir = currentLocal.path;
 
-	var Button = function(contents, action) {
-		return @Button(contents) .. @OnClick({handle:@stopEvent}, action);
+	var Button = function(contents, action, attrs) {
+		return @Button(contents, attrs) .. @OnClick({handle:@stopEvent}, action);
 	};
 
 	var fileSortOrder = function(a,b) {
@@ -161,48 +174,6 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 			[b.directory ? 0 : 1, b.name]
 		);
 	};
-	var browseFiles = function(parent) {
-		var fileBrowser = api.fileBrowser(currentDir);
-		var currentLocation = fileBrowser.location .. @mirror();
-		var result = @Condition();
-
-		var isConductanceDirectory = currentLocation .. @transform(
-			loc -> loc.contents .. @find(entry -> entry.name === 'config.mho', null) !== null
-		);
-
-		return parent .. @appendContent(@Div([
-			@P(@Strong("Local path:")),
-			@Div([
-				@Div([
-						Button(@Icon("chevron-up"), -> fileBrowser.goUp()),
-						currentLocation .. @transform(l -> `&lrm;${l.path}&lrm;`) .. @Class('location'),
-					],
-					{'class':'top-bar'}),
-				@Ul(
-					currentLocation .. @transform(function(loc) {
-						return loc.contents .. @sort(fileSortOrder) .. @map(function(entry) {
-							var isDirectory = entry.directory;
-							console.log(entry);
-							var rv = @Li([
-									@Icon(isDirectory ? 'folder-open' : 'file'),
-									entry.name
-								], {'class':isDirectory ? "directory":"file"});
-							if (isDirectory) {
-								rv = rv .. @OnClick({handle:@stopEvent}, -> fileBrowser.goInto(entry.name));
-							}
-							return rv;
-						});
-					}),
-					{'class':'file-list'}
-				),
-			], {'class':'browse-display'}),
-			Button("cancel", -> result.set(currentDir)),
-			Button("select", -> result.set((currentLocation .. @first()).path))
-				.. @Enabled(isConductanceDirectory)
-				.. @Attrib("title", isConductanceDirectory .. @transform(valid -> valid ? null : "This directory doesn't contain a config.mho file"))
-			,
-		]) .. @Class("file-browser") .. fileBrowseCss, -> result.wait());
-	};
 
 	var entireForm = {
 		validate: -> [centralForm, localForm] .. @all(f -> f.validate()),
@@ -210,15 +181,68 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 
 	var TextInput = entireForm .. formControl(@TextInput);
 	var Checkbox = entireForm .. formControl(@Checkbox);
+	var showBrowser = @ObservableVar(false);
+	var pathField = localForm.field('path', {validate: @validate.required});
 
 	parent .. @appendContent(
 		@Form([
 			formGroup('Name', TextInput, centralForm.field('name', {validate: @validate.required})) .. initialFocus('input'),
-			//CentralInput('name', 'Name', @validate.required) .. initialFocus('input'),
-			formGroup('Local path', TextInput, centralForm.field('path', {validate: @validate.required})),
-			//LocalInput('path', 'Local path', @validate.required),
-			Button("browse...", e -> browseFiles(e.target.parentNode)),
-			@Div(saveButton, {'class':'pull-right'}),
+
+			showBrowser .. @transform(function(show) {
+				if (show) {
+					@warn("starting file browser at #{pathField.value.get()}");
+					var fileBrowser = api.fileBrowser(pathField.value.get());
+					var currentLocation = fileBrowser.location .. @mirror();
+					//var isConductanceDirectory = currentLocation .. @transform(
+					//	loc -> loc.contents .. @find(entry -> entry.name === 'config.mho', null) !== null
+					//);
+					function select() {
+						pathField.value.set((currentLocation .. @first()).path);
+						showBrowser.set(false);
+					};
+					return @Div(@Form([
+							Button("x", -> showBrowser.set(false)) .. @Class('pull-right btn btn-xs'),
+							@P(@Strong("Local path:")),
+							@Div([
+								@Div([
+										Button(@Icon("chevron-up"), -> fileBrowser.goUp()),
+										//Button(@Icon("home"), -> fileBrowser.goHome()),
+										currentLocation .. @transform(l -> `&lrm;${l.path}&lrm;`) .. @Class('location'),
+									],
+									{'class':'top-bar'}),
+								@Ul(
+									currentLocation .. @transform(function(loc) {
+										return loc.contents .. @sort(fileSortOrder) .. @map(function(entry) {
+											var isDirectory = entry.directory;
+											var rv = @Li([
+													@Icon(isDirectory ? 'folder-open' : 'file'),
+													entry.name
+												], {'class':isDirectory ? "directory":"file"});
+											if (isDirectory) {
+												rv = rv .. @OnClick({handle:@stopEvent}, -> fileBrowser.goInto(entry.name));
+											}
+											return rv;
+										});
+									}),
+									{'class':'file-list'}
+								),
+							], {'class':'browse-display'}),
+							Button("Select", select, {'class':'pull-right btn-primary'}) /* .. @Enabled(isConductanceDirectory) */,
+						], {'role':'form'}),
+						{'class':'file-browser'}) .. fileBrowseCss;
+				} else {
+					return [
+						formGroup(
+							'Local path',
+							entireForm .. formControlGroup(@TextInput,
+								{after: @Span(Button('...', -> showBrowser.modify(c -> !c)), {'class':'input-group-btn'})}
+							),
+							pathField
+						),
+						@Div(saveButton, {'class':'pull-right'}),
+					];
+				}
+			}),
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
 	) {
 		|elem|
@@ -226,8 +250,10 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 			if(!entireForm.validate()) continue;
 			@withBusyIndicator {||
 				waitfor {
+					@warn("modifying central config: ", centralForm.values());
 					central.modify(v -> v .. @merge(centralForm.values()));
 				} and {
+					@warn("modifying local config: ", localForm.values());
 					local.modify(v -> v .. @merge(localForm.values()));
 				}
 			}

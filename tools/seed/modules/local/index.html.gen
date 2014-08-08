@@ -17,6 +17,7 @@ exports.content = function() {
     templateData: {
       showBusyIndicator: true,
       appModule: false,
+      mhoStyle: false,
       //wrapContent: false
     }
   });
