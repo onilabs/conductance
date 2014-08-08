@@ -63,7 +63,7 @@ exports.serve = function(args) {
         @env.set('internalAddress', 'localhost');
         waitfor {
           @warn("Allowing anonymous access - only use this during development");
-          require('./master.mho').serve(["--allow-origin=http://localhost:#{port}", '--anonymous']);
+          require('./master.mho').serve(["--allow-origin=http://localhost.self:#{port}", '--anonymous']);
         } and {
           require('./proxy.mho').serve([]);
         } and {

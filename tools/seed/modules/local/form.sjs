@@ -240,7 +240,10 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 						formGroup(
 							'Local path',
 							entireForm .. formControlGroup(@TextInput,
-								{after: @Span(Button('...', -> showBrowser.modify(c -> !c)), {'class':'input-group-btn'})}
+								{after: @Span(
+									@A('...', {'class':'btn btn-default'}) .. @OnClick({handle:@stopEvent}, -> showBrowser.modify(c -> !c)),
+									{'class':'input-group-btn'})
+								}
 							),
 							pathField
 						),

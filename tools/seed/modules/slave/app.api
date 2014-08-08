@@ -9,7 +9,7 @@ var etcd = @env.get('etcd');
 exports.authenticate = function(token) {
   var master_endpoint = etcd.get(@etcd.slave_endpoint('master')) .. @getPath('node.value');
   var user;
-  @bridge.connect(@url.normalize('/user.api', master_endpoint), {}) {|conn|
+  @bridge.connect(@url.normalize('/master/user.api', master_endpoint), {}) {|conn|
     user = conn.api.validateToken(token);
   }
   // wrap remote user into a local object

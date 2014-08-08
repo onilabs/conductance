@@ -153,6 +153,15 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 		});
 	};
 
+	var appNameStyle = @CSS("
+		{
+			white-space: nowrap;
+			overflow:hidden;
+		}
+		.glyphicon {
+			display:inline;
+		}
+	");
 	var appName = app.config .. @transform(a -> a.name);
 
 	var statusClass = pid .. @transform(pid -> "glyphicon-#{pid === null ? "stop" : "play"}");
@@ -169,13 +178,14 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	var logsVisible = @ObservableVar(false);
 	var logDisclosureClass = logsVisible .. @transform(vis -> "glyphicon-chevron-#{vis ? 'up':'down'}");
 
+	var hideXS = c -> @Span(c, {'class':'hidden-xs'});
 	var appDetail = @Div(`
 		<div class="header">
 
 			<div class="btn-group">
-				${@Button(["stop ", @Icon('stop')])  .. disabled(isStopped) .. @OnClick(-> app.stop())}
-				${@Button(["start ", @Icon('play')]) .. disabled(isRunning) .. @OnClick(-> app.start())}
-				${@Button(["deploy ", @Icon('cloud-upload')]) .. @Mechanism(function(elem) {
+				${@Button(["stop " .. hideXS, @Icon('stop')])  .. disabled(isStopped) .. @OnClick(-> app.stop())}
+				${@Button(["start " .. hideXS, @Icon('play')]) .. disabled(isRunning) .. @OnClick(-> app.start())}
+				${@Button(["deploy " .. hideXS, @Icon('cloud-upload')]) .. @Mechanism(function(elem) {
 					var click = elem .. @events('click');
 					while(true) {
 						click .. @wait();
@@ -200,7 +210,8 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 				@Span(null, {'class':'glyphicon'}) .. @Class(statusClass),
 				`&nbsp;`,
 				`<a class="appLink" href="${app.publicUrl}">$appName</a>`,
-			]) .. @Class(statusColorClass)}
+			]) .. @Class(statusColorClass) .. appNameStyle
+			}
 		</div>
 		<div class="clearfix">
 			${@Div(`
@@ -289,9 +300,13 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	return [
 		@Div([
 			@Ul([
-				listButton([appName, " ", @Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass)]) .. @OnClick(function(btn) {
+				listButton([
+					@Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass),
+					" ",
+					@Div(appName) .. @Style("margin-right: 1.5em;overflow:hidden;"),
+				]) .. @OnClick(function(btn) {
 					detailShown.set(!detailShown.get());
-				}),
+				}) .. appNameStyle,
 			
 				listButton(['Settings', @Icon('cog')])
 				.. @OnClick(function(e) {
