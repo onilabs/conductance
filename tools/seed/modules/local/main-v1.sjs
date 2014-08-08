@@ -321,8 +321,21 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 	var apps = remoteServer.apps;
 
 	var addApp = @Button([@Icon('plus'), ' new app']) .. @OnClick(function() {
-		var appInfo = localServer.addApp({});
-		remoteServer.createApp(appInfo .. @get('id'), {name:"TODO"});
+		// make an in-memory config, and only save it to the server when
+		// we submit the form
+		var newConfig = {
+			local: @ObservableVar({}),
+			central: @ObservableVar({}),
+		};
+		@modal.withOverlay({title:`Create app`}) {|elem|
+			if (elem .. @form.appConfigEditor(localApi, newConfig)) {
+				@withBusyIndicator {||
+					elem .. @appendContent(@P(`Creating ${newConfig.central.get().name}...`));
+					var appInfo = localServer.addApp(newConfig.local.get());
+					remoteServer.createApp(appInfo .. @get('id'), newConfig.central.get());
+				}
+			}
+		}
 	});
 
 	container .. @appendContent(

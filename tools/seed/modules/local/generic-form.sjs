@@ -77,7 +77,7 @@ function Field(source, opts) {
 
 	var value = source .. @transform(get);
 	value.set = function(v) {
-		console.log("Setting fiedl #{name} to #{v}");
+		console.log("Setting field #{name} to #{v}");
 		if (transform) v = transform(v);
 		source.modify(function(current, unchanged) {
 			if (!name) return v;

@@ -24,19 +24,21 @@ var initialFocus = (function() {
 
 function formControlGroup(form, cons, extras) {
 	return function(field) {
-		return @Div([
-			extras.before,
-			cons(field.value, {'class':'form-control'}) .. @On('blur', form.validate),
-			extras.after,
+		return [
+			@Div([
+				extras.before,
+				cons(field.value, {'class':'form-control'}) .. @On('blur', field.validate),
+				extras.after,
+			], {'class':'input-group'}),
 			field.error .. @form.formatError,
-		], {'class':'input-group'});
+		]
 	};
 };
 
 function formControl(form, cons) {
 	return function(field) {
 		return [
-			cons(field.value, {'class':'form-control'}) .. @On('blur', form.validate),
+			cons(field.value, {'class':'form-control'}) .. @On('blur', field.validate),
 			field.error .. @form.formatError,
 		];
 	};
@@ -162,7 +164,9 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 		var currentLocal = local .. @first();
 	}
 
-	var localForm = @form.Form(currentLocal);
+	var localForm = @form.Form(currentLocal, {validate: function(vals) {
+		if(!vals.path) throw new Error("Local path is required");
+	}});
 
 	var Button = function(contents, action, attrs) {
 		return @Button(contents, attrs) .. @OnClick({handle:@stopEvent}, action);
@@ -182,10 +186,11 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 	var TextInput = entireForm .. formControl(@TextInput);
 	var Checkbox = entireForm .. formControl(@Checkbox);
 	var showBrowser = @ObservableVar(false);
-	var pathField = localForm.field('path', {validate: @validate.required});
+	var pathField = localForm.field('path');
 
 	parent .. @appendContent(
 		@Form([
+			localForm.error .. @form.formatError,
 			formGroup('Name', TextInput, centralForm.field('name', {validate: @validate.required})) .. initialFocus('input'),
 
 			showBrowser .. @transform(function(show) {
@@ -257,7 +262,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 					local.modify(v -> v .. @merge(localForm.values()));
 				}
 			}
-			break;
+			return true;
 		}
 	}
 };
