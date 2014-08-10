@@ -13,6 +13,7 @@ var { SymbolMissing, LibraryMissing } = require('./library');
 var { encodeNonSlashes, encodeFragment } = require('./url-util');
 var Symbol = require('./symbol');
 var { ObservableVar } = require('sjs:observable');
+var { normalize: normalizeUrl } = require('sjs:url');
 
 var ESCAPE = exports.ESCAPE = 27;
 var RETURN = exports.RETURN = 13;
@@ -149,7 +150,7 @@ exports.renderer = function(libraries, rootSymbol) {
     if (!docs.demo) return undefined;
     return Element("div", [
       `<h3>Demonstration</h3>`,
-      Element("iframe", undefined, {src: "demo-eval.app"}) ..
+      Element("iframe", undefined, {src: "demo-eval.app" .. normalizeUrl(module.id)}) ..
       Mechanism(function(elem) {
         elem.contentWindow.resize = function() { hold(0); elem.height = elem.contentWindow.document.body.scrollHeight + 'px'; };
         while (!elem.contentWindow.run) 
