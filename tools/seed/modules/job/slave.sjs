@@ -19,20 +19,55 @@ exports.main = function(client, serverId, singleton) {
 	withLoad.currentValue = -> load;
 
 	var heartbeat = function() {
-		@info("load for #{serverId} = #{load}");
+		info("load: #{load}");
 		client.set(@etcd.slave_load(serverId), load);
 	};
 
 	info("connecting...");
 	var endpoint_url = @env.get('publicAddress')('slave') + "app.api";
 	client .. @etcd.advertiseEndpoint(serverId, endpoint_url) {||
-		if(singleton) { // only one slave per host should be set to singleton
-			@info("checking for running apps...");
-			@app.localAppState.runningApps .. @each {|[id, app]|
+
+		var endpointKey = @etcd.app_endpoint(null);
+		var owned = @etcd.tryOp(-> client.get(endpointKey, {recursive:true}));
+		if (owned) {
+			owned = owned
+				.. @getPath('node.nodes')
+				.. @map(n -> n.nodes || [])
+				.. @concat
+				.. @filter(node -> node.value === serverId)
+				.. @map(node -> node.key .. @removeLeading(endpointKey))
+				.. @toArray();
+		} else {
+			owned = [];
+		}
+
+		info("Slave owns #{owned.length} apps in etcd. Checking for running apps...");
+		@app.localAppState.runningApps .. @each {|[id, app]|
+			if (singleton || owned .. @hasElem(id)) {
 				info("adopting already-running app: #{id}");
+				owned .. @remove(id);
 				spawn(appRunLoop(client, serverId, info, app, id, withLoad, true));
+			} else {
+				@warn(`slave ${serverId} ignoring running app $id (owned by another slave, and singleton is false)`);
 			}
 		}
+
+		if (owned.length > 0) info("Dropping #{owned.length} dead apps...");
+		owned .. @each {|id|
+			info("Dropping endpoint key for dead app #{id}");
+			var deleted = @etcd.tryOp(function() {
+				try {
+					client.compareAndDelete(@etcd.app_endpoint(id), serverId, {})
+				} catch(e) {
+					//@error(e);
+					throw e;
+				}
+			});
+			if (!deleted) {
+				@warn("Couldn't delete!");
+			}
+		}
+
 		heartbeat();
 		waitfor {
 			discoverNewRequests(client, serverId, info, withLoad);
@@ -61,6 +96,18 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 				portMappingValue = "#{@env.get('host-self')},#{portBindings.join(",")}";
 				client.set(portMappingKey, portMappingValue);
 				app.wait();
+				
+				// app ended:
+				collapse;
+				info("app #{id} ended");
+				app.stop();
+				waitfor {
+					@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
+				} and {
+					if (portMappingValue !== null) {
+						@etcd.tryOp(-> client.compareAndDelete(portMappingKey, portMappingValue, {}));
+					}
+				}
 			} or {
 				info("watching app ops: #{@etcd.app_op(id)}");
 				client
@@ -73,7 +120,7 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 							case "stop":
 								info("stopping app #{id}");
 								app.stop();
-								@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
+								hold(); // the other branch should take over now
 								break;
 							case "start":
 								info("ignoring duplicate [start] request");
@@ -89,16 +136,6 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 			}
 		} catch(e) {
 			@error(String(e));
-		} finally {
-			info("app #{id} ended");
-			app.stop();
-			waitfor {
-				@etcd.tryOp(-> client.compareAndDelete(endpointKey, serverId, {}));
-			} and {
-				if (portMappingValue !== null) {
-					@etcd.tryOp(-> client.compareAndDelete(portMappingKey, portMappingValue, {}));
-				}
-			}
 		}
 	}
 }
@@ -110,7 +147,7 @@ function discoverNewRequests(client, serverId, info, withLoad) {
 		.. @etcd.values(prefix, {'recursive':true})
 		.. @each
 	{|node|
-		@debug("saw op:", node.value);
+		@info("saw op:", node.value);
 		hold(withLoad.currentValue() * 500); // 0.5s per load
 		@debug("accepting op:", node.value);
 		var key = node .. @get('key');

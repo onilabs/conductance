@@ -19,13 +19,13 @@ exports.serve = function(args) {
 		return @Route(/^/, {'*': function(req) {
 			//console.log(req);
 			var destRoute = proxies[publicPort];
-			console.log(JSON.stringify(proxies));
+			//console.log(JSON.stringify(proxies));
 			@info("destRoute[#{publicPort}]: ", destRoute);
 			if (destRoute) {
 				var subdomain = req.url.host .. @rsplit('.', 2) .. @at(0);
-				@info("proxying subdomain: #{subdomain}");
+				//@info("proxying subdomain: #{subdomain}");
 				destRoute = destRoute[subdomain];
-				@info("destRoute: ", destRoute);
+				//@info("destRoute: ", destRoute);
 				if (destRoute) {
 					var [destHost, destPort] = destRoute;
 					var dest = "#{proto}://#{destHost}:#{destPort}#{req.url.path}";
@@ -37,7 +37,7 @@ exports.serve = function(args) {
 						agent: proxyAgent,
 						throwing: false,
 					};
-					@info("PROXY -> #{dest}");
+					//@info("PROXY -> #{dest}");
 					var response = @http.request(dest, opts);
 					//@info(response.statusCode);
 

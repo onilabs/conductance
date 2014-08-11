@@ -69,11 +69,8 @@ exports.serve = function(args) {
         } and {
           var slave = require('./slave.mho');
           var hostname = require('nodejs:os').hostname();
-          waitfor {
-            slave.serve(['--hostname', hostname + "_0", '--cors']);
-          } or {
-            // run a few extra slaves (re-using the one /api endpoint)
-            [1, 2, 3] .. @each.par {|id|
+          slave.serve_with_block(['--cors']) {|opts|
+            [0, 1, 2, 3] .. @each.par {|id|
               slave.run_slave(hostname + "_" + id);
             }
           }

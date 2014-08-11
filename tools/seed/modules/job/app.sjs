@@ -104,7 +104,7 @@ function tryRunDocker(cmd, stdout) {
     var rv = @childProcess.run('docker', cmd, {stdio:['ignore',stdout === undefined ? 1 : stdout,'pipe']});
     return rv;
   } catch(e) {
-    if (!/Error: No such (image or )?container: /.test(e.stderr)) {
+    if (!/Error( response from daemon)?: No such (image or )?container: /.test(e.stderr)) {
       @error(e.stderr);
       throw e;
     }
@@ -192,7 +192,7 @@ exports.localAppState = (function() {
 
     var awaitExit = function() {
       return _awaitExit(machineName);
-    } .. safe();
+    };
 
     var isRunningStream = @Stream(function(emit) {
       while(true) {
@@ -371,9 +371,10 @@ exports.localAppState = (function() {
 
           var containerInfo = inspectOutput .. JSON.parse();
           @assert.eq(containerInfo.length, 1, containerInfo.length);
+          //@info(containerInfo[0] .. @getPath('NetworkSettings.Ports'));
           var portBindings = [];
           containerInfo[0]
-            .. @getPath('HostConfig.PortBindings')
+            .. @getPath('NetworkSettings.Ports')
             .. @ownPropertyPairs .. @each {|[k,v]|
               if (!k .. @endsWith('/tcp')) continue;
               [k,] = k.split('/');
@@ -386,10 +387,9 @@ exports.localAppState = (function() {
           return portBindings;
           break;
         } catch(e) {
-          if(!@childProcess.isRunning(child.pid)) throw new Error("process died");
           hold(1000);
-          if (tries<=0) throw new Error("Failed to collect docker metadata");
-          @debug("Retrying after error: #{e.message}");
+          if (tries<=0) throw new Error("Failed to collect docker metadata for #{machineName}");
+          @info("Retrying after error: #{e.message}");
           tries--;
         }
       }

@@ -36,6 +36,7 @@ var op = function(client, op, id, timeout) {
 		return true;
 	} or {
 		hold(timeout * 1000);
+		collapse;
 		@warn("#{timeout}s timeout reached, cancelling op #{id}!#{op}");
 		var del = -> client.compareAndDelete(key, op, {prevIndex: modifiedIndex});
 		if (!@etcd.tryOp(del)) {

@@ -2,7 +2,6 @@
 var wraplib = require('sjs:wraplib');
 var etcd = require('nodejs:node-etcd');
 var HEARTBEAT_INTERVAL = 1000 * 60 * 1; // 1 minute
-var deployLoopback = @env.get('deployLoopback', false);
 
 exports.Etcd = etcd;
 wraplib.annotate(exports, {
@@ -100,13 +99,12 @@ exports.values = function(client, key, opts) {
 exports.tryOp = function(fn, allowed_errors) {
 	if (!allowed_errors) allowed_errors = [exports.err.KEY_NOT_FOUND, exports.err.TEST_FAILED, exports.err.KEY_EXISTS];
 	try {
-		fn();
+		return fn() || true;
 	} catch(e) {
 		//console.log("errcode: #{e.errorCode}");
 		if (allowed_errors.indexOf(e.errorCode) === -1) throw e;
 		return false;
 	}
-	return true;
 }
 
 exports.hasValue = function(client, key) {
@@ -141,6 +139,7 @@ exports.app_port_mappings = keyFn("/app/portmap/");
 exports.master_app_repository = () -> "/master/app_repository";
 
 exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
+	var deployLoopback = @env.get('deployLoopback');
 	var key = exports.slave_endpoint(serverId);
 	client.set(key, endpoint);
 	try {
