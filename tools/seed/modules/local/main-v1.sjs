@@ -143,7 +143,16 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 		}
 	}) .. @mirror;
 
-	var isRunning = appState .. @transform(state -> state == null ? [null] : state.isRunning) .. @concat .. @mirror;
+	var isRunning = @Stream(function(emit) {
+		appState .. @each.track {|state|
+			if (state == null) {
+				emit(false);
+			} else {
+				state.isRunning .. @each(emit);
+			}
+		}
+	}) .. @mirror;
+
 
 	var tailLogs = function(limit, block) {
 		appState .. @each.track(function(state) {
@@ -361,12 +370,22 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 
 		var disconnectButton = container.querySelector('.disconnect');
 		waitfor {
-			container .. @appendContent(apps .. @transform(function(apps) {
-				var appWidgets = apps .. @map(app ->
-					@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
-				);
-				return appWidgets;
-			}), -> hold());
+			try {
+				container .. @appendContent(apps .. @transform(function(apps) {
+					var appWidgets = apps .. @map(app ->
+						@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
+					);
+					return appWidgets;
+				}), -> hold());
+			} catch(e) {
+				console.error("Error in app display: #{e}");
+				var msg = e.message;
+				var retry = @Emitter;
+				container .. @appendContent(@Div([
+					@H1(`Error: ${msg}`),
+					@P(@Button("Try again...") .. @OnClick({handle:@stopEvent}, -> retry.emit()))
+				]), -> retry.wait());
+			}
 		} or { disconnectButton .. @wait('click'); }
 	}
 };

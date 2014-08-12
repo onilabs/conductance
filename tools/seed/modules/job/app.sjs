@@ -126,7 +126,11 @@ var _isRunning = function(machineName) {
 }
 
 var _awaitExit = function(machineName) {
-  tryRunDocker(['attach', '--no-stdin', '--sig-proxy=false', machineName]);
+  try {
+    tryRunDocker(['attach', '--no-stdin', '--sig-proxy=false', machineName]);
+  } catch(e) {
+    if (_isRunning(machineName)) throw e;
+  }
 };
 
 
