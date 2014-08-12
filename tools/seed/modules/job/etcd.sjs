@@ -49,7 +49,9 @@ exports.changes = function(client, key, opts) {
 	}
 	return @Stream(function(_emit) {
 		var emit = function(change) {
-			nextIndex = (change.node .. @get('modifiedIndex')) + 1;
+			if (change.node) {
+				nextIndex = (change.node .. @get('modifiedIndex')) + 1;
+			}
 			_emit(change);
 		};
 
@@ -61,6 +63,11 @@ exports.changes = function(client, key, opts) {
 			}, [exports.err.KEY_NOT_FOUND]);
 			if (got) {
 				emit(initial)
+			} else {
+				emit({
+					action: 'get',
+					node: null,
+				});
 			}
 		}
 
@@ -139,7 +146,7 @@ exports.app_port_mappings = keyFn("/app/portmap/");
 exports.master_app_repository = () -> "/master/app_repository";
 
 exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
-	var deployLoopback = @env.get('deployLoopback');
+	var deployLoopback = @env.get('deployLoopback', false);
 	var key = exports.slave_endpoint(serverId);
 	client.set(key, endpoint);
 	try {

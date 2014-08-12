@@ -541,18 +541,26 @@ exports.masterAppState = (function() {
       @etcd.tryOp(-> etcd.set(key, "", {prevExist: false})); // explicitly `null` the key if it's not yet set
 
       var last = undefined;
+      var emitNull = function() {
+        if (last !== null) {
+          last = null;
+          emit(null);
+        }
+      };
+
       etcd .. @etcd.values(key, {initial:true}) .. @each {|node|
         var serverId = node.value;
         if (serverId === '') {
-          if (last !== null) {
-            last = null;
-            emit(null);
-          }
+          emitNull();
         } else {
           etcd .. @etcd.values(@etcd.slave_endpoint(serverId), {initial:true}) .. @each {|url|
-            if (last !== url.value) {
-              last = url.value;
-              emit(@Endpoint(url.value));
+            if (url === null) {
+              emitNull();
+            } else {
+              if (last !== url.value) {
+                last = url.value;
+                emit(@Endpoint(url.value));
+              }
             }
           }
         }

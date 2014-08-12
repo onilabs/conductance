@@ -370,21 +370,24 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 
 		var disconnectButton = container.querySelector('.disconnect');
 		waitfor {
-			try {
-				container .. @appendContent(apps .. @transform(function(apps) {
-					var appWidgets = apps .. @map(app ->
-						@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
-					);
-					return appWidgets;
-				}), -> hold());
-			} catch(e) {
-				console.error("Error in app display: #{e}");
-				var msg = e.message;
-				var retry = @Emitter;
-				container .. @appendContent(@Div([
-					@H1(`Error: ${msg}`),
-					@P(@Button("Try again...") .. @OnClick({handle:@stopEvent}, -> retry.emit()))
-				]), -> retry.wait());
+			while(true) {
+				try {
+					container .. @appendContent(apps .. @transform(function(apps) {
+						var appWidgets = apps .. @map(app ->
+							@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
+						);
+						return appWidgets;
+					}), -> hold());
+					break;
+				} catch(e) {
+					console.error("Error in app display: #{e}");
+					var msg = e.message;
+					var retry = @Emitter();
+					container .. @appendContent(@Div([
+						@H3(`Error: ${msg}`),
+						@P(@Button("Try again...", {'class':'btn-danger'}) .. @OnClick({handle:@stopEvent}, -> retry.emit()))
+					]), -> retry .. @wait());
+				}
 			}
 		} or { disconnectButton .. @wait('click'); }
 	}
