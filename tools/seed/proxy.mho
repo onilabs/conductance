@@ -68,6 +68,7 @@ exports.serve = function(args) {
 		var handle = function(change) {
 			//@info("CHANGE:", change);
 			var action = change.action || 'set';
+			if (change.node === null) return;
 			node = change.node || change;
 			var getKey = function() {
 				var key = node.key .. @removeLeading(keyPrefix) .. @split('/');
@@ -76,6 +77,7 @@ exports.serve = function(args) {
 			};
 
 			switch(action) {
+				case 'get':
 				case 'set':
 					// initial "node" is actually a bunch of nodes, so recursively handle those:
 					if (node .. @hasOwn('nodes')) {

@@ -1,5 +1,6 @@
 require('/modules/hub');
 @ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom']);
+@bridge = require('mho:rpc/bridge');
 @form = require('./form');
 @modal = require('./modal');
 @user = require('seed:auth/user');
@@ -131,13 +132,22 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 
 	var appState = @Stream(function(emit) {
 		app.endpoint .. @each.track {|endpoint|
-			if (endpoint === null) {
-				emit(null);
+			if (!endpoint) {
+				emit(endpoint);
 			} else {
-				endpoint.connect {|api|
-					if (api.authenticate) api = api.authenticate(token);
-					emit(api.getApp(app.id));
-					hold();
+				try {
+					endpoint.connect {|api|
+						if (api.authenticate) api = api.authenticate(token);
+						emit(api.getApp(app.id));
+						hold();
+					}
+				} catch(e) {
+					if (@bridge.isTransportError(e)) {
+						@warn("lost connection to app slave");
+						emit(null);
+					} else {
+						throw e;
+					}
 				}
 			}
 		}
@@ -145,8 +155,9 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 
 	var isRunning = @Stream(function(emit) {
 		appState .. @each.track {|state|
-			if (state == null) {
-				emit(false);
+			if (!state) {
+				// could be either `null` (can't reach server) or `false` (not running; no server assigned)
+				emit(state);
 			} else {
 				state.isRunning .. @each(emit);
 			}
@@ -168,19 +179,21 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 			overflow:hidden;
 		}
 		.glyphicon {
-			display:inline;
+			position: relative;
+			top:0.2em;
 		}
 	");
 	var appName = app.config .. @transform(a -> a.name);
 
-	var statusClass = isRunning .. @transform(ok -> "glyphicon-#{ok ? "play" : "stop"}");
-	var statusColorClass = isRunning .. @transform(ok -> "text-#{ok ? "success" : "danger"}");
+	var statusClass = isRunning .. @transform(ok -> "glyphicon-#{ok ? "play" : ok === false ? "stop" : "flash"}");
+	var statusColorClass = ['text-muted'] .. @concat(isRunning .. @transform(ok -> "text-#{ok ? "success" : ok === false ? "danger" : "warning"}"));
 
-	var statusIcon = isRunning .. @transform(ok -> ok
-		? @Span(null, {'class':'glyphicon glyphicon-stop text-danger'})
-		: @Span(null, {'class':'glyphicon glyphicon-play text-success'})
-	);
-	var isStopped = isRunning .. @transform(ok -> !ok);
+	// NOTE: isRunning can be `null`, in which case we don't know if the app is running (we can't reach the server)
+	var disableStop = [true] .. @concat(isRunning .. @transform(ok -> ok !== true));
+	var disableStart = [true] .. @concat(isRunning .. @transform(ok -> ok !== false));
+	var endpointUnreachable = isRunning .. @transform(ok -> ok === null);
+	var disableDeploy = [true] .. @concat(endpointUnreachable);
+
 	var disabled = (elem, cond) -> elem .. @Class('disabled', cond);
 	var logsVisible = @ObservableVar(false);
 	var logDisclosureClass = logsVisible .. @transform(vis -> "glyphicon-chevron-#{vis ? 'up':'down'}");
@@ -190,9 +203,9 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 		<div class="header">
 
 			<div class="btn-group">
-				${@Button(["stop " .. hideXS, @Icon('stop')])  .. disabled(isStopped) .. @OnClick(-> app.stop())}
-				${@Button(["start " .. hideXS, @Icon('play')]) .. disabled(isRunning) .. @OnClick(-> app.start())}
-				${@Button(["deploy " .. hideXS, @Icon('cloud-upload')]) .. @Mechanism(function(elem) {
+				${@Button(["stop " .. hideXS, @Icon('stop')])  .. disabled(disableStop) .. @OnClick(-> app.stop())}
+				${@Button(["start " .. hideXS, @Icon('play')]) .. disabled(disableStart) .. @OnClick(-> app.start())}
+				${@Button(["deploy " .. hideXS, @Icon('cloud-upload')]) .. disabled(disableDeploy) .. @Mechanism(function(elem) {
 					var click = elem .. @events('click');
 					while(true) {
 						click .. @wait();
@@ -221,7 +234,10 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 			}
 		</div>
 		<div class="clearfix">
-			${@Div(`
+			${
+			endpointUnreachable .. @transform(err -> err
+			? `<div class="alert alert-warning" role="alert">Endpoint temporarily unreachable</div>`
+			: @Div(`
 				<div class="panel-heading">
 					${@H3(
 						[@Span(null, {'class':'glyphicon pull-right'}) .. @Class(logDisclosureClass),
@@ -251,24 +267,24 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 							});
 
 							while(true) {
-								clicks .. @wait();
-								waitfor {
+								if (!logsVisible.get()) {
+									clicks .. @wait();
 									logsVisible.set(true);
-									try {
-										container .. @appendContent(content, ->hold());
-									} finally {
-										logsVisible.set(false);
-									}
+								}
+								waitfor {
+									container .. @appendContent(content, ->hold());
 								} or {
 									clicks .. @wait();
 								}
+								logsVisible.set(false);
 							}
 						})
 					}
 				</div>
 				<div class="panel-body">
 				</div>
-			`, {'class':'log-panel panel panel-default'}) .. @Class('has-body', logsVisible)}
+			`, {'class':'log-panel panel panel-default'}) .. @Class('has-body', logsVisible)
+			)}
 		</div>
 	`) .. appStyle();
 
@@ -384,7 +400,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 					var msg = e.message;
 					var retry = @Emitter();
 					container .. @appendContent(@Div([
-						@H3(`Error: ${msg}`),
+						@H3(`Uncaught Error: ${msg}`),
 						@P(@Button("Try again...", {'class':'btn-danger'}) .. @OnClick({handle:@stopEvent}, -> retry.emit()))
 					]), -> retry .. @wait());
 				}

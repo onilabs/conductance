@@ -14,6 +14,7 @@ function pool(opts) {
 
 		if (!existing._ctx) {
 			existing._ctx = @Condition();
+			existing._connectionError = @Condition();
 		}
 
 		if (!existing .. @hasOwn('_refs')) {
@@ -26,6 +27,7 @@ function pool(opts) {
 			if (existing._refs === 1) {
 				// first one in
 				existing._ctx.clear();
+				existing._connectionError.clear();
 
 				ctx = @breaking {|brk|
 					access(existing, brk);
@@ -36,7 +38,11 @@ function pool(opts) {
 			}
 			got_ctx = true;
 
-			return block(ctx.value);
+			waitfor {
+				return block(ctx.value);
+			} or {
+				throw existing._connectionError.wait();
+			}
 
 		} finally {
 			--existing._refs;
@@ -44,6 +50,8 @@ function pool(opts) {
 				// last one out
 				existing._ctx.clear();
 				if (got_ctx) {
+					// NOTE: we don't bother to send ctx._connectionError here,
+					// because that would just throw the error (which we're already doing)
 					ctx.resume();
 				}
 			}
@@ -61,7 +69,28 @@ function pool(opts) {
 var endpointPool = pool({
 	eq: (a,b) -> a.eq(b),
 	access: function(endpoint, block) {
-		endpoint._connect(block);
+		var fromBlock = false;
+		try {
+			endpoint._connect {|api|
+				try {
+					return block(api);
+				} catch (e) {
+					fromBlock = true;
+					// errors thrown from the block should be thrown, but should
+					// not trigger _connectionError
+					throw e;
+				}
+			}
+		} catch(e) {
+			if (fromBlock) {
+				// The connection should be unaffected
+				throw e;
+			} else {
+				// this will throw the error from all current uses
+				// of this connection, not just the initial one
+				endpoint._connectionError.set(e);
+			}
+		}
 	},
 });
 
