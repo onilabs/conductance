@@ -550,12 +550,12 @@ exports.run = function() {
 				return servers .. @map(function(server) {
 					@info("Server: ", server);
 					var serverName = server.config .. @transform(s -> s.name);
-					var button = @A(serverName) .. @OnClick(function(evt) {
-						activeServer.set(server);
-					});
+					var button = @A(serverName, {'class':'btn navbar-btn'}) .. @OnClick(function(evt) {
+							activeServer.set(server);
+						});
 
-					var dropdownItems = @Li([
-						@A(@Span(null, {'class':'caret'}), {'class':'dropdown-toggle', 'data-toggle':'dropdown'}),
+					var dropdownItems = [
+						@A(@Span(null, {'class':'caret'}), {'class':'btn dropdown-toggle', 'data-toggle':'dropdown'}),
 						@Ul([
 							@A([@Icon('cog'), ' Settings']) .. @OnClick(function(e) {
 								@modal.withOverlay({title:`Server Settings`}) {|elem|
@@ -577,19 +577,64 @@ exports.run = function() {
 								if (activeServer.get() === server) activeServer.set(null);
 							}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
 						], {'class':'dropdown-menu'}),
-					], {'class':'dropdown'});
+					];
 
-					return @Li([button, dropdownItems])
+					return @Li(@Div([button, dropdownItems], {'class':'btn-group'}))
 						.. @Class('active', activeServer .. @transform(s -> serverEq(s, server)));
 				});
 			});
 
-			var addServer = @Li(@A(@Icon('plus-sign')) .. @OnClick(function() {
+			var addServer = @Li(@Div(@A(@Icon('plus-sign'), {'class':'floating'})) .. @OnClick(function() {
 				api.createServer({name:"TODO"});
 			}));
 
 			var serverList = buttons .. @transform(function(buttons) {
-				return @Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'});
+				return @Nav(
+					@Div(
+						@Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'}),
+					{'class':''}),
+				{'class':''})
+				.. @CSS('
+					.nav > li {
+						margin-left:1em;
+						&:first-child {
+							margin-left:0;
+						}
+					}
+
+					.floating {
+						display:block;
+						padding: 5px;
+						position:relative;
+						top:0.2em;
+					}
+
+					.btn {
+						box-shadow: none !important;
+						background: white !important;
+						border-color: #ccc !important;
+					}
+
+					.btn {
+						color: #2a6496;
+						margin:0;
+						height:100%;
+						border: 1px solid #ccc;
+						border-bottom-left-radius: 0;
+						border-bottom-right-radius: 0;
+					}
+
+					.active .btn {
+						border-bottom:1px solid white !important;
+					}
+
+					.btn.dropdown-toggle {
+						border-left-width: 0;
+					}
+					.navbar-btn {
+						border-right-width:0;
+					}
+				');
 			});
 
 			@mainContent .. @appendContent([
