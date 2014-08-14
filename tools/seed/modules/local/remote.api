@@ -17,8 +17,7 @@ var Deployment = function(endpoint, serverInfo) {
 	};
 
 	this.addApp = function(props) {
-		var {central, local} = props;
-		var localSettings = @settings.app(serverId, null, local);
+		var localSettings = @settings.app(serverId, null, props);
 		var config = localSettings.config .. @first();
 		@info("Created local app settings", config);
 		return localSettings;

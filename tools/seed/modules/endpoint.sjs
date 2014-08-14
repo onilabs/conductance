@@ -5,7 +5,8 @@ function pool(opts) {
 	var items = [];
 	var eq = opts .. @get('eq');
 	var access = opts .. @get('access');
-	return function(obj, block) {
+	return function(obj, opts, block) {
+		opts = opts || {};
 		var existing = items .. @find(x -> eq(obj, x), null);
 		if (existing == null) {
 			items.push(obj);
@@ -30,7 +31,7 @@ function pool(opts) {
 				existing._connectionError.clear();
 
 				ctx = @breaking {|brk|
-					access(existing, brk);
+					access(existing, opts, brk);
 				}
 				existing._ctx.set(ctx);
 			} else {
@@ -43,7 +44,6 @@ function pool(opts) {
 			} or {
 				throw existing._connectionError.wait();
 			}
-
 		} finally {
 			--existing._refs;
 			if (existing._refs === 0) {
@@ -68,10 +68,10 @@ function pool(opts) {
 
 var endpointPool = pool({
 	eq: (a,b) -> a.eq(b),
-	access: function(endpoint, block) {
+	access: function(endpoint, opts, block) {
 		var fromBlock = false;
 		try {
-			endpoint._connect {|api|
+			endpoint._connect(opts) {|api|
 				try {
 					return block(api);
 				} catch (e) {
@@ -82,14 +82,12 @@ var endpointPool = pool({
 				}
 			}
 		} catch(e) {
-			if (fromBlock) {
-				// The connection should be unaffected
-				throw e;
-			} else {
+			if (!fromBlock) {
 				// this will throw the error from all current uses
 				// of this connection, not just the initial one
 				endpoint._connectionError.set(e);
 			}
+			throw e;
 		}
 	},
 });
@@ -113,12 +111,16 @@ EndpointProto.eq = function(other) {
 	return @eq(this._props, other._props);
 }
 
-EndpointProto.connect = function(block) {
-	return endpointPool(this, block);
+EndpointProto.connect = function(opts, block) {
+	if (arguments.length == 1) {
+		block = opts;
+		opts = {};
+	}
+	return endpointPool(this, opts, block);
 };
 
-EndpointProto._connect = function(block) {
-	@bridge.connect(this.server, {}) { |conn|
+EndpointProto._connect = function(opts, block) {
+	@bridge.connect(this.server, opts) { |conn|
 		block(conn.api);
 	}
 }

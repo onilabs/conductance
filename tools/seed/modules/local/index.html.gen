@@ -1,17 +1,11 @@
 @ = require('mho:std');
 
-var serverRoot = @env.get('ui-server');
-if (!serverRoot) serverRoot = '';
-serverRoot += "/";
-
-@info("Using server root: #{serverRoot}");
-
 exports.content = function() {
   return @Document(null, {
     title: "Conductance Seed",
     init: "
-      require.hubs.push(['seed:', '#{serverRoot}modules/']);
-      require('seed:local/main-v#{@env.get('seed-api-version')}').main()
+      require.hubs.push(['seed:', '/modules/']);
+      require('seed:local/main').run()
     ",
     template: 'app-default',
     templateData: {

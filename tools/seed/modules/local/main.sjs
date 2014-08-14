@@ -6,6 +6,7 @@ require('/modules/hub');
 @user = require('seed:auth/user');
 var { @route } = require('./my-route');
 @logging.setLevel(@logging.DEBUG);
+var { @Countdown } = require('mho:surface/widget/countdown');
 
 document.body .. @appendContent(@GlobalCSS("
 	body {
@@ -21,7 +22,7 @@ document.body .. @appendContent(@GlobalCSS("
 	.clickable, a, button {
 		cursor: pointer;
 		&:hover {
-			color: #b9090b;
+			color: #2a6496;
 		}
 	}
 
@@ -291,7 +292,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	var detailShown = @route .. @transform(function(state) {
 		var apps = state.apps;
 		return apps .. @hasElem(app.id);
-	});
+	}) .. @dedupe;
 	detailShown.get = -> detailShown .. @first();
 	detailShown.set = function(val) {
 		@route.modify(function(state, unmodified) {
@@ -389,7 +390,8 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 			while(true) {
 				try {
 					container .. @appendContent(apps .. @transform(function(apps) {
-						var appWidgets = apps .. @map(app ->
+						var appNames = apps .. @map.par(app -> (app.config .. @first).name);
+						var appWidgets = apps .. @sortBy((_, i) -> appNames[i]) .. @map(app ->
 							@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
 						);
 						return appWidgets;
@@ -409,150 +411,195 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 	}
 };
 
-@withBusyIndicator {|ready|
-	// NOTE: we explicitly use /remote.api, not ./remote
-	// (this module might live on the master, which does NOT provide remote.api)
-	@withAPI('/remote.api') {|api|
-		var serverEq = function(a, b) {
-			return a == b || (a ? a.id) == (b ? b.id);
-		};
+exports.run = function() {
+	@withBusyIndicator {|ready|
+		// NOTE: we explicitly use /remote.api, not ./remote
+		// (this module might be served from the master, which does NOT provide remote.api)
+		@withAPI('/remote.api') {|api|
+			var serverEq = function(a, b) {
+				return a == b || (a ? a.id) == (b ? b.id);
+			};
 
-		var activeServer = @observe(@route, api.servers, function(state, servers) {
-			var id = state.server;
-			if (!id) return null;
-			return servers .. @find(s -> s.id === id, null);
-		}) .. @dedupe;
-		activeServer.get = -> activeServer .. @first();
-		activeServer.set = val -> @route.set({server: val ? val.id : null});
+			var activeServer = @observe(@route, api.servers, function(state, servers) {
+				var id = state.server;
+				if (!id) return null;
+				return servers .. @find(s -> s.id === id, null);
+			}) .. @dedupe;
+			activeServer.get = -> activeServer .. @first();
+			activeServer.set = val -> @route.set({server: val ? val.id : null});
 
-		var displayCurrentServer = function(elem) {
-			activeServer .. @each.track(function(server) {
-				if (!server) {
-					elem .. @appendContent(`<h1>Click something!</h1>`, ->hold());
-				}
+			var displayCurrentServer = function(elem) {
+				activeServer .. @each.track(function(server) {
+					if (!server) {
+						elem .. @appendContent(`<h1>Click something!</h1>`, ->hold());
+					}
 
-				var id = server.id;
-				elem .. @appendContent(@Div(null)) {|elem|
-					var initialConfig = server.config .. @first();
-					var token = initialConfig.ssh || initialConfig.token;
-					var updateToken = function(newToken) {
-						server.config.modify(c -> c .. @merge({token: newToken}));
-						token = newToken;
-					};
+					var id = server.id;
+					elem .. @appendContent(@Div(null)) {|elem|
+						var initialConfig = server.config .. @first();
+						var token = initialConfig.ssh || initialConfig.token;
+						var updateToken = function(newToken) {
+							server.config.modify(c -> c .. @merge({token: newToken}));
+							token = newToken;
+						};
 
-					try {
-						while(true) {
-							@info("Connecting to server #{id}");
+						var initialDelay = 3000;
+						var reconnectDelay = initialDelay;
+						var connectionError = @ObservableVar(false);
+						connectOpts = {connectMonitor: function() {
+							//hold(300); // small delay before showing ui feedback
+							elem .. @appendContent(@Div('Connecting...', {'class':'alert alert-warning'}) .. @Style('display:inline-block; margin: 10px 0; padding:10px;'), -> hold());
+						}};
+
+						waitfor {
+							elem .. @appendContent(connectionError .. @transform(err -> err ? @Div([
+								@H2(`Server unavailable.`),
+								@P(`The server may be experiencing temporary downtime.`),
+							])), -> hold());
+						} or {
 							try {
-								var localServer = api.getServer(id);
-								localServer.endpoint.connect {|remoteServer|
-									@debug("Connected to server:", remoteServer);
-									if (remoteServer.authenticate) {
-										while (!token) {
-											@info("Getting auth token...");
-											var username, password;
-											var loginResult = @modal.withOverlay({title:initialConfig.name}) {|elem|
-												@form.loginDialog(elem, server.config, {
-													login: function(username, password) {
-														withBusyIndicator {||
-															return remoteServer.getToken(username, password);
-														}
-													},
-													signup: function(username, password) {
-														withBusyIndicator {||
-															localServer.endpoint.relative('/user.api').connect {|auth|
-																return auth.createUser(username, password);
-															}
-														}
-													},
-												});
-											};
-											if (!loginResult) {
-												activeServer.set(null);
-												break;
+								while(true) {
+									@info("Connecting to server #{id}");
+									try {
+										var localServer = api.getServer(id);
+										localServer.endpoint.connect(connectOpts) {|remoteServer|
+											connectionError.set(false);
+											reconnectDelay = initialDelay;
+											@debug("Connected to server:", remoteServer);
+											if (remoteServer.authenticate) {
+												while (!token) {
+													@info("Getting auth token...");
+													var username, password;
+													var loginResult = @modal.withOverlay({title:initialConfig.name}) {|elem|
+														@form.loginDialog(elem, server.config, {
+															login: function(username, password) {
+																withBusyIndicator {||
+																	return remoteServer.getToken(username, password);
+																}
+															},
+															signup: function(username, password) {
+																withBusyIndicator {||
+																	localServer.endpoint.relative('/user.api').connect {|auth|
+																		return auth.createUser(username, password);
+																	}
+																}
+															},
+														});
+													};
+													if (!loginResult) {
+														activeServer.set(null);
+														break;
+													}
+
+													[username, password, token] = loginResult;
+
+													server.config.modify(existing -> existing .. @merge({
+															token:token,
+															username: username
+														}));
+													@debug("Is authenticated:", token);
+												}
+												remoteServer = remoteServer.authenticate(token);
 											}
-
-											[username, password, token] = loginResult;
-
-											server.config.modify(existing -> existing .. @merge({
-													token:token,
-													username: username
-												}));
-											@debug("Is authenticated:", token);
+											showServer(token, api, localServer, remoteServer, elem);
 										}
-										remoteServer = remoteServer.authenticate(token);
+										break;
+									} catch(e) {
+										if (e .. @bridge.isTransportError) {
+											if (connectionError.get()) {
+												// still can't connect. Increase timeout
+												reconnectDelay = (reconnectDelay * 1.5) .. Math.min(60000); // cap at 1min
+											} else {
+												reconnectDelay = initialDelay;
+												connectionError.set(true);
+											}
+											elem .. @appendContent(@Div([
+												@P(`Reconnecting in ${@Countdown((reconnectDelay/1000) .. Math.floor())}s`),
+												@Button('Reconnect now...', {'class':'btn-danger'}),
+											])) {|elem|
+												waitfor {
+													hold(reconnectDelay);
+													reconnectDelay *= 1.5;
+													if (reconnectDelay > 60*1000*10) // cap at 10 minutes
+														reconnectDelay = 60*1000*10;
+												} or {
+													elem.querySelector('button') .. @wait('click', {handle:@preventDefault});
+												}
+											};
+											continue;
+										}
+										if(@user.isAuthenticationError(e)) {
+											@info("Login required");
+											updateToken(null);
+										} else {
+											throw e;
+										}
 									}
-									showServer(token, api, localServer, remoteServer, elem);
 								}
-								break;
+								activeServer.set(null);
 							} catch(e) {
-								if(!@user.isAuthenticationError(e)) throw e;
-								@info("Login required");
-								updateToken(null);
+								activeServer.set(null);
+								throw e;
 							}
 						}
-						activeServer.set(null);
-					} catch(e) {
-						activeServer.set(null);
-						throw e;
-					}
-				};
-			});
-		};
-
-		var buttons = api.servers .. @transform(function(servers) {
-			return servers .. @map(function(server) {
-				@info("Server: ", server);
-				var serverName = server.config .. @transform(s -> s.name);
-				var button = @A(serverName) .. @OnClick(function(evt) {
-					activeServer.set(server);
+					};
 				});
+			};
 
-				var dropdownItems = @Li([
-					@A(@Span(null, {'class':'caret'}), {'class':'dropdown-toggle', 'data-toggle':'dropdown'}),
-					@Ul([
-						@A([@Icon('cog'), ' Settings']) .. @OnClick(function(e) {
-							@modal.withOverlay({title:`Server Settings`}) {|elem|
-									elem .. @form.serverConfigEditor(server.config);
-							}
-						}),
-						@A([@Icon('remove'), ' Delete']) .. @OnClick(function() {
-							if (!confirmDelete(`server $serverName`)) return;
-							@withBusyIndicator {||
-								server.destroy();
-							}
-						}),
-						@A([@Icon('log-out'), ' Log out']) .. @OnClick(function() {
-							server.config.modify(function(conf) {
-								conf = conf .. @clone();
-								delete conf['token'];
-								return conf;
-							});
-							if (activeServer.get() === server) activeServer.set(null);
-						}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
-					], {'class':'dropdown-menu'}),
-				], {'class':'dropdown'});
+			var buttons = api.servers .. @transform(function(servers) {
+				return servers .. @map(function(server) {
+					@info("Server: ", server);
+					var serverName = server.config .. @transform(s -> s.name);
+					var button = @A(serverName) .. @OnClick(function(evt) {
+						activeServer.set(server);
+					});
 
-				return @Li([button, dropdownItems])
-					.. @Class('active', activeServer .. @transform(s -> serverEq(s, server)));
+					var dropdownItems = @Li([
+						@A(@Span(null, {'class':'caret'}), {'class':'dropdown-toggle', 'data-toggle':'dropdown'}),
+						@Ul([
+							@A([@Icon('cog'), ' Settings']) .. @OnClick(function(e) {
+								@modal.withOverlay({title:`Server Settings`}) {|elem|
+										elem .. @form.serverConfigEditor(server.config);
+								}
+							}),
+							@A([@Icon('remove'), ' Delete']) .. @OnClick(function() {
+								if (!confirmDelete(`server $serverName`)) return;
+								@withBusyIndicator {||
+									server.destroy();
+								}
+							}),
+							@A([@Icon('log-out'), ' Log out']) .. @OnClick(function() {
+								server.config.modify(function(conf) {
+									conf = conf .. @clone();
+									delete conf['token'];
+									return conf;
+								});
+								if (activeServer.get() === server) activeServer.set(null);
+							}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
+						], {'class':'dropdown-menu'}),
+					], {'class':'dropdown'});
+
+					return @Li([button, dropdownItems])
+						.. @Class('active', activeServer .. @transform(s -> serverEq(s, server)));
+				});
 			});
-		});
 
-		var addServer = @Li(@A(@Icon('plus-sign')) .. @OnClick(function() {
-			api.createServer({name:"TODO"});
-		}));
+			var addServer = @Li(@A(@Icon('plus-sign')) .. @OnClick(function() {
+				api.createServer({name:"TODO"});
+			}));
 
-		var serverList = buttons .. @transform(function(buttons) {
-			return @Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'});
-		});
+			var serverList = buttons .. @transform(function(buttons) {
+				return @Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'});
+			});
 
-		@mainContent .. @appendContent([
-			serverList,
-			@Div(),
-		]) {|_, content|
-			ready();
-			displayCurrentServer(content),
-			hold();
+			@mainContent .. @appendContent([
+				serverList,
+				@Div(),
+			]) {|_, content|
+				ready();
+				displayCurrentServer(content),
+				hold();
+			}
 		}
 	}
 }
