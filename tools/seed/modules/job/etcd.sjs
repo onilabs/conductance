@@ -146,7 +146,7 @@ exports.app_port_mappings = keyFn("/app/portmap/");
 exports.master_app_repository = () -> "/master/app_repository";
 
 exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
-	var deployLoopback = @env.get('deployLoopback', false);
+	var deployLoopback = @env.get('deployLoopback');
 	var key = exports.slave_endpoint(serverId);
 	client.set(key, endpoint);
 	try {

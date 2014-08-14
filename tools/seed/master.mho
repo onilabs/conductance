@@ -47,29 +47,14 @@ exports.serve = function(args) {
       'default': false,
     },
     {
-      names: ['internal-address'],
-      type: 'string',
-      help: 'internal ip (or hostname) accessible via SSH to slaves',
-      'default': false,
-    },
-    {
-      names: ['cors'],
-      type: 'bool',
-      help: 'allow cors',
-      'default': false,
-    },
-    {
       names: ['allow-origin'],
-      type: 'string',
-      'default':null,
+      type: 'arrayOfString',
+      'default':[],
       help: 'allow specific CORS origin',
     },
   ]);
   @env.set('anonymous-access', opts.anonymous);
-  if (!@env.has('internalAddress')) {
-    @assert.ok(opts.internal_address, "--internal-address");
-    @env.set('internalAddress', opts.internal_address);
-  }
+  @env.set('cors-origins', opts.allow_origin);
 
   var versionInfo = {
     version: VERSION,
@@ -92,14 +77,6 @@ exports.serve = function(args) {
     // and present the rest of modules as code-only (not executable)
     @route.CodeDirectory('modules', @url.normalize('./modules', module.id) .. @url.toPath),
   ] .. common.routeOptions();
-
-  if (opts.cors) {
-    @info("Allowing all CORS requests");
-    routes = routes .. @route.AllowCORS();
-  } else if (opts.allow_origin) {
-    @info("Allowing CORS requests only from #{opts.allow_origin}");
-    routes = routes .. @route.AllowCORS(opts.allow_origin);
-  }
 
   var host = opts.host == 'any' ? null : opts.host;
   var port = @env.get('port-master');

@@ -61,9 +61,16 @@ exports.serve = function(args) {
         @info("etcd is running");
 
         @env.set('internalAddress', 'localhost');
+        if(!(opts.local || opts.master)) {
+          // set a default ui-server
+          @env.set('ui-server', @env.get('publicAddress')('self', 'master'));
+        }
         waitfor {
           @warn("Allowing anonymous access - only use this during development");
-          require('./master.mho').serve(["--allow-origin=http://localhost.self:#{port}", '--anonymous']);
+          require('./master.mho').serve([
+            "--allow-origin=http://localhost.self:#{port}", // dnsmasq config
+            "--allow-origin=http://localhost:#{port}", // basic config
+            '--anonymous']);
         } and {
           require('./proxy.mho').serve([]);
         } and {

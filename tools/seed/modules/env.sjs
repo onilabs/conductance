@@ -7,7 +7,10 @@ var env = require('mho:env');
 var { @at } = require('sjs:sequence');
 
 if (process.env['SEED_LOG_LEVEL']) {
-	@logging.setLevel(@logging[process.env['SEED_LOG_LEVEL']]);
+	var lvlName = process.env['SEED_LOG_LEVEL'];
+	var lvl = @logging[lvlName];
+	@assert.number(lvl, "not a valid log level: #{lvlName}");
+	@logging.setLevel(lvl);
 }
 
 var def = function(key,val, lazy) {
@@ -51,6 +54,18 @@ exports.defaults = function() {
 	def('seed-api-version', 1);
 	var PROD = process.env.NODE_ENV === 'production';
 	def('production', PROD);
+	def('deployLoopback', false);
+	def('anonymous-access', false);
+	def('cors', function() {
+		// if we've disabled anonymous-access, then all our APIs
+		// are protected by explicit authentication, so leave
+		// them open to CORS.
+		return !this.get('anonymous-access');
+	}, true);
+	def('cors-origins', []);
+
+	var internalHost = 'localhost';
+	def('internalAddress', process.env['SEED_INTERNAL_ADDRESS'] || internalHost);
 
 	var selfHost = 'localhost.self';
 	def('host-self', process.env['SEED_PUBLIC_ADDRESS'] || selfHost);

@@ -542,13 +542,16 @@ exports.masterAppState = (function() {
 
       etcd .. @etcd.values(key, {initial:true}) .. @each {|node|
         var serverId = node.value;
+        @verbose("got etcd endpoint:", serverId);
         if (serverId === '') {
           emit(false);
         } else {
+          @verbose("polling slave endpoint:", serverId);
           etcd .. @etcd.values(@etcd.slave_endpoint(serverId), {initial:true}) .. @each {|url|
             if (url === null) {
               emit(null);
             } else {
+              @verbose("got slave endpoint:", url.value);
               emit(@Endpoint(url.value));
             }
           }

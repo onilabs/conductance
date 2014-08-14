@@ -5,6 +5,18 @@ exports.routeOptions = function(route) {
     "Cache-control": "no-cache",
     "Expires": "-1",
   });
+
+  if (@env.get('cors')) {
+    @info("Allowing all CORS requests");
+    route = route .. @route.AllowCORS();
+  } else {
+    var corsOrigins = @env.get('cors-origins');
+    if (corsOrigins.length > 0) {
+      @info("Allowing CORS requests from: #{corsOrigins .. @join(",")}");
+      route = route .. @route.AllowCORS(host -> corsOrigins .. @hasElem(host));
+    }
+  }
+
   if (@env.get('production') === false) {
     // show stacktraces
     route = route .. @route.DeveloperMode();
