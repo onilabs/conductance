@@ -202,6 +202,7 @@ var moduleURL = #{JSON.stringify(moduleURL)};
 var bridge = require('mho:rpc/bridge');
 var {merge} = require('sjs:object');
 exports.server = serverURL;
+exports.module = moduleURL;
 var defaultOpts = {server:serverURL};
 
 exports.connect = function(opts, block) {
