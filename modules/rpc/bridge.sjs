@@ -682,7 +682,7 @@ function BridgeConnection(transport, opts) {
     will be aborted and connect will throw a [::TransportError].
 
     If `api` is an apiinfo object (rather than a URL) string, you must also
-    provide either a `server` or `transport setting.
+    provide either a `server` or `transport` setting.
 
     If `block` is given, it will be called with a single [::BridgeConnection]
     argument. This block will be retracted automatically when the connection
