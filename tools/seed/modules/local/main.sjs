@@ -126,6 +126,12 @@ var confirmDelete = function(thing) {
 	}
 };
 
+var editServerSettings = function(server) {
+	@modal.withOverlay({title:`Server Settings`}) {|elem|
+		elem .. @form.serverConfigEditor(server.config);
+	}
+};
+
 var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	@info("app: ", app);
 
@@ -328,7 +334,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 					@Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass),
 					" ",
 					@Div(appName) .. @Style("margin-right: 1.5em;overflow:hidden;"),
-				]) .. @OnClick(function(btn) {
+				]) .. @OnClick({handle: @stopEvent}, function(btn) {
 					detailShown.set(!detailShown.get());
 				}) .. appNameStyle,
 			
@@ -359,7 +365,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 var showServer = function(token, localApi, localServer, remoteServer, container) {
 	var apps = remoteServer.apps;
 
-	var addApp = @Button([@Icon('plus'), ' new app']) .. @OnClick(function() {
+	var addApp = @Button([@Icon('plus'), ' New app']) .. @Class('btn-primary') .. @OnClick(function() {
 		// make an in-memory config, and only save it to the server when
 		// we submit the form
 		var newConfig = {
@@ -377,32 +383,47 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 		}
 	});
 
+	var logout = @Emitter();
 	container .. @appendContent(
 		@Div(
-			@Div([
-				addApp,
-			], {'class':'btn-group center'}) .. @Style('margin-top: 15px;')
+			@Div(
+				@Div([
+					addApp,
+
+					@Button([@Icon('cog'), ` Settings`])
+						.. @OnClick({handle: @preventDefault}, -> editServerSettings(localServer)),
+
+					@Button(@Icon('log-out'))
+						.. @OnClick({handle: @preventDefault}, -> logout.emit()),
+
+				], {'class':'btn-group pull-right'}) .. @Style('margin-top: 15px;'),
+				{'class':'clearfix'})
 		)) {|container|
 
-		while(true) {
-			try {
-				container .. @appendContent(apps .. @transform(function(apps) {
-					var appNames = apps .. @map.par(app -> (app.config .. @first).name);
-					var appWidgets = apps .. @sortBy((_, i) -> appNames[i]) .. @map(app ->
-						@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
-					);
-					return appWidgets;
-				}), -> hold());
-				break;
-			} catch(e) {
-				console.error("Error in app display: #{e}");
-				var msg = e.message;
-				var retry = @Emitter();
-				container .. @appendContent(@Div([
-					@H3(`Uncaught Error: ${msg}`),
-					@P(@Button("Try again...", {'class':'btn-danger'}) .. @OnClick({handle:@stopEvent}, -> retry.emit()))
-				]), -> retry .. @wait());
+		waitfor {
+			while(true) {
+				try {
+					container .. @appendContent(apps .. @transform(function(apps) {
+						var appNames = apps .. @map.par(app -> (app.config .. @first).name);
+						var appWidgets = apps .. @sortBy((_, i) -> appNames[i]) .. @map(app ->
+							@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
+						);
+						return appWidgets;
+					}), -> hold());
+					break;
+				} catch(e) {
+					console.error("Error in app display: #{e}");
+					var msg = e.message;
+					var retry = @Emitter();
+					container .. @appendContent(@Div([
+						@H3(`Uncaught Error: ${msg}`),
+						@P(@Button("Try again...", {'class':'btn-danger'}) .. @OnClick({handle:@stopEvent}, -> retry.emit()))
+					]), -> retry .. @wait());
+				}
 			}
+		} or {
+			logout .. @wait();
+			localApi.deleteServerCredentials(localServer.id);
 		}
 	}
 };
@@ -444,7 +465,7 @@ function displayServer(elem, api, server) {
 							while (!token) {
 								@info("Getting auth token...");
 								var username, password;
-								var loginResult = @modal.withOverlay({title:initialConfig.name}) {|elem|
+								var loginResult = @modal.withOverlay({title:`Login: ${initialConfig.name}`}) {|elem|
 									@form.loginDialog(elem, server.config, {
 										login: function(username, password) {
 											withBusyIndicator {||
@@ -461,8 +482,7 @@ function displayServer(elem, api, server) {
 									});
 								};
 								if (!loginResult) {
-									activeServer.set(null);
-									break;
+									return;
 								}
 
 								[username, password, token] = loginResult;
@@ -542,7 +562,10 @@ exports.run = function() {
 				var displayCurrentServer = function(elem) {
 					activeServer .. @each.track(function(server) {
 						if (!server) {
-							elem .. @appendContent(`<h1>Click something!</h1>`, ->hold());
+							elem .. @appendContent([
+								@H3(`No server selected`),
+								@P(`Create or select a server above to get started`),
+							], ->hold());
 						} else {
 							try {
 								elem .. displayServer(api, server);
@@ -558,7 +581,7 @@ exports.run = function() {
 				var buttons = api.servers .. @transform(function(servers) {
 					return servers .. @map(function(server) {
 						@info("Server: ", server);
-						var serverName = server.config .. @transform(s -> s.name);
+						var serverName = [`&hellip;`] .. @concat(server.config .. @transform(s -> s.name));
 						var button = @A(serverName, {'class':'btn navbar-btn'}) .. @OnClick(function(evt) {
 								activeServer.set(server);
 							});
@@ -566,25 +589,22 @@ exports.run = function() {
 						var dropdownItems = [
 							@A(@Span(null, {'class':'caret'}), {'class':'btn dropdown-toggle', 'data-toggle':'dropdown'}),
 							@Ul([
-								@A([@Icon('cog'), ' Settings']) .. @OnClick(function(e) {
-									@modal.withOverlay({title:`Server Settings`}) {|elem|
-											elem .. @form.serverConfigEditor(server.config);
-									}
-								}),
-								@A([@Icon('remove'), ' Delete']) .. @OnClick(function() {
-									if (!confirmDelete(`server $serverName`)) return;
+
+								@A([@Icon('cog'), ' Settings'])
+									.. @OnClick({handle:@stopEvent}, ->editServerSettings(server)),
+
+								@A([@Icon('remove'), ' Delete']) .. @OnClick({handle:@stopEvent}, function() {
+									if (!confirmDelete(`server ${server.config .. @first .. @get('name')}`)) return;
 									@withBusyIndicator {||
 										server.destroy();
 									}
 								}),
-								@A([@Icon('log-out'), ' Log out']) .. @OnClick(function() {
-									server.config.modify(function(conf) {
-										conf = conf .. @clone();
-										delete conf['token'];
-										return conf;
-									});
+
+								@A([@Icon('log-out'), ' Log out']) .. @OnClick({handle:@stopEvent}, function() {
+									localApi.deleteServerCredentials(server.id);
 									if (activeServer.get() === server) activeServer.set(null);
 								}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
+
 							], {'class':'dropdown-menu'}),
 						];
 
@@ -594,7 +614,14 @@ exports.run = function() {
 				});
 
 				var addServer = @Li(@Div(@A(@Icon('plus-sign'), {'class':'floating'})) .. @OnClick(function() {
-					api.createServer({name:"TODO"});
+					var config = @ObservableVar({});
+					@modal.withOverlay({title:`Create server`}) {|elem|
+						elem .. @form.serverConfigEditor(config);
+						@withBusyIndicator {||
+							elem .. @appendContent(@P(`Creating ${config.get().name}...`));
+							api.createServer(config.get());
+						}
+					}
 				}));
 
 				var serverList = buttons .. @transform(function(buttons) {
@@ -662,7 +689,14 @@ exports.run = function() {
 				]) {|_, content|
 					ready();
 					api.servers .. @each.track {|servers|
-						content .. displayServer(api, servers[0]);
+						var server = servers[0];
+						@route.modify(function(current, unchanged) {
+							if(current.server == server.id) return unchanged;
+							return { server: server.id };
+						});
+						while(true) {
+							content .. displayServer(api, server);
+						}
 					}
 				}
 			}

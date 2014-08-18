@@ -70,8 +70,9 @@ function Field(source, opts) {
 
 	var get = function(val) {
 		console.log("getting #{name} from", val);
-		if (!name) return val;
-		return val .. @get(name, def);
+		if (name) val = val .. @get(name, def);
+		if (transform) val = transform(val);
+		return val;
 	};
 	var error = @ObservableVar(null);
 
@@ -109,7 +110,7 @@ function tryValidate(v, validators, error) {
 			validators .. @each(f -> f(v));
 		} catch(e) {
 			error.set(e.message);
-			//@info("NOT OK: #{e.message}");
+			//@info("Validation error on #{v}: #{e.message}");
 			return false;
 		}
 		error.set(null);

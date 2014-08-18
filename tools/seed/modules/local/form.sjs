@@ -59,18 +59,16 @@ var serverConfigEditor = exports.serverConfigEditor = function(container, conf) 
 	var Input = form .. formControl(@TextInput);
 	var Checkbox = form .. formControl(@Checkbox);
 
-	var useSsh = form.field('ssh', {validate: @assert.bool});
-	var usernameInput = formGroup('User', Input, form.field('username', {validate: @validate.required}));
+	var useSsh = form.field('ssh', {validate: @assert.bool, transform: x -> x === undefined ? false : x });
+	var usernameInput = formGroup('User', Input, form.field('username'));
  
 	container .. @appendContent(
 		@Form([
-			formGroup('Name', Input, form.field('name', {validate:@validate.required})),
+			formGroup('Name', Input, form.field('name', {validate:@validate.required})) .. initialFocus('input'),
 			formGroup('Host', Input, form.field('host', {validate:@validate.required})),
 			formGroup('Port', Input, form.field('port', {validate:[@validate.required, @validate.optionalNumber]})),
 			formGroup('Use SSH', Checkbox, useSsh),
-			formGroup('User', Input,
-				form.field('username', {validate: @validate.required})
-			) .. @Class("hidden", useSsh.value .. @transform(x -> !x)),
+			usernameInput .. @Class("hidden", useSsh.value .. @transform(x -> !x)),
 			@Div(saveButton, {'class':'pull-right'}),
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
 	) {|elem|

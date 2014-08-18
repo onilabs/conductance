@@ -12,16 +12,32 @@ if (exports.multipleServers) {
 		return @settings.server(null, props);
 	};
 } else {
+	// in single-server mode, just use the "central" server
+	// with hard-coded addess & port
 	exports.servers = @settings.servers .. @transform(function(servers) {
-		console.log(servers .. @map(s -> s.id));
-		var central = servers .. @find(s -> s.id == 'f83ec5d9'); // HACK
+		var central = @settings.server('central', {name: 'seed.conductance.io'}, true);
+		central.config.modify(function(current, unchanged) {
+			var masterServer = @env.get('master-server');
+			var masterServer = @url.parse(masterServer);
+			var host = masterServer.host;
+			if (masterServer.protocol === 'http') {
+				host = "http://#{host}";
+			}
+			var updated = current .. @merge({
+				host: host,
+				port: masterServer.port,
+			});
+			if (updated .. @eq(current)) return unchanged;
+			return updated;
+		});
 		return [central];
 	});
 }
 
 var Deployment = function(endpoint, serverInfo) {
 	this.endpoint = endpoint;
-	var serverId = serverInfo .. @get('id');
+	var serverId = this.id = serverInfo .. @get('id');
+	this.config = serverInfo .. @get('config');
 
 	this.appConfig = function(appId) {
 		return @settings.app(serverId, appId).config;
@@ -201,4 +217,12 @@ exports.fileBrowser = function(root) {
 		goHome: -> root.set(home),
 	};
 	return rv;
+};
+
+exports.deleteServerCredentials = function(serverId) {
+	@settings.server(serverId).config.modify(function(conf) {
+		conf = conf .. @clone();
+		delete conf['token'];
+		return conf;
+	});
 };
