@@ -4,10 +4,21 @@ var deployLoopback = @env.get('deployLoopback');
 @info("deployLoopback: #{deployLoopback}");
 
 @settings = require('./settings');
-exports.servers = @settings.servers;
-exports.createServer = function(props) {
-	return @settings.server(null, props);
-};
+
+exports.multipleServers = @env.get('multi-deploy-destinations');
+if (exports.multipleServers) {
+	exports.servers = @settings.servers;
+	exports.createServer = function(props) {
+		return @settings.server(null, props);
+	};
+} else {
+	exports.servers = @settings.servers .. @transform(function(servers) {
+		console.log(servers .. @map(s -> s.id));
+		var central = servers .. @find(s -> s.id == 'f83ec5d9'); // HACK
+		return [central];
+	});
+}
+
 var Deployment = function(endpoint, serverInfo) {
 	this.endpoint = endpoint;
 	var serverId = serverInfo .. @get('id');

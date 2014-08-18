@@ -20,6 +20,12 @@ exports.serve = function(args) {
         help: 'use local UI, rather than current master',
       },
       {
+        name: 'multi',
+        type: 'bool',
+        help: 'allow multiple deploy destinations (advanced use only)',
+        'default': false,
+      },
+      {
         name: 'master',
         type: 'string',
         //XXX point this to production
@@ -42,6 +48,7 @@ exports.serve = function(args) {
 
   @env.set('deployLoopback', opts.self);
   @env.set('master-server', opts.local ? null : opts.master);
+  @env.set('multi-deploy-destinations', opts.multi);
 
   var routes = [
     @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),

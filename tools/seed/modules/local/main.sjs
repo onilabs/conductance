@@ -381,38 +381,145 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 		@Div(
 			@Div([
 				addApp,
-				@Button(@Icon('off'), {'class':'disconnect'})
 			], {'class':'btn-group center'}) .. @Style('margin-top: 15px;')
 		)) {|container|
 
-		var disconnectButton = container.querySelector('.disconnect');
-		waitfor {
-			while(true) {
-				try {
-					container .. @appendContent(apps .. @transform(function(apps) {
-						var appNames = apps .. @map.par(app -> (app.config .. @first).name);
-						var appWidgets = apps .. @sortBy((_, i) -> appNames[i]) .. @map(app ->
-							@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
-						);
-						return appWidgets;
-					}), -> hold());
-					break;
-				} catch(e) {
-					console.error("Error in app display: #{e}");
-					var msg = e.message;
-					var retry = @Emitter();
-					container .. @appendContent(@Div([
-						@H3(`Uncaught Error: ${msg}`),
-						@P(@Button("Try again...", {'class':'btn-danger'}) .. @OnClick({handle:@stopEvent}, -> retry.emit()))
-					]), -> retry .. @wait());
-				}
+		while(true) {
+			try {
+				container .. @appendContent(apps .. @transform(function(apps) {
+					var appNames = apps .. @map.par(app -> (app.config .. @first).name);
+					var appWidgets = apps .. @sortBy((_, i) -> appNames[i]) .. @map(app ->
+						@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
+					);
+					return appWidgets;
+				}), -> hold());
+				break;
+			} catch(e) {
+				console.error("Error in app display: #{e}");
+				var msg = e.message;
+				var retry = @Emitter();
+				container .. @appendContent(@Div([
+					@H3(`Uncaught Error: ${msg}`),
+					@P(@Button("Try again...", {'class':'btn-danger'}) .. @OnClick({handle:@stopEvent}, -> retry.emit()))
+				]), -> retry .. @wait());
 			}
-		} or { disconnectButton .. @wait('click'); }
+		}
 	}
 };
 
+function displayServer(elem, api, server) {
+	@assert.ok(server, "null server");
+	var id = server.id;
+	elem .. @appendContent(@Div(null)) {|elem|
+		var initialConfig = server.config .. @first();
+		var token = initialConfig.ssh || initialConfig.token;
+		var updateToken = function(newToken) {
+			server.config.modify(c -> c .. @merge({token: newToken}));
+			token = newToken;
+		};
+
+		var initialDelay = 3000;
+		var reconnectDelay = initialDelay;
+		var connectionError = @ObservableVar(false);
+		connectOpts = {connectMonitor: function() {
+			//hold(300); // small delay before showing ui feedback
+			elem .. @appendContent(@Div('Connecting...', {'class':'alert alert-warning'}) .. @Style('display:inline-block; margin: 10px 0; padding:10px;'), -> hold());
+		}};
+
+		waitfor {
+			elem .. @appendContent(connectionError .. @transform(err -> err ? @Div([
+				@H2(`Server unavailable.`),
+				@P(`The server may be experiencing temporary downtime.`),
+			])), -> hold());
+		} or {
+			while(true) {
+				@info("Connecting to server #{id}");
+				try {
+					var localServer = api.getServer(id);
+					localServer.endpoint.connect(connectOpts) {|remoteServer|
+						connectionError.set(false);
+						reconnectDelay = initialDelay;
+						@debug("Connected to server:", remoteServer);
+						if (remoteServer.authenticate) {
+							while (!token) {
+								@info("Getting auth token...");
+								var username, password;
+								var loginResult = @modal.withOverlay({title:initialConfig.name}) {|elem|
+									@form.loginDialog(elem, server.config, {
+										login: function(username, password) {
+											withBusyIndicator {||
+												return remoteServer.getToken(username, password);
+											}
+										},
+										signup: function(username, password) {
+											withBusyIndicator {||
+												localServer.endpoint.relative('/user.api').connect {|auth|
+													return auth.createUser(username, password);
+												}
+											}
+										},
+									});
+								};
+								if (!loginResult) {
+									activeServer.set(null);
+									break;
+								}
+
+								[username, password, token] = loginResult;
+
+								server.config.modify(existing -> existing .. @merge({
+										token:token,
+										username: username
+									}));
+								@debug("Is authenticated:", token);
+							}
+							remoteServer = remoteServer.authenticate(token);
+						}
+						showServer(token, api, localServer, remoteServer, elem);
+					}
+					break;
+				} catch(e) {
+					if (e .. @bridge.isTransportError) {
+						if (connectionError.get()) {
+							// still can't connect. Increase timeout
+							reconnectDelay = (reconnectDelay * 1.5) .. Math.min(60000); // cap at 1min
+						} else {
+							reconnectDelay = initialDelay;
+							connectionError.set(true);
+						}
+						elem .. @appendContent(@Div([
+							@P(`Reconnecting in ${@Countdown((reconnectDelay/1000) .. Math.floor())}s`),
+							@Button('Reconnect now...', {'class':'btn-danger'}),
+						])) {|elem|
+							waitfor {
+								hold(reconnectDelay);
+								reconnectDelay *= 1.5;
+								if (reconnectDelay > 60*1000*10) // cap at 10 minutes
+									reconnectDelay = 60*1000*10;
+							} or {
+								elem.querySelector('button') .. @wait('click', {handle:@preventDefault});
+							}
+						};
+						continue;
+					}
+					if(@user.isAuthenticationError(e)) {
+						@info("Login required");
+						updateToken(null);
+					} else {
+						throw e;
+					}
+				}
+			}
+		}
+	};
+};
+
+
 exports.run = function() {
 	@withBusyIndicator {|ready|
+		var pageHeader = @Div([
+			@H1(`Conductance Seed`),
+		]);
 		// NOTE: we explicitly use /remote.api, not ./remote
 		// (this module might be served from the master, which does NOT provide remote.api)
 		@withAPI('/remote.api') {|api|
@@ -420,230 +527,144 @@ exports.run = function() {
 				return a == b || (a ? a.id) == (b ? b.id);
 			};
 
-			var activeServer = @observe(@route, api.servers, function(state, servers) {
-				var id = state.server;
-				if (!id) return null;
-				return servers .. @find(s -> s.id === id, null);
-			}) .. @dedupe;
-			activeServer.get = -> activeServer .. @first();
-			activeServer.set = val -> @route.set({server: val ? val.id : null});
+			var servers = api.servers;
+			if (api.multipleServers) {
+				@info("multi-server mode");
+				// XXX deprecate?
+				var activeServer = @observe(@route, api.servers, function(state, servers) {
+					var id = state.server;
+					if (!id) return null;
+					return servers .. @find(s -> s.id === id, null);
+				}) .. @dedupe;
+				activeServer.get = -> activeServer .. @first();
+				activeServer.set = val -> @route.set({server: val ? val.id : null});
 
-			var displayCurrentServer = function(elem) {
-				activeServer .. @each.track(function(server) {
-					if (!server) {
-						elem .. @appendContent(`<h1>Click something!</h1>`, ->hold());
-					}
-
-					var id = server.id;
-					elem .. @appendContent(@Div(null)) {|elem|
-						var initialConfig = server.config .. @first();
-						var token = initialConfig.ssh || initialConfig.token;
-						var updateToken = function(newToken) {
-							server.config.modify(c -> c .. @merge({token: newToken}));
-							token = newToken;
-						};
-
-						var initialDelay = 3000;
-						var reconnectDelay = initialDelay;
-						var connectionError = @ObservableVar(false);
-						connectOpts = {connectMonitor: function() {
-							//hold(300); // small delay before showing ui feedback
-							elem .. @appendContent(@Div('Connecting...', {'class':'alert alert-warning'}) .. @Style('display:inline-block; margin: 10px 0; padding:10px;'), -> hold());
-						}};
-
-						waitfor {
-							elem .. @appendContent(connectionError .. @transform(err -> err ? @Div([
-								@H2(`Server unavailable.`),
-								@P(`The server may be experiencing temporary downtime.`),
-							])), -> hold());
-						} or {
+				var displayCurrentServer = function(elem) {
+					activeServer .. @each.track(function(server) {
+						if (!server) {
+							elem .. @appendContent(`<h1>Click something!</h1>`, ->hold());
+						} else {
 							try {
-								while(true) {
-									@info("Connecting to server #{id}");
-									try {
-										var localServer = api.getServer(id);
-										localServer.endpoint.connect(connectOpts) {|remoteServer|
-											connectionError.set(false);
-											reconnectDelay = initialDelay;
-											@debug("Connected to server:", remoteServer);
-											if (remoteServer.authenticate) {
-												while (!token) {
-													@info("Getting auth token...");
-													var username, password;
-													var loginResult = @modal.withOverlay({title:initialConfig.name}) {|elem|
-														@form.loginDialog(elem, server.config, {
-															login: function(username, password) {
-																withBusyIndicator {||
-																	return remoteServer.getToken(username, password);
-																}
-															},
-															signup: function(username, password) {
-																withBusyIndicator {||
-																	localServer.endpoint.relative('/user.api').connect {|auth|
-																		return auth.createUser(username, password);
-																	}
-																}
-															},
-														});
-													};
-													if (!loginResult) {
-														activeServer.set(null);
-														break;
-													}
-
-													[username, password, token] = loginResult;
-
-													server.config.modify(existing -> existing .. @merge({
-															token:token,
-															username: username
-														}));
-													@debug("Is authenticated:", token);
-												}
-												remoteServer = remoteServer.authenticate(token);
-											}
-											showServer(token, api, localServer, remoteServer, elem);
-										}
-										break;
-									} catch(e) {
-										if (e .. @bridge.isTransportError) {
-											if (connectionError.get()) {
-												// still can't connect. Increase timeout
-												reconnectDelay = (reconnectDelay * 1.5) .. Math.min(60000); // cap at 1min
-											} else {
-												reconnectDelay = initialDelay;
-												connectionError.set(true);
-											}
-											elem .. @appendContent(@Div([
-												@P(`Reconnecting in ${@Countdown((reconnectDelay/1000) .. Math.floor())}s`),
-												@Button('Reconnect now...', {'class':'btn-danger'}),
-											])) {|elem|
-												waitfor {
-													hold(reconnectDelay);
-													reconnectDelay *= 1.5;
-													if (reconnectDelay > 60*1000*10) // cap at 10 minutes
-														reconnectDelay = 60*1000*10;
-												} or {
-													elem.querySelector('button') .. @wait('click', {handle:@preventDefault});
-												}
-											};
-											continue;
-										}
-										if(@user.isAuthenticationError(e)) {
-											@info("Login required");
-											updateToken(null);
-										} else {
-											throw e;
-										}
-									}
-								}
+								elem .. displayServer(api, server);
 								activeServer.set(null);
 							} catch(e) {
 								activeServer.set(null);
 								throw e;
 							}
 						}
-					};
+					});
+				};
+
+				var buttons = api.servers .. @transform(function(servers) {
+					return servers .. @map(function(server) {
+						@info("Server: ", server);
+						var serverName = server.config .. @transform(s -> s.name);
+						var button = @A(serverName, {'class':'btn navbar-btn'}) .. @OnClick(function(evt) {
+								activeServer.set(server);
+							});
+
+						var dropdownItems = [
+							@A(@Span(null, {'class':'caret'}), {'class':'btn dropdown-toggle', 'data-toggle':'dropdown'}),
+							@Ul([
+								@A([@Icon('cog'), ' Settings']) .. @OnClick(function(e) {
+									@modal.withOverlay({title:`Server Settings`}) {|elem|
+											elem .. @form.serverConfigEditor(server.config);
+									}
+								}),
+								@A([@Icon('remove'), ' Delete']) .. @OnClick(function() {
+									if (!confirmDelete(`server $serverName`)) return;
+									@withBusyIndicator {||
+										server.destroy();
+									}
+								}),
+								@A([@Icon('log-out'), ' Log out']) .. @OnClick(function() {
+									server.config.modify(function(conf) {
+										conf = conf .. @clone();
+										delete conf['token'];
+										return conf;
+									});
+									if (activeServer.get() === server) activeServer.set(null);
+								}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
+							], {'class':'dropdown-menu'}),
+						];
+
+						return @Li(@Div([button, dropdownItems], {'class':'btn-group'}))
+							.. @Class('active', activeServer .. @transform(s -> serverEq(s, server)));
+					});
 				});
-			};
 
-			var buttons = api.servers .. @transform(function(servers) {
-				return servers .. @map(function(server) {
-					@info("Server: ", server);
-					var serverName = server.config .. @transform(s -> s.name);
-					var button = @A(serverName, {'class':'btn navbar-btn'}) .. @OnClick(function(evt) {
-							activeServer.set(server);
-						});
+				var addServer = @Li(@Div(@A(@Icon('plus-sign'), {'class':'floating'})) .. @OnClick(function() {
+					api.createServer({name:"TODO"});
+				}));
 
-					var dropdownItems = [
-						@A(@Span(null, {'class':'caret'}), {'class':'btn dropdown-toggle', 'data-toggle':'dropdown'}),
-						@Ul([
-							@A([@Icon('cog'), ' Settings']) .. @OnClick(function(e) {
-								@modal.withOverlay({title:`Server Settings`}) {|elem|
-										elem .. @form.serverConfigEditor(server.config);
-								}
-							}),
-							@A([@Icon('remove'), ' Delete']) .. @OnClick(function() {
-								if (!confirmDelete(`server $serverName`)) return;
-								@withBusyIndicator {||
-									server.destroy();
-								}
-							}),
-							@A([@Icon('log-out'), ' Log out']) .. @OnClick(function() {
-								server.config.modify(function(conf) {
-									conf = conf .. @clone();
-									delete conf['token'];
-									return conf;
-								});
-								if (activeServer.get() === server) activeServer.set(null);
-							}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
-						], {'class':'dropdown-menu'}),
-					];
-
-					return @Li(@Div([button, dropdownItems], {'class':'btn-group'}))
-						.. @Class('active', activeServer .. @transform(s -> serverEq(s, server)));
-				});
-			});
-
-			var addServer = @Li(@Div(@A(@Icon('plus-sign'), {'class':'floating'})) .. @OnClick(function() {
-				api.createServer({name:"TODO"});
-			}));
-
-			var serverList = buttons .. @transform(function(buttons) {
-				return @Nav(
-					@Div(
-						@Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'}),
-					{'class':''}),
-				{'class':''})
-				.. @CSS('
-					.nav > li {
-						margin-left:1em;
-						&:first-child {
-							margin-left:0;
+				var serverList = buttons .. @transform(function(buttons) {
+					return @Nav(
+						@Div(
+							@Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'}),
+						{'class':''}),
+					{'class':''})
+					.. @CSS('
+						.nav > li {
+							margin-left:1em;
+							&:first-child {
+								margin-left:0;
+							}
 						}
-					}
 
-					.floating {
-						display:block;
-						padding: 5px;
-						position:relative;
-						top:0.2em;
-					}
+						.floating {
+							display:block;
+							padding: 5px;
+							position:relative;
+							top:0.2em;
+						}
 
-					.btn {
-						box-shadow: none !important;
-						background: white !important;
-						border-color: #ccc !important;
-					}
+						.btn {
+							box-shadow: none !important;
+							background: white !important;
+							border-color: #ccc !important;
+						}
 
-					.btn {
-						color: #2a6496;
-						margin:0;
-						height:100%;
-						border: 1px solid #ccc;
-						border-bottom-left-radius: 0;
-						border-bottom-right-radius: 0;
-					}
+						.btn {
+							color: #2a6496;
+							margin:0;
+							height:100%;
+							border: 1px solid #ccc;
+							border-bottom-left-radius: 0;
+							border-bottom-right-radius: 0;
+						}
 
-					.active .btn {
-						border-bottom:1px solid white !important;
-					}
+						.active .btn {
+							border-bottom:1px solid white !important;
+						}
 
-					.btn.dropdown-toggle {
-						border-left-width: 0;
-					}
-					.navbar-btn {
-						border-right-width:0;
-					}
-				');
-			});
+						.btn.dropdown-toggle {
+							border-left-width: 0;
+						}
+						.navbar-btn {
+							border-right-width:0;
+						}
+					');
+				});
 
-			@mainContent .. @appendContent([
-				serverList,
-				@Div(),
-			]) {|_, content|
-				ready();
-				displayCurrentServer(content),
-				hold();
+				@mainContent .. @appendContent([
+					pageHeader,
+					serverList,
+					@Div(),
+				]) {|_, _, content|
+					ready();
+					content .. displayCurrentServer();
+				}
+			} else {
+				@info("single-server mode");
+				@mainContent .. @appendContent([
+					pageHeader,
+					@Div(),
+				]) {|_, content|
+					ready();
+					api.servers .. @each.track {|servers|
+						content .. displayServer(api, servers[0]);
+					}
+				}
 			}
 		}
 	}
