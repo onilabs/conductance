@@ -29,9 +29,10 @@ var store = (function() {
 		return db;
 	};
 
-	function save(db) {
+	function save(newdb) {
+		if (db .. @eq(newdb)) return;
 		var tmp = storePath + '.tmp';
-		tmp .. @fs.writeFile(JSON.stringify(db, null, '  '));
+		tmp .. @fs.writeFile(JSON.stringify(newdb, null, '  '));
 		@info("Wrote #{tmp}, renaming to #{storePath}");
 		@fs.rename(tmp, storePath);
 		reload();

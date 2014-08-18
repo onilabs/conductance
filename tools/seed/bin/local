@@ -2,5 +2,4 @@
 set -eu
 here="$(dirname "$0")"
 cd "$here/.."
-. dev-env.sh
 exec conductance serve local.mho "$@"

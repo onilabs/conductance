@@ -84,7 +84,7 @@ exports.serve = function(args) {
           var hostname = require('nodejs:os').hostname();
           slave.serve_with_block(['--cors']) {|opts|
             [0, 1, 2, 3] .. @each.par {|id|
-              slave.run_slave(hostname + "_" + id);
+              slave.run_slave(id == 0 ? hostname : "#{hostname}_#{id}");
             }
           }
         }

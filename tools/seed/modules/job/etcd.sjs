@@ -148,12 +148,14 @@ exports.master_app_repository = () -> "/master/app_repository";
 exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
 	var deployLoopback = @env.get('deployLoopback');
 	var key = exports.slave_endpoint(serverId);
-	client.set(key, endpoint);
+	var refresh = -> client.set(key, endpoint, {ttl:Math.round(HEARTBEAT_INTERVAL * 2.5 / 1000)})
+	client.set(key, ''); // set a blank endpoint on start, so that anyone waiting for a change will definitely reconnect
+	refresh();
 	try {
 		waitfor {
 			block();
 		} or {
-			exports.heartbeat(-> client.set(key, endpoint));
+			exports.heartbeat(refresh);
 		}
 	} finally {
 		try {

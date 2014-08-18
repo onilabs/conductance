@@ -297,8 +297,8 @@ exports.localAppState = (function() {
         var args = ConductanceArgs;
         var runUser = "app";
         var readOnly = (path) -> "#{path}:#{path}:ro";
-        var state = @path.join(appRunBase, "run");
-        @mkdirp(state);
+        //var state = @path.join(appRunBase, "run");
+        //@mkdirp(state);
 
         args = [
           "docker",
@@ -309,9 +309,9 @@ exports.localAppState = (function() {
           "--name", machineName,
           "--hostname", machineName,
           "--user", runUser,
+          "--memory", '250m', // XXX tune / configure
           "--workdir", codeDest,
           "--volume", readOnly(codeDest),
-          "--volume", state,
         ].concat(production ? [
           "--volume", readOnly('/nix/store'),
         ] : [
@@ -326,7 +326,6 @@ exports.localAppState = (function() {
         @info("Running", args);
         var child = @childProcess.launch(args[0],
           args.slice(1).concat([
-            '-vvv',
             'serve',
           ]),
           {
@@ -557,7 +556,7 @@ exports.masterAppState = (function() {
           }
         }
       }
-    }) .. @dedupe;
+    }) .. @dedupe(@eq);
 
     return {
       id: id,
