@@ -97,6 +97,7 @@ var { isArrayLike } = require('sjs:array');
 var { isString, startsWith } = require('sjs:string');
 var { isFunction, exclusive } = require('sjs:function');
 var { Emitter, wait } = require('sjs:event');
+var { Quasi, isQuasi } = require('sjs:quasi');
 var { ownKeys, keys, propertyPairs, get } = require('sjs:object');
 var http = require('sjs:http');
 var Url = require('sjs:url');
@@ -256,6 +257,9 @@ function marshall(value, connection) {
       else if (isArrayLike(value)) {
         rv = value .. map(prepare);
       }
+      else if (isQuasi(value)) {
+        rv = {__oni_type: 'quasi', val: prepare(value.parts) };
+      }
       else if (typeof value === 'object' && value !== null) {
         var descriptor;
         if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
@@ -324,6 +328,9 @@ function unmarshallComplexTypes(obj, connection) {
   }
   else if (obj.__oni_type == 'date') {
     rv = new Date(obj.val);
+  }
+  else if (obj.__oni_type == 'quasi') {
+    rv = Quasi(obj.val);
   }
   else if (obj.__oni_type == 'error') {
     rv = unmarshallError(obj, connection);
