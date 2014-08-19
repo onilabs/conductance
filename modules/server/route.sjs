@@ -598,7 +598,7 @@ var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
   @param {String} [path] Route prefix
   @param {Array} [hubs] An array of hubs to include in the documentation browser
   @param {optional Object} [settings]
-  @setting {optional Boolean} [defaultHubs] If set to `false`, the default `sjs:` and `mho:` hubs are not included
+  @setting {optional Boolean} [defaultHubs=true] If set to `false`, the default `sjs:` and `mho:` hubs are not included
   @return {Array} An array of [../server::Responder]s
   @desc
     This function returns an array of [../server::Responder]s which will serve a
@@ -606,7 +606,7 @@ var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
 
     ## Hubs
 
-    The `hubs` argument should be an arry of objects which all contain a `name` property.
+    The `hubs` argument should be an array of objects which all contain a `name` property.
     These hubs will be included in the documentation browser.
 
     You can opt to have conductance serve your hub automatically if you pass `serve:true`
@@ -623,11 +623,12 @@ var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
 
     ## Documentation index
 
-    For each served hub that doesn't contain a documentation index (`sjs-lib-index.json`) file,
-    this function will include a route to generate the documentation index
+    Each served hub needs to have an [sjs:#language/documentation::sjs-lib-index.txt] or `sjs-lib-index.json` file in its root.
+    For each served hub that doesn't contain a compiled documentation index (`sjs-lib-index.json`) file,
+     the documentation index will be re-generated 
     each time it is accessed. This is not very efficient, but it's convenient
-    for local development use. If you are serving doecumentation publically, you should
-    use the [sjs:compile/doc::] module to generate this file ahead of time.
+    for local development use. If you are serving documentation publically, you should
+    use the [sjs:compile/doc::] module to generate an `sjs-lib-index.json` file ahead of time.
 
     ## Example:
 
@@ -652,7 +653,7 @@ var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
           ]
         });
 
-    This will serve the condutance documentation browser at `/docs/`, including
+    This will serve the conductance documentation browser at `/docs/`, including
     the `app:` and `foolib:` hubs. The source code for `app:` will be
     automatically served under `http://localhost/docs/hubs/app%3A/`, while
     the `foolib` hub will be loaded directly from its remote location.
@@ -664,12 +665,12 @@ var DocumentationBrowser = exports.DocumentationBrowser = function(path, hubs, s
   var docHubs = (settings.defaultHubs === false) ? {} : {'sjs:': null, 'mho:': null};
   var rv = [];
 
-  hubs .. ownPropertyPairs .. each {|[name, hub]|
+  hubs .. each {|hub|
     if (hub.serve) {
       var sourcePath = hub.path;
       assert.string(sourcePath, "hub.path");
 
-      var hubRoute = "hubs/#{encodeURIComponent(name)}"
+      var hubRoute = "hubs/#{encodeURIComponent(hub.name)}"
       var fullHubRoute = "#{path}/#{hubRoute}";
 
       if(!fs.exists(nodePath.join(sourcePath, 'sjs-lib-index.json'))) {
@@ -677,10 +678,10 @@ var DocumentationBrowser = exports.DocumentationBrowser = function(path, hubs, s
         rv.push(DocumentationIndex(fullHubRoute, sourcePath));
       }
       rv.push(exports.StaticDirectory(fullHubRoute, nodePath.resolve(sourcePath)));
-      docHubs[name] = hubRoute;
+      docHubs[hub.name] = hubRoute;
     } else {
       assert.string(hub.url, "hub.url");
-      docHubs[name] = hub.url;
+      docHubs[hub.name] = hub.url;
     }
   }
 
