@@ -2,8 +2,31 @@
 @deploy  = require('./deploy');
 @user = require('./user');
 @env = require('mho:env');
+@assert = require('sjs:assert');
 
 exports.getToken = @user.getToken;
+
+exports.versionError = function(clientVersion) {
+  // return anything truthy to have it displayed to the user as a non-dismissable error.
+  @assert.number(clientVersion);
+  var minVersion = 1;
+  if (clientVersion < minVersion) {
+    @logging.warn("Old client version #{clientVersion}");
+    return `
+      <h4>
+        <strong>Sorry, your Conductance installation is out of date.</strong>
+      </h4>
+      <p>
+        To update Conductance, run:
+        <pre>\$ conductance self-update</pre>
+      </p>
+      <p>
+        If that doesn't work, see <a href="https://conductance.io/install">conductance.io/install</a> for more details.
+        (In particular, the <code>self-update</code> command is not available if you installed Conductance via <code>npm</code> or <code>git</code>.)
+      </p>
+    `;
+  }
+};
 
 exports.authenticate = function(token) {
   var user = @user.authenticate(token);

@@ -445,7 +445,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 	}
 };
 
-function displayServer(elem, api, server) {
+function displayServer(elem, api, server, clientVersion) {
 	@assert.ok(server, "null server");
 	var id = server.id;
 	elem .. @appendContent(@Div(null)) {|elem|
@@ -460,14 +460,14 @@ function displayServer(elem, api, server) {
 		var reconnectDelay = initialDelay;
 		var connectionError = @ObservableVar(false);
 		connectOpts = {connectMonitor: function() {
-			//hold(300); // small delay before showing ui feedback
+			hold(300); // small delay before showing ui feedback
 			elem .. @appendContent(@Div('Connecting...', {'class':'alert alert-warning'}) .. @Style('display:inline-block; margin: 10px 0; padding:10px;'), -> hold());
 		}};
 
 		waitfor {
 			elem .. @appendContent(connectionError .. @transform(err -> err ? @Div([
 				@H2(`Server unavailable.`),
-				@P(`The server may be experiencing temporary downtime.`),
+				@P(`The server may be experiencing temporary downtime. <b>TODO: link to status page</b>`),
 			])), -> hold());
 		} or {
 			while(true) {
@@ -478,6 +478,14 @@ function displayServer(elem, api, server) {
 						connectionError.set(false);
 						reconnectDelay = initialDelay;
 						@debug("Connected to server:", remoteServer);
+						var versionError = remoteServer.versionError(clientVersion);
+						if (versionError) {
+							while(true) {
+								@modal.withOverlay({title: "Version error", 'class':'panel-danger', close:false}) {|elem|
+									elem .. @appendContent(versionError, -> hold());
+								}
+							}
+						}
 						if (remoteServer.authenticate) {
 							while (!token) {
 								@info("Getting auth token...");
@@ -552,7 +560,7 @@ function displayServer(elem, api, server) {
 };
 
 
-exports.run = function() {
+exports.run = function(clientVersion) {
 	@withBusyIndicator {|ready|
 		var pageHeader = @Div([
 			@H1(`Conductance Seed`),
@@ -586,7 +594,7 @@ exports.run = function() {
 							], ->hold());
 						} else {
 							try {
-								elem .. displayServer(api, server);
+								elem .. displayServer(api, server, clientVersion);
 								activeServer.set(null);
 							} catch(e) {
 								activeServer.set(null);
@@ -714,7 +722,7 @@ exports.run = function() {
 							return { server: server.id };
 						});
 						while(true) {
-							content .. displayServer(api, server);
+							content .. displayServer(api, server, clientVersion);
 						}
 					}
 				}

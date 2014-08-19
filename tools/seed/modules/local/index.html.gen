@@ -5,7 +5,7 @@ exports.content = function() {
     title: "Conductance Seed",
     init: "
       require.hubs.push(['seed:', '/modules/']);
-      require('seed:local/main').run()
+      require('seed:local/main').run(#{@env.get('seed-api-version')})
     ",
     template: 'app-default',
     templateData: {

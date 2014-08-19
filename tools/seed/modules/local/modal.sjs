@@ -26,23 +26,23 @@ var withOverlay = exports.withOverlay = (function() {
 	') .. @Class("overlay");
 
 	return function(opts, block) {
-		var cls = opts['class'];
-		var o = overlay;
 		if (arguments.length == 1) {
 			block = arguments[0];
-		} else {
-			o = o .. @Class('overlay-' + cls);
+			opts = {};
 		}
+		if(!opts) opts = {};
+		var o = overlay;
+		var canClose = opts.close !== false;
 		document.body .. @prependContent(o) {|elem|
 			waitfor {
 				return elem .. @appendContent(`
 				<div class="container">
 					<div class="row">
 						<div class="col-sm-8 col-sm-offset-2">
-							<div class="panel panel-default">
+							<div class="panel panel-default ${opts['class']}">
 								<div class="panel-heading">
 									<h3 class="panel-title">${opts.title}
-										<a class="close">x</a>
+										${canClose ? `<a class="close">x</a>`}
 									</h3>
 								</div>
 								<div class="panel-body">
@@ -53,11 +53,15 @@ var withOverlay = exports.withOverlay = (function() {
 				</div>
 				`) {|elem| block(elem.querySelector('.panel-body')) }
 			} or {
-				elem.querySelector('.panel-title .close') .. @wait('click', {handle:@stopEvent});
-			//} or {
-			//	elem .. @wait('click', {filter: e -> e.target === elem, handle:@stopEvent});
-			} or {
-				document.body .. @wait('keydown', {filter: e -> e.which == ESCAPE, handle:@stopEvent});
+				if (canClose) {
+					waitfor {
+						elem.querySelector('.panel-title .close') .. @wait('click', {handle:@stopEvent});
+					} or {
+						document.body .. @wait('keydown', {filter: e -> e.which == ESCAPE, handle:@stopEvent});
+					}
+				} else {
+					hold();
+				}
 			}
 		}
 	};
