@@ -82,14 +82,14 @@ CollectionProto.add = function(name, url) {
 		throw new Error("Library already added");
 	}
 	this._cacheUrl(url, name);
-  var val = this.val.get();
+  var val = this.val.get().slice();
   val.push([name,url])
 	this.val.set(val);
 };
 
 CollectionProto.remove = function(name) {
 	if (Array.isArray(name)) name = name[0];
-	var current = this.val.get();
+	var current = this.val.get().slice();
 	logging.debug("removing: ", name, 'from', current);
 	var found = current .. find([n,url] -> n == name);
 	current .. remove(found) .. assert.ok("Item not found: #{name}");
