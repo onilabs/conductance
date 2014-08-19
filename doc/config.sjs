@@ -1,6 +1,7 @@
 var { Element, appendContent, Mechanism, CSS, OnClick } = require('mho:surface');
 var { Input, Form, Button } = require('mho:surface/bootstrap/html');
 var { each, map, transform } = require('sjs:sequence');
+var { ownKeys } = require('sjs:object');
 var { ObservableVar } = require('sjs:observable');
 var event = require('sjs:event');
 var assert = require('sjs:assert');
@@ -28,7 +29,7 @@ exports.run = function(elem, libraryCollection, defaultHubs, onReady) {
     `);
 
     var disabledLibraries = libraries .. transform(function(libs) {
-      var missing = defaultHubs.slice();
+      var missing = defaultHubs .. ownKeys;
       libs .. each {|lib|
         missing .. remove(lib[0]);
       }
