@@ -85,15 +85,16 @@ exports.main = function(client, opts) {
 	client.set(@etcd.master_app_repository(), appRepository);
 	client .. @etcd.advertiseEndpoint('master', @env.get('publicAddress')('master')) {||
 		try {
-			var balanceTime = (opts .. @get('balanceTime')) * 1000;
-			waitfor {
-				exports.monitorClusterChanges(client);
-			} or {
-				while(true) {
-					hold(balanceTime);
-					exports.balanceJobs(client);
-				}
-			}
+			hold();
+			//var balanceTime = (opts .. @get('balanceTime')) * 1000;
+			//waitfor {
+			//	exports.monitorClusterChanges(client);
+			//} or {
+			//	while(true) {
+			//		hold(balanceTime);
+			//		exports.balanceJobs(client);
+			//	}
+			//}
 		} finally {
 			@etcd.tryOp(-> client.compareAndDelete(@etcd.master_app_repository(), appRepository));
 		}

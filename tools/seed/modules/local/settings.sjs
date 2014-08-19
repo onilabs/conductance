@@ -1,6 +1,5 @@
 @ = require('sjs:std');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
-@storage = require('mho:server/storage');
 @crypto = require('nodejs:crypto');
 
 var config_root = @path.join(process.env .. @get('XDG_CONFIG_HOME', @path.join(process.env .. @get('HOME'), '.config')), 'conductance');
@@ -219,7 +218,7 @@ function getServer(serverId, props, createIfMissing) {
 exports.server = getServer;
 exports.servers = store.items .. @transform(
 	it -> it .. @get('servers', {}) .. @ownKeys .. @map(getServer)
-);
+) .. @dedupe(@eq);
 
 var appCache = ObjectCache('apps', function(key, serverId, appId, props) {
 	var vals = Settings(key, defaultSettings .. @get('app'), true);

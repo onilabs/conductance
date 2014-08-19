@@ -84,6 +84,8 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 	var portMappingValue = null;
 	withLoad {||
 		try {
+			// clear the logs so user doesn't see a flash of old logs when a new slave takes over
+			if(!alreadyRunning) app.clearLogs();
 			client.set(endpointKey, serverId);
 			waitfor {
 				if (!alreadyRunning) {

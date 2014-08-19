@@ -149,6 +149,7 @@ exports.localAppState = (function() {
     var logPath = @path.join(appRunBase, 'log');
     var configPath = @path.join(appBase, 'config.json');
     var recheckPid = @Emitter();
+    var clearLogs = -> @fs.open(logPath, 'w') .. @fs.close();
 
     var tailLogs = function(count, emit) {
       if(count === undefined) count = 100;
@@ -173,8 +174,9 @@ exports.localAppState = (function() {
             // give some hold time to accumulate more data
             hold(100);
             if (buf[0] === null) {
-              emit(null);
               buf = buf.slice(1);
+              // false means "no data"; null means "clear old data"
+              emit(buf.length == 0 ? false : null);
             }
             if (buf.length == 0) continue;
             var contents = buf;
@@ -219,7 +221,7 @@ exports.localAppState = (function() {
 
       var stdio = ['ignore'];
       // truncate file
-      @fs.open(logPath, 'w') .. @fs.close();
+      clearLogs();
       // then open it twice in append mode (for stdout & stderr)
       // XXX does having two file descriptors pointing to the same place
       // lead to interleaving that could otherwise be avoided by
@@ -402,6 +404,7 @@ exports.localAppState = (function() {
       id: id,
       isRunning: isRunningStream,
       tailLogs: tailLogs,
+      clearLogs: clearLogs,
       start: startApp,
       getPortBindings: getPortBindings,
       wait: awaitExit,

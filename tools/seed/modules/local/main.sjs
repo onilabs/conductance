@@ -140,11 +140,13 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	var appState = @Stream(function(emit) {
 		app.endpoint .. @each.track {|endpoint|
 			if (!endpoint) {
+				@info("appState: #{endpoint}");
 				emit(endpoint);
 			} else {
 				try {
 					endpoint.connect {|api|
 						if (api.authenticate) api = api.authenticate(token);
+						@info("appState: new value");
 						emit(api.getApp(app.id));
 						hold();
 					}
@@ -174,7 +176,10 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 
 	var tailLogs = function(limit, block) {
 		appState .. @each.track(function(state) {
-			if (!state) hold();
+			if (!state) {
+				block(false);
+				hold();
+			}
 			@info("tailing logs...");
 			state.tailLogs(limit, block);
 		});
@@ -198,7 +203,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	// NOTE: isRunning can be `null`, in which case we don't know if the app is running (we can't reach the server)
 	var disableStop = [true] .. @concat(isRunning .. @transform(ok -> ok !== true));
 	var disableStart = [true] .. @concat(isRunning .. @transform(ok -> ok !== false));
-	var endpointUnreachable = isRunning .. @transform(ok -> ok === null);
+	var endpointUnreachable = isRunning .. @transform(ok -> ok === null) .. @dedupe();
 	var disableDeploy = [true] .. @concat(endpointUnreachable);
 
 	var disabled = (elem, cond) -> elem .. @Class('disabled', cond);
@@ -248,7 +253,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 				<div class="panel-heading">
 					${@H3(
 						[@Span(null, {'class':'glyphicon pull-right'}) .. @Class(logDisclosureClass),
-						"Output"
+						"Console output"
 						],
 						{'class': "panel-title clickable"})
 						.. @Mechanism(function(elem) {
@@ -257,11 +262,21 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 							var container = panelRoot.querySelector('.panel-body');
 							var hasBody = "has-body";
 							var content = @Pre(null) .. @Mechanism(function(elem) {
+								var placeholder = true;
+								elem.innerText = " -- loading -- ";
 								tailLogs(100) {|chunk|
-									if (chunk == null) {
+									if (!chunk) {
 										@info("logs reset");
-										elem.innerText = "";
+										if(chunk === false) {
+											elem.innerText = " -- no output --";
+										}
+										placeholder = true;
 									} else {
+										if (placeholder) {
+											// first new output clears the placeholder
+											elem.innerText = "";
+										}
+										placeholder = false;
 										var bottom = elem.scrollTop + elem.offsetHeight;
 										var contentSize = elem.scrollHeight;
 										var following = (bottom >= contentSize);
@@ -375,7 +390,8 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 		@modal.withOverlay({title:`Create app`}) {|elem|
 			if (elem .. @form.appConfigEditor(localApi, newConfig)) {
 				@withBusyIndicator {||
-					elem .. @appendContent(@P(`Creating ${newConfig.central.get().name}...`));
+					var name = newConfig.central.get().name;
+					elem .. @appendContent(@P(`Creating ${name}...`));
 					var appInfo = localServer.addApp(newConfig.local.get());
 					remoteServer.createApp(appInfo .. @get('id'), newConfig.central.get());
 				}
@@ -404,6 +420,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 			while(true) {
 				try {
 					container .. @appendContent(apps .. @transform(function(apps) {
+						@info("list of apps for #{localServer.id} changed...");
 						var appNames = apps .. @map.par(app -> (app.config .. @first).name);
 						var appWidgets = apps .. @sortBy((_, i) -> appNames[i]) .. @map(app ->
 							@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
@@ -561,6 +578,7 @@ exports.run = function() {
 
 				var displayCurrentServer = function(elem) {
 					activeServer .. @each.track(function(server) {
+						@info("activeServer changed");
 						if (!server) {
 							elem .. @appendContent([
 								@H3(`No server selected`),
@@ -689,6 +707,7 @@ exports.run = function() {
 				]) {|_, content|
 					ready();
 					api.servers .. @each.track {|servers|
+						@info("api.servers changed");
 						var server = servers[0];
 						@route.modify(function(current, unchanged) {
 							if(current.server == server.id) return unchanged;
