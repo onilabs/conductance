@@ -1,5 +1,6 @@
 @ = require('mho:std');
-@user = require('../auth/user');
+var { @User } = require('../auth/user');
+var { @AuthenticationError } = require('../auth');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 @storage = require('mho:server/storage');
 @crypto = require('nodejs:crypto');
@@ -177,7 +178,7 @@ exports.create = function(username, password) {
 			name: username,
 			password: passwordSettings .. @merge({hash:passwordHash}),
 		} .. JSON.stringify());
-		return new @user.User(id, username);
+		return new @User(id, username);
 	}
 };
 
@@ -199,7 +200,7 @@ exports.getToken = function(username, password) {
 			var expectedHash = user.password.hash;
 			var givenHash = hashPassword(password, user.password).toString('base64');
 			if (!@eq(givenHash, expectedHash)) {
-				throw @user.AuthenticationError();
+				throw @AuthenticationError();
 			}
 			var serializedToken = Token.encode(dbToken);
 			@verbose("Adding token to user: ", dbToken);
@@ -213,23 +214,23 @@ exports.getToken = function(username, password) {
 		@info(String(e)); // XXX remove
 	}
 	return null;
-	throw @user.AuthenticationError();
+	throw @AuthenticationError();
 };
 
 exports.authenticate = function(tokenStr) {
 	try {
 		var token = Token.decode(tokenStr);
 		if (token.expires.getTime() < Date.now()) {
-			throw @user.AuthenticationError();
+			throw @AuthenticationError();
 		}
 		var storedToken = Token.hashed(token) .. Token.encode();
 		var user = getUser(token.uid);
 		@assert.ok(user.tokens .. @hasElem(storedToken), "token not found");
-		return new @user.User(token.uid, user.name);
+		return new @User(token.uid, user.name);
 	} catch(e) {
 		@info("failed to authenticate token: #{e.message}");
 		@info(String(e)); // XXX remove
-		throw @user.AuthenticationError();
+		throw @AuthenticationError();
 	}
 };
 
@@ -242,4 +243,4 @@ if (require.main === module) {
 }
 
 
-exports.ANONYMOUS = new @user.User('_local', null);
+exports.ANONYMOUS = new @User('_local', null);

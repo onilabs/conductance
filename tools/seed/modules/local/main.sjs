@@ -3,7 +3,7 @@ require('/modules/hub');
 @bridge = require('mho:rpc/bridge');
 @form = require('./form');
 @modal = require('./modal');
-@user = require('seed:auth/user');
+@auth = require('seed:auth');
 var { @route } = require('./my-route');
 @logging.setLevel(@logging.DEBUG);
 var { @Countdown } = require('mho:surface/widget/countdown');
@@ -547,7 +547,7 @@ function displayServer(elem, api, server, clientVersion) {
 						};
 						continue;
 					}
-					if(@user.isAuthenticationError(e)) {
+					if(@auth.isAuthenticationError(e)) {
 						@info("Login required");
 						updateToken(null);
 					} else {
