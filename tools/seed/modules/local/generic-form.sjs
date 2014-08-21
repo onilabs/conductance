@@ -4,6 +4,10 @@ exports.formatError = err -> err .. @transform(function(e) {
 	if (e) return @Span(e) .. @Class("errorDescription help-text text-danger");
 });
 
+exports.formatErrorAlert = err -> err .. @transform(function(e) {
+	if (e) return @Div(e) .. @Class("errorDescription alert alert-danger");
+});
+
 var pairObject = function(k,v) {
 	var rv = {};
 	rv[k]=v;
@@ -69,7 +73,7 @@ function Field(source, opts) {
 	var def = opts['default'];
 
 	var get = function(val) {
-		console.log("getting #{name} from", val);
+		//console.log("getting #{name} from", val);
 		if (name) val = val .. @get(name, def);
 		if (transform) val = transform(val);
 		return val;
@@ -78,12 +82,12 @@ function Field(source, opts) {
 
 	var value = source .. @transform(get);
 	value.set = function(v) {
-		console.log("Setting field #{name} to #{v}");
+		//console.log("Setting field #{name} to #{v}");
 		if (transform) v = transform(v);
 		source.modify(function(current, unchanged) {
 			if (!name) return v;
 			if (current[name] === v) return unchanged;
-			console.log("updated: ", current .. @merge(pairObject(name, v)));
+			//console.log("updated: ", current .. @merge(pairObject(name, v)));
 			return current .. @merge(pairObject(name, v));
 		});
 	};

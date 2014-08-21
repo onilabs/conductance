@@ -1,9 +1,39 @@
+@ = require('sjs:std');
 @user = require('./user');
+@crypto = require('nodejs:crypto');
+@verification = require('./verification');
+
 exports.validateToken = function(token) {
   @user.authenticate(token);
 };
 
-exports.createUser = function(username, password) {
-  var user = @user.create(username, password);
-  return @user.getToken(username, password);
+exports.sendConfirmation = function(username) {
+  var user;
+  try {
+    @user.withUserByName(username) {|u|
+      user = u;
+    }
+  } catch(e) {
+    @info("sendConfirmation ignoring error: #{e.message}");
+    // errors getting the user should be ignored;
+    // as it's trivial to generate requests for users
+    // that don't exist
+    return;
+  }
+  @verification.sendConfirmationTo(user);
+}
+
+exports.createUser = function(props) {
+  var username = props .. @get('username');
+  var password = props .. @get('password');
+  var email = props .. @get('email');
+
+  props = @verification.initialUserProperties();
+  props.email = email;
+  @user.create(username, password, props);
+  return; // XXX workaround for sjs#adbf8b305967d251497f58312286089601a9f465
+};
+
+exports.verifyUser = function(uid, code) {
+  @verification.verify(uid, code);
 };

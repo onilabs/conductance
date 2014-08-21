@@ -490,17 +490,24 @@ function displayServer(elem, api, server, clientVersion) {
 							while (!token) {
 								@info("Getting auth token...");
 								var username, password;
-								var loginResult = @modal.withOverlay({title:`Login: ${initialConfig.name}`}) {|elem|
+								var loginResult = @modal.withOverlay({title:`Login to ${initialConfig.name}`}) {|elem|
 									@form.loginDialog(elem, server.config, {
-										login: function(username, password) {
+										login: function(props) {
 											withBusyIndicator {||
-												return remoteServer.getToken(username, password);
+												return remoteServer.getToken(props .. @get('username'), props .. @get('password'));
 											}
 										},
-										signup: function(username, password) {
+										resendConfirmation: function(username) {
 											withBusyIndicator {||
-												localServer.endpoint.relative('/user.api').connect {|auth|
-													return auth.createUser(username, password);
+												localServer.endpoint.relative('/master/user.api').connect {|auth|
+													auth.sendConfirmation(username);
+												}
+											}
+										},
+										signup: function(props) {
+											withBusyIndicator {||
+												localServer.endpoint.relative('/master/user.api').connect {|auth|
+													auth.createUser(props);
 												}
 											}
 										},
@@ -510,13 +517,13 @@ function displayServer(elem, api, server, clientVersion) {
 									return;
 								}
 
-								[username, password, token] = loginResult;
+								var {username, token} = loginResult;
 
 								server.config.modify(existing -> existing .. @merge({
 										token:token,
 										username: username
 									}));
-								@debug("Is authenticated:", token);
+								@debug("Authenticated:", token);
 							}
 							remoteServer = remoteServer.authenticate(token);
 						}

@@ -4,6 +4,13 @@ var { @AuthenticationError } = require('../auth');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 @storage = require('mho:server/storage');
 @crypto = require('nodejs:crypto');
+@validate = require('../validate');
+
+if (require.main === module) {
+	require('../hub');
+	require('seed:env').defaults();
+}
+
 
 var config_root = @path.join(@env.get('data-root'), 'user');
 @debug("CONFIG_ROOT:", config_root);
@@ -82,7 +89,7 @@ var genUnique = function(genKey) {
 };
 var getUser = function(id) {
 	dbLock.synchronize {||
-		return store.get(userKey(id)) .. JSON.parse;
+		return new @User(id, store.get(userKey(id)) .. JSON.parse);
 	}
 }
 
@@ -94,13 +101,19 @@ var getUid = function(username) {
 	}
 };
 
-var withUser = function(uid, block) {
+var withUserById = function(uid, block) {
+	@validate.alphanumeric(uid);
 	dbLock.synchronize {||
 		var key = userKey(uid);
 		var save = function(u) {
-			store.put(key, JSON.stringify(u));
+			store.put(key, JSON.stringify(u .. @get('props')));
 		};
-		return block(store.get(key) .. JSON.parse, save);
+		try {
+			var user = new @User(uid, store.get(key) .. JSON.parse);
+		} catch(e) {
+			throw @AuthenticationError();
+		}
+		return block(user, save);
 	}
 }
 
@@ -154,7 +167,14 @@ var PASSWORD_SETTINGS = {
 };
 // XXX upgrade users to latest password settings on login
 
-exports.create = function(username, password) {
+exports.withUserByName = function(username, block) {
+	var uid = getUid(username);
+	withUserById(uid, block);
+};
+
+exports.withUserById = withUserById;
+
+exports.create = function(username, password, props) {
 	@debug("Creating user #{username}");
 	var salt = randomBytes(16).toString("base64");
 	var passwordSettings = PASSWORD_SETTINGS .. @merge({
@@ -174,11 +194,12 @@ exports.create = function(username, password) {
 		var [key, id] = genUnique(userKey);
 		@debug("writing alias: #{alias} -> #{id}");
 		store.put(alias, id);
-		store.put(key, {
+		props = props .. @merge({
 			name: username,
 			password: passwordSettings .. @merge({hash:passwordHash}),
-		} .. JSON.stringify());
-		return new @User(id, username);
+		});
+		store.put(key, props .. JSON.stringify());
+		return new @User(id, props);
 	}
 };
 
@@ -188,24 +209,29 @@ exports.getToken = function(username, password) {
 	var expires = new Date(now + (1000 * 60 * 60 * 24 * EXPIRY_DAYS));
 	try {
 		var uid = getUid(username);
-		var secretToken = {
-			uid:uid,
-			expires: expires,
-			contents: randomBytes(20).toString(contentsEncoding),
-		};
+		var secretToken;
+		withUserById(uid) {|user, save|
+			if (user.verified() !== true) {
+				throw new Error("User is not yet verified");
+			}
+			var props = user.props;
+			secretToken = {
+				uid:uid,
+				expires: expires,
+				contents: randomBytes(20).toString(contentsEncoding),
+			};
 
-		var dbToken = Token.hashed(secretToken);
+			var dbToken = Token.hashed(secretToken);
 
-		withUser(uid) {|user, save|
-			var expectedHash = user.password.hash;
-			var givenHash = hashPassword(password, user.password).toString('base64');
+			var expectedHash = props.password.hash;
+			var givenHash = hashPassword(password, props.password).toString('base64');
 			if (!@eq(givenHash, expectedHash)) {
 				throw @AuthenticationError();
 			}
 			var serializedToken = Token.encode(dbToken);
 			@verbose("Adding token to user: ", dbToken);
-			if (!user.tokens) user.tokens = [];
-			user.tokens = [serializedToken].concat(user.tokens.slice(0,9));
+			if (!props.tokens) props.tokens = [];
+			props.tokens = [serializedToken].concat(props.tokens.slice(0,9));
 			save(user);
 		}
 		return Token.encode(secretToken);
@@ -213,7 +239,6 @@ exports.getToken = function(username, password) {
 		@info("failed to authenticate user: #{e.message}");
 		@info(String(e)); // XXX remove
 	}
-	return null;
 	throw @AuthenticationError();
 };
 
@@ -225,8 +250,8 @@ exports.authenticate = function(tokenStr) {
 		}
 		var storedToken = Token.hashed(token) .. Token.encode();
 		var user = getUser(token.uid);
-		@assert.ok(user.tokens .. @hasElem(storedToken), "token not found");
-		return new @User(token.uid, user.name);
+		@assert.ok(user.tokens() .. @hasElem(storedToken), "token not found");
+		return user;
 	} catch(e) {
 		@info("failed to authenticate token: #{e.message}");
 		@info(String(e)); // XXX remove
@@ -234,13 +259,68 @@ exports.authenticate = function(tokenStr) {
 	}
 };
 
+exports.ANONYMOUS = new @User('_local', {});
+
 if (require.main === module) {
-	console.log("---- dump ----");
-	store.query() .. @each {|[k,v]|
-		console.log(k.toString("utf-8") + "=" + v.toString("utf-8"));
+	@stream = require('sjs:nodejs/stream');
+	var load = function() {
+		var o = {};
+		store.query() .. @each {|[k,v]|
+			//k = k.toString("utf-8");
+			v = v.toString("utf-8");
+			var isJson = v.charAt(0) === '{' && v .. @at(-1, '') === '}';
+			if(isJson) {
+				v = JSON.parse(v);
+			}
+			o[k] = {json: isJson, value: v};
+		}
+		return o;
+	};
+
+	var dump = function(o, stream) {
+		stream .. @stream.write(JSON.stringify(o, null, '  '));
+	};
+
+	var arg = @argv()[0];
+	switch(arg) {
+		case undefined:
+		case '--help':
+			console.warn("Usage: user.sjs [--edit|--dump]");
+			process.exit(1);
+			break;
+		case '--edit':
+			var old = load();
+			require('sjs:nodejs/tempfile').TemporaryFile() {|f|
+				var path = f.path;
+				old .. dump(f.writeStream());
+				f.close();
+
+				var editor = process.env .. @get('EDITOR', 'vi');
+				console.warn("Running: #{editor}");
+				editor = editor.split();
+				@childProcess.run(editor[0], editor.slice(1).concat([path]), {'stdio':'inherit'});
+				console.warn("Saving results...");
+				var result = @fs.readFile(path, 'utf-8') .. JSON.parse();
+				result .. @ownPropertyPairs .. @each {|[k, v]|
+					delete old[k];
+					var isJson = v.json;
+					v = v.value;
+					@assert.ok(v);
+					if(isJson) v = JSON.stringify(v);
+					store.put(k, v);
+				}
+				// old contains only keys not found in result, so delete them:
+				old .. @ownKeys .. @each {|k|
+					store.del(k);
+				}
+			}
+			break;
+		case '--dump':
+			load() .. dump(process.stdout);
+			break;
+		default:
+			console.warn("Unknown flag #{arg}, try --help");
+			process.exit(1);
+			break;
 	}
-	console.log("---- end -----");
 }
-
-
-exports.ANONYMOUS = new @User('_local', null);

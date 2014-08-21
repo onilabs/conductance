@@ -3,6 +3,7 @@
 @ = require('mho:std');
 require('./modules/hub');
 @etcd = require('seed:job/etcd');
+@response = require('mho:server/response');
 
 var VERSION = 1;
 
@@ -18,7 +19,6 @@ var runningServerInfo = function(port) {
 }
 
 //----------------------------------------------------------------------
-// function invoked by `conductance serve`
 exports.serve = function(args) {
   var common = require('./common.mho');
   var opts = args .. require('seed:env').parse([
@@ -63,6 +63,7 @@ exports.serve = function(args) {
     node_env: process.NODE_ENV || null,
   };
 
+  var verification = require('seed:master/verification');
   var routes = [
     @route.SystemRoutes(),
     @Route('version', {GET: function(req) {
@@ -70,6 +71,10 @@ exports.serve = function(args) {
       req .. @setStatus(200);
       req.response.end(JSON.stringify(versionInfo, null, '  '));
     }}),
+
+    @Route(verification.verifyRoute, {GET: verification.verifyHandler}),
+
+    @route.StaticDirectory(/static/, @url.normalize('./static', module.id) .. @url.toPath),
 
     // override modules/master to be executable
     @route.ExecutableDirectory('master', @url.normalize('./modules/master', module.id) .. @url.toPath),

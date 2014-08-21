@@ -1,11 +1,13 @@
 @ = require(['mho:std', 'mho:app']);
+@bridge = require('mho:rpc/bridge');
 @validate = require('seed:validate');
 @form = require('./generic-form');
+@auth = require('seed:auth');
 
 var formStyle = @CSS('{ }');
 var saveButton = `<button type="submit" class="btn btn-primary">Save</button>`;
-var loginButton = `<button type="submit" class="btn btn-primary">Connect</button>`;
-var signupButton = `<a class="btn btn-success signup">Sign up</a>`;
+var loginButton = `<button type="submit" class="btn btn-primary">Log in</button>`;
+var signupButton = `<button type="submit" class="btn btn-success signup">Sign up</button>`;
 
 var initialFocus = (function() {
 	var baseMech = @Mechanism(function(elem) {
@@ -27,7 +29,7 @@ function formControlGroup(form, cons, extras) {
 		return [
 			@Div([
 				extras.before,
-				cons(field.value, {'class':'form-control'}) .. @On('blur', field.validate),
+				cons(field.value, {'class':'form-control'}),
 				extras.after,
 			], {'class':'input-group'}),
 			field.error .. @form.formatError,
@@ -38,7 +40,7 @@ function formControlGroup(form, cons, extras) {
 function formControl(form, cons) {
 	return function(field) {
 		return [
-			cons(field.value, {'class':'form-control'}) .. @On('blur', field.validate),
+			cons(field.value, {'class':'form-control'}),
 			field.error .. @form.formatError,
 		];
 	};
@@ -188,7 +190,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 
 	parent .. @appendContent(
 		@Form([
-			localForm.error .. @form.formatError,
+			localForm.error .. @form.formatErrorAlert,
 			formGroup('Name', TextInput, centralForm.field('name', {validate: @validate.required})) .. initialFocus('input'),
 
 			showBrowser .. @transform(function(show) {
@@ -271,69 +273,119 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 exports.loginDialog = function(parent, conf, actions) {
 	var current = conf .. @first();
 	@info("Got server config:", current);
-	var password = @ObservableVar();
 	var form = @form.Form(current);
 
 	var TextInput = form .. formControl(@TextInput);
+	var PasswordInput = form .. formControl(-> @TextInput.apply(null, arguments) .. @Attrib('type', 'password'));
 
 	var userField = form.field('username', {validate:@validate.required});
+	var passwordField = form.field('password', { validate: @validate.required });
 
-	var passwordField = @form.Field(password, {
-		source: password,
-		form: form,
-		validate: @validate.required,
-	});
-
-	var passwordInput = formGroup('Password', TextInput, passwordField);
+	var passwordInput = formGroup('Password', PasswordInput, passwordField);
 	// if username is given, focus the password field
 	if (current.username) passwordInput = passwordInput .. initialFocus('input');
 
+	var isSignup = @ObservableVar(false);
+	var isLogin = isSignup .. @transform(x -> !x);
+	var emailField = form.field('email', {validate:
+		@validate.onlyWhen(isSignup, [@validate.required, @validate.email])
+	})
+	var emailInput = formGroup('Email', TextInput, emailField);
+	var resentConfirmation = @ObservableVar(false);
+
+	var signupOnly = el -> el .. @Class('hidden', isLogin);
+	var loginError = `<strong>Invalid credentials</strong>.<br/>
+		If you have just registered, make sure you have confirmed your email address.
+		${@observe(userField.value, resentConfirmation, function(user, alreadySent) {
+			if(user) return [
+				@Br(),
+				alreadySent
+					? `<em>Confirmation sent.</em>`
+					: @A('Resend confirmation email') .. @OnClick({handle:@stopEvent}, function() {
+						actions.resendConfirmation(user);
+						resentConfirmation.set(true);
+					})
+			];
+		})}
+	`;
+	function toggleSignup() {
+		isSignup.set(!isSignup.get());
+		form.error.set(null);
+	};
+
+	var values;
 	parent .. @appendContent(
 		@Form([
-			form.error .. @form.formatError,
+			form.error .. @form.formatErrorAlert,
 			formGroup('User', TextInput, userField),
+			emailInput .. signupOnly(),
 			passwordInput,
-			signupButton,
-			@Div(loginButton, {'class':'pull-right'}),
+			@Div([
+				@Div(isSignup .. @transform(signup -> signup
+					? signupButton
+					: loginButton
+				), {'class':'pull-right'}),
+				@P(@A(isSignup .. @transform(signup -> signup
+					? `&laquo; login`
+					: `&raquo; register new account`
+				),{'class':'clickable'}) .. @OnClick(toggleSignup)),
+			]),
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
 	) {|formElem|
 
-		var credentials = -> [
-			@first(userField.value) || "",
-			@first(password) || "",
-		];
-		
-		var actionLoop = function(elem, events, actionName) {
-			@assert.ok(actions[actionName]);
-			elem .. @events(events, {handle:@stopEvent}) .. @each {||
-				form.error.set(null);
-				if(!form.validate()) continue;
-				@info("performing #{actionName} action");
-				var creds = credentials();
-				try {
-					var token = actions[actionName].apply(null, creds);
-				} catch(e) {
-					//@warn(String(e));
-					form.error.set(e.message);
-					continue;
-				}
-
-				if (token) {
-					creds.push(token);
-					return creds;
+		while(true) {
+			try {
+				@info("awaiting form", formElem);
+				values = formElem .. form.wait();
+				@info("Got values: ", values);
+				if (isSignup.get()) {
+					actions.signup(values);
+					break;
 				} else {
-					form.error.set("Invalid credentials");
-					continue;
+					// login
+					values['token'] = actions.login(values);
+					return values;
 				}
+			} catch(e) {
+				@warn("Caught error: #{e}");
+				if(@auth.isAuthenticationError(e)) form.error.set(loginError);
+				else if(@bridge.isTransportError(e)) throw e;
+				else form.error.set(e.message);
 			}
-		};
-
-		waitfor {
-			return formElem .. actionLoop('submit', 'login');
-		} or {
-			return formElem.querySelector(".signup").. actionLoop('click', 'signup');
 		}
 	}
+
+	var message = @ObservableVar(`
+		<h3>Nearly there!</h3>
+		<p>
+			We've sent a confirmation email to <strong>${values.email}</strong> with
+			your activation code. You'll need to visit the link in that email before
+			continuing.
+		</p>
+		<p>
+		${@Button('Done', {'class':'btn-primary'})}
+	`);
+	parent .. @appendContent(@Div(message) .. @CSS('h1,h2,h3 { margin-top:0; }')) {|elem|
+		while(true) {
+			elem.querySelector('button') .. @wait('click');
+			try {
+				actions.login(values);
+			} catch(e) {
+				if (@auth.isAuthenticationError(e)) {
+					message.set(`
+						<h3>Login failed.</h3>
+						<p>
+							Oops - that didn't seem to work.
+						</p>
+						<p>
+							Please make sure you've clicked the confirmation link we emailed you.
+						</p>
+						${@Button('Try again...', {'class':'btn-primary'})}
+					`);
+				} else { throw e }
+			}
+		}
+	};
 };
 
 var editWidget = function(values) {
