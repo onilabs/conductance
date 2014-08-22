@@ -1,5 +1,3 @@
-// Germination server
-
 @ = require('mho:std');
 require('./modules/hub');
 @etcd = require('seed:job/etcd');

@@ -24,8 +24,26 @@ exports.sendConfirmationTo = function(user) {
   @assert.ok(user instanceof @User);
   if(user.verified()) return;
   var email = user.email();
+  var name = user.name();
   var url = verificationUrl(user);
-  @warn("TODO: email activation url #{url} to #{email}");
+  @info("emailing activation url #{url} to #{email}");
+  @env.get('email-transport').send({
+    from: {name: "Conductance seed", address: "info@#{@env.get('email-domain')}"},
+    to: {name: name, address: email},
+    subject: "Conductance seed activation code",
+    text: "Hi, #{name}!
+Here's your activation code: #{url}
+
+Cheers,
+ - The Oni Labs team
+",
+    html: @collapseHtmlFragment(`
+<h2>Hi, $name!</h2>
+<p>Here's your activation code:</p>
+<p><a href="${url}">${url}</a></p>
+<p>Cheers,<br> - The Oni Labs team</p>
+`).getHtml(),
+  });
 };
 
 exports.verify = function(uid, code) {

@@ -4,7 +4,9 @@ var env = require('mho:env');
 @url = require('sjs:url');
 @etcd = require('./job/etcd');
 @logging = require('sjs:logging');
+@email = require('seed:auth/email');
 var { @at } = require('sjs:sequence');
+var { @get } = require('sjs:object');
 
 if (process.env['SEED_LOG_LEVEL']) {
 	var lvlName = process.env['SEED_LOG_LEVEL'];
@@ -119,4 +121,7 @@ exports.defaults = function() {
 	def('data-root', dataDir);
 
 	def('key-store', -> process.env['SEED_KEYS'] || null, true);
+
+	def('email-domain', -> process.env['MAILGUN_SERVER'] || this.get('host-self'), true);
+	def('email-transport', @email.mailgunTransport, true);
 };

@@ -30,8 +30,8 @@ exports.createUser = function(props) {
 
   props = @verification.initialUserProperties();
   props.email = email;
-  @user.create(username, password, props);
-  return; // XXX workaround for sjs#adbf8b305967d251497f58312286089601a9f465
+  var user = @user.create(username, password, props);
+  @verification.sendConfirmationTo(user);
 };
 
 exports.verifyUser = function(uid, code) {
