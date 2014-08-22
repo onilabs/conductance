@@ -11,7 +11,7 @@
 
 /**
   @type template
-  @summary A minimal template for `.app` modules
+  @summary A minimal template for `.app` files
   @desc
     ### Symbols exported in mho:app
 

@@ -1,1 +1,1 @@
-@summary Templates for [mho:#features/app-module::]s (or for manual use with [surface::Document])
+@summary Templates for [mho:#features/app-file::]s (or for manual use with [surface::Document])

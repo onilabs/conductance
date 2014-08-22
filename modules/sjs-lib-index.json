@@ -4,7 +4,7 @@
     "#features/": {
       "type": "lib",
       "children": {
-        "api-module": {
+        "api-file": {
           "type": "module",
           "children": {
             "require-api": {
@@ -21,7 +21,7 @@
           },
           "summary": "Server-side API modules"
         },
-        "app-module": {
+        "app-file": {
           "type": "module",
           "children": {
             "@template": {
@@ -33,7 +33,7 @@
           },
           "summary": "Client-side application files"
         },
-        "gen-module": {
+        "gen-file": {
           "type": "module",
           "children": {
             "content": {
@@ -46,7 +46,7 @@
               "type": "function"
             }
           },
-          "summary": "Server-side generator modules"
+          "summary": "Server-side generator files"
         },
         "mho-file": {
           "type": "module",
@@ -554,7 +554,7 @@
                   "type": "function"
                 }
               },
-              "summary": "The default template for \"*.app\" modules (see [mho:#features/app-module::])"
+              "summary": "The default template for \"*.app\" files (see [mho:#features/app-file::])"
             },
             "app-plain": {
               "type": "module",
@@ -566,7 +566,7 @@
                   "type": "variable"
                 }
               },
-              "summary": "A minimal template for `.app` modules"
+              "summary": "A minimal template for `.app` files"
             },
             "default": {
               "type": "module",
@@ -587,7 +587,7 @@
               "summary": "A minimal template for [surface::Document] objects."
             }
           },
-          "summary": "Templates for [mho:#features/app-module::]s (or for manual use with [surface::Document])"
+          "summary": "Templates for [mho:#features/app-file::]s (or for manual use with [surface::Document])"
         },
         "html": {
           "type": "module",

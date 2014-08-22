@@ -175,7 +175,7 @@ exports.setMarshallingDescriptor = setMarshallingDescriptor;
     for the purpose of remoting.
 
     It is used internally by conductance to provide remote API
-    access (see [#features/api-module::]).
+    access (see [#features/api-file::]).
 
    @function API
    @summary Wrap an object into a remotable API
@@ -446,7 +446,7 @@ function unmarshallStream(obj, connection) {
     data types and function calls across an RPC transport.
 
     `BridgeConnection` instances cannot be constructed directly, see [::connect] or
-    [#features/api-module::].
+    [#features/api-file::].
 
   @variable BridgeConnection.sessionLost
   @type sjs:event::EventStream

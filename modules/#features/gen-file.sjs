@@ -11,9 +11,9 @@
 
 /**
   @type doc
-  @summary Server-side generator modules
+  @summary Server-side generator files
   @desc
-    A `.gen` module is used to serve generated content from the
+    A `.gen` file is used to serve generated content from the
     conductance web server.
 
     While you can write your own [server/route::] configuration to
@@ -27,12 +27,12 @@
     and they may additionally export the other methods documented below.
 
     See also the [server/generator::] module, which provides utilities
-    for use in generator modules.
+    for use in generator files.
 
     ### Configuring .gen files
 
-    For conductance to serve your `.gen` module in this way, the
-    module must live within a directory configured as a
+    For conductance to serve your `.gen` file in this way, the
+    file must live within a directory configured as a
     [server/route::ExecutableDirectory] in your [./mho-file::] server configuration.
 
     It is important to only serve *trusted locations* with
@@ -56,10 +56,10 @@
   @variable filetype
   @summary file type (extension)
   @desc
-    By default, the module name will be used to infer the file
+    By default, the file name will be used to infer the file
     type - e.g `index.html.gen` will be served as `text/html` content.
   
-    If your module name does not contain an extension (or if you wish
+    If your file name does not contain an extension (or if you wish
     to override it), You should export `filetype`.
   
     ### Example:
@@ -72,12 +72,12 @@
   @return {String} etag
   @desc
     So that clients can cache responses, it's recommended to set
-    an `etag` function. This is combined with the module's
+    an `etag` function. This is combined with the file's
     modification time and the conductance version so that
     a client will not be re-sent the content for a request
     when their cached version has an identical etag.
 
-    If a `.gen` module's output depends on another
+    If a `.gen` file's output depends on another
     `.sjs` module, conductance will not detect this by
     default - you will need to export an `etag` function
     that returns a new value after a dependency has changed.
@@ -85,7 +85,7 @@
     If you do not wish to track dependencies explicitly,
     you can use the [server/generator::moduleTimestamp] function
     to generate an etag function that always returns the
-    timestamp of the module's initial import. This will
+    timestamp of the file's initial import. This will
     cause a restart of conductance to generate a different
     etag, while repeated requests to the same conductance
     instance will be cached.

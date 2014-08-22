@@ -43,7 +43,7 @@
   this way trivially allows users to execute arbitrary SJS code on your server.
 
 @class ApiStub
-@summary The result of a `require()` call on an `.api` module
+@summary The result of a `require()` call on an `.api` file
 @desc
   `require('./module.api')` will not return the API module directly, but will
   instead return an `ApiStub` object containing a single `connect` method.

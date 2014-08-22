@@ -11,7 +11,7 @@
 
 /**
   @type template
-  @summary The default template for "*.app" modules (see [mho:#features/app-module::])
+  @summary The default template for "*.app" files (see [mho:#features/app-file::])
   @hostenv nodejs
   @desc
 

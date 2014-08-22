@@ -21,6 +21,8 @@ var { observe } = require('sjs:observable');
 /**
   @summary Surface HTML elements
   @desc
+    All of the symbols in this module are also exposed by the [mho:app::] module in various [mho:#features/app-file::] templates (see [mho:surface/doc-template/::] for a list of templates.)
+
     As well as the explicitly document functions below, this module exports a
     constructor function for almost _(see "Clashing names" below)_ every HTML tag in the
     [HTML5 Element List](https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/HTML5/HTML5_element_list).
@@ -35,7 +37,7 @@ var { observe } = require('sjs:observable');
 
     Each of these tag methods is a shortcut for calling [surface::Element] with the given tag name - i.e `Element(<tagName>, ... )`.
 
-    ## Clashing names
+    ### Clashing names
 
     A small number of HTML tags do not have constructors in this module, since they would clash with names (and functionality)
     already provided in [mho:std::] or other modules. Currently these are:

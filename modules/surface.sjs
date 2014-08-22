@@ -503,6 +503,35 @@ module.exports = require(modules);
 @param {sjs:observable::Observable} [obs] Observable
 @return {::Element}
 @hostenv xbrowser
+@desc
+   Works on most elements that accept user input, such as buttons, input element, checkboxes
+@demo
+   @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
+   var Flag = @ObservableVar(false);
+
+   @mainContent .. @appendContent(
+     @demo.CodeResult("\
+     @ = require(['mho:std','mho:app']);
+
+     var Flag = @ObservableVar(false);
+
+     @mainBody .. @appendContent([
+       @Button('Test') .. @Enabled(Flag),
+       @TextInput('Test') .. @Enabled(Flag)
+     ]);
+
+     while (true) {
+       hold(2000);
+       Flag.modify(val -> !val);
+     }",
+     [@Button('Test') .. @Enabled(Flag),
+      @TextInput('Test') .. @Enabled(Flag) .. @Style('margin-top:5px')]));
+    
+     resize();
+     while (1) {
+       hold(2000);
+       Flag.modify(val -> !val);
+     }
 
 @function On
 @altsyntax element .. On(event, [settings], event_handler)

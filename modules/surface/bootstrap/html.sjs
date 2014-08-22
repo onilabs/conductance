@@ -14,6 +14,8 @@
 /**
   @summary Bootstrap HTML module
   @desc
+    All of the symbols in this module are also exposed by the [mho:app::] module in various [mho:#features/app-file::] templates (see [mho:surface/doc-template/::] for a list of templates.)
+
     This module should be used instead of [../html::] for Bootstrap-enabled
     documents. It provides all of the symbols from [../html::], but
     adds / overrides the symbols documented here to add bootstrap classes
