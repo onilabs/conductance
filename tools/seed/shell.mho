@@ -1,0 +1,4 @@
+require('./modules/hub');
+require('seed:env').defaults();
+require('sjs:nodejs/repl').runREPL();
+
