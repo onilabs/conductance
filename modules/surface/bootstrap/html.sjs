@@ -141,6 +141,25 @@ exports.Select = wrapWithClass(base_html.Select, 'form-control');
     * **style**: `default`, `primary`, `success`, `info`, `warning`, `danger`, or `link`
     * **sizing**: `lg`, `sm`, or `xs` (or none)
     * **block-level**: `block` (or none)
+
+  @demo
+    @ = require(['mho:std', 'mho:app']);
+    var btn_styles = ['default', 'primary', 'success', 'info', 'warning', 'danger', 'link'];
+    var btn_sizes  = ['lg', '', 'sm', 'xs' ];
+    @mainContent .. @appendContent([
+      btn_styles .. 
+        @unpack(cls -> btn_sizes .. @transform(size -> "#{cls} #{size}")) ..
+        @transform(cls -> @Btn(cls, "@Btn('#{cls}',CONTENT)") .. @Style("margin:10px;")) ..
+        @toArray,
+      @Hr(),
+      @Btn('block primary', "@Btn('block primary', CONTENT)"),
+      @Hr(),
+      @Row([
+        @Col('sm-6', @Pre("@Btn('primary',\n      `$@Icon('cloud-download') Download`)")),
+        @Col('sm-6', @Btn('primary',`$@Icon('cloud-download') Download`))
+      ])
+        ]
+    );
 */
 exports.Btn = (btn_classes, content, attribs) -> 
   (wrapWithClass(base_html.Button, 'btn '+prefixClasses(btn_classes,'btn-')))(content, attribs);
