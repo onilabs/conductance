@@ -2,7 +2,7 @@ var str = require('sjs:string');
 var {find, each, filter, map, at, join, transform, first} = require('sjs:sequence');
 var {ObservableVar} = require('sjs:observable');
 var {remove} = require('sjs:array');
-var {ownValues, hasOwn, get, clone, merge} = require('sjs:object');
+var {ownValues, hasOwn, get, clone, merge, pairsToObject} = require('sjs:object');
 var docutil = require('sjs:docutil');
 var http = require('sjs:http');
 var logging = require('sjs:logging');
@@ -19,12 +19,12 @@ CollectionProto._init = function() {
 
 CollectionProto._computeLibraries = function(hubs) {
 	logging.debug(`hub change: ${hubs}`);
-	hubs .. each {|hub|
-		var [name, url] = hub;
-		var cached = this._cacheUrl(url, name);
+	var self = this;
+	return hubs .. map(function([name, url]) {
+		var cached = self._cacheUrl(url, name);
 		cached.name = name;
-	}
-	return this._libraryCache;
+		return [name, cached];
+	}) .. pairsToObject();
 };
 
 CollectionProto._cacheUrl = function(url, name) {
