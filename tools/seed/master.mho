@@ -133,12 +133,3 @@ exports.serve = function(args) {
 //    serve.apply(this,arguments);
 //  }
 //};
-
-exports.systemd = function() {
-  @systemd = require('./common.mho').systemdWrap;
-  return @systemd.Group("seed-master", {
-    "server": [
-      @systemd.Service(),
-    ]
-  });
-};

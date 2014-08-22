@@ -1,0 +1,36 @@
+@ = require('mho:std');
+@email = require('seed:auth/email');
+var { @TemporaryDir } = require('sjs:nodejs/tempfile');
+
+var emailQueue = null;
+exports.emailQueue = -> emailQueue;
+var stubEmail = function() {
+	var nm = require('nodejs:nodemailer');
+	// NOTE: non-reversible...
+	//@assert.eq(emailQueue, null);
+	emailQueue = @Queue();
+	delete process.env['MAILGUN_PASSWORD']; // just in case
+
+	var stubTransport = require('nodejs:nodemailer-stub-transport');
+	var transporter = stubTransport();
+	var transport = nm.createTransport(transporter);
+	var wrapped = @email.wrap(transport);
+	wrapped.send = (function(orig) {
+		@assert.ok(orig);
+		return function() {
+			var rv = orig.apply(null, arguments);
+			emailQueue.put(rv);
+			return rv;
+		};
+	})(wrapped.send);
+
+	@env.set('email-transport', wrapped);
+}
+
+exports.hook = function(block) {
+	@TemporaryDir({prefix:'seed-test-data-'}) {|tempdir|
+		@env.set('data-root', tempdir);
+		stubEmail();
+		block();
+	}
+};

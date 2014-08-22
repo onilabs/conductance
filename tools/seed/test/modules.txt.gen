@@ -1,0 +1,6 @@
+@ = require('sjs:std');
+exports.content = function() {
+	return @fs.readdir(
+		@url.normalize('./integration', module.id) .. @url.toPath
+	) .. @map(f -> @path.join('integration', f)) .. @join('\n');
+}
