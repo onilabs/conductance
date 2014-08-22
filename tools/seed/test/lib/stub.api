@@ -1,6 +1,7 @@
 @ = require('mho:std');
 @email = require('seed:auth/email');
 var { @TemporaryDir } = require('sjs:nodejs/tempfile');
+var { @rimraf } = require('sjs:nodejs/rimraf');
 
 var emailQueue = null;
 exports.emailQueue = -> emailQueue;
@@ -27,10 +28,30 @@ var stubEmail = function() {
 	@env.set('email-transport', wrapped);
 }
 
+// stub out transactional resources (includes cleanup)
+var hooked = false;
 exports.hook = function(block) {
 	@TemporaryDir({prefix:'seed-test-data-'}) {|tempdir|
 		@env.set('data-root', tempdir);
+		@env.set('local-config-root', @path.join(tempdir, 'local-conf'));
 		stubEmail();
+		hooked = true;
 		block();
 	}
+};
+
+exports.clearData = function() {
+	@settings = require('seed:local/settings');
+	@userDB = require('seed:master/user');
+	@assert.ok(hooked, "test hook not installed!");
+	// exports.hook sets data sources to a temp dir,
+	// but we can't just rimraf() that dir and expect
+	// our data to be cleared (since it's cached).
+	// So we explicitly clear all data sources here
+	@settings._store.contents() .. @ownKeys .. @each {|k|
+		@settings._store.del(k);
+	};
+	@userDB._store.query() .. @each {|[k,_v]|
+		@userDB._store.del(k);
+	};
 };

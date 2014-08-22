@@ -29,7 +29,7 @@ function formControlGroup(form, cons, extras) {
 		return [
 			@Div([
 				extras.before,
-				cons(field.value, {'class':'form-control'}),
+				cons(field.value, {'class':'form-control', 'name':field.name}),
 				extras.after,
 			], {'class':'input-group'}),
 			field.error .. @form.formatError,
@@ -40,7 +40,7 @@ function formControlGroup(form, cons, extras) {
 function formControl(form, cons) {
 	return function(field) {
 		return [
-			cons(field.value, {'class':'form-control'}),
+			cons(field.value, {'class':'form-control', 'name':field.name}),
 			field.error .. @form.formatError,
 		];
 	};

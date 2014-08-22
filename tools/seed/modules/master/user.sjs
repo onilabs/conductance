@@ -16,7 +16,7 @@ var config_root = @path.join(@env.get('data-root'), 'user');
 @debug("CONFIG_ROOT:", config_root);
 
 @mkdirp(config_root);
-var store = @storage.Storage(@path.join(config_root, 'auth.db'));
+var store = exports._store = @storage.Storage(@path.join(config_root, 'auth.db'));
 
 var isNotFound = e -> e.type === 'NotFound';
 

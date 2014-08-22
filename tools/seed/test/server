@@ -1,6 +1,7 @@
 #!/usr/bin/env conductance
 // vim: syntax=sjs
 
+require('./lib/env');
 @ = require('mho:std');
 var karmaConfUrl = @url.normalize('./conf/karma.js', module.id);
 var karmaConf = require(karmaConfUrl);
@@ -9,20 +10,22 @@ var testDir = @url.normalize('./', module.id) .. @url.toPath();
 @response = require('mho:server/response');
 
 exports.serve = function() {
-  // inject test routes into all servers
-  @route.SystemRoutes = function(orig) {
-    return function() {
-      return orig().concat([
-        @Route('up', {GET: function(req) {
-          req .. @response.setStatus(200);
-          req.response.end();
-        }}),
-        @route.ExecutableDirectory('test', testDir),
-      ]);
-    };
-  }(@route.SystemRoutes);
-  console.warn("Serving test suite at http://localhost:#{port}/test/");
-  require('../local.mho').serve(['--self','--port', String(port)]);
+  require('./lib/stub.api').hook {||
+    // inject test routes into all servers
+    @route.SystemRoutes = function(orig) {
+      return function() {
+        return orig().concat([
+          @Route('up', {GET: function(req) {
+            req .. @response.setStatus(200);
+            req.response.end();
+          }}),
+          @route.ExecutableDirectory('test', testDir),
+        ]);
+      };
+    }(@route.SystemRoutes);
+    console.warn("Serving test suite at http://localhost:#{port}/test/");
+    require('../local.mho').serve(['--self','--port', String(port)]);
+  }
 };
 
 var isRunning = function(url) {

@@ -120,6 +120,11 @@ exports.defaults = function() {
 	@assert.ok(@fs.exists(dataDir), "data dir does not exist: #{dataDir}");
 	def('data-root', dataDir);
 
+	def('local-config-root',
+		// used only for local server
+		-> @path.join(process.env .. @get('XDG_CONFIG_HOME', @path.join(process.env .. @get('HOME'), '.config')), 'conductance'),
+		true);
+
 	def('key-store', -> process.env['SEED_KEYS'] || null, true);
 
 	def('email-domain', -> process.env['MAILGUN_SERVER'] || this.get('host-self'), true);
