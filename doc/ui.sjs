@@ -151,7 +151,7 @@ exports.renderer = function(libraries, rootSymbol) {
       `<h3>Demonstration</h3>`,
       Element("iframe", undefined, {src: "demo-eval.app"}) ..
       Mechanism(function(elem) {
-        elem.contentWindow.resize = function() { console.log(elem.height = elem.contentWindow.document.body.scrollHeight + 'px'); };
+        elem.contentWindow.resize = function() { hold(0); elem.height = elem.contentWindow.document.body.scrollHeight + 'px'; };
         while (!elem.contentWindow.run) 
           hold(10);
         elem.contentWindow.run(docs.demo)

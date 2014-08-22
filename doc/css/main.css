@@ -8,6 +8,7 @@
 
 body {
 	background: white;
+  overflow-y:scroll;
 }
 
 #sidebar {
