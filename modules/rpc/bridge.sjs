@@ -622,22 +622,21 @@ function BridgeConnection(transport, opts) {
       executing_calls[message[1]] = spawn (function(call_no, api_id, method, args) {
         // xxx asynchronize, so that executing_calls[call_no] will be filled in:
         hold(0);
-        var isException = false;
         waitfor {
+          var response;
           try {
             var rv;
             if (api_id == -1)
               rv = published_funcs[method].apply(null, args);
             else
               rv = published_apis[api_id][method].apply(published_apis[api_id], args);
+            response = marshall(["return", call_no, rv], connection);
           }
           catch (e) {
-            rv = e;
-            isException = true;
+            response = marshall(["return_exception", call_no, e], connection);
           }
-          var args = marshall(["return#{isException? '_exception':''}", call_no, rv], connection);
           try {
-            transport.send(args);
+            transport.send(response);
           }
           catch (e) {
             // ignore exception; transport will be closed
