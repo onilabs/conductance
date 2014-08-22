@@ -238,3 +238,8 @@ a.mb-pilcrow:hover {
     color: #BDBDBD;
     content: "$ ";
 }
+
+iframe {
+    width: 100%;
+    border: none;
+}
