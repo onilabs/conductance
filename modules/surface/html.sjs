@@ -251,7 +251,28 @@ exports.Checkbox = Checkbox;
   @param  {Object} [settings] Widget settings
   @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
   @setting {Array|sjs:sequence::Stream} [items] Selectable items
+  @setting {sjs:observable::ObservableVar} [optional selected] Selected item(s).
   @return {surface::Element}
+  @demo
+    @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
+
+    var options = ["Bad", "Ok", "Pretty Good", "Perfect"];
+    var Rating  = @ObservableVar('Pretty Good');
+
+    
+    @mainContent .. @appendContent(
+       @demo.CodeResult("\
+       @ = require(['mho:std','mho:app']);
+
+       var options = ['Bad', 'Ok', 'Pretty Good', 'Perfect'];
+       var Rating  = @ObservableVar('Perfect');
+
+       @mainBody .. @appendContent(`
+         Rate Conductance: $@Select({items:options, selected: Rating})
+         Your Rating: $Rating`);",
+       `Rate Conductance:  $@Select({items:options, selected: Rating})
+        Your Rating: $Rating`
+       ));       
 */
 
 
