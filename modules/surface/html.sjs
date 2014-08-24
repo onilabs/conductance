@@ -251,7 +251,7 @@ exports.Checkbox = Checkbox;
   @param  {Object} [settings] Widget settings
   @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
   @setting {Array|sjs:sequence::Stream} [items] Selectable items
-  @setting {sjs:observable::ObservableVar} [optional selected] Selected item(s).
+  @setting {sjs:observable::ObservableVar} [selected] Optional ObservableVar that will be synchronized to selected item(s).
   @return {surface::Element}
   @demo
     @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
