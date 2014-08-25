@@ -75,13 +75,13 @@ if (require.main === module) {
       // XXX karma is fire-and-forget, we can't wait for its completion
       hold();
     }
-  } else if(args[0] === 'serve') {
+  } else if(args[0] === 'app') {
     exports.serve();
   } else {
     console.warn("Usage: run.mho <action> [args ...]
 
   ACTIONS:
-    serve         Run app server only
+    app           Run app server only
     start         Run karma server (& app server if not yet running)
     run           Run karma test against already-running servers
     single-run    `start` & `run` in a single invocation

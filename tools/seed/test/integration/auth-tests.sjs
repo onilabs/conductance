@@ -12,9 +12,15 @@ var formInputs = function(elem) {
 	return rv;
 }
 
+var contentPredicate = function(str) {
+	if(!str) return -> true;
+	if(@isString(str)) return el -> str === el.textContent;
+	return el -> str.test(el.textContent);
+}
+
 @test.beforeAll {|s|
-	s.modal = (sel, pred) -> s.driver.elem(".overlay #{sel}", pred);
-	s.hasModal = (sel, pred) -> s.driver.elems(".overlay #{sel}", pred).length == 0;
+	s.modal = (sel, pred) -> s.driver.elem(".overlay #{sel ? sel : ""}", pred);
+	s.hasModal = (sel, pred) -> s.driver.elems(".overlay #{sel}", pred).length > 0;
 	s.waitforPanel = function(title) {
 		var matches = @isString(title) ? t -> t === title : t -> title.test(t);
 		@waitforSuccess(function() {
@@ -22,10 +28,13 @@ var formInputs = function(elem) {
 			@assert.ok(matches(panel.textContent));
 		});
 	}
+	s.clickLink = (elem, text) -> elem .. @elems('a') .. @find(contentPredicate(text)) .. s.driver.click();
+	s.clickButton = (elem, text) -> elem .. @elems('button') .. @find(contentPredicate(text)) .. s.driver.click();
+	s.waitforNoModal = -> @waitforCondition(-> s.hasModal() === false, "modal dialog still present");
 }
 
 @context("Signup") {||
-	@test("create new account") {|s|
+	var signup = function(s) {
 		s.waitforPanel(/Login to .*/);
 		var form = @waitforSuccess( -> s.modal('form'));
 		form .. @elems('a') .. @find(el -> /register new account/.test(el.textContent)) .. s.driver.click();
@@ -36,10 +45,41 @@ var formInputs = function(elem) {
 		inputs.password .. @enter('secret');
 		form .. @trigger('submit');
 
-		//hold(2000); s.modal('div') .. @elems('p') .. console.log();
 		@waitforSuccess(-> s.modal('p', el -> /We've sent a confirmation email to/.test(el.textContent)));
+	};
+
+	var activationLink = function(email) {
+		var contents = email.response;
+		var match = email.response.match(/activation code:\s+(https?:\/\/[^\r\n]+)/m);
+		if(!match) throw new Error("Couldn't extract activation code from email:\n#{contents}");
+		return match[1];
+	}
+
+	@test("with immediate activation") {|s|
+		s .. signup();
+		var email = @stub.emailQueue.get();
+
+		var activationResponse = email .. activationLink() .. @http.get();
+		// TODO: assert contents of activation page, maybe even load it in a new driver window?
+
+		@info(activationResponse);
 		s.modal('button') .. s.driver.click();
-		@assert.falsy(s.hasModal());
-		@assert.ok(true);
+		s.waitforNoModal();
+	}
+
+	@test("attempt to continue without activating") {|s|
+		s .. signup();
+		s.modal('button') .. s.driver.click();
+		@waitforSuccess( -> s.modal('.panel-body') .. @elem('h3') .. @get('textContent') .. @assert.eq("Login failed."));
+		var container = s.modal('.panel-body');
+		var button = container .. @elem('button');
+		button.textContent .. @assert.eq("Try again...");
+		button .. s.driver.click;
+
+		@stub.emailQueue.get() .. activationLink() .. @http.get();
+		container .. @elem('h3') .. @get('textContent') .. @assert.eq("Login failed.");
+		button .. s.driver.click();
+
+		s.waitforNoModal();
 	}
 }

@@ -4,12 +4,15 @@ var { @TemporaryDir } = require('sjs:nodejs/tempfile');
 var { @rimraf } = require('sjs:nodejs/rimraf');
 
 var emailQueue = null;
-exports.emailQueue = -> emailQueue;
+// XXX Queue is not bridge-safe
+exports.emailQueue = {
+	get: -> emailQueue.get(),
+	count: -> emailQueue.count(),
+};
+
 var stubEmail = function() {
 	var nm = require('nodejs:nodemailer');
-	// NOTE: non-reversible...
-	//@assert.eq(emailQueue, null);
-	emailQueue = @Queue();
+	emailQueue = @Queue(100);
 	delete process.env['MAILGUN_PASSWORD']; // just in case
 
 	var stubTransport = require('nodejs:nodemailer-stub-transport');
@@ -20,6 +23,7 @@ var stubEmail = function() {
 		@assert.ok(orig);
 		return function() {
 			var rv = orig.apply(null, arguments);
+			rv.response = rv.response.toString('utf-8'); // was a buffer
 			emailQueue.put(rv);
 			return rv;
 		};
@@ -54,4 +58,5 @@ exports.clearData = function() {
 	@userDB._store.query() .. @each {|[k,_v]|
 		@userDB._store.del(k);
 	};
+	if(emailQueue) while(emailQueue.count() > 0) emailQueue.get();
 };

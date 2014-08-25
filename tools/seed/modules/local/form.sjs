@@ -314,6 +314,11 @@ exports.loginDialog = function(parent, conf, actions) {
 	};
 
 	var values;
+	var login = function(values) {
+		values.token = actions.login(values);
+		return values;
+	};
+
 	parent .. @appendContent(
 		@Form([
 			form.error .. @form.formatErrorAlert,
@@ -335,16 +340,12 @@ exports.loginDialog = function(parent, conf, actions) {
 
 		while(true) {
 			try {
-				@info("awaiting form", formElem);
 				values = formElem .. form.wait();
-				@info("Got values: ", values);
 				if (isSignup.get()) {
 					actions.signup(values);
 					break;
 				} else {
-					// login
-					values['token'] = actions.login(values);
-					return values;
+					return login(values);
 				}
 			} catch(e) {
 				@warn("Caught error: #{e}");
@@ -369,7 +370,7 @@ exports.loginDialog = function(parent, conf, actions) {
 		while(true) {
 			elem.querySelector('button') .. @wait('click');
 			try {
-				actions.login(values);
+				return login(values);
 			} catch(e) {
 				if (@auth.isAuthenticationError(e)) {
 					message.set(`
