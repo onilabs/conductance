@@ -10,6 +10,8 @@
  */
 
 /**
+  // TODO: document
+  @nodoc
   @summary Simple fast and efficient persistent local key-value storage backed by [LevelDB](http://en.wikipedia.org/wiki/LevelDB)
   @desc
     Uses [node-leveldown](https://github.com/rvagg/node-leveldown) under the hood

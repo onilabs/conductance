@@ -259,38 +259,6 @@
           },
           "summary": "Routing objects for use in the Conductance web server"
         },
-        "storage": {
-          "type": "module",
-          "children": {
-            "Storage": {
-              "type": "class",
-              "children": {
-                "Storage": {
-                  "type": "ctor"
-                },
-                "put": {
-                  "type": "function"
-                },
-                "get": {
-                  "type": "function"
-                },
-                "del": {
-                  "type": "function"
-                },
-                "batch": {
-                  "type": "function"
-                },
-                "query": {
-                  "type": "function"
-                },
-                "close": {
-                  "type": "function"
-                }
-              }
-            }
-          },
-          "summary": "Simple fast and efficient persistent local key-value storage backed by [LevelDB](http://en.wikipedia.org/wiki/LevelDB)"
-        },
         "systemd": {
           "type": "module",
           "children": {
