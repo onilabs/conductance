@@ -1,5 +1,6 @@
 var env = require('mho:env');
 @fs = require('sjs:nodejs/fs');
+@path = require('nodejs:path');
 @assert = require('sjs:assert');
 @url = require('sjs:url');
 @etcd = require('./job/etcd');
