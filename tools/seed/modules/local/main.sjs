@@ -8,6 +8,7 @@ var { @route } = require('./my-route');
 @logging.setLevel(@logging.DEBUG);
 var { @Countdown } = require('mho:surface/widget/countdown');
 
+var Center = @CSS("{text-align:center;}");
 document.body .. @appendContent(@GlobalCSS("
 	body {
 		> .container {
@@ -406,14 +407,14 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 				@Div([
 					addApp,
 
-					@Button([@Icon('cog'), ` Settings`])
+					localApi.multipleServers ? @Button([@Icon('cog'), ` Settings`])
 						.. @OnClick({handle: @preventDefault}, -> editServerSettings(localServer)),
 
-					@Button(@Icon('log-out'))
+					@Button([@Icon('log-out'), ` Log out`])
 						.. @OnClick({handle: @preventDefault}, -> logout.emit()),
 
-				], {'class':'btn-group pull-right'}) .. @Style('margin-top: 15px;'),
-				{'class':'clearfix'})
+				], {'class':'btn-group'}) .. @Style('margin-top: 15px;'),
+				{'class':'clearfix'}) .. Center
 		)) {|container|
 
 		waitfor {
@@ -421,6 +422,12 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 				try {
 					container .. @appendContent(apps .. @transform(function(apps) {
 						@info("list of apps for #{localServer.id} changed...");
+						if (apps.length == 0) {
+							return @Div([
+								@H3("You don't have any apps yet"),
+								@P('Click the "New app" button above to get started.'),
+							]) .. Center() .. @Style('margin-top:4em;');
+						}
 						var appNames = apps .. @map.par(app -> (app.config .. @first).name);
 						var appWidgets = apps .. @sortBy((_, i) -> appNames[i]) .. @map(app ->
 							@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
