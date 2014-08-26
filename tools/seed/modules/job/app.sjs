@@ -145,6 +145,7 @@ exports.localAppState = (function() {
     var machineName = getMachineName(user, id);
     var appBase = getAppPath(user, id);
     var appRunBase = getAppRunPath(user, id);
+    @mkdirp(appRunBase);
     //var pidPath = getPidPath(appRunBase);
     var logPath = @path.join(appRunBase, 'log');
     var configPath = @path.join(appBase, 'config.json');
