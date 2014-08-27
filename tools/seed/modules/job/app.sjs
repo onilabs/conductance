@@ -320,6 +320,10 @@ exports.localAppState = (function() {
         ] : [
           // kinda hacky - just ensure that we have all required paths in dev
           // (it's harmless to add paths that we only need on some boxes)
+          "--volume", readOnly('/usr'),
+          "--volume", readOnly('/bin'),
+          "--volume", readOnly('/lib'),
+          "--volume", readOnly('/lib64'),
           "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
           "--volume", readOnly(conductanceRoot),
           "--volume", readOnly(sjsRoot),

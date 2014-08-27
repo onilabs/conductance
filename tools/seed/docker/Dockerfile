@@ -1,9 +1,4 @@
-from mattdm/fedora:f20
-
-# make sure the package repository is up to date
-add resources/fedora.repo /etc/yum.repos.d/fedora.repo
-add resources/fedora-updates.repo /etc/yum.repos.d/fedora-updates.repo
-
-run yum -y update && yum clean all
-
-run useradd app -M --shell /sbin/nologin
+from busybox:buildroot-2014.02
+run /usr/sbin/adduser -H -D -s /bin/false app
+# disable all setuid functionality
+run find / -perm -4000 -exec chmod a-s {} \;
