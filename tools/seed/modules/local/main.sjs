@@ -212,15 +212,17 @@ var appButton = function(initialName, app, activate) {
 	return @A(appName, {'class':'clickable'}) .. appNameStyle .. OnClick(activate);
 };
 
+var appDisplayMessageStyle = @CSS("
+{
+	margin-top:1em;
+	margin-right:10%;
+	margin-left:5%;
+	color: #888;
+}
+");
+
 var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	@info("app: ", app);
-
-	if (!app) {
-		return @Div([
-			@H4("No app selected"),
-		]) .. Center() .. @Style('margin-top:4em; margin-right:20%;');
-	}
-
 	var endpoint = app.endpoint .. @mirror();
 
 	var appState = @Stream(function(emit) {
@@ -491,12 +493,14 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 						])) {|elem|
 							var display = elem.querySelector('.appDisplay');
 							activeApp .. @each.track {|app|
-								if (!app && (apps .. @first).length == 0) {
-									display .. @appendContent(@Div([
-											@H3("You don't have any apps yet"),
-											@P('Click the "New app" button on the left to get started.'),
-										]) .. Center() .. @Style('margin-top:4em;')
-										, -> hold());
+								if (!app) {
+									display .. @appendContent(apps .. @transform(apps ->
+										@Div(apps.length > 0
+										? [ @H3("No app selected") ]
+										: [ @H3("You don't have any apps yet"),
+											  @P('Click the "new" button on the left to get started.'),
+											]
+										) .. appDisplayMessageStyle), -> hold());
 								} else {
 									var widget = appWidget(token, localApi, localServer, remoteServer, app);
 									display .. @appendContent(widget, -> hold());
