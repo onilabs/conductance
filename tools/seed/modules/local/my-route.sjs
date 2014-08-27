@@ -8,22 +8,15 @@ routeCodec.encode = function(state) {
 	rv = "#{
 		(state.server || "") .. encodeURIComponent()
 	}/#{
-		(state.apps || []) .. @map(encodeURIComponent) .. @join(",")
+		(state.app || "") .. encodeURIComponent()
 	}";
 	return rv;
 };
 routeCodec.decode = function(str) {
-	var [server, apps] = str.split('/');
-	var apps = (apps || "").split(',')
-		.. @map(decodeURIComponent)
-		.. @filter(x -> x !== "")
-		.. @toArray;
-	;
-	server = server .. decodeURIComponent();
-	if (server === "") server = null;
+	var [server, app] = str.split('/') .. @map(decodeURIComponent) .. @map(x -> x == "" ? null : x);
 	return {
 		server: server,
-		apps: apps,
+		app: app,
 	};
 };
 

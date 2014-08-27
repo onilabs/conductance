@@ -156,7 +156,7 @@ var fileBrowseCss = @CSS('
 		}
 	}
 ');
-var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
+var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extraActions) {
 	var { central, local } = conf;
 	waitfor {
 		var centralForm = @form.Form(central .. @first());
@@ -248,6 +248,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf) {
 							pathField
 						),
 						@Div(saveButton, {'class':'pull-right'}),
+						extraActions,
 					];
 				}
 			}),

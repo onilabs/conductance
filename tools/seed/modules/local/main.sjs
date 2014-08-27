@@ -8,6 +8,8 @@ var { @route } = require('./my-route');
 @logging.setLevel(@logging.DEBUG);
 var { @Countdown } = require('mho:surface/widget/countdown');
 
+var OnClick = (elem, action) -> @OnClick(elem, {handle:@stopEvent}, action);
+
 var Center = @CSS("{text-align:center;}");
 document.body .. @appendContent(@GlobalCSS("
 	body {
@@ -32,24 +34,70 @@ document.body .. @appendContent(@GlobalCSS("
 	}
 "));
 
+var appListHeight = 50;
+var appListHl = "#E7E7EB";
+var appListBg = "#F7F8FA";
 var appListStyle = @CSS("
 	{
-		margin-top: 1em;
+		background: #{appListBg};
+		min-height: 600px;
+		border-right: 1px solid #{appListHl};
 	}
 
 	.glyphicon {
 		float:right;
 	}
 
-	li {
-		background: #f5f5f5;
-		padding-left: 2em;
-		font-size: 0.9em;
+	ul, li {
+		padding:0;
+		margin:0;
+		list-style-type: none;
 	}
-	li:first-child {
-		font-size: 1.1em;
-		background: white;
-		padding-left:1em;
+
+	li {
+		//border-bottom: 1px solid rgba(0,0,0,0.1);
+		height: #{appListHeight}px;
+		font-size: #{appListHeight * 0.4}px;
+		&.active {
+			background: #{appListHl};
+			margin-right: -1px;
+			&:before {
+				content: ' ';
+				display:block;
+				height: #{appListHeight}px;
+				border: #{appListHeight/2}px solid transparent;
+				border-left-width: #{appListHeight/3}px;
+				width: #{appListHeight/2}px;
+				position: absolute;
+				left: 100%;
+				border-left-color: #{appListHl};
+			}
+			a, a:hover {
+				color: #000;
+			}
+		}
+		a {
+			display:inline-block;
+			padding: #{appListHeight*0.2}px 0.8em #{appListHeight*0.1}px;
+			width:100%;
+			color: #999;
+			&:hover {
+				color: #555;
+				text-decoration: none;
+			}
+		}
+	}
+
+");
+
+var appNameStyle = @CSS("
+	{
+		white-space: nowrap;
+		overflow:hidden;
+	}
+	.glyphicon {
+		position: relative;
+		top:0.2em;
 	}
 ");
 
@@ -133,8 +181,19 @@ var editServerSettings = function(server) {
 	}
 };
 
+var appButton = function(initialName, app, activate) {
+	var appName = [initialName] .. @concat(app.config .. @transform(x -> x.name));
+	return @A(appName, {'class':'clickable'}) .. appNameStyle .. OnClick(activate);
+};
+
 var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	@info("app: ", app);
+
+	if (!app) {
+		return @Div([
+			@H4("No app selected"),
+		]) .. Center() .. @Style('margin-top:4em;');
+	}
 
 	var endpoint = app.endpoint .. @mirror();
 
@@ -186,16 +245,6 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 		});
 	};
 
-	var appNameStyle = @CSS("
-		{
-			white-space: nowrap;
-			overflow:hidden;
-		}
-		.glyphicon {
-			position: relative;
-			top:0.2em;
-		}
-	");
 	var appName = app.config .. @transform(a -> a.name);
 
 	var statusClass = isRunning .. @transform(ok -> "glyphicon-#{ok ? "play" : ok === false ? "stop" : "flash"}");
@@ -211,14 +260,32 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	var logsVisible = @ObservableVar(false);
 	var logDisclosureClass = logsVisible .. @transform(vis -> "glyphicon-chevron-#{vis ? 'up':'down'}");
 
-	var hideXS = c -> @Span(c, {'class':'hidden-xs'});
+	var editAppSettings = function(e) {
+		@modal.withOverlay({title:`$appName Settings`}) {|elem|
+			elem .. @form.appConfigEditor(localApi, {
+					central: app.config,
+					local: localServer.appConfig(app.id),
+				},
+				@Button('Delete', {'class':'btn-danger'}) .. OnClick(function() {
+					if (!confirmDelete(appName)) return;
+					@withBusyIndicator {||
+						remoteServer.destroyApp(app .. @get('id'));
+					}
+				})
+			);
+		}
+	};
+
+	var hideSm = c -> @Span(c, {'class':'hidden-sm hidden-xs'});
+	var toolBtn = (text, icon, attrs) -> @Button(["#{text} " .. hideSm, @Icon(icon)], (attrs || {}) .. @merge({title:text}));
 	var appDetail = @Div(`
 		<div class="header">
 
 			<div class="btn-group">
-				${@Button(["stop " .. hideXS, @Icon('stop')])  .. disabled(disableStop) .. @OnClick(-> app.stop())}
-				${@Button(["start " .. hideXS, @Icon('play')]) .. disabled(disableStart) .. @OnClick(-> app.start())}
-				${@Button(["deploy " .. hideXS, @Icon('cloud-upload')]) .. disabled(disableDeploy) .. @Mechanism(function(elem) {
+				${toolBtn("stop", 'stop')  .. disabled(disableStop) .. @OnClick(-> app.stop())}
+				${toolBtn("start", 'play') .. disabled(disableStart) .. @OnClick(-> app.start())}
+				${toolBtn("settings", 'cog') .. @OnClick(editAppSettings)}
+				${toolBtn("deploy", 'cloud-upload', {'class':'btn-danger'}) .. disabled(disableDeploy) .. @Mechanism(function(elem) {
 					var click = elem .. @events('click');
 					while(true) {
 						click .. @wait();
@@ -311,77 +378,13 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 		</div>
 	`) .. appStyle();
 
-	var detailShown = @route .. @transform(function(state) {
-		var apps = state.apps;
-		return apps .. @hasElem(app.id);
-	}) .. @dedupe;
-	detailShown.get = -> detailShown .. @first();
-	detailShown.set = function(val) {
-		@route.modify(function(state, unmodified) {
-			var apps = state.apps;
-			var currently = apps .. @hasElem(app.id);
-			if (val) {
-				if (!currently) {
-					return state .. @merge({apps: apps.concat([app.id])});
-				}
-			} else {
-				var apps = apps.slice();
-				if (currently) {
-					apps .. @remove(app.id);
-					return state .. @merge({apps:apps});
-				}
-			}
-			return unmodified;
-		});
-	};
-
-	var disclosureClass = detailShown .. @transform(
-		shown -> 'glyphicon-chevron-' + (shown ? 'left' : 'right')
-	);
-
-	var listButton = function(content) {
-		return @Li(content, {'class':'list-group-item clickable'});
-	};
-
-	return [
-		@Div([
-			@Ul([
-				listButton([
-					@Span(null, {'class':'glyphicon'}) .. @Class(disclosureClass),
-					" ",
-					@Div(appName) .. @Style("margin-right: 1.5em;overflow:hidden;"),
-				]) .. @OnClick({handle: @stopEvent}, function(btn) {
-					detailShown.set(!detailShown.get());
-				}) .. appNameStyle,
-			
-				listButton(['Settings', @Icon('cog')])
-				.. @OnClick(function(e) {
-					@modal.withOverlay({title:`$appName Settings`}) {|elem|
-						elem .. @form.appConfigEditor(localApi, {
-								central: app.config,
-								local: localServer.appConfig(app.id),
-							});
-					}
-				}),
-
-				listButton(['Delete', @Icon('minus-sign')]) .. @OnClick(function() {
-					if (!confirmDelete(appName)) return;
-					@withBusyIndicator {||
-						remoteServer.destroyApp(app .. @get('id'));
-					}
-				}),
-			], {'class':'list-group'}) .. appListStyle(),
-		], {'class':'col-sm-4'}),
-
-		@Div(detailShown .. @transform(show -> show ? appDetail : null),
-			{'class':'col-sm-8 app-detail'}),
-	];
+	return appDetail;
 };
 
 var showServer = function(token, localApi, localServer, remoteServer, container) {
-	var apps = remoteServer.apps;
+	var apps = remoteServer.apps .. @mirror();
 
-	var addApp = @Button([@Icon('plus'), ' New app']) .. @Class('btn-primary') .. @OnClick(function() {
+	var addApp = @Button([@Icon('plus'), ' New app']) .. @Class('btn-primary') .. OnClick(function() {
 		// make an in-memory config, and only save it to the server when
 		// we submit the form
 		var newConfig = {
@@ -408,10 +411,10 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 					addApp,
 
 					localApi.multipleServers ? @Button([@Icon('cog'), ` Settings`])
-						.. @OnClick({handle: @preventDefault}, -> editServerSettings(localServer)),
+						.. OnClick(-> editServerSettings(localServer)),
 
 					@Button([@Icon('log-out'), ` Log out`])
-						.. @OnClick({handle: @preventDefault}, -> logout.emit()),
+						.. OnClick(-> logout.emit()),
 
 				], {'class':'btn-group'}) .. @Style('margin-top: 15px;'),
 				{'class':'clearfix'}) .. Center
@@ -420,20 +423,58 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 		waitfor {
 			while(true) {
 				try {
-					container .. @appendContent(apps .. @transform(function(apps) {
+					var activeApp = @observe(apps, @route, function(apps, route) {
+						if (!route.app) return null;
+						return apps .. @find(app -> app.id === route.app, null);
+					}) .. @dedupe;
+
+					activeApp.set = function(app) {
+						@route.modify(function(r, unmodified) {
+							if(r.app === app.id) return unmodified;
+							return r .. @merge({app:app.id});
+						});
+					};
+
+					var appMenu = apps .. @transform(function(apps) {
 						@info("list of apps for #{localServer.id} changed...");
-						if (apps.length == 0) {
-							return @Div([
-								@H3("You don't have any apps yet"),
-								@P('Click the "New app" button above to get started.'),
-							]) .. Center() .. @Style('margin-top:4em;');
-						}
 						var appNames = apps .. @map.par(app -> (app.config .. @first).name);
-						var appWidgets = apps .. @sortBy((_, i) -> appNames[i]) .. @map(app ->
-							@Div(appWidget(token, localApi, localServer, remoteServer, app), {'class':'row'})
-						);
-						return appWidgets;
-					}), -> hold());
+						var items = apps
+							.. @indexed
+							.. @map(([i, app]) -> [appNames[i], app])
+							.. @sortBy(pair -> pair[0])
+							.. @map(([name, app]) ->
+								@Li(appButton(name, app, -> activeApp.set(app)))
+									.. appNameStyle()
+									.. @Class("active", activeApp .. @transform(a -> a && a === app))
+							);
+						return @Col("xs-4 md-3",
+								@Row(
+									[
+										@Ul(items)
+									]
+							) .. appListStyle());
+					});
+
+					container .. @appendContent(@Row([
+							@Div(appMenu),
+							@Col('xs-8 md-9',
+								@Div(null, {'class':'appDisplay', 'style':"margin-left: #{appListHeight/2}px;"})
+							)
+					])) {|elem|
+						var display = elem.querySelector('.appDisplay');
+						activeApp .. @each.track {|app|
+							if (!app && (apps .. @first).length == 0) {
+								display .. @appendContent(@Div([
+										@H3("You don't have any apps yet"),
+										@P('Click the "New app" button above to get started.'),
+									]) .. Center() .. @Style('margin-top:4em;')
+									, -> hold());
+							} else {
+								var widget = appWidget(token, localApi, localServer, remoteServer, app);
+								display .. @appendContent(widget, -> hold());
+							}
+						}
+					}
 					break;
 				} catch(e) {
 					console.error("Error in app display: #{e}");
@@ -441,7 +482,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 					var retry = @Emitter();
 					container .. @appendContent(@Div([
 						@H3(`Uncaught Error: ${msg}`),
-						@P(@Button("Try again...", {'class':'btn-danger'}) .. @OnClick({handle:@stopEvent}, -> retry.emit()))
+						@P(@Button("Try again...", {'class':'btn-danger'}) .. OnClick(-> retry.emit()))
 					]), -> retry .. @wait());
 				}
 			}
@@ -497,7 +538,7 @@ function displayServer(elem, api, server, clientVersion) {
 							while (!token) {
 								@info("Getting auth token...");
 								var username, password;
-								var loginResult = @modal.withOverlay({title:`Login to ${initialConfig.name}`}) {|elem|
+								var loginResult = @modal.withOverlay({title:`Login to ${initialConfig.name}`, close: api.multipleServers}) {|elem|
 									@form.loginDialog(elem, server.config, {
 										login: function(props) {
 											withBusyIndicator {||
@@ -524,7 +565,7 @@ function displayServer(elem, api, server, clientVersion) {
 									return;
 								}
 
-								var {username, token} = loginResult;
+								({username, token}) = loginResult;
 
 								server.config.modify(existing -> existing .. @merge({
 										token:token,
@@ -622,7 +663,7 @@ exports.run = function(clientVersion) {
 					return servers .. @map(function(server) {
 						@info("Server: ", server);
 						var serverName = [`&hellip;`] .. @concat(server.config .. @transform(s -> s.name));
-						var button = @A(serverName, {'class':'btn navbar-btn'}) .. @OnClick(function(evt) {
+						var button = @A(serverName, {'class':'btn navbar-btn'}) .. OnClick(function(evt) {
 								activeServer.set(server);
 							});
 
@@ -631,16 +672,16 @@ exports.run = function(clientVersion) {
 							@Ul([
 
 								@A([@Icon('cog'), ' Settings'])
-									.. @OnClick({handle:@stopEvent}, ->editServerSettings(server)),
+									.. OnClick(->editServerSettings(server)),
 
-								@A([@Icon('remove'), ' Delete']) .. @OnClick({handle:@stopEvent}, function() {
+								@A([@Icon('remove'), ' Delete']) .. OnClick(function() {
 									if (!confirmDelete(`server ${server.config .. @first .. @get('name')}`)) return;
 									@withBusyIndicator {||
 										server.destroy();
 									}
 								}),
 
-								@A([@Icon('log-out'), ' Log out']) .. @OnClick({handle:@stopEvent}, function() {
+								@A([@Icon('log-out'), ' Log out']) .. OnClick(function() {
 									localApi.deleteServerCredentials(server.id);
 									if (activeServer.get() === server) activeServer.set(null);
 								}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
@@ -653,7 +694,7 @@ exports.run = function(clientVersion) {
 					});
 				});
 
-				var addServer = @Li(@Div(@A(@Icon('plus-sign'), {'class':'floating'})) .. @OnClick(function() {
+				var addServer = @Li(@Div(@A(@Icon('plus-sign'), {'class':'floating'})) .. OnClick(function() {
 					var config = @ObservableVar({});
 					@modal.withOverlay({title:`Create server`}) {|elem|
 						elem .. @form.serverConfigEditor(config);
