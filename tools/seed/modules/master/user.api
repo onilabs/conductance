@@ -4,7 +4,8 @@
 @verification = require('./verification');
 
 exports.validateToken = function(token) {
-  @user.authenticate(token);
+  var user = @user.authenticate(token);
+  return user.id;
 };
 
 exports.sendConfirmation = function(username) {
