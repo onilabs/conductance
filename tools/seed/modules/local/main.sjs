@@ -12,14 +12,17 @@ var OnClick = (elem, action) -> @OnClick(elem, {handle:@stopEvent}, action);
 
 var Center = @CSS("{text-align:center;}");
 document.body .. @appendContent(@GlobalCSS("
+	html, body {
+		height:100%;
+	}
 	body {
 		> .container {
-			min-height: 500px;
+			min-height:100%;
 			background: white;
 			box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
-			padding-top: 1em;
 		}
 		background: #555562;
+		background: #49464B;
 	}
 
 	.clickable, a, button {
@@ -34,18 +37,41 @@ document.body .. @appendContent(@GlobalCSS("
 	}
 "));
 
+var headerStyle = @CSS("
+	{
+		position:relative;
+		height: 100px;
+		background: #B9090B;
+		color: white;
+		padding: 0 2em;
+		border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+	}
+");
+
+var serverControlStyle = @CSS("
+	display:inline-block;
+	position: absolute;
+	top:20px;
+	right:20px;
+");
+
 var appListHeight = 50;
 var appListHl = "#E7E7EB";
 var appListBg = "#F7F8FA";
 var appListStyle = @CSS("
 	{
 		background: #{appListBg};
-		min-height: 600px;
-		border-right: 1px solid #{appListHl};
+		border: 1px solid #{appListHl};
+		border-top-width: 0;
+		border-left-width: 0;
+		padding: 15px 0 0;
+		border-bottom-right-radius: 5px;
 	}
 
 	.glyphicon {
-		float:right;
+		position: relative;
+		top:0.2em;
+		margin-right: 0.5em;
 	}
 
 	ul, li {
@@ -192,7 +218,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	if (!app) {
 		return @Div([
 			@H4("No app selected"),
-		]) .. Center() .. @Style('margin-top:4em;');
+		]) .. Center() .. @Style('margin-top:4em; margin-right:20%;');
 	}
 
 	var endpoint = app.endpoint .. @mirror();
@@ -381,10 +407,11 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 	return appDetail;
 };
 
-var showServer = function(token, localApi, localServer, remoteServer, container) {
+var showServer = function(token, localApi, localServer, remoteServer, container, header) {
 	var apps = remoteServer.apps .. @mirror();
 
-	var addApp = @Button([@Icon('plus'), ' New app']) .. @Class('btn-primary') .. OnClick(function() {
+	var addApp = @Li(@A([@Icon('plus-sign'), 'new']) .. appNameStyle)
+		.. OnClick(function() {
 		// make an in-memory config, and only save it to the server when
 		// we submit the form
 		var newConfig = {
@@ -403,97 +430,99 @@ var showServer = function(token, localApi, localServer, remoteServer, container)
 		}
 	});
 
+
 	var logout = @Emitter();
-	container .. @appendContent(
-		@Div(
+	waitfor {
+		header .. @appendContent(
 			@Div(
 				@Div([
-					addApp,
-
 					localApi.multipleServers ? @Button([@Icon('cog'), ` Settings`])
 						.. OnClick(-> editServerSettings(localServer)),
 
 					@Button([@Icon('log-out'), ` Log out`])
 						.. OnClick(-> logout.emit()),
+				], {'class':'btn-group'})
+			) .. serverControlStyle(), ->hold());
+	} or {
+		container .. @appendContent(
+			@Div(
+			)) {|container|
 
-				], {'class':'btn-group'}) .. @Style('margin-top: 15px;'),
-				{'class':'clearfix'}) .. Center
-		)) {|container|
+			waitfor {
+				while(true) {
+					try {
+						var activeApp = @observe(apps, @route, function(apps, route) {
+							if (!route.app) return null;
+							return apps .. @find(app -> app.id === route.app, null);
+						}) .. @dedupe;
 
-		waitfor {
-			while(true) {
-				try {
-					var activeApp = @observe(apps, @route, function(apps, route) {
-						if (!route.app) return null;
-						return apps .. @find(app -> app.id === route.app, null);
-					}) .. @dedupe;
+						activeApp.set = function(app) {
+							@route.modify(function(r, unmodified) {
+								if(r.app === app.id) return unmodified;
+								return r .. @merge({app:app.id});
+							});
+						};
 
-					activeApp.set = function(app) {
-						@route.modify(function(r, unmodified) {
-							if(r.app === app.id) return unmodified;
-							return r .. @merge({app:app.id});
+						var appMenu = apps .. @transform(function(apps) {
+							@info("list of apps for #{localServer.id} changed...");
+							var appNames = apps .. @map.par(app -> (app.config .. @first).name);
+							var items = apps
+								.. @indexed
+								.. @map(([i, app]) -> [appNames[i], app])
+								.. @sortBy(pair -> pair[0])
+								.. @map(([name, app]) ->
+									@Li(appButton(name, app, -> activeApp.set(app)))
+										.. appNameStyle()
+										.. @Class("active", activeApp .. @transform(a -> a && a === app))
+								);
+							return @Col("xs-4 md-3",
+									@Row(
+										[
+											@Ul(items.concat(addApp))
+										]
+								) .. appListStyle());
 						});
-					};
 
-					var appMenu = apps .. @transform(function(apps) {
-						@info("list of apps for #{localServer.id} changed...");
-						var appNames = apps .. @map.par(app -> (app.config .. @first).name);
-						var items = apps
-							.. @indexed
-							.. @map(([i, app]) -> [appNames[i], app])
-							.. @sortBy(pair -> pair[0])
-							.. @map(([name, app]) ->
-								@Li(appButton(name, app, -> activeApp.set(app)))
-									.. appNameStyle()
-									.. @Class("active", activeApp .. @transform(a -> a && a === app))
-							);
-						return @Col("xs-4 md-3",
-								@Row(
-									[
-										@Ul(items)
-									]
-							) .. appListStyle());
-					});
-
-					container .. @appendContent(@Row([
-							@Div(appMenu),
-							@Col('xs-8 md-9',
-								@Div(null, {'class':'appDisplay', 'style':"margin-left: #{appListHeight/2}px;"})
-							)
-					])) {|elem|
-						var display = elem.querySelector('.appDisplay');
-						activeApp .. @each.track {|app|
-							if (!app && (apps .. @first).length == 0) {
-								display .. @appendContent(@Div([
-										@H3("You don't have any apps yet"),
-										@P('Click the "New app" button above to get started.'),
-									]) .. Center() .. @Style('margin-top:4em;')
-									, -> hold());
-							} else {
-								var widget = appWidget(token, localApi, localServer, remoteServer, app);
-								display .. @appendContent(widget, -> hold());
+						container .. @appendContent(@Row([
+								@Div(appMenu),
+								@Col('xs-8 md-9',
+									@Div(null, {'class':'appDisplay', 'style':"margin-left: #{appListHeight/2}px;"})
+								)
+						])) {|elem|
+							var display = elem.querySelector('.appDisplay');
+							activeApp .. @each.track {|app|
+								if (!app && (apps .. @first).length == 0) {
+									display .. @appendContent(@Div([
+											@H3("You don't have any apps yet"),
+											@P('Click the "New app" button on the left to get started.'),
+										]) .. Center() .. @Style('margin-top:4em;')
+										, -> hold());
+								} else {
+									var widget = appWidget(token, localApi, localServer, remoteServer, app);
+									display .. @appendContent(widget, -> hold());
+								}
 							}
 						}
+						break;
+					} catch(e) {
+						console.error("Error in app display: #{e}");
+						var msg = e.message;
+						var retry = @Emitter();
+						container .. @appendContent(@Div([
+							@H3(`Uncaught Error: ${msg}`),
+							@P(@Button("Try again...", {'class':'btn-danger'}) .. OnClick(-> retry.emit()))
+						]), -> retry .. @wait());
 					}
-					break;
-				} catch(e) {
-					console.error("Error in app display: #{e}");
-					var msg = e.message;
-					var retry = @Emitter();
-					container .. @appendContent(@Div([
-						@H3(`Uncaught Error: ${msg}`),
-						@P(@Button("Try again...", {'class':'btn-danger'}) .. OnClick(-> retry.emit()))
-					]), -> retry .. @wait());
 				}
+			} or {
+				logout .. @wait();
+				localApi.deleteServerCredentials(localServer.id);
 			}
-		} or {
-			logout .. @wait();
-			localApi.deleteServerCredentials(localServer.id);
 		}
 	}
 };
 
-function displayServer(elem, api, server, clientVersion) {
+function displayServer(elem, header, api, server, clientVersion) {
 	@assert.ok(server, "null server");
 	var id = server.id;
 	elem .. @appendContent(@Div(null)) {|elem|
@@ -575,7 +604,7 @@ function displayServer(elem, api, server, clientVersion) {
 							}
 							remoteServer = remoteServer.authenticate(token);
 						}
-						showServer(token, api, localServer, remoteServer, elem);
+						showServer(token, api, localServer, remoteServer, elem, header);
 					}
 					break;
 				} catch(e) {
@@ -617,9 +646,9 @@ function displayServer(elem, api, server, clientVersion) {
 
 exports.run = function(clientVersion) {
 	@withBusyIndicator {|ready|
-		var pageHeader = @Div([
+		var pageHeader = @Row([
 			@H1(`Conductance Seed`),
-		]);
+		]) .. headerStyle;
 		// NOTE: we explicitly use /remote.api, not ./remote
 		// (this module might be served from the master, which does NOT provide remote.api)
 		@withAPI('/remote.api') {|api|
@@ -767,7 +796,7 @@ exports.run = function(clientVersion) {
 				@mainContent .. @appendContent([
 					pageHeader,
 					@Div(),
-				]) {|_, content|
+				]) {|header, content|
 					ready();
 					api.servers .. @each.track {|servers|
 						@info("api.servers changed");
@@ -777,7 +806,7 @@ exports.run = function(clientVersion) {
 							return { server: server.id };
 						});
 						while(true) {
-							content .. displayServer(api, server, clientVersion);
+							content .. displayServer(header, api, server, clientVersion);
 						}
 					}
 				}
