@@ -107,11 +107,11 @@ exports.defaults = function() {
 			agent: false,
 
 			// trust a server signed by our CA
-			ca: @fs.readFile(@path.join(store, "key-all-etcd-ca.crt")),
+			ca:   @fs.readFile(process.env .. @get('ETCD_CA_FILE')),
 
 			// provide our client certificate
-			cert: @fs.readFile(@path.join(store, "key-conductance-etcd-client.crt")),
-			key:  @fs.readFile(@path.join(store, "key-conductance-etcd-client.key")),
+			cert: @fs.readFile(process.env .. @get('SEED_ETCD_CLIENT_CERT')),
+			key:  @fs.readFile(process.env .. @get('SEED_ETCD_CLIENT_KEY')),
 		};
 	}, true);
 	def('etcd-proto', PROD ? 'https' : 'http');
