@@ -100,12 +100,27 @@ exports.defaults = function() {
 
 	def('etcd-host', etcdAddr[0]);
 	def('etcd-port', etcdAddr[1]);
-	def('etcd-proto', 'http'); // XXX no support for https yet...
+	def('etcd-ssl', function() {
+		var store = this.get('key-store');
+		if(!store) return null;
+		return {
+			agent: false,
+
+			// trust a server signed by our CA
+			ca: @fs.readFile(@path.join(store, "key-all-etcd-ca.crt")),
+
+			// provide our client certificate
+			cert: @fs.readFile(@path.join(store, "key-conductance-etcd-client.crt")),
+			key:  @fs.readFile(@path.join(store, "key-conductance-etcd-client.key")),
+		};
+	}, true);
+	def('etcd-proto', PROD ? 'https' : 'http');
 	def('etcd', function() {
 		var host = this.get('etcd-host');
 		var port = this.get('etcd-port');
+		var sslOpts = this.get('etcd-ssl');
 		@logging.info("Connecting to etcd #{host}:#{port}");
-		return new @etcd.Etcd(host, port);
+		return new @etcd.Etcd(host, port, sslOpts);
 	}, true);
 
 	// ports which proxy server should run on
@@ -126,7 +141,12 @@ exports.defaults = function() {
 		-> @path.join(process.env .. @get('XDG_CONFIG_HOME', @path.join(process.env .. @get('HOME'), '.config')), 'conductance'),
 		true);
 
-	def('key-store', -> process.env['SEED_KEYS'] || null, true);
+	def('key-store', function() {
+		var rv = process.env['SEED_KEYS'];
+		if(rv) return rv;
+		if(PROD) throw new Error("$SEED_KEYS not set");
+		return null;
+	}, true);
 
 	def('email-domain', -> process.env['MAILGUN_SERVER'] || this.get('host-self'), true);
 	def('email-transport', @email.mailgunTransport, true);

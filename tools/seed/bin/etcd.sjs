@@ -29,7 +29,7 @@ exports.awaitRunningServer = function awaitRunningServer() {
 exports.isRunning = function(root) {
 	root = root || root_url();
 	try {
-		@http.get(root + "keys/");
+		@http.get(root + "keys/", @env.get('etcd-ssl'));
 		@info("Found server on #{root}");
 		return true;
 	} catch(e) {
