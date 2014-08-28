@@ -18,6 +18,8 @@
 
     In a nodejs environment, it contains a number of additional
     properties:
+
+  @require sjs:service
 */
 
 if (require('builtin:apollo-sys').hostenv === 'xbrowser') {
