@@ -61,7 +61,7 @@ module.exports = require(modules);
   a stream to a [::Document] will raise an error.
 
 @class Element
-@__inherit__ CURRENTLY HIDDEN ::CollapsedFragment
+@__inherit__ CURRENTLY HIDDEN ::Fragment
 @summary A [::HtmlFragment] rooted in a single HTML element
 
 @function Element

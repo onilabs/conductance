@@ -88,7 +88,7 @@ exports._getDynOniSurfaceInit = ->
     CFRAGMENT          : an instance of class [::CollapsedFragment]
 */
 __js var FragmentBase = {
-  appendTo: function(target) {
+  appendTo: function(target, instantiation_context) {
     target.css .. extendCSS(this.css);
     target.mechanisms .. extend(this.mechanisms);
     target.externalScripts .. extend(this.externalScripts);
@@ -116,7 +116,7 @@ __js CollapsedFragmentProto .. extend({
   getMechanisms:   -> this.mechanisms,     // { mechanism_id : code, ... }
   getExternalScripts: -> this.externalScripts,     // { url: true, ... }
   getExternalCSS: -> this.externalCSS, // { url: true, ... }
-  appendTo: func.seq(CollapsedFragmentProto.appendTo, function(target) {
+  appendTo: func.seq(CollapsedFragmentProto.appendTo, function(target, instantiation_context) {
     target.content += this.content;
   }),
   _init: func.seq(CollapsedFragmentProto._init, function() {
@@ -186,12 +186,12 @@ function StreamingContent(stream) {
 }
 
 // internal function used by collapseHtmlFragment()
-function appendFragmentTo(target, ft, tag) { 
+function appendFragmentTo(target, ft, instantiation_context) { 
   if (isQuasi(ft)) {
     for (var idx=0,l=ft.parts.length;idx<l;++idx) {
       var val = ft.parts[idx];
       if (idx % 2) {
-        appendFragmentTo(target, val, tag);
+        appendFragmentTo(target, val, instantiation_context);
       }
       else {// a literal value 
         target.content += val;
@@ -199,21 +199,21 @@ function appendFragmentTo(target, ft, tag) {
     }
   }
   else if (isFragment(ft)) {
-    return ft.appendTo(target, tag);
+    return ft.appendTo(target, instantiation_context);
   }
   else if (isStream(ft)) { 
     // streams are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
     ft = StreamingContent(ft);
-    ft.appendTo(target, tag);
+    ft.appendTo(target, instantiation_context);
   }
   else if (Array.isArray(ft)) {
-    ft .. each(p -> appendFragmentTo(target, p, tag));
+    ft .. each(p -> appendFragmentTo(target, p, instantiation_context));
   }
   else {
     if (ft != null)
-      target.content += escapeForTag(ft, tag);
+      target.content += escapeForTag(ft, instantiation_context.tag);
   }
 }
 
@@ -234,10 +234,11 @@ __js {
   exports.escapeForTag = escapeForTag;
 }
 
-function collapseHtmlFragment(ft, tag) {
+function collapseHtmlFragment(ft, instantiation_context) {
+  if (!instantiation_context) instantiation_context = {};
   if (isCollapsedFragment(ft)) return ft;
   var rv = CollapsedFragment();
-  appendFragmentTo(rv, ft, tag);
+  appendFragmentTo(rv, ft, instantiation_context);
   return rv;
 }
   
@@ -246,7 +247,7 @@ exports.collapseHtmlFragment = collapseHtmlFragment;
 //----------------------------------------------------------------------
 /**
   @class Element
-  @__inherit__ CURRENTLY HIDDEN ::CollapsedFragment
+  @__inherit__ CURRENTLY HIDDEN ::Fragment
   @summary A [::HtmlFragment] rooted in a single HTML element
 */
 __js var ElementProto = Object.create(FragmentBase);
@@ -303,7 +304,7 @@ __js ElementProto._normalizeClasses = function() {
 
 __js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : val;
 
-ElementProto.appendTo = function(target) {
+ElementProto.appendTo = function(target, instantiation_context) {
   var attribs = propertyPairs(this.attribs)
     .. map(function([key,val]) {
       if (typeof(val) === 'undefined') return "";
@@ -315,16 +316,16 @@ ElementProto.appendTo = function(target) {
     .. join('');
 
   target.content += "<#{this.tag}#{attribs}>";
-  this._appendInner(target);
+  this._appendInner(target, instantiation_context);
   if (this.isVoid)
     return;
   target.content += "</#{this.tag}>";
 };
 
-ElementProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
+ElementProto._appendInner = func.seq(FragmentBase.appendTo, function(target, instantiation_context) {
   // append inner contents (as well as adding this element's css, mechanisms, etc)
   if (this.content != null) {
-    appendFragmentTo(target, this.content, this.tag);
+    appendFragmentTo(target, this.content, instantiation_context .. extend({tag:this.tag}));
   }
 });
 
@@ -1033,3 +1034,47 @@ exports.RequireExternalCSS = function(url) {
   return rv;
 };
 
+
+//----------------------------------------------------------------------
+
+var TemplateProto = Object.create(FragmentBase);
+
+TemplateProto.appendTo = function(target, instantiation_context) {
+  var val = instantiation_context[this.name];
+  if (val === undefined) {
+    val = this.default_value;
+    if (val === undefined)
+      throw new Error("Unbound template '#{this.name}' in HTMLFragment");
+  }
+
+  appendFragmentTo(target, this.f_ft(val), instantiation_context);
+};
+
+// f_ft is a function par -> frametree
+__js function Template(name, f_ft, default_value) {
+  var rv = Object.create(TemplateProto);
+  rv.name = name;
+  rv.f_ft = f_ft;
+  rv.default_value = default_value;
+  return rv;
+}
+exports.Template = Template;
+
+//----------------------------------------------------------------------
+
+var BindProto = Object.create(FragmentBase);
+
+BindProto.appendTo = function(target, instantiation_context) {
+  instantiation_context = clone(instantiation_context);
+  instantiation_context[this.name] = this.val;
+  appendFragmentTo(target, this.ft, instantiation_context);
+};
+
+__js function Bind(ft, name, val) {
+  var rv = Object.create(BindProto);
+  rv.ft = ft;
+  rv.name = name;
+  rv.val = val;
+  return rv;
+}
+exports.Bind = Bind;
