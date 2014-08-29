@@ -96,6 +96,7 @@ exports.run = exports.serve = function(args) {
 }
 
 if (require.main === module) {
+  var TRAVIS = process.env.TRAVIS === 'true';
   var args = require('sjs:sys').argv();
   if (args[0] === '--karma') {
     args.shift();
@@ -103,7 +104,13 @@ if (require.main === module) {
     args.shift();
 
     var karmaArgs = [karmaConfUrl .. url.toPath];
-    if (process.env.BROWSERS) {
+    var browsers = process.env.BROWSERS;
+    if (browsers) {
+      if (TRAVIS && browsers != 'PhantomJS') {
+        process.env['DISPLAY'] = ':99';
+        require('sjs:nodejs/child-process').run("sh", ["-e", "/etc/init.d/xvfb", "start"], {stdio: "inherit"});
+        hold(3000);
+      }
       karmaArgs = karmaArgs.concat(['--browsers',process.env.BROWSERS]);
     }
 
