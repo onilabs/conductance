@@ -1,4 +1,4 @@
-var { context, test, assert } = require('sjs:test/suite');
+var { context, test, assert, isBrowser } = require('sjs:test/suite');
 var http = require('sjs:http');
 var url = require('sjs:url');
 var helper = require('../helper');
@@ -24,11 +24,13 @@ context("serving files") {||
 		assert.raises(
 			{filter: e -> e.status === 404},
 			-> http.get(rel('../../../../../etc/hosts')));
+	}
 
+	test("Accessing a file outside the document root (encoded path components)") {||
 		assert.raises(
 			{filter: e -> e.status === 403},
 			-> http.get(rel('%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/hosts')));
-	}
+	}.skipIf(isBrowser);
 
 	test("Can't access source code of .api files") {||
 		var url = rel('hello.api');

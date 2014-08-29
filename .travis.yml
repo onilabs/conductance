@@ -3,6 +3,7 @@ node_js:
   - "0.10"
 env:
   - a="--karma single-run"
+  - a="--karma single-run" BROWSERS=Firefox
   - a=""
 matrix:
   # just run integration tests on other node versions

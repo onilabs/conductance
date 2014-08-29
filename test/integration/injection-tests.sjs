@@ -1,4 +1,4 @@
-var { context, test, assert } = require('sjs:test/suite');
+var { context, test, assert, isPhantom } = require('sjs:test/suite');
 var http = require('sjs:http');
 var Url = require('sjs:url');
 var {clone} = require('sjs:object');
@@ -11,7 +11,13 @@ var payloadString = "'quote\"s;&amp;%20&quot;</script><script>alert(\"XSS INJECT
 var payloadObject = {
 	key: payloadString
 };
-var payloadCss = "url('data:base64;#{payloadString.replace(/(')/g, '\\\'')}')";
+var payloadCss = "'#{payloadString.replace(/(')/g, '\\\'')}'";
+
+var expectedPayloadCSS = [
+	payloadCss, // chrome, no interpretation
+	'"' + payloadCss.slice(1, -1).replace(/(["])/g,"\\$1") + '"', // firefox returns a double-quoted string
+	"'" + payloadCss.slice(1, -1) + "'", // phantomJS returns a single-quoted string
+];
 
 var rel = p -> Url.normalize('./fixtures/' + p, module.id);
 
@@ -66,12 +72,19 @@ context("static file generation") {||
 	}
 
 	test("encodes data inside a CSS block") {|s|
-		s.navigate(Url.build([rel('injection'), {template: 'style', value: "{background-image: #{payloadCss} }"}]));
+		s.navigate(Url.build([rel('injection'), {template: 'style', value: "&:after {content: #{payloadCss} }"}]));
 		var injected = waitforCondition(-> s.document().getElementById("content"));
-		waitforSuccess( ->
-			s.window().getComputedStyle(injected)['background-image']
-				.. assert.eq(payloadCss)
-		);
+		var check = function() {
+			var content = s.window().getComputedStyle(injected, ':after').content;
+			//console.log("GOT CONTENT: " + content);
+			//expectedPayloadCSS .. each {|c|
+			//	console.log("ALLOWED:     " + c);
+			//}
+			expectedPayloadCSS .. assert.contains(content);
+			//content .. assert.eq(payloadCss);
+		};
+
+		waitforSuccess(check);
 	};
 }
 
@@ -101,9 +114,10 @@ context("dynamic content generation") {||
 	}
 
 	test("encodes data inside a CSS block") {|s|
-		document.body .. appendContent(Element("div", "text") .. CSS("{background-image: #{payloadCss} }")) {|elem|
+		document.body .. appendContent(Element("div", "text") .. CSS("&:after{content: #{payloadCss}; }")) {|elem|
 			// getComputedStyle is not always synchronous
-			waitforSuccess(-> window.getComputedStyle(elem)['background-image'] .. assert.eq(payloadCss));
+			waitforSuccess(-> expectedPayloadCSS .. assert.contains(
+				window.getComputedStyle(elem, ':after').content));
 		}
 	};
 

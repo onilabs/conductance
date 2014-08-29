@@ -11,7 +11,7 @@ var url = require('sjs:url');
 var logging = require('sjs:logging');
 var helper = require('./helper');
 var path = require('nodejs:path');
-var { map, hasElem, at } = require('sjs:sequence');
+var { map, hasElem, at, concat, toArray } = require('sjs:sequence');
 var root = url.normalize('../', module.id) .. url.toPath;
 process.chdir(root);
 
@@ -99,15 +99,33 @@ if (require.main === module) {
   var args = require('sjs:sys').argv();
   if (args[0] === '--karma') {
     args.shift();
-    var runKarma = -> require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
-    args.splice(1,0, karmaConfUrl .. url.toPath);
-    if(args[0] === 'run') {
-      args.splice(2, 0, '--', karmaConf.testScript);
+    var action = args[0];
+    args.shift();
+
+    var karmaArgs = [karmaConfUrl .. url.toPath];
+    if (process.env.BROWSERS) {
+      karmaArgs = karmaArgs.concat(['--browsers',process.env.BROWSERS]);
+    }
+
+    var runKarma = -> console.log([
+        [action],
+        karmaArgs,
+        ['--', karmaConf.testScript],
+        args,
+      ] .. concat .. toArray);
+    var runKarma = -> require('nodejs:karma-sjs-adapter/karma.sjs').run([
+        [action],
+        karmaArgs,
+        ['--', karmaConf.testScript],
+        args,
+      ] .. concat .. toArray);
+
+    if(action === 'run') {
       runKarma();
-    } else if(args[0] === 'start' || args[0] == 'single-run') {
-      if (args[0] == 'single-run') {
-        args[0] = 'start';
-        args.splice(2, 0, '--single-run', '--', karmaConf.testScript);
+    } else if(action === 'start' || action == 'single-run') {
+      if (action == 'single-run') {
+        action = 'start';
+        karmaArgs.push('--single-run');
       }
       helper.serve(serverConfig) {||
         runKarma();
@@ -115,7 +133,7 @@ if (require.main === module) {
         hold();
       }
     } else {
-      throw new Error("unknown karma command: #{args[0]}");
+      throw new Error("unknown karma command: #{action}");
     }
     return;
   } else if (args[0] === '--serve') {
