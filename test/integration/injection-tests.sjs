@@ -28,7 +28,7 @@ var rel = p -> Url.normalize('./fixtures/' + p, module.id);
 // Element("div", `<script>$content</script>`)
 //    -> will escape $content for inside a <div>, rather than a <script>
 //
-// If we wanted to protect against the latter case, we'e dhave to actually parse
+// If we wanted to protect against the latter case, we'd have to actually parse
 // each HTML snippet before inserting it.
 //
 // In practice conductance is usually the only one adding <script> and <style> tags
@@ -74,6 +74,7 @@ context("static file generation") {||
 	test("encodes data inside a CSS block") {|s|
 		s.navigate(Url.build([rel('injection'), {template: 'style', value: "&:after {content: #{payloadCss} }"}]));
 		var injected = waitforCondition(-> s.document().getElementById("content"));
+		hold(100);
 		var check = function() {
 			var content = s.window().getComputedStyle(injected, ':after').content;
 			//console.log("GOT CONTENT: " + content);
