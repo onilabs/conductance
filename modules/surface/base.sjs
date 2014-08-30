@@ -18,7 +18,7 @@
 var { isQuasi, Quasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
 var { each, indexed, reduce, map, join, isStream, first, toArray } = require('sjs:sequence');
-var { clone, propertyPairs, extend, hasOwn } = require('sjs:object');
+var { clone, propertyPairs, extend, hasOwn, merge } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
 var array = require('sjs:array');
@@ -1061,16 +1061,14 @@ exports.Template = Template;
 var BindProto = Object.create(FragmentBase);
 
 BindProto.appendTo = function(target, instantiation_context) {
-  instantiation_context = clone(instantiation_context);
-  instantiation_context[this.name] = this.val;
+  instantiation_context = merge(instantiation_context, this.name_vals);
   appendFragmentTo(target, this.ft, instantiation_context);
 };
 
-__js function Bind(ft, name, val) {
+__js function Bind(ft, name_vals) {
   var rv = Object.create(BindProto);
   rv.ft = ft;
-  rv.name = name;
-  rv.val = val;
+  rv.name_vals = name_vals;
   return rv;
 }
 exports.Bind = Bind;
