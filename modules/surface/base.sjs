@@ -790,6 +790,11 @@ function Attrib(element, name, value) {
   if (isStream(value)) {
     return element .. StreamAttribMechanism(name, value);
   }
+  if (isTemplate(element)) {
+    element = element .. cloneTemplate;
+    element.wrappers.push(elem -> Attrib(elem, name, value));
+    return element;
+  }
   __js element = cloneElement(element);
   setAttribValue(element, name, value);
   return element;
