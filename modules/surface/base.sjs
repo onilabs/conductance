@@ -682,6 +682,12 @@ __js {
     
     function setMechanism(ft) {
       if (code == null) throw new Error("null mechanism");
+      if (ft .. isTemplate) {
+        ft = cloneTemplate(ft);
+        ft.wrappers.push(setMechanism);
+        return ft;
+      }
+      // else:
       ft = cloneElement(ft);
       
       ft.mechanisms[id] = code;
@@ -700,8 +706,8 @@ __js {
     if (arguments.length == 1) {
       code = arguments[0];
       return setMechanism;
-    }
-    else /* if (arguments == 2) */ {
+    } 
+    else { // assuming (arguments.length == 2) 
       code = arguments[1];
       return setMechanism(arguments[0]);
     }
@@ -1039,23 +1045,52 @@ exports.RequireExternalCSS = function(url) {
 
 var TemplateProto = Object.create(FragmentBase);
 
+__js {
+  function isTemplate(obj) { return TemplateProto.isPrototypeOf(obj); }
+  exports.isTemplate = isTemplate;
+}
+
+__js {
+  function cloneTemplate(t) {
+    if (!isTemplate(t)) throw new Error("Unexpected object in cloneTemplate(.)");
+    var rv = Object.create(TemplateProto);
+    rv.name_defaults = t.name_defaults;
+    rv.f_ft = t.f_ft;
+    rv.wrappers = t.wrappers .. clone;
+    return rv;
+  }
+  exports.cloneTemplate = cloneTemplate;
+}
+
 TemplateProto.appendTo = function(target, instantiation_context) {
-  var val = instantiation_context[this.name];
-  if (val === undefined) {
-    val = this.default_value;
-    if (val === undefined)
-      throw new Error("Unbound template '#{this.name}' in HTMLFragment");
+  var bindings = {};
+  propertyPairs(this.name_defaults) .. each {
+    |[name,defval]|
+      
+    var val = instantiation_context[name];
+    if (val === undefined) {
+      val = defval;
+      if (val === undefined)
+        throw new Error("Unbound variable '#{name}' in HTMLFragment Template");
+    }
+    bindings[name] = val;
+  }
+    
+  var ft = this.f_ft(bindings);
+  this.wrappers .. each {
+    |wrapper|
+    ft = wrapper(ft);
   }
 
-  appendFragmentTo(target, this.f_ft(val), instantiation_context);
+  appendFragmentTo(target, ft, instantiation_context);
 };
 
-// f_ft is a function par -> frametree
-__js function Template(name, f_ft, default_value) {
+// f_ft is a function bindings_obj -> frametree
+__js function Template(name_defaults, f_ft, default_value) {
   var rv = Object.create(TemplateProto);
-  rv.name = name;
+  rv.name_defaults = name_defaults;
   rv.f_ft = f_ft;
-  rv.default_value = default_value;
+  rv.wrappers = [];
   return rv;
 }
 exports.Template = Template;
