@@ -33,12 +33,6 @@ exports.serve = function(args) {
         help: 'override master location (for testing)',
       },
       {
-        names: ['host'],
-        type: 'string',
-        help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
-        'default': 'localhost',
-      },
-      {
         names: ['port'],
         type: 'number',
         help: 'serve on port (default: 7075)',
@@ -53,14 +47,14 @@ exports.serve = function(args) {
   var routes = [
     @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),
     @route.SystemRoutes(),
+    common.staticRoute,
     @route.CodeDirectory('modules', @path.join(root, 'modules')),
     @route.ExecutableDirectory(@path.join(root, 'modules/local')),
   ] .. common.routeOptions();
 
-  var host = opts.host == 'any' ? null : opts.host;
   var port = opts.port;
 
-  var address = @Port(port, host);
+  var address = opts.Port(port);
   waitfor {
     if (@env.get('deployLoopback')) {
       @logging.setLevel(@logging.INFO);
@@ -73,10 +67,11 @@ exports.serve = function(args) {
         }
         waitfor {
           @warn("Allowing anonymous access - only use this during development");
-          require('./master.mho').serve([
+          var masterArgs = [
             "--allow-origin=http://localhost.self:#{port}", // dnsmasq config
             "--allow-origin=http://localhost:#{port}", // basic config
-            '--anonymous']);
+            '--anonymous'];
+          require('./master.mho').serve(masterArgs);
         } and {
           require('./proxy.mho').serve([]);
         } and {

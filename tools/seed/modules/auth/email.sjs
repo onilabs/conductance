@@ -14,14 +14,14 @@ exports.wrap = function(transport) {
 	};
 }
 
-exports.mailgunTransport = function() {
+exports.mandrillTransport = function() {
 	var smtpTransport = require('nodejs:nodemailer-smtp-transport');
 	var transporter = smtpTransport({
-		service: 'mailgun',
+		service: 'mandrill',
 		//debug: true,
 		auth: {
-			user: 'postmaster@' + process.env .. @get('MAILGUN_SERVER'),
-			pass: process.env .. @get('MAILGUN_PASSWORD'),
+			user: 'postmaster@' + process.env .. @get('SMTP_MAILER_ADDRESS'),
+			pass: process.env .. @get('SMTP_MAILER_PASSWORD'),
 		},
 	});
 

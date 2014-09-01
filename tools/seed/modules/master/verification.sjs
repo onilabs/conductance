@@ -28,7 +28,7 @@ exports.sendConfirmationTo = function(user) {
   var url = verificationUrl(user);
   @info("emailing activation url #{url} to #{email}");
   @env.get('email-transport').send({
-    from: {name: "Conductance seed", address: "info@#{@env.get('email-domain')}"},
+    from: {name: "Conductance seed", address: "noreply@conductance.io"},
     to: {name: name, address: email},
     subject: "Conductance seed activation code",
     text: "Hi, #{name}!

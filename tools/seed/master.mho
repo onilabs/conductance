@@ -21,12 +21,6 @@ exports.serve = function(args) {
   var common = require('./common.mho');
   var opts = args .. require('seed:env').parse([
     {
-      names: ['host'],
-      type: 'string',
-      help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
-      'default': 'localhost',
-    },
-    {
       names: ['anonymous'],
       type: 'bool',
       help: 'allow full access to everyone',
@@ -69,10 +63,9 @@ exports.serve = function(args) {
       req .. @setStatus(200);
       req.response.end(JSON.stringify(versionInfo, null, '  '));
     }}),
+    common.staticRoute,
 
     @Route(verification.verifyRoute, {GET: verification.verifyHandler}),
-
-    @route.StaticDirectory(/static/, @url.normalize('./static', module.id) .. @url.toPath),
 
     // override modules/master to be executable
     @route.ExecutableDirectory('master', @url.normalize('./modules/master', module.id) .. @url.toPath),
@@ -81,7 +74,6 @@ exports.serve = function(args) {
     @route.CodeDirectory('modules', @url.normalize('./modules', module.id) .. @url.toPath),
   ] .. common.routeOptions();
 
-  var host = opts.host == 'any' ? null : opts.host;
   var port = @env.get('port-master');
 
   try {
@@ -99,7 +91,7 @@ exports.serve = function(args) {
 
   var ssl = opts.ssl;
 
-  var address = @Port(port, host);
+  var address = opts.Port(port);
   if (opts.ssl) {
     address = address.ssl({
       key: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.key"),

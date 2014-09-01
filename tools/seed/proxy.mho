@@ -54,11 +54,11 @@ exports.serve = function(args) {
 	waitfor {
 		@server.run([
 			{
-				address: @Port(@env.get('port-proxy-http')),
+				address: opts.Port(@env.get('port-proxy-http')),
 				routes: [proxyRoute('http', 8080)],
 			},
 			{
-				address: @Port(@env.get('port-proxy-https')),
+				address: opts.Port(@env.get('port-proxy-https')),
 				routes: [proxyRoute('https', 4043)],
 			},
 		]);

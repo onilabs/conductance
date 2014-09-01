@@ -24,3 +24,5 @@ exports.routeOptions = function(route) {
   return route;
 };
 
+
+exports.staticRoute = @route.StaticDirectory(/static/, @url.normalize('./static', module.id) .. @url.toPath);

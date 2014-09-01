@@ -6,6 +6,7 @@ var env = require('mho:env');
 @etcd = require('./job/etcd');
 @logging = require('sjs:logging');
 @email = require('seed:auth/email');
+@server = require('mho:server');
 var { @at } = require('sjs:sequence');
 var { @get } = require('sjs:object');
 
@@ -30,10 +31,18 @@ var def = function(key,val, lazy) {
 
 exports.parse = function(args, options) {
 	var parser = require('sjs:dashdash').createParser({
-		options: options.concat({
-			names: ['help', 'h'],
-			type: 'bool',
-		}),
+		options: options.concat([
+			{
+				names: ['host'],
+				type: 'string',
+				help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
+				'default': 'localhost',
+			},
+			{
+				names: ['help', 'h'],
+				type: 'bool',
+			},
+		]),
 	});
 
 	try {
@@ -48,6 +57,20 @@ exports.parse = function(args, options) {
 		console.log(parser.help({includeEnv:true}));
 		process.exit(0);
 	}
+
+	var host;
+	if (env.has('listen-iface')) {
+		// already set (e.g multiple servers in one process); ignore opts.host
+		host = env.get('listen-iface');
+	} else {
+		host = opts.host == 'any' ? null : opts.host;
+		env.set('listen-iface', host);
+	}
+	opts.Port = function(num) {
+		if(arguments.length > 1) return @server.Port.apply(null, arguments);
+		console.log("Port #{num} on host #{host}");
+		return @server.Port(num, host);
+	};
 
 	exports.defaults();
 	return opts;
@@ -148,6 +171,5 @@ exports.defaults = function() {
 		return null;
 	}, true);
 
-	def('email-domain', -> process.env['MAILGUN_SERVER'] || this.get('host-self'), true);
-	def('email-transport', @email.mailgunTransport, true);
+	def('email-transport', @email.mandrillTransport, true);
 };
