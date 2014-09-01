@@ -37,6 +37,7 @@ document.body .. @appendContent(@GlobalCSS("
 	}
 "));
 
+var headerHeight = 120;
 var headerStyle = @CSS("
 	{
 		position:relative;
@@ -46,7 +47,7 @@ var headerStyle = @CSS("
 		border-bottom: 1px solid rgba(0, 0, 0, 0.2);
 		background: top right no-repeat url('/static/header-right.png') #B9090B;
 		background-size: auto 100%;
-		height: 120px;
+		height: #{headerHeight}px;
 	}
 	img {
 		position: absolute;
