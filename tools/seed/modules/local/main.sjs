@@ -41,10 +41,18 @@ var headerStyle = @CSS("
 	{
 		position:relative;
 		height: 100px;
-		background: #B9090B;
 		color: white;
 		padding: 0 2em;
-		border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+		background: top right no-repeat url('/static/header-right.png') #B9090B;
+		background-size: auto 100%;
+		height: 120px;
+	}
+	img {
+		position: absolute;
+		left: 20px;
+		top:0;
+		height: 100%;
 	}
 ");
 
@@ -651,7 +659,7 @@ function displayServer(elem, header, api, server, clientVersion) {
 exports.run = function(clientVersion) {
 	@withBusyIndicator {|ready|
 		var pageHeader = @Row([
-			@H1(`Conductance Seed`),
+			@Img({src:'/static/header-left.svg', alt:"Conductance Seed"}),
 		]) .. headerStyle;
 		// NOTE: we explicitly use /remote.api, not ./remote
 		// (this module might be served from the master, which does NOT provide remote.api)
