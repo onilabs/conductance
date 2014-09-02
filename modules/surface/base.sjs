@@ -886,6 +886,15 @@ __js {
     `element` will automatically be wrapped using [::ensureElement].
 */
 function Class(element, clsname, val) {
+  if (element .. isTemplate) {
+    element = element .. cloneTemplate;
+    // xxx hack hack
+    if (arguments.length > 2)
+      element.wrappers.push(ft -> Class(ft, clsname, val));
+    else
+      element.wrappers.push(ft -> Class(ft, clsname));
+    return element;
+  }
   __js  var element = cloneElement(element);
   __js  var classes = element._normalizeClasses();
   if (isStream(clsname)) {
