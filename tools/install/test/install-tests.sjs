@@ -425,6 +425,8 @@ hosts.systems .. each {|system|
 				}
 
 				test('if an archive is not valid') {||
+					// XXX this test has a race condition that causes it to sometimes fail with an EEXIST mkdir error
+					// This is a bug in node-tar.
 					var fakeHref = 'http://example.com/conductance.tar.gz'
 					var manifest = modifyManifest() {|mf|
 						mf.data.conductance.href = fakeHref;
@@ -531,11 +533,22 @@ hosts.systems .. each {|system|
 						import urllib
 
 						server = subprocess.Popen([script(conductance + '/bin/conductance'), 'serve', #{JSON.stringify(fixture)}])
-						time.sleep(1)
-						assert server.poll() is None, 'server ended...'
 						try:
-							assert urllib.urlopen('http://localhost:7079/up').read() == 'ok'
+							# wait for server up:
+							last_error = None
+							for tries in range(0, 5):
+								time.sleep(1)
+								assert server.poll() is None, 'server ended...'
+								try:
+									assert urllib.urlopen('http://localhost:7079/up').read() == 'ok'
+									break
+								except Exception as e:
+									last_error = e
+									pass
+							else:
+								raise last_error
 
+							# now run self-update with running server
 							exportProxy()
 							run([script(conductance + '/bin/conductance'), 'self-update'])
 							assert urllib.urlopen('http://localhost:7079/ping').read() == 'Pong!'
