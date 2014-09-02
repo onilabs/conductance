@@ -23,8 +23,15 @@ tests as that user, and then run them (with any additional args you pass in).
 
 if (!@isBrowser) {
   var uid = null;
+  var systemCtl = null;
   try {
     uid = @childProcess.run('id', ['-u', user], {stdio: ['ignore','pipe', 'pipe']}).stdout.trim();
+  } catch (e) {
+    // pass
+  }
+
+  try {
+    systemCtl = @childProcess.run('which', ['systemctl'], {stdio: ['ignore','pipe', 'pipe']}).stdout.trim();
   } catch (e) {
     // pass
   }
@@ -288,7 +295,7 @@ if (require.main === module) {
         if (process.env['CLEANUP'] !== 'false') cleanup();
       }
       rv .. @assert.eq(0, "tests failed");
-    }.skipIf(uid == null, "TODO: get these tests working more portably").timeout(60);
+    }.skipIf(uid == null || systemCtl == null || !process.stdin.isTTY, "TODO: get these tests working more portably").timeout(60);
 
   }.skipIf(@isBrowser)
 }
