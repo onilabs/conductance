@@ -107,12 +107,13 @@ function gen_app_html(src, dest, aux) {
 // filter that generates a .js bundle from a source module
 var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
   function getSettings(path, url) {
+    var pathUrl = path .. Url.fileURL;
     var defaultSettings = {
       resources: [
         // Assume relative paths are co-located.
         // This will not work if .app files import paths from their parent,
         // but we can't handle that in the general case without deep knowledge of routes.
-        [Url.normalize('./', path .. Url.fileURL), Url.normalize('./', url.source)],
+        [Url.normalize('./', pathUrl), Url.normalize('./', url.source)],
       ],
       skipFailed: true,
     };
@@ -123,7 +124,7 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
       .. docutil.parseModuleDocs()
       .. docutil.getPrefixedProperties('bundle');
 
-    var settings = appSettings .. merge(sourceSettings, { sources: [path] });
+    var settings = appSettings .. merge(sourceSettings, { sources: [pathUrl] });
     return settings;
   };
 
