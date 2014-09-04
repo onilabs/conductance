@@ -72,10 +72,9 @@ context("static file generation") {||
 	}
 
 	test("encodes data inside a CSS block") {|s|
-		s.navigate(Url.build([rel('injection'), {template: 'style', value: "&:after {content: #{payloadCss} }"}]));
-		var injected = waitforCondition(-> s.document().getElementById("content"));
-		hold(100);
 		var check = function() {
+			s.navigate(Url.build([rel('injection'), {template: 'style', value: "&:after {content: #{payloadCss} }"}]));
+			var injected = waitforCondition(-> s.document().getElementById("content"));
 			var content = s.window().getComputedStyle(injected, ':after').content;
 			//console.log("GOT CONTENT: " + content);
 			//expectedPayloadCSS .. each {|c|
@@ -85,7 +84,9 @@ context("static file generation") {||
 			//content .. assert.eq(payloadCss);
 		};
 
-		waitforSuccess(check);
+		// XXX phantomJS sometimes gets stuck and just returns a blank computed style
+		// no matter how long we wait, so we retry the _whole_ test including initial navigation.
+		waitforSuccess(check, null, 10);
 	};
 }
 
