@@ -18,6 +18,7 @@ exports.mandrillTransport = function() {
 	var smtpTransport = require('nodejs:nodemailer-smtp-transport');
 	var transporter = smtpTransport({
 		service: 'mandrill',
+		port: parseInt(process.env .. @get('SMTP_MAILER_PORT', '587')),
 		//debug: true,
 		auth: {
 			user: 'postmaster@' + process.env .. @get('SMTP_MAILER_ADDRESS'),
