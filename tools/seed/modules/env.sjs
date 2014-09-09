@@ -1,21 +1,18 @@
 var env = require('mho:env');
-@fs = require('sjs:nodejs/fs');
-@path = require('nodejs:path');
-@assert = require('sjs:assert');
-@url = require('sjs:url');
+@ = require('mho:std');
 @etcd = require('./job/etcd');
-@logging = require('sjs:logging');
 @email = require('seed:auth/email');
 @server = require('mho:server');
-var { @at } = require('sjs:sequence');
-var { @get } = require('sjs:object');
 
-if (process.env['SEED_LOG_LEVEL']) {
-	var lvlName = process.env['SEED_LOG_LEVEL'];
-	var lvl = @logging[lvlName];
-	@assert.number(lvl, "not a valid log level: #{lvlName}");
-	@logging.setLevel(lvl);
+function initLogLevel() {
+	if (process.env['SEED_LOG_LEVEL']) {
+		var lvlName = process.env['SEED_LOG_LEVEL'];
+		var lvl = @logging[lvlName];
+		@assert.number(lvl, "not a valid log level: #{lvlName}");
+		@logging.setLevel(lvl);
+	}
 }
+initLogLevel();
 
 var def = function(key,val, lazy) {
 	@assert.ok(val != null, "Undefined env key: #{key}");
@@ -73,6 +70,54 @@ exports.parse = function(args, options) {
 	};
 
 	exports.defaults();
+
+	// when we get sigusr2, adopt envvars found in $SEED_DATA/envvars
+	var ENV_ORIG = process.env .. @clone();
+	var MODIFIED = {};
+	process.on(env.get('ctl-signal'), function() {
+		// NOTE: currently we hard-code the things we want to respond to at runtime.
+		// This is just SEED_LOG_LEVEL at the moment.
+
+		function setenv(k, v, op) {
+			console.log("[#{process.pid}] #{op ? op : 'Setting'} #{k}=#{v}");
+			if (v === undefined) {
+				delete process.env[k];
+			} else {
+				process.env[k] = v;
+			}
+		}
+
+		try {
+			var envFile = @path.join(env.get('data-root'), 'environ');
+			@logging.warn("Deserializing new environment from: #{envFile}");
+
+			// mark previously-modified keys as stale
+			var old = MODIFIED .. @ownKeys .. @toArray;
+			old .. @each {|key| MODIFIED[key] = false; }
+
+			require('nodejs:fs').readFileSync(envFile, 'utf-8') .. @split("\n") .. @each {|line|
+				line = line.trim();
+				if(line.length == 0) continue;
+				var [k,v] = line .. @split("=", 1);
+				// freshly modified
+				MODIFIED[k] = true;
+				setenv(k, v == "" ? undefined : v);
+			}
+
+			// now revert stale modified keys
+			old .. @each {|key|
+				if (MODIFIED[key] != true) {
+					// we didn't just re-set it
+					setenv(key, ENV_ORIG[key], 'Reverting to original');
+					delete MODIFIED[key];
+				}
+			};
+			initLogLevel();
+		} catch(e) {
+			@logging.info("Error adopting new environ: #{e}");
+		}
+	});
+
 	return opts;
 };
 
@@ -155,7 +200,8 @@ exports.defaults = function() {
 	def('port-slave', portFromEnv('SEED_SLAVE_PORT', 7072));
 
 	// path overrides from $ENV
-	var dataDir = process.env['SEED_DATA'] || (@url.normalize('../data', module.id) .. @url.toPath);
+	var codeRoot = @url.normalize('..', module.id) .. @url.toPath;
+	var dataDir = process.env['SEED_DATA'] || @path.join(codeRoot, 'data');
 	@assert.ok(@fs.exists(dataDir), "data dir does not exist: #{dataDir}");
 	def('data-root', dataDir);
 
@@ -171,5 +217,12 @@ exports.defaults = function() {
 		return null;
 	}, true);
 
+	def('api-keys',
+		-> @fs.readFile(@path.join(this.get('key-store') || codeRoot, 'api-keys.json'), 'utf-8') .. JSON.parse,
+		true);
+
 	def('email-transport', @email.mandrillTransport, true);
+	def('runtime-environ', -> @path.join(this.get('data-root'), 'environ'), true);
+	def('ctl-signal', 'SIGUSR2');
 };
+

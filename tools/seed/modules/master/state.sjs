@@ -1,4 +1,5 @@
 @ = require('mho:std');
+@util = require('../util');
 var fsExt = require('nodejs:fs-ext');
 
 var prefix = process.env['XDG_RUNTIME_DIR'] || '/run';
@@ -26,6 +27,8 @@ exports.acquire = function() {
 		}
 		throw e;
 	}
+	// NEVER let children inherit lockfile
+	@util.setCloexec(lockfile);
 	hasLock = true;
 }
 

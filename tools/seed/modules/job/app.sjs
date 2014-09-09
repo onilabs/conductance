@@ -5,7 +5,7 @@
 @crypto = require('nodejs:crypto');
 @tempfile = require('sjs:nodejs/tempfile');
 @nodeFs = require('nodejs:fs');
-@fsExt = require('nodejs:fs-ext');
+@util = require('../util');
 @constants = require('nodejs:constants');
 @etcd = require('./etcd');
 var { @User } = require('../auth/user');
@@ -94,6 +94,25 @@ var DEFAULT_CONFIG = {
 
 var etcd = @env.get('etcd');
 
+var closeAllFileDescriptorsOnExec = function() {
+  // node does a terrible job of closing open file descriptors (may be
+  // improved in 0.12). So we need to manually mark everything as cloexec when
+  // running anything that might be long-running (in particular, our lockfile).
+  // XXX this is not portable
+  // NOTE: we use *Sync functions to make sure nobody is opening new file descriptors behind our back
+
+  @nodeFs.readdirSync("/proc/#{process.pid}/fd") .. @each {|fd|
+    try {
+      @util.setCloexec(fd .. parseInt(10));
+    } catch(e) {
+      if (e.code === 'EBADF') {
+        // presumably the file descriptor used to read /proc/PID/fd - ignore
+        continue;
+      }
+    }
+  }
+};
+
 function tryRunDocker(cmd, stdout) {
   // runs a docker command
   // returns the standard result (truthy) if it completed successfully,
@@ -126,8 +145,9 @@ var _isRunning = function(machineName) {
 }
 
 var _awaitExit = function(machineName) {
+  closeAllFileDescriptorsOnExec();
   try {
-    tryRunDocker(['attach', '--no-stdin', '--sig-proxy=false', machineName]);
+    tryRunDocker(['attach', '--no-stdin', '--sig-proxy=false', machineName], 'ignore');
   } catch(e) {
     if (_isRunning(machineName)) throw e;
   }
@@ -272,24 +292,7 @@ exports.localAppState = (function() {
       // XXX we use *Sync functions to make sure nobody is opening new file descriptors behind our back
 
       try {
-        @nodeFs.readdirSync("/proc/#{process.pid}/fd") .. @each {|fd|
-          fd = parseInt(fd, 10);
-          var flags;
-          try {
-            flags = fd .. @fsExt.fcntlSync('getfd');
-          } catch(e) {
-            if (e.code === 'EBADF') {
-              // presumably the file descriptor used to read /proc/PID/fd - ignore
-              continue;
-            }
-          }
-          var cloexec = flags | @constants.FD_CLOEXEC;
-          if (flags !== cloexec) {
-            // clexec flag not yet set:
-            fd .. @fsExt.fcntlSync('setfd', cloexec);
-          }
-          ((fd .. @fsExt.fcntlSync('getfd')) & @constants.FD_CLOEXEC) .. @assert.ok('CLOEXEC not set');
-        }
+        closeAllFileDescriptorsOnExec();
 
         // Make sure there's no leftover container
         // (`docker run -rm` is not 100% reliable)

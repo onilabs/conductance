@@ -1,9 +1,8 @@
-@ = require('mho:std');
 require('./modules/hub');
+@ = require(['mho:std', 'seed:util']);
 @os = require('nodejs:os');
 @etcd = require('seed:job/etcd');
 @stream = require('sjs:nodejs/stream');
-var { @removeLeading } = require('seed:util');
 
 exports.serve = function(args) {
 	var opts = args .. require('seed:env').parse([]);
@@ -14,16 +13,18 @@ exports.serve = function(args) {
 	var proxyAgent = new nodeHttp.Agent();
 	proxyAgent.maxSockets = 2048;
 
+	var hostSuffix = '.' + @env.get('host-self');
+
 	var proxyRoute = function(proto, publicPort) {
 		publicPort = String(publicPort);
 		return @Route(/^/, {'*': function(req) {
 			//console.log(req);
 			var destRoute = proxies[publicPort];
 			//console.log(JSON.stringify(proxies));
-			@info("destRoute[#{publicPort}]: ", destRoute);
+			@debug("destRoute[#{publicPort}]: ", destRoute);
 			if (destRoute) {
-				var subdomain = req.url.host .. @rsplit('.', 2) .. @at(0);
-				//@info("proxying subdomain: #{subdomain}");
+				var subdomain = req.url.host .. @removeTrailing(hostSuffix);
+				@debug("proxying subdomain: #{subdomain}");
 				destRoute = destRoute[subdomain];
 				//@info("destRoute: ", destRoute);
 				if (destRoute) {

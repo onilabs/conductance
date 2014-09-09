@@ -15,14 +15,15 @@ exports.wrap = function(transport) {
 }
 
 exports.mandrillTransport = function() {
+	var keys = @env.get('api-keys') .. @get('mandrill');
 	var smtpTransport = require('nodejs:nodemailer-smtp-transport');
 	var transporter = smtpTransport({
 		service: 'mandrill',
 		port: parseInt(process.env .. @get('SMTP_MAILER_PORT', '587')),
 		//debug: true,
 		auth: {
-			user: 'postmaster@' + process.env .. @get('SMTP_MAILER_ADDRESS'),
-			pass: process.env .. @get('SMTP_MAILER_PASSWORD'),
+			user: keys .. @get('user'),
+			pass: keys .. @get('password'),
 		},
 	});
 
