@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#2a29dc37fdbe59b76c4f940f17736ed6bc8fdf02",
-    "nodemon": "~1.0.15"
+    "nodemon": "~1.0.15",
+    "ssh2": "~0.3.6"
   }
 }
