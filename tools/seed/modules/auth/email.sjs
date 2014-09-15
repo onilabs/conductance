@@ -1,4 +1,4 @@
-var { @get } = require('sjs:object');
+@ = require("mho:std");
 var nm = require('nodejs:nodemailer');
 
 exports.wrap = function(transport) {

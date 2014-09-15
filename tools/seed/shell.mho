@@ -1,4 +1,10 @@
+#!/usr/bin/env conductance
 require('./modules/hub');
 require('seed:env').defaults();
-require('sjs:nodejs/repl').runREPL();
+var script = require('sjs:sys').argv()[0];
+if(script) {
+	require(script);
+} else {
+	require('sjs:nodejs/repl').runREPL();
+}
 
