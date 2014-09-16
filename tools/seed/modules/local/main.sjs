@@ -10,52 +10,11 @@ var { @Countdown } = require('mho:surface/widget/countdown');
 
 var OnClick = (elem, action) -> @OnClick(elem, {handle:@stopEvent}, action);
 
-var Center = @CSS("{text-align:center;}");
 document.body .. @appendContent(@GlobalCSS("
-	html, body {
-		height:100%;
-	}
-	body {
-		> .container {
-			min-height:100%;
-			background: white;
-			box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
-		}
-		background: #555562;
-		background: #49464B;
-	}
-
-	.clickable, a, button {
-		cursor: pointer;
-		&:hover {
-			color: #2a6496;
-		}
-	}
-
 	a.appLink, a.appLink:hover, a.appLink:visited {
 		color:inherit;
 	}
 "));
-
-var headerHeight = 120;
-var headerStyle = @CSS("
-	{
-		position:relative;
-		height: 100px;
-		color: white;
-		padding: 0 2em;
-		border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-		background: top right no-repeat url('/static/header-right.png') #B9090B;
-		background-size: auto 100%;
-		height: #{headerHeight}px;
-	}
-	img {
-		position: absolute;
-		left: 20px;
-		top:0;
-		height: 100%;
-	}
-");
 
 var serverControlStyle = @CSS("
 	display:inline-block;
@@ -659,9 +618,6 @@ function displayServer(elem, header, api, server, clientVersion) {
 
 exports.run = function(clientVersion) {
 	@withBusyIndicator {|ready|
-		var pageHeader = @Row([
-			@Img({src:'/static/header-left.svg', alt:"Conductance Seed"}),
-		]) .. headerStyle;
 		// NOTE: we explicitly use /remote.api, not ./remote
 		// (this module might be served from the master, which does NOT provide remote.api)
 		@withAPI('/remote.api') {|api|
@@ -797,20 +753,19 @@ exports.run = function(clientVersion) {
 				});
 
 				@mainContent .. @appendContent([
-					pageHeader,
 					serverList,
 					@Div(),
-				]) {|_, _, content|
+				]) {|_, content|
 					ready();
 					content .. displayCurrentServer();
 				}
 			} else {
 				@info("single-server mode");
 				@mainContent .. @appendContent([
-					pageHeader,
 					@Div(),
-				]) {|header, content|
+				]) {|content|
 					ready();
+					var header = document.getElementById('pageHeader');
 					api.servers .. @each.track {|servers|
 						@info("api.servers changed");
 						var server = servers[0];

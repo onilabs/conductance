@@ -1,18 +1,12 @@
 @ = require('mho:std');
+@layout = require('./layout');
 
 exports.content = function() {
-  return @Document(null, {
+  return @layout.defaultDocument(null, {
     title: "Conductance Seed",
-    init: "
-      require.hubs.push(['seed:', '/modules/']);
-      require('seed:local/main').run(#{@env.get('seed-api-version')})
-    ",
-    template: 'app-default',
+    init: "require('seed:local/main').run(#{@env.get('seed-api-version')})",
     templateData: {
       showBusyIndicator: true,
-      appModule: false,
-      mhoStyle: false,
-      //wrapContent: false
     }
   });
 };

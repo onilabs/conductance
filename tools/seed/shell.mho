@@ -3,6 +3,7 @@ require('./modules/hub');
 require('seed:env').defaults();
 var script = require('sjs:sys').argv()[0];
 if(script) {
+	process.argv.splice(2,1);
 	require(script, {main:true});
 } else {
 	require('sjs:nodejs/repl').runREPL();

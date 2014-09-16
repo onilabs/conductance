@@ -1,16 +1,28 @@
 @ = require('mho:std');
+var { @Div } = require('mho:surface/bootstrap/html');
 var { @User } = require('../auth/user');
 @user = require('./user');
 @crypto = require('nodejs:crypto');
 @response = require('mho:server/response');
 var { @alphanumeric } = require('../validate');
+@layout = require('../local/layout');
 
 var serverRoot = @env.get('publicAddress')('master');
 var verificationUrl = (user) -> serverRoot + "auth/verify/#{user.id .. @alphanumeric}/#{user.verifyCode() .. @alphanumeric}";
 exports.verifyRoute = /^auth\/verify\/([a-zA-Z0-9]+)\/([a-zA-Z0-9]+)$/;
 exports.verifyHandler = function(req, [_, uid, code]) {
   exports.verify(uid, code);
-  req .. @response.writeRedirectResponse('/static/verified.html');
+  req .. @response.setStatus(200, { "Content-Type":"text/html"});
+  req.response.end(@layout.defaultDocument(
+    @Div(
+      `<h1>User verified!</h1>
+      <p>Your user account has been verified.</p>
+    `) .. @Style("margin-top:3em;") .. @layout.Center, {
+    title: "User verified",
+    templateData: {
+      showBusyIndicator: false,
+    }
+  }));
 }
 
 exports.initialUserProperties = function() {
