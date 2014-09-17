@@ -189,7 +189,7 @@ var appDisplayMessageStyle = @CSS("
 }
 ");
 
-var appWidget = function(token, localApi, localServer, remoteServer, app) {
+var displayApp = function(elem, token, localApi, localServer, remoteServer, app) {
 	@info("app: ", app);
 	var endpoint = app.endpoint .. @mirror();
 
@@ -264,7 +264,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 				},
 				@Button('Delete', {'class':'btn-danger'}) .. OnClick(function() {
 					if (!confirmDelete(appName)) return;
-					@withBusyIndicator {||
+					elem .. @modal.spinner {||
 						remoteServer.destroyApp(app .. @get('id'));
 					}
 				})
@@ -278,26 +278,19 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 		<div class="header">
 
 			<div class="btn-group">
-				${toolBtn("stop", 'stop')  .. disabled(disableStop) .. @OnClick(-> app.stop())}
-				${toolBtn("start", 'play') .. disabled(disableStart) .. @OnClick(-> app.start())}
-				${toolBtn("settings", 'cog') .. @OnClick(editAppSettings)}
-				${toolBtn("deploy", 'cloud-upload', {'class':'btn-danger'}) .. disabled(disableDeploy) .. @Mechanism(function(elem) {
-					var click = elem .. @events('click');
-					while(true) {
-						click .. @wait();
-						elem.disabled = true;
-						try {
-							@withBusyIndicator {||
-								waitfor {
-									localServer.deploy(app.id, @info);
-								} or {
-									click .. @wait();
-									@warn("cancelled!");
-								}
-							}
-						} finally {
-							elem.disabled = false;
+				${toolBtn("stop", 'stop')  .. disabled(disableStop) .. OnClick(-> app.stop())}
+				${toolBtn("start", 'play') .. disabled(disableStart) .. OnClick(-> app.start())}
+				${toolBtn("settings", 'cog') .. OnClick(editAppSettings)}
+				${toolBtn("deploy", 'cloud-upload', {'class':'btn-danger'}) .. disabled(disableDeploy) .. OnClick(function(ev) {
+					var btn = ev.currentTarget;
+					btn.disabled = true;
+					try {
+						var overlayStyle = el -> el .. @Style("border-radius: 3px; background-color: rgba(156, 147, 141, 0.55);");
+						@findNode('.btn-group', btn) .. @modal.spinner(overlayStyle) {||
+							localServer.deploy(app.id, @info);
 						}
+					} finally {
+						btn.disabled = false;
 					}
 				})}
 			</div>
@@ -374,7 +367,7 @@ var appWidget = function(token, localApi, localServer, remoteServer, app) {
 		</div>
 	`) .. appStyle();
 
-	return appDetail;
+	elem .. @appendContent(appDetail, -> hold());
 };
 
 var showServer = function(token, localApi, localServer, remoteServer, container, header) {
@@ -390,9 +383,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 		};
 		@modal.withOverlay({title:`Create app`}) {|elem|
 			if (elem .. @form.appConfigEditor(localApi, newConfig)) {
-				@withBusyIndicator {||
-					var name = newConfig.central.get().name;
-					elem .. @appendContent(@P(`Creating ${name}...`));
+				elem .. @modal.spinner {||
 					var appInfo = localServer.addApp(newConfig.local.get());
 					remoteServer.createApp(appInfo .. @get('id'), newConfig.central.get());
 				}
@@ -470,8 +461,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 											]
 										) .. appDisplayMessageStyle), -> hold());
 								} else {
-									var widget = appWidget(token, localApi, localServer, remoteServer, app);
-									display .. @appendContent(widget, -> hold());
+									display .. displayApp(token, localApi, localServer, remoteServer, app);
 								}
 							}
 						}
@@ -542,19 +532,19 @@ function displayServer(elem, header, api, server, clientVersion) {
 								var loginResult = @modal.withOverlay({title:`Login to ${initialConfig.name}`, close: api.multipleServers}) {|elem|
 									@form.loginDialog(elem, server.config, {
 										login: function(props) {
-											withBusyIndicator {||
+											@modal.spinner(elem) {||
 												return remoteServer.getToken(props .. @get('username'), props .. @get('password'));
 											}
 										},
 										resendConfirmation: function(username) {
-											withBusyIndicator {||
+											@modal.spinner(elem) {||
 												localServer.endpoint.relative('/master/user.api').connect {|auth|
 													auth.sendConfirmation(username);
 												}
 											}
 										},
 										signup: function(props) {
-											withBusyIndicator {||
+											@modal.spinner(elem) {||
 												localServer.endpoint.relative('/master/user.api').connect {|auth|
 													auth.createUser(props);
 												}
@@ -617,6 +607,8 @@ function displayServer(elem, header, api, server, clientVersion) {
 
 
 exports.run = function(clientVersion) {
+	var header = document.getElementById('pageHeader');
+	@assert.ok(header);
 	@withBusyIndicator {|ready|
 		// NOTE: we explicitly use /remote.api, not ./remote
 		// (this module might be served from the master, which does NOT provide remote.api)
@@ -696,8 +688,7 @@ exports.run = function(clientVersion) {
 					var config = @ObservableVar({});
 					@modal.withOverlay({title:`Create server`}) {|elem|
 						elem .. @form.serverConfigEditor(config);
-						@withBusyIndicator {||
-							elem .. @appendContent(@P(`Creating ${config.get().name}...`));
+						elem .. @modal.spinner {||
 							api.createServer(config.get());
 						}
 					}
@@ -765,7 +756,6 @@ exports.run = function(clientVersion) {
 					@Div(),
 				]) {|content|
 					ready();
-					var header = document.getElementById('pageHeader');
 					api.servers .. @each.track {|servers|
 						@info("api.servers changed");
 						var server = servers[0];

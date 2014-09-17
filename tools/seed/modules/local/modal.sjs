@@ -9,7 +9,6 @@ var withOverlay = exports.withOverlay = (function() {
 		top:0;
 		bottom: 0;
 		right:0;
-		overflow:auto;
 		background-color: rgba(0,0,0,0.6);
 		z-index:99;
 	}
@@ -17,6 +16,9 @@ var withOverlay = exports.withOverlay = (function() {
 	.container {
 		margin-top: 5em;
 		background: none;
+		.panel {
+			position:relative;
+		}
 	}
 
 	.panel {
@@ -60,7 +62,7 @@ var withOverlay = exports.withOverlay = (function() {
 		};
 	};
 
-	function withOverlay(run) {
+	function _withOverlay(run) {
 		try {
 			document.body .. @appendContent(overlayWidget) {|el|
 				overlayElement = el;
@@ -106,6 +108,62 @@ var withOverlay = exports.withOverlay = (function() {
 		`, {'class':"container"});
 	
 		var run = -> runDialog(dialog, canClose, block);
-		return overlayElement ? run() : withOverlay(run);
+		return overlayElement ? run() : _withOverlay(run);
 	};
+})();
+
+exports.spinner = (function() {
+	var spinnerWidget = @Img({src:"/static/spinner.svg"});
+	var spinDuration = '0.9s';
+	var overlayCSS = @CSS("
+	@global {
+		@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
+		@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
+		@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
+	}
+
+	{
+		position: absolute;
+		left:0;
+		top:0;
+		bottom: 0;
+		right:0;
+		background-color: rgba(0,0,0,0.2);
+		opacity:0;
+		z-index:199;
+
+		transition: opacity 200ms linear;
+
+		img {
+			-webkit-animation:spin #{spinDuration} linear infinite;
+			-moz-animation:spin #{spinDuration} linear infinite;
+			animation:spin #{spinDuration} linear infinite;
+			margin: 0 auto;
+			display: block;
+			height: 50%;
+			max-width: 100%;
+			max-height: 100px;
+		}
+	}
+	");
+
+	return function(elem, style, block) {
+		if (arguments.length == 2) {
+			block = style;
+			style = null;
+		}
+		var containerHeight = elem.offsetHeight || 1;
+		var widget = @Element("div",
+			spinnerWidget .. @Style("margin-top: #{containerHeight/4}px;")
+			) .. overlayCSS;
+		if(style) widget = style(widget);
+		elem .. @appendContent(widget) {|elem|
+			waitfor {
+				hold(0);
+				elem.style.opacity = '1.0';
+			} and {
+				return block();
+			}
+		};
+	}
 })();
