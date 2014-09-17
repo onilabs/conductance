@@ -225,4 +225,73 @@ context("select widget") {||
   }
 }
 
+@context("bootstrap wrappers") {||
+  @bootstrap = require('mho:surface/bootstrap/html');
+  var clsArray = function(elem) {
+    var classes = elem.classList;
+    var rv = [];
+    for(var i=0; i<classes.length; i++) {
+      if(classes[i] .. @startsWith("_oni_")) continue;
+      rv.push(classes[i]);
+    }
+    return rv .. @sort();
+  }
+  var t = function(name, leadingArgs, tagname, extra_classes, extra_attrs) {
+    @test(name) {||
+      var content = "Content!";
+      var attribs = {'class':"customClass1 customClass2", "name":"customName"};
+      var elem = @bootstrap[name].apply(null, leadingArgs.concat([content, attribs]));
+      extra_classes = (extra_classes == "" ? [] : extra_classes.split(" "));
+      document.body .. @appendContent(elem) {|elem|
+        elem.tagName.toLowerCase() .. @assert.eq(tagname);
+        elem .. clsArray() .. @assert.eq(extra_classes.concat(["customClass1", "customClass2"]) .. @sort);
+        elem.getAttribute("name") .. @assert.eq("customName");
+        if(extra_attrs) {
+          extra_attrs .. @ownPropertyPairs .. @each {|[k,v]|
+            elem.getAttribute(k) .. @assert.eq(v);
+          }
+        }
+      }
+    }
+  }
+
+  t("Button", [], "button", "btn btn-default");
+  t("Table", [], "table", "table");
+  t("Row", [], "div", "row");
+  t("TextInput", [], "input", "form-control", {'type':'text'});
+  t("TextArea", [], "textarea", "form-control");
+  t("Btn", ['sm xs'], "button", "btn btn-sm btn-xs");
+  t("Btn", [''], "button", "btn");
+  t("Row", [], "div", "row");
+  t("Col", [''], "div", "");
+  t("Col", ['sm-2 sm-offset-1'], "div", "col-sm-2 col-sm-offset-1");
+  t("Container", [], "div", "container");
+  t("Lead", [], "p", "lead");
+  t("ListGroup", [], "div", "list-group");
+  t("PageHeader", [], "div", "page-header");
+  t("Panel", ['success'], "div", "panel panel-success");
+  t("PanelBody", [], "div", "panel-body");
+  t("PanelHeading", [], "div", "panel-heading");
+  t("PanelTitle", [], "h3", "panel-title");
+
+  // XXX ListGroupItem?
+  
+  @test("Icon") {||
+    document.body .. @appendContent(@bootstrap.Icon("foo", {name:"myIcon", "class":"cls1 cls2"})) {|elem|
+      elem.tagName.toLowerCase() .. @assert.eq('span');
+      elem.getAttribute("name") .. @assert.eq("myIcon");
+      elem .. clsArray .. @assert.eq("glyphicon glyphicon-foo cls1 cls2".split(" ") .. @sort);
+    }
+  }
+  @test("Input") {||
+    document.body .. @appendContent(@bootstrap.Input("checkbox", "initialVal", {name:"myIcon", "class":"cls1 cls2"})) {|elem|
+      elem.tagName.toLowerCase() .. @assert.eq('input');
+      elem.value .. @assert.eq("initialVal");
+      elem.getAttribute("name") .. @assert.eq("myIcon");
+      elem.getAttribute("type") .. @assert.eq("checkbox");
+      elem .. clsArray .. @assert.eq("cls1 cls2 form-control".split(" ") .. @sort);
+    }
+  }
+}
+
 }.browserOnly();

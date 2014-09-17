@@ -36,8 +36,8 @@ function hasClass(elem,cls) {
 }
 
 function prefixClasses(classes, prefix) {
-  if (!classes) return '';
-  return classes.split(' ') .. @map(cls -> prefix+cls) .. @join(' ');
+  if (!classes) return [];
+  return classes.split(' ') .. @map(cls -> prefix+cls);
 }
 
 //----------------------------------------------------------------------
@@ -56,6 +56,15 @@ __js function wrapWithClass(baseElement, cls) {
   return () -> baseElement.apply(null, arguments) .. @Class(cls);
 }
 
+__js function callWithClass(baseElement, cls, content, attribs) {
+  return baseElement.call(null, content, attribs) .. @Class(cls);
+}
+
+// XXX use of @Class this way is undocumented, but works
+// for an array of non-observable class names
+var wrapWithClasses = wrapWithClass;
+var callWithClasses = callWithClass;
+
 /**
   @function Button
   @param {surface::HtmlFragment} [content]
@@ -63,7 +72,7 @@ __js function wrapWithClass(baseElement, cls) {
   @summary <button class="btn">
   @return {surface::Element}
 */
-exports.Button = wrapWithClass(base_html.Button, 'btn btn-default');
+exports.Button = wrapWithClasses(base_html.Button, ['btn', 'btn-default']);
 
 /**
   @function Table
@@ -94,11 +103,11 @@ exports.Input = wrapWithClass(base_html.Input, 'form-control');
 /**
   @function TextInput
   @summary [../html::TextInput] with class "form-control"
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
   @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value 
+    When the element is inserted into the document, its value
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If
     `value` is an [sjs:observable::ObservableVar] (as identified by being a
@@ -119,6 +128,7 @@ exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
 /**
   @function Select
   @param {Object} [settings]
+  @param {optional Object} [attribs]
   @summary [../html::Select] with class "form-control"
   @return {surface::Element}
 */
@@ -163,31 +173,35 @@ exports.Select = wrapWithClass(base_html.Select, 'form-control');
         ]
     );
 */
-exports.Btn = (btn_classes, content, attribs) -> 
-  (wrapWithClass(base_html.Button, 'btn '+prefixClasses(btn_classes,'btn-')))(content, attribs);
-
+exports.Btn = (btn_classes, content, attribs) ->
+  callWithClass(base_html.Button,
+    ['btn'].concat(prefixClasses(btn_classes,'btn-')),
+    content, attribs);
 
 /**
   @function Icon
   @param {String} [name]
   @summary <span class="glyphicon glyphicon-{name}">
+  @param {optional Object} [attribs]
   @return {surface::Element}
 */
-exports.Icon = name -> @Element('span', '', { 'class': "glyphicon glyphicon-#{name}"});
+exports.Icon = (name, attribs) -> callWithClasses(base_html.Span, ["glyphicon", "glyphicon-#{name}"], '', attribs);
 
 /**
   @function Row
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @summary <div class="row">
   @return {surface::Element}
 */
-exports.Row = content -> @Element('div', content, {'class':'row'});
+exports.Row = wrapWithClass(base_html.Div, 'row');
 
 /**
   @function Col
-  @summary <div class="col `col_classes`">
+  @summary <div class="col-`col_classes`">
   @param {String} [col_classes] String of `col-*` classes to apply to the col
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @return {surface::Element}
   @desc
     `col_classes` is a space-separated list of `col-*` classes that 
@@ -198,35 +212,37 @@ exports.Row = content -> @Element('div', content, {'class':'row'});
     * **pulling left**: one or more of `xs-pull-M`, `sm-pull-M`, `md-pull-M`, `lg-pull-M`.
     * **pushing right**: one or more of `xs-push-M`, `sm-push-M`, `md-push-M`, `lg-push-M`.
 */
-exports.Col = (col_classes, content) ->
-  @Element('div', content, {'class': prefixClasses(col_classes,'col-') });
+exports.Col = (col_classes, content, attribs) ->
+  callWithClasses(base_html.Div, prefixClasses(col_classes,'col-'), content, attribs);
 
 /**
   @function Container
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @summary <div class="container">
   @return {surface::Element}
 */
-exports.Container = content -> @Element('div', content, {'class':'container'});
+exports.Container = wrapWithClass(base_html.Div, 'container');
 
 /**
   @function Lead
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @summary Lead body paragraph <p class='lead'>...</p>
   @return {surface:Element}
 */
-exports.Lead = content -> @Element('p', content, {'class':'lead'});
+exports.Lead = wrapWithClass(base_html.P, 'lead');
 
 /**
   @function ListGroup
   @param {Array} [items] Array of [surface::HtmlFragment]s
+  @param {optional Object} [attribs]
   @summary <div class='list-group'><div class='list-group-item'>...</div>...</div>
   @return {surface::Element}
 */
-exports.ListGroup = items -> @Element('div', 
-                                      items .. 
-                                      _map(item -> item .. hasClass('list-group-item') ? item : base_html.Div(item, {'class':'list-group-item'})),
-                                      {'class':'list-group'});
+exports.ListGroup = (items, attribs) -> callWithClass(base_html.Div, 'list-group',
+  items .. _map(item -> item .. hasClass('list-group-item') ? item : base_html.Div(item, {'class':'list-group-item'})),
+  attribs);
 
 
 /**
@@ -248,16 +264,18 @@ exports.ListGroupItem = function(/*cls, content*/) {
 /**
   @function PageHeader
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @summary <div class="page-header"><h1>{content}</h1></div>
   @return {surface::Element}
 */
-exports.PageHeader = content -> @Element('div', `<h1>$content</h1>`, {'class':'page-header'});
+exports.PageHeader = (content, attribs) -> callWithClass(base_html.Div, 'page-header', `<h1>$content</h1>`, attribs);
 
 /**
   @function Panel
   @summary Bootstrap-style panel ("<div class='panel'>") with additional `panel-*` classes applied.
   @param {String} [panel_classes] String of `panel-*` classes to apply to the button
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @return {surface::Element}
   @desc
     `panel_classes` is a space-separated list of `panel-*` classes that should be applied to the 
@@ -265,33 +283,36 @@ exports.PageHeader = content -> @Element('div', `<h1>$content</h1>`, {'class':'p
     
     * **context**: `default`, `primary`, `success`, `info`, `warning`, or `danger`
 */
-exports.Panel = (panel_classes, content) ->
-  @Element('div', content, 
-           { 'class': 'panel '+ prefixClasses(panel_classes, 'panel-') });
+exports.Panel = (panel_classes, content, attribs) ->
+  callWithClasses(base_html.Div, ['panel'].concat(prefixClasses(panel_classes, 'panel-')),
+    content, attribs);
 
 /**
   @function PanelBody
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @summary <div class="panel-body">
   @return {surface::Element}
 */
-exports.PanelBody = content -> @Element('div', content, {'class':'panel-body'});
+exports.PanelBody = wrapWithClass(base_html.Div, 'panel-body');
 
 /**
   @function PanelHeading
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @summary <div class="panel-heading">
   @return {surface::Element}
 */
-exports.PanelHeading = content -> @Element('div', content, {'class':'panel-heading'});
+exports.PanelHeading = wrapWithClass(base_html.Div, 'panel-heading');
 
 /**
   @function PanelTitle
   @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attribs]
   @summary <h3 class='panel-title'>
   @return {surface::Element}
 */
-exports.PanelTitle = content -> @Element('h3', content, {'class':'panel-title'});
+exports.PanelTitle = wrapWithClass(base_html.H3, 'panel-title');
 
 //----------------------------------------------------------------------
 // HIGH-LEVEL BOOTSTRAP-SPECIFIC CONSTRUCTS:

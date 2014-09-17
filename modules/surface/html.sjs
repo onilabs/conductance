@@ -182,7 +182,7 @@ exports.TextInput = TextInput;
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var TextArea = (value, attrs) ->
-  Element('textarea', attrs||{}) ..
+  Element('textarea', null, attrs||{}) ..
   Mechanism(function(node) {
     value = value || "";
     if (isStream(value)) {

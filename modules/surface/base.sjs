@@ -831,7 +831,7 @@ __js {
   function Style(element, style) {
     element = cloneElement(element);
     var prop = element.attribs['style'];
-    if (!prop) 
+    if (!prop)
       prop = element.attribs['style'] = [style];
     else if (!Array.isArray(prop))
       prop = element.attribs['style'] = [prop, style];
