@@ -559,7 +559,7 @@ function BridgeConnection(transport, opts) {
     function inner() {
       var async = false;
       var packet = transport.receive();
-      logging.debug("received packet", packet);
+      //logging.debug("received packet", packet);
       waitfor {
         if (packet.type === 'message')
           receiveMessage(packet);
@@ -589,7 +589,7 @@ function BridgeConnection(transport, opts) {
       catch (e) {
         if (!throwing) {
           sessionLost.emit(e);
-          logging.info("Error while receiving; terminating BridgeConnection: #{e}");
+          logging.verbose("Error while receiving; terminating BridgeConnection: #{e}");
           break;
         }
         throw e;
@@ -749,7 +749,7 @@ exports.connect = function(api_name, opts, block) {
         try {
           connection.stratum.waitforValue();
         } catch(e) {
-          logging.warn("Bridge connection lost: #{e}");
+          logging.verbose("Bridge connection lost: #{e}");
           throw TransportError("Bridge connection lost");
         }
       } or {

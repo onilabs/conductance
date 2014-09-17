@@ -133,7 +133,7 @@ exports.run = function(config, block) {
     // use socket activation
     var fdCount = parseInt(process.env.LISTEN_FDS, 10);
     if (fdCount != servers.length) {
-      throw new Error("Configuration specifies #{ports.length} ports, but we were passed #{fdCount} $LISTEN_FDS");
+      throw new Error("Configuration specifies #{servers.length} ports, but we were passed #{fdCount} $LISTEN_FDS");
     }
     logging.verbose("Adopting #{fdCount} $LISTEN_FDS");
     var nextFD=3;
