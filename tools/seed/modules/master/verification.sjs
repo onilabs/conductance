@@ -4,12 +4,12 @@ var { @User } = require('../auth/user');
 @user = require('./user');
 @crypto = require('nodejs:crypto');
 @response = require('mho:server/response');
-var { @alphanumeric } = require('../validate');
+var { @keySafe } = require('../validate');
 @layout = require('../local/layout');
 
 var serverRoot = @env.get('publicAddress')('master');
-var verificationUrl = (user) -> serverRoot + "auth/verify/#{user.id .. @alphanumeric}/#{user.verifyCode() .. @alphanumeric}";
-exports.verifyRoute = /^auth\/verify\/([a-zA-Z0-9]+)\/([a-zA-Z0-9]+)$/;
+var verificationUrl = (user) -> serverRoot + "auth/verify/#{user.id .. @keySafe}/#{user.verifyCode() .. @keySafe}";
+exports.verifyRoute = /^auth\/verify\/([^\/]+)\/([a-zA-Z0-9]+)$/;
 exports.verifyHandler = function(req, [_, uid, code]) {
   exports.verify(uid, code);
   req .. @response.setStatus(200, { "Content-Type":"text/html"});
@@ -61,7 +61,9 @@ Cheers,
 exports.verify = function(uid, code) {
   @assert.string(uid);
   @assert.string(code);
-  @user.withUserById(uid) {|user, save|
+  @validate .. @keySafe(uid);
+  @validate .. @keySafe(code);
+  @user.withUser(uid) {|user, save|
     if(user.verified()) return true; // refresh maybe; that's fine
     if(user.verifyCode() === code) {
       user.merge({

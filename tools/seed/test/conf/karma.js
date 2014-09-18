@@ -51,6 +51,6 @@ var exports = module.exports = function(config) {
   });
 };
 
-exports.testScript = '/app/test/run.sjs';
+exports.testScript = '/app/test/main.sjs';
 exports.port = PORT;
 

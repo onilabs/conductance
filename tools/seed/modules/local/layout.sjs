@@ -47,7 +47,7 @@ var headerStyle = @CSS("
 
 exports.pageHeader = @Row([
   @Img({src:'/static/header-left.svg', alt:"Conductance Seed"}),
-], {'id':'pageHeader'}) .. headerStyle;
+]) .. @Attrib('id', 'pageHeader') .. headerStyle;
 
 exports.defaultDocument = function(content, overrides) {
   overrides = overrides ? @clone(overrides) : {};

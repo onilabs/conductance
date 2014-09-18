@@ -1,3 +1,4 @@
+#!/usr/bin/env conductance
 require('../modules/hub');
 var logging = require('sjs:logging');
 // logging.setLevel(logging.DEBUG);
@@ -17,7 +18,6 @@ if(require('sjs:sys').hostenv === 'xbrowser') {
   runner.run(opts);
 } else {
   opts.modules = require('./modules.txt.gen').list();
-  require('seed:env').defaults();
   require('./lib/stub.api').hook( -> runner.run(opts));
 }
 

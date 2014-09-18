@@ -13,7 +13,7 @@ var { @Endpoint } = require('../endpoint');
 var { @follow } = require('./follow');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var { @rimraf } = require('sjs:nodejs/rimraf');
-var { @alphanumeric } = require('../validate');
+var { @keySafe } = require('../validate');
 var here = @url.normalize('./', module.id) .. @url.toPath;
 var tmpRoot = @path.join(here, '../tmp');
 var credentialsRoot = @path.join(here, '../credentials');
@@ -31,16 +31,16 @@ var expected_exe_name = /docker/;
 
 var getUserAppRoot = exports.getUserAppRoot = function(user) {
   @assert.ok(user instanceof @User);
-  return @path.join(appRoot, String(user.id) .. @alphanumeric);
+  return @path.join(appRoot, String(user.id) .. @keySafe);
 };
 
 var getAppPath = exports.getAppPath = function(user, id) {
-  return @path.join(getUserAppRoot(user), id .. @alphanumeric);
+  return @path.join(getUserAppRoot(user), id .. @keySafe);
 }
 
 var appRunRoot = @path.join(dataRoot, 'run', 'app');
 var getAppRunPath = function(user, id) {
-  return @path.join(appRunRoot, String(user.id) .. @alphanumeric, id .. @alphanumeric);
+  return @path.join(appRunRoot, String(user.id) .. @keySafe, id .. @keySafe);
 }
 
 var getMasterCodePath = function(user, appId) {
@@ -52,8 +52,8 @@ var getMasterCodePath = function(user, appId) {
   return @path.join(root, String(user.id), appId, "code");
 }
 
-var getGlobalId = (user, id) -> "#{user.id .. @alphanumeric()}/#{id .. @alphanumeric()}";
-var getMachineName = (user, id) -> "#{user.id .. @alphanumeric()}_#{id .. @alphanumeric()}";
+var getGlobalId = (user, id) -> "#{user.id .. @keySafe()}/#{id .. @keySafe()}";
+var getMachineName = (user, id) -> "#{user.id .. @keySafe()}_#{id .. @keySafe()}";
 
 var tryRename = function(src, dest) {
   try {
@@ -584,7 +584,7 @@ exports.masterAppState = (function() {
   return function(user, id) {
     @assert.ok(user instanceof @User);
     @assert.string(id);
-    var globalId = "#{user.id .. @alphanumeric()}/#{id .. @alphanumeric()}";
+    var globalId = "#{user.id .. @keySafe()}/#{id .. @keySafe()}";
     var rv = apps[globalId];
     if(!apps..@hasOwn(globalId)) {
       rv = apps[globalId] = App(user, id);

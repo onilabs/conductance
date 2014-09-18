@@ -279,7 +279,7 @@ exports.loginDialog = function(parent, conf, actions) {
 	var TextInput = form .. formControl(@TextInput);
 	var PasswordInput = form .. formControl(-> @TextInput.apply(null, arguments) .. @Attrib('type', 'password'));
 
-	var userField = form.field('username', {validate:@validate.required});
+	var userField = form.field('username', {validate:[@validate.required, @validate.username]});
 	var passwordField = form.field('password', { validate: @validate.required });
 
 	var passwordInput = formGroup('Password', PasswordInput, passwordField);

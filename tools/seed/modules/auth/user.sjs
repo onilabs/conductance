@@ -46,6 +46,6 @@ User.prototype .. @bridge.setMarshallingDescriptor({
 });
 
 User.prototype.toString = function() {
-  return "User(#{this.id}, #{this.name(null)})";
+  return "User(#{this.id}})";
 };
 

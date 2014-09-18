@@ -3,7 +3,6 @@
 @os = require('nodejs:os');
 @app = require('./app');
 var { @User } = require('../auth/user');
-var { @alphanumeric } = require('../validate');
 
 exports.main = function(client, serverId, singleton) {
 	var info = -> @info.apply(null, ["[client##{serverId}]"].concat(arguments .. @toArray()));

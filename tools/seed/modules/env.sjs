@@ -124,6 +124,11 @@ exports.parse = function(args, options) {
 exports.defaults = function() {
 	def('seed-api-version', 1);
 	var PROD = process.env.NODE_ENV === 'production';
+	var devDefault = function(obj, def, msg) {
+		if(obj) return obj;
+		if(PROD) throw new Error(msg);
+		return def;
+	};
 	def('production', PROD);
 	def('deployLoopback', false);
 	def('anonymous-access', false);
@@ -199,6 +204,15 @@ exports.defaults = function() {
 	def('port-master', portFromEnv('SEED_MASTER_PORT', 7071));
 	def('port-slave', portFromEnv('SEED_SLAVE_PORT', 7072));
 
+	def('use-gcd', !!process.env['DATASTORE_HOST']);
+	//def('gcd-host', -> process.env .. get('DATASTORE_HOST'), true);
+	def('gcd-dataset', -> devDefault(process.env['DATASTORE_DATASET'], 'development', '$DATASTORE_DATASET not set'), true);
+	def('user-storage',
+		-> this.get('use-gcd')
+			? require('seed:master/user-gcd').Create()
+			: require('seed:master/user-leveldown'),
+		true);
+
 	// path overrides from $ENV
 	var codeRoot = @url.normalize('..', module.id) .. @url.toPath;
 	var dataDir = process.env['SEED_DATA'] || @path.join(codeRoot, 'data');
@@ -210,12 +224,7 @@ exports.defaults = function() {
 		-> @path.join(process.env .. @get('XDG_CONFIG_HOME', @path.join(process.env .. @get('HOME'), '.config')), 'conductance'),
 		true);
 
-	def('key-store', function() {
-		var rv = process.env['SEED_KEYS'];
-		if(rv) return rv;
-		if(PROD) throw new Error("$SEED_KEYS not set");
-		return null;
-	}, true);
+	def('key-store', -> devDefault(process.env['SEED_KEYS'], null, "$SEED_KEYS not set"), true);
 
 	def('api-keys',
 		-> @fs.readFile(@path.join(this.get('key-store') || codeRoot, 'api-keys.json'), 'utf-8') .. JSON.parse,
