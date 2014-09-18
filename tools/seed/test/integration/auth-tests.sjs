@@ -1,4 +1,5 @@
 @ = require('../lib/common');
+@context {||
 @addTestHooks();
 
 // see ../../..//stratifiedjs/modules/xbrowser/driver.sjs
@@ -125,3 +126,4 @@ var contentPredicate = function(str) {
 		s.waitforNoModal();
 	}
 }
+}.browserOnly();
