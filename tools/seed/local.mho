@@ -45,8 +45,15 @@ exports.serve = function(args) {
   @env.set('multi-deploy-destinations', opts.multi);
 
   var routes = [
-    @route.ExecutableDirectory('__mho/doc', @env.conductanceRoot + '/doc'),
     @route.SystemRoutes(),
+
+    // add /doc route in development node
+    opts.self ? @route.DocumentationBrowser("doc", [{
+      name:"flux:",
+      path: @path.join(root, "flux"),
+      serve: true,
+    }]) : [],
+
     common.staticRoute,
     @route.CodeDirectory('modules', @path.join(root, 'modules')),
     @route.ExecutableDirectory(@path.join(root, 'modules/local')),
