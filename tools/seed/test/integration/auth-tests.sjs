@@ -23,7 +23,7 @@ var contentPredicate = function(str) {
 
 @test.beforeAll {|s|
 	s.modal = (sel, pred) -> s.driver.elem(".overlay #{sel ? sel : ""}", pred);
-	s.hasModal = (sel, pred) -> s.driver.elems(".overlay #{sel}", pred).length > 0;
+	s.hasModal = (sel, pred) -> s.driver.elems(".overlay #{sel ? sel : ""}", pred).length > 0;
 	s.waitforPanel = function(title) {
 		var matches = @isString(title) ? t -> t === title : t -> title.test(t);
 		@waitforSuccess(function() {
@@ -84,7 +84,6 @@ var contentPredicate = function(str) {
 		var activationResponse = email .. activationLink() .. @http.get();
 		// TODO: assert contents of activation page, maybe even load it in a new driver window?
 
-		@info(activationResponse);
 		s.modal('button') .. s.driver.click();
 		s.waitforNoModal();
 	}
@@ -94,13 +93,13 @@ var contentPredicate = function(str) {
 		s.modal('button') .. s.driver.click();
 		@waitforSuccess( -> s.modal('.panel-body') .. @elem('h3') .. @get('textContent') .. @assert.eq("Login failed."));
 		var container = s.modal('.panel-body');
-		var button = container .. @elem('button');
-		button.textContent .. @assert.eq("Try again...");
-		button .. s.driver.click;
+		var button = -> container .. @elem('button');
+		button().textContent .. @assert.eq("Try again...");
+		button() .. s.driver.click;
 
 		@stub.emailQueue.get() .. activationLink() .. @http.get();
 		container .. @elem('h3') .. @get('textContent') .. @assert.eq("Login failed.");
-		button .. s.driver.click();
+		button() .. s.driver.click();
 
 		s.waitforNoModal();
 	}
