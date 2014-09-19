@@ -7,12 +7,13 @@ exports.routeOptions = function(route) {
   });
 
   if (@env.get('cors')) {
-    @info("Allowing all CORS requests");
+    console.warn("Allowing all CORS requests");
     route = route .. @route.AllowCORS();
   } else {
     var corsOrigins = @env.get('cors-origins');
     if (corsOrigins.length > 0) {
-      @info("Allowing CORS requests from: #{corsOrigins .. @join(",")}");
+      corsOrigins = corsOrigins .. @map(o -> o .. @rstrip('/'));
+      console.warn("Allowing CORS requests from: #{corsOrigins .. @join(",")}");
       route = route .. @route.AllowCORS(host -> corsOrigins .. @hasElem(host));
     }
   }

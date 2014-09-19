@@ -167,6 +167,7 @@ exports.defaults = function() {
 	*/
 	def('host-self', process.env['SEED_PUBLIC_ADDRESS'] || selfHost);
 	def('host-proxy', process.env['SEED_PROXY_HOST'] || selfHost);
+	def('host-master', process.env['SEED_MASTER_HOST'] || selfHost);
 	def('host-local', 'localhost');
 
 	def('publicAddress', function(server, service, proto) {

@@ -30,7 +30,7 @@ exports.serve = function(args) {
         name: 'master',
         type: 'string',
         //XXX point this to production
-        'default': 'http://localhost:7071',
+        'default': null,
         help: 'override master location (for testing)',
       },
       {
@@ -41,7 +41,10 @@ exports.serve = function(args) {
       },
     ]);
 
+  opts.master = opts.master || @env.get('publicAddress')('master', 'master');
   @env.set('deployLoopback', opts.self);
+  @env.set('cors', false);
+  @env.set('cors-origins', [opts.master]);
   @env.set('master-server', opts.local ? null : opts.master);
   @env.set('multi-deploy-destinations', opts.multi);
 
