@@ -8,7 +8,7 @@ var { @keySafe } = require('../validate');
 @layout = require('../local/layout');
 
 var serverRoot = @env.get('publicAddress')('master');
-var verificationUrl = (user) -> serverRoot + "auth/verify/#{user.id .. @keySafe}/#{user.verifyCode() .. @keySafe}";
+var verificationUrl = (user) -> serverRoot + "auth/verify/#{user.name() .. @keySafe}/#{user.verifyCode() .. @keySafe}";
 exports.verifyRoute = /^auth\/verify\/([^\/]+)\/([a-zA-Z0-9]+)$/;
 exports.verifyHandler = function(req, [_, uid, code]) {
   exports.verify(uid, code);
@@ -70,6 +70,7 @@ exports.verify = function(uid, code) {
         verifyCode: undefined,
         verified: true,
       }) .. save();
+      @info("Verified user #{uid}");
       return true;
     } else {
       return false;

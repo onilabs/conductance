@@ -20,8 +20,9 @@ exports.Create = function(appName) {
 	var userSchema = {
 		__parent: rootKey,
 		name: {__type: 'primary'},
+		email: STRING,
 		verified: BOOL,
-		verifyCode: BOOL,
+		verifyCode: STRING,
 		password: {
 			iterations: INT,
 			keylen: INT,

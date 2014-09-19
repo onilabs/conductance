@@ -19,7 +19,7 @@ var randomBytes = function(size){
 	return rv;
 }
 
-var getUser = function(uid) {
+var getUser = exports.getUser = function(uid) {
 	db.synchronize {|db|
 		var {id, props} = db.getUser(uid);
 		return new @User(id, props);

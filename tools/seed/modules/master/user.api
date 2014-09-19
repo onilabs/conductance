@@ -9,11 +9,8 @@ exports.validateToken = function(token) {
 };
 
 exports.sendConfirmation = function(username) {
-  var user;
   try {
-    @user.withUserByName(username) {|u|
-      user = u;
-    }
+    var user = @user.getUser(username);
   } catch(e) {
     @info("sendConfirmation ignoring error: #{e.message}");
     // errors getting the user should be ignored;
