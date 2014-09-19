@@ -27,6 +27,7 @@ exports.Create = function(appName) {
 			iterations: INT,
 			keylen: INT,
 			salt: BYTES,
+			hash: STRING,
 		},
 	};
 

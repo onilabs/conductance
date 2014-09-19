@@ -30,8 +30,5 @@ exports.createUser = function(props) {
   props.email = email;
   var user = @user.create(username, password, props);
   @verification.sendConfirmationTo(user);
-};
-
-exports.verifyUser = function(uid, code) {
-  @verification.verify(uid, code);
+  return;
 };

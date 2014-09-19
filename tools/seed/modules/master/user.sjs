@@ -10,6 +10,7 @@ if (require.main === module) {
 }
 
 var db = @env.get('user-storage');
+exports.isNotFound = db.isNotFound;
 
 var randomBytes = function(size){
 	waitfor(var err, rv) {

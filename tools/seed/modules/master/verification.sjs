@@ -63,17 +63,24 @@ exports.verify = function(uid, code) {
   @assert.string(code);
   @validate .. @keySafe(uid);
   @validate .. @keySafe(code);
-  @user.withUser(uid) {|user, save|
-    if(user.verified()) return true; // refresh maybe; that's fine
-    if(user.verifyCode() === code) {
-      user.merge({
-        verifyCode: undefined,
-        verified: true,
-      }) .. save();
-      @info("Verified user #{uid}");
-      return true;
-    } else {
-      return false;
+  try {
+    @user.withUser(uid) {|user, save|
+      if(user.verified()) return true; // refresh maybe; that's fine
+      if(user.verifyCode() === code) {
+        user.merge({
+          verifyCode: undefined,
+          verified: true,
+        }) .. save();
+        @info("Verified user #{uid}");
+        return true;
+      } else {
+        return false;
+      }
     }
+  } catch(e) {
+    if(e .. @user.isNotFound(e)) {
+      return false
+    }
+    throw e;
   }
 };

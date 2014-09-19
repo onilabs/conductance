@@ -53,7 +53,7 @@ var contentPredicate = function(str) {
 
 @context("Signup") {||
 	var signup = function(s) {
-		s.waitforPanel(/Login to .*/);
+		s.waitforPanel(/Login/);
 		var form = @waitforSuccess( -> s.modal('form'));
 		form .. @elems('a') .. @find(el -> /register new account/.test(el.textContent)) .. s.driver.click();
 		s.fillForm(form, s.creds, ['username','email','password']);
@@ -63,7 +63,7 @@ var contentPredicate = function(str) {
 	};
 
 	var submitLogin = function(s, creds) {
-		s.waitforPanel(/Login to .*/);
+		s.waitforPanel(/Login/);
 		if(!creds) creds = s.creds;
 		var form = @waitforSuccess( -> s.modal('form'));
 		s.fillForm(form, creds, ['username', 'password']);
