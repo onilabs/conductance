@@ -24,7 +24,20 @@ exports.serve = function() {
       };
     }(@route.SystemRoutes);
     console.warn("Serving test suite at http://localhost:#{port}/test/");
-    require('../local.mho').serve(['--self','--port', String(port)]);
+    // modify default ports so as not to conflict with existing hosts
+    ['master', 'local','slave','proxy-http', 'proxy-https'] .. @indexed .. @each {|[i, service]|
+      @env.set("port-#{service}", port+i);
+    }
+    require('../bin/etcd.sjs').withEtcd {|| // XXX should this be a separate port too?
+      waitfor {
+        require('../local.mho').serve([]);
+      } or {
+        require('../master.mho').serve([]);
+      }
+      // not yet needed:
+      // require('../slave.mho').serve([]);
+      // require('../proxy.mho').serve([]);
+    }
   }
 };
 

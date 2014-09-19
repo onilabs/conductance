@@ -5,7 +5,7 @@ var { @User } = require('../auth/user');
 @crypto = require('nodejs:crypto');
 @response = require('mho:server/response');
 var { @keySafe } = require('../validate');
-@layout = require('../local/layout');
+@layout = require('../ui/layout');
 
 var serverRoot = @env.get('publicAddress')('master');
 var verificationUrl = (user) -> serverRoot + "auth/verify/#{user.name() .. @keySafe}/#{user.verifyCode() .. @keySafe}";

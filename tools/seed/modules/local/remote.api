@@ -5,6 +5,7 @@ var deployLoopback = @env.get('deployLoopback');
 
 @settings = require('./settings');
 
+exports.version = @env.get('seed-api-version');
 exports.multipleServers = @env.get('multi-deploy-destinations');
 if (exports.multipleServers) {
 	exports.servers = @settings.servers;
@@ -13,19 +14,14 @@ if (exports.multipleServers) {
 	};
 } else {
 	// in single-server mode, just use the "central" server
-	// with hard-coded addess & port
+	// with empty addess
 	exports.servers = @settings.servers .. @transform(function(servers) {
-		var central = @settings.server('central', {name: 'seed.conductance.io'}, true);
+		var central = @settings.server('central', {name: null}, true);
 		central.config.modify(function(current, unchanged) {
-			var masterServer = @env.get('master-server');
-			var masterServer = @url.parse(masterServer);
-			var host = masterServer.host;
-			if (masterServer.protocol === 'http') {
-				host = "http://#{host}";
-			}
 			var updated = current .. @merge({
-				host: host,
-				port: masterServer.port,
+				host: null,
+				port: null,
+				ssh: false,
 			});
 			if (updated .. @eq(current)) return unchanged;
 			return updated;
@@ -173,10 +169,15 @@ exports.getServer = function(serverId) {
 
 		} else {
 			// for http(s) connections, return the endpoint directly
+			var path = "/master/deploy.api";
+			if(!creds.host) {
+				// use the current browser address
+				return @Endpoint(path);
+			}
 			var prefix = "https://";
 			// XXX we should probably lock this down to testing use only, somehow
 			if (creds.host .. @contains("://")) prefix = "";
-			return @Endpoint("#{prefix}#{creds.host}:#{creds.port || 443}/master/deploy.api");
+			return @Endpoint("#{prefix}#{creds.host}:#{creds.port || 443}#{prefix}");
 		}
 	}();
 

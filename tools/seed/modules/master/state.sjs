@@ -2,18 +2,14 @@
 @util = require('../util');
 var fsExt = require('nodejs:fs-ext');
 
-var prefix = process.env['XDG_RUNTIME_DIR'] || '/run';
-var runDir = @path.join(prefix, 'conductance-seed');
-var lockPath = @path.join(runDir, 'state.lock');
-var statePath = @path.join(runDir, 'state.json');
-var newStatePath = @path.join(runDir, 'state.json.tmp');
-var internalStateLock = @Semaphore(1);
+var prefix = @env('data-root');
+var lockPath = @path.join(prefix, 'master.lock');
 var hasLock = false;
 
 exports.acquire = function() {
 	@assert.falsy(hasLock, "hasLock");
 	try{
-		@fs.mkdir(runDir);
+		@fs.mkdir(prefix);
 	} catch(e) {
 		if (e.code != 'EEXIST') throw e;
 	}
@@ -30,37 +26,4 @@ exports.acquire = function() {
 	// NEVER let children inherit lockfile
 	@util.setCloexec(lockfile);
 	hasLock = true;
-}
-
-// you must hold internalStateLock
-// when calling this function
-var _load = function() {
-	@assert.ok(hasLock);
-	try {
-		var contents = @fs.readFile(statePath, 'utf-8');
-	} catch(e) {
-		if (e.code == 'ENOENT') {
-			return {};
-		}
-		throw e;
-	}
-	return JSON.parse(contents);
-};
-
-exports.load = function() {
-	internalStateLock.synchronize {||
-		return _load();
-	}
-}
-
-exports.modify = function(f) {
-	internalStateLock.synchronize {||
-		var newState = f(_load());
-		@assert.ok(newState);
-		var contents = JSON.stringify(newState);
-		newStatePath .. @fs.writeFile(new Buffer(contents));
-		// once written, move file atomically
-		// (so that external readers never see an inconsistent state
-		@fs.rename(newStatePath, statePath);
-	}
 }

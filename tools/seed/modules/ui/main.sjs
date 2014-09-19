@@ -7,6 +7,7 @@ require('/modules/hub');
 var { @route } = require('./my-route');
 @logging.setLevel(@logging.DEBUG);
 var { @Countdown } = require('mho:surface/widget/countdown');
+var { @isTransportError, @connect } = require('mho:rpc/bridge');
 
 var OnClick = (elem, action) -> @OnClick(elem, {handle:@stopEvent}, action);
 
@@ -484,7 +485,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 	}
 };
 
-function displayServer(elem, header, api, server, clientVersion) {
+function displayServer(elem, header, api, server) {
 	@assert.ok(server, "null server");
 	var id = server.id;
 	elem .. @appendContent(@Div(null)) {|elem|
@@ -517,19 +518,15 @@ function displayServer(elem, header, api, server, clientVersion) {
 						connectionError.set(false);
 						reconnectDelay = initialDelay;
 						@debug("Connected to server:", remoteServer);
-						var versionError = remoteServer.versionError(clientVersion);
-						if (versionError) {
-							while(true) {
-								@modal.withOverlay({title: "Version error", 'class':'panel-danger', close:false}) {|elem|
-									elem .. @appendContent(versionError, -> hold());
-								}
-							}
-						}
+
 						if (remoteServer.authenticate) {
 							while (!token) {
 								@info("Getting auth token...");
 								var username, password;
-								var loginResult = @modal.withOverlay({title:`Login to ${initialConfig.name}`, close: api.multipleServers}) {|elem|
+								var loginResult = @modal.withOverlay({title:
+									initialConfig.name ? `Login to ${initialConfig.name}` : `Login required`,
+									close: api.multipleServers})
+								{|elem|
 									@form.loginDialog(elem, server.config, {
 										login: function(props) {
 											@modal.spinner(elem) {||
@@ -605,170 +602,220 @@ function displayServer(elem, header, api, server, clientVersion) {
 	};
 };
 
-
-exports.run = function(clientVersion) {
+function runInner(api, ready) {
+	var apiVersion = api.version;
+	@assert.number(api.version);
+	var minVersion = 1;
+	if (apiVersion < minVersion) {
+		ready();
+		@logging.warn("Old remote.api version #{apiVersion}");
+		while(true) {
+			@modal.withOverlay({title: "Version error", 'class':'panel-danger', close:false}) {|elem|
+				elem .. @appendContent(
+				`<h4>
+					<strong>Sorry, your local Conductance installation is out of date.</strong>
+				</h4>
+				<p>
+					To update Conductance, stop the running <code>conductance seed</code> process, and then run:
+					<pre>\$ conductance self-update\n\$ conductance seed</pre>
+				</p>
+				<p>
+					If that doesn't work, see <a href="https://conductance.io/install">conductance.io/install</a> for more details.
+					(In particular, the <code>self-update</code> command is not available if you installed Conductance via <code>npm</code> or <code>git</code>.)
+				</p>`, -> hold());
+			}
+		}
+		return ;
+	}
 	var header = document.getElementById('pageHeader');
 	@assert.ok(header);
-	@withBusyIndicator {|ready|
-		// NOTE: we explicitly use /remote.api, not ./remote
-		// (this module might be served from the master, which does NOT provide remote.api)
-		@withAPI('/remote.api') {|api|
-			var serverEq = function(a, b) {
-				return a == b || (a ? a.id) == (b ? b.id);
-			};
 
-			var servers = api.servers;
-			if (api.multipleServers) {
-				@info("multi-server mode");
-				// XXX deprecate?
-				var activeServer = @observe(@route, api.servers, function(state, servers) {
-					var id = state.server;
-					if (!id) return null;
-					return servers .. @find(s -> s.id === id, null);
-				}) .. @dedupe;
-				activeServer.get = -> activeServer .. @first();
-				activeServer.set = val -> @route.set({server: val ? val.id : null});
+	var serverEq = function(a, b) {
+		return a == b || (a ? a.id) == (b ? b.id);
+	};
 
-				var displayCurrentServer = function(elem) {
-					activeServer .. @each.track(function(server) {
-						@info("activeServer changed");
-						if (!server) {
-							elem .. @appendContent([
-								@H3(`No server selected`),
-								@P(`Create or select a server above to get started`),
-							], ->hold());
-						} else {
-							try {
-								elem .. displayServer(api, server, clientVersion);
-								activeServer.set(null);
-							} catch(e) {
-								activeServer.set(null);
-								throw e;
-							}
-						}
-					});
-				};
+	var servers = api.servers;
+	if (api.multipleServers) {
+		@info("multi-server mode");
+		// XXX deprecate?
+		var activeServer = @observe(@route, api.servers, function(state, servers) {
+			var id = state.server;
+			if (!id) return null;
+			return servers .. @find(s -> s.id === id, null);
+		}) .. @dedupe;
+		activeServer.get = -> activeServer .. @first();
+		activeServer.set = val -> @route.set({server: val ? val.id : null});
 
-				var buttons = api.servers .. @transform(function(servers) {
-					return servers .. @map(function(server) {
-						@info("Server: ", server);
-						var serverName = [`&hellip;`] .. @concat(server.config .. @transform(s -> s.name));
-						var button = @A(serverName, {'class':'btn navbar-btn'}) .. OnClick(function(evt) {
-								activeServer.set(server);
-							});
-
-						var dropdownItems = [
-							@A(@Span(null, {'class':'caret'}), {'class':'btn dropdown-toggle', 'data-toggle':'dropdown'}),
-							@Ul([
-
-								@A([@Icon('cog'), ' Settings'])
-									.. OnClick(->editServerSettings(server)),
-
-								@A([@Icon('remove'), ' Delete']) .. OnClick(function() {
-									if (!confirmDelete(`server ${server.config .. @first .. @get('name')}`)) return;
-									@withBusyIndicator {||
-										server.destroy();
-									}
-								}),
-
-								@A([@Icon('log-out'), ' Log out']) .. OnClick(function() {
-									localApi.deleteServerCredentials(server.id);
-									if (activeServer.get() === server) activeServer.set(null);
-								}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
-
-							], {'class':'dropdown-menu'}),
-						];
-
-						return @Li(@Div([button, dropdownItems], {'class':'btn-group'}))
-							.. @Class('active', activeServer .. @transform(s -> serverEq(s, server)));
-					});
-				});
-
-				var addServer = @Li(@Div(@A(@Icon('plus-sign'), {'class':'floating'})) .. OnClick(function() {
-					var config = @ObservableVar({});
-					@modal.withOverlay({title:`Create server`}) {|elem|
-						elem .. @form.serverConfigEditor(config);
-						elem .. @modal.spinner {||
-							api.createServer(config.get());
-						}
+		var displayCurrentServer = function(elem) {
+			activeServer .. @each.track(function(server) {
+				@info("activeServer changed");
+				if (!server) {
+					elem .. @appendContent([
+						@H3(`No server selected`),
+						@P(`Create or select a server above to get started`),
+					], ->hold());
+				} else {
+					try {
+						elem .. displayServer(api, server);
+						activeServer.set(null);
+					} catch(e) {
+						activeServer.set(null);
+						throw e;
 					}
-				}));
-
-				var serverList = buttons .. @transform(function(buttons) {
-					return @Nav(
-						@Div(
-							@Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'}),
-						{'class':''}),
-					{'class':''})
-					.. @CSS('
-						.nav > li {
-							margin-left:1em;
-							&:first-child {
-								margin-left:0;
-							}
-						}
-
-						.floating {
-							display:block;
-							padding: 5px;
-							position:relative;
-							top:0.2em;
-						}
-
-						.btn {
-							box-shadow: none !important;
-							background: white !important;
-							border-color: #ccc !important;
-						}
-
-						.btn {
-							color: #2a6496;
-							margin:0;
-							height:100%;
-							border: 1px solid #ccc;
-							border-bottom-left-radius: 0;
-							border-bottom-right-radius: 0;
-						}
-
-						.active .btn {
-							border-bottom:1px solid white !important;
-						}
-
-						.btn.dropdown-toggle {
-							border-left-width: 0;
-						}
-						.navbar-btn {
-							border-right-width:0;
-						}
-					');
-				});
-
-				@mainContent .. @appendContent([
-					serverList,
-					@Div(),
-				]) {|_, content|
-					ready();
-					content .. displayCurrentServer();
 				}
-			} else {
-				@info("single-server mode");
-				@mainContent .. @appendContent([
-					@Div(),
-				]) {|content|
-					ready();
-					api.servers .. @each.track {|servers|
-						@info("api.servers changed");
-						var server = servers[0];
-						@route.modify(function(current, unchanged) {
-							if(current.server == server.id) return unchanged;
-							return { server: server.id };
-						});
-						while(true) {
-							content .. displayServer(header, api, server, clientVersion);
-						}
+			});
+		};
+
+		var buttons = api.servers .. @transform(function(servers) {
+			return servers .. @map(function(server) {
+				@info("Server: ", server);
+				var serverName = [`&hellip;`] .. @concat(server.config .. @transform(s -> s.name));
+				var button = @A(serverName, {'class':'btn navbar-btn'}) .. OnClick(function(evt) {
+						activeServer.set(server);
+					});
+
+				var dropdownItems = [
+					@A(@Span(null, {'class':'caret'}), {'class':'btn dropdown-toggle', 'data-toggle':'dropdown'}),
+					@Ul([
+
+						@A([@Icon('cog'), ' Settings'])
+							.. OnClick(->editServerSettings(server)),
+
+						@A([@Icon('remove'), ' Delete']) .. OnClick(function() {
+							if (!confirmDelete(`server ${server.config .. @first .. @get('name')}`)) return;
+							@withBusyIndicator {||
+								server.destroy();
+							}
+						}),
+
+						@A([@Icon('log-out'), ' Log out']) .. OnClick(function() {
+							localApi.deleteServerCredentials(server.id);
+							if (activeServer.get() === server) activeServer.set(null);
+						}) .. @Class('hidden', server.config .. @transform(c -> !c .. @hasOwn('token'))),
+
+					], {'class':'dropdown-menu'}),
+				];
+
+				return @Li(@Div([button, dropdownItems], {'class':'btn-group'}))
+					.. @Class('active', activeServer .. @transform(s -> serverEq(s, server)));
+			});
+		});
+
+		var addServer = @Li(@Div(@A(@Icon('plus-sign'), {'class':'floating'})) .. OnClick(function() {
+			var config = @ObservableVar({});
+			@modal.withOverlay({title:`Create server`}) {|elem|
+				elem .. @form.serverConfigEditor(config);
+				elem .. @modal.spinner {||
+					api.createServer(config.get());
+				}
+			}
+		}));
+
+		var serverList = buttons .. @transform(function(buttons) {
+			return @Nav(
+				@Div(
+					@Ul(buttons.concat([addServer]), {'class':'nav nav-tabs'}),
+				{'class':''}),
+			{'class':''})
+			.. @CSS('
+				.nav > li {
+					margin-left:1em;
+					&:first-child {
+						margin-left:0;
 					}
+				}
+
+				.floating {
+					display:block;
+					padding: 5px;
+					position:relative;
+					top:0.2em;
+				}
+
+				.btn {
+					box-shadow: none !important;
+					background: white !important;
+					border-color: #ccc !important;
+				}
+
+				.btn {
+					color: #2a6496;
+					margin:0;
+					height:100%;
+					border: 1px solid #ccc;
+					border-bottom-left-radius: 0;
+					border-bottom-right-radius: 0;
+				}
+
+				.active .btn {
+					border-bottom:1px solid white !important;
+				}
+
+				.btn.dropdown-toggle {
+					border-left-width: 0;
+				}
+				.navbar-btn {
+					border-right-width:0;
+				}
+			');
+		});
+
+		@mainContent .. @appendContent([
+			serverList,
+			@Div(),
+		]) {|_, content|
+			ready();
+			content .. displayCurrentServer();
+		}
+	} else {
+		@info("single-server mode");
+		@mainContent .. @appendContent([
+			@Div(),
+		]) {|content|
+			ready();
+			api.servers .. @each.track {|servers|
+				@info("api.servers changed");
+				var server = servers[0];
+				@route.modify(function(current, unchanged) {
+					if(current.server == server.id) return unchanged;
+					return { server: server.id };
+				});
+				while(true) {
+					content .. displayServer(header, api, server);
+				}
+			}
+		}
+	}
+};
+
+exports.run = function(localServer) {
+	while(true) {
+		var stopIndicator = null;
+		try {
+			@withBusyIndicator {|ready|
+				stopIndicator = ready;
+				@connect("#{localServer}remote.api", {}) {|connection|
+					runInner(connection.api, ready);
+				}
+			}
+			break;
+		} catch(e) {
+			if (!@isTransportError(e)) throw e;
+			@modal.withOverlay({title:"Can't connect to local server", 'class':'panel-danger', close:false}) {|elem|
+				stopIndicator();
+				elem .. @appendContent(`
+					<div>
+						<p>Couldn't connect to local Conductance server on <code>${localServer}</code>.</p>
+						<p>You can start the local server by running:</p>
+						<pre>\$ conductance seed</pre>
+						$@Button("Try again", {'class':'btn-primary'})
+					</div>
+				`) {|elem|
+					var btn = elem.querySelector('.btn');
+					btn .. @wait('click');
 				}
 			}
 		}
 	}
 }
+

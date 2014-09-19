@@ -14,6 +14,24 @@ function initLogLevel() {
 }
 initLogLevel();
 
+var portFromEnv = function(name, def, xform) {
+	var e = process.env[name];
+	if (e) {
+		if (xform) e = xform(e);
+		return parseInt(e, 10);
+	}
+	return def;
+};
+
+
+var defaultPorts = exports.defaultPorts = {
+	local: 7075, // XXX make this less conflicty
+	master: portFromEnv('SEED_MASTER_PORT', 7071),
+	proxyHttp: portFromEnv('SEED_PROXY_PORT', 8080),
+	proxyHttps: portFromEnv('SEED_PROXY_PORT_HTTPS', 4043),
+	slave: portFromEnv('SEED_SLAVE_PORT', 7072),
+};
+
 var def = function(key,val, lazy) {
 	@assert.ok(val != null, "Undefined env key: #{key}");
 	if (!env.has(key)) {
@@ -65,7 +83,6 @@ exports.parse = function(args, options) {
 	}
 	opts.Port = function(num) {
 		if(arguments.length > 1) return @server.Port.apply(null, arguments);
-		console.log("Port #{num} on host #{host}");
 		return @server.Port(num, host);
 	};
 
@@ -144,12 +161,14 @@ exports.defaults = function() {
 	def('internalAddress', process.env['SEED_INTERNAL_ADDRESS'] || internalHost);
 
 	var selfHost = 'localhost.self';
-	def('host-self', process.env['SEED_PUBLIC_ADDRESS'] || selfHost);
-	def('host-proxy', process.env['SEED_PROXY_HOST'] || selfHost);
 	/* ^^ localhost.self is used for development, requires dnsmasq config:
 		$ cat /etc/dnsmasq.d/self.conf
 		address=/.self/127.0.0.1
 	*/
+	def('host-self', process.env['SEED_PUBLIC_ADDRESS'] || selfHost);
+	def('host-proxy', process.env['SEED_PROXY_HOST'] || selfHost);
+	def('host-local', 'localhost');
+
 	def('publicAddress', function(server, service, proto) {
 		if(arguments.length === 1) {
 			service = server;
@@ -159,15 +178,6 @@ exports.defaults = function() {
 		var host = env.get("host-#{server}");
 		return "#{proto || "http"}://#{host}:#{port}/"
 	});
-
-	var portFromEnv = function(name, def, xform) {
-		var e = process.env[name];
-		if (e) {
-			if (xform) e = xform(e);
-			return parseInt(e, 10);
-		}
-		return def;
-	};
 
 	var etcdAddr = (process.env['ETCD_ADDR'] || 'localhost:4001').split(':');
 
@@ -197,12 +207,13 @@ exports.defaults = function() {
 	}, true);
 
 	// ports which proxy server should run on
-	def('port-proxy-http', portFromEnv('SEED_PROXY_PORT', 8080));
-	def('port-proxy-https', portFromEnv('SEED_PROXY_PORT_HTTPS', 4043));
+	def('port-proxy-http', defaultPorts.proxyHttp);
+	def('port-proxy-https', defaultPorts.proxyHttps);
 
 	// master & slave conductance API ports
-	def('port-master', portFromEnv('SEED_MASTER_PORT', 7071));
-	def('port-slave', portFromEnv('SEED_SLAVE_PORT', 7072));
+	def('port-master', defaultPorts.master);
+	def('port-slave', defaultPorts.slave);
+	def('port-local', defaultPorts.local);
 
 	def('use-gcd', !!process.env['DATASTORE_HOST']);
 	//def('gcd-host', -> process.env .. get('DATASTORE_HOST'), true);

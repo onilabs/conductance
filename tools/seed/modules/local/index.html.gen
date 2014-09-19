@@ -1,12 +1,21 @@
 @ = require('mho:std');
-@layout = require('./layout');
+//@layout = require('../ui/layout');
 
 exports.content = function() {
-  return @layout.defaultDocument(null, {
+  var masterUrl = @env.get('master-server');
+  return @Document(`
+    <div class="container">
+      <h1>All set!</h1>
+      <p><code>conductance seed</code> is runing on <code>${this.url}</code></p>
+
+      <p>But you can't do much on this page - you should go to <a href="$masterUrl">$masterUrl</a>
+      </p>
+    </div>
+  `, {
     title: "Conductance Seed",
-    init: "require('seed:local/main').run(#{@env.get('seed-api-version')})",
+    template: 'default',
     templateData: {
-      showBusyIndicator: true,
+      showBusyIndicator: false,
     }
   });
 };

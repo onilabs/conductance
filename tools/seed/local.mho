@@ -8,6 +8,7 @@ var root = @url.normalize('./', module.id .. @url.toPath);
 // function invoked by `conductance serve`
 exports.serve = function(args) {
   var common = require('./common.mho');
+  var defaultPort = @env.get('port-local', require('seed:env').defaultPorts.local);
   var opts = args .. require('seed:env').parse([
       {
         name: 'self',
@@ -35,8 +36,8 @@ exports.serve = function(args) {
       {
         names: ['port'],
         type: 'number',
-        help: 'serve on port (default: 7075)',
-        'default': 7075,
+        help: "serve on port (default: #{defaultPort})",
+        'default': defaultPort,
       },
     ]);
 
@@ -74,11 +75,7 @@ exports.serve = function(args) {
         }
         waitfor {
           @warn("Allowing anonymous access - only use this during development");
-          var masterArgs = [
-            "--allow-origin=http://localhost.self:#{port}", // dnsmasq config
-            "--allow-origin=http://localhost:#{port}", // basic config
-            '--anonymous'];
-          require('./master.mho').serve(masterArgs);
+          require('./master.mho').serve([]);
         } and {
           require('./proxy.mho').serve([]);
         } and {

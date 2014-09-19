@@ -38,15 +38,8 @@ exports.serve = function(args) {
       help: 'serve over https (NOTE: uses the default conductance certificate, use for testing only)',
       'default': false,
     },
-    {
-      names: ['allow-origin'],
-      type: 'arrayOfString',
-      'default':[],
-      help: 'allow specific CORS origin',
-    },
   ]);
   @env.set('anonymous-access', opts.anonymous);
-  @env.set('cors-origins', opts.allow_origin);
 
   var versionInfo = {
     version: VERSION,
@@ -72,6 +65,10 @@ exports.serve = function(args) {
 
     // and present the rest of modules as code-only (not executable)
     @route.CodeDirectory('modules', @url.normalize('./modules', module.id) .. @url.toPath),
+
+    // serve /ui/* at root
+    @route.ExecutableDirectory(@url.normalize('./modules/ui', module.id) .. @url.toPath),
+
   ] .. common.routeOptions();
 
   var port = @env.get('port-master');
