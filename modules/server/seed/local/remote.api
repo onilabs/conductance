@@ -148,8 +148,7 @@ exports.getServer = function(serverId) {
 						//creds.debug = @info;
 						@ssh.Connect(creds) {|conn|
 							var seedPort = 7079;
-							// XXX make this path portable
-							//conn .. @ssh.runSeed('/home/tim/dev/oni/conductance', seedPort) {||
+							//conn .. @ssh.runSeed('conductance', seedPort) {||
 								conn .. @ssh.proxyConnections(seedPort) {|path|
 									@debug("Proxied: #{path}");
 									var apiInfo = @http.json('http:///master/deploy.api?format=json', {socketPath: path});

@@ -9,7 +9,7 @@
 @constants = require('nodejs:constants');
 @etcd = require('./etcd');
 var { @User } = require('../auth/user');
-var { @Endpoint } = require('../endpoint');
+var { @Endpoint } = require('mho:server/seed/endpoint');
 var { @follow } = require('./follow');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var { @rimraf } = require('sjs:nodejs/rimraf');

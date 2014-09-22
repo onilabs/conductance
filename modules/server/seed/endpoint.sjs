@@ -131,7 +131,7 @@ EndpointProto.relative = function(url) {
 
 EndpointProto .. @bridge.setMarshallingDescriptor({
 	wrapLocal: (x) -> x._props,
-	wrapRemote: ['seed:endpoint', 'unmarshallEndpoint'],
+	wrapRemote: ['mho:server/seed/endpoint', 'unmarshallEndpoint'],
 });
 
 exports.unmarshallEndpoint = function(args) {

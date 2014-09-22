@@ -35,13 +35,13 @@ var stubEmail = function() {
 // stub out transactional resources (includes cleanup)
 var hooked = false;
 exports.hook = function(block) {
-	require('seed:env').defaults();
 	@TemporaryDir({prefix:'seed-test-data-'}) {|tempdir|
+		process.env['XDG_CONFIG_HOME'] = @path.join(tempdir, 'local-conf');
+		require('seed:env').defaults();
 		@env.set('data-root', tempdir);
 		if(@env.get('use-gcd')) {
 			@env.set('user-storage', require('seed:master/user-gcd').Create('test'));
 		}
-		@env.set('local-config-root', @path.join(tempdir, 'local-conf'));
 		stubEmail();
 		hooked = true;
 		block();
@@ -49,7 +49,7 @@ exports.hook = function(block) {
 };
 
 exports.clearData = function() {
-	@settings = require('seed:local/settings');
+	@settings = require('mho:server/seed/local/settings');
 	@assert.ok(hooked, "test hook not installed!");
 	@settings._store.contents() .. @ownKeys .. @each {|k|
 		@settings._store.del(k);

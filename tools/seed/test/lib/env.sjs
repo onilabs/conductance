@@ -13,6 +13,5 @@ var disable = function(key) {
 
 disable('email-transport');
 disable('data-root');
-disable('local-config-root');
 
 require('../../modules/hub');

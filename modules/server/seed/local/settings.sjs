@@ -1,9 +1,8 @@
 @ = require('sjs:std');
-@env = require('mho:env');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 @crypto = require('nodejs:crypto');
 
-var config_root = @env.get('local-config-root');
+var config_root = @path.join(process.env .. @get('XDG_CONFIG_HOME', @path.join(process.env .. @get('HOME'), '.config')), 'conductance');
 @debug("CONFIG_ROOT:", config_root);
 @mkdirp(config_root);
 

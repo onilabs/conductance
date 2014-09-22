@@ -3,8 +3,6 @@ require('./modules/hub');
 @etcd = require('seed:job/etcd');
 @response = require('mho:server/response');
 
-var VERSION = 1;
-
 var runningServerInfo = function(port) {
   try {
     var info = @http.json("http://localhost:#{port}/version");
@@ -38,24 +36,27 @@ exports.serve = function(args) {
       help: 'serve over https (NOTE: uses the default conductance certificate, use for testing only)',
       'default': false,
     },
+    {
+      name: 'multi',
+      type: 'bool',
+      help: 'allow multiple deploy destinations (advanced use only)',
+      'default': false,
+    },
   ]);
   @env.set('anonymous-access', opts.anonymous);
-
-  var versionInfo = {
-    version: VERSION,
-    config: module.id,
-    pid: process.pid,
-    node_env: process.NODE_ENV || null,
-  };
+  @env.set('multi-deploy-destinations', opts.multi);
 
   var verification = require('seed:master/verification');
   var routes = [
     @route.SystemRoutes(),
-    @Route('version', {GET: function(req) {
-      req .. @setHeader('content-type', 'text/json; charset=utf-8');
-      req .. @setStatus(200);
-      req.response.end(JSON.stringify(versionInfo, null, '  '));
-    }}),
+    
+    // add /doc route in development node
+    opts.self ? @route.DocumentationBrowser("doc", [{
+      name:"flux:",
+      path: @url.normalize('./flux', module.id) .. @url.toPath,
+      serve: true,
+    }]) : [],
+
     common.staticRoute,
 
     @Route(verification.verifyRoute, {GET: verification.verifyHandler}),

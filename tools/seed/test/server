@@ -28,9 +28,9 @@ exports.serve = function() {
     ['master', 'local','slave','proxy-http', 'proxy-https'] .. @indexed .. @each {|[i, service]|
       @env.set("port-#{service}", port+i);
     }
-    require('../bin/etcd.sjs').withEtcd {|| // XXX should this be a separate port too?
+    require('../bin/services.sjs').withServices {|| // XXX should these specify a separate port too?
       waitfor {
-        require('../local.mho').serve([]);
+        require('mho:server/seed/local').serve(['--port', String(@env.get('port-local')), '--master', "http://localhost:#{@env.get('port-master')}"]);
       } or {
         require('../master.mho').serve([]);
       }

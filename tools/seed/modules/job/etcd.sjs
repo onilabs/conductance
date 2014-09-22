@@ -146,7 +146,6 @@ exports.app_port_mappings = keyFn("/app/portmap/");
 exports.master_app_repository = () -> "/master/app_repository";
 
 exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
-	var deployLoopback = @env.get('deployLoopback');
 	var key = exports.slave_endpoint(serverId);
 	var refresh = -> client.set(key, endpoint, {ttl:Math.round(HEARTBEAT_INTERVAL * 2.5 / 1000)})
 	client.set(key, ''); // set a blank endpoint on start, so that anyone waiting for a change will definitely reconnect
@@ -161,9 +160,7 @@ exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
 		try {
 			exports.tryOp(-> client.compareAndDelete(key, endpoint, {}));
 		} catch(e) {
-			if (!deployLoopback) {
-				@error("Couldn't mark node as offline: #{e}");
-			}
+			@error("Couldn't mark node as offline: #{e}");
 		}
 	}
 };

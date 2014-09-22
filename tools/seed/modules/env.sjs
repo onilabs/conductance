@@ -14,6 +14,8 @@ function initLogLevel() {
 }
 initLogLevel();
 
+var seedLocal = require('mho:server/seed/local');
+
 var portFromEnv = function(name, def, xform) {
 	var e = process.env[name];
 	if (e) {
@@ -25,7 +27,7 @@ var portFromEnv = function(name, def, xform) {
 
 
 var defaultPorts = exports.defaultPorts = {
-	local: 7075, // XXX make this less conflicty
+	local: seedLocal.defaultPort,
 	master: portFromEnv('SEED_MASTER_PORT', 7071),
 	proxyHttp: portFromEnv('SEED_PROXY_PORT', 8080),
 	proxyHttps: portFromEnv('SEED_PROXY_PORT_HTTPS', 4043),
@@ -139,7 +141,7 @@ exports.parse = function(args, options) {
 };
 
 exports.defaults = function() {
-	def('seed-api-version', 1);
+	def('seed-api-version', seedLocal.apiVersion);
 	var PROD = process.env.NODE_ENV === 'production';
 	var devDefault = function(obj, def, msg) {
 		if(obj) return obj;
@@ -219,6 +221,7 @@ exports.defaults = function() {
 	def('use-gcd', !!process.env['DATASTORE_HOST']);
 	//def('gcd-host', -> process.env .. get('DATASTORE_HOST'), true);
 	def('gcd-dataset', -> devDefault(process.env['DATASTORE_DATASET'], 'development', '$DATASTORE_DATASET not set'), true);
+	def('gcd-host', -> devDefault(process.env['DATASTORE_HOST'], 'http://localhost:8089', '$DATASTORE_HOST not set'), true);
 	def('user-storage',
 		-> this.get('use-gcd')
 			? require('seed:master/user-gcd').Create()
@@ -230,11 +233,6 @@ exports.defaults = function() {
 	var dataDir = process.env['SEED_DATA'] || @path.join(codeRoot, 'data');
 	@assert.ok(@fs.exists(dataDir), "data dir does not exist: #{dataDir}");
 	def('data-root', dataDir);
-
-	def('local-config-root',
-		// used only for local server
-		-> @path.join(process.env .. @get('XDG_CONFIG_HOME', @path.join(process.env .. @get('HOME'), '.config')), 'conductance'),
-		true);
 
 	def('key-store', -> devDefault(process.env['SEED_KEYS'], null, "$SEED_KEYS not set"), true);
 

@@ -80,6 +80,11 @@ exports.run = function(args) {
       }
     },
     {
+      name: 'seed',
+      desc: 'Run a local seed server',
+      fn: exports.localSeedServer,
+    },
+    {
       name: 'bundle',
       desc: 'Create a module bundle',
       fn: function() {
@@ -180,6 +185,11 @@ exports.exec = function(args) {
   var url = args.shift() .. Url.coerceToURL();
   process.argv = [ env.executable, url ].concat(args);
   require(url, {main:true});
+}
+
+exports.localSeedServer = function(args) {
+  printBanner();
+  require('./seed/server').serve(args);
 }
 
 exports.serve = function(args, initial_argv) {
