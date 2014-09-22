@@ -20,21 +20,28 @@ var randomBytes = function(size){
 	return rv;
 }
 
+var wrapAuthenticationError = function(block) {
+	try {
+		return block();
+	} catch(e) {
+		if (db.isNotFound(e)) {
+			throw @AuthenticationError();
+		}
+		throw e;
+	}
+}
+
 var getUser = exports.getUser = function(uid) {
-	db.synchronize {|db|
+	wrapAuthenticationError(-> db.synchronize {|db|
 		var {id, props} = db.getUser(uid);
 		return new @User(id, props);
-	}
+	});
 }
 
 var withUser = exports.withUser = function(uid, block) {
 	db.synchronize {|db|
-		try {
-			var {id, props} = db.getUser(uid);
-			var user = new @User(id, props);
-		} catch(e) {
-			throw @AuthenticationError();
-		}
+		var {id, props} = wrapAuthenticationError( -> db.getUser(uid));
+		var user = new @User(id, props);
 		var save = function(u) {
 			db.updateUser(id, (u .. @get('props')));
 		};
@@ -113,53 +120,45 @@ var EXPIRY_DAYS = 14;
 exports.getToken = function(username, password) {
 	var now = new Date().getTime();
 	var expires = new Date(now + (1000 * 60 * 60 * 24 * EXPIRY_DAYS));
-	try {
-		var secretToken;
-		withUser(username) {|user, save|
-			if (user.verified() !== true) {
-				throw new Error("User is not yet verified");
-			}
-			var props = user.props;
-			secretToken = {
-				uid:username,
-				expires: expires,
-				contents: randomBytes(20).toString(contentsEncoding),
-			};
-
-			var dbToken = Token.hashed(secretToken);
-
-			var expectedHash = props.password.hash;
-			var givenHash = hashPassword(password, props.password).toString('base64');
-			if (!@eq(givenHash, expectedHash)) {
-				throw @AuthenticationError();
-			}
-			var serializedToken = Token.encode(dbToken);
-			@verbose("Adding token to user: ", dbToken);
-			if (!props.tokens) props.tokens = [];
-			props.tokens = [serializedToken].concat(props.tokens.slice(0,9));
-			save(user);
+	var secretToken;
+	withUser(username) {|user, save|
+		if (user.verified() !== true) {
+			@info("User is not yet verified");
+			throw @AuthenticationError();
 		}
-		return Token.encode(secretToken);
-	} catch(e) {
-		@info("failed to authenticate user: #{e.message}");
-		@info(String(e)); // XXX remove
+		var props = user.props;
+		secretToken = {
+			uid:username,
+			expires: expires,
+			contents: randomBytes(20).toString(contentsEncoding),
+		};
+
+		var dbToken = Token.hashed(secretToken);
+
+		var expectedHash = props.password.hash;
+		var givenHash = hashPassword(password, props.password).toString('base64');
+		if (!@eq(givenHash, expectedHash)) {
+			throw @AuthenticationError();
+		}
+		var serializedToken = Token.encode(dbToken);
+		@verbose("Adding token to user: ", dbToken);
+		if (!props.tokens) props.tokens = [];
+		props.tokens = [serializedToken].concat(props.tokens.slice(0,9));
+		save(user);
 	}
-	throw @AuthenticationError();
+	return Token.encode(secretToken);
 };
 
 exports.authenticate = function(tokenStr) {
-	try {
-		var token = Token.decode(tokenStr);
-		if (token.expires.getTime() < Date.now()) {
-			throw @AuthenticationError();
-		}
-		var storedToken = Token.hashed(token) .. Token.encode();
-		var user = getUser(token.uid);
-		@assert.ok(user.tokens() .. @hasElem(storedToken), "token not found");
+	var token = Token.decode(tokenStr);
+	if (token.expires.getTime() < Date.now()) {
+		throw @AuthenticationError();
+	}
+	var storedToken = Token.hashed(token) .. Token.encode();
+	var user = getUser(token.uid);
+	if (user.tokens() .. @hasElem(storedToken)) {
 		return user;
-	} catch(e) {
-		@info("failed to authenticate token: #{e.message}");
-		@info(String(e)); // XXX remove
+	} else {
 		throw @AuthenticationError();
 	}
 };
