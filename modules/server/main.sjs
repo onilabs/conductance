@@ -53,7 +53,6 @@ var printBanner = function() {
 
 exports.run = function(args) {
   args = args || sys.argv();
-  var initial_argv = process.argv.slice(); // used for nodemon
   var actions = [
     {
       name: 'serve',
@@ -177,8 +176,7 @@ exports.run = function(args) {
     }
     return usage();
   }
-  process.argv = [env.executable, command].concat(args);
-  action.fn(args, initial_argv);
+  action.fn(args);
 };
 
 exports.exec = function(args) {
@@ -192,7 +190,7 @@ exports.localSeedServer = function(args) {
   require('./seed/server').serve(args);
 }
 
-exports.serve = function(args, initial_argv) {
+exports.serve = function(args) {
   var configfile = _config.defaultConfig();
 
   //----------------------------------------------------------------------
@@ -253,7 +251,6 @@ exports.serve = function(args, initial_argv) {
   if (!config.serve) {
     throw new Error("config file #{configfile} has no `serve` function");
   }
-  process.argv = process.ARGV = [env.executable, 'serve', configfile].concat(args);
 
   try {
     config.serve(args);
