@@ -32,7 +32,7 @@
 		
 		// XXX this is flaky, and doesn't really reflect reality. But it tests the basic proxy setup.
 		var url = "http://localhost:#{@stub.getEnv('port-proxy-http')}/#{appId}/ping";
-		console.log("Fetching: #{url}");
+		@info("Fetching: #{url}");
 		@waitforSuccess(-> @stub.get(url, {headers: {'HOST': origUrl.host}}) .. @assert.eq('pong!'), null, 5);
 	}
 }
