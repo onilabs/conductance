@@ -2,7 +2,7 @@
   "name": "conductance",
   "description": "Conductance Web Framework",
   "author" : "Oni Labs <maintainers@onilabs.com>",
-  "version" : "0.5.0-development",
+  "version" : "0.6.0-development",
   "homepage" : "https://conductance.io/",
   "private" : true,
   "repository":   {
