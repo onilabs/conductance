@@ -2,6 +2,7 @@
 @email = require('seed:auth/email');
 var { @TemporaryDir } = require('sjs:nodejs/tempfile');
 var { @rimraf } = require('sjs:nodejs/rimraf');
+var { @mkdirp } = require('sjs:nodejs/mkdirp');
 
 var emailQueue = null;
 // XXX Queue is not bridge-safe
@@ -34,8 +35,10 @@ var stubEmail = function() {
 
 // stub out transactional resources (includes cleanup)
 var hooked = false;
+var temporaryDataDir = null;
 exports.hook = function(block) {
 	@TemporaryDir({prefix:'seed-test-data-'}) {|tempdir|
+		temporaryDataDir = tempdir;
 		process.env['XDG_CONFIG_HOME'] = @path.join(tempdir, 'local-conf');
 		require('seed:env').defaults();
 		@env.set('data-root', tempdir);
@@ -51,11 +54,23 @@ exports.hook = function(block) {
 exports.clearData = function() {
 	@settings = require('mho:server/seed/local/settings');
 	@assert.ok(hooked, "test hook not installed!");
-	@settings._store.contents() .. @ownKeys .. @each {|k|
-		@settings._store.del(k);
-	};
+	@assert.ok(temporaryDataDir);
+	@rimraf(temporaryDataDir);
+	@mkdirp(@settings._store.root);
+	@settings._store.reload();
 
 	var userDb = @env.get('user-storage');
 	userDb._deleteAllData();
 	if(emailQueue) while(emailQueue.count() > 0) emailQueue.get();
+};
+
+exports.testPath = function(rel) {
+	var testRoot = @url.normalize('../', module.id) .. @url.toPath();
+	return @path.join(testRoot, rel);
+}
+
+// needed to get around CORS restrictions
+exports.getEnv = -> @env.get.apply(@env, arguments);
+exports.get = function(/* .. */) {
+	return @http.get.apply(null, arguments);
 };

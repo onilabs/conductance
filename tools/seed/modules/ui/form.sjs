@@ -300,9 +300,7 @@ exports.loginDialog = function(parent, conf, actions) {
 		${@observe(userField.value, resentConfirmation, function(user, alreadySent) {
 			if(user) return [
 				@Br(),
-				alreadySent
-					? `<em>Confirmation sent.</em>`
-					: @A('Resend confirmation email') .. @OnClick({handle:@stopEvent}, function() {
+				!alreadySent ? @A('Resend confirmation email') .. @OnClick({handle:@stopEvent}, function() {
 						actions.resendConfirmation(user);
 						resentConfirmation.set(true);
 					})

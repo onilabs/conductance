@@ -2,6 +2,7 @@
 var { @User } = require('../auth/user');
 var { @AuthenticationError } = require('../auth');
 @gcd = require('./gcd');
+@schema = @gcd.schema;
 
 
 var STRING = {__type: 'string' };
@@ -23,6 +24,7 @@ exports.Create = function(appName) {
 		email: STRING,
 		verified: BOOL,
 		verifyCode: STRING,
+		tokens: [STRING],
 		password: {
 			iterations: INT,
 			keylen: INT,
@@ -83,7 +85,21 @@ exports.Create = function(appName) {
 
 	rv .. @extend(dbApi(db)); // make toplevel objects
 
+	var checkSchema = function(obj, schema) {
+		if (typeof(obj) !== 'object') {
+			// leaf node
+			return;
+		}
+		obj .. @ownPropertyPairs .. @each {|[k,v]|
+			if (!schema .. @hasOwn(k)) {
+				throw new Error("Unexpected property (not in schema): #{k}");
+			}
+			checkSchema(v, schema[k]);
+		}
+	};
+
 	rv.createUser = function(props) {
+		checkSchema(props, userSchema);
 		try {
 			var record = db.write({
 				schema: 'user',
@@ -109,12 +125,8 @@ exports.Create = function(appName) {
 /* NOTES:
 
  - taking a string schema name is ugly (and shouldn't it be a separate argument so you can pre-bind it?)
- - taking an empty object to fill in the `data` method (read) is weird, not very chainy
- - keys can't have special characters in them (both ":" and "/" ?)
  - check how binary data works
  - why do you need to manually apply unpack to query results?
-
- - It's failing in `blindWrite`. This function name scares me.
 
  - `update` doesn't let me specify my own key?
 */

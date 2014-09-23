@@ -14,6 +14,22 @@ exports.serve = function(args) {
 	proxyAgent.maxSockets = 2048;
 
 	var hostSuffix = '.' + @env.get('host-self');
+	var getSubdomain = function(req) {
+		return req.url.host .. @removeTrailing(hostSuffix);
+	};
+	if (@env.get('production') === false) {
+		getSubdomain = function(orig) {
+			return function(req) {
+				// add hack for localhost, so we don't have to set up dnsmasq for testing
+				if (req.url.host === 'localhost') {
+					var [_, leading, trailing] = req.url.path .. @split('/', 3);
+					req.url.path = '/' + trailing;
+					return leading;
+				}
+				return orig.apply(this, arguments);
+			};
+		}(getSubdomain);
+	};
 
 	var proxyRoute = function(proto, publicPort) {
 		publicPort = String(publicPort);
@@ -23,7 +39,7 @@ exports.serve = function(args) {
 			//console.log(JSON.stringify(proxies));
 			@debug("destRoute[#{publicPort}]: ", destRoute);
 			if (destRoute) {
-				var subdomain = req.url.host .. @removeTrailing(hostSuffix);
+				var subdomain = getSubdomain(req);
 				@debug("proxying subdomain: #{subdomain}");
 				destRoute = destRoute[subdomain];
 				//@info("destRoute: ", destRoute);

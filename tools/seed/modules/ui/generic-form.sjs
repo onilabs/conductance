@@ -58,7 +58,6 @@ exports.Form = Form;
 function Field(source, opts) {
 	opts = opts || {};
 	source = opts.source || source;
-	@warn("SOURCE", source);
 	@assert.ok(source, "source not given");
 	var name = opts.name;
 

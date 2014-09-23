@@ -107,7 +107,7 @@ var Deployment = function(endpoint, serverInfo) {
 };
 
 
-exports.getServer = function(serverId) {
+exports.getServer = function(serverId, currentUrl) {
 	@assert.string(serverId);
 	var server = @settings.server(serverId);
 	var creds = server.config .. @first() .. @clone();
@@ -171,7 +171,7 @@ exports.getServer = function(serverId) {
 			var path = "/master/deploy.api";
 			if(!creds.host) {
 				// use the current browser address
-				return @Endpoint(path);
+				return @Endpoint(@url.normalize(path, currentUrl));
 			}
 			var prefix = "https://";
 			// XXX we should probably lock this down to testing use only, somehow

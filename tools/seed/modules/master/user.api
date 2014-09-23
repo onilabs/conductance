@@ -2,6 +2,7 @@
 @user = require('./user');
 @crypto = require('nodejs:crypto');
 @verification = require('./verification');
+var { @isAuthenticationError } = require('../auth');
 
 exports.validateToken = function(token) {
   var user = @user.authenticate(token);
@@ -12,11 +13,13 @@ exports.sendConfirmation = function(username) {
   try {
     var user = @user.getUser(username);
   } catch(e) {
-    @info("sendConfirmation ignoring error: #{e.message}");
-    // errors getting the user should be ignored;
-    // as it's trivial to generate requests for users
-    // that don't exist
-    return;
+    if (@isAuthenticationError(e)) {
+      // errors getting the user should be ignored;
+      // as it's trivial to generate requests for users
+      // that don't exist
+      return;
+    }
+    throw e;
   }
   @verification.sendConfirmationTo(user);
 }

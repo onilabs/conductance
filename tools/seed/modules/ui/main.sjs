@@ -313,7 +313,7 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 						[@Span(null, {'class':'glyphicon pull-right'}) .. @Class(logDisclosureClass),
 						"Console output"
 						],
-						{'class': "panel-title clickable"})
+						{'class': "panel-title clickable output-toggle"})
 						.. @Mechanism(function(elem) {
 							var clicks = elem .. @events('click', {handle:@stopEvent});
 							var panelRoot = @findNode('.log-panel', elem);
@@ -374,7 +374,7 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 var showServer = function(token, localApi, localServer, remoteServer, container, header) {
 	var apps = remoteServer.apps .. @mirror();
 
-	var addApp = @Li(@A([@Icon('plus-sign'), 'new']) .. appNameStyle)
+	var addApp = @Li(@A([@Icon('plus-sign'), 'new']) .. appNameStyle, {'class':'new-app-button'})
 		.. OnClick(function() {
 		// make an in-memory config, and only save it to the server when
 		// we submit the form
@@ -440,7 +440,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 							return @Col("xs-4 md-3",
 									@Row(
 										[
-											@Ul(items.concat(addApp))
+											@Ul(items.concat(addApp), {'class':'app-list'})
 										]
 								) .. appListStyle());
 						});
@@ -448,10 +448,10 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 						container .. @appendContent(@Row([
 								@Div(appMenu),
 								@Col('xs-8 md-9',
-									@Div(null, {'class':'appDisplay', 'style':"margin-left: #{appListHeight/2}px;"})
+									@Div(null, {'class':'app-display', 'style':"margin-left: #{appListHeight/2}px;"})
 								)
 						])) {|elem|
-							var display = elem.querySelector('.appDisplay');
+							var display = elem.querySelector('.app-display');
 							activeApp .. @each.track {|app|
 								if (!app) {
 									display .. @appendContent(apps .. @transform(apps ->
@@ -513,7 +513,7 @@ function displayServer(elem, header, api, server) {
 			while(true) {
 				@info("Connecting to server #{id}");
 				try {
-					var localServer = api.getServer(id);
+					var localServer = api.getServer(id, document.location.origin);
 					localServer.endpoint.connect(connectOpts) {|remoteServer|
 						connectionError.set(false);
 						reconnectDelay = initialDelay;

@@ -10,6 +10,7 @@ if (typeof(__karma__) !== 'undefined' && module.id.indexOf('/app/') == -1) {
 var opts = {
   base: module.id,
   logLevel: logging.INFO,
+  timeout: 20,
 };
 var runner = require('sjs:test/runner');
 

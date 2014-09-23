@@ -34,7 +34,10 @@ exports.initialUserProperties = function() {
 
 exports.sendConfirmationTo = function(user) {
   @assert.ok(user instanceof @User);
-  if(user.verified()) return;
+  if(user.verified()) {
+    @verbose("user already verified");
+    return;
+  }
   var email = user.email();
   var name = user.name();
   var url = verificationUrl(user);

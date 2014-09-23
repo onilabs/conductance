@@ -72,6 +72,7 @@ var store = exports._store = (function() {
 	};
 
 	return {
+		root: config_root,
 		items: obs .. @transform(x -> x),
 		contents: function() {
 			storeLock.synchronize {||
