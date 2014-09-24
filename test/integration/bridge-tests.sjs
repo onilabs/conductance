@@ -229,6 +229,71 @@ context() {||
         }
       }
     }
+
+    test("Custom") {||
+      var duck = {text: "Hi there!"};
+      var marshalled = {text: "Hi there!"};
+      bridge.connect(apiUrl(), {server: helper.getRoot()}) {|connection|
+        var api = connection.api;
+        marshalled .. bridge.setMarshallingDescriptor({
+          wrapLocal: o -> o.text,
+          wrapRemote: [api, 'unmarshallCustomObject'],
+          //wrapRemote: ['sjs:string', 'strip'], // api.unmarshallCustomObject,
+        });
+        api.isCustomObject(duck) .. assert.eq(false);
+        api.isCustomObject(duck .. api.unmarshallCustomObject()) .. assert.eq(false);
+        api.isCustomObject(marshalled) .. assert.eq(true);
+      }
+    }
+
+    test("Error during unmarshalling") {||
+      var obj = {text: "Hi there!"};
+      bridge.connect(apiUrl(), {server: helper.getRoot()}) {|connection|
+        var api = connection.api;
+        obj .. bridge.setMarshallingDescriptor({
+          wrapLocal: o -> o.text,
+          wrapRemote: [api, 'buggyUnmarshaller'],
+        });
+        assert.raises({message:"This unmarshaller intentionally left broken"}, -> api.isCustomObject(obj));
+      }
+    }
+
+    test("Arbitrary unmarshaller is disallowed") {||
+      var obj = {text: "Hi there!"};
+      bridge.connect(apiUrl(), {server: helper.getRoot()}) {|connection|
+        var api = connection.api;
+        obj .. bridge.setMarshallingDescriptor({
+          wrapLocal: o -> o.text,
+          wrapRemote: ['sjs:string', 'strip'],
+        });
+        assert.raises({ message: /Unsupported marshalling descriptor/},
+          -> api.ping(obj));
+      }
+    }
+
+    exports.allowedUnmarshaller = function(obj) {
+      return {custom:true, obj:obj};
+    };
+
+    exports.disallowedUnmarshaller = function(obj) {
+      throw new Error("disallowedUnmarshaller called!");
+    };
+
+    test("Only whitelisted unmarshallers are allowed from server") {||
+      var duck = {text: "Hi there!"};
+      bridge.connect(apiUrl(), {server: helper.getRoot(), localWrappers:[ [module.id, 'allowedUnmarshaller'] ]}) {|connection|
+        var api = connection.api;
+        api.returnCustomObject(duck, [module.id, 'allowedUnmarshaller']) .. assert.eq({
+          custom: true,
+          obj: duck,
+        });
+
+        assert.raises({ message: /Unsupported marshalling descriptor/},
+          -> api.returnCustomObject(duck, [module.id, 'disallowedUnmarshaller']));
+      }
+    }
+
+
   }
 
 

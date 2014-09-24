@@ -1,13 +1,16 @@
 var { integers } = require('sjs:sequence');
+var { clone } = require('sjs:object');
 var { setStatus } = require('mho:server/response');
 var logging = require('sjs:logging');
 var { ObservableVar } = require('sjs:observable');
+var bridge = require('mho:rpc/bridge');
 
 exports.throwError = function(msg) { throw new Error(msg); }
 
 exports.callme = function(f) { return f(); }
 
 exports.hold = function() { hold(); }
+exports.id = module.id;
 
 var transport = function() {
   if (!exports._transport)
@@ -88,3 +91,26 @@ exports.checkErrorThrownOnCallingFuncAfterDelay = function(func, delay){
 }
 exports.wasErrorThrown = -> errorThrown;
 
+var CustomProto = {};
+exports.unmarshallCustomObject = function(text) {
+  var rv = Object.create(CustomProto);
+  rv.text = text;
+  return rv;
+};
+
+exports.buggyUnmarshaller = function(text) {
+  throw new Error("This unmarshaller intentionally left broken");
+};
+
+exports.isCustomObject = function(o) {
+  return CustomProto.isPrototypeOf(o);
+};
+
+exports.returnCustomObject = function(orig, wrapRemote) {
+  var obj = orig .. clone();
+  obj .. bridge.setMarshallingDescriptor({
+    wrapLocal: _ -> orig,
+    wrapRemote: wrapRemote,
+  });
+  return obj;
+};

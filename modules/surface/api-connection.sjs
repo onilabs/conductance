@@ -9,7 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event', 'sjs:sequence']);
+@ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event', 'sjs:sequence', 'sjs:object']);
 var {@warn} = require('sjs:logging');
 
 /**
@@ -34,7 +34,11 @@ var {@warn} = require('sjs:logging');
     bootstrap styles. If your page us not using bootstrap styles, you
     may need to style these classes manually.
 */
-exports.withAPI = function(api, block) {
+exports.withAPI = function(api, opts, block) {
+  if (arguments.length == 2) {
+    block = opts;
+    opts = {};
+  }
   var initialDelay = 1000;
   var delay = initialDelay;
   var { @isTransportError, @connect } = require('../rpc/bridge');
@@ -43,12 +47,12 @@ exports.withAPI = function(api, block) {
 
   while (1) {
     try {
-      @connect(api, {
+      @connect(api, opts .. @merge({
         connectMonitor: function() {
           hold(300); // small delay before showing ui feedback
           document.body .. @appendContent(@Notice('Connecting...', {'class':'alert-warning'}), -> hold());
         }
-      }) {
+      })) {
         |connection|
         // we're connected; reset connection delay
         delay = initialDelay;
