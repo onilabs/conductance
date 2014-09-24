@@ -14,6 +14,7 @@
 */
 
 var { createID } = require('./random');
+var { merge } = require('sjs:object');
 var { API } = require('mho:rpc/bridge');
 
 var api_by_apiid = {};
@@ -33,7 +34,7 @@ exports.registerAPI = function(moduleid) {
   }
 
   var apiid = module_desc.apiid = createID(4);
-  api_by_apiid[apiid] = module_desc.exports;
+  api_by_apiid[apiid] = merge(module_desc.exports, {__oni_apiid: apiid});
 
   return apiid;
 };

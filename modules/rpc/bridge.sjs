@@ -90,7 +90,7 @@ Protocol:
 */
 
 var logging = require('sjs:logging');
-var { each, toArray, map, filter, transform, isStream, Stream, at, any } = require('sjs:sequence');
+var { each, toArray, map, filter, find, join, transform, isStream, Stream, at, any } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
@@ -99,9 +99,14 @@ var { isFunction, exclusive } = require('sjs:function');
 var { Emitter, wait } = require('sjs:event');
 var { Quasi, isQuasi } = require('sjs:quasi');
 var { ownKeys, keys, propertyPairs, get } = require('sjs:object');
+var { eq } = require('sjs:compare');
 var http = require('sjs:http');
 var Url = require('sjs:url');
 var global = require('sjs:sys').getGlobal();
+var apiRegistry;
+if (hostenv !== 'xbrowser') {
+  apiRegistry = require('../server/api-registry')
+}
 
 // helper to identify binary data:
 var BinaryCtors = ['Blob', 'ArrayBuffer', 'DataView', 
@@ -154,18 +159,36 @@ exports.TransportError = TransportError;
        be any serializable object, including nested properties,
        functions and any other types that are supported by bridge.
 
-     - wrapRemote: An array of `[modulename, functionName]`. After
+     - wrapRemote: An array of `[module, functionName]`. After
        the serialized object is sent over the bridge, the named function
-       will be called (on the receiver) with this sertialized object
+       will be called (on the receiver) with this serialized object
        as an argument. This function should return some object that
        will act as a proxy for the original remote object.
 
+       For security, the allowed values for `wrapRemote` are narrow.
+       When `setMarshallingDescriptor` is called on the client, `module` must
+       be an `.api` module object obtained from the server. When called on the
+       server, `module` should be a string, however only module & function
+       name pairs which are explicitly listed in the `localWrappers` setting of
+       the connection will actually be allowed.
 */
 function setMarshallingDescriptor(obj, descr) {
+  var wrapRemote = descr.wrapRemote;
+  var [remoteMod, remoteKey] = wrapRemote;
+  // turn an api object into a serializable reference
+  if (remoteMod.__oni_apiid !== undefined) {
+    descr = descr .. merge({
+      wrapRemote: [{__oni_apiid: remoteMod.__oni_apiid}, remoteKey],
+    });
+  }
   obj.__oni_marshalling_descriptor = descr;
   return obj;
 }
 exports.setMarshallingDescriptor = setMarshallingDescriptor;
+
+var defaultMarshallers = [];
+
+exports.defaultMarshallers = defaultMarshallers;
 
 /**
    @class API
@@ -224,7 +247,13 @@ function marshall(value, connection) {
 
     function processProperties(value, root) {
       return value .. propertyPairs ..
-        filter([name,val] -> name != 'toString' && !name.. startsWith('_') && root[name] !== val) ..
+        filter([name,val] ->
+          root[name] !== val && (
+            name === '__oni_apiid' || (
+              name != 'toString' && !name.. startsWith('_')
+            )
+          )
+        ) ..
         transform([name, val] -> [name, prepare(val)]);
     }
 
@@ -306,9 +335,13 @@ function marshall(value, connection) {
 }
 
 function unmarshall(str, connection) {
-  var obj = JSON.parse(str);
-  // unmarshall special types:
-  return unmarshallComplexTypes(obj, connection);
+  var raw = JSON.parse(str);
+  try {
+    // unmarshall special types:
+    return unmarshallComplexTypes(raw, connection);
+  } catch(e) {
+    return ['unserializable', raw, e];
+  }
 }
 
 function unmarshallComplexTypes(obj, connection) {
@@ -336,7 +369,20 @@ function unmarshallComplexTypes(obj, connection) {
     rv = unmarshallError(obj, connection);
   }
   else if (obj.__oni_type == 'custom_marshalled') {
-    rv = require(obj.wrap[0])[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
+    var mod;
+    var apiid = obj.wrap[0].__oni_apiid;
+    if(apiid !== undefined) {
+      mod = apiRegistry.getAPIbyAPIID(apiid);
+    } else {
+      if (connection.localWrappers &&
+          connection.localWrappers .. find(w -> w .. eq(obj.wrap), false)
+      ) {
+        mod = require(obj.wrap[0]);
+      } else {
+        throw new Error("Unsupported marshalling descriptor: #{obj.wrap}");
+      }
+    }
+    rv = mod[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
   }
   else {
     ownKeys(obj) .. each {
@@ -481,6 +527,7 @@ function BridgeConnection(transport, opts) {
     received_blobs: {},
     sessionLost: sessionLost,
     dataReceived: dataReceived,
+    localWrappers: opts.localWrappers,
 
     sendBlob: function(id, obj) {
       transport.sendData(id, obj);
@@ -655,6 +702,21 @@ function BridgeConnection(transport, opts) {
         executing_call.abort();
       }
       break;
+    case 'unserializable':
+      var e = message[2];
+      message = message[1];
+      var id = message[1];
+      switch(message[0]) {
+        case 'call':
+          transport.send(marshall(["return_exception", id, e], connection));
+          break;
+        case 'return':
+          // turn it into return_exception
+          var cb = pending_calls[id];
+          if (cb) cb(e, true);
+          break;
+      }
+      break;
     }
   }
 
@@ -677,6 +739,7 @@ function BridgeConnection(transport, opts) {
   @setting {String} [server] Server root
   @setting {Transport} [transport] Optional existing transport to use
   @setting {Function} [connectMonitor] Optional function to run while connecting
+  @setting {Array} [localWrappers] Local wrappers which are enabled for this connection (see [::setMarshallingDescriptor])
   @return {::BridgeConnection} if block is not given
   @desc
     Throws a [::TransportError] if the connection attempt fails.
@@ -732,7 +795,12 @@ exports.connect = function(api_name, opts, block) {
       // catch syntax errors in the api module; don't throw as transport errors:
       if (apiinfo.error) throw new Error(apiinfo.error);
     }
-    var connection = BridgeConnection(transport, opts .. merge({throwing:true, api:apiinfo .. get('id')}));
+    var marshallers = defaultMarshallers.concat(opts.localWrappers || []);
+    var connection = BridgeConnection(transport, opts .. merge({
+      throwing:true,
+      api:apiinfo .. get('id'),
+      localWrappers: marshallers,
+    }));
   }
   or {
     if (opts.connectMonitor) {
@@ -768,7 +836,7 @@ exports.connect = function(api_name, opts, block) {
   @return {::BridgeConnection}
 */
 exports.accept = function(getAPI, transport) {
-  var connection = BridgeConnection(transport, {publish: {getAPI:getAPI}, throwing:false});
+  var connection = BridgeConnection(transport, {publish: {getAPI:getAPI}, throwing:false, localWrappers: false});
   return connection;
 };
 

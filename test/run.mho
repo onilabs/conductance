@@ -35,29 +35,35 @@ var serverConfig = {
      * the relevant objects into each loaded API.
      */
     (function() {
-      var currentAPI;
+      var currentApiModule;
       return Route(
         /^__aat_bridge\/(2)$/,
         require('mho:rpc/aat-server').createTransportHandler(
           function(transport) {
             require('mho:rpc/bridge').accept(
               function(apiid) {
-                currentAPI = apiRegistry.getAPIbyAPIID(apiid);
-                //logging.warn("got API ", currentAPI, "for ID ", apiid);
-                currentAPI._transport = transport;
-                return currentAPI;
+                var api = apiRegistry.getAPIbyAPIID(apiid);
+                var moduleId = api.id;
+                if(moduleId) {
+                  currentApiModule = require.modules[moduleId].exports;
+                  //logging.warn("got API ", currentApiModule, "for ID ", apiid);
+                  currentApiModule._transport = transport;
+                } else {
+                  currentApiModule = null;
+                }
+                return api;
               },
               transport);
           }
         )
       ) .. Filter(function(req, block) {
         var cmd = req.url.params()['cmd'];
-        if (!currentAPI || cmd.indexOf("poll_") != 0) return block();
-        currentAPI._poll_request = req;
+        if (!currentApiModule || cmd.indexOf("poll_") != 0) return block();
+        currentApiModule._poll_request = req;
         try {
           block();
         } finally {
-          currentAPI._poll_request = null;
+          currentApiModule._poll_request = null;
         }
       });
     })(),
