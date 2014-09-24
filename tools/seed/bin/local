@@ -2,4 +2,4 @@
 set -eu
 here="$(dirname "$0")"
 cd "$here/.."
-exec conductance serve local.mho "$@"
+exec conductance seed "$@"

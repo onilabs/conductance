@@ -80,6 +80,7 @@ exports.serve = function(args) {
 			},
 		]);
 	} or {
+		var etcd = @env.get('etcd');
 		var keyPrefix = @etcd.app_port_mappings(null);
 
 		var handle = function(change) {
@@ -102,9 +103,19 @@ exports.serve = function(args) {
 						return;
 					}
 					if (node.dir) return;
+					var key = getKey();
+					var endpointKey = @etcd.slave_endpoint(key.split('.') .. @reverse() .. @join('/'));
+					var endpointExists = @etcd.tryOp(
+						-> etcd.get(endpointKey),
+						[@etcd.err.KEY_NOT_FOUND]
+					);
+					if(!endpointExists) {
+						@info("Dropping dead proxy route: #{key}");
+						@etcd.tryOp(-> etcd.compareAndDelete(node.key, node.value, {}));
+						return;
+					}
 					var mappings = node.value .. @split(',');
 					var host = mappings.shift();
-					var key = getKey();
 					mappings = mappings .. @each {|mapping|
 						var [pub, internal] = mapping.split(':');
 						@info("will proxy port #{pub} to port #{internal} on host #{host}");
@@ -129,6 +140,6 @@ exports.serve = function(args) {
 			}
 		};
 
-		@env.get('etcd') .. @etcd.changes(keyPrefix, {recursive:true, initial:true}) .. @each(handle);
+		etcd .. @etcd.changes(keyPrefix, {recursive:true, initial:true}) .. @each(handle);
 	}
 }

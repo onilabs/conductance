@@ -187,7 +187,7 @@ exports.exec = function(args) {
 
 exports.localSeedServer = function(args) {
   printBanner();
-  require('./seed/server').serve(args);
+  require('./seed/local').serve(args);
 }
 
 exports.serve = function(args) {
