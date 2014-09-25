@@ -794,7 +794,7 @@ exports.run = function(localServer) {
 		try {
 			@withBusyIndicator {|ready|
 				stopIndicator = ready;
-				@connect("#{localServer}remote.api", {}) {|connection|
+				@connect("#{localServer}remote.api", {localWrappers:[['mho:server/seed/endpoint', 'unmarshallEndpoint']]}) {|connection|
 					runInner(connection.api, ready);
 				}
 			}
