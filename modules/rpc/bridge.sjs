@@ -258,8 +258,7 @@ function marshall(value, connection) {
     else if (typeof value === 'object' && value !== null) {
       var descriptor;
       if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
-        rv = prepare(descriptor.wrapLocal(value));
-        rv = { __oni_type: 'custom_marshalled', proxy: rv, wrap: descriptor.wrapRemote };
+        throw new Error("custom marshalling disabled");
       }
       else if (value instanceof Error || value._oniE) {
         rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack };
@@ -322,9 +321,6 @@ function unmarshallComplexTypes(obj, connection) {
   }
   else if (obj.__oni_type == 'error') {
     rv = unmarshallError(obj, connection);
-  }
-  else if (obj.__oni_type == 'custom_marshalled') {
-    rv = require(obj.wrap[0])[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
   }
   else {
     ownKeys(obj) .. each {
