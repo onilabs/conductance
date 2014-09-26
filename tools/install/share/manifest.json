@@ -19,7 +19,7 @@
 , "data":
   { "conductance":
     { "id": "0.5.1"
-    , "href": "https://github.com/onilabs/conductance/tarball/70754a62bbbbb26bf99729d5b3eb2c9497d8d90e"
+    , "href": "https://github.com/onilabs/conductance/tarball/6c4cf465f05941642f3b9f759006e79cdd2db3c3"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
