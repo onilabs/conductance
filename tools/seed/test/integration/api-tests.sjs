@@ -42,6 +42,49 @@ var {@isAuthenticationError} = require('seed:auth');
 	}
 }
 
+@context("deploy.sjs") {||
+	var deploy  = require('seed:master/deploy');
+	@test.beforeEach {|s|
+		var User = require('seed:auth/user').User;
+		s.user = new User("1234", "test1");
+		s.api = deploy.Api(s.user);
+	}
+
+	@test("Validates app id is hex on creation") {|s|
+		var rejectsId = function(id) {
+			@assert.raises({message: /^Not hexadecimal:/},
+				-> s.api.createApp(id, 'name'));
+		};
+		rejectsId('app ID with spaces');
+		rejectsId('notAHexNumber');
+
+		// OK:
+		s.api.createApp('01234567890abcDEF', 'name');
+	}
+
+	@test("Validates app name on creation") {|s|
+		var rejectsName = function(name) {
+			@assert.raises({message: @validate.appName.errorMessage},
+				-> s.api.createApp('123', {name: name}));
+		};
+		rejectsName('not a name!');
+		rejectsName('a.b');
+		rejectsName('a/b');
+		rejectsName('_ab');
+	}
+
+	@test("Validates app name on edit") {|s|
+		var originalName = 'valid_Name';
+		var app = s.api.createApp('123', { name: originalName});
+		var rejectsName = function(name) {
+			@assert.raises({message: @validate.appName.errorMessage},
+				-> app.config.modify(c -> {name: name}));
+		};
+
+		rejectsName('bad name');
+	}
+}
+
 @context("verification.sjs") {||
 	var userDb = require('seed:master/user');
 	@test.beforeEach {|s|

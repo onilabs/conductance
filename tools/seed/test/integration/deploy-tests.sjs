@@ -10,27 +10,29 @@
 		s.createAppButton() .. s.driver.click();
 		var form = @waitforSuccess( -> s.modal('form'));
 		var appPath = @stub.testPath('integration/fixtures/hello_app');
+		var appName = 'app-one';
 		form .. s.fillForm({
-			name: 'My cool app',
+			name: appName,
 			path: appPath,
 		});
 		form .. @trigger('submit');
 		s.waitforNoModal();
 		var appList;
 		@waitforCondition(-> (appList = s.appList()).length > 0);
-		appList .. @map(el -> el.textContent) .. @assert.eq(['My cool app']);
+		appList .. @map(el -> el.textContent) .. @assert.eq(['app-one']);
 		appList[0] .. @elem('a') .. s.driver.click();
 
 		var main = s.driver.elem('.app-display');
-		var appLink = @waitforSuccess(-> main .. @elem('h3 a', el -> el.textContent === 'My cool app')).getAttribute('href') + 'ping';
+		var appLink = @waitforSuccess(-> main .. @elem('h3 a', el -> el.textContent === appName)).getAttribute('href') + 'ping';
 		// show the console output, for debugging
 		var outputToggle = @waitforSuccess( -> main .. @elem('.output-toggle'));
 		outputToggle .. s.driver.click();
 		main .. s.clickButton(/deploy/);
 		var origUrl = @url.parse(appLink);
 		var appId = origUrl.host.replace(/\.localhost.*$/, '');
+		appId .. @assert.eq("#{appName}.#{s.creds .. @get('username')}");
 		
-		// XXX this is flaky, and doesn't really reflect reality. But it tests the basic proxy setup.
+		// XXX this doesn't really reflect reality. But it tests the basic proxy setup.
 		var url = "http://localhost:#{@stub.getEnv('port-proxy-http')}/#{appId}/ping";
 		@info("Fetching: #{url}");
 		@waitforSuccess(-> @stub.get(url, {headers: {'HOST': origUrl.host}}) .. @assert.eq('pong!'), null, 5);

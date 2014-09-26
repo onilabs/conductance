@@ -93,8 +93,9 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 					app.start(true);
 				}
 				var portBindings = app.getPortBindings();
-				@info("got port bindings:", app.getPortBindings());
-				portMappingValue = "#{@env.get('internalAddress')},#{portBindings.join(",")}";
+				var subdomain = app.subdomain();
+				portMappingValue = "#{subdomain}:#{@env.get('internalAddress')},#{portBindings.join(",")}";
+				@info("setting port bindings:", portMappingValue);
 				client.set(portMappingKey, portMappingValue);
 				app.wait();
 				

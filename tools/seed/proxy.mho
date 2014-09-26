@@ -88,11 +88,7 @@ exports.serve = function(args) {
 			var action = change.action || 'set';
 			if (change.node === null) return;
 			node = change.node || change;
-			var getKey = function() {
-				var key = node.key .. @removeLeading(keyPrefix) .. @split('/');
-				@assert.ok(key.length == 2);
-				return key .. @reverse() .. @join('.');
-			};
+			var getKey = -> node.key .. @removeLeading(keyPrefix);
 
 			switch(action) {
 				case 'get':
@@ -104,25 +100,25 @@ exports.serve = function(args) {
 					}
 					if (node.dir) return;
 					var key = getKey();
-					var endpointKey = @etcd.slave_endpoint(key.split('.') .. @reverse() .. @join('/'));
+					var endpointKey = @etcd.app_endpoint(key);
 					var endpointExists = @etcd.tryOp(
 						-> etcd.get(endpointKey),
 						[@etcd.err.KEY_NOT_FOUND]
 					);
 					if(!endpointExists) {
 						@info("Dropping dead proxy route: #{key}");
-						@etcd.tryOp(-> etcd.compareAndDelete(node.key, node.value, {}));
+						@etcd.tryOp(-> etcd.compareAndDelete(node.key, node.value, {prevIndex: node .. @get('modifiedIndex')}));
 						return;
 					}
 					var mappings = node.value .. @split(',');
-					var host = mappings.shift();
+					var [pubHost, internalHost] = mappings.shift().split(':');
 					mappings = mappings .. @each {|mapping|
-						var [pub, internal] = mapping.split(':');
-						@info("will proxy port #{pub} to port #{internal} on host #{host}");
-						if (!proxies .. @hasOwn(pub)) {
-							proxies[pub] = {};
+						var [pubPort, internalPort] = mapping.split(':');
+						@info("will proxy #{pubHost} port #{pubPort} to port #{internalPort} on host #{internalHost}");
+						if (!proxies .. @hasOwn(pubPort)) {
+							proxies[pubPort] = {};
 						}
-						proxies[pub][key] = [host, internal];
+						proxies[pubPort][pubHost] = [internalHost, internalPort];
 					}
 					break;
 				

@@ -1,8 +1,10 @@
 @ = require('sjs:std');
 exports.list = function() {
-	return @fs.readdir(
-		@url.normalize('./integration', module.id) .. @url.toPath
-	) .. @map(f -> @path.join('integration', f));
+	var root = @url.normalize('./integration', module.id) .. @url.toPath;
+	return @fs.readdir(root)
+		.. @filter(p -> !@fs.stat(@path.join(root, p)).isDirectory())
+		.. @map(f -> @path.join('integration', f))
+		.. @toArray;
 };
 exports.content = function() {
 	return exports.list() .. @join('\n');

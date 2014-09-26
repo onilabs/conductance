@@ -13,7 +13,8 @@ var { @Endpoint } = require('mho:server/seed/endpoint');
 var { @follow } = require('./follow');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var { @rimraf } = require('sjs:nodejs/rimraf');
-var { @keySafe } = require('../validate');
+@validate = require('../validate');
+var { @keySafe, hex: @appIdSafe } = @validate;
 var here = @url.normalize('./', module.id) .. @url.toPath;
 var tmpRoot = @path.join(here, '../tmp');
 var credentialsRoot = @path.join(here, '../credentials');
@@ -35,12 +36,12 @@ var getUserAppRoot = exports.getUserAppRoot = function(user) {
 };
 
 var getAppPath = exports.getAppPath = function(user, id) {
-  return @path.join(getUserAppRoot(user), id .. @keySafe);
+  return @path.join(getUserAppRoot(user), id .. @appIdSafe);
 }
 
 var appRunRoot = @path.join(dataRoot, 'run', 'app');
 var getAppRunPath = function(user, id) {
-  return @path.join(appRunRoot, String(user.id) .. @keySafe, id .. @keySafe);
+  return @path.join(appRunRoot, String(user.id) .. @keySafe, id .. @appIdSafe);
 }
 
 var getMasterCodePath = function(user, appId) {
@@ -52,8 +53,8 @@ var getMasterCodePath = function(user, appId) {
   return @path.join(root, String(user.id), appId, "code");
 }
 
-var getGlobalId = (user, id) -> "#{user.id .. @keySafe()}/#{id .. @keySafe()}";
-var getMachineName = (user, id) -> "#{user.id .. @keySafe()}_#{id .. @keySafe()}";
+var getGlobalId = (user, id) -> "#{user.id .. @keySafe()}/#{id .. @appIdSafe()}";
+var getMachineName = (user, id) -> "#{user.id .. @keySafe()}_#{id .. @appIdSafe()}";
 
 var tryRename = function(src, dest) {
   try {
@@ -151,6 +152,19 @@ var _awaitExit = function(machineName) {
   } catch(e) {
     if (_isRunning(machineName)) throw e;
   }
+};
+
+var _loadConfig = function(configPath) {
+  var loaded = {};
+  try {
+    loaded = @fs.readFile(configPath, 'utf-8') .. JSON.parse();
+  } catch(e) {
+    if (e.code !== 'ENOENT') throw e;
+    @warn("no config found at #{configPath}");
+    loaded = {};
+  }
+  @info("Loaded config:", loaded);
+  return DEFAULT_CONFIG .. @merge(loaded);
 };
 
 
@@ -408,8 +422,13 @@ exports.localAppState = (function() {
       }
     };
 
+    function getSubdomain() {
+      return "#{_loadConfig(configPath).name .. @keySafe}.#{user.id .. @keySafe()}"
+    };
+
     return {
       id: id,
+      subdomain: getSubdomain,
       isRunning: isRunningStream,
       tailLogs: tailLogs,
       clearLogs: clearLogs,
@@ -464,21 +483,21 @@ exports.masterAppState = (function() {
 
     var config = (function() {
       var loadConfig = function() {
-        var loaded = {};
-        try {
-          loaded = @fs.readFile(configPath, 'utf-8') .. JSON.parse();
-        } catch(e) {
-          if (e.code !== 'ENOENT') throw e;
-          @warn("no config found at #{configPath}");
-          loaded = {};
-        }
-        @info("Loaded config:", loaded);
-        return DEFAULT_CONFIG .. @merge(loaded);
+        return _loadConfig(configPath);
       } .. safe();
 
       var val = @ObservableVar(loadConfig());
       var rv = val .. @transform(x -> DEFAULT_CONFIG .. @merge(x));
       rv.modify = function(f) {
+        f = function(orig) {
+          return function(current, unchanged) {
+            var rv = orig.apply(null, arguments);
+            if (rv === unchanged) return unchanged;
+            // validate new config before accepting
+            rv.name .. @validate.appName();
+            return rv;
+          };
+        }(f);
         if (val.modify(f)) {
           var conf = val.get();
           @logging.info("saving app config:", conf);
@@ -577,7 +596,7 @@ exports.masterAppState = (function() {
       deploy: deploy,
       synchronize: safe.lock.synchronize.bind(safe.lock),
       endpoint: endpointStream,
-      publicUrl: "#{publicUrlBase.protocol}://#{id}.#{user.id}.#{publicUrlBase.authority}/",
+      publicUrlTemplate: "#{publicUrlBase.protocol}://{name}.#{user.id}.#{publicUrlBase.authority}/",
     }
   };
 

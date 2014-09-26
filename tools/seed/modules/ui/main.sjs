@@ -11,6 +11,12 @@ var { @isTransportError, @connect } = require('mho:rpc/bridge');
 
 var OnClick = (elem, action) -> @OnClick(elem, {handle:@stopEvent}, action);
 
+var commonConnectionOptions = {
+	localWrappers: [
+		['mho:server/seed/endpoint', 'unmarshallEndpoint']
+	],
+};
+
 document.body .. @appendContent(@GlobalCSS("
 	a.appLink, a.appLink:hover, a.appLink:visited {
 		color:inherit;
@@ -299,7 +305,7 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 			${@H3([
 				@Span(null, {'class':'glyphicon'}) .. @Class(statusClass),
 				`&nbsp;`,
-				`<a class="appLink" href="${app.publicUrl}">$appName</a>`,
+				@A(appName, {'class':'appLink'}) .. @Attrib('href', appName .. @transform(name -> @supplant(app.publicUrlTemplate, {name:name}))),
 			]) .. @Class(statusColorClass) .. appNameStyle
 			}
 		</div>
@@ -499,10 +505,10 @@ function displayServer(elem, header, api, server) {
 		var initialDelay = 3000;
 		var reconnectDelay = initialDelay;
 		var connectionError = @ObservableVar(false);
-		connectOpts = {connectMonitor: function() {
+		connectOpts = commonConnectionOptions .. @merge({connectMonitor: function() {
 			hold(300); // small delay before showing ui feedback
 			elem .. @appendContent(@Div('Connecting...', {'class':'alert alert-warning'}) .. @Style('display:inline-block; margin: 10px 0; padding:10px;'), -> hold());
-		}};
+		}});
 
 		waitfor {
 			elem .. @appendContent(connectionError .. @transform(err -> err ? @Div([
@@ -794,7 +800,7 @@ exports.run = function(localServer) {
 		try {
 			@withBusyIndicator {|ready|
 				stopIndicator = ready;
-				@connect("#{localServer}remote.api", {localWrappers:[['mho:server/seed/endpoint', 'unmarshallEndpoint']]}) {|connection|
+				@connect("#{localServer}remote.api", commonConnectionOptions) {|connection|
 					runInner(connection.api, ready);
 				}
 			}

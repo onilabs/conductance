@@ -1,6 +1,7 @@
 @ = require('mho:std');
 var { @Div } = require('mho:surface/bootstrap/html');
 var { @User } = require('../auth/user');
+var { @isAuthenticationError } = require('../auth');
 @user = require('./user');
 @crypto = require('nodejs:crypto');
 @response = require('mho:server/response');
@@ -11,18 +12,31 @@ var serverRoot = @env.get('publicAddress')('master');
 var verificationUrl = (user) -> serverRoot + "auth/verify/#{user.name() .. @keySafe}/#{user.verifyCode() .. @keySafe}";
 exports.verifyRoute = /^auth\/verify\/([^\/]+)\/([a-zA-Z0-9]+)$/;
 exports.verifyHandler = function(req, [_, uid, code]) {
-  exports.verify(uid, code);
+  var doc;
+  if (exports.verify(uid, code)) {
+    doc = @layout.defaultDocument(
+      @Div(
+        `<h1>User verified!</h1>
+        <p>Your user account has been verified.</p>
+      `) .. @Style("margin-top:3em;") .. @layout.Center, {
+      title: "User verified",
+      templateData: {
+        showBusyIndicator: false,
+      }
+    });
+  } else {
+    doc = @layout.defaultDocument(
+      @Div(
+        `<h1>Error: Couldn't verify user</h1>
+      `) .. @Style("margin-top:3em;") .. @layout.Center, {
+      title: "Verification failed",
+      templateData: {
+        showBusyIndicator: false,
+      }
+    });
+  }
   req .. @response.setStatus(200, { "Content-Type":"text/html"});
-  req.response.end(@layout.defaultDocument(
-    @Div(
-      `<h1>User verified!</h1>
-      <p>Your user account has been verified.</p>
-    `) .. @Style("margin-top:3em;") .. @layout.Center, {
-    title: "User verified",
-    templateData: {
-      showBusyIndicator: false,
-    }
-  }));
+  req.response.end(doc);
 }
 
 exports.initialUserProperties = function() {
@@ -81,7 +95,7 @@ exports.verify = function(uid, code) {
       }
     }
   } catch(e) {
-    if(e .. @user.isNotFound(e)) {
+    if(e .. @user.isNotFound() || e .. @isAuthenticationError()) {
       return false
     }
     throw e;
