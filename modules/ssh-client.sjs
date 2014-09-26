@@ -164,6 +164,11 @@ function makeSftpSession(base_session) {
           stream.destroy();
         }
       });
+    },
+    stat: function(path) {
+      waitfor(var err, rv) { base_session.stat(path, resume) }
+      if (err) throw err;
+      return rv;
     }
   };
 }
