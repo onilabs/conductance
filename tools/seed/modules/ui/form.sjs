@@ -191,7 +191,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 	parent .. @appendContent(
 		@Form([
 			localForm.error .. @form.formatErrorAlert,
-			formGroup('Name', TextInput, centralForm.field('name', {validate: @validate.required})) .. initialFocus('input'),
+			formGroup('Name', TextInput, centralForm.field('name', {validate: [@validate.required, @validate.appName]})) .. initialFocus('input'),
 
 			showBrowser .. @transform(function(show) {
 				if (show) {
