@@ -86,6 +86,123 @@
       },
       "summary": "Application environment"
     },
+    "flux/": {
+      "type": "lib",
+      "children": {
+        "gcd/": {
+          "type": "lib",
+          "children": {
+            "backend": {
+              "type": "module",
+              "children": {
+                "Context": {
+                  "type": "class",
+                  "children": {
+                    "allocateIds": {
+                      "type": "function"
+                    },
+                    "blindWrite": {
+                      "type": "function"
+                    },
+                    "lookup": {
+                      "type": "function"
+                    },
+                    "runQuery": {
+                      "type": "function"
+                    },
+                    "withTransaction": {
+                      "type": "function"
+                    },
+                    "Context": {
+                      "type": "ctor"
+                    }
+                  }
+                },
+                "Transaction": {
+                  "type": "class",
+                  "children": {
+                    "lookup": {
+                      "type": "function"
+                    },
+                    "runQuery": {
+                      "type": "function"
+                    },
+                    "commit": {
+                      "type": "function"
+                    }
+                  }
+                },
+                "DatastoreError": {
+                  "type": "class",
+                  "children": {
+                    "func": {
+                      "type": "variable"
+                    },
+                    "response": {
+                      "type": "variable"
+                    },
+                    "statusCode": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    },
+                    "content": {
+                      "type": "variable"
+                    }
+                  }
+                }
+              },
+              "summary": "API for accessing the [Google Cloud Datastore](https://developers.google.com/datastore/)"
+            }
+          },
+          "summary": "Google cloud datastore backend bindings"
+        },
+        "gcd": {
+          "type": "module",
+          "children": {
+            "GoogleCloudDatastore": {
+              "type": "class",
+              "children": {
+                "GoogleCloudDatastore": {
+                  "type": "ctor"
+                },
+                "write": {
+                  "type": "function"
+                },
+                "read": {
+                  "type": "function"
+                },
+                "query": {
+                  "type": "function"
+                },
+                "withTransaction": {
+                  "type": "function"
+                },
+                "watch": {
+                  "type": "function"
+                }
+              }
+            },
+            "Transaction": {
+              "type": "class",
+              "children": {
+                "read": {
+                  "type": "function"
+                },
+                "write": {
+                  "type": "function"
+                },
+                "query": {
+                  "type": "function"
+                }
+              }
+            }
+          }
+        }
+      },
+      "summary": "Flux database framework"
+    },
     "rpc/": {
       "type": "lib",
       "children": {

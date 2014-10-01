@@ -1,3 +1,14 @@
+/* (c) 2013-2014 Oni Labs, http://onilabs.com
+ *
+ * This file is part of Conductance, http://conductance.io/
+ *
+ * It is subject to the license terms in the LICENSE file
+ * found in the top-level directory of this distribution.
+ * No part of Conductance, including this file, may be
+ * copied, modified, propagated, or distributed except
+ * according to the terms contained in the LICENSE file.
+ */
+
 /**
    @module db/gcd/backend
    @summary API for accessing the [Google Cloud Datastore](https://developers.google.com/datastore/)
@@ -333,29 +344,30 @@ exports.Context = Context;
 
 /**
    @class DatastoreError
-   @inherits Error
+   @summary Datastore Error
+   @inherit Error
 */
 function DatastoreError(func, response, content, req_body) {
   /**
-     @var DatastoreError.func
+     @variable DatastoreError.func
   */
   this.func = func;
   /**
-     @var DatastoreError.response
+     @variable DatastoreError.response
   */
   this.response = response;
   /**
-     @var DatastoreError.statusCode
+     @variable DatastoreError.statusCode
   */
   this.statusCode = response.statusCode;
   
   /**
-     @var DatastoreError.type
+     @variable DatastoreError.type
   */
   this.type = response.statusCode >= 500 ? 'server' : 'client';
 
   /**
-     @var DatastoreError.content
+     @variable DatastoreError.content
   */
   this.content = content;
 

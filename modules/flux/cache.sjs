@@ -1,9 +1,22 @@
+/* (c) 2013-2014 Oni Labs, http://onilabs.com
+ *
+ * This file is part of Conductance, http://conductance.io/
+ *
+ * It is subject to the license terms in the LICENSE file
+ * found in the top-level directory of this distribution.
+ * No part of Conductance, including this file, may be
+ * copied, modified, propagated, or distributed except
+ * according to the terms contained in the LICENSE file.
+ */
+
 var { makeCache } = require('sjs:lru-cache');
 var { each, map, makeIterator, Stream } = require('sjs:sequence');
 var { wait } = require('sjs:event');
 var { override, clone } = require('sjs:object');
 var { exclusive } = require('sjs:function');
 var { ChangeBuffer } = require('./helpers');
+
+/** @nodoc */
 
 //----------------------------------------------------------------------
 // sequence module backfill

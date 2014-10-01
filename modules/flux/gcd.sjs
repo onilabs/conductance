@@ -1,3 +1,14 @@
+/* (c) 2013-2014 Oni Labs, http://onilabs.com
+ *
+ * This file is part of Conductance, http://conductance.io/
+ *
+ * It is subject to the license terms in the LICENSE file
+ * found in the top-level directory of this distribution.
+ * No part of Conductance, including this file, may be
+ * copied, modified, propagated, or distributed except
+ * according to the terms contained in the LICENSE file.
+ */
+
 @ = require('mho:std');
 var { instantiate, isSimpleType, IdToKey, KeyToId, KeyToParentKey, KeyToKind, cotraverse } = require('./schema');
 var { Context } = require('./gcd/backend');
@@ -382,6 +393,7 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
 
 /**
    @class GoogleCloudDatastore
+   @summary Google Cloud Datastore object
    @function GoogleCloudDatastore
    @param {Object} [attribs]
    @attrib {Object} [schemas]
@@ -760,7 +772,7 @@ function GoogleCloudDatastore(attribs) {
     },
 
     /**
-       @function withTransaction
+       @function GoogleCloudDatastore.withTransaction
        @altsyntax googleclouddatastore.withTransaction([options]) { |transaction| ... }
        @param {optional Object} [options] Transaction options
        @param {Function} [block]
@@ -768,6 +780,7 @@ function GoogleCloudDatastore(attribs) {
 
 
        @class Transaction
+       @summary Object provided by [::GoogleCloudDatastore.withTransaction]
        @function Transaction.read
        @summary see [::GoogleCloudDatastore::read]
        @function Transaction.write
