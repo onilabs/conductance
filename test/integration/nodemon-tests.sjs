@@ -44,7 +44,7 @@
 
   var launch = function() {
     return @childProcess.launch(process.execPath,
-      [@env.executable, 'serve', '-r'],
+      [@env.executable, 'serve', '-r', '--port', '7099'],
       {
         stdio: ['ignore', 'pipe', 'pipe'],
         cwd: base,
