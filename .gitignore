@@ -3,3 +3,4 @@
 .DS_Store
 .gup/
 /tmp/
+/node_modules
