@@ -35,7 +35,7 @@ var defaultPorts = exports.defaultPorts = {
 };
 
 var def = function(key,val, lazy) {
-	@assert.ok(val != null, "Undefined env key: #{key}");
+	@assert.ok(val !== undefined, "Undefined env key: #{key}");
 	if (!env.has(key)) {
 		if (lazy) {
 			@assert.eq(typeof(val), 'function', key);
@@ -218,10 +218,19 @@ exports.defaults = function() {
 	def('port-slave', defaultPorts.slave);
 	def('port-local', defaultPorts.local);
 
-	def('use-gcd', !!process.env['DATASTORE_HOST']);
+	def('use-gcd', !!process.env['DATASTORE_DATASET']);
 	//def('gcd-host', -> process.env .. get('DATASTORE_HOST'), true);
 	def('gcd-dataset', -> devDefault(process.env['DATASTORE_DATASET'], 'development', '$DATASTORE_DATASET not set'), true);
-	def('gcd-host', -> devDefault(process.env['DATASTORE_HOST'], 'http://localhost:8089', '$DATASTORE_HOST not set'), true);
+	def('gcd-host', process.env['DATASTORE_HOST'] || (PROD ? null : 'http://localhost:8089'));
+	def('gcd-credentials', function() {
+		var credentialPath = devDefault(process.env['DATASTORE_CREDENTIALS'], null);
+		if (!credentialPath) return {};
+		var creds = @fs.readFile(credentialPath, 'utf-8') .. JSON.parse();
+		if(Array.isArray(creds.key)) {
+			// convert string array into flat string
+			creds.key = creds.key .. @join("\n");
+		}
+	}, true);
 	def('user-storage',
 		-> this.get('use-gcd')
 			? require('seed:master/user-gcd').Create()

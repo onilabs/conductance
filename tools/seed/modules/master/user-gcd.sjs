@@ -34,10 +34,10 @@ exports.Create = function(appName) {
 	};
 
 	var db = @gcd.GoogleCloudDatastore({
-		context: {
+		context: @env.get('gcd-credentials') .. @merge({
 			devel: !@env.get('production'),
 			dataset: @env.get('gcd-dataset'),
-		},
+		}),
 		schemas: {
 			user: userSchema,
 		}
