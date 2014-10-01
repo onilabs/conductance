@@ -63,7 +63,7 @@ var serverConfig = {
         try {
           block();
         } finally {
-          currentApiModule._poll_request = null;
+          if(currentApiModule) currentApiModule._poll_request = null;
         }
       });
     })(),
