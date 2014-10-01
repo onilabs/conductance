@@ -54,6 +54,23 @@ if (process.env['DEV_DEPENDENCIES']) {
 	check();
 }
 
+// merge optionalDependencies, ignoring anything specified in $SKIP_OPTIONAL
+var optionalDepNames = Object.keys(packageInfo.optionalDependencies);
+var skipOptional = [];
+if (process.env['SKIP_OPTIONAL']) {
+	if (process.env['SKIP_OPTIONAL'] === '*') {
+		skipOptional = optionalDepNames;
+	} else {
+		skipOptional = process.env['SKIP_OPTIONAL'].split(',');
+	}
+}
+for (var k in packageInfo.optionalDependencies) {
+	if (skipOptional.indexOf(k) === -1) {
+		deps[k] = packageInfo.optionalDependencies[k];
+	}
+}
+
+
 var packageNames = Object.keys(deps);
 
 packageNames = packageNames.filter(function(pkg) {
