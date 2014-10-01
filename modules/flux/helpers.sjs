@@ -9,7 +9,9 @@
  * according to the terms contained in the LICENSE file.
  */
 
-/** @nodoc */
+/**
+  @nodoc
+*/
 var { Emitter } = require('sjs:event');
 var { flatten } = require('sjs:array');
 

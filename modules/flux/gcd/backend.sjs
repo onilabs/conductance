@@ -11,6 +11,7 @@
 
 /**
    @module db/gcd/backend
+   @hostenv nodejs
    @summary API for accessing the [Google Cloud Datastore](https://developers.google.com/datastore/)
    @desc
      **Notes**

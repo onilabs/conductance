@@ -14,6 +14,10 @@ var { instantiate, isSimpleType, IdToKey, KeyToId, KeyToParentKey, KeyToKind, co
 var { Context } = require('./gcd/backend');
 var { ChangeBuffer } = require('./helpers');
 
+/**
+  @hostenv nodejs
+*/
+
 /*
 BATCH PERIODS set the time (in ms) over which to batch calls to the GCD backend
 

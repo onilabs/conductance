@@ -25,8 +25,8 @@
     } or {
       while(proc.stdout) {
         var out = proc.stdout .. @read();
-        out = out.toString('utf-8');
         if (out == null) break;
+        out = out.toString('utf-8');
         @info(out);
       }
       hold();
