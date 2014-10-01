@@ -1,0 +1,228 @@
+@ = require(['mho:std', 'sjs:nodejs/tempfile']);
+var { @Endpoint } = require('../endpoint');
+var deployLoopback = @env.get('deployLoopback');
+@info("deployLoopback: #{deployLoopback}");
+
+@settings = require('./settings');
+
+exports.version = @env.get('seed-api-version');
+exports.multipleServers = @env.get('multi-deploy-destinations');
+if (exports.multipleServers) {
+	exports.servers = @settings.servers;
+	exports.createServer = function(props) {
+		return @settings.server(null, props);
+	};
+} else {
+	// in single-server mode, just use the "central" server
+	// with empty addess
+	exports.servers = @settings.servers .. @transform(function(servers) {
+		var central = @settings.server('central', {name: null}, true);
+		central.config.modify(function(current, unchanged) {
+			var updated = current .. @merge({
+				host: null,
+				port: null,
+				ssh: false,
+			});
+			if (updated .. @eq(current)) return unchanged;
+			return updated;
+		});
+		return [central];
+	});
+}
+
+var Deployment = function(endpoint, serverInfo) {
+	this.endpoint = endpoint;
+	var serverId = this.id = serverInfo .. @get('id');
+	this.config = serverInfo .. @get('config');
+
+	this.appConfig = function(appId) {
+		return @settings.app(serverId, appId).config;
+	};
+
+	this.addApp = function(props) {
+		var localSettings = @settings.app(serverId, null, props);
+		var config = localSettings.config .. @first();
+		@info("Created local app settings", config);
+		return localSettings;
+	};
+
+	this.deploy = function(appId, log) {
+		@assert.string(appId);
+		var localAppSettings = @settings.app(serverInfo.id, appId);
+		var settings = localAppSettings.config .. @first();
+		var root = settings .. @get('path');
+		endpoint.connect {|remote|
+			if (remote.authenticate) {
+				console.log(serverInfo);
+				remote = remote.authenticate(serverInfo.config .. @first() .. @get('token'));
+			}
+			var app = remote.getApp(appId);
+			var config = app.config .. @first();
+			@info("deploying #{config.name} (#{appId}) from #{root}");
+
+			// XXX we should be able to use `tar` output directly,
+			// but https://github.com/joyent/node/issues/6595
+			@TemporaryFile {|tmp|
+				try {
+					@childProcess.run('tar', ['-cvzf', tmp.path, '-C', root, '.'], {stdio: ['ignore', 'ignore',2]});
+				} catch(e) {
+					throw new Error("`tar` failed: #{e}");
+				}
+
+				var payload = @Stream(function(emit) {
+					console.log("READING!");
+					var stream = tmp.readStream();
+					var i=0;
+					var chunk;
+					var chunks=[];
+					var lastTime = 0;
+					var send = function(chunk) {
+						if (chunks.length > 0) {
+							console.log("[> chunk #{i}: #{chunks.length}]");
+							console.log("[= chunk #{i++}: #{chunks.length}]");
+							emit(Buffer.concat(chunks));
+							chunks = [];
+						}
+					};
+					while(true) {
+						chunk = stream .. @read();
+						if (chunk == null) {
+							send();
+							break;
+						}
+						chunks.push(chunk);
+
+						var now = Date.now();
+						if (Math.abs(now - lastTime) > 200) {
+							// if last round-trip was less than 200ms ago, keep accumulating
+							lastTime = now;
+							send();
+						}
+					}
+				});
+				app.deploy(payload);
+			}
+		}
+	};
+};
+
+
+exports.getServer = function(serverId, currentUrl) {
+	@assert.string(serverId);
+	var server = @settings.server(serverId);
+	var creds = server.config .. @first() .. @clone();
+
+	var endpoint = function() {
+		if (creds.ssh) {
+			return {
+				connect: function(block) {
+					// process privateKey
+					@info("Connecting via SSH with credentials", creds);
+					var pkDef = creds .. @get('privateKey', null);
+					var agentDef = creds .. @get('agent', null);
+					if (pkDef !== null) {
+						var pk;
+						switch(pkDef.type) {
+							case 'key':
+								@debug("reading ssh key #{pkDef.name}");
+								pk = @fs.readFile(@path.join(process.env .. @get('HOME'), '.ssh', pkDef .. @get('name')));
+								break;
+							case 'file':
+								@debug("reading ssh key file #{pkDef.path}");
+								pk = @fs.readFile(pkDef .. @get('path'));
+								break;
+							default:
+								@assert.fail("Unknown private key type: #{pkDef.type}");
+						}
+						creds.privateKey = pk;
+					} else if (agentDef !== null) {
+						// use env
+						creds.agent = agentDef === true ? process.env .. @get('SSH_AUTH_SOCK') : agentDef;
+						@debug("Using SSH agent socket #{creds.agent}");
+					}
+
+					if (deployLoopback) {
+						block(require('../master/deploy.api').anonymous);
+					} else {
+						if (!@ssh) @ssh = require('./ssh');
+						//creds.debug = @info;
+						@ssh.Connect(creds) {|conn|
+							var seedPort = 7079;
+							//conn .. @ssh.runSeed('conductance', seedPort) {||
+								conn .. @ssh.proxyConnections(seedPort) {|path|
+									@debug("Proxied: #{path}");
+									var apiInfo = @http.json('http:///master/deploy.api?format=json', {socketPath: path});
+									@debug('API INFO:', apiInfo);
+									var transport = require('mho:rpc/aat-client').openTransport('http:///', {socketPath: path});
+									@debug('transport', transport);
+									@bridge.connect('XXX', {transport: transport, api:apiInfo}) {|conn|
+										// over SSH, assume deployment is available anonymously
+										block(conn.api.anonymous);
+									}
+								}
+							//}
+						}
+					}
+				}
+			};
+
+		} else {
+			// for http(s) connections, return the endpoint directly
+			var path = "/master/deploy.api";
+			if(!creds.host) {
+				// use the current browser address
+				return @Endpoint(@url.normalize(path, currentUrl));
+			}
+			var prefix = "https://";
+			// XXX we should probably lock this down to testing use only, somehow
+			if (creds.host .. @contains("://")) prefix = "";
+			return @Endpoint("#{prefix}#{creds.host}:#{creds.port || 443}#{prefix}");
+		}
+	}();
+
+	return new Deployment(endpoint, server);
+};
+
+exports.fileBrowser = function(root) {
+	var home = process.env['HOME'] || '/';
+	if (!root || !@fs.exists(root)) {
+		root = home;
+	}
+	root = @ObservableVar(root);
+	var location = root .. @transform(function(path) {
+		var contents = [];
+		try {
+			contents = @fs.readdir(path) .. @filter(n -> n.charAt(0) !== '.') .. @map.par(5, function(name) {
+				var fullpath = @path.join(path, name);
+				var stat = @fs.stat(fullpath);
+				return {
+					directory: stat.isDirectory(),
+					name: name,
+				};
+			});
+		} catch(e) {
+			@warn("Error listing #{root}: #{e}");
+		}
+
+		return {
+			path: @path.normalize(path),
+			contents: contents,
+		};
+	});
+
+	var rv = {
+		location: location,
+		goInto: name -> root.modify(c -> @path.join(c, name)),
+		goUp: -> rv.goInto('..'),
+		goHome: -> root.set(home),
+	};
+	return rv;
+};
+
+exports.deleteServerCredentials = function(serverId) {
+	@settings.server(serverId).config.modify(function(conf) {
+		conf = conf .. @clone();
+		delete conf['token'];
+		return conf;
+	});
+};

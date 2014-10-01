@@ -1,0 +1,12 @@
+@ = require('mho:std');
+exports.serve = function() {
+  @server.run({
+    address: @Port(8080),
+    routes: [
+      @Route('ping', {GET: function(req) {
+        req .. @setStatus(200);
+        req.response.end("pong!");
+      }}),
+    ],
+  });
+};

@@ -1,0 +1,110 @@
+#!/usr/bin/env conductance
+// vim: syntax=sjs
+
+require('./lib/env');
+@ = require('mho:std');
+var karmaConfUrl = @url.normalize('./conf/karma.js', module.id);
+var karmaConf = require(karmaConfUrl);
+var { port } = require('./conf/server.js');
+var testDir = @url.normalize('./', module.id) .. @url.toPath();
+@response = require('mho:server/response');
+
+exports.serve = function() {
+  require('./lib/stub.api').hook {||
+    // inject test routes into all servers
+    @route.SystemRoutes = function(orig) {
+      return function() {
+        return orig().concat([
+          @Route('up', {GET: function(req) {
+            req .. @response.setStatus(200);
+            req.response.end();
+          }}),
+          @route.ExecutableDirectory('test', testDir),
+        ]);
+      };
+    }(@route.SystemRoutes);
+    console.warn("Serving test suite at http://localhost:#{port}/test/");
+    // modify default ports so as not to conflict with existing hosts
+    ;['master', 'local','slave','proxy-http', 'proxy-https'] .. @indexed .. @each {|[i, service]|
+      @env.set("port-#{service}", port+i);
+    };
+
+    ;['self','proxy','master'] .. @each {|service|
+      @env.set("host-#{service}", 'localhost');
+    }
+
+    require('../bin/services.sjs').withServices {|| // XXX should these specify a separate port too?
+      waitfor {
+        require('mho:server/seed/local').serve(['--port', String(@env.get('port-local')), '--master', "http://localhost:#{@env.get('port-master')}"]);
+      } or {
+        require('../master.mho').serve([]);
+      } or {
+        require('../slave.mho').serve([]);
+      } or {
+        require('../proxy.mho').serve([]);
+      }
+    }
+  }
+};
+
+var isRunning = function(url) {
+  try {
+    @http.get(url);
+    return true;
+  } catch (e) {
+    if(e.toString().indexOf('ECONNREFUSED') == -1) {
+      // this is not the error we expected!
+      throw(e);
+    }
+    return false;
+  }
+};
+
+function serveAnd(block) {
+  var url = "http://localhost:#{port}/up";
+  waitfor {
+    if(isRunning(url)) hold();
+    else exports.serve();
+    throw new Error("Server ended");
+  } or {
+    while(true) {
+      // XXX wait for other hosts too?
+      if(isRunning(url)) break;
+      hold(1000);
+    }
+    block();
+  }
+}
+
+if (require.main === module) {
+  var args = require('sjs:sys').argv();
+  var runKarma = -> require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
+  args.splice(1,0, karmaConfUrl .. @url.toPath);
+  if(args[0] === 'run') {
+    args.splice(2, 0, '-vv', '--', karmaConf.testScript);
+    console.log(args);
+    runKarma();
+  } else if(args[0] === 'start' || args[0] == 'single-run') {
+    if (args[0] == 'single-run') {
+      args[0] = 'start';
+      args.splice(2, 0, '--single-run', '--', karmaConf.testScript);
+    }
+    serveAnd {||
+      runKarma();
+      // XXX karma is fire-and-forget, we can't wait for its completion
+      hold();
+    }
+  } else if(args[0] === 'app') {
+    exports.serve();
+  } else {
+    console.warn("Usage: run.mho <action> [args ...]
+
+  ACTIONS:
+    app           Run app server only
+    start         Run karma server (& app server if not yet running)
+    run           Run karma test against already-running servers
+    single-run    `start` & `run` in a single invocation
+");
+    process.exit(1);
+  }
+}

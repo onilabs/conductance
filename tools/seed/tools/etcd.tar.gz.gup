@@ -1,0 +1,2 @@
+#!bash -eu
+wget -O "$1" "https://github.com/coreos/etcd/archive/v0.4.4.tar.gz"

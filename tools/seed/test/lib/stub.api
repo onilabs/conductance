@@ -1,0 +1,76 @@
+@ = require('mho:std');
+@email = require('seed:auth/email');
+var { @TemporaryDir } = require('sjs:nodejs/tempfile');
+var { @rimraf } = require('sjs:nodejs/rimraf');
+var { @mkdirp } = require('sjs:nodejs/mkdirp');
+
+var emailQueue = null;
+// XXX Queue is not bridge-safe
+exports.emailQueue = {
+	get: -> emailQueue.get(),
+	count: -> emailQueue.count(),
+};
+
+var stubEmail = function() {
+	var nm = require('nodejs:nodemailer');
+	emailQueue = @Queue(100);
+	delete process.env['MAILGUN_PASSWORD']; // just in case
+
+	var stubTransport = require('nodejs:nodemailer-stub-transport');
+	var transporter = stubTransport();
+	var transport = nm.createTransport(transporter);
+	var wrapped = @email.wrap(transport);
+	wrapped.send = (function(orig) {
+		@assert.ok(orig);
+		return function() {
+			var rv = orig.apply(null, arguments);
+			rv.response = rv.response.toString('utf-8'); // was a buffer
+			emailQueue.put(rv);
+			return rv;
+		};
+	})(wrapped.send);
+
+	@env.set('email-transport', wrapped);
+}
+
+// stub out transactional resources (includes cleanup)
+var hooked = false;
+var temporaryDataDir = null;
+exports.hook = function(block) {
+	@TemporaryDir({prefix:'seed-test-data-'}) {|tempdir|
+		temporaryDataDir = tempdir;
+		process.env['XDG_CONFIG_HOME'] = @path.join(tempdir, 'local-conf');
+		require('seed:env').defaults();
+		@env.set('data-root', tempdir);
+		if(@env.get('use-gcd')) {
+			@env.set('user-storage', require('seed:master/user-gcd').Create('test'));
+		}
+		stubEmail();
+		hooked = true;
+		block();
+	}
+};
+
+exports.clearData = function() {
+	@settings = require('mho:server/seed/local/settings');
+	@assert.ok(hooked, "test hook not installed!");
+	@assert.ok(temporaryDataDir);
+	@rimraf(temporaryDataDir);
+	@mkdirp(@settings._store.root);
+	@settings._store.reload();
+
+	var userDb = @env.get('user-storage');
+	userDb._deleteAllData();
+	if(emailQueue) while(emailQueue.count() > 0) emailQueue.get();
+};
+
+exports.testPath = function(rel) {
+	var testRoot = @url.normalize('../', module.id) .. @url.toPath();
+	return @path.join(testRoot, rel);
+}
+
+// needed to get around CORS restrictions
+exports.getEnv = -> @env.get.apply(@env, arguments);
+exports.get = function(/* .. */) {
+	return @http.get.apply(null, arguments);
+};

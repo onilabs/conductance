@@ -1,0 +1,69 @@
+#!/usr/bin/env conductance
+// vim: syntax=sjs
+@ = require('mho:std');
+require('../modules/hub');
+require('seed:env').defaults();
+
+var parser = require('sjs:dashdash').createParser({
+	options: [
+		{
+			names: ['pid', 'p'],
+			type: 'number',
+			help: 'affect single pid',
+		},
+		{
+			names: ['user', 'u'],
+			type: 'string',
+			'default': null,
+			help: 'affect processes run by `user`',
+		},
+		{
+			names: ['help', 'h'],
+			type: 'bool',
+		},
+	],
+});
+
+try {
+	var opts = parser.parse();
+	@assert.ok(opts.user || opts.port, "--user or --pid required");
+} catch(e) {
+	console.error('Error: ', e.message);
+	process.exit(1);
+}
+
+if (opts.help) {
+	console.log("Usage: seed-ctl [OPTIONS] KEY=val [...]\n\noptions:\n");
+	console.log(parser.help({includeEnv:true}));
+	process.exit(0);
+}
+
+// console.log(opts);
+// @assert.ok(opts._args.length > 0, "Must provide at least one envvar");
+
+var contents = opts._args .. @join("\n");
+var environFile = @env.get('runtime-environ');
+
+function run(cmd, args) {
+	console.log("Running: #{cmd} #{args.join(" ")}");
+	try {
+		@childProcess.run(cmd, args, {stdio:'inherit'});
+	} catch(e) {
+		console.log(e.message);
+		@childProcess.kill(process.pid, 'SIGINT');
+	}
+};
+
+// make sure we don't kill ourselves!
+var sig = @env.get('ctl-signal');
+process.on(sig, -> null);
+
+console.log("Writing #{environFile}");
+@path.join(environFile) .. @fs.writeFile(contents, {mode: 0664});
+
+if (opts.pid) {
+	run('kill', ['--signal', sig, String(opts.pid)]);
+} else {
+	// apply to all node processes
+	run('pkill', ['--signal', sig, '--exact', 'node', '-u', opts.user]);
+}

@@ -1,0 +1,52 @@
+@ = require('mho:std');
+@os = require('nodejs:os');
+require('./modules/hub');
+
+exports.serve_with_block = function(args, block) {
+	// runs HTTP server, but doesn't start any slaves
+	// (used by bin/local --self, which starts its own slaves)
+	var common = require('./common.mho');
+	var opts = args .. require('seed:env').parse([
+		{
+			name: 'hostname',
+			type: 'string',
+			help: 'override $hostname',
+		},
+		{
+			names: ['cors'],
+			type: 'bool',
+			help: 'allow cors',
+			'default': false,
+		},
+	]);
+
+	var routes = [
+		@route.SystemRoutes(),
+		@route.ExecutableDirectory('', @url.normalize('./modules/slave', module.id) .. @url.toPath),
+	] .. common.routeOptions();
+	if (opts.cors) {
+		routes = routes .. @route.AllowCORS();
+	}
+
+	var port = @Port(@env.get('port-slave'));
+
+	waitfor {
+		@server.run({
+			address: port,
+			routes: routes,
+		});
+	} or {
+		block(opts);
+	}
+}
+
+exports.serve = function(args) {
+	exports.serve_with_block(args) {|opts|
+		exports.run_slave(opts.hostname || @os.hostname(), true);
+	}
+}
+
+exports.run_slave = function(id, singleton) {
+	var slave = require('seed:job/slave');
+	slave.main(@env.get('etcd'), id, singleton);
+}

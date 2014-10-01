@@ -1,0 +1,141 @@
+require('./modules/hub');
+@ = require(['mho:std', 'seed:util']);
+@os = require('nodejs:os');
+@etcd = require('seed:job/etcd');
+@stream = require('sjs:nodejs/stream');
+
+exports.serve = function(args) {
+	var opts = args .. require('seed:env').parse([]);
+
+	var proxies = {};
+
+	var nodeHttp = require('nodejs:http');
+	var proxyAgent = new nodeHttp.Agent();
+	proxyAgent.maxSockets = 2048;
+
+	var hostSuffix = '.' + @env.get('host-self');
+	var getSubdomain = function(req) {
+		return req.url.host .. @removeTrailing(hostSuffix);
+	};
+	if (@env.get('production') === false) {
+		getSubdomain = function(orig) {
+			return function(req) {
+				// add hack for localhost, so we don't have to set up dnsmasq for testing
+				if (req.url.host === 'localhost') {
+					var [_, leading, trailing] = req.url.path .. @split('/', 3);
+					req.url.path = '/' + trailing;
+					return leading;
+				}
+				return orig.apply(this, arguments);
+			};
+		}(getSubdomain);
+	};
+
+	var proxyRoute = function(proto, publicPort) {
+		publicPort = String(publicPort);
+		return @Route(/^/, {'*': function(req) {
+			//console.log(req);
+			var destRoute = proxies[publicPort];
+			//console.log(JSON.stringify(proxies));
+			@debug("destRoute[#{publicPort}]: ", destRoute);
+			if (destRoute) {
+				var subdomain = getSubdomain(req);
+				@debug("proxying subdomain: #{subdomain}");
+				destRoute = destRoute[subdomain];
+				//@info("destRoute: ", destRoute);
+				if (destRoute) {
+					var [destHost, destPort] = destRoute;
+					var dest = "#{proto}://#{destHost}:#{destPort}#{req.url.path}";
+					if (req.url.query) dest += "?#{req.url.query}";
+					var opts = {
+						method: req.request.method,
+						response: 'raw',
+						body: req.body,
+						agent: proxyAgent,
+						throwing: false,
+					};
+					//@info("PROXY -> #{dest}");
+					var response = @http.request(dest, opts);
+					//@info(response.statusCode);
+
+					req.response.writeHead(response.statusCode, response.headers);
+					response .. @stream.pump(req.response);
+					req.response.end();
+					return;
+				}
+			}
+			throw @NotFound();
+		}});
+	};
+
+	waitfor {
+		@server.run([
+			{
+				address: opts.Port(@env.get('port-proxy-http')),
+				routes: [proxyRoute('http', 8080)],
+			},
+			{
+				address: opts.Port(@env.get('port-proxy-https')),
+				routes: [proxyRoute('https', 4043)],
+			},
+		]);
+	} or {
+		var etcd = @env.get('etcd');
+		var keyPrefix = @etcd.app_port_mappings(null);
+
+		var handle = function(change) {
+			//@info("CHANGE:", change);
+			var action = change.action || 'set';
+			if (change.node === null) return;
+			node = change.node || change;
+			var getKey = -> node.key .. @removeLeading(keyPrefix);
+
+			switch(action) {
+				case 'get':
+				case 'set':
+					// initial "node" is actually a bunch of nodes, so recursively handle those:
+					if (node .. @hasOwn('nodes')) {
+						node.nodes .. @each(handle);
+						return;
+					}
+					if (node.dir) return;
+					var key = getKey();
+					var endpointKey = @etcd.app_endpoint(key);
+					var endpointExists = @etcd.tryOp(
+						-> etcd.get(endpointKey),
+						[@etcd.err.KEY_NOT_FOUND]
+					);
+					if(!endpointExists) {
+						@info("Dropping dead proxy route: #{key}");
+						@etcd.tryOp(-> etcd.compareAndDelete(node.key, node.value, {prevIndex: node .. @get('modifiedIndex')}));
+						return;
+					}
+					var mappings = node.value .. @split(',');
+					var [pubHost, internalHost] = mappings.shift().split(':');
+					mappings = mappings .. @each {|mapping|
+						var [pubPort, internalPort] = mapping.split(':');
+						@info("will proxy #{pubHost} port #{pubPort} to port #{internalPort} on host #{internalHost}");
+						if (!proxies .. @hasOwn(pubPort)) {
+							proxies[pubPort] = {};
+						}
+						proxies[pubPort][pubHost] = [internalHost, internalPort];
+					}
+					break;
+				
+				case "delete":
+				case "compareAndDelete":
+					var key = getKey();
+					@info("Deleting routes for #{key}");
+					proxies .. @ownValues .. @each {|apps|
+						delete apps[key];
+					}
+					break;
+
+				default:
+					@info("ignoring proxy change type #{action}");
+			}
+		};
+
+		etcd .. @etcd.changes(keyPrefix, {recursive:true, initial:true}) .. @each(handle);
+	}
+}

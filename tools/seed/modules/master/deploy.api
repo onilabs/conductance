@@ -1,0 +1,20 @@
+@logging = require('sjs:logging');
+@deploy  = require('./deploy');
+@user = require('./user');
+@env = require('mho:env');
+@assert = require('sjs:assert');
+
+exports.getToken = @user.getToken;
+
+exports.version = @env.get('seed-api-version');
+
+exports.authenticate = function(token) {
+  var user = @user.authenticate(token);
+  @logging.info("Authenticated user #{user}");
+  return @deploy.Api(user);
+};
+
+if (@env.get('anonymous-access', false) === true) {
+  // provide an anonymous API if the server allows it
+  exports.anonymous = @deploy.Api(@user.ANONYMOUS);
+}
