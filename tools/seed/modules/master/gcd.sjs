@@ -1,2 +1,2 @@
-module.exports = require('../../flux/gcd');
-module.exports.schema = require('../../flux/schema');
+module.exports = require('mho:flux/gcd');
+module.exports.schema = require('mho:flux/schema');

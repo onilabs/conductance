@@ -1,0 +1,2 @@
+#!bash -eu
+../tools/gcd/dev_server create --dataset_id=devel "$1"
