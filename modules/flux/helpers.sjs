@@ -16,17 +16,19 @@ var { Emitter } = require('sjs:event');
 var { flatten } = require('sjs:array');
 
 exports.ChangeBuffer = function(size) {
+  var { emit, stream } = Emitter();
+
   // xxx not sure about size; we add changes to the change buffer in
   // batches; should the size of the batches taken into consideration
   // when deciding to shift the buffer?
   var buf = [];
   var rv = {
-    emitter: Emitter(),
+    emitter: stream,
     revision: 1,
     addChanges: function(changes) {
       buf.push(changes);
       if (buf.length > size) buf.shift();
-      rv.emitter.emit(++rv.revision);
+      emit(++rv.revision);
     },
     getChanges: function(start_revision) {
       var count = rv.revision - start_revision;

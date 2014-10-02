@@ -412,10 +412,10 @@ function unmarshallBlob(obj, connection) {
     // the data has arrived at the client, since it is being sent in a
     // http response. Hence the `wait` here:
     waitfor {
-      connection.dataReceived .. wait();
+      connection.dataReceived.stream .. wait();
     }
     or {
-      connection.sessionLost .. wait();
+      connection.sessionLost.stream .. wait();
       // XXX is this the right error to throw?
       throw new Error("session lost");
     }
@@ -563,7 +563,7 @@ function BridgeConnection(transport, opts) {
           if (transport) transport.send(args);
         }
       } or {
-        var err = sessionLost .. wait();
+        var err = sessionLost.stream .. wait();
         this.__finally__(); // XXX this should be a recoverable error, but we kill the connection
                             // for now as a workaround for mechanisms that drop unhandled errors
         throw err || TransportError("session lost");
@@ -689,7 +689,7 @@ function BridgeConnection(transport, opts) {
             // ignore exception; transport will be closed
           }
         } or {
-          sessionLost .. wait();
+          sessionLost.stream .. wait();
         }
         finally {
           delete executing_calls[call_no];

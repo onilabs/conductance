@@ -67,7 +67,7 @@
     s.proc = launch();
     // wait until it's started
     s.proc .. expectStarts(1) {|restarted|
-      restarted .. @wait();
+      restarted.stream .. @wait();
     }
   }
 
@@ -105,7 +105,7 @@
     @test("restarts on .#{ext} change") {|s|
       s.proc .. expectStarts(1) {|restarted|
         touch(@path.join(base, "file.#{ext}"));
-        restarted .. @wait();
+        restarted.stream .. @wait();
       }
     }
   }

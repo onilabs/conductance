@@ -3,7 +3,6 @@ var helper = require('../helper');
 var bridge = require('mho:rpc/bridge');
 var { isTransportError } = bridge;
 var http = require('sjs:http');
-var { Emitter } = require('sjs:event');
 var { Condition } = require('sjs:cutil');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
