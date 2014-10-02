@@ -9,7 +9,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
         var change_buffer = @ChangeBuffer(...);
         change_buffer.emitter.emit(...);
 
-   Instead, use `change_buffer.addChanges(...)`
+   Instead, use `change_buffer.addChanges(...);`
 
 ## Version 0.5:
 
