@@ -172,7 +172,7 @@ context('bridge error handling') {||
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
       assert.truthy(connection.api.wasErrorThrown());
-    } 
+    }
   }.browserOnly();
 
 }
@@ -193,8 +193,8 @@ function waitforSuccess(block) {
     if (lastError) throw lastError;
   }
 };
-  
-      
+
+
 
 context() {||
   // common setup to make api module available

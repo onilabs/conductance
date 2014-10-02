@@ -15,7 +15,7 @@
   @desc
     The RPC bridge is used for bidirectional communication between client
     and server.
-    
+
     It can serialize (send / receive) the following types:
 
     Primitive types
@@ -44,7 +44,7 @@
     original function. After executing the function (where it was originally defined),
     the return value is sent across the bridge and returned to the caller as if it
     were a regular (suspending) function call.
-    
+
     This means that all argument and return values for functions exposed over a
     bridge must themselves be serializable.
 
@@ -109,11 +109,11 @@ if (hostenv !== 'xbrowser') {
 }
 
 // helper to identify binary data:
-var BinaryCtors = ['Blob', 'ArrayBuffer', 'DataView', 
-                   'Uint8Array', 'Uint16Array', 'Uint32Array', 
+var BinaryCtors = ['Blob', 'ArrayBuffer', 'DataView',
+                   'Uint8Array', 'Uint16Array', 'Uint32Array',
                    'Int8Array', 'Int16Array', 'Int32Array',
                    'Float32Array', 'Float64Array'] ..
-  filter(x -> typeof global[x] == 'function') .. 
+  filter(x -> typeof global[x] == 'function') ..
   map(x -> global[x]);
 function isBinaryData(obj) {
   return BinaryCtors .. any(ctor -> obj instanceof ctor);
@@ -202,17 +202,17 @@ exports.defaultMarshallers = defaultMarshallers;
 
    @function API
    @summary Wrap an object into a remotable API
-   @param {Object} [obj] 
-   @return {Object} 
+   @param {Object} [obj]
+   @return {Object}
 */
 
 var api_counter = 1;
 function API(obj, isBaseAPI) {
-  return { __oni_type: 'api', 
+  return { __oni_type: 'api',
            id : isBaseAPI ? 0 : api_counter++,
-           obj:obj 
+           obj:obj
          };
-}  
+}
 exports.API = API;
 
 /**
@@ -242,7 +242,7 @@ function marshall(value, connection) {
     // values (such as Dates) will have been converted to strings by the
     // time the replacer sees them *sigh*
     // Instead we prepare a 'stringifyable object first:
-  
+
     var stringifyable = {};
 
     function processProperties(value, root) {
@@ -302,7 +302,7 @@ function marshall(value, connection) {
           // publish on the connection:
           connection.publishAPI(value);
           // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
-          var methods = keys(value.obj) .. 
+          var methods = keys(value.obj) ..
             filter(name -> typeof value.obj[name] === 'function') ..
             toArray;
           rv = { __oni_type:'api', id: value.id, methods: methods};
@@ -435,8 +435,8 @@ function unmarshallAPI(obj, connection) {
   var proxy = { };
 
   obj.methods .. each {
-    |m| 
-    proxy[m] = function() { 
+    |m|
+    proxy[m] = function() {
       return connection.makeCall(obj.id, m, arguments);
     };
   }
@@ -453,7 +453,7 @@ function unmarshallFunction(obj, connection) {
 function unmarshallStream(obj, connection) {
   // Blocklambda return/break don't work across spawn boundaries
   // (yet), but many stream primitives (such as `first`) depend on
-  // them. 
+  // them.
   // To fix this, we introduce an intermediate `getter` function:
 
   return Stream(
@@ -514,10 +514,10 @@ function BridgeConnection(transport, opts) {
   var disconnectHandler = opts.disconnectHandler;
 
   var sessionLost = Emitter(); // session has been lost
-  
+
   // emitter that gets prodded every time a binary data packet is received;
   // see note under `unmarshallBlob` for details
-  var dataReceived = Emitter(); 
+  var dataReceived = Emitter();
 
   if (opts.publish)
     published_apis[0] = opts.publish;
@@ -544,7 +544,7 @@ function BridgeConnection(transport, opts) {
           }
           retract {
             //logging.debug("call #{call_no} (#{method}) retracted");
-            if(transport) spawn (function() { 
+            if(transport) spawn (function() {
               try {
                 transport.send(marshall(['abort', call_no], connection));
               }
@@ -628,7 +628,7 @@ function BridgeConnection(transport, opts) {
     }
 
     // The while loop here (and the async flag logic, above) shouldn't
-    // be necessary in theory because SJS is tail-call safe. 
+    // be necessary in theory because SJS is tail-call safe.
     while (1) {
       try {
         inner();
@@ -645,7 +645,7 @@ function BridgeConnection(transport, opts) {
     }
   }
 
-  function receiveData(packet) { 
+  function receiveData(packet) {
     connection.received_blobs[packet.header] = packet.data;
     dataReceived.emit();
   }
