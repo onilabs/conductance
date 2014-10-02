@@ -1,5 +1,16 @@
 This changelog lists the most prominent, developer-visible changes in each release.
 
+## Version 0.6:
+
+ * The `ChangeBuffer` function in the `mho:flux/helpers` module has been changed:
+   it's no longer possible to call `emit` directly. As an example, this code no
+   longer works:
+
+           var change_buffer = @ChangeBuffer(...);
+           change_buffer.emitter.emit(...);
+
+   Instead, use `change_buffer.addChanges(...)`.
+
 ## Version 0.5:
 
  * New functions and symbols:
