@@ -6,10 +6,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
    it's no longer possible to call `emit` directly. As an example, this code no
    longer works:
 
-           var change_buffer = @ChangeBuffer(...);
-           change_buffer.emitter.emit(...);
+        var change_buffer = @ChangeBuffer(...);
+        change_buffer.emitter.emit(...);
 
-   Instead, use `change_buffer.addChanges(...)`.
+   Instead, use `change_buffer.addChanges(...)`
 
 ## Version 0.5:
 
