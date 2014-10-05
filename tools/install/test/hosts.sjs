@@ -54,6 +54,7 @@ var pythonPrelude = function (script, self, quiet) {
     logging.info("* running python code:\n" + script.trim().replace(/^/gm, '# '));
 
   return "
+from __future__ import print_function
 import os,json,sys,user,re,shutil,subprocess,platform,time
 WINDOWS = platform.system() == 'Windows'
 HOME = user.home
@@ -79,11 +80,11 @@ def rmtree(dest):
       # it actually deleltes `dest`
       tries = 10
       while True:
-        run(['cmd.exe', '/C', 'rmdir', '/s', '/q', dest])
+        subprocess.check_call(['cmd.exe', '/C', 'rmdir', '/s', '/q', dest])
         if not os.path.exists(dest):
           break
         assert tries >= 0, 'rmdir: too many tries'
-        print 'rmdir sucks, retrying ...'
+        print('rmdir sucks, retrying ...')
         tries -= 1
         time.sleep(0.5)
     else:
@@ -115,7 +116,7 @@ try:
 #{script.replace(/^/gm, '    ')}
 except subprocess.CalledProcessError as e:
   if not SILENT:
-    print >> sys.stderr, 'Command failed [%s]: %r' % (e.returncode, e.cmd)
+    print('Command failed [%s]: %r' % (e.returncode, e.cmd), file=sys.stderr)
     sys.stderr.flush()
   sys.exit(1)
 ";
@@ -201,7 +202,7 @@ exports.systems = (function() {
       scp.call(this, src, dest);
       return dest;
     },
-    catFile: (path) -> this.runPython("print open(path.join(conductance, #{JSON.stringify(path)})).read()"),
+    catFile: (path) -> this.runPython("print(open(path.join(conductance, #{JSON.stringify(path)})).read())"),
   }
 
   var posixBase = commonBase .. merge({
