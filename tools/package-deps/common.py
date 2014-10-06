@@ -2,6 +2,9 @@
 import os,sys, subprocess
 devnull = open(os.devnull, 'w')
 
+ZI = ['0install']
+ZI.append('--refresh')
+
 def dep_url(name):
 	return 'http://gfxmonk.github.io/0downstream/feeds/npm/%s.xml' % (name,)
 
@@ -35,12 +38,8 @@ def gather(tempdir, builddir, name, version):
 	mkdirp(sels_dir)
 	sel_path = path.join(sels_dir, name + '.xml')
 	with open(sel_path, 'w') as s:
-		run(['0install', 'select', '--command', '', '--version', version, '--xml', dep_url(name)], stdout=s)
-	# run(['ls', '-l', sel_path])
-	# run(['cat', sel_path])
-	# run(['0install', 'select', '--xml', '--not-before=0.4.0', '--command', 'gather',
-	# 	'http://gfxmonk.net/dist/0install/obligate.js.xml',])
-	run(['0install', 'run', '--not-before=0.4.0', '--command', 'gather',
+		run(ZI + ['select', '--command', '', '--version', version, '--xml', dep_url(name)], stdout=s)
+	run(ZI + ['run', '--not-before=0.4.0', '--command', 'gather',
 		'http://gfxmonk.net/dist/0install/obligate.js.xml',
 		'--verbose',
 		'--force',

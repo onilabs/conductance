@@ -38,7 +38,7 @@ try:
 		feed = dep_url(name)
 		from StringIO import StringIO
 		try:
-			run(['0install', 'select', '--command', '', '--version', ver, feed], stdout=devnull, stderr=subprocess.STDOUT, stdin=devnull)
+			run(ZI + ['select', '--command', '', '--version', ver, feed], stdout=devnull, stderr=subprocess.STDOUT, stdin=devnull)
 		except subprocess.CalledProcessError as e:
 			print('-- binary failed; running 0compile -- ')
 			compile_needed = True
@@ -49,7 +49,7 @@ try:
 				# XXX this will only work while we have a single compileable dep
 				# depending on pure JS deps. figure out something better if that changes.
 				print('getting compile selections...')
-				run(['0install', 'download', '--source', '--version', ver, feed], stdin=devnull)
+				run(ZI + ['download', '--source', '--version', ver, feed], stdin=devnull)
 			else:
 				# other OSes don't need to predownload anything, so just drop out
 				break
