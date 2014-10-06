@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+	<name>gcc-c++</name>
+	<summary>gcc-c++</summary>
+	<description>gcc-c++</description>
+	<implementation id="/usr/bin" version="3.2">
+		<command name="run" path="g++"/>
+	</implementation>
+</interface>
+

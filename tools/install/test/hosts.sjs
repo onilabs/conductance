@@ -7,6 +7,7 @@ var { lstrip, unindent } = require('sjs:string');
 var { merge } = require('sjs:object');
 
 var PRINT_COMMANDS = false;
+//PRINT_COMMANDS = true;
 
 var run = function(cmd, args, stdin, getOutput) {
   //logging.info("Running: #{cmd} #{shell_quote.quote(args)}");
@@ -181,6 +182,7 @@ exports.run = function(command, args, options) {
   } catch(e) {
     // annotate error with stdout / err info
     e.output = join(output);
+    logging.warn("Command failed: #{command} #{args.join(" ")}");
     throw e;
   } retract {
     childProcess.kill(child, options);
@@ -201,6 +203,9 @@ exports.systems = (function() {
       dest = '/tmp/' + dest;
       scp.call(this, src, dest);
       return dest;
+    },
+    getTempfile: function(src, dest) {
+      sftp.call(this, '/tmp/' + src, dest, 'get');
     },
     catFile: (path) -> this.runPython("print(open(path.join(conductance, #{JSON.stringify(path)})).read())"),
   }
@@ -229,7 +234,10 @@ exports.systems = (function() {
     executableScriptSuffix: '.cmd',
     copyFile: function(src, dest) {
       sftp.call(this, src, "AppData/Local/Temp/" + dest);
-      return "C:/Users/IEUser/AppData/Local/Temp/" + dest;
+      return "C:/Users/#{this.user}/AppData/Local/Temp/" + dest;
+    },
+    getTempfile: function(src, dest) {
+      sftp.call(this, "AppData/Local/Temp/" + src, dest, 'get');
     },
     catFile: function(path) {
       var localFile = "/tmp/catfile-output-#{process.pid}";

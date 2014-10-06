@@ -1,27 +1,30 @@
-import subprocess, tempfile
 #NOTE: this file get interpolated by select.sjs (using supplant),
 # so \{foo} sequences intended for python should be prefixed with a backslash
+
+{common_py}
+
+import tempfile
 
 deps = {versionedDeps}
 xdg_tar = {xdg_data_override_tar}
 TAR=['0install','run','http://gfxmonk.net/dist/0install/bsdtar.xml']
+TMPDIR=tempfile.gettempdir()
+if sys.platform == 'darwin':
+	TAR=['tar']
+	TMPDIR='/tmp' # No funny business, OSX
+
 path = os.path
 os.environ['PATH'] = os.pathsep.join([
 	'/usr/local/bin', # OSX
 	os.environ['PATH']
 ])
-def run(cmd, **k):
-	print(' + ' + ' '.join(cmd))
-	subprocess.check_call(cmd, **k)
-
-def dep_url(name):
-	return 'http://gfxmonk.github.io/0downstream/feeds/npm/%s.xml' % (name,)
-devnull = open(os.devnull, 'w')
 
 tempdir = tempfile.mkdtemp()
 try:
 	if xdg_tar is not None:
-		run(TAR + ['xzvf', xdg_tar, '-C', tempdir])
+		run(TAR + ['xvzf', xdg_tar, '-C', tempdir])
+	else:
+		print("No XDG overrides")
 
 	os.environ['XDG_DATA_DIRS'] = os.pathsep.join([
 		os.path.join(tempdir, {xdg_data_override}),
@@ -35,7 +38,7 @@ try:
 		feed = dep_url(name)
 		from StringIO import StringIO
 		try:
-			run(['0install', 'select', '--version', ver, feed], stdout=devnull, stderr=subprocess.STDOUT, stdin=devnull)
+			run(['0install', 'select', '--command', '', '--version', ver, feed], stdout=devnull, stderr=subprocess.STDOUT, stdin=devnull)
 		except subprocess.CalledProcessError as e:
 			print('-- binary failed; running 0compile -- ')
 			compile_needed = True
@@ -114,22 +117,15 @@ try:
 		run(['0install', 'run', '-v', compile_feed, 'autocompile', feed_path])
 	
 	# ok, now gather all built deps
-	sel_path = path.join(tempdir, 'selections.xml')
-	with open(sel_path, 'w') as s:
-		run(['0install', 'select', '--command', '', '--xml', feed_path], stdout=s)
-	run(['ls', '-l', sel_path])
-	run(['cat', sel_path])
-	out_path = path.join(tempdir,'deps')
-	run(['0install', 'run', '--not-before=0.4.0', 'http://gfxmonk.net/dist/0install/obligate.js.xml',
-		'gather',
-		'--verbose',
-		'--exclude', 'http://gfxmonk.net/dist/0install/npm.xml',
-		'--output', path.join(tempdir, 'deps'),
-		sel_path
-	])
+	builddir = path.join(tempdir, 'dist')
+	for name, ver in deps:
+		gather(tempdir=tempdir, builddir=builddir, name=name, version=ver)
 
-	run(TAR + ['czf', out_path + '.tar.gz', '-C', out_path, sel_path] + os.listdir(out_path))
-	print('TODO: copy back ' + out_path)
+	archive_dest = os.path.join(TMPDIR, {tempName})
+	print("Creating: " + archive_dest)
+	run(TAR + ['czf', archive_dest, '-C', builddir] + os.listdir(builddir))
+	
 finally:
-	#print('HEY I DIDNT DELETE ' + tempdir)
 	rmtree(tempdir)
+
+

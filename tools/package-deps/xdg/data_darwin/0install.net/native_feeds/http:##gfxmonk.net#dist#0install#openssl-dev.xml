@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+	<name>openssl-dev</name>
+	<summary>openssl-dev</summary>
+	<description>openssl-dev</description>
+	<!-- fake, does nothing (openssl is assumed on OSX) -->
+	<implementation id="." version="0">
+	</implementation>
+</interface>
+
+

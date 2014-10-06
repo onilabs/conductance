@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+	<name>bash</name>
+	<summary>bash</summary>
+	<description>bash</description>
+	<implementation id="upstream" version="0.10.32">
+		<command name="run" path="bin/node"/>
+		<archive extract="node-v0.10.32-darwin-x64" href="http://nodejs.org/dist/v0.10.32/node-v0.10.32-darwin-x64.tar.gz" size="5051221"/>
+		<!-- <archive extract="node-v0.10.32-darwin-x64" href="node-v0.10.32-darwin-x64.tar.gz" size="5051221"/> -->
+		<manifest-digest sha256="dfe40cc9665104a4a5b8b37a8d9695e3df61d166ee4b1ad785ede43fb63fdcb7"/>
+	</implementation>
+</interface>
+
+
