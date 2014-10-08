@@ -74,13 +74,13 @@ exports.api = function(system, bundle) {
 					try:
 						run(pathed_cmd + ['-r', path.join(conductance, 'bin')])
 					except subprocess.CalledProcessError as e:
-						print 'Warn: %s' % (e,)
+						print('Warn: %s' % (e,))
 				else:
 					rmtree('/tmp/conductance/bin')
 
 				#{defineConductanceTempFiles}
 				for f in conductanceTempFiles():
-					print f
+					print(f)
 					import time; time.sleep(0.5)
 					os.remove(f)
 			", true);
@@ -96,7 +96,7 @@ exports.api = function(system, bundle) {
 		},
 
 		listDir: function(dir) {
-			return host.runPython("print '\\n'.join(os.listdir(path.join(conductance, \"#{dir}\")))", true).trim().split("\n")
+			return host.runPython("print('\\n'.join(os.listdir(path.join(conductance, \"#{dir}\"))))", true).trim().split("\n")
 				.. seq.filter()
 				.. seq.sort()
 				.. seq.toArray();
@@ -112,7 +112,7 @@ exports.api = function(system, bundle) {
 					bindir = path.join(conductance, "bin")
 					code = subprocess.Popen(pathed_cmd + ["-q", bindir]).wait()
 					assert code in (0,1)
-					print "true" if code == 0 else "false"
+					print("true" if code == 0 else "false")
 				');
 				['true','false'] .. assert.contains(output);
 				return output == 'true';
@@ -125,7 +125,7 @@ exports.api = function(system, bundle) {
 						items = []
 					exists = [file in items for file in ('sjs', 'conductance')]
 					assert all(exists) or (not any(exists)), 'inconsistent install found! %r' % (exists,)
-					print 'true' if all(exists) else 'false'
+					print('true' if all(exists) else 'false')
 				");
 				['true','false'] .. assert.contains(output);
 				return output == 'true';

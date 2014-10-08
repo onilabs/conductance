@@ -152,7 +152,7 @@ hosts.systems .. each {|system|
 		********************************************************/
 		test('host is available') {||
 			// don't bother running futher tests if this one fails
-			host.runPython('print "OK"');
+			host.runPython('print("OK")');
 		}
 
 		test("bundle contains a working nodejs") {||
@@ -613,7 +613,7 @@ hosts.systems .. each {|system|
 							}
 							assert.ok(failed, 'Command succeeded!');
 							assert.ok(output, 'no output');
-							var homePath = host.runPython("print HOME").trim();
+							var homePath = host.runPython("print(HOME)").trim();
 
 							output.split('\n') .. assert.eq([
 								"This installer will REMOVE the existing contents at #{homePath}/.conductance",
@@ -625,7 +625,7 @@ hosts.systems .. each {|system|
 
 					test('overwrites existing directory if the user tells it to') {|s|
 						var output = s.install('y\ny');
-						var homePath = host.runPython("print HOME").trim();
+						var homePath = host.runPython("print(HOME)").trim();
 
 						output .. str.contains("This installer will REMOVE the existing contents at #{homePath}/.conductance\nContinue? [y/N]") .. assert.ok;
 						output .. str.contains("Cancelled.") .. assert.falsy;
@@ -635,7 +635,7 @@ hosts.systems .. each {|system|
 			}.skipIf(system.platform == 'windows', "N/A")
 
 			test("self-extracting .exe") {|s|
-				var homePath = host.runPython("print HOME").trim();
+				var homePath = host.runPython("print(HOME)").trim();
 				var installerPath = url.normalize("../dist/Conductance-#{system.arch}.exe", module.id) .. url.toPath();
 				var mockCmdPath = url.normalize("./fixtures/mock-cmd.exe", module.id) .. url.toPath();
 
@@ -668,7 +668,7 @@ hosts.systems .. each {|system|
 						run([installer], env=child_env)
 						with open(args_file) as f:
 							args = f.read().splitlines()
-						print 'ARGS: ' + repr(args)
+						print('ARGS: ' + repr(args))
 					finally:
 						shutil.rmtree(bindir)
 
