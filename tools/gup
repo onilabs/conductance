@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Gup build tool
-# VERSION: 0.3.0
+# VERSION: 0.4.0
 # Copyright (C) 2013  Tim Cuthbertson, Avery Pennarun
 #
 # This library is free software; you can redistribute it and/or
@@ -108,7 +108,7 @@ def getLogger(*a):
 
 
 ## --- version.py --- ##
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 ## --- error.py --- ##
 UNKNOWN_ERROR_CODE = 1
@@ -133,7 +133,6 @@ class Unbuildable(SafeError):
 import os
 import errno
 import logging
-import shutil
 
 
 def mkdirp(p):
@@ -169,7 +168,7 @@ def try_remove(path):
 			# not supported on a directory") might accidentally be useful.
 			IS_WINDOWS and e.errno == errno.EACCES and os.path.isdir(path)
 		):
-			shutil.rmtree(path)
+			rmtree(path)
 		else:
 			raise
 
@@ -189,6 +188,33 @@ if IS_WINDOWS:
 		os.rename(src, dest)
 else:
 	rename = os.rename
+
+def lisdir(p):
+	# NOTE: racey
+	return os.path.isdir(p) and not os.path.islink(p)
+
+def rmtree(root):
+	"""Like shutil.rmtree, except that we also delete read-only items.
+	From ZeroInstall's support/__init__.py:
+	# Copyright (C) 2009, Thomas Leonard
+	# See the README file for details, or visit http://0install.net.
+	"""
+	import shutil
+	import platform
+	if os.path.isfile(root):
+		os.chmod(root, 0o700)
+		os.remove(root)
+	else:
+		if platform.system() == 'Windows':
+			for main, dirs, files in os.walk(root):
+				for i in files + dirs:
+					os.chmod(os.path.join(main, i), 0o700)
+			os.chmod(root, 0o700)
+		else:
+			for main, dirs, files in os.walk(root):
+				os.chmod(main, 0o700)
+		shutil.rmtree(root)
+
 
 ## --- parallel.py --- ##
 import tempfile
@@ -654,6 +680,16 @@ def _gupfile_default_gup_files(filename):
 def _gupfile_up_path(n):
 	return os.path.sep.join(itertools.repeat('..',n))
 
+def _gupfile_suffix_length(suffix):
+	return len(suffix.split(os.path.sep))
+
+def _gupfile_goes_above(depth, path):
+	parts = path.split(os.path.sep)
+	if len(parts) <= depth: return False
+	parts = parts[:depth+1]
+	return all([part == '..' for part in parts])
+
+
 GUPFILE = 'Gupfile'
 
 class BuildCandidate(object):
@@ -729,11 +765,18 @@ class BuildCandidate(object):
 
 		for script, ruleset in rules:
 			if ruleset.match(match_target):
-				base = os.path.join(target_base, os.path.dirname(script))
 				script_path = os.path.join(os.path.dirname(path), script)
 				if not os.path.exists(script_path):
 					raise SafeError("Build script not found: %s\n     %s(specified in %s)" % (script_path, INDENT, path))
 
+				script = os.path.normpath(script)
+				# if `Gupfile` lives inside a gup/ dir but `script` does not,
+				# we need to drop one `..` component to account for that
+				if self.suffix is not None:
+					if _gupfile_goes_above(_gupfile_suffix_length(self.suffix), script):
+						script = script.split(os.path.sep, 1)[1]
+
+				base = os.path.join(target_base, os.path.dirname(script))
 				return Builder(
 					script_path,
 					os.path.relpath(os.path.join(target_base, self.target), base),
@@ -1019,9 +1062,20 @@ class TargetState(object):
 			with open(self.meta_path('deps2'), 'a') as f:
 				dep.append_to(f)
 
+	def mark_clobbers(self):
+		self.add_dependency(ClobbersTarget())
+
 	def perform_build(self, exe, do_build):
 		assert os.path.exists(exe)
+		def still_needs_build(deps):
+			_state_log.trace("checking if %s still neeeds build after releasing lock" % self.path)
+			return deps is None or (not deps.already_built())
+
 		with self._ensure_dep_lock().write():
+			deps = self.deps()
+			if not still_needs_build(deps):
+				return False
+
 			builder_dep = BuilderDependency(
 				path=os.path.relpath(exe, os.path.dirname(self.path)),
 				checksum=None,
@@ -1033,7 +1087,7 @@ class TargetState(object):
 				Dependencies.init_file(f)
 				builder_dep.append_to(f)
 			try:
-				built = do_build()
+				built = do_build(deps)
 			except:
 				os.remove(temp)
 				raise
@@ -1048,11 +1102,12 @@ class TargetState(object):
 				return built
 
 class Dependencies(object):
-	FORMAT_VERSION = 2
+	FORMAT_VERSION = 3
 	def __init__(self, path, file):
 		self.path = path
 		self.rules = []
 		self.checksum = None
+		self.clobbers = False
 		self.runid = None
 
 		if file is None:
@@ -1075,6 +1130,8 @@ class Dependencies(object):
 				elif isinstance(dep, RunId):
 					assert self.runid is None
 					self.runid = dep
+				elif isinstance(dep, ClobbersTarget):
+					self.clobbers = True
 				else:
 					self.rules.append(dep)
 
@@ -1129,6 +1186,7 @@ class Dependency(object):
 				AlwaysRebuild,
 				Checksum,
 				RunId,
+				ClobbersTarget,
 				BuildTime]:
 			if line.startswith(candidate.tag):
 				cls = candidate
@@ -1312,13 +1370,17 @@ class RunId(Dependency):
 	def is_current(self):
 		return self.value == RUN_ID
 
+class ClobbersTarget(Dependency):
+	tag = 'clobbers:'
+	num_fields = 0
+	fields = []
+
 ## --- builder.py --- ##
 import os
 from os import path
 import errno
 import subprocess
 import logging
-import shutil
 
 _builder_log = getLogger('gup.builder')
 
@@ -1393,9 +1455,9 @@ class Target(object):
 		return 'Target(%r)' % (self.path,)
 
 	def build(self, update):
-		return self.state.perform_build(self.builder.path, lambda: self._perform_build(update))
+		return self.state.perform_build(self.builder.path, lambda deps: self._perform_build(update, deps))
 
-	def _perform_build(self, update):
+	def _perform_build(self, update, deps):
 		'''
 		Assumes locks are held (by state.perform_build)
 		'''
@@ -1418,8 +1480,9 @@ class Target(object):
 
 		target_relative_to_cwd = os.path.relpath(self.path, ROOT_CWD)
 
-
 		output_file = os.path.abspath(self.state.meta_path('out'))
+		try_remove(output_file)
+
 		MOVED = False
 		try:
 			args = [exe_path, output_file, self.builder.target]
@@ -1448,18 +1511,22 @@ class Target(object):
 			target_changed = mtime != new_mtime
 			if target_changed:
 				_builder_log.trace("old_mtime=%r, new_mtime=%r" % (mtime, new_mtime))
-				if not os.path.isdir(self.path):
+				if not lisdir(self.path):
 					# directories often need to be created directly
-					_builder_log.warn("%s modified %s directly" % (exe_path_relative_to_cwd, self.path))
+					self.state.mark_clobbers()
+					expect_clobber = False if deps is None else deps.clobbers
+					if not (update and expect_clobber):
+						_builder_log.warn("%s modified %s directly" % (exe_path_relative_to_cwd, self.path))
 			if ret == 0:
 				if os.path.lexists(output_file):
-					if os.path.isdir(self.path) and not os.path.islink(self.path):
-						_builder_log.trace("calling rmtree() on previous %s", self.path)
-						shutil.rmtree(self.path)
+					if lisdir(self.path):
+						_builder_log.trace("removing previous %s", self.path)
+						try_remove(self.path)
 					rename(output_file, self.path)
 				else:
-					if (not target_changed) and os.path.exists(self.path) and not os.path.isdir(self.path):
-						os.remove(self.path)
+					if (not target_changed) and (not os.path.islink(self.path)):
+						_builder_log.trace("removing old %s", self.path)
+						try_remove(self.path)
 				MOVED = True
 			else:
 				_builder_log.trace("builder exited with status %s" % (ret,))
@@ -1495,6 +1562,9 @@ def _builder_guess_executable(p):
 		bin = _builder_resolve_windows_binary(bin)
 
 	if os.path.isabs(bin) and not os.path.exists(bin):
+		if os.path.basename(bin) == 'env':
+			# special-cased for compatibility
+			return args[1:]
 		raise SafeError("No such interpreter: %s" % (os.path.abspath(bin),))
 
 	args[0] = bin
@@ -1794,7 +1864,6 @@ def _cmd_mark_contents(opts, targets):
 	TargetState(parent_target).add_dependency(checksum)
 
 def _cmd_clean_targets(opts, dests):
-	import shutil
 	if opts.force is None:
 		raise SafeError("Either --force (-f) or --dry-run (-n) must be given")
 
@@ -1816,7 +1885,7 @@ def _cmd_clean_targets(opts, dests):
 				return
 			except OSError:
 				pass
-		shutil.rmtree(path)
+		rmtree(path)
 
 	if len(dests) == 0: dests = ['.']
 	for dest in dests:
