@@ -19,6 +19,9 @@ def mkdirp(p):
 		print("Making: " + p)
 		os.makedirs(p)
 
+def add_xdg_dir(p):
+	os.environ['XDG_DATA_DIRS'] = os.pathsep.join([p, os.environ.get('XDG_DATA_DIRS', '/usr/local/share/:/usr/share/')])
+
 class __LINE__(object):
 	def __repr__(self):
 		try:

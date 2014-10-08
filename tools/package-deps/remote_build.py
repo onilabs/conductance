@@ -19,6 +19,7 @@ os.environ['PATH'] = os.pathsep.join([
 	os.environ['PATH']
 ])
 
+
 tempdir = tempfile.mkdtemp()
 try:
 	if xdg_tar is not None:
@@ -26,10 +27,7 @@ try:
 	else:
 		print("No XDG overrides")
 
-	os.environ['XDG_DATA_DIRS'] = os.pathsep.join([
-		os.path.join(tempdir, {xdg_data_override}),
-		os.environ.get('XDG_DATA_DIRS', '/usr/local/share/:/usr/share/')
-	])
+	add_xdg_dir(os.path.join(tempdir, {xdg_data_override}))
 
 	compile_needed = False
 	# make sure all deps are cached:
@@ -126,6 +124,7 @@ try:
 	run(TAR + ['czf', archive_dest, '-C', builddir] + os.listdir(builddir))
 	
 finally:
+	# print("LEFT dir: " + tempdir)
 	rmtree(tempdir)
 
 

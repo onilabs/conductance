@@ -3,7 +3,7 @@
 var here = @url.normalize('./', module.id) .. @url.toPath();
 var outputs = [
 	['portable', ['nodemon', 'google-oauth-jwt', 'agentkeepalive']],
-	['bootstrap', ['tar']],
+	['bootstrap', ['tar', 'fstream']],
 	// do compiled last
 	['compiled', ['leveldown', 'protobuf']],
 ];
