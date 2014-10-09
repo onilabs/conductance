@@ -1,12 +1,11 @@
 @ = require(['mho:std', 'sjs:nodejs/tempfile']);
 var { @Endpoint } = require('../endpoint');
-var deployLoopback = @env.get('deployLoopback');
-@info("deployLoopback: #{deployLoopback}");
+var deployLoopback = @env.get('deployLoopback', false);
 
 @settings = require('./settings');
 
 exports.version = @env.get('seed-api-version');
-exports.multipleServers = @env.get('multi-deploy-destinations');
+exports.multipleServers = @env.get('multi-deploy-destinations', false);
 if (exports.multipleServers) {
 	exports.servers = @settings.servers;
 	exports.createServer = function(props) {
@@ -142,7 +141,7 @@ exports.getServer = function(serverId, currentUrl) {
 					}
 
 					if (deployLoopback) {
-						block(require('../master/deploy.api').anonymous);
+						block(require('seed:master/deploy.api').anonymous);
 					} else {
 						if (!@ssh) @ssh = require('./ssh');
 						//creds.debug = @info;

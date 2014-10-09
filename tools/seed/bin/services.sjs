@@ -60,6 +60,7 @@ var etcd = exports.etcd = (function() {
 			block();
 		} else {
 			@info("Starting new etcd server");
+			@env.get('production') .. @assert.eq(false);
 			waitfor {
 				@assert.notOk(process.env.ETCD_DATA_DIR, "ETCD_DATA_DIR defined");
 				@assert.notOk(process.env.ETCD_NAME, "ETCD_NAME defined");

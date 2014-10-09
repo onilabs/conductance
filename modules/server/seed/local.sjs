@@ -43,6 +43,8 @@ exports.serve = function(args) {
     process.exit(0);
   }
 
+  @env.set('seed-api-version', exports.apiVersion);
+
   var routes = [
     @route.SystemRoutes(),
     @Route('version', {GET: function(req) {

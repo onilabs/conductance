@@ -15,7 +15,7 @@ exports.wrap = function(transport) {
 }
 
 exports.mandrillTransport = function() {
-	var keys = @env.get('api-keys') .. @get('mandrill');
+	var keys = @env.get('mandrill-api-keys');
 	var smtpTransport = require('nodejs:nodemailer-smtp-transport');
 	var transporter = smtpTransport({
 		service: 'mandrill',

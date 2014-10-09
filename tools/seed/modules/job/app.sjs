@@ -286,7 +286,7 @@ exports.localAppState = (function() {
       // make ssh stateless. XXX is there any risk to disabling host key checking here?
       var sshCmd = 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no';
       if(keyStore) {
-        sshCmd += "  -o IdentityFile=#{@path.join(keyStore, "key-slave-ssh_id")}";
+        sshCmd += "  -o IdentityFile=#{@path.join(keyStore, "key-slave-ssh-id")}";
       }
       var cmd = ['rsync', '-az', '-e', sshCmd, '--chmod=go-w', '--delete',
         codeSource + "/",

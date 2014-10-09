@@ -148,6 +148,10 @@ exports.defaults = function() {
 		if(PROD) throw new Error(msg);
 		return def;
 	};
+	var devDefaultEnvvar = function(name, def, msg) {
+		return devDefault(process.env[name], def, msg || "$#{name} not set");
+	};
+
 	def('production', PROD);
 	def('deployLoopback', false);
 	def('anonymous-access', false);
@@ -219,18 +223,8 @@ exports.defaults = function() {
 	def('port-local', defaultPorts.local);
 
 	def('use-gcd', !!process.env['DATASTORE_DATASET']);
-	//def('gcd-host', -> process.env .. get('DATASTORE_HOST'), true);
-	def('gcd-dataset', -> devDefault(process.env['DATASTORE_DATASET'], 'development', '$DATASTORE_DATASET not set'), true);
+	def('gcd-dataset', -> devDefaultEnvvar('DATASTORE_DATASET', 'development'), true);
 	def('gcd-host', process.env['DATASTORE_HOST'] || (PROD ? null : 'http://localhost:8089'));
-	def('gcd-credentials', function() {
-		var credentialPath = devDefault(process.env['DATASTORE_CREDENTIALS'], null);
-		if (!credentialPath) return {};
-		var creds = @fs.readFile(credentialPath, 'utf-8') .. JSON.parse();
-		if(Array.isArray(creds.key)) {
-			// convert string array into flat string
-			creds.key = creds.key .. @join("\n");
-		}
-	}, true);
 	def('user-storage',
 		-> this.get('use-gcd')
 			? require('seed:master/user-gcd').Create()
@@ -243,11 +237,21 @@ exports.defaults = function() {
 	@assert.ok(@fs.exists(dataDir), "data dir does not exist: #{dataDir}");
 	def('data-root', dataDir);
 
-	def('key-store', -> devDefault(process.env['SEED_KEYS'], null, "$SEED_KEYS not set"), true);
+	def('key-store', -> devDefaultEnvvar('SEED_KEYS', null), true);
 
 	def('api-keys',
-		-> @fs.readFile(@path.join(this.get('key-store') || codeRoot, 'api-keys.json'), 'utf-8') .. JSON.parse,
+		-> @fs.readFile(@path.join(this.get('key-store') || codeRoot, 'key-conductance-apis.json'), 'utf-8') .. JSON.parse,
 		true);
+
+	def('mandrill-api-keys', -> this.get('api-keys') .. @get('mandrill'), true);
+	def('gcd-credentials', function() {
+		var creds = this.get('api-keys') .. @get('gcd');
+		if(Array.isArray(creds.key)) {
+			// convert string array into flat string
+			creds.key = creds.key .. @join("\n");
+		}
+		return creds;
+	}, true);
 
 	def('email-transport', @email.mandrillTransport, true);
 	def('runtime-environ', -> @path.join(this.get('data-root'), 'environ'), true);
