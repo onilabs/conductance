@@ -22,10 +22,11 @@
 
     In addition to the symbols documented below, app-default's `mho:app` module
     exports all the HTML builders provided by
-    [surface/bootstrap/html::].
+    [surface/bootstrap/html::] and [surface/bootstrap/components::]
 
 
   @require mho:surface/bootstrap/html
+  @require mho:surface/bootstrap/components
   @require mho:surface/bootstrap/notice
   @require mho:surface/api-connection
   @require mho:surface

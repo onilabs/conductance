@@ -19,9 +19,18 @@ var { override, merge } = require('sjs:object');
 var { observe } = require('sjs:observable');
 
 /**
-  @summary Surface HTML elements
+  @summary Basic HTML elements
   @desc
-    All of the symbols in this module are also exposed by the [mho:app::] module in various [mho:#features/app-file::] templates (see [mho:surface/doc-template/::] for a list of templates.)
+    This module defines basic HTML building blocks.
+
+    When writing a Conductance client-side app
+    ([mho:#features/app-file::]), you typically don't import this
+    module yourself: Many templates (such as
+    [mho:surface/doc-template/app-plain::]; see
+    [mho:surface/doc-template/::] for a complete list) will expose all
+    of the symbols in this module (either directly or via a specialization module such as [surface/bootstrap/html::])
+    automatically in a dynamically
+    generated [mho:app::] module.
 
     As well as the explicitly document functions below, this module exports a
     constructor function for almost _(see "Clashing names" below)_ every HTML tag in the

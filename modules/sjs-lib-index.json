@@ -494,29 +494,14 @@
         "bootstrap/": {
           "type": "lib",
           "children": {
-            "html": {
+            "components": {
               "type": "module",
               "children": {
-                "Button": {
-                  "type": "function"
-                },
-                "Table": {
-                  "type": "function"
-                },
-                "Input": {
-                  "type": "function"
-                },
-                "TextInput": {
-                  "type": "function"
-                },
-                "TextArea": {
-                  "type": "function"
-                },
-                "Select": {
-                  "type": "function"
-                },
                 "Btn": {
                   "type": "function"
+                },
+                "AvailableIcons": {
+                  "type": "variable"
                 },
                 "Icon": {
                   "type": "function"
@@ -558,7 +543,31 @@
                   "type": "function"
                 }
               },
-              "summary": "Bootstrap HTML module"
+              "summary": "Bootstrap-specific HTML Components"
+            },
+            "html": {
+              "type": "module",
+              "children": {
+                "Button": {
+                  "type": "function"
+                },
+                "Table": {
+                  "type": "function"
+                },
+                "Input": {
+                  "type": "function"
+                },
+                "TextInput": {
+                  "type": "function"
+                },
+                "TextArea": {
+                  "type": "function"
+                },
+                "Select": {
+                  "type": "function"
+                }
+              },
+              "summary": "Basic HTML elements with Bootstrap styling"
             },
             "notice": {
               "type": "module",
@@ -702,7 +711,7 @@
               "type": "function"
             }
           },
-          "summary": "Surface HTML elements"
+          "summary": "Basic HTML elements"
         }
       },
       "summary": "Client-side UI module"
