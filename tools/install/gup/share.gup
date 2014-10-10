@@ -2,3 +2,4 @@
 set -eu
 gup --always
 ls -1 "$2" | gup --contents
+touch "$2" # mark target as generated

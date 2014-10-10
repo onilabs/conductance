@@ -19,7 +19,7 @@
 , "data":
   { "conductance":
     { "id": "0.5.1"
-    , "href": "https://github.com/onilabs/conductance/tarball/6c4cf465f05941642f3b9f759006e79cdd2db3c3"
+    , "href": "https://github.com/onilabs/conductance/tarball/a9505c0c554a1487512e571f13105c2aa0b2b45e"
     , "extract": 1
     , "links":
       { "platform_key": ["platform"]
@@ -49,6 +49,46 @@
         ]
       }
     }
+
+  , "portable-deps":
+    { "id": "1"
+    , "internal": true
+    , "href": "https://onilabs.github.io/conductance-deps/deps/1/portable.tgz"
+    , "links":
+      [ {"src": "agentkeepalive", "dest": "node_modules/"}
+      , {"src": "google-oauth-jwt", "dest": "node_modules/"}
+      , {"src": "nodemon", "dest": "node_modules/"}
+      ]
+    }
+
+  , "binary-deps":
+    { "id": "1"
+    , "internal": true
+    , "href":
+      { "platform_key": ["platform", "arch"]
+      , "linux_x64"  : "https://onilabs.github.io/conductance-deps/deps/1/linux-x64.tgz"
+      , "linux_x86"  : "https://onilabs.github.io/conductance-deps/deps/1/linux-x86.tgz"
+      , "windows_x64": "https://onilabs.github.io/conductance-deps/deps/1/windows-x64.tgz"
+      , "windows_x86": "https://onilabs.github.io/conductance-deps/deps/1/windows-x86.tgz"
+      , "darwin_x64" : "https://onilabs.github.io/conductance-deps/deps/1/darwin-x64.tgz"
+      }
+    , "links":
+      [ {"src": "leveldown", "dest": "node_modules/"}
+      , {"src": "protobuf", "dest": "node_modules/"}
+      ]
+    }
+
+  , "bootstrap-deps":
+    { "id": "1"
+    , "internal": true
+    , "bootstrap": true
+    , "href": "https://onilabs.github.io/conductance-deps/deps/1/bootstrap.tgz"
+    , "links":
+      [ {"src": "tar", "dest": "node_modules/"}
+      , {"src": "fstream", "dest": "node_modules/"}
+      ]
+    }
+
   , "node":
     { "id":"0.10.32"
     , "bootstrap": true
@@ -89,18 +129,6 @@
       , "default": []
       , "windows": [ { "src": "bin", "dest": "share/unzip" } ]
       }
-    }
-
-  , "node-tar":
-    { "id": "0.1.1"
-    , "bootstrap": true
-    , "internal": true
-    , "href": "https://github.com/onilabs/conductance/tarball/39df769dd0c1455db4093a01d5fcfbeaa437abd8"
-    , "extract": 1
-    , "links":
-      [ {"src": "node_modules/tar", "dest": "node_modules/tar"}
-      , {"src": "node_modules/fstream", "dest": "node_modules/fstream"}
-      ]
     }
 
   , "pathed":

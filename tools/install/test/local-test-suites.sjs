@@ -38,6 +38,14 @@ systems .. @each {|system|
 			}
 		}
 
+		@test("conductance binary deps") {||
+			var args = ['exec', 'mho:../test/run.mho'].concat(commonArgs);
+			var testScript = hostUtil._copyFixture('native-deps.sjs');
+			host.runPython("
+				run([script(conductance + '/bin/conductance'), 'exec', #{JSON.stringify(testScript)}])
+			");
+		}
+
 		@test("conductance") {||
 			var args = ['exec', 'mho:../test/run.mho'].concat(commonArgs);
 			host.runPython("
