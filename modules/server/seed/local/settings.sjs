@@ -1,3 +1,4 @@
+/** @nodoc */
 @ = require('sjs:std');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 @crypto = require('nodejs:crypto');

@@ -1,3 +1,4 @@
+/** @nodoc */
 @ = require('mho:std');
 @bridge = require('mho:rpc/bridge');
 

@@ -1,3 +1,4 @@
+/** @nodoc */
 @ = require('mho:std');
 exports.apiVersion = 1;
 exports.defaultPort = 1608;
