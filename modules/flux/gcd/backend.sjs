@@ -37,7 +37,8 @@
      
 */
 
-var { override } = require('sjs:object');
+@ = require('sjs:logging');
+var { override, get } = require('sjs:object');
 var { request } = require('sjs:http');
 var { TokenCache } = require('google-oauth-jwt');
 var { HttpsAgent } = require('agentkeepalive');
@@ -213,14 +214,14 @@ var ContextProto = {
     }
     finally {
       if (!committed) {
-        console.log("rolling back transaction");
+        @verbose("rolling back transaction");
         try {
           context._request(
             'rollback',
             datastore_schema['api.services.datastore.RollbackRequest'].serialize({ transaction: transaction_id}));
         }
         catch (e) {
-          console.log("Silently ignoring rollback error: #{e}");
+          @warn("Silently ignoring rollback error: #{e}");
         }
       }
     }
@@ -253,18 +254,29 @@ function Context(attribs) {
 
     dataset = process.env.DATASTORE_DATASET || attribs.dataset;
     req_base = process.env.DATASTORE_HOST || 'http://localhost:8080';
-    console.log("Google Cloud Datastore backend running from #{req_base}, dataset: #{dataset}");
+    @verbose("Google Cloud Datastore backend running from #{req_base}, dataset: #{dataset}");
 
     req_f = request;
   }
   else {
     // production mode, using the google service
+    var jwt = {
+      email: undefined,
+      key: undefined,
+      keyFile: undefined,
+      delegationEmail: undefined,
+      debug: true
+    } .. override(attribs);
+    // xxx for some reason we always seem to require both of these
+    // scopes, even though the docs say we need *one* of them
+    jwt.scopes = ['https://www.googleapis.com/auth/datastore',
+                  'https://www.googleapis.com/auth/userinfo.email'];
 
-    dataset = attribs.dataset;
+    dataset = attribs .. get('dataset');
     req_f = function(url, opts) {
       // XXX convert this tokens.get() function to use SJS's request()
       waitfor(var err, token) {
-        tokens.get(opts.jwt, resume);
+        tokens.get(jwt, resume);
       }
       if (err) throw new Error("Google Cloud Datastore Authentication Error: #{err}");
       opts.headers.authorization = "Bearer #{token}";
@@ -272,17 +284,6 @@ function Context(attribs) {
       return request(url, opts);
     };
     req_base = 'https://www.googleapis.com/';
-    var jwt = {
-      email: undefined,
-      key: undefined,
-      keyFile: undefined,
-      delegationEmail: undefined,
-//      debug: true
-    } .. override(attribs);
-    // xxx for some reason we always seem to require both of these
-    // scopes, even though the docs say we need *one* of them
-    jwt.scopes = ['https://www.googleapis.com/auth/datastore',
-                  'https://www.googleapis.com/auth/userinfo.email'];
   }
 
   var rv = Object.create(ContextProto);
@@ -304,7 +305,6 @@ function Context(attribs) {
           method: 'POST',
           encoding: null,
           body: req_body,
-          jwt: jwt,
           response: 'raw',
           throwing: false
         }
@@ -320,14 +320,14 @@ function Context(attribs) {
       if (response.statusCode !== 200) {
 
         if (response.statusCode == 0)
-          console.log("google-cloud-datastore backend: #{response.error}"); 
+          @info("google-cloud-datastore backend: #{response.error}"); 
 
         // XXX 409 is 'too much contention' -> is it ok to retry?
         if ((response.statusCode >= 500 || 
              response.statusCode == 409 ||
              response.statusCode == 0) && 
             retries < max_retries) {
-          console.log("google-cloud-datastore backend #{response.statusCode}; retrying");
+          @info("google-cloud-datastore backend #{response.statusCode}; retrying");
           // xxx should we have some backoff?
           ++retries;
           continue;
