@@ -260,8 +260,13 @@ if (require.main === module) {
 
         var proc = @childProcess.launch('journalctl', ['-f','--lines=0', '--output=json'], {'stdio':['ignore','pipe', process.stderr]});
         waitfor {
-          proc .. @childProcess.wait();
-        } and {
+          try {
+            proc .. @childProcess.wait();
+            throw new Error("journalctl exited");
+          } retract {
+            proc .. @childProcess.kill();
+          }
+        } or {
           try {
             waitfor {
               proc.stdout .. lines .. @skip(1) .. @transform(JSON.parse) .. @filter(log -> log.SYSLOG_IDENTIFIER==unitName) .. @each {|line|
@@ -284,10 +289,6 @@ if (require.main === module) {
           } catch(e) {
             @warn("Error: #{String(e)}");
             throw e;
-          } finally {
-            // terminate journalctl
-            @info("killing journalctl pid #{proc.pid}");
-            proc .. @childProcess.kill({wait:false});
           }
         }
       } finally {
