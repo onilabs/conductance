@@ -245,7 +245,8 @@ exports.defaults = function() {
 
 	def('mandrill-api-keys', -> this.get('api-keys') .. @get('mandrill'), true);
 	def('gcd-credentials', function() {
-		var creds = this.get('api-keys') .. @get('gcd');
+		var creds = this.get('api-keys').gcd .. devDefault(null, "gcd credentials not found");
+		if (!creds) return creds;
 		if(Array.isArray(creds.key)) {
 			// convert string array into flat string
 			creds.key = creds.key .. @join("\n");
