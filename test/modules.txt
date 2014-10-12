@@ -1,6 +1,7 @@
 unit/server/formats-tests.sjs
 unit/server/route-tests.sjs
 unit/server/systemd-tests.sjs
+unit/surface/bootstrap-tests.sjs
 unit/surface/css-tests.sjs
 unit/surface/dynamic-tests.sjs
 unit/surface/static-tests.sjs

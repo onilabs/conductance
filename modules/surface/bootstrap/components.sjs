@@ -27,8 +27,9 @@
     of the symbols in this module automatically in a dynamically
     generated [mho:app::] module.
 */
+var base_html = require('../html');
 
-// xxx helper that's also in ../html.sjs 
+// xxx helper that's also in ../html.sjs
 // map each value of a stream of input if it is an Observable / Stream, else
 // just `map` them.
 function _map(items, fn) {

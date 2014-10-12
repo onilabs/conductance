@@ -130,3 +130,5 @@ exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
 exports.Select = wrapWithClass(base_html.Select, 'form-control');
 
 
+// XXX remove
+exports .. @extend(require('./components'));
