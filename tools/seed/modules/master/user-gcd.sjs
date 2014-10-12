@@ -33,11 +33,18 @@ exports.Create = function(appName) {
 		},
 	};
 
+	var credentials = @env.get('gcd-credentials');
+	if (credentials) {
+		credentials = credentials .. @clone();
+	} else {
+		credentials = {
+			devel: true,
+		};
+	}
+	credentials.dataset = @env.get('gcd-dataset');
+
 	var db = @gcd.GoogleCloudDatastore({
-		context: @env.get('gcd-credentials') .. @merge({
-			devel: !@env.get('production'),
-			dataset: @env.get('gcd-dataset'),
-		}),
+		context: credentials,
 		schemas: {
 			user: userSchema,
 		}

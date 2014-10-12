@@ -105,7 +105,7 @@ var gcd = exports.gcd = (function() {
 		} else {
 			@info("Starting new gcd server");
 			waitfor {
-				var bin = (@url.normalize('../flux/bin/gcd', module.id) .. @url.toPath);
+				var bin = (@url.normalize('../tools/gcd/dev_server', module.id) .. @url.toPath);
 				var data_path = @path.join(@env.get('data-root'), 'gcd');
 				var url = @url.parse(host);
 				@childProcess.run(bin, ['start', "--port=#{url.port}", data_path], {'stdio':'inherit', detached: true});
