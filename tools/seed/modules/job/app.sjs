@@ -324,7 +324,7 @@ exports.localAppState = (function() {
           "docker",
           "run",
           "--rm=true",
-          "--publish", "8080",
+          "--publish", "7075",
           "--publish", "4043",
           "--name", machineName,
           "--hostname", machineName,
@@ -472,7 +472,7 @@ exports.localAppState = (function() {
 // for an app (id, code, endpoint, start / stop, etc).
 exports.masterAppState = (function() {
   var apps = {};
-  var publicUrlBase = @env.get('publicAddress')('proxy', 'proxy-http') .. @url.parse();
+  var publicUrlBase = @env.get('publicAddress')('proxy', 'http') .. @url.parse();
 
   var App = function(user, id) {
     @assert.string(id, 'appId');

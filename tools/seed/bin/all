@@ -14,10 +14,6 @@ require('./services').withServices {||
 	waitfor {
 		require('mho:server/seed/local').serve(@argv().concat(['--master', 'http://localhost:7071']));
 	} or {
-		run('master.mho');
-	} or {
-		run('slave.mho');
-	} or {
-		run('proxy.mho');
+		run('config.mho', ['master','proxy','slave']);
 	}
 }

@@ -1,5 +1,0 @@
-#!/bin/bash
-set -eu
-here="$(dirname "$0")"
-cd "$here/.."
-exec conductance serve master.mho "$@"

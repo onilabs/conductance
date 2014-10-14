@@ -3,6 +3,7 @@ var env = require('mho:env');
 @etcd = require('./job/etcd');
 @email = require('seed:auth/email');
 @server = require('mho:server');
+var PROD = process.env.NODE_ENV === 'production';
 
 function initLogLevel() {
 	if (process.env['SEED_LOG_LEVEL']) {
@@ -27,10 +28,11 @@ var portFromEnv = function(name, def, xform) {
 
 
 var defaultPorts = exports.defaultPorts = {
+	http: portFromEnv('SEED_HTTP_PORT', PROD ? 80 : 8080),
+	https: portFromEnv('SEED_HTTPS_PORT', PROD ? 443 : 4043),
+
 	local: seedLocal.defaultPort,
 	master: portFromEnv('SEED_MASTER_PORT', 7071),
-	proxyHttp: portFromEnv('SEED_PROXY_PORT', 8080),
-	proxyHttps: portFromEnv('SEED_PROXY_PORT_HTTPS', 4043),
 	slave: portFromEnv('SEED_SLAVE_PORT', 7072),
 };
 
@@ -46,50 +48,8 @@ var def = function(key,val, lazy) {
 	}
 }
 
-exports.parse = function(args, options) {
-	var parser = require('sjs:dashdash').createParser({
-		options: options.concat([
-			{
-				names: ['host'],
-				type: 'string',
-				help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
-				'default': 'localhost',
-			},
-			{
-				names: ['help', 'h'],
-				type: 'bool',
-			},
-		]),
-	});
 
-	try {
-		var opts = parser.parse(args);
-	} catch(e) {
-		console.error('Error: ', e.message);
-		process.exit(1);
-	}
-
-	if (opts.help) {
-		console.log("options:\n");
-		console.log(parser.help({includeEnv:true}));
-		process.exit(0);
-	}
-
-	var host;
-	if (env.has('listen-iface')) {
-		// already set (e.g multiple servers in one process); ignore opts.host
-		host = env.get('listen-iface');
-	} else {
-		host = opts.host == 'any' ? null : opts.host;
-		env.set('listen-iface', host);
-	}
-	opts.Port = function(num) {
-		if(arguments.length > 1) return @server.Port.apply(null, arguments);
-		return @server.Port(num, host);
-	};
-
-	exports.defaults();
-
+exports.installSignalHandlers = function() {
 	// when we get sigusr2, adopt envvars found in $SEED_DATA/envvars
 	var ENV_ORIG = process.env .. @clone();
 	var MODIFIED = {};
@@ -136,13 +96,10 @@ exports.parse = function(args, options) {
 			@logging.info("Error adopting new environ: #{e}");
 		}
 	});
-
-	return opts;
 };
 
 exports.defaults = function() {
 	def('seed-api-version', seedLocal.apiVersion);
-	var PROD = process.env.NODE_ENV === 'production';
 	var devDefault = function(obj, def, msg) {
 		if(obj) return obj;
 		if(PROD) throw new Error(msg);
@@ -155,6 +112,7 @@ exports.defaults = function() {
 	def('production', PROD);
 	def('deployLoopback', false);
 	def('anonymous-access', false);
+	def('use-vhost', process.env['SEED_VHOST'] == '1');
 	def('cors', function() {
 		// if we've disabled anonymous-access, then all our APIs
 		// are protected by explicit authentication, so leave
@@ -176,14 +134,18 @@ exports.defaults = function() {
 	def('host-master', process.env['SEED_MASTER_HOST'] || selfHost);
 	def('host-local', 'localhost');
 
-	def('publicAddress', function(server, service, proto) {
-		if(arguments.length === 1) {
-			service = server;
-			server = 'self'
+	def('publicAddress', function(service, proto) {
+		proto = proto || env.get('default-proto', 'http');
+		var origin = env.get("host-#{service}", env.get("host-self"));
+		var port;
+		if (env.get('use-vhost') || service === 'proxy') {
+			// use the vhost address
+			port = defaultPorts .. @get(proto);
+		} else {
+			// we probably don't have hosts set up, so use the internal service port
+			port = env.get("port-#{service}");
 		}
-		var port = env.get("port-#{service}");
-		var host = env.get("host-#{server}");
-		return "#{proto || "http"}://#{host}:#{port}/"
+		return "#{proto}://#{origin}:#{port}/"
 	});
 
 	var etcdAddr = (process.env['ETCD_ADDR'] || 'localhost:4001').split(':');
@@ -213,11 +175,9 @@ exports.defaults = function() {
 		return new @etcd.Etcd(host, port, sslOpts);
 	}, true);
 
-	// ports which proxy server should run on
-	def('port-proxy-http', defaultPorts.proxyHttp);
-	def('port-proxy-https', defaultPorts.proxyHttps);
-
-	// master & slave conductance API ports
+	// exposed ports
+	def('port-http', defaultPorts.http);
+	def('port-https', defaultPorts.https);
 	def('port-master', defaultPorts.master);
 	def('port-slave', defaultPorts.slave);
 	def('port-local', defaultPorts.local);

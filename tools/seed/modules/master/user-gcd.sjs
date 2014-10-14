@@ -41,6 +41,9 @@ exports.Create = function(appName) {
 			devel: true,
 		};
 	}
+	if (credentials.dataset) {
+		@env.get('gcd-dataset') .. @assert.eq(credentials.dataset);
+	}
 	credentials.dataset = @env.get('gcd-dataset');
 
 	var db = @gcd.GoogleCloudDatastore({

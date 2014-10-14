@@ -1,0 +1,420 @@
+#!/usr/bin/env conductance
+require('./modules/hub');
+@ = require(['mho:std', 'seed:util']);
+@etcd = require('seed:job/etcd');
+@stream = require('sjs:nodejs/stream');
+var root = @url.normalize('./', module.id) .. @url.toPath;
+
+var staticRoute = @route.StaticDirectory(/static/, @path.join(root, 'static'));
+
+var commonRouteOptions = function(route) {
+  route = route .. @route.SetHeaders({
+    "Cache-control": "no-cache",
+    "Expires": "-1",
+  });
+
+  if (@env.get('cors')) {
+    //console.warn("Allowing all CORS requests");
+    route = route .. @route.AllowCORS();
+  } else {
+    var corsOrigins = @env.get('cors-origins');
+    if (corsOrigins.length > 0) {
+      corsOrigins = corsOrigins .. @map(o -> o .. @rstrip('/'));
+      console.warn("Allowing CORS requests from: #{corsOrigins .. @join(",")}");
+      route = route .. @route.AllowCORS(host -> corsOrigins .. @hasElem(host));
+    }
+  }
+
+  if (@env.get('production') === false) {
+    // show stacktraces
+    route = route .. @route.DeveloperMode();
+  }
+  return route;
+};
+
+var runAll = function(servers, opts) {
+  var external = {};
+  var internal = {};
+  var jobs = [];
+  var listenHost = opts.host;
+  var Port = (p) -> @Port(p, listenHost);
+  var PROD = @env.get('production');
+
+  var defaultProto;
+  switch(opts.ssl) {
+    case true: defaultProto = 'https'; break;
+    case false: defaultProto = 'http'; break;
+    default: defaultProto = PROD ? 'https' : 'http'; break;
+  }
+  @env.set('default-proto', defaultProto);
+
+  external['http'] = {
+    address: Port(@env.get('port-http')),
+    routes: [],
+  };
+
+  external['https'] = {
+    address: Port(@env.get('port-https')),
+    routes: [],
+  };
+
+  servers .. @each {|server|
+    // add vhosts to main public interface
+    var addExternal = function(proto, def) {
+      if(!def) return;
+      external[proto].routes.push(@Host(def.externalHost, def.routes));
+    };
+    
+    // also add an internal port which is used internally, and for development
+    var addInternal = function(proto, def) {
+      if (!def) return;
+      var {internalPort, routes} = def;
+      if(!internalPort) return;
+      internal[internalPort] .. @assert.eq(undefined, "port #{internalPort} used twice");
+      internal[internalPort] = {
+        address: Port(internalPort),
+        routes: routes,
+      };
+    };
+
+    ;['http','https'].. @each {|proto|
+      addExternal(proto, server[proto]);
+      addInternal(defaultProto, server[proto]);
+    }
+    addExternal(defaultProto, server['default']);
+    addInternal(defaultProto, server['default']);
+
+    // strata to run in parallel with server
+    if(server.jobs) {
+      jobs = jobs.concat(server.jobs);
+    }
+  }
+
+  waitfor {
+    if(jobs.length > 0) @waitforFirst(jobs);
+    else hold();
+  } or {
+    external .. @propertyPairs
+      .. @sortBy([port, def] -> port)
+      .. @concat(internal .. @propertyPairs .. @sortBy([port, def] -> port))
+      .. @map([port, def] -> def)
+      .. @server.run();
+  }
+};
+
+var COMPONENTS = {};
+
+exports.serve = function(args) {
+  var env = require('seed:env');
+  var opts = [
+    {
+      names: ['anonymous'],
+      type: 'bool',
+      help: 'allow full access to everyone (use only in local / trusted environments)',
+      'default': false,
+    },
+    {
+      names: ['ssl'],
+      type: 'bool',
+      help: 'use https (default: true when $NODE_ENV=production)',
+      'default': false,
+    },
+    {
+      names: ['no-ssl'],
+      type: 'bool',
+      help: 'use http by default',
+      'default': null,
+    },
+    {
+      names: ['use-existing'],
+      type: 'bool',
+      help: 'just exit successfully if there\'s already a server running',
+      'default': false,
+    },
+    {
+      name: 'multiple-dests',
+      type: 'bool',
+      help: 'allow multiple deploy destinations (advanced use only)',
+      'default': false,
+    },
+    {
+      name: 'slave-name',
+      type: 'string',
+      help: 'override $hostname for slave component',
+    },
+    {
+      name: 'num-slaves',
+      type: 'number',
+      help: 'run multiple slaves (only useful for testing)',
+    },
+    {
+      names: ['host'],
+      type: 'string',
+      help: 'serve on address (default: "localhost". Use "any" to serve on any address")',
+      'default': 'localhost',
+    },
+    {
+      names: ['help', 'h'],
+      type: 'bool',
+    },
+  ];
+
+  var parser = require('sjs:dashdash').createParser({ options: opts });
+
+  try {
+    var opts = parser.parse(args);
+  } catch(e) {
+    console.error('Error: ', e.message);
+    process.exit(1);
+  }
+
+  if (opts.help || opts._args.length == 0) {
+    console.warn("Usage: config.mho [OPTIONS] <component> [<component> ...]:\n");
+    console.warn("COMPONENTS: #{COMPONENTS .. @ownKeys .. @sort .. @join(", ")}\n");
+    console.warn("OPTIONS:\n");
+    console.warn(parser.help({includeEnv:true}));
+    process.exit(opts.help ? 0 : 1);
+  }
+
+  env.defaults();
+
+  // no_ssl exists only to disable `ssl`
+  if(opts.no_ssl) opts.ssl = false;
+  opts.host = opts.host == 'any' ? null : opts.host;
+
+  @env.set('anonymous-access', opts.anonymous);
+  @env.set('multi-deploy-destinations', opts.multiple_dests);
+
+  var serviceNames = opts._args;
+  if (serviceNames.length == 0) {
+
+  }
+  env.defaults();
+  env.installSignalHandlers();
+
+  var serverDefs = opts._args .. @map(key -> (COMPONENTS .. @get(key))(opts));
+  runAll(serverDefs, opts);
+};
+
+
+COMPONENTS.master = function(opts) {
+  var verification = require('seed:master/verification');
+  var port = @env.get('port-master');
+
+  try {
+    require('seed:master/state').acquire();
+  } catch(e) {
+    if (opts.use_existing !== true) throw e;
+    @info("Couldn't acquire lockfile - checking for an existing server on port #{port}");
+    var serverInfo = runningServerInfo(port);
+    if (serverInfo) {
+      console.warn("Server already running on port #{port}:", serverInfo);
+      process.exit(0);
+      return;
+    }
+    throw e;
+  }
+
+  // discard operations from previous master
+  var etcd = @env.get('etcd');
+  @etcd.tryOp( -> etcd.del('app/op/', {recursive:true}));
+
+  return {
+    jobs: [
+      -> require('seed:job/master').main(etcd, {
+        //balanceTime: 5,
+        balanceTime: 10 * 60,
+      }),
+    ],
+    'default': {
+      internalPort: @env.get('port-master'),
+      externalHost: @env.get('host-master'),
+      routes: [
+        @route.SystemRoutes(),
+        
+        // add /doc route in development node
+        @env.get('production') === false ? @route.DocumentationBrowser("doc", []) : [],
+
+        staticRoute,
+
+        @Route(verification.verifyRoute, {GET: verification.verifyHandler}),
+
+        // override modules/master to be executable
+        @route.ExecutableDirectory('master', @url.normalize('./modules/master', module.id) .. @url.toPath),
+
+        // and present the rest of modules as code-only (not executable)
+        @route.CodeDirectory('modules', @url.normalize('./modules', module.id) .. @url.toPath),
+
+        // serve /ui/* at root
+        @route.ExecutableDirectory(@url.normalize('./modules/ui', module.id) .. @url.toPath),
+
+      ] .. commonRouteOptions(),
+    }
+  };
+};
+
+COMPONENTS.proxy = function() {
+  var proxies = {};
+  var hostSuffix = '.' + @env.get('host-self');
+  var nodeHttp = require('nodejs:http');
+  var proxyAgent = new nodeHttp.Agent();
+  proxyAgent.maxSockets = 2048;
+  var getSubdomain = function(req) {
+    return req.url.host .. @removeTrailing(hostSuffix);
+  };
+  if (@env.get('production') === false) {
+    getSubdomain = function(orig) {
+      return function(req) {
+        // add hack for localhost, so we don't have to set up dnsmasq for testing
+        if (req.url.host === 'localhost') {
+          var [_, leading, trailing] = req.url.path .. @split('/', 3);
+          req.url.path = '/' + trailing;
+          return leading;
+        }
+        return orig.apply(this, arguments);
+      };
+    }(getSubdomain);
+  };
+
+  var proxyRoute = function(proto, publicPort) {
+    publicPort = String(publicPort);
+    return @Route(/^/, {'*': function(req) {
+      //console.log(req);
+      var destRoute = proxies[publicPort];
+      //console.log(JSON.stringify(proxies));
+      @debug("destRoute[#{publicPort}]: ", destRoute);
+      if (destRoute) {
+        var subdomain = getSubdomain(req);
+        @debug("proxying subdomain: #{subdomain}");
+        destRoute = destRoute[subdomain];
+        //@info("destRoute: ", destRoute);
+        if (destRoute) {
+          var [destHost, destPort] = destRoute;
+          var dest = "#{proto}://#{destHost}:#{destPort}#{req.url.path}";
+          if (req.url.query) dest += "?#{req.url.query}";
+          var opts = {
+            method: req.request.method,
+            response: 'raw',
+            body: req.body,
+            agent: proxyAgent,
+            throwing: false,
+          };
+          //@info("PROXY -> #{dest}");
+          var response = @http.request(dest, opts);
+          //@info(response.statusCode);
+
+          req.response.writeHead(response.statusCode, response.headers);
+          response .. @stream.pump(req.response);
+          req.response.end();
+          return;
+        }
+      }
+      throw @NotFound();
+    }});
+  };
+
+  var job = function() {
+    var etcd = @env.get('etcd');
+    var keyPrefix = @etcd.app_port_mappings(null);
+
+    var handle = function(change) {
+      //@info("CHANGE:", change);
+      var action = change.action || 'set';
+      if (change.node === null) return;
+      node = change.node || change;
+      var getKey = -> node.key .. @removeLeading(keyPrefix);
+
+      switch(action) {
+        case 'get':
+        case 'set':
+          // initial "node" is actually a bunch of nodes, so recursively handle those:
+          if (node .. @hasOwn('nodes')) {
+            node.nodes .. @each(handle);
+            return;
+          }
+          if (node.dir) return;
+          var key = getKey();
+          var endpointKey = @etcd.app_endpoint(key);
+          var endpointExists = @etcd.tryOp(
+            -> etcd.get(endpointKey),
+            [@etcd.err.KEY_NOT_FOUND]
+          );
+          if(!endpointExists) {
+            @info("Dropping dead proxy route: #{key}");
+            @etcd.tryOp(-> etcd.compareAndDelete(node.key, node.value, {prevIndex: node .. @get('modifiedIndex')}));
+            return;
+          }
+          var mappings = node.value .. @split(',');
+          var [pubHost, internalHost] = mappings.shift().split(':');
+          mappings = mappings .. @each {|mapping|
+            var [pubPort, internalPort] = mapping.split(':');
+            @info("will proxy #{pubHost} port #{pubPort} to port #{internalPort} on host #{internalHost}");
+            if (!proxies .. @hasOwn(pubPort)) {
+              proxies[pubPort] = {};
+            }
+            proxies[pubPort][pubHost] = [internalHost, internalPort];
+          }
+          break;
+        
+        case "delete":
+        case "compareAndDelete":
+          var key = getKey();
+          @info("Deleting routes for #{key}");
+          proxies .. @ownValues .. @each {|apps|
+            delete apps[key];
+          }
+          break;
+
+        default:
+          @info("ignoring proxy change type #{action}");
+      }
+    };
+
+    etcd .. @etcd.changes(keyPrefix, {recursive:true, initial:true}) .. @each(handle);
+  };
+
+  var externalHost = new RegExp("[^.]+\\.[^.]+\\.#{@regexp.escape(@env.get('host-proxy'))}$");
+  return {
+    http: {
+      externalHost: externalHost,
+      routes: [proxyRoute('http', 7075)],
+    },
+    https: {
+      externalHost: externalHost,
+      routes: [proxyRoute('http', 4043)],
+    },
+    jobs: [job],
+  };
+};
+
+
+COMPONENTS.slave = function(opts) {
+  var slave = require('seed:job/slave');
+  var run_slave = function(id, singleton) {
+    slave.main(@env.get('etcd'), id, singleton);
+  };
+  var os = require('nodejs:os');
+
+  var jobs = [ -> run_slave(opts.slave_name || os.hostname(), true) ];
+  if (opts.num_slaves) {
+    jobs = @integers(1, opts.num_slaves)
+      .. @map(i -> function() {
+        run_slave("#{opts.slave_name || @os.hostname()}-#{i}", false);
+      });
+  }
+  return {
+    'default': {
+      internalPort: @env.get('port-slave'),
+      externalHost: @env.get('host-self'),
+      routes: [
+        @route.SystemRoutes(),
+        @route.ExecutableDirectory('', @url.normalize('./modules/slave', module.id) .. @url.toPath),
+      ] .. commonRouteOptions(),
+    },
+    jobs: jobs,
+  };
+};
+
+if (require.main === module) {
+  exports.serve(@sys.argv());
+}
