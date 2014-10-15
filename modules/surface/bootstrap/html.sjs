@@ -12,28 +12,11 @@
 @ = require(['sjs:object', 'sjs:sequence', '../../surface', 'sjs:quasi']);
 
 /**
-  @summary Basic HTML elements with Bootstrap styling
-  @desc
-    This module defines basic HTML building blocks for documents that
-    make use of the [Twitter Bootstrap](http://getbootstrap.com) CSS
-    library that is built into Conductance.
-
-    It exposes all of the symbols that are defined in the [../html::]
-    module, but overrides styles where appropriate (e.g. the
-    [::Button] element exposed by this module has the Bootstrap style
-    classes `btn` and `btn-default` defined, whereas the
-    [../html::Button] version does not). Only those symbols that have such
-    custom styles are explicitly documented here. For the full list of symbols
-    see the [../html::] module.
-
-    When writing a Conductance client-side app
-    ([mho:#features/app-file::]), you typically don't import this
-    module yourself: Boostrap-enabled templates (such as
-    [mho:surface/doc-template/app-default::]; see
-    [mho:surface/doc-template/::] for a complete list) will expose all
-    of the symbols in this module automatically in a dynamically
-    generated [mho:app::] module.
+  @nodoc
+  @noindex
+  (documented as mho:surface/bootstrap)
 */
+
 
 //----------------------------------------------------------------------
 // BASIC HTML ELEMENTS, SPECIALIZED WITH BS STYLES
@@ -97,7 +80,7 @@ exports.Input = wrapWithClass(base_html.Input, 'form-control');
 
 /**
   @function TextInput
-  @summary Bootstrap-styled [../html::TextInput] (with class "form-control")
+  @summary Bootstrap-styled [surface/html::TextInput] (with class "form-control")
   @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
   @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
   @return {surface::Element}
@@ -124,11 +107,8 @@ exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
   @function Select
   @param {Object} [settings]
   @param {optional Object} [attribs]
-  @summary Bootstrap-styled [../html::Select] (with class "form-control")
+  @summary Bootstrap-styled [surface/html::Select] (with class "form-control")
   @return {surface::Element}
 */
 exports.Select = wrapWithClass(base_html.Select, 'form-control');
 
-
-// XXX remove
-exports .. @extend(require('./components'));

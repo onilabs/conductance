@@ -1,2 +1,4 @@
 #!bash
-gup -u bootstrap/all
+gup -u \
+  bootstrap.sjs \
+  bootstrap/all

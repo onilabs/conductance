@@ -1,4 +1,4 @@
-@ = require(['mho:std','mho:surface/bootstrap/html']);
+@ = require(['mho:std','mho:surface/bootstrap']);
 var frag = require('mho:surface/doc-fragment');
 
 exports.globalCss = @GlobalCSS("
@@ -108,7 +108,7 @@ var docTemplate = function(data, settings) {
         ||
 
         exports = module.exports = require([
-          'mho:surface/bootstrap/html',
+          'mho:surface/bootstrap',
           { id:'mho:surface/api-connection', include: ['withAPI'] },
           { id:'mho:surface/bootstrap/notice', include: ['Notice'] }
         ]);

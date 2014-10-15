@@ -1,4 +1,4 @@
-@ = require(['sjs:std', 'mho:surface', 'mho:surface/bootstrap/html']);
+@ = require(['sjs:std', 'mho:surface', 'mho:surface/bootstrap']);
 
 var ESCAPE = 27;
 

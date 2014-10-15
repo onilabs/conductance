@@ -21,12 +21,10 @@
     ### Symbols exported in mho:app
 
     In addition to the symbols documented below, app-default's `mho:app` module
-    exports all the HTML builders provided by
-    [surface/bootstrap/html::] and [surface/bootstrap/components::]
+    exports all the HTML building blocks provided by [surface/bootstrap::].
 
 
-  @require mho:surface/bootstrap/html
-  @require mho:surface/bootstrap/components
+  @require mho:surface/bootstrap
   @require mho:surface/bootstrap/notice
   @require mho:surface/api-connection
   @require mho:surface
@@ -241,7 +239,7 @@ exports.Document = function(data, settings) {
 
         waitfor {
           exports = module.exports = require([
-                                    'mho:surface/bootstrap/html',
+                                    'mho:surface/bootstrap',
                                     { id:'mho:surface/api-connection',
                                       include: ['withAPI']
                                     },

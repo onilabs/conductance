@@ -494,81 +494,6 @@
         "bootstrap/": {
           "type": "lib",
           "children": {
-            "components": {
-              "type": "module",
-              "children": {
-                "Btn": {
-                  "type": "function"
-                },
-                "AvailableIcons": {
-                  "type": "variable"
-                },
-                "Icon": {
-                  "type": "function"
-                },
-                "Row": {
-                  "type": "function"
-                },
-                "Col": {
-                  "type": "function"
-                },
-                "Container": {
-                  "type": "function"
-                },
-                "Lead": {
-                  "type": "function"
-                },
-                "ListGroup": {
-                  "type": "function"
-                },
-                "ListGroupItem": {
-                  "type": "function"
-                },
-                "PageHeader": {
-                  "type": "function"
-                },
-                "Panel": {
-                  "type": "function"
-                },
-                "PanelBody": {
-                  "type": "function"
-                },
-                "PanelHeading": {
-                  "type": "function"
-                },
-                "PanelTitle": {
-                  "type": "function"
-                },
-                "doModal": {
-                  "type": "function"
-                }
-              },
-              "summary": "Bootstrap-specific HTML Components"
-            },
-            "html": {
-              "type": "module",
-              "children": {
-                "Button": {
-                  "type": "function"
-                },
-                "Table": {
-                  "type": "function"
-                },
-                "Input": {
-                  "type": "function"
-                },
-                "TextInput": {
-                  "type": "function"
-                },
-                "TextArea": {
-                  "type": "function"
-                },
-                "Select": {
-                  "type": "function"
-                }
-              },
-              "summary": "Basic HTML elements with Bootstrap styling"
-            },
             "notice": {
               "type": "module",
               "children": {
@@ -580,6 +505,75 @@
             }
           },
           "summary": "Modules for bootstrap-enabled documents"
+        },
+        "bootstrap": {
+          "type": "module",
+          "children": {
+            "Button": {
+              "type": "function"
+            },
+            "Table": {
+              "type": "function"
+            },
+            "Input": {
+              "type": "function"
+            },
+            "TextInput": {
+              "type": "function"
+            },
+            "TextArea": {
+              "type": "function"
+            },
+            "Select": {
+              "type": "function"
+            },
+            "Btn": {
+              "type": "function"
+            },
+            "AvailableIcons": {
+              "type": "variable"
+            },
+            "Icon": {
+              "type": "function"
+            },
+            "Row": {
+              "type": "function"
+            },
+            "Col": {
+              "type": "function"
+            },
+            "Container": {
+              "type": "function"
+            },
+            "Lead": {
+              "type": "function"
+            },
+            "ListGroup": {
+              "type": "function"
+            },
+            "ListGroupItem": {
+              "type": "function"
+            },
+            "PageHeader": {
+              "type": "function"
+            },
+            "Panel": {
+              "type": "function"
+            },
+            "PanelBody": {
+              "type": "function"
+            },
+            "PanelHeading": {
+              "type": "function"
+            },
+            "PanelTitle": {
+              "type": "function"
+            },
+            "doModal": {
+              "type": "function"
+            }
+          },
+          "summary": "Bootstrap UI building blocks"
         },
         "doc-fragment": {
           "type": "module",

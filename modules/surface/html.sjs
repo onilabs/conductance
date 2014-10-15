@@ -28,7 +28,7 @@ var { observe } = require('sjs:observable');
     module yourself: Many templates (such as
     [mho:surface/doc-template/app-plain::]; see
     [mho:surface/doc-template/::] for a complete list) will expose all
-    of the symbols in this module (either directly or via a specialization module such as [surface/bootstrap/html::])
+    of the symbols in this module (either directly or via a framework-specific UI module such as [surface/bootstrap::])
     automatically in a dynamically
     generated [mho:app::] module.
 

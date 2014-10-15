@@ -12,20 +12,9 @@
 @ = require(['sjs:object', 'sjs:sequence', '../../surface', 'sjs:quasi']);
 
 /**
-  @summary Bootstrap-specific HTML Components
-  @desc
-    This module defines Bootstrap-specific building blocks for
-    documents that make use of the
-    [Bootstrap](http://getbootstrap.com) CSS library that is built
-    into Conductance.
-
-    When writing a Conductance client-side app
-    ([mho:#features/app-file::]), you typically don't import this
-    module yourself: Boostrap-enabled templates (such as
-    [mho:surface/doc-template/app-default::]; see
-    [mho:surface/doc-template/::] for a complete list) will expose all
-    of the symbols in this module automatically in a dynamically
-    generated [mho:app::] module.
+  @nodoc
+  @noindex
+  (documented as mho:surface/bootstrap)
 */
 var base_html = require('../html');
 

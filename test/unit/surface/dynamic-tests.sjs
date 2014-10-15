@@ -226,7 +226,7 @@ context("select widget") {||
 }
 
 @context("bootstrap wrappers") {||
-  @bootstrap = require('mho:surface/bootstrap/html');
+  @bootstrap = require('mho:surface/bootstrap');
   var clsArray = function(elem) {
     var classes = elem.classList;
     var rv = [];

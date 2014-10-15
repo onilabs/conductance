@@ -9,7 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['mho:std', 'mho:surface/bootstrap/html']);
+@ = require(['mho:std', 'mho:surface/bootstrap']);
 
 //----------------------------------------------------------------------
 //
