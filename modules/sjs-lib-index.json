@@ -161,6 +161,10 @@
         "gcd": {
           "type": "module",
           "children": {
+            "Entity": {
+              "type": "class",
+              "children": {}
+            },
             "GoogleCloudDatastore": {
               "type": "class",
               "children": {

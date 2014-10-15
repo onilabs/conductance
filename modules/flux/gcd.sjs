@@ -43,6 +43,11 @@ var WRITE_BATCH_PERIOD   = 20;
 var READ_T_BATCH_PERIOD  =  0; // read batch period inside transaction
 var WRITE_T_BATCH_PERIOD =  0; // write batch period inside transaction
 
+/**
+   @class Entity
+   @summary Document me!
+*/
+
 //----------------------------------------------------------------------
 // Google Cloud Datastore 
 
@@ -716,7 +721,7 @@ function GoogleCloudDatastore(attribs) {
   var rv = {
     /**
        @function GoogleCloudDatastore.write
-       @param {Object} [entity] [datastore::Entity] object to create/update/delete
+       @param {Object} [entity] [::Entity] object to create/update/delete
        // XXX ?
        @return {Array} Array of `{id, schema}` descriptors of changed entities
        @summary Create/update/delete entities in the datastore
@@ -751,8 +756,8 @@ function GoogleCloudDatastore(attribs) {
 
     /**
        @function GoogleCloudDatastore.read
-       @param {flux::Entity} [entity] Entity to retrieve
-       @return {flux::Entity} *entity* with `data` attribute set to retrieved data 
+       @param {::Entity} [entity] Entity to retrieve
+       @return {::Entity} *entity* with `data` attribute set to retrieved data 
                or `null` if the entity could not be found in the datastore
        @summary Read an entity from the datastore
        @desc
@@ -768,7 +773,7 @@ function GoogleCloudDatastore(attribs) {
     /**
        @function GoogleCloudDatastore.query
        @param {Object} [query_descriptor] Query Descriptor
-       @return {sjs::sequence::Stream} Stream of result *batches* (use [sjs:sequence::unpack] to get a stream of results)
+       @return {sjs:sequence::Stream} Stream of result *batches* (use [sjs:sequence::unpack] to get a stream of results)
        @summary Query for entities
      */
     query: function(query_descriptor) {
@@ -784,7 +789,7 @@ function GoogleCloudDatastore(attribs) {
 
 
        @class Transaction
-       @summary Object provided by [::GoogleCloudDatastore.withTransaction]
+       @summary Object provided by [::GoogleCloudDatastore::withTransaction]
        @function Transaction.read
        @summary see [::GoogleCloudDatastore::read]
        @function Transaction.write

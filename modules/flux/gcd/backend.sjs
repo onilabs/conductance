@@ -10,7 +10,6 @@
  */
 
 /**
-   @module db/gcd/backend
    @hostenv nodejs
    @summary API for accessing the [Google Cloud Datastore](https://developers.google.com/datastore/)
    @desc
@@ -73,7 +72,7 @@ var ContextProto = {
      @param {Object} [req] "AllocateIdsRequest" message
      @return {Object} "AllocateIdsResponse" message
      @desc
-       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [db/gcd/backend::] module description.
+       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
   */
   allocateIds: function(req) {
     return this._request(
@@ -88,7 +87,7 @@ var ContextProto = {
      @param {Object} [req] "BlindWriteRequest" message
      @return {Object} "BlindWriteResponse" message
      @desc
-       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [db/gcd/backend::] module description.
+       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
   */
   blindWrite: function(req) { //console.log(require('sjs:debug').inspect(req, false, 10));
     return this._request(
@@ -103,7 +102,7 @@ var ContextProto = {
      @param {Object} [req] "LookupRequest" message
      @return {Object} "LookupResponse" message
      @desc
-       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [db/gcd/backend::] module description.
+       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
    */
   lookup: function(req) {
     return this._request(
@@ -118,7 +117,7 @@ var ContextProto = {
      @param {Object} [req] "RunQueryRequest" message
      @return {Object} "RunQueryResponse" message
      @desc
-       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [db/gcd/backend::] module description.
+       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
   */
   runQuery: function(req) {
 //    console.log(require('sjs:debug').inspect(datastore_schema['api.services.datastore.RunQueryRequest'].serialize(req) ..
@@ -195,7 +194,7 @@ var ContextProto = {
          @param {Object} [req] "CommitRequest" message
          @return {Object} "CommitResponse" message
          @desc
-         Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [db/gcd/backend::] module description.
+         Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
        */
       commit: function(req) {
         if (committed) throw new Error('Transaction already committed');
