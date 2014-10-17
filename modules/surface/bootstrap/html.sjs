@@ -71,9 +71,8 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
   @desc
     When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If
-    `value` is an [sjs:observable::ObservableVar] (as identified by being a
-    [sjs:sequence::Stream] and having a `set` function), then `value` will
+    element's value will be updated every time `value` changes. If (in addition)
+    `value` is an [sjs:observable::ObservableVar], then `value` will
     be updated to reflect any manual changes to the element's value.
 */
 exports.Input = wrapWithClass(base_html.Input, 'form-control');
@@ -87,9 +86,8 @@ exports.Input = wrapWithClass(base_html.Input, 'form-control');
   @desc
     When the element is inserted into the document, its value
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If
-    `value` is an [sjs:observable::ObservableVar] (as identified by being a
-    [sjs:sequence::Stream] and having a `set` function), then `value` will
+    element's value will be updated every time `value` changes. If (in addition)
+    `value` is an [sjs:observable::ObservableVar], then `value` will
     be updated to reflect any manual changes to the element's value.
 */
 exports.TextInput = wrapWithClass(base_html.TextInput, 'form-control');

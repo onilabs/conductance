@@ -16,7 +16,7 @@ var { Stream, isStream, integers, each, map, transform, indexed, filter, sort, s
 var { isArrayLike } = require('sjs:array');
 var { shallowEq } = require('sjs:compare');
 var { override, merge } = require('sjs:object');
-var { observe } = require('sjs:observable');
+var { observe, isObservableVar } = require('sjs:observable');
 
 /**
   @summary Basic HTML elements
@@ -129,8 +129,8 @@ var { observe } = require('sjs:observable');
   @desc
     When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If, in addition,
-    `value` has a `set` method, (e.g. it is an [sjs:observable::ObservableVar]), 
+    element's value will be updated every time `value` changes. If (in addition)
+    `value` is an [sjs:observable::ObservableVar], 
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var Input = (type, value, attrs) ->
@@ -146,7 +146,7 @@ var Input = (type, value, attrs) ->
         }
       }
       and {
-        if (value.set) {
+        if (isObservableVar(value)) {
           events(node, 'input') .. each { |ev|
             value.set(node.value);
           }
@@ -169,8 +169,8 @@ exports.Input = Input;
   @desc
     When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If, in addition,
-    `value` has a `set` method, (e.g. it is an [sjs:observable::ObservableVar]), 
+    element's value will be updated every time `value` changes. If (in addition)
+    `value` is an [sjs:observable::ObservableVar], 
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var TextInput = (value, attrs) -> Input('text', value, attrs);
@@ -186,8 +186,8 @@ exports.TextInput = TextInput;
   @desc
     When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If, in addition,
-    `value` has a `set` method, (e.g. it is an [sjs:observable::ObservableVar]), 
+    element's value will be updated every time `value` changes. If (in addition)
+    `value` is an [sjs:observable::ObservableVar], 
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var TextArea = (value, attrs) ->
@@ -203,7 +203,7 @@ var TextArea = (value, attrs) ->
         }
       }
       and {
-        if (value.set) {
+        if (isObservableVar(value)) {
           events(node, 'input') .. each { |ev|
             value.set(node.value);
           }
@@ -225,8 +225,8 @@ exports.TextArea = TextArea;
   @desc
     When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If, in addition,
-    `value` has a `set` method, (e.g. it is an [sjs:observable::ObservableVar]), 
+    element's value will be updated every time `value` changes. If (in addition)
+    `value` is an [sjs:observable::ObservableVar], 
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var Checkbox = value ->
@@ -241,7 +241,7 @@ var Checkbox = value ->
         }
       }
       and {
-        if (value.set) {
+        if (isObservableVar(value)) {
           events(node, 'change') .. each { |ev|
             value.set(node.checked);
           }
@@ -373,7 +373,7 @@ function Select(settings) {
 
   if (computedState) {
     var updateSelected;
-    if (isStream(settings.selected) && settings.selected.set) {
+    if (isObservableVar(settings.selected)) {
       if (settings.multiple) {
         updateSelected = (sels) -> settings.selected.set(sels);
       } else {
