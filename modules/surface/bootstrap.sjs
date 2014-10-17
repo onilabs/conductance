@@ -180,6 +180,38 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @param {optional Object} [attribs]
 @summary A bootstrap container (`<div class="container">`)
 @return {surface::Element}
+@desc
+  [::Container] centers its content and scales it in discrete steps 
+  according to screen width.
+
+  ### Notes
+
+  * See also http://getbootstrap.com/css/#overview-container.
+  
+  * Bootstrap requires a containing element to wrap site contents
+  and house the grid system. You can choose between [::Container]
+  or [::FluidContainer].
+
+  * Containers are not nestable.
+
+  * *.app file ([mho:#features/app-file::]) with Bootstrap-enabled doc-templates 
+  ([mho:surface/doc-template/::]) will typically already have a Container element. 
+  E.g. the [mho:surface/doc-template/app-default::] template's 
+  [mho:surface/doc-template/app-default::mainContent] element will be a [::Container]
+  by default, or a [::FluidContainer] if the 
+  [mho:surface/doc-template/app-default::@template-fluid] directive is set to `true`.
+  
+  
+
+@function FluidContainer
+@param {surface::HtmlFragment} [content]
+@param {optional Object} [attribs]
+@summary A fluid bootstrap container (`<div class="container-fluid">`)
+@return {surface::Element}
+@desc
+  [::FluidContainer] lays out its content full-width and fluid.
+
+  See the notes for [::Container]
 
 @function Lead
 @param {surface::HtmlFragment} [content]
