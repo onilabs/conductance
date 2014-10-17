@@ -228,6 +228,21 @@ exports.TextArea = TextArea;
     element's value will be updated every time `value` changes. If (in addition)
     `value` is an [sjs:observable::ObservableVar], 
     then `value` will be updated to reflect any manual changes to the element's value.
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+    var Value = @ObservableVar(true);
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    var Value = @ObservableVar(true);
+    @mainContent .. @appendContent(
+      `$@Checkbox(Value) I like Conductance <br>
+       You ${Value .. @transform(x -> x ? \"do\" : \"don't\")} 
+       like Conductance`
+    )",
+        `$@Checkbox(Value) I like Conductance <br>
+         You ${Value .. @transform(x -> x ? "do" : "don't")} like Conductance`
+      )
+    ]);
 */
 var Checkbox = value ->
   Element('input') ..
@@ -271,17 +286,18 @@ exports.Checkbox = Checkbox;
     
     @mainContent .. @appendContent(
        @demo.CodeResult("\
-       @ = require(['mho:std','mho:app']);
+    @ = require(['mho:std','mho:app']);
 
-       var options = ['Bad', 'Ok', 'Pretty Good', 'Perfect'];
-       var Rating  = @ObservableVar('Perfect');
+    var options = ['Bad', 'Ok', 'Pretty Good', 'Perfect'];
+    var Rating  = @ObservableVar('Perfect');
 
-       @mainBody .. @appendContent(`
-         Rate Conductance: $@Select({items:options, selected: Rating})
-         Your Rating: $Rating`);",
-       `Rate Conductance:  $@Select({items:options, selected: Rating})
-        Your Rating: $Rating`
-       ));       
+    @mainBody .. @appendContent(`
+      Rate Conductance: 
+      $@Select({items:options, selected: Rating})
+      Your Rating: $Rating`);",
+          `Rate Conductance:  $@Select({items:options, selected: Rating})
+           Your Rating: $Rating`
+    ));
 */
 
 
@@ -419,6 +435,8 @@ var _map = function(items, fn) {
 
     Any elements in `item` that isn't a `<li>` [surface::Element] will be wrapped 
     with a `<li>` [surface::Element].
+
+    See [::Ol] for a demonstration.
 */
 
 __js function wrapLi(item) { 
@@ -442,6 +460,45 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
 
     Any element in `item` that isn't a `<li>` [surface::Element] will be wrapped 
     with a `<li>` [surface::Element].
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    var Numbers = @generate(function() {
+      hold(1000);
+      return [Math.random(), Math.random(), Math.random()];
+      });
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @mainContent .. @appendContent(
+      @Ol(['Apples', 'Pears', 'Oranges'])
+    );",
+        @Ol(['Apples', 'Pears', 'Oranges'])
+      ),
+      @demo.CodeResult("\
+    var Numbers = @generate(function() {
+      hold(1000);
+      return [Math.random(), Math.random(), Math.random()];
+    });
+    
+    @mainContent .. @appendContent(
+      @Ol(Numbers)
+    );
+      ",
+        @Ol(Numbers)
+      ),
+      @demo.CodeResult("\
+    @mainContent .. @appendContent(
+      @Ol(['A string',
+           @Strong('HTML'),
+           `Dynamic: 
+            ${Numbers .. @transform(arr->arr .. @first)}`
+          ])
+    )",
+        @Ol(['A string', @Strong('HTML'), 
+        `Dynamic: ${Numbers .. @transform(arr->arr .. @first)}`]))
+    ]);
+
 */
 exports.Ol = (items, attrs) -> Element('ol', items ? items .. _map(wrapLi), attrs);
 

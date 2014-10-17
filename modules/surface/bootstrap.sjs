@@ -109,7 +109,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   * **block-level**: `block` (or none)
 
 @demo
-  @ = require(['mho:std', 'mho:app']);
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
   var btn_styles = ['default', 'primary', 'success', 'info', 'warning', 'danger', 'link'];
   var btn_sizes  = ['lg', '', 'sm', 'xs' ];
   @mainContent .. @appendContent([
@@ -120,12 +120,11 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
     @Hr(),
     @Btn('block primary', "@Btn('block primary', CONTENT)"),
     @Hr(),
-    @Row([
-      @Col('sm-6', @Pre("@Btn('primary',\n      `$@Icon('cloud-download') Download`)")),
-      @Col('sm-6', @Btn('primary',`$@Icon('cloud-download') Download`))
-    ])
-      ]
-  );
+    
+    @demo.CodeResult(
+      "@Btn('primary',\n      `$@Icon('cloud-download') Download`)",
+      @Btn('primary',`$@Icon('cloud-download') Download`))
+  ]);
 
 @variable AvailableIcons
 @summary Array of names accepted by [::Icon]
@@ -137,7 +136,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @return {surface::Element}
 
 @demo
-  @ = require(['mho:std', 'mho:app']);
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
   var ColStyle = @CSS(`{padding-bottom:8px;}`); 
   @mainContent .. @appendContent([@Row(
     @AvailableIcons .. @map(name ->
@@ -146,10 +145,9 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
     )
   ),
   @Hr(),
-  @Row([
-    @Col('sm-6', @Pre("@Icon('heart') .. @Style('color:red;font-size:80px;')")),
-    @Col('sm-6', @Icon('heart') .. @Style('color:red;font-size: 80px'))
-    ])
+  @demo.CodeResult(
+    "@Icon('heart') .. @Style('color:red;font-size:80px;')",
+    @Icon('heart') .. @Style('color:red;font-size: 80px'))
   ]);
 
 @function Row
