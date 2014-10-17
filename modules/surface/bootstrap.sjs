@@ -47,13 +47,13 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function Button
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary Bootstrap-styled button (`<button class="btn btn-default">`)
 @return {surface::Element}
 
 @function Table
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary Bootstrap-styled table (`<table class="table">`)
 @return {surface::Element}
 
@@ -61,7 +61,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @summary Bootstrap-styled input (`<input class="form-control">`)
 @param  {String} [type]
 @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
-@param  {optional Object} [attrs] Hash of DOM attributes to set on the element
+@param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @return {surface::Element}
 @desc
   When the element is inserted into the document, its value 
@@ -73,7 +73,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @function TextInput
 @summary Bootstrap-styled [surface/html::TextInput] (with class "form-control")
 @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
-@param  {optional Object} [attrs] Hash of DOM attributes to set on the element
+@param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @return {surface::Element}
 @desc
   When the element is inserted into the document, its value
@@ -84,13 +84,13 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function TextArea
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary Bootstrap-styled textarea (`<textarea class="form-control">`)
 @return {surface::Element}
 
 @function Select
 @param {Object} [settings]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary Bootstrap-styled [surface/html::Select] (with class "form-control")
 @return {surface::Element}
 

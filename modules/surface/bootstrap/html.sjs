@@ -46,7 +46,7 @@ var callWithClasses = callWithClass;
 /**
   @function Button
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap-styled button (`<button class="btn btn-default">`)
   @return {surface::Element}
 */
@@ -55,7 +55,7 @@ exports.Button = wrapWithClasses(base_html.Button, ['btn', 'btn-default']);
 /**
   @function Table
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap-styled table (`<table class="table">`)
   @return {surface::Element}
 */
@@ -66,7 +66,7 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
   @summary Bootstrap-styled input (`<input class="form-control">`)
   @param  {String} [type]
   @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
-  @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
+  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
     When the element is inserted into the document, its value 
@@ -81,7 +81,7 @@ exports.Input = wrapWithClass(base_html.Input, 'form-control');
   @function TextInput
   @summary Bootstrap-styled [surface/html::TextInput] (with class "form-control")
   @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
-  @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
+  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
     When the element is inserted into the document, its value
@@ -95,7 +95,7 @@ exports.TextInput = wrapWithClass(base_html.TextInput, 'form-control');
 /**
   @function TextArea
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attribs]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap-styled textarea (`<textarea class="form-control">`)
   @return {surface::Element}
 */
@@ -104,7 +104,7 @@ exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
 /**
   @function Select
   @param {Object} [settings]
-  @param {optional Object} [attribs]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap-styled [surface/html::Select] (with class "form-control")
   @return {surface::Element}
 */

@@ -124,7 +124,7 @@ var { observe, isObservableVar } = require('sjs:observable');
   @summary A plain HTML 'input' element 
   @param  {String} [type]
   @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
-  @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
+  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
     When the element is inserted into the document, its value 
@@ -164,7 +164,7 @@ exports.Input = Input;
   @function TextInput
   @summary A plain HTML 'input' element with type='text'
   @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
-  @param  {optional Object} [attrs] Hash of DOM attributes to set on the element
+  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
     When the element is inserted into the document, its value 
@@ -181,7 +181,7 @@ exports.TextInput = TextInput;
   @function TextArea
   @summary A plain HTML 'textarea' element
   @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
-  @param  {optional Object} [attrs]
+  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
     When the element is inserted into the document, its value 
@@ -407,7 +407,7 @@ var _map = function(items, fn) {
 /**
   @function Ul
   @param {Array|sjs:sequence::Stream|undefined} [items]
-  @param {optional Object} [attrs]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @summary Create a `<ul>` element, wrapping each element of `items` in a `<li>` 
            as required.
@@ -431,7 +431,7 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
 /**
   @function Ol
   @param {Array|sjs:sequence::Stream|undefined} [items]
-  @param {optional Object} [attrs]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @summary Create a `<ol>` element, wrapping each element of`items` in a `<li>`
   @desc
@@ -448,7 +448,7 @@ exports.Ol = (items, attrs) -> Element('ol', items ? items .. _map(wrapLi), attr
 /**
   @function Submit
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attrs]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @summary Create an `<input type="submit">` element.
 */

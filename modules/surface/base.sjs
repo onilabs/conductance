@@ -345,9 +345,13 @@ ElementProto.createElement = function() {
 /**
   @function Element
   @param {String} [tag]
-  @param {::HtmlFragment} [content]
-  @param {optional Object} [attributes]
+  @param {::HtmlFragment} [content] Content to set on DOM element
+  @param {optional Object} [attributes] Object with {name: string} attributes to set on DOM element
   @return {::Element}
+  @desc 
+    ### Notes
+    
+    * As an alternative to specifying `attributes`, see the the [::Attrib] decorator.
 */
 __js {
   function Element(tag, content, attribs) {
