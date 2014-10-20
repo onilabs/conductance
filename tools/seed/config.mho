@@ -61,7 +61,8 @@ var runAll = function(servers, opts) {
   servers .. @each {|server|
     // add vhosts to main public interface
     var addExternal = function(proto, def) {
-      if(!def) return;
+      if(!def || !def.externalHost) return;
+      @info("Serving #{proto} vhost #{def.externalHost}");
       external[proto].routes.push(@Host(def.externalHost, def.routes));
     };
     
@@ -70,6 +71,7 @@ var runAll = function(servers, opts) {
       if (!def) return;
       var {internalPort, routes} = def;
       if(!internalPort) return;
+      @info("Serving #{proto} internal port #{internalPort}");
       internal[internalPort] .. @assert.eq(undefined, "port #{internalPort} used twice");
       internal[internalPort] = {
         address: Port(internalPort),
@@ -255,7 +257,7 @@ COMPONENTS.master = function(opts) {
 
 COMPONENTS.proxy = function() {
   var proxies = {};
-  var hostSuffix = '.' + @env.get('host-self');
+  var hostSuffix = '.' + @env.get('host-proxy');
   var nodeHttp = require('nodejs:http');
   var proxyAgent = new nodeHttp.Agent();
   proxyAgent.maxSockets = 2048;
@@ -348,7 +350,7 @@ COMPONENTS.proxy = function() {
           var [pubHost, internalHost] = mappings.shift().split(':');
           mappings = mappings .. @each {|mapping|
             var [pubPort, internalPort] = mapping.split(':');
-            @info("will proxy #{pubHost} port #{pubPort} to port #{internalPort} on host #{internalHost}");
+            @info("will proxy #{pubHost} requests for #{pubPort} to port #{internalPort} on host #{internalHost}");
             if (!proxies .. @hasOwn(pubPort)) {
               proxies[pubPort] = {};
             }
@@ -405,7 +407,7 @@ COMPONENTS.slave = function(opts) {
   return {
     'default': {
       internalPort: @env.get('port-slave'),
-      externalHost: @env.get('host-self'),
+      externalHost: @env.get('host-slave'),
       routes: [
         @route.SystemRoutes(),
         @route.ExecutableDirectory('', @url.normalize('./modules/slave', module.id) .. @url.toPath),

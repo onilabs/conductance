@@ -55,6 +55,11 @@ exports.changes = function(client, key, opts) {
 			_emit(change);
 		};
 
+		var BLANK = {
+			action: 'get',
+			node: null,
+		};
+
 		if (emitInitial) {
 			//console.log("grabbing initial: " + key);
 			var initial;
@@ -64,10 +69,7 @@ exports.changes = function(client, key, opts) {
 			if (got) {
 				emit(initial)
 			} else {
-				emit({
-					action: 'get',
-					node: null,
-				});
+				emit(BLANK);
 			}
 		}
 
@@ -76,6 +78,7 @@ exports.changes = function(client, key, opts) {
 				//console.log("grabbing changes: " + key, opts, nextIndex);
 				var req = client.watch(key, opts .. @merge({waitIndex: nextIndex}), resume);
 			} retract {
+				@info("client.watch retracted");
 				if (req) req.abort();
 				req = null;
 			}
@@ -86,6 +89,8 @@ exports.changes = function(client, key, opts) {
 					continue
 				}
 				throw err;
+			} else {
+				@assert.ok(change, "empty change returned from client.watch");
 			}
 
 			emit(change);
@@ -104,7 +109,11 @@ exports.values = function(client, key, opts) {
 }
 
 exports.tryOp = function(fn, allowed_errors) {
-	if (!allowed_errors) allowed_errors = [exports.err.KEY_NOT_FOUND, exports.err.TEST_FAILED, exports.err.KEY_EXISTS];
+	if (allowed_errors) {
+		@assert.arrayOfNumber(allowed_errors, "allowed_errors");
+	} else {
+		allowed_errors = [exports.err.KEY_NOT_FOUND, exports.err.TEST_FAILED, exports.err.KEY_EXISTS];
+	}
 	try {
 		return fn() || true;
 	} catch(e) {
@@ -119,7 +128,7 @@ exports.hasValue = function(client, key) {
 	var value;
 	if (!exports.tryOp(function() {
 		value = client.get(key).node.value;
-	}, exports.err.KEY_NOT_FOUND)) return false;
+	}, [exports.err.KEY_NOT_FOUND])) return false;
 	return value.length > 0;
 }
 

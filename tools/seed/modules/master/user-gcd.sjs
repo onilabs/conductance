@@ -14,9 +14,12 @@ var BYTES = {__type: 'text' }; // XXX binary?
 var NotFoundProto = new Error("not found");
 var NotFound = -> Object.create(NotFoundProto);
 
-exports.Create = function(appName) {
-	if(!appName) appName = "seed";
-	var rootKey = "app:#{appName}";
+exports.Create = function(namespace) {
+	@assert.string(namespace, "namespace");
+	var appName = "seed";
+
+	// XXX use proper GCD namespace, and make this root key "app:seed"
+	var rootKey = "app:#{namespace}";
 
 	var userSchema = {
 		__parent: rootKey,
@@ -35,16 +38,16 @@ exports.Create = function(appName) {
 
 	var credentials = @env.get('gcd-credentials');
 	if (credentials) {
-		credentials = credentials .. @clone();
+		credentials = {
+			"email": credentials .. @get('email'),
+			"dataset": credentials .. @get('project'),
+			"key": credentials .. @get('key'),
+		};
 	} else {
 		credentials = {
 			devel: true,
 		};
 	}
-	if (credentials.dataset) {
-		@env.get('gcd-dataset') .. @assert.eq(credentials.dataset);
-	}
-	credentials.dataset = @env.get('gcd-dataset');
 
 	var db = @gcd.GoogleCloudDatastore({
 		context: credentials,
@@ -123,7 +126,7 @@ exports.Create = function(appName) {
 		}
 	};
 
-	rv.synchronize = function(block) {
+	rv.synchronize = function(reason, block) {
 		db.withTransaction() {|db|
 			return block(dbApi(db));
 		}

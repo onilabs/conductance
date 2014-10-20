@@ -44,13 +44,16 @@ var getAppRunPath = function(user, id) {
   return @path.join(appRunRoot, String(user.id) .. @keySafe, id .. @appIdSafe);
 }
 
-var getMasterCodePath = function(user, appId) {
+var getMasterCodePaths = function(user, appId) {
   var key = @etcd.master_app_repository();
   var root = etcd.get(key) .. @getPath('node.value');
   if (root .. @startsWith('localhost:')) {
     root = root.slice('localhost:'.length);
   }
-  return @path.join(root, String(user.id), appId, "code");
+  return [
+    @path.join(root, String(user.id), appId, "code"),
+    @path.join(root, String(user.id), appId, "config.json"),
+  ];
 }
 
 var getGlobalId = (user, id) -> "#{user.id .. @keySafe()}/#{id .. @appIdSafe()}";
@@ -177,12 +180,11 @@ exports.localAppState = (function() {
     @assert.string(id, 'appId');
     //var globalId = getGlobalId(user, id);
     var machineName = getMachineName(user, id);
-    var appBase = getAppPath(user, id);
     var appRunBase = getAppRunPath(user, id);
     @mkdirp(appRunBase);
     //var pidPath = getPidPath(appRunBase);
     var logPath = @path.join(appRunBase, 'log');
-    var configPath = @path.join(appBase, 'config.json');
+    var configPath = @path.join(appRunBase, 'config.json');
     var recheckPid = @Emitter();
     var clearLogs = -> @fs.open(logPath, 'w') .. @fs.close();
 
@@ -251,8 +253,7 @@ exports.localAppState = (function() {
     }) .. @mirror;
 
     var startApp = function(throwing) {
-      var codeDest = @path.join(appRunBase, "code");
-      @mkdirp(codeDest);
+      @mkdirp(appRunBase);
 
       var stdio = ['ignore'];
       // truncate file
@@ -281,17 +282,17 @@ exports.localAppState = (function() {
 
       log("Syncing code...");
       @info("syncing current code for app #{id}");
-      var codeSource = getMasterCodePath(user, id);
+      var codeSources = getMasterCodePaths(user, id);
       
       // make ssh stateless. XXX is there any risk to disabling host key checking here?
       var sshCmd = 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no';
       if(keyStore) {
         sshCmd += "  -o IdentityFile=#{@path.join(keyStore, "key-slave-ssh-id")}";
       }
-      var cmd = ['rsync', '-az', '-e', sshCmd, '--chmod=go-w', '--delete',
-        codeSource + "/",
-        codeDest,
-      ];
+      var cmd = ['rsync', '-az', '-e', sshCmd, '--chmod=go-w', '--delete']
+        .concat(codeSources)
+        .concat([ appRunBase ]);
+
       @info("Running:", cmd);
       try {
         @childProcess.run(cmd[0], cmd.slice(1), { stdio: 'inherit'});
@@ -299,6 +300,8 @@ exports.localAppState = (function() {
         log("Code sync failed.");
         throw e;
       }
+
+      var codeDest = @path.join(appRunBase, "code");
 
       // node does a terrible job of closing open file descriptors (may be
       // improved in 0.12). So we need to manually mark everything as cloexec.
@@ -317,8 +320,6 @@ exports.localAppState = (function() {
         var args = ConductanceArgs;
         var runUser = "app";
         var readOnly = (path) -> "#{path}:#{path}:ro";
-        //var state = @path.join(appRunBase, "run");
-        //@mkdirp(state);
 
         args = [
           "docker",
@@ -559,7 +560,7 @@ exports.masterAppState = (function() {
           // and restart it
           startApp();
         } catch (e) {
-          //cleanup();
+          cleanup();
           throw e;
         }
       }

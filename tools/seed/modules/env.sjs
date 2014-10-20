@@ -35,6 +35,11 @@ var defaultPorts = exports.defaultPorts = {
 	master: portFromEnv('SEED_MASTER_PORT', 7071),
 	slave: portFromEnv('SEED_SLAVE_PORT', 7072),
 };
+var standardPorts = {
+	http:80,
+	https:443,
+};
+
 
 var def = function(key,val, lazy) {
 	@assert.ok(val !== undefined, "Undefined env key: #{key}");
@@ -112,7 +117,6 @@ exports.defaults = function() {
 	def('production', PROD);
 	def('deployLoopback', false);
 	def('anonymous-access', false);
-	def('use-vhost', process.env['SEED_VHOST'] == '1');
 	def('cors', function() {
 		// if we've disabled anonymous-access, then all our APIs
 		// are protected by explicit authentication, so leave
@@ -124,29 +128,59 @@ exports.defaults = function() {
 	var internalHost = 'localhost';
 	def('internalAddress', process.env['SEED_INTERNAL_ADDRESS'] || internalHost);
 
-	var selfHost = 'localhost.self';
+	var selfHost = process.env['SEED_PUBLIC_ADDRESS'] || selfHost;
 	/* ^^ localhost.self is used for development, requires dnsmasq config:
 		$ cat /etc/dnsmasq.d/self.conf
 		address=/.self/127.0.0.1
 	*/
-	def('host-self', process.env['SEED_PUBLIC_ADDRESS'] || selfHost);
-	def('host-proxy', process.env['SEED_PROXY_HOST'] || selfHost);
-	def('host-master', process.env['SEED_MASTER_HOST'] || selfHost);
+
+	def('host-aliases', function() {
+		// $SEED_HOST_ALIASES takes format:
+		// <name>:<host> <name2>:<host2> ...
+		var spec = process.env['SEED_HOST_ALIASES'];
+		var rv = {};
+		if(spec && spec.length > 0) {
+			spec .. @split(' ') .. @each {|entry|
+				var [name,host] = entry.split(':');
+				rv[name] = host;
+			}
+		}
+		@debug("SEED_HOST_ALIASES parsed: ", rv);
+		return rv;
+	}, true);
+	
+	// if any host aliases are defined, use vhost
+	def('use-vhost', -> !this.get('host-aliases') .. @eq({}), true);
+
+	;['proxy','master','slave'] .. @each {|service|
+		def("host-#{service}",  function() {
+			return process.env["SEED_#{service.toUpperCase()}_HOST"] || this.get('host-aliases')[service] || selfHost;
+		}, true);
+	}
 	def('host-local', 'localhost');
 
-	def('publicAddress', function(service, proto) {
-		proto = proto || env.get('default-proto', 'http');
-		var origin = env.get("host-#{service}", env.get("host-self"));
-		var port;
-		if (env.get('use-vhost') || service === 'proxy') {
-			// use the vhost address
-			port = defaultPorts .. @get(proto);
-		} else {
-			// we probably don't have hosts set up, so use the internal service port
-			port = env.get("port-#{service}");
-		}
-		return "#{proto}://#{origin}:#{port}/"
-	});
+	def('publicAddress', function() {
+		var defaultProto = env.get('default-proto', 'http');
+		var useVhost = env.get('use-vhost');
+		return function(service, proto) {
+			proto = proto || defaultProto;
+			var origin = env.get("host-#{service}", selfHost);
+			var port;
+			if (useVhost || service === 'proxy') {
+				// use the vhost public address
+				port = defaultPorts .. @get(proto);
+			} else {
+				// we probably don't have hosts set up, so use the internal service port
+				port = env.get("port-#{service}");
+			}
+			var rv = "#{proto}://#{origin}";
+			if(standardPorts[proto] !== port) {
+				rv += ":#{port}";
+			}
+			rv += "/";
+			return rv;
+		};
+	}, true);
 
 	var etcdAddr = (process.env['ETCD_ADDR'] || 'localhost:4001').split(':');
 
@@ -182,12 +216,11 @@ exports.defaults = function() {
 	def('port-slave', defaultPorts.slave);
 	def('port-local', defaultPorts.local);
 
-	def('use-gcd', !!process.env['DATASTORE_DATASET']);
-	def('gcd-dataset', -> devDefaultEnvvar('DATASTORE_DATASET', 'development'), true);
+	def('gcd-namespace', -> process.env .. @get('DATASTORE_NAMESPACE'), true);
 	def('gcd-host', process.env['DATASTORE_HOST'] || (PROD ? null : 'http://localhost:8089'));
 	def('user-storage',
-		-> this.get('use-gcd')
-			? require('seed:master/user-gcd').Create()
+		-> this.get('gcd-credentials')
+			? require('seed:master/user-gcd').Create(process.env .. @get('DATASTORE_NAMESPACE'))
 			: require('seed:master/user-leveldown'),
 		true);
 
@@ -198,10 +231,13 @@ exports.defaults = function() {
 	def('data-root', dataDir);
 
 	def('key-store', -> devDefaultEnvvar('SEED_KEYS', null), true);
+	def('rsync-user', process.env['SEED_RSYNC_USER'] || null);
 
-	def('api-keys',
-		-> @fs.readFile(@path.join(this.get('key-store') || codeRoot, 'key-conductance-apis.json'), 'utf-8') .. JSON.parse,
-		true);
+	def('api-keys', function() {
+		var contents = @fs.readFile(@path.join(this.get('key-store') || codeRoot, 'key-conductance-apis.json'), 'utf-8');
+		contents = contents.replace(/^\S*\/\/.*\n/gm, ''); // allow comments
+		return contents .. JSON.parse;
+	}, true);
 
 	def('mandrill-api-keys', -> this.get('api-keys') .. @get('mandrill'), true);
 	def('gcd-credentials', function() {

@@ -80,7 +80,6 @@ var etcd = exports.etcd = (function() {
 })();
 
 var gcd = exports.gcd = (function() {
-	var dataset = @env('gcd-dataset');
 	var host = @env('gcd-host');
 	var root_url = -> host;
 

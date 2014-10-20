@@ -82,6 +82,10 @@ exports.balanceJobs = function(client) {
 exports.main = function(client, opts) {
 	var appRoot = require('./app').getAppRoot();
 	var appRepository = "#{@env.get('internalAddress')}:#{appRoot}";
+	var user = @env.get('rsync-user');
+	if(user) {
+		appRepository = "#{user}@#{appRepository}";
+	}
 	client.set(@etcd.master_app_repository(), appRepository);
 	client .. @etcd.advertiseEndpoint('master', @env.get('publicAddress')('master')) {||
 		try {
