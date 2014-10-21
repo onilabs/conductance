@@ -31,5 +31,6 @@
   }
 , "scripts":
   { "test": "./conductance test/run.mho"
+  , "prepublish": "./tools/gup all"
   }
 }
