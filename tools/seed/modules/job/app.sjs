@@ -284,8 +284,8 @@ exports.localAppState = (function() {
       @info("syncing current code for app #{id}");
       var codeSources = getMasterCodePaths(user, id);
       
-      // make ssh stateless. XXX is there any risk to disabling host key checking here?
-      var sshCmd = 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no';
+      // make sure the server identity matches key-all-ssh-known-hosts to prevent MITM
+      var sshCmd = "ssh -o GlobalKnownHostsFile=#{@path.join(keyStore, "key-all-ssh-known-hosts")} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=yes";
       if(keyStore) {
         sshCmd += "  -o IdentityFile=#{@path.join(keyStore, "key-slave-ssh-id")}";
       }
