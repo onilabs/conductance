@@ -551,6 +551,17 @@ module.exports = require(modules);
 
   Note that no buffering of events takes place: any events emitted
   while `event_handler` is blocked will have no effect.     
+@demo
+   @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
+   @mainContent .. @appendContent(
+     @demo.CodeResult(
+       "@Button('mouse me over') .. 
+     @On('mouseover', ev -> @mainContent ..
+                              @appendContent(ev))",
+       @Button('mouse me over') .. 
+         @On('mouseover', ev -> @mainContent .. 
+           @appendContent(ev))
+     ));
 
 @function OnClick
 @altsyntax element .. OnClick([settings], event_handler)
@@ -562,6 +573,17 @@ module.exports = require(modules);
 @hostenv xbrowser
 @desc
   See also [::On].
+@demo
+   @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
+   @mainContent .. @appendContent(
+     @demo.CodeResult(
+       "@Button('click me') .. 
+     @OnClick(ev -> @mainContent ..
+                      @appendContent(ev))",
+       @Button('click me') .. 
+         @OnClick(ev -> @mainContent .. 
+                          @appendContent(ev))
+     ));
 
 @function Document
 @hostenv nodejs

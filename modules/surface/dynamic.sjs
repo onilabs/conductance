@@ -606,6 +606,17 @@ exports.Enabled = (html, obs) -> html .. Attrib('disabled', obs .. transform(x->
 
     Note that no buffering of events takes place: any events emitted
     while `event_handler` is blocked will have no effect.     
+  @demo
+     @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
+     @mainContent .. @appendContent(
+       @demo.CodeResult(
+         "@Button('mouse me over') .. 
+       @On('mouseover', ev -> @mainContent ..
+                                @appendContent(ev))",
+         @Button('mouse me over') .. 
+           @On('mouseover', ev -> @mainContent .. 
+             @appendContent(ev))
+       ));
 */
 var On = (html, event, opts, f) -> html .. Mechanism(function(node) {
   if (!f) {
@@ -628,9 +639,17 @@ exports.On = On;
   @hostenv xbrowser
   @desc
     See also [::On].
+  @demo
+     @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
+     @mainContent .. @appendContent(
+       @demo.CodeResult(
+         "@Button('click me') .. 
+       @OnClick(ev -> @mainContent ..
+                        @appendContent(ev))",
+         @Button('click me') .. 
+           @OnClick(ev -> @mainContent .. 
+                            @appendContent(ev))
+       ));
 */
 var OnClick = (html, opts, f) -> html .. On('click', opts, f);
 exports.OnClick = OnClick;
-
-
-

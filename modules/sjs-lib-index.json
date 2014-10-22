@@ -531,6 +531,15 @@
             "Select": {
               "type": "function"
             },
+            "TextRight": {
+              "type": "function"
+            },
+            "TextCenter": {
+              "type": "function"
+            },
+            "TextJustify": {
+              "type": "function"
+            },
             "Btn": {
               "type": "function"
             },
@@ -553,6 +562,15 @@
               "type": "function"
             },
             "Lead": {
+              "type": "function"
+            },
+            "Lbl": {
+              "type": "function"
+            },
+            "Badge": {
+              "type": "function"
+            },
+            "Jumbotron": {
               "type": "function"
             },
             "ListGroup": {

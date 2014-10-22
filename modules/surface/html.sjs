@@ -233,7 +233,10 @@ exports.TextArea = TextArea;
     var Value = @ObservableVar(true);
     @mainContent .. @appendContent([
       @demo.CodeResult("\
+    @ = require(['mho:std', 'mho:app']);    
+
     var Value = @ObservableVar(true);
+
     @mainContent .. @appendContent(
       `$@Checkbox(Value) I like Conductance <br>
        You ${Value .. @transform(x -> x ? \"do\" : \"don't\")} 
@@ -451,7 +454,7 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
   @param {Array|sjs:sequence::Stream|undefined} [items]
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
-  @summary Create a `<ol>` element, wrapping each element of`items` in a `<li>`
+  @summary Create a `<ol>` element, wrapping each element of `items` in a `<li>`
   @desc
     If `items` is a [sjs:sequence::Stream], then that stream is expected 
     to have [sjs:observable::Observable] semantics and consist of 
@@ -470,6 +473,8 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
 
     @mainContent .. @appendContent([
       @demo.CodeResult("\
+    @ = require(['mho:app', 'mho:std']);    
+
     @mainContent .. @appendContent(
       @Ol(['Apples', 'Pears', 'Oranges'])
     );",

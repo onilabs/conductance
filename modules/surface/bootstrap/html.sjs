@@ -49,6 +49,18 @@ var callWithClasses = callWithClass;
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap-styled button (`<button class="btn btn-default">`)
   @return {surface::Element}
+  @desc
+    * See also [::Btn] for creating buttons with more style choices.
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @Button('Click me')",
+        @Button('Click me')
+      )]);
+
+    
 */
 exports.Button = wrapWithClasses(base_html.Button, ['btn', 'btn-default']);
 

@@ -50,6 +50,18 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary Bootstrap-styled button (`<button class="btn btn-default">`)
 @return {surface::Element}
+@desc
+  * See also [::Btn] for creating buttons with more style choices.
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+  @mainContent .. @appendContent([
+    @demo.CodeResult("\
+  @Button('Click me')",
+      @Button('Click me')
+    )]);
+
+  
 
 @function Table
 @param {surface::HtmlFragment} [content]
@@ -94,11 +106,89 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @summary Bootstrap-styled [surface/html::Select] (with class "form-control")
 @return {surface::Element}
 
+@function TextRight
+@altsyntax element .. TextRight 
+@summary Decorator that causes text in the given block element to be right aligned
+@param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
+@return {::Element}
+@desc
+  Returns a copy of `element` with bootstrap's "text-right" class added to the 
+  element's class list (see http://getbootstrap.com/css/#type-alignment).
+
+  If `TextRight` is applied to a [::HtmlFragment] that is not of class [::Element],
+  `element` will automatically be wrapped using [surface::ensureElement].
+
+  `TextRight` is ineffective if `element` is an inline element (`Span`, etc).
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+  @mainContent .. @appendContent([
+    @demo.CodeResult(
+      "@Div('This is left aligned')",
+      @Div('This is left aligned')),
+    @demo.CodeResult(
+      "@Div('This is right aligned') .. @TextRight",
+      @Div('This is right aligned') .. @TextRight)
+      ]);
+  
+
+@function TextCenter
+@altsyntax element .. TextCenter 
+@summary Decorator that causes text in the given block element to be horizontally centered
+@param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
+@return {::Element}
+@desc
+  Returns a copy of `element` with bootstrap's "text-center" class added to the 
+  element's class list (see http://getbootstrap.com/css/#type-alignment).
+
+  If `TextCenter` is applied to a [::HtmlFragment] that is not of class [::Element],
+  `element` will automatically be wrapped using [surface::ensureElement].
+
+  `TextCenter` is ineffective if `element` is an inline element (`Span`, etc).
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+  @mainContent .. @appendContent([
+    @demo.CodeResult(
+      "@Div('This is left aligned')",
+      @Div('This is left aligned')),
+    @demo.CodeResult(
+      "@Div('This is center aligned') .. @TextCenter",
+      @Div('This is center aligned') .. @TextCenter)
+      ]);
+  
+
+@function TextJustify
+@altsyntax element .. TextJustify 
+@summary Decorator that causes text in the given block element to be justified
+@param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
+@return {::Element}
+@desc
+  Returns a copy of `element` with bootstrap's "text-justify" class added to the 
+  element's class list (see http://getbootstrap.com/css/#type-alignment).
+
+  If `TextJustify` is applied to a [::HtmlFragment] that is not of class [::Element],
+  `element` will automatically be wrapped using [surface::ensureElement].
+
+  `TextJustify` is ineffective if `element` is an inline element (`Span`, etc).
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+  var content = @cycle(['The quick brown fox jumps over the lazy dog. ']) .. @take(10) .. @toArray;
+
+  @mainContent .. @appendContent([
+    @demo.CodeResult(
+      "@Div('The quick brown fox ...')",
+      @Div(content)),
+    @demo.CodeResult(
+      "@Div('The quick brown fox ...') .. @TextJustify",
+      @Div(content) .. @TextJustify)
+      ]);
+  
+
 @function Btn
 @summary Bootstrap-style button ("class='btn'") with additional `btn-*` classes applied.
 @param {String} [btn_classes] String of `btn-*` classes to apply to the button
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @return {surface::Element}
 @desc
   `btn_classes` is a space-separated list of `btn-*` classes that should be applied to the 
@@ -107,6 +197,9 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   * **style**: `default`, `primary`, `success`, `info`, `warning`, `danger`, or `link`
   * **sizing**: `lg`, `sm`, or `xs` (or none)
   * **block-level**: `block` (or none)
+
+  See also http://getbootstrap.com/css/#buttons
+
 
 @demo
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
@@ -132,7 +225,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @function Icon
 @param {String} [name] Name of icon, see [::AvailableIcons]
 @summary Scalable Bootstrap Glyphicon  (`<span class="glyphicon glyphicon-{name}">`)
-@param {optional Object} [attribs] Additional attributes to set on the HTML element
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @return {surface::Element}
 
 @demo
@@ -152,7 +245,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function Row
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary A row container in a Bootstrap grid (`<div class="row">`)
 @return {surface::Element}
 
@@ -160,7 +253,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @summary A column container in a Bootstrap grid (`<div class="col_classes">`)
 @param {String} [col_classes] String of `col-*` classes to apply to the col
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @return {surface::Element}
 @desc
   `col_classes` is a space-separated list of `col-*` classes that 
@@ -173,7 +266,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function Container
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary A bootstrap container (`<div class="container">`)
 @return {surface::Element}
 @desc
@@ -201,7 +294,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function FluidContainer
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary A fluid bootstrap container (`<div class="container-fluid">`)
 @return {surface::Element}
 @desc
@@ -211,13 +304,120 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function Lead
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary Lead body paragraph (`<p class='lead'>`)
-@return {surface:Element}
+@return {surface::Element}
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+  @mainContent .. @appendContent([
+    @demo.CodeResult(
+    "\
+  [
+   @Lead('This is a lead paragraph.'),
+   @P('This is a normal paragraph.')
+  ]",
+    [@Lead('This is a lead paragraph.'),
+     @P('This is a normal paragraph.')]
+    )
+  ])
+
+
+@function Lbl
+@summary Bootstrap label (`<span class='label'>`) 
+@param {optional String} [variant='default'] `label-*` class to apply to the label
+@param {surface::HtmlFragment} [content]
+@return {surface::Element}
+@desc
+  See also http://getbootstrap.com/components/#labels.
+
+  `variant` is an optional `label-*` class to apply to the label:
+  
+  * **style**: `default`, `primary`, `success`, `info`, `warning`, or `danger`
+
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+  @mainContent .. @appendContent([
+    @demo.CodeResult(
+      "`$@Lbl('Default')
+   $@Lbl('primary', 'Primary')
+   $@Lbl('success', 'Success')
+   $@Lbl('info', 'Info')
+   $@Lbl('warning', 'Warning')
+   $@Lbl('danger', 'Danger')`",
+      `$@Lbl('Default')
+       $@Lbl('primary', 'Primary')
+       $@Lbl('success', 'Success')
+       $@Lbl('info', 'Info')
+       $@Lbl('warning', 'Warning')
+       $@Lbl('danger', 'Danger')
+      `
+    ),
+    @demo.CodeResult(
+      "@H3(['Example heading ', @Lbl('New')])",
+      @H3(['Example heading ', @Lbl('New')])
+    )
+  ]);
+
+@function Badge
+@param {surface::HtmlFragment} [content]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@summary 'Badge' typically used for highlighting new or unread items (`<span class='badge'>`) 
+@return {surface::Element}
+@desc
+  * See http://getbootstrap.com/components/#badges
+  * Collapses when `content` is empty
+  * Style adapts automatically to 'active' state in [::Pill]s
+  * Automatically pulled right in [::ListGroupItem]s
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+  var Items = @generate(Math.random) .. 
+    @transform(x -> (hold(1000), Math.round(x*100)));
+
+  @mainContent .. @appendContent([
+    @demo.CodeResult("\
+  @A(`Inbox $@Badge(42)`)",
+      @A(`Inbox $@Badge(42)`)
+    ),
+    @demo.CodeResult("\
+  var Items = @ObservableVar(0);
+  ...  
+  @A(`Inbox $@Badge(Items)`)",
+      @A(`Inbox $@Badge(Items)`)
+    )
+  ])
+
+
+@function Jumbotron
+@param {surface::HtmlFragment} [content]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@summary A component for showcasing key content (`<div class='jumbotron'>`)
+@return {surface::Element}
+@desc
+  * See http://getbootstrap.com/components/#jumbotron
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+  @mainContent .. @appendContent([
+    @demo.CodeResult("\
+  @Jumbotron([
+    @H1('Hello, world!'),
+    @P(...),
+    @P(@Btn('primary lg', 'Learn more'))
+  ])",
+      @Jumbotron([
+        @H1('Hello, world!'),
+        @P('This is a simple hero unit, a simple jumbotron-style
+            component for calling extra attention to featured content or
+            information.'),
+        @P(@Btn('primary lg', 'Learn more'))
+      ])
+    )]);
+
 
 @function ListGroup
 @param {Array} [items] Array of [surface::HtmlFragment]s
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary Bootstrap list group (`<div class='list-group'><div class='list-group-item'>...</div>...</div>`)
 @return {surface::Element}
 
@@ -226,7 +426,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function PageHeader
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary <div class="page-header"><h1>{content}</h1></div>
 @return {surface::Element}
 
@@ -234,7 +434,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @summary Bootstrap-style panel ("<div class='panel'>") with additional `panel-*` classes applied.
 @param {String} [panel_classes] String of `panel-*` classes to apply to the button
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @return {surface::Element}
 @desc
   `panel_classes` is a space-separated list of `panel-*` classes that should be applied to the 
@@ -244,19 +444,19 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function PanelBody
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary <div class="panel-body">
 @return {surface::Element}
 
 @function PanelHeading
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary <div class="panel-heading">
 @return {surface::Element}
 
 @function PanelTitle
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attribs]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary <h3 class='panel-title'>
 @return {surface::Element}
 
@@ -265,7 +465,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @altsyntax doModal([settings]) { |dialog| ... }
 @param {Object} [settings] 
 @param {Function} [block] Function bounding lifetime of dialog; will be called with DOM node of dialog as first argument.
-@return {Object} `undefined` if the dialog is dismissed with the close button, by clicking on the backdrop or typing 'Escape', other equal to the return value of `block`
+@return {Object} `undefined` if the dialog is dismissed with the close button, by clicking on the backdrop or typing 'Escape', otherwise equal to the return value of `block`
 @setting {surface::HtmlFragment} [body]
 @setting {optional surface::HtmlFragment} [header] Content of header. Takes precedence over `title` if both are given.
 @setting {optional surface::HtmlFragment} [title] Title to display in a `<h4 class='modal-title'>` in the header.
@@ -274,6 +474,69 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @setting {optional Boolean|String} [backdrop=true] Include a modal-backdrop element. Specify `'static'` for a backdrop that doesn't close the modal on click.
 @setting {optional Boolean} [keyboard=true] Close the modal when Escape key is pressed.
 @summary Execute function `block` while showing a modal dialogbox
+@desc
+  * "Close events", such as a click on the `close_button`, or a press of the Escape key, will abort `block`, and can be handled inside `block` with a [sjs:#language/syntax::try-retract] construct.
 @hostenv xbrowser
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+  function launch() {
+    var Countdown = @ObservableVar(10);
+    var Status = @ObservableVar(`Ignition in $Countdown seconds`);
+    @doModal({
+      title: `Rocket Launch`,
+      body: Status .. @H2() .. @TextCenter,
+      footer: @Btn('primary', 'Abort') .. @Enabled(Countdown) .. @OnClick({|| return})
+    }) {
+      || 
+      for (var i=9; i>=0; --i) {
+        hold(1000);
+        Countdown.set(i);
+      }
+      Status.set('Engines started');
+      hold(1000);
+      Status.set('Rocket launched');
+      hold();
+    }
+  }
+
+  @mainContent .. @appendContent([
+    @demo.CodeResult(
+      "\
+    @ = require(['mho:std', 'mho:app']);
+
+    function launch() {
+      var Countdown = @ObservableVar(10);
+      var Status = @ObservableVar(`Ignition in $Countdown seconds`);
+
+      @doModal({
+        title: `Rocket Launch`,
+        body: Status .. @H2() .. @TextCenter,
+        footer: @Btn('primary', 'Abort') .. 
+                  @Enabled(Countdown) .. 
+                  @OnClick({|| return})
+      }) {
+        || 
+        for (var i=9; i>=0; --i) {
+          hold(1000);
+          Countdown.set(i);
+        }
+        Status.set('Engines started');
+        hold(1000);
+        Status.set('Rocket launched');
+        hold();
+      }
+    }
+    
+    @mainContent .. @appendContent(
+      @Btn('primary', 'Launch Rocket') .. @OnClick(launch)
+    );\
+
+    ",
+      [@Btn('primary', 'Launch Rocket') .. @OnClick(launch),
+       @Div() .. @Style('height:300px')]
+    )
+  ]);
+
 
 */
