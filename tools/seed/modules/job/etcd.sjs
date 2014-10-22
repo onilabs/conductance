@@ -48,10 +48,13 @@ exports.changes = function(client, key, opts) {
 		delete opts.initial;
 	}
 	return @Stream(function(_emit) {
+		__js var updateIndex = function(node) {
+			var n = (node .. @get('modifiedIndex')) + 1;
+			if (n > nextIndex) nextIndex = n;
+		};
+
 		var emit = function(change) {
-			if (change.node) {
-				nextIndex = (change.node .. @get('modifiedIndex')) + 1;
-			}
+			if (change.node) updateIndex(change.node);
 			_emit(change);
 		};
 
@@ -60,17 +63,31 @@ exports.changes = function(client, key, opts) {
 			node: null,
 		};
 
-		if (emitInitial) {
-			//console.log("grabbing initial: " + key);
-			var initial;
-			var got = exports.tryOp(function() {
-				initial = client.get(key, opts);
-			}, [exports.err.KEY_NOT_FOUND]);
-			if (got) {
-				emit(initial)
+		//console.log("grabbing initial: " + key);
+		var initial;
+		var gotInitial = exports.tryOp(function() {
+			initial = client.get(key, opts);
+		}, [exports.err.KEY_NOT_FOUND]);
+
+		if (gotInitial) {
+			if(opts.recursive) {
+				// special-case: take the highest modifiedIndex of an initial recursive listing,
+				// otherwise we'll be flooded with all leaf modifications made after the root
+				// was last modified
+				var walk = function(node) {
+					updateIndex(node);
+					if (node.nodes) {
+						node.nodes .. @each(walk);
+					}
+				};
+				walk(initial.node);
 			} else {
-				emit(BLANK);
+				updateIndex(initial.node);
 			}
+		}
+
+		if (emitInitial) {
+			emit(gotInitial ? initial : BLANK);
 		}
 
 		while(true) {
