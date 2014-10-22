@@ -15,7 +15,7 @@
 @logging = require('sjs:logging');
 @fs = require('sjs:nodejs/fs');
 @url = require('sjs:url');
-var {@murmur3_32} = require('sjs:cryoto/murmur');
+var {@murmur3_32} = require('sjs:crypto/murmur');
 
 /**
   @summary Utilities for generator (`.gen`) modules
