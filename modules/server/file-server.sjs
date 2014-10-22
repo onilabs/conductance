@@ -225,7 +225,7 @@ function serveFile(req, filePath, format, settings) {
       apiinfo: apiinfo,
       filetype: extension,
       format: format,
-      etag: stat.mtime.getTime() .. String
+      etag: settings.etag(stat, filePath),
     },
     settings);
   return true;
@@ -317,8 +317,13 @@ exports.MappedDirectoryHandler = function(root, settings) {
                allowApis:       false,
                context:         null,
                formats: StaticFormatMap,
+               etag: null,
              } ..
     override(settings || {});
+
+  if (!settings.etag) {
+    settings.etag = defaultEtagFormatter(root);
+  }
 
   function handler_func(req, matches) {
     req.context = settings.context;
@@ -375,3 +380,27 @@ exports.MappedDirectoryHandler = function(root, settings) {
     "HEAD": handler_func
   };
 }
+
+// guesses the best etag strategy for directory `root`
+var defaultEtagFormatter = function(root) {
+  var st;
+  try {
+    st = fs.stat(root);
+  } catch(e) { /* probably enoent */ }
+  if (st) {
+    if (st.mtime.getTime() <= 1000) {
+      // mtimes are probably not meaningful (e.g nix store)
+      return exports.etag.fileIdentity;
+    }
+  }
+  return exports.etag.mtime;
+};
+
+exports.etag = {};
+exports.etag.mtime = function(st) {
+  return st.mtime.getTime() .. String;
+};
+
+exports.etag.fileIdentity = function(st) {
+  return "#{st.mtime.getTime()}-#{st.dev}-#{st.ino}";
+};

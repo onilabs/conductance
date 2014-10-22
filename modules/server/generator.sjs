@@ -15,6 +15,7 @@
 @logging = require('sjs:logging');
 @fs = require('sjs:nodejs/fs');
 @url = require('sjs:url');
+var {@murmur3_32} = require('sjs:cryoto/murmur');
 
 /**
   @summary Utilities for generator (`.gen`) modules
@@ -50,7 +51,7 @@ var CachedBundle = exports.CachedBundle = function(settings) {
   var isStale = self.isStale = function() {
     // sets _stale, which short-circuits future calls until
     // it's cleared by refresh()
-    _stale = _stale || !_cache || maxMtime(_cache.sources) > _cache.mtime;
+    _stale = _stale || !_cache || genEtag(_cache.sources) !== _cache.etag;
     return _stale;
   };
 
@@ -63,23 +64,26 @@ var CachedBundle = exports.CachedBundle = function(settings) {
         .. @ownValues
         .. @filter(mod -> mod.loaded)
         .. @map(mod -> mod.path .. @url.toPath);
-      curr.mtime = maxMtime(curr.sources);
+      curr.etag = genEtag(curr.sources);
       _cache = curr;
       _stale = false;
     }
     return _cache;
   });
 
-  var maxMtime = function(sources) {
+  var genEtag = function(sources) {
     var max = 0;
+    var inodes = [];
     sources .. @each {|source|
-      var mt = @fs.stat(source).mtime.getTime();
+      var st = @fs.stat(source);
+      var mt = st.mtime.getTime();
+      inodes.push(st.ino);
       if (max < mt) max = mt;
     }
-    return max;
+    return "#{max}-#{inodes.join('-') .. @murmur3_32(0)}";
   };
 
-  self.etag = -> refresh().mtime .. String();
+  self.etag = -> refresh().etag .. String();
 
   self.content = @func.sequential(function() {
     var curr = refresh();
@@ -107,7 +111,7 @@ var CachedBundle = exports.CachedBundle = function(settings) {
   @return {Object}
   @desc
     A BundleGenerator implements a server-side generator for
-    serving a compiled bundle based on `settings`, on demand. 
+    serving a compiled bundle based on `settings`, on demand.
     See [sjs:bundle::create] for a description of possible settings.
 
     ### Example:
