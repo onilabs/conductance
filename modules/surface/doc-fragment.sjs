@@ -228,7 +228,7 @@ exports.conductanceCss = function() {
               border: none;
             }
 
-            .btn-primary { 
+            .btn-primary, .btn-primary.disabled, .btn-primary[disabled] { 
               background-color: ${mhoColors.onilabs_red}; 
               border-color: ${mhoColors.onilabs_redhighlight};  
             }
