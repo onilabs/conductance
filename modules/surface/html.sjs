@@ -318,6 +318,16 @@ function selectedIndices(items, selection) {
 
 function SelectObserverMechanism(ft, state, updateSelected) {
   return ft .. Mechanism(function(node) {
+
+    function update(items) {
+      var new_selection = node.querySelectorAll('option') ..
+        indexed ..
+        filter(([idx,elem]) -> elem.selected) ..
+        map([idx,] -> items[idx]);
+      
+      updateSelected(new_selection);
+    }
+
     var lastSelection;
     waitfor {
       var lastItems;
@@ -350,19 +360,19 @@ function SelectObserverMechanism(ft, state, updateSelected) {
         }
 
         lastSelection = selection;
+
+        if (!lastItems && updateSelected) {
+          update(items);
+        }
+
         lastItems = items;
       }
     } and {
       if (updateSelected) {
         events(node, 'change') .. each {
           |ev|
-          if (!lastItems) continue;
-          var new_selection = node.querySelectorAll('option') ..
-            indexed ..
-            filter(([idx,elem]) -> elem.selected) ..
-            map([idx,] -> lastItems[idx]);
-
-          updateSelected(new_selection);
+          if (lastItems)
+            update(lastItems);
         }
       }
     }
