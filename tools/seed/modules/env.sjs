@@ -128,7 +128,7 @@ exports.defaults = function() {
 	var internalHost = 'localhost';
 	def('internalAddress', process.env['SEED_INTERNAL_ADDRESS'] || internalHost);
 
-	var selfHost = process.env['SEED_PUBLIC_ADDRESS'] || selfHost;
+	var selfHost = process.env['SEED_PUBLIC_ADDRESS'] || 'localhost.self';
 	/* ^^ localhost.self is used for development, requires dnsmasq config:
 		$ cat /etc/dnsmasq.d/self.conf
 		address=/.self/127.0.0.1
@@ -166,13 +166,24 @@ exports.defaults = function() {
 			proto = proto || defaultProto;
 			var origin = env.get("host-#{service}", selfHost);
 			var port;
-			if (useVhost || service === 'proxy') {
-				// use the vhost public address
-				port = defaultPorts .. @get(proto);
-			} else {
-				// we probably don't have hosts set up, so use the internal service port
-				port = env.get("port-#{service}");
+			switch(service) {
+				case 'proxy':
+					// never use explicit port
+					port = defaultPorts .. @get(proto);
+					break;
+				case 'local':
+					// always use explicit port
+					port = env.get('port-local');
+					break;
+				default:
+					if(useVhost) {
+						port = defaultPorts .. @get(proto);
+					} else {
+						port = env.get("port-#{service}");
+					}
+					break;
 			}
+
 			var rv = "#{proto}://#{origin}";
 			if(standardPorts[proto] !== port) {
 				rv += ":#{port}";
@@ -196,8 +207,8 @@ exports.defaults = function() {
 			ca:   @fs.readFile(process.env .. @get('ETCD_CA_FILE')),
 
 			// provide our client certificate
-			cert: @fs.readFile(process.env .. @get('SEED_ETCD_CLIENT_CERT')),
-			key:  @fs.readFile(process.env .. @get('SEED_ETCD_CLIENT_KEY')),
+			cert: @fs.readFile(@path.join(store, 'key-conductance-etcd-client.crt')),
+			key:  @fs.readFile(@path.join(store, 'key-conductance-etcd-client.key')),
 		};
 	}, true);
 	def('etcd-proto', PROD ? 'https' : 'http');
@@ -207,6 +218,15 @@ exports.defaults = function() {
 		var sslOpts = this.get('etcd-ssl');
 		@logging.info("Connecting to etcd #{host}:#{port}");
 		return new @etcd.Etcd(host, port, sslOpts);
+	}, true);
+
+	def('seed-ssl', function() {
+		var store = this.get('key-store');
+		if (!store) return false;
+		return {
+			cert: @path.join(store, 'key-conductance-https.crt') .. @fs.readFile(),
+			key:  @path.join(store, 'key-conductance-https.key') .. @fs.readFile(),
+		};
 	}, true);
 
 	// exposed ports

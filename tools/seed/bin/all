@@ -12,8 +12,8 @@ if (!process.env.SEED_LOG_LEVEL) {
 }
 require('./services').withServices {||
 	waitfor {
-		require('mho:server/seed/local').serve(@argv().concat(['--master', 'http://localhost:7071']));
+		require('mho:server/seed/local').serve(['--master', 'http://localhost:7071']);
 	} or {
-		run('config.mho', ['master','proxy','slave']);
+		run('config.mho', ['master','proxy','slave'].concat(@argv()));
 	}
 }

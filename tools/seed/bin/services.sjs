@@ -85,6 +85,10 @@ var gcd = exports.gcd = (function() {
 
 	var isRunning = function(root) {
 		root = root || root_url();
+		if(root === null) {
+			// running on gce, assume OK
+			return true;
+		}
 		return exports.tryHttp {||
 			@http.get(root);
 			@info("Found gcd server on #{root}");

@@ -811,7 +811,7 @@ exports.run = function(localServer) {
 				stopIndicator();
 				elem .. @appendContent(`
 					<div>
-						<p>Couldn't connect to local Conductance server on <code>${localServer}</code>.</p>
+						<p>Couldn't connect to local Conductance server on <code>${localServer}</code></p>
 						<p>You can start the local server by running:</p>
 						<pre>\$ conductance seed</pre>
 						$@Button("Try again", {'class':'btn-primary'})
