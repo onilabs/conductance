@@ -287,7 +287,6 @@ exports.renderer = function(libraries, rootSymbol) {
 		if (docs.type == "function" || docs.type == "ctor") {
 			rv.push(makeFunctionHtml(docs, symbol));
 			rv.push(makeDescriptionHTML(docs, symbol));
-      rv.push(makeDemo(docs));
 		} else {
 			var summary = Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"});
 			if (docs.type == "class") {
@@ -332,6 +331,7 @@ exports.renderer = function(libraries, rootSymbol) {
 			}
 		}
 
+    rv.push(makeDemo(docs));
 
 		return rv;
 	}
