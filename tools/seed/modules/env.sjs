@@ -222,11 +222,18 @@ exports.defaults = function() {
 
 	def('seed-ssl', function() {
 		var store = this.get('key-store');
-		if (!store) return false;
-		return {
-			cert: @path.join(store, 'key-conductance-https.crt') .. @fs.readFile(),
-			key:  @path.join(store, 'key-conductance-https.key') .. @fs.readFile(),
-		};
+		if (store) {
+			return {
+				cert: @path.join(store, 'key-conductance-https.crt') .. @fs.readFile(),
+				key:  @path.join(store, 'key-conductance-https.key') .. @fs.readFile(),
+			};
+		} else {
+			var insecure = @path.join(@env.get('conductanceRoot'), 'ssl');
+			return {
+				cert: @path.join(insecure, 'insecure-localhost.crt') .. @fs.readFile(),
+				key:  @path.join(insecure, 'insecure-localhost.key') .. @fs.readFile(),
+			};
+		}
 	}, true);
 
 	// exposed ports

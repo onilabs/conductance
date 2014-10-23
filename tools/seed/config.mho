@@ -54,9 +54,8 @@ var runAll = function(servers, opts) {
     routes: [],
   };
 
-  var sslConf = @env.get('seed-ssl');
   external['https'] = {
-    address: Port(@env.get('port-https')).ssl(sslConf),
+    address: Port(@env.get('port-https')).ssl(@env.get('seed-ssl')),
     routes: [],
   };
 
@@ -111,11 +110,6 @@ var runAll = function(servers, opts) {
               req .. @writeRedirectResponse(url, 302);
             }
           }));
-          break;
-
-        case 'https':
-          // we allow an empty ssl config in dev, as long as there are no routes using https
-          sslConf .. @assert.ok("no SSL config found");
           break;
       }
     }
