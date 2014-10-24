@@ -107,7 +107,11 @@ exports.changes = function(client, key, opts) {
 				}
 				throw err;
 			} else {
-				@assert.ok(change, "empty change returned from client.watch");
+				if(!change) {
+					// Probably a connection timeout, just try again
+					// XXX see https://github.com/stianeikeland/node-etcd/issues/32
+					continue;
+				}
 			}
 
 			emit(change);
