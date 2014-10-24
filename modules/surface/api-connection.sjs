@@ -18,6 +18,8 @@ var {@warn} = require('sjs:logging');
 
   @function withAPI
   @param {Object} [api] api module
+  @param {optional Settings} [settings] settings passed to [rpc/bridge::connect]
+  @setting {Function} [notice] Notice constructor (default: [surface/bootstrap/notice::Notice])
   @param {Function} [block]
   @summary Connect and use an `.api` module
   @desc
@@ -42,15 +44,16 @@ exports.withAPI = function(api, opts, block) {
   var initialDelay = 1000;
   var delay = initialDelay;
   var { @isTransportError, @connect } = require('../rpc/bridge');
-  var { @Notice } = require('./bootstrap/notice');
   var { @Countdown } = require('./widget/countdown');
+  var Notice = opts.notice;
+  if (!Notice) ({Notice}) = require('./bootstrap/notice');
 
   while (1) {
     try {
       @connect(api, opts .. @merge({
         connectMonitor: function() {
           hold(300); // small delay before showing ui feedback
-          document.body .. @appendContent(@Notice('Connecting...', {'class':'alert-warning'}), -> hold());
+          document.body .. @appendContent(Notice('Connecting...', {'class':'alert-warning'}), -> hold());
         }
       })) {
         |connection|
@@ -64,7 +67,7 @@ exports.withAPI = function(api, opts, block) {
         hold(300); // small delay before showing ui feedback
         if (window.onerror && window.onerror.triggered) return;
 
-        document.body .. @appendContent(@Notice(
+        document.body .. @appendContent(Notice(
           `Not connected. Reconnect in ${@Countdown(Math.floor(delay/1000))}s. ${@Element('a', "Try Now", {href:'#'})}`,
           {'class':'alert-warning'}))
         {|elem|
