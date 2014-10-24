@@ -8,6 +8,7 @@ var { @route } = require('./my-route');
 @logging.setLevel(@logging.DEBUG);
 var { @Countdown } = require('mho:surface/widget/countdown');
 var { @isTransportError, @connect } = require('mho:rpc/bridge');
+var { @Notice } = require('mho:surface/bootstrap/notice');
 
 var OnClick = (elem, action) -> @OnClick(elem, {handle:@stopEvent}, action);
 
@@ -795,32 +796,13 @@ function runInner(api, ready) {
 };
 
 exports.run = function(localServer) {
-	while(true) {
-		var stopIndicator = null;
-		try {
-			@withBusyIndicator {|ready|
-				stopIndicator = ready;
-				@connect("#{localServer}remote.api", commonConnectionOptions) {|connection|
-					runInner(connection.api, ready);
-				}
-			}
-			break;
-		} catch(e) {
-			if (!@isTransportError(e)) throw e;
-			@modal.withOverlay({title:"Can't connect to local server", 'class':'panel-danger', close:false}) {|elem|
-				stopIndicator();
-				elem .. @appendContent(`
-					<div>
-						<p>Couldn't connect to local Conductance server on <code>${localServer}</code></p>
-						<p>You can start the local server by running:</p>
-						<pre>\$ conductance seed</pre>
-						$@Button("Try again", {'class':'btn-primary'})
-					</div>
-				`) {|elem|
-					var btn = elem.querySelector('.btn');
-					btn .. @wait('click');
-				}
-			}
+	@withBusyIndicator {|ready|
+		stopIndicator = ready;
+		var Notice = @
+		@withAPI("#{localServer}remote.api", commonConnectionOptions .. @merge({
+			notice: -> @Notice.apply(null, arguments) .. @Class('reconnectNotification'),
+		})) {|api|
+			runInner(api, ready);
 		}
 	}
 }

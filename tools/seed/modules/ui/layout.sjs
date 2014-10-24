@@ -1,6 +1,7 @@
 @ = require(['mho:std','mho:surface/bootstrap']);
 var frag = require('mho:surface/doc-fragment');
 
+var headerHeight = 120;
 exports.globalCss = @GlobalCSS("
   html, body {
     height:100%;
@@ -21,10 +22,15 @@ exports.globalCss = @GlobalCSS("
       color: #2a6496;
     }
   }
+
+  .reconnectNotification {
+    /* clear the header */
+    position: absolute !important;
+    top: #{headerHeight + 15}px !important;
+  }
 ");
 
 exports.Center = @CSS("{text-align:center;}");
-var headerHeight = 120;
 var headerStyle = @CSS("
   {
     position:relative;

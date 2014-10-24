@@ -315,8 +315,7 @@ COMPONENTS.proxy = function() {
         //@info("destRoute: ", destRoute);
         if (destRoute) {
           var [destHost, destPort] = destRoute;
-          var dest = "#{proto}://#{destHost}:#{destPort}#{req.url.path}";
-          if (req.url.query) dest += "?#{req.url.query}";
+          var dest = "#{proto}://#{destHost}:#{destPort}#{req.url.relative}";
           var opts = {
             method: req.request.method,
             response: 'raw',
