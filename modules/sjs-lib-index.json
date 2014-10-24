@@ -371,6 +371,9 @@
             "StaticDirectory": {
               "type": "function"
             },
+            "SystemBridgeRoutes": {
+              "type": "function"
+            },
             "SystemCodeRoutes": {
               "type": "function"
             },
