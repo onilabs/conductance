@@ -14,6 +14,7 @@ var { @follow } = require('./follow');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var { @rimraf } = require('sjs:nodejs/rimraf');
 @validate = require('../validate');
+var { quote: @shellQuote } = require('sjs:shell-quote');
 var { @keySafe, hex: @appIdSafe } = @validate;
 var here = @url.normalize('./', module.id) .. @url.toPath;
 var tmpRoot = @path.join(here, '../tmp');
@@ -285,11 +286,15 @@ exports.localAppState = (function() {
       var codeSources = getMasterCodePaths(user, id);
       
       // make sure the server identity matches key-all-ssh-known-hosts to prevent MITM
-      var sshCmd = "ssh -o GlobalKnownHostsFile=#{@path.join(keyStore, "key-all-ssh-known-hosts")} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=yes";
+      var sshCmd = ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=yes'];
       if(keyStore) {
-        sshCmd += "  -o IdentityFile=#{@path.join(keyStore, "key-slave-ssh-id")}";
+        // if there's no key store (e.g in dev), the current user must already have ssh access
+        sshCmd = sshCmd.concat([
+          '-o', "GlobalKnownHostsFile=#{@path.join(keyStore, "key-all-ssh-known-hosts")}",
+          '-o', "IdentityFile=#{@path.join(keyStore, "key-slave-ssh-id")}",
+        ]);
       }
-      var cmd = ['rsync', '-az', '-e', sshCmd, '--chmod=go-w', '--delete']
+      var cmd = ['rsync', '-az', '-e', sshCmd .. @shellQuote, '--chmod=go-w', '--delete']
         .concat(codeSources)
         .concat([ appRunBase ]);
 
