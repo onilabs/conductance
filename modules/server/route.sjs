@@ -373,22 +373,7 @@ exports.StaticDirectory = createDirectoryMapper({});
     avoid the possibility of a clash.
 */
 function SystemRoutes() {
-  return exports.SystemCodeRoutes().concat([
-    Route(
-      /^__aat_bridge\/(2)$/,
-      require('mho:rpc/aat-server').createTransportHandler(
-        function(transport) {
-          require('mho:rpc/bridge').accept(
-            require('./api-registry').getAPIbyAPIID,
-            transport);
-        }
-      )
-    ),
-    Route(
-      /^__keyhole\/([^\/]+)\/(.*)$/,
-      require('./keyhole').createKeyholeHandler()
-    )
-  ]);
+  return exports.SystemCodeRoutes().concat(exports.SystemBridgeRoutes());
 }
 exports.SystemRoutes = SystemRoutes;
 
@@ -407,6 +392,30 @@ function SystemCodeRoutes() {
   ];
 }
 exports.SystemCodeRoutes = SystemCodeRoutes;
+
+/**
+   @function SystemBridgeRoutes
+   @summary Standard system routes (for bridge functionality only)
+*/
+function SystemBridgeRoutes() {
+  return [
+    Route(
+      /^__aat_bridge\/(2)$/,
+      require('mho:rpc/aat-server').createTransportHandler(
+        function(transport) {
+          require('mho:rpc/bridge').accept(
+            require('./api-registry').getAPIbyAPIID,
+            transport);
+        }
+      )
+    ),
+    Route(
+      /^__keyhole\/([^\/]+)\/(.*)$/,
+      require('./keyhole').createKeyholeHandler()
+    )
+  ];
+}
+exports.SystemBridgeRoutes = SystemBridgeRoutes;
 
 /**
   @function SetHeaders
