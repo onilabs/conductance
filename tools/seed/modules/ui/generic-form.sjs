@@ -91,6 +91,7 @@ function Field(source, opts) {
 		});
 	};
 	value.get = -> get(source.get());
+	value.__oni_is_ObservableVar = true; // XXX hacky...
 
 	var rv = {
 		name: name,
