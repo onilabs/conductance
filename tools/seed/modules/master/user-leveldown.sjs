@@ -13,7 +13,15 @@ var store = exports._store = @storage.Storage(@path.join(config_root, 'auth.db')
 exports.isNotFound = e -> e.type === 'NotFound';
 
 var userKey = id -> new Buffer("user:#{id}", 'ascii');
-exports.synchronize = (block) -> dbLock.synchronize(->block(exports));
+
+var EXPORTS_WITH_LOCK = Object.create(exports);
+
+exports.synchronize = function(reason, block) {
+	if(this === EXPORTS_WITH_LOCK) {
+		return block(EXPORTS_WITH_LOCK);
+	}
+	dbLock.synchronize(->block(EXPORTS_WITH_LOCK));
+};
 
 var prefixed = function(prefix) {
 	return @Stream(function(emit) {
@@ -34,17 +42,23 @@ var keysWithPrefix = function(prefix) {
 };
 
 exports.getUser = function(uid) {
-	exports.synchronize {||
+	this.synchronize('getUser') {||
 		var key = userKey(uid);
 		return {
 			id: key.toString('ascii'),
-			props: db.get(key) .. JSON.parse(),
+			props: store.get(key) .. JSON.parse(),
 		};
 	}
 };
 
+exports.updateUser = function(id, props) {
+	this.synchronize('updateUser') {||
+		store.put(id, props .. JSON.stringify());
+	}
+};
+
 exports.createUser = function(props) {
-	exports.synchronize {||
+	this.synchronize('createUser') {||
 		var uid = props.name;
 		var key = userKey(uid);
 
@@ -59,7 +73,7 @@ exports.createUser = function(props) {
 };
 
 exports._deleteAllData = function() {
-	exports.synchronize {||
+	this.synchronize('_deleteAllData') {||
 		store.query() .. @each {|[k,_v]|
 			store.del(k);
 		};
@@ -131,3 +145,5 @@ if (require.main === module) {
 			break;
 	}
 }
+
+

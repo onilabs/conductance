@@ -82,6 +82,7 @@ exports.run = function(args) {
       name: 'seed',
       desc: 'Run a local seed server',
       fn: exports.localSeedServer,
+      defaultVerbosity: -1, // WARN
     },
     {
       name: 'bundle',

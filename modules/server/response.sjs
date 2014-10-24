@@ -91,8 +91,9 @@ var setHeader = exports.setHeader = function setHeader(req, key, val) {
 function writeRedirectResponse(req, location, status) {
   if (!status) status = 302; // moved temporarily
   var resp = "<html><head><title>"+status+" Redirect</title></head>";
+  var locationHtml = sanitize(location);
   resp += "<body><h4>"+status+" Redirect</h4>";
-  resp += "The document can be found at <a href='"+location+"'>"+location+"</a>.";
+  resp += "The document can be found at <a href='"+locationHtml+"'>"+locationHtml+"</a>.";
   resp += "<hr>Oni Conductance Server</body></html>";
   req .. setStatus(status, { "Content-Type":"text/html", "Location":location});
   req.response.end(resp);

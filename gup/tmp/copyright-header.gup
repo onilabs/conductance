@@ -14,10 +14,10 @@ var addHeader = exports.addHeader = function(target) {
   // remove existing header
   var orig = src;
   src = src.replace(/(^|\n*)\/\*[\n* ]*\(c\) [0-9-, ]* Oni Labs(.|\n)*?\*\/\n*/i, '\n');
-  src = src.replace(/^\n*/, '');
   if (src == orig) {
     console.warn("No existing header found in #{target}");
   }
+  src = src.replace(/^\n*/, '');
 
   // insert on first line that doesn't start with '#' or '//' (shebang & editor config lines)
   var insertionPoint = src.match(/(^|\n)([^#\/]|\/[^\/])/m);

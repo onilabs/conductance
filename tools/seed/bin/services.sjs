@@ -80,12 +80,15 @@ var etcd = exports.etcd = (function() {
 })();
 
 var gcd = exports.gcd = (function() {
-	var dataset = @env('gcd-dataset');
 	var host = @env('gcd-host');
 	var root_url = -> host;
 
 	var isRunning = function(root) {
 		root = root || root_url();
+		if(root === null) {
+			// running on gce, assume OK
+			return true;
+		}
 		return exports.tryHttp {||
 			@http.get(root);
 			@info("Found gcd server on #{root}");

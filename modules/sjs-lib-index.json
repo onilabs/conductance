@@ -7,9 +7,6 @@
         "api-file": {
           "type": "module",
           "children": {
-            "require-api": {
-              "type": "feature"
-            },
             "ApiStub": {
               "type": "class",
               "children": {
@@ -17,6 +14,9 @@
                   "type": "function"
                 }
               }
+            },
+            "require-api": {
+              "type": "feature"
             }
           },
           "summary": "Server-side API modules"
@@ -24,10 +24,10 @@
         "app-file": {
           "type": "module",
           "children": {
-            "@template": {
+            "@bundle": {
               "type": "directive"
             },
-            "@bundle": {
+            "@template": {
               "type": "directive"
             }
           },
@@ -39,11 +39,11 @@
             "content": {
               "type": "function"
             },
-            "filetype": {
-              "type": "variable"
-            },
             "etag": {
               "type": "function"
+            },
+            "filetype": {
+              "type": "variable"
             }
           },
           "summary": "Server-side generator files"
@@ -71,14 +71,14 @@
     "env": {
       "type": "module",
       "children": {
-        "executable": {
-          "type": "variable"
-        },
         "conductanceRoot": {
           "type": "variable"
         },
         "conductanceVersion": {
           "type": "function"
+        },
+        "executable": {
+          "type": "variable"
         },
         "sjsRoot": {
           "type": "variable"
@@ -98,6 +98,9 @@
                 "Context": {
                   "type": "class",
                   "children": {
+                    "Context": {
+                      "type": "ctor"
+                    },
                     "allocateIds": {
                       "type": "function"
                     },
@@ -112,29 +115,15 @@
                     },
                     "withTransaction": {
                       "type": "function"
-                    },
-                    "Context": {
-                      "type": "ctor"
-                    }
-                  }
-                },
-                "Transaction": {
-                  "type": "class",
-                  "children": {
-                    "lookup": {
-                      "type": "function"
-                    },
-                    "runQuery": {
-                      "type": "function"
-                    },
-                    "commit": {
-                      "type": "function"
                     }
                   }
                 },
                 "DatastoreError": {
                   "type": "class",
                   "children": {
+                    "content": {
+                      "type": "variable"
+                    },
                     "func": {
                       "type": "variable"
                     },
@@ -146,9 +135,20 @@
                     },
                     "type": {
                       "type": "variable"
+                    }
+                  }
+                },
+                "Transaction": {
+                  "type": "class",
+                  "children": {
+                    "commit": {
+                      "type": "function"
                     },
-                    "content": {
-                      "type": "variable"
+                    "lookup": {
+                      "type": "function"
+                    },
+                    "runQuery": {
+                      "type": "function"
                     }
                   }
                 }
@@ -171,19 +171,19 @@
                 "GoogleCloudDatastore": {
                   "type": "ctor"
                 },
-                "write": {
+                "query": {
                   "type": "function"
                 },
                 "read": {
                   "type": "function"
                 },
-                "query": {
+                "watch": {
                   "type": "function"
                 },
                 "withTransaction": {
                   "type": "function"
                 },
-                "watch": {
+                "write": {
                   "type": "function"
                 }
               }
@@ -191,13 +191,13 @@
             "Transaction": {
               "type": "class",
               "children": {
+                "query": {
+                  "type": "function"
+                },
                 "read": {
                   "type": "function"
                 },
                 "write": {
-                  "type": "function"
-                },
-                "query": {
                   "type": "function"
                 }
               }
@@ -213,16 +213,6 @@
         "bridge": {
           "type": "module",
           "children": {
-            "isTransportError": {
-              "type": "function"
-            },
-            "TransportError": {
-              "type": "class",
-              "children": {}
-            },
-            "setMarshallingDescriptor": {
-              "type": "function"
-            },
             "API": {
               "type": "class",
               "children": {
@@ -237,18 +227,28 @@
             "BridgeConnection": {
               "type": "class",
               "children": {
-                "sessionLost": {
-                  "type": "variable"
-                },
                 "__finally__": {
                   "type": "function"
+                },
+                "sessionLost": {
+                  "type": "variable"
                 }
               }
+            },
+            "TransportError": {
+              "type": "class",
+              "children": {}
+            },
+            "accept": {
+              "type": "function"
             },
             "connect": {
               "type": "function"
             },
-            "accept": {
+            "isTransportError": {
+              "type": "function"
+            },
+            "setMarshallingDescriptor": {
               "type": "function"
             }
           },
@@ -263,23 +263,23 @@
         "formats": {
           "type": "module",
           "children": {
+            "Code": {
+              "type": "function"
+            },
+            "Executable": {
+              "type": "function"
+            },
             "FormatMap": {
               "type": "class",
               "children": {}
+            },
+            "Jsonp": {
+              "type": "function"
             },
             "StaticFormatMap": {
               "type": "variable"
             },
             "withFormats": {
-              "type": "function"
-            },
-            "Code": {
-              "type": "function"
-            },
-            "Jsonp": {
-              "type": "function"
-            },
-            "Executable": {
               "type": "function"
             }
           },
@@ -288,10 +288,10 @@
         "generator": {
           "type": "module",
           "children": {
-            "moduleTimestamp": {
+            "BundleGenerator": {
               "type": "function"
             },
-            "BundleGenerator": {
+            "moduleTimestamp": {
               "type": "function"
             }
           },
@@ -308,13 +308,13 @@
                 }
               }
             },
-            "isHttpError": {
-              "type": "function"
-            },
             "NotFound": {
               "type": "function"
             },
             "ServerError": {
+              "type": "function"
+            },
+            "isHttpError": {
               "type": "function"
             }
           },
@@ -326,55 +326,58 @@
             "AllowCORS": {
               "type": "function"
             },
-            "SimpleRedirect": {
-              "type": "function"
-            },
-            "ErrorResponse": {
-              "type": "function"
-            },
-            "PortRedirect": {
-              "type": "function"
-            },
-            "HostRedirect": {
-              "type": "function"
-            },
-            "Redirect": {
-              "type": "function"
-            },
-            "ExecutableDirectory": {
-              "type": "function"
-            },
             "CodeDirectory": {
               "type": "function"
             },
-            "StaticDirectory": {
-              "type": "function"
-            },
-            "SystemRoutes": {
-              "type": "function"
-            },
-            "SystemCodeRoutes": {
-              "type": "function"
-            },
-            "SetHeaders": {
-              "type": "function"
-            },
-            "SetHeader": {
-              "type": "function"
-            },
             "DeveloperMode": {
-              "type": "function"
-            },
-            "LogRequests": {
-              "type": "function"
-            },
-            "Filter": {
               "type": "function"
             },
             "DocumentationBrowser": {
               "type": "function"
             },
             "ETagFilter": {
+              "type": "function"
+            },
+            "ErrorResponse": {
+              "type": "function"
+            },
+            "ExecutableDirectory": {
+              "type": "function"
+            },
+            "Filter": {
+              "type": "function"
+            },
+            "HostRedirect": {
+              "type": "function"
+            },
+            "LogRequests": {
+              "type": "function"
+            },
+            "PortRedirect": {
+              "type": "function"
+            },
+            "Redirect": {
+              "type": "function"
+            },
+            "SetHeader": {
+              "type": "function"
+            },
+            "SetHeaders": {
+              "type": "function"
+            },
+            "SimpleRedirect": {
+              "type": "function"
+            },
+            "StaticDirectory": {
+              "type": "function"
+            },
+            "SystemBridgeRoutes": {
+              "type": "function"
+            },
+            "SystemCodeRoutes": {
+              "type": "function"
+            },
+            "SystemRoutes": {
               "type": "function"
             }
           },
@@ -383,18 +386,13 @@
         "systemd": {
           "type": "module",
           "children": {
+            "ConductanceArgs": {
+              "type": "variable"
+            },
             "Group": {
               "type": "class",
               "children": {
                 "Group": {
-                  "type": "ctor"
-                }
-              }
-            },
-            "Unit": {
-              "type": "class",
-              "children": {
-                "Unit": {
                   "type": "ctor"
                 }
               }
@@ -423,8 +421,13 @@
                 }
               }
             },
-            "ConductanceArgs": {
-              "type": "variable"
+            "Unit": {
+              "type": "class",
+              "children": {
+                "Unit": {
+                  "type": "ctor"
+                }
+              }
             }
           },
           "summary": "Utilities for defining systemd units"
@@ -435,25 +438,10 @@
     "server": {
       "type": "module",
       "children": {
-        "run": {
-          "type": "function"
-        },
-        "Responder": {
-          "type": "class",
-          "children": {}
-        },
         "Host": {
           "type": "class",
           "children": {
             "Host": {
-              "type": "ctor"
-            }
-          }
-        },
-        "Route": {
-          "type": "class",
-          "children": {
-            "Route": {
               "type": "ctor"
             }
           }
@@ -464,16 +452,31 @@
             "Port": {
               "type": "ctor"
             },
+            "getAddress": {
+              "type": "function"
+            },
             "port": {
               "type": "variable"
             },
             "ssl": {
               "type": "function"
-            },
-            "getAddress": {
-              "type": "function"
             }
           }
+        },
+        "Responder": {
+          "type": "class",
+          "children": {}
+        },
+        "Route": {
+          "type": "class",
+          "children": {
+            "Route": {
+              "type": "ctor"
+            }
+          }
+        },
+        "run": {
+          "type": "function"
         }
       },
       "summary": "The Conductance webserver"
@@ -513,43 +516,16 @@
         "bootstrap": {
           "type": "module",
           "children": {
-            "Button": {
-              "type": "function"
+            "AvailableIcons": {
+              "type": "variable"
             },
-            "Table": {
-              "type": "function"
-            },
-            "Input": {
-              "type": "function"
-            },
-            "TextInput": {
-              "type": "function"
-            },
-            "TextArea": {
-              "type": "function"
-            },
-            "Select": {
-              "type": "function"
-            },
-            "TextRight": {
-              "type": "function"
-            },
-            "TextCenter": {
-              "type": "function"
-            },
-            "TextJustify": {
+            "Badge": {
               "type": "function"
             },
             "Btn": {
               "type": "function"
             },
-            "AvailableIcons": {
-              "type": "variable"
-            },
-            "Icon": {
-              "type": "function"
-            },
-            "Row": {
+            "Button": {
               "type": "function"
             },
             "Col": {
@@ -561,16 +537,19 @@
             "FluidContainer": {
               "type": "function"
             },
-            "Lead": {
+            "Icon": {
+              "type": "function"
+            },
+            "Input": {
+              "type": "function"
+            },
+            "Jumbotron": {
               "type": "function"
             },
             "Lbl": {
               "type": "function"
             },
-            "Badge": {
-              "type": "function"
-            },
-            "Jumbotron": {
+            "Lead": {
               "type": "function"
             },
             "ListGroup": {
@@ -594,6 +573,30 @@
             "PanelTitle": {
               "type": "function"
             },
+            "Row": {
+              "type": "function"
+            },
+            "Select": {
+              "type": "function"
+            },
+            "Table": {
+              "type": "function"
+            },
+            "TextArea": {
+              "type": "function"
+            },
+            "TextCenter": {
+              "type": "function"
+            },
+            "TextInput": {
+              "type": "function"
+            },
+            "TextJustify": {
+              "type": "function"
+            },
+            "TextRight": {
+              "type": "function"
+            },
             "doModal": {
               "type": "function"
             }
@@ -603,26 +606,26 @@
         "doc-fragment": {
           "type": "module",
           "children": {
-            "errorHandler": {
+            "bootstrapColors": {
+              "type": "variable"
+            },
+            "bootstrapCss": {
+              "type": "function"
+            },
+            "bootstrapJavascript": {
               "type": "function"
             },
             "busyIndicator": {
               "type": "function"
             },
-            "bootstrapCss": {
-              "type": "function"
-            },
-            "bootstrapColors": {
-              "type": "variable"
-            },
-            "mhoColors": {
-              "type": "variable"
-            },
             "conductanceCss": {
               "type": "function"
             },
-            "bootstrapJavascript": {
+            "errorHandler": {
               "type": "function"
+            },
+            "mhoColors": {
+              "type": "variable"
             }
           },
           "summary": "Components for use in custom [./static::Document] templates"
@@ -633,26 +636,23 @@
             "app-default": {
               "type": "module",
               "children": {
-                "@template-title": {
-                  "type": "directive"
-                },
-                "@template-show-error-dialog": {
-                  "type": "directive"
-                },
-                "@template-show-busy-indicator": {
-                  "type": "directive"
-                },
                 "@template-fluid": {
                   "type": "directive"
                 },
                 "@template-mho-style": {
                   "type": "directive"
                 },
-                "withBusyIndicator": {
-                  "type": "function"
+                "@template-show-busy-indicator": {
+                  "type": "directive"
                 },
-                "mainContent": {
-                  "type": "variable"
+                "@template-show-error-dialog": {
+                  "type": "directive"
+                },
+                "@template-title": {
+                  "type": "directive"
+                },
+                "Notice": {
+                  "type": "function"
                 },
                 "body": {
                   "type": "variable"
@@ -660,10 +660,13 @@
                 "colors": {
                   "type": "variable"
                 },
+                "mainContent": {
+                  "type": "variable"
+                },
                 "withAPI": {
                   "type": "function"
                 },
-                "Notice": {
+                "withBusyIndicator": {
                   "type": "function"
                 }
               },
@@ -705,28 +708,28 @@
         "html": {
           "type": "module",
           "children": {
-            "Input": {
-              "type": "function"
-            },
-            "TextInput": {
-              "type": "function"
-            },
-            "TextArea": {
-              "type": "function"
-            },
             "Checkbox": {
               "type": "function"
             },
-            "Select": {
-              "type": "function"
-            },
-            "Ul": {
+            "Input": {
               "type": "function"
             },
             "Ol": {
               "type": "function"
             },
+            "Select": {
+              "type": "function"
+            },
             "Submit": {
+              "type": "function"
+            },
+            "TextArea": {
+              "type": "function"
+            },
+            "TextInput": {
+              "type": "function"
+            },
+            "Ul": {
               "type": "function"
             }
           },
@@ -738,9 +741,23 @@
     "surface": {
       "type": "module",
       "children": {
-        "HtmlFragment": {
-          "type": "class",
-          "children": {}
+        "Attrib": {
+          "type": "function"
+        },
+        "Autofocus": {
+          "type": "function"
+        },
+        "CSS": {
+          "type": "function"
+        },
+        "Class": {
+          "type": "function"
+        },
+        "Content": {
+          "type": "function"
+        },
+        "Document": {
+          "type": "function"
         },
         "Element": {
           "type": "class",
@@ -750,76 +767,20 @@
             }
           }
         },
-        "isElement": {
-          "type": "function"
-        },
-        "isElementWithClass": {
-          "type": "function"
-        },
-        "isElementOfType": {
-          "type": "function"
-        },
-        "ensureElement": {
-          "type": "function"
-        },
-        "CSS": {
+        "Enabled": {
           "type": "function"
         },
         "GlobalCSS": {
           "type": "function"
         },
-        "Mechanism": {
-          "type": "function"
-        },
-        "Attrib": {
-          "type": "function"
+        "HtmlFragment": {
+          "type": "class",
+          "children": {}
         },
         "Id": {
           "type": "function"
         },
-        "Style": {
-          "type": "function"
-        },
-        "Class": {
-          "type": "function"
-        },
-        "Content": {
-          "type": "function"
-        },
-        "RawHTML": {
-          "type": "function"
-        },
-        "Autofocus": {
-          "type": "function"
-        },
-        "RequireExternalScript": {
-          "type": "function"
-        },
-        "RequireExternalCSS": {
-          "type": "function"
-        },
-        "replaceContent": {
-          "type": "function"
-        },
-        "appendContent": {
-          "type": "function"
-        },
-        "prependContent": {
-          "type": "function"
-        },
-        "insertBefore": {
-          "type": "function"
-        },
-        "insertAfter": {
-          "type": "function"
-        },
-        "removeNode": {
-          "type": "function"
-        },
-        "Prop": {
-          "type": "function"
-        },
-        "Enabled": {
+        "Mechanism": {
           "type": "function"
         },
         "On": {
@@ -828,10 +789,52 @@
         "OnClick": {
           "type": "function"
         },
-        "Document": {
+        "Prop": {
+          "type": "function"
+        },
+        "RawHTML": {
+          "type": "function"
+        },
+        "RequireExternalCSS": {
+          "type": "function"
+        },
+        "RequireExternalScript": {
+          "type": "function"
+        },
+        "Style": {
+          "type": "function"
+        },
+        "appendContent": {
+          "type": "function"
+        },
+        "ensureElement": {
+          "type": "function"
+        },
+        "insertAfter": {
+          "type": "function"
+        },
+        "insertBefore": {
+          "type": "function"
+        },
+        "isElement": {
+          "type": "function"
+        },
+        "isElementOfType": {
+          "type": "function"
+        },
+        "isElementWithClass": {
           "type": "function"
         },
         "loadTemplate": {
+          "type": "function"
+        },
+        "prependContent": {
+          "type": "function"
+        },
+        "removeNode": {
+          "type": "function"
+        },
+        "replaceContent": {
           "type": "function"
         }
       },

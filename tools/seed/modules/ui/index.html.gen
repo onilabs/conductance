@@ -1,15 +1,19 @@
-@ = require('mho:std');
+@ = require(['mho:std', 'mho:surface/html']);
 @layout = require('./layout');
 
 exports.content = function() {
   var localAddress = @env.get('publicAddress')('local', 'http');
-  return @layout.defaultDocument(null, {
-    title: "Conductance Seed",
-    init: "require('seed:ui/main').run('#{localAddress}')",
-    templateData: {
-      showBusyIndicator: true,
-    }
-  });
+  return @layout.defaultDocument(
+    @Div([
+      @H1("Nope..."),
+      @P(`Try ${@A(localAddress, {href: localAddress})}`),
+    ], {'class':'container pull-center'}),
+    {
+      title: "Conductance Seed",
+      templateData: {
+        showBusyIndicator: false,
+      }
+    });
 };
 
 exports.etag = @moduleTimestamp();

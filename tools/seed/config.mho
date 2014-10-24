@@ -47,6 +47,7 @@ var runAll = function(servers, opts) {
     default: defaultProto = PROD ? 'https' : 'http'; break;
   }
   @env.set('default-proto', defaultProto);
+  @info("default proto is #{defaultProto}");
 
   external['http'] = {
     address: Port(@env.get('port-http')),
@@ -54,14 +55,15 @@ var runAll = function(servers, opts) {
   };
 
   external['https'] = {
-    address: Port(@env.get('port-https')),
+    address: Port(@env.get('port-https')).ssl(@env.get('seed-ssl')),
     routes: [],
   };
 
   servers .. @each {|server|
     // add vhosts to main public interface
     var addExternal = function(proto, def) {
-      if(!def) return;
+      if(!def || !def.externalHost) return;
+      @info("vhost (#{proto}): #{def.externalHost}");
       external[proto].routes.push(@Host(def.externalHost, def.routes));
     };
     
@@ -70,6 +72,7 @@ var runAll = function(servers, opts) {
       if (!def) return;
       var {internalPort, routes} = def;
       if(!internalPort) return;
+      @info("Serving internal port #{internalPort} (#{proto})");
       internal[internalPort] .. @assert.eq(undefined, "port #{internalPort} used twice");
       internal[internalPort] = {
         address: Port(internalPort),
@@ -89,6 +92,28 @@ var runAll = function(servers, opts) {
       jobs = jobs.concat(server.jobs);
     }
   }
+
+  ;['http','https'] .. @each {|proto|
+    var numComponents = external[proto].routes.length;
+    @info(" - #{proto}: #{numComponents} components");
+    if (numComponents == 0) {
+      switch(proto) {
+        case 'http':
+          @info("   -> redirecting all traffic to https");
+          // no HTTP service, redirect all http traffic -> https
+          var canonicalPort = @env.get('port-https');
+          external['http'].routes.push(@Route(null, {
+            '*': function(req) {
+              var host = req.request.headers .. @get('host');
+              var source = host.replace(/:.*/, '');
+              var url = "https://#{source}:#{canonicalPort}#{req.url.relative ? req.url.relative : ''}";
+              req .. @writeRedirectResponse(url, 302);
+            }
+          }));
+          break;
+      }
+    }
+  };
 
   waitfor {
     if(jobs.length > 0) @waitforFirst(jobs);
@@ -117,7 +142,7 @@ exports.serve = function(args) {
       names: ['ssl'],
       type: 'bool',
       help: 'use https (default: true when $NODE_ENV=production)',
-      'default': false,
+      'default': null,
     },
     {
       names: ['no-ssl'],
@@ -255,7 +280,7 @@ COMPONENTS.master = function(opts) {
 
 COMPONENTS.proxy = function() {
   var proxies = {};
-  var hostSuffix = '.' + @env.get('host-self');
+  var hostSuffix = '.' + @env.get('host-proxy');
   var nodeHttp = require('nodejs:http');
   var proxyAgent = new nodeHttp.Agent();
   proxyAgent.maxSockets = 2048;
@@ -290,8 +315,7 @@ COMPONENTS.proxy = function() {
         //@info("destRoute: ", destRoute);
         if (destRoute) {
           var [destHost, destPort] = destRoute;
-          var dest = "#{proto}://#{destHost}:#{destPort}#{req.url.path}";
-          if (req.url.query) dest += "?#{req.url.query}";
+          var dest = "#{proto}://#{destHost}:#{destPort}#{req.url.relative}";
           var opts = {
             method: req.request.method,
             response: 'raw',
@@ -348,7 +372,7 @@ COMPONENTS.proxy = function() {
           var [pubHost, internalHost] = mappings.shift().split(':');
           mappings = mappings .. @each {|mapping|
             var [pubPort, internalPort] = mapping.split(':');
-            @info("will proxy #{pubHost} port #{pubPort} to port #{internalPort} on host #{internalHost}");
+            @info("will proxy #{pubHost} requests for #{pubPort} to port #{internalPort} on host #{internalHost}");
             if (!proxies .. @hasOwn(pubPort)) {
               proxies[pubPort] = {};
             }
@@ -405,7 +429,7 @@ COMPONENTS.slave = function(opts) {
   return {
     'default': {
       internalPort: @env.get('port-slave'),
-      externalHost: @env.get('host-self'),
+      externalHost: @env.get('host-slave'),
       routes: [
         @route.SystemRoutes(),
         @route.ExecutableDirectory('', @url.normalize('./modules/slave', module.id) .. @url.toPath),

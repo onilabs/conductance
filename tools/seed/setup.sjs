@@ -16,10 +16,10 @@ function create(dir, mode, owner, group) {
 	@mkdirp(dir);
 	@fs.chmod(dir, mode);
 	if (owner) {
-		@childProcess.run('chown', [owner, dir]);
+		@childProcess.run('chown', ['-R', owner, dir], {'stdio':'inherit'});
 	}
 	if (group) {
-		@childProcess.run('chgrp', [group, dir]);
+		@childProcess.run('chgrp', ['-R', group, dir], {'stdio':'inherit'});
 	}
 }
 
@@ -29,6 +29,6 @@ function unlink(path) {
 
 create(env('SEED_VAR'), 0755);
 create(env('SEED_DATA'), 0750, 'conductance', 'conductance');
-create(env('SEED_DATA')+'/run', 0750, 'app-run', 'conductance');
+create(env('SEED_DATA')+'/run', 0750, 'conductance', 'conductance');
 unlink(env('SEED_DATA')+'/environ');
 create(env('ETCD_DATA_DIR'), 0750, 'etcd', 'wheel');

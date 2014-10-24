@@ -32,14 +32,14 @@ var wrapAuthenticationError = function(block) {
 }
 
 var getUser = exports.getUser = function(uid) {
-	wrapAuthenticationError(-> db.synchronize(function(db) {
+	wrapAuthenticationError(function() {
 		var {id, props} = db.getUser(uid);
 		return new @User(uid, props);
-	}));
+	});
 }
 
 var withUser = exports.withUser = function(uid, block) {
-	db.synchronize {|db|
+	db.synchronize('withUser') {|db|
 		var {id, props} = wrapAuthenticationError( -> db.getUser(uid));
 		var user = new @User(uid, props);
 		var save = function(u) {

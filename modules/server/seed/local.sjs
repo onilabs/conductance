@@ -11,6 +11,9 @@
 
 /** @nodoc */
 @ = require('mho:std');
+@stream = require('sjs:nodejs/stream');
+@response = require('mho:server/response');
+
 exports.apiVersion = 1;
 exports.defaultPort = 1608;
 var versionInfo = exports.versionInfo = {
@@ -55,24 +58,51 @@ exports.serve = function(args) {
     process.exit(0);
   }
 
+  if (!opts.master .. @endsWith('/')) opts.master += '/';
+
   @env.set('seed-api-version', exports.apiVersion);
 
   var routes = [
-    @route.SystemRoutes(),
+    @route.SystemBridgeRoutes(),
     @Route('version', {GET: function(req) {
       req .. @setHeader('content-type', 'text/json; charset=utf-8');
       req .. @setStatus(200);
       req.response.end(JSON.stringify(versionInfo, null, '  '));
     }}),
 
-    @route.ExecutableDirectory(@url.normalize('./local', module.id) .. @url.toPath()),
+    // proxy index to master. We can't just redirect, because then we run into cross-origin issues
+    // when trying to connect to local API.
+    @Route('',
+      { '*': function(req)
+        {
+          var response = @http.request(@url.normalize('client.html', opts.master), {
+            method: req.request.method,
+            response: 'raw',
+            body: req.body,
+            headers: req.request.headers,
+            throwing: false,
+          });
+          if(!response.statusCode) {
+            req .. @response.writeErrorResponse(
+              500, "Connection error",
+              `<p>There was an unknown error connecting to the main seed server at ${opts.master}</p>
+              <p>Please try again soon.</p>`);
+            return;
+          }
+          req.response.writeHead(response.statusCode, response.headers);
+          response .. @stream.pump(req.response);
+          req.response.end();
+        },
+      }
+    ),
+    @route.ExecutableDirectory('local/', @url.normalize('./local', module.id) .. @url.toPath()),
+
+    // redirect all other requests to master server
+    @Route(/^/, {'*': function(req) {
+      req .. @response.writeRedirectResponse(@url.normalize(req.url.relative, opts.master));
+    }}),
   ];
   
-  var corsOrigins = [opts.master];
-  corsOrigins = corsOrigins .. @map(o -> o .. @rstrip('/'));
-  console.warn("Allowing CORS requests from: #{corsOrigins .. @join(",")}");
-  routes = routes .. @route.AllowCORS(host -> corsOrigins .. @hasElem(host));
-
   var port = opts.port;
 
   var address = @Port(port);
@@ -81,7 +111,7 @@ exports.serve = function(args) {
     routes: routes,
     debug: @debug,
   }) {||
-    console.warn("Local service running - visit #{opts.master} to get started.");
+    @logging.print("\n *** Seed server running - visit http://localhost:#{port}/ to get started.");
     hold();
   };
 }

@@ -25,6 +25,7 @@ var stubEmail = function() {
 		return function() {
 			var rv = orig.apply(null, arguments);
 			rv.response = rv.response.toString('utf-8'); // was a buffer
+			@info("intercepted email:", rv);
 			emailQueue.put(rv);
 			return rv;
 		};
@@ -42,9 +43,23 @@ exports.hook = function(block) {
 		process.env['XDG_CONFIG_HOME'] = @path.join(tempdir, 'local-conf');
 		require('seed:env').defaults();
 		@env.set('data-root', tempdir);
-		if(@env.get('use-gcd')) {
-			@env.set('user-storage', require('seed:master/user-gcd').Create('test'));
+		@env.set('gcd-credentials', null);
+
+		var user_backend = process.env['USER_BACKEND'] || 'gcd';
+		@info("Using user backend: #{user_backend} (set $USER_BACKEND to override)");
+		switch(user_backend) {
+			case 'gcd':
+				user_backend = require('seed:master/user-gcd').Create('test');
+				break;
+			case 'leveldown':
+				user_backend = require('seed:master/user-leveldown');
+				break;
+			default:
+				throw new Error("Unknown user backend: #{user_backend}");
+				break;
 		}
+		@env.set('user-storage', user_backend);
+
 		stubEmail();
 		hooked = true;
 		block();
