@@ -124,7 +124,7 @@ lib.addTestHooks = function() {
 
 	if (isBrowser) {
 		lib.test.beforeAll {|s|
-			s.driver = lib.Driver('../', {width:400, height:600});
+			s.driver = lib.Driver(@url.normalize('../../', module.id), {width:400, height:600});
 		};
 
 		lib.test.afterEach {|s, err|

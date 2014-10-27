@@ -61,6 +61,7 @@ exports.serve = function(args) {
   if (!opts.master .. @endsWith('/')) opts.master += '/';
 
   @env.set('seed-api-version', exports.apiVersion);
+  @env.set('seed-master', opts.master);
 
   var routes = [
     @route.SystemBridgeRoutes(),
@@ -99,7 +100,8 @@ exports.serve = function(args) {
 
     // redirect all other requests to master server
     @Route(/^/, {'*': function(req) {
-      req .. @response.writeRedirectResponse(@url.normalize(req.url.relative, opts.master));
+      var relative = req.url.relative.slice(1);
+      req .. @response.writeRedirectResponse(@url.normalize(relative, opts.master));
     }}),
   ];
   

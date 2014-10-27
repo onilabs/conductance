@@ -1,5 +1,6 @@
 @ = require(['mho:std','mho:surface/bootstrap']);
 var frag = require('mho:surface/doc-fragment');
+var serverRoot = @env.get('serverRoot', '/');
 
 var headerHeight = 120;
 exports.globalCss = @GlobalCSS("
@@ -38,7 +39,7 @@ var headerStyle = @CSS("
     color: white;
     padding: 0 2em;
     border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-    background: top right no-repeat url('/static/header-right.png') #B9090B;
+    background: top right no-repeat url('#{serverRoot}static/header-right.png') #B9090B;
     background-size: auto 100%;
     height: #{headerHeight}px;
   }
@@ -52,7 +53,7 @@ var headerStyle = @CSS("
 
 
 exports.pageHeader = @Row([
-  @Img({src:'/static/header-left.svg', alt:"Conductance Seed"}),
+  @Img({src:"#{serverRoot}static/header-left.svg", alt:"Conductance Seed"}),
 ]) .. @Attrib('id', 'pageHeader') .. headerStyle;
 
 exports.defaultDocument = function(content, overrides) {
@@ -77,7 +78,7 @@ exports.defaultDocument = function(content, overrides) {
   ], {
     title: overrides.title || "Conductance Seed",
     init: "
-      require.hubs.push(['seed:', '/modules/']);
+      require.hubs.push(['seed:', '#{serverRoot}modules/']);
       #{init || ""}
     ",
     templateData: templateData,

@@ -10,7 +10,9 @@ var exports = module.exports = function(config) {
     ,'karma-sjs-adapter'
   ];
   var browsers = [
-    'PhantomJS',
+    // XXX phantomJS is struggling with CORS & redirects
+    // 'PhantomJS',
+    'Chrome',
   ];
 
   config.set({
@@ -51,6 +53,6 @@ var exports = module.exports = function(config) {
   });
 };
 
-exports.testScript = '/app/test/main.sjs';
 exports.port = PORT;
+exports.testScript = '/app/test/main.sjs';
 

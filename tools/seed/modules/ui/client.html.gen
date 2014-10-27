@@ -3,7 +3,7 @@
 
 exports.content = function() {
   //var localAddress = @env.get('publicAddress')('local', 'http');
-  var localAddress = '/local/'
+  var localAddress = @env.get('local-api-prefix');
   return @layout.defaultDocument(null, {
     title: "Conductance Seed",
     init: "require('seed:ui/main').run('#{localAddress}')",

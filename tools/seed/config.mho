@@ -292,9 +292,11 @@ COMPONENTS.proxy = function() {
       return function(req) {
         // add hack for localhost, so we don't have to set up dnsmasq for testing
         if (req.url.host === 'localhost') {
-          var [_, leading, trailing] = req.url.path .. @split('/', 3);
-          req.url.path = '/' + trailing;
-          return leading;
+          var host = req.request.headers['x-test-host'];
+          if (host) {
+            @warn("Overriding `localhost` with #{host}");
+            req.url.host = host;
+          }
         }
         return orig.apply(this, arguments);
       };
@@ -398,7 +400,11 @@ COMPONENTS.proxy = function() {
   };
 
   var externalHost = new RegExp("[^.]+\\.[^.]+\\.#{@regexp.escape(@env.get('host-proxy'))}$");
-  return {
+
+  var internalPort = @env.get('port-proxy', null);
+  // only serve on proxy port if we have one defined (generally in tests only)
+  
+  var rv = {
     http: {
       externalHost: externalHost,
       routes: [proxyRoute('http', 7075)],
@@ -409,6 +415,14 @@ COMPONENTS.proxy = function() {
     },
     jobs: [job],
   };
+
+  if(internalPort) {
+    rv['default'] =  {
+      internalPort: internalPort,
+      routes: [proxyRoute('http', 7075)],
+    }
+  }
+  return rv;
 };
 
 

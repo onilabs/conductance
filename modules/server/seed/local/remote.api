@@ -21,6 +21,7 @@ if (exports.multipleServers) {
 				host: null,
 				port: null,
 				ssh: false,
+				url: @env.get('seed-master'),
 			});
 			if (updated .. @eq(current)) return unchanged;
 			return updated;
@@ -150,7 +151,7 @@ exports.getServer = function(serverId, currentUrl) {
 							//conn .. @ssh.runSeed('conductance', seedPort) {||
 								conn .. @ssh.proxyConnections(seedPort) {|path|
 									@debug("Proxied: #{path}");
-									var apiInfo = @http.json('http:///master/deploy.api?format=json', {socketPath: path});
+									var apiInfo = @http.json('http://master/deploy.api?format=json', {socketPath: path});
 									@debug('API INFO:', apiInfo);
 									var transport = require('mho:rpc/aat-client').openTransport('http:///', {socketPath: path});
 									@debug('transport', transport);
@@ -168,10 +169,15 @@ exports.getServer = function(serverId, currentUrl) {
 		} else {
 			// for http(s) connections, return the endpoint directly
 			var path = "/master/deploy.api";
+			if(creds.url) {
+				return @Endpoint(@url.normalize(path, creds.url));
+			}
+
 			if(!creds.host) {
 				// use the current browser address
 				return @Endpoint(@url.normalize(path, currentUrl));
 			}
+
 			var prefix = "https://";
 			// XXX we should probably lock this down to testing use only, somehow
 			if (creds.host .. @contains("://")) prefix = "";

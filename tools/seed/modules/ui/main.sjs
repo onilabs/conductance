@@ -1,4 +1,3 @@
-require('/modules/hub');
 @ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom']);
 @bridge = require('mho:rpc/bridge');
 @form = require('./form');

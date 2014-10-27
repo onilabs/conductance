@@ -1,47 +1,78 @@
 #!/usr/bin/env conductance
-// vim: syntax=sjs
+// vim: ft=sjs
 
 require('./lib/env');
 @ = require('mho:std');
 var karmaConfUrl = @url.normalize('./conf/karma.js', module.id);
-var karmaConf = require(karmaConfUrl);
-var { port } = require('./conf/server.js');
+var karmaConf = require('nodejs:' + karmaConfUrl .. @url.toPath());
+var { port:uiPort } = require('./conf/server.js');
 var testDir = @url.normalize('./', module.id) .. @url.toPath();
 @response = require('mho:server/response');
 
 exports.serve = function() {
   require('./lib/stub.api').hook {||
-    // inject test routes into all servers
-    @route.SystemRoutes = function(orig) {
-      return function() {
-        return orig().concat([
-          @Route('up', {GET: function(req) {
-            req .. @response.setStatus(200);
-            req.response.end();
-          }}),
-          @route.ExecutableDirectory('test', testDir),
-        ]);
+    var corsOrigins = ["http://localhost:#{uiPort}", "http://localhost:#{karmaConf.port}"];
+
+    // need to hardcode the full server URL here because bridge likes to use root paths
+    // (so localhost:#{karmaPort}/app/ won't work)
+    @env.set('local-api-prefix', "http://localhost:#{uiPort}/local/");
+    // @env.set('cors-origins', corsOrigins);
+
+    // monkey-patch server.run to;
+    // - add an /up endpoint
+    // - serve /test routes
+    // - allow CORS from karma server & main UI
+    @server.run = function(orig) {
+      return function(specs) {
+        if (!Array.isArray(specs)) {
+          specs = [specs];
+        }
+        specs = specs .. @map(function(spec) {
+          spec = spec .. @clone();
+          console.log(spec);
+          if(!spec.routes) {
+            console.log(spec);
+          }
+          spec.routes = spec.routes.slice();
+          spec.routes = [
+            @Route('up', {GET: function(req) {
+              req .. @response.setStatus(200);
+              req.response.end();
+            }}),
+            @route.ExecutableDirectory('test', testDir),
+          ].concat(spec.routes) .. @route.AllowCORS(h -> corsOrigins .. @hasElem(h.replace('127.0.0.1','localhost')));
+          return spec;
+        });
+        return orig.apply(this, [specs].concat(arguments .. @slice(1) .. @toArray));
       };
-    }(@route.SystemRoutes);
-    console.warn("Serving test suite at http://localhost:#{port}/test/");
+    }(@server.run);
+
+    console.warn("Serving test suite at http://localhost:#{uiPort}/test/");
     // modify default ports so as not to conflict with existing hosts
-    ;['master', 'local','slave','proxy-http', 'proxy-https'] .. @indexed .. @each {|[i, service]|
-      @env.set("port-#{service}", port+i);
+    var stubbedPorts = ['local', 'master','slave', 'http', 'https', 'proxy'];
+    stubbedPorts .. @indexed .. @each {|[i, service]|
+      @env.set("port-#{service}", uiPort+i);
     };
 
-    ;['self','proxy','master'] .. @each {|service|
+    var stubbedHosts = ['master', 'proxy', 'slave'];
+    stubbedHosts .. @each {|service|
       @env.set("host-#{service}", 'localhost');
     }
+
+    @env.set('publicAddress', function(orig) {
+      // make sure all addresses we request are using test ports
+      return function(service, proto) {
+        if(service) stubbedHosts .. @assert.contains(service);
+        if(proto) stubbedPorts .. @assert.contains(proto);
+        return orig.apply(this, arguments);
+      };
+    }(@env.get('publicAddress')));
 
     require('../bin/services.sjs').withServices {|| // XXX should these specify a separate port too?
       waitfor {
         require('mho:server/seed/local').serve(['--port', String(@env.get('port-local')), '--master', "http://localhost:#{@env.get('port-master')}"]);
       } or {
-        require('../master.mho').serve([]);
-      } or {
-        require('../slave.mho').serve([]);
-      } or {
-        require('../proxy.mho').serve([]);
+        require('../config.mho').serve(['master','slave','proxy']);
       }
     }
   }
@@ -61,7 +92,7 @@ var isRunning = function(url) {
 };
 
 function serveAnd(block) {
-  var url = "http://localhost:#{port}/up";
+  var url = "http://localhost:#{uiPort}/up";
   waitfor {
     if(isRunning(url)) hold();
     else exports.serve();
@@ -78,17 +109,21 @@ function serveAnd(block) {
 
 if (require.main === module) {
   var args = require('sjs:sys').argv();
-  var runKarma = -> require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
+  var runKarma = function() {
+    require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
+  }
   args.splice(1,0, karmaConfUrl .. @url.toPath);
   if(args[0] === 'run') {
     args.splice(2, 0, '-vv', '--', karmaConf.testScript);
-    console.log(args);
+    //console.log(args);
     runKarma();
   } else if(args[0] === 'start' || args[0] == 'single-run') {
     if (args[0] == 'single-run') {
       args[0] = 'start';
       args.splice(2, 0, '--single-run', '--', karmaConf.testScript);
     }
+    // XXX this means only an app running in the _current process_ will work with karma
+    @env.set('serverRoot', '/app/');
     serveAnd {||
       runKarma();
       // XXX karma is fire-and-forget, we can't wait for its completion
@@ -100,9 +135,9 @@ if (require.main === module) {
     console.warn("Usage: run.mho <action> [args ...]
 
   ACTIONS:
-    app           Run app server only
-    start         Run karma server (& app server if not yet running)
-    run           Run karma test against already-running servers
+    app           Run app server only (for manually running tests in a browser)
+    start         Run app & karma server
+    run           Run tests on the running karma server
     single-run    `start` & `run` in a single invocation
 ");
     process.exit(1);

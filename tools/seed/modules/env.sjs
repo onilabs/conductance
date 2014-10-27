@@ -127,6 +127,7 @@ exports.defaults = function() {
 
 	var internalHost = 'localhost';
 	def('internalAddress', process.env['SEED_INTERNAL_ADDRESS'] || internalHost);
+	def('local-api-prefix', '/local');
 
 	var selfHost = process.env['SEED_PUBLIC_ADDRESS'] || 'localhost.self';
 	/* ^^ localhost.self is used for development, requires dnsmasq config:
@@ -169,7 +170,7 @@ exports.defaults = function() {
 			switch(service) {
 				case 'proxy':
 					// never use explicit port
-					port = defaultPorts .. @get(proto);
+					port = env.get("port-#{proto}");
 					break;
 				case 'local':
 					// always use explicit port
@@ -177,7 +178,7 @@ exports.defaults = function() {
 					break;
 				default:
 					if(useVhost) {
-						port = defaultPorts .. @get(proto);
+						port = env.get("port-#{proto}");
 					} else {
 						port = env.get("port-#{service}");
 					}

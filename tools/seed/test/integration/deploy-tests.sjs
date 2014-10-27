@@ -32,10 +32,11 @@
 		var appId = origUrl.host.replace(/\.localhost.*$/, '');
 		appId .. @assert.eq("#{appName}.#{s.creds .. @get('username')}");
 		
-		// XXX this doesn't really reflect reality. But it tests the basic proxy setup.
-		var url = "http://localhost:#{@stub.getEnv('port-proxy-http')}/#{appId}/ping";
+		// XXX this doesn't really reflect reality (because we can't rely on vhosts in test).
+		// But it tests the basic proxy setup.
+		var url = "http://localhost:#{@stub.getEnv('port-proxy')}/ping";
 		@info("Fetching: #{url}");
-		@waitforSuccess(-> @stub.get(url, {headers: {'HOST': origUrl.host}}) .. @assert.eq('pong!'), null, 5);
+		@waitforSuccess(-> @stub.get(url, {headers: {'x-test-host': origUrl.host}}) .. @assert.eq('pong!'), null, 5);
 	}
 }
 }.browserOnly();
