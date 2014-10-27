@@ -15,6 +15,19 @@ var { @mkdirp } = require('sjs:nodejs/mkdirp');
 @crypto = require('nodejs:crypto');
 
 var config_root = @path.join(process.env .. @get('XDG_CONFIG_HOME', @path.join(process.env .. @get('HOME'), '.config')), 'conductance');
+
+var config_root = [
+	['CONDUCTANCE_CONFIG_HOME'],
+	['XDG_CONFIG_HOME', 'conductance'],
+	['HOME', '.config','conductance'],
+	null,
+] .. @transform(function(path) {
+	if(!path) throw new Error("Unable to determine config path ($HOME not set)");
+	var base = process.env[path[0]];
+	if(!base) return null;
+	return @path.join.apply(null, [base].concat(path.slice(1)));
+}) .. @filter() .. @first();
+
 @debug("CONFIG_ROOT:", config_root);
 @mkdirp(config_root);
 

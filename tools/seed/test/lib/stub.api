@@ -40,7 +40,7 @@ var temporaryDataDir = null;
 exports.hook = function(block) {
 	@TemporaryDir({prefix:'seed-test-data-'}) {|tempdir|
 		temporaryDataDir = tempdir;
-		process.env['XDG_CONFIG_HOME'] = @path.join(tempdir, 'local-conf');
+		process.env['CONDUCTANCE_CONFIG_HOME'] = @path.join(tempdir, 'local-conf');
 		require('seed:env').defaults();
 		@env.set('data-root', tempdir);
 		@env.set('gcd-credentials', null);
