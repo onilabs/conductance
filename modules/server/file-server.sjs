@@ -225,7 +225,7 @@ function serveFile(req, filePath, format, settings) {
       apiinfo: apiinfo,
       filetype: extension,
       format: format,
-      etag: settings.etag(stat, filePath),
+      etag: (settings.etag || exports.etag.mtime)(stat, filePath),
     },
     settings);
   return true;
