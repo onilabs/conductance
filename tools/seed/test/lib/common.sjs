@@ -61,7 +61,6 @@ if (isBrowser) {
 		if(!str) return -> true;
 		if(@isString(str)) return function(el) {
 			if (str === el.textContent) return true;
-			console.log("Ignoring silly button: ", el);
 			return false;
 		};
 		if(@isString(str)) return el -> str === el.textContent;

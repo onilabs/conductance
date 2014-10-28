@@ -109,8 +109,8 @@ require('http://localhost:7079/deploy.api').connect {|api|
         var chunks=[];
         var send = function(chunk) {
           if (chunks.length > 0) {
-            console.log("[> chunk #{i}: #{chunks.length}]");
-            console.log("[= chunk #{i++}: #{chunks.length}]");
+            @debug("[> chunk #{i}: #{chunks.length}]");
+            @debug("[= chunk #{i++}: #{chunks.length}]");
             emit(Buffer.concat(chunks));
             chunks = [];
           }
@@ -125,7 +125,7 @@ require('http://localhost:7079/deploy.api').connect {|api|
             chunk = cipher .. @stream.read();
 
             if (chunk == null) {
-              console.log("EOF");
+              @debug("EOF");
               send();
               break;
             }
@@ -141,10 +141,10 @@ require('http://localhost:7079/deploy.api').connect {|api|
           }
         }
       }
-      console.log("all pieces sent");
+      @debug("all pieces sent");
     }),
 
     digest: -> hmac.digest(),
   })
-  console.log(`uploaded app ${app}`);
+  @info(`uploaded app ${app}`);
 }

@@ -29,10 +29,6 @@ exports.serve = function() {
         }
         specs = specs .. @map(function(spec) {
           spec = spec .. @clone();
-          console.log(spec);
-          if(!spec.routes) {
-            console.log(spec);
-          }
           spec.routes = spec.routes.slice();
           spec.routes = [
             @Route('up', {GET: function(req) {
@@ -108,6 +104,7 @@ function serveAnd(block) {
 }
 
 if (require.main === module) {
+  var TRAVIS = process.env.TRAVIS === 'true';
   var args = require('sjs:sys').argv();
   var runKarma = function() {
     require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
@@ -124,6 +121,15 @@ if (require.main === module) {
     }
     // XXX this means only an app running in the _current process_ will work with karma
     @env.set('serverRoot', '/app/');
+    var browsers = process.env.BROWSERS;
+    if (browsers) {
+      if (TRAVIS && browsers != 'PhantomJS') {
+        process.env['DISPLAY'] = ':99';
+        childProcess.run("sh", ["-e", "/etc/init.d/xvfb", "start"], {stdio: "inherit"});
+        hold(3000);
+      }
+      args.splice(2, 0, '--browsers', browsers);
+    }
     serveAnd {||
       runKarma();
       // XXX karma is fire-and-forget, we can't wait for its completion

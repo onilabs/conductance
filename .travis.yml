@@ -2,22 +2,32 @@ language: node_js
 node_js:
   - "0.10"
 env:
-  - a="--karma single-run"
-  - a="--karma single-run" BROWSERS=Firefox
-  - a=""
+  - a="test/run --karma single-run"
+  - a="test/run --karma single-run" BROWSERS=Firefox
+  - a="test/run"
+  - a="tools/seed/test/ci"
 matrix:
   # just run integration tests on other node versions
   include:
     - node_js: "0.11"
-      env: a=""
+      env: a="test/run"
   allow_failures:
     - node_js: "0.11"
-      env: a=""
+      env: a="test/run"
+    - node_js: "0.10"
+      env: a="tools/seed/test/ci"
   
 notifications:
   email:
     recipients:
       - commits@onilabs.com
+    on_success: change
+    on_failure: always
+  hipchat:
+    rooms:
+      secure: WuyQPqKVxrDykbFkXVRZcPQNa0dmmTzpb+xEzBqCwOhyCeTQTAon1HIUEQtmwPJmTwBZX7dTGwa5kOnbCN47quVaOMkkJVsXQFzlDVv9aWz8XH5Hoj50odHFcTJvhjLKoL9wwG6B2z3PTDuP9PyifQBnIUwW3ihaXFmNGDj5ri0=
+    template:
+      - '%{repository_name}#%{commit} (%{author}): %{message} [%{build_url}]'
     on_success: change
     on_failure: always
 
@@ -27,5 +37,5 @@ branches:
     - master
     - /^\d+(\.\d+)+$/
 
-script: "./conductance test/run.mho $a --show-failed"
+script: "./conductance $a --show-failed"
 
