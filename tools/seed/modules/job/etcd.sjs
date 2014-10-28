@@ -91,7 +91,7 @@ exports.changes = function(client, key, opts) {
 		}
 
 		while(true) {
-			waitfor(var err, change) {
+			waitfor(var err, change, headers) {
 				//console.log("grabbing changes: " + key, opts, nextIndex);
 				var req = client.watch(key, opts .. @merge({waitIndex: nextIndex}), resume);
 			} retract {
@@ -106,12 +106,12 @@ exports.changes = function(client, key, opts) {
 					continue
 				}
 				throw err;
-			} else {
-				if(!change) {
-					// Probably a connection timeout, just try again
-					// XXX see https://github.com/stianeikeland/node-etcd/issues/32
-					continue;
-				}
+			}
+			if(!change && headers['x-etcd-index']) {
+				// etcd responded successfully, but the body was empty
+				// Most likely a timeout, so just continue
+				// (see https://github.com/stianeikeland/node-etcd/issues/32)
+				continue;
 			}
 
 			emit(change);
