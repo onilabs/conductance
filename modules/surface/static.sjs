@@ -63,7 +63,7 @@ exports.CSSDocument = function(content, parent_class) {
 
 */
 exports.Document = function(content, settings) {
-  var headContent, userInit, title, mainModule, template, templateData, externalScripts, serverRoot;
+  var headContent, userInit, title, mainModule, template, templateData, externalScripts, runtimeInit;
   if(settings) {
     title = settings.title;
     headContent = settings.head;
