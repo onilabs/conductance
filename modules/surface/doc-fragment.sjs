@@ -227,7 +227,7 @@ staticExports.configure = function(opts) {
     return `<style type="text/css">
               @font-face {
                 font-family: Montserrat;
-                src: url('${serverRoot}__mho/surface/fonts/Montserrat/Montserrat-Regular.ttf');
+                src: url('${serverRoot()}__mho/surface/fonts/Montserrat/Montserrat-Regular.ttf');
               }
               
               h1, h2, h3, h4, h5, h6, .lead, .btn {
