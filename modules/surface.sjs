@@ -597,6 +597,7 @@ module.exports = require(modules);
 @setting {String} [main] SJS module URL to run on the client
 @setting {Array}  [externalScripts] Array of Javascript script URLs to add to the page
 @setting {Object} [templateData] object which will be be passed through to the template function
+@setting {surface::HtmlFragment} [runtimeInit] Override the default SJS runtime initialization
 @setting {Function|String} [template="default"] Document template
 @desc
   **Note:** the `head` and `title` settings can be any [surface::HtmlFragment] type,

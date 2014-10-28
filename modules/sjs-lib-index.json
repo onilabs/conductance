@@ -621,7 +621,13 @@
             "conductanceCss": {
               "type": "function"
             },
+            "configure": {
+              "type": "function"
+            },
             "errorHandler": {
+              "type": "function"
+            },
+            "initializeRuntime": {
               "type": "function"
             },
             "mhoColors": {

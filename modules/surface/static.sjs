@@ -19,6 +19,7 @@ var html  = require('./base');
 var { values, propertyPairs, keys, merge } = require('sjs:object');
 var { sanitize, isString } = require('sjs:string');
 var { map, join, each } = require('sjs:sequence');
+var docFragment = require('./doc-fragment');
 var url = require('sjs:url');
 
 //----------------------------------------------------------------------
@@ -42,6 +43,7 @@ exports.CSSDocument = function(content, parent_class) {
   @setting {String} [main] SJS module URL to run on the client
   @setting {Array}  [externalScripts] Array of Javascript script URLs to add to the page
   @setting {Object} [templateData] object which will be be passed through to the template function
+  @setting {surface::HtmlFragment} [runtimeInit] Override the default SJS runtime initialization
   @setting {Function|String} [template="default"] Document template
   @desc
     **Note:** the `head` and `title` settings can be any [surface::HtmlFragment] type,
@@ -61,7 +63,7 @@ exports.CSSDocument = function(content, parent_class) {
 
 */
 exports.Document = function(content, settings) {
-  var headContent, userInit, title, mainModule, template, templateData, externalScripts;
+  var headContent, userInit, title, mainModule, template, templateData, externalScripts, serverRoot;
   if(settings) {
     title = settings.title;
     headContent = settings.head;
@@ -70,6 +72,7 @@ exports.Document = function(content, settings) {
     template = settings.template;
     templateData = settings.templateData;
     externalScripts = settings.externalScripts;
+    runtimeInit = settings.runtimeInit;
   }
 
   content = (content || null) .. html.collapseHtmlFragment();
@@ -96,16 +99,9 @@ exports.Document = function(content, settings) {
 
   headContent = headContent.concat(cssDefs);
 
-  headContent.push(`<script src='/__sjs/stratified.js' asyc='true'></script>`);
-
-  headContent.push(
-    `<script type="text/sjs">
-      if (!window.location.origin)
-        window.location.origin = "#{window.location.protocol}//#{window.location.hostname}#{window.location.port ? ":#{window.location.port}" : \'\'}";
-      require.hubs.push(['mho:', "#{window.location.origin}/__mho/"]);
-      require.hubs.push(['\u2127:', 'mho:']);
-    </script>`
-  );
+  if(!runtimeInit)
+    runtimeInit = docFragment.initializeRuntime('/');
+  headContent.push(runtimeInit);
 
   var mechanisms = propertyPairs(content.getMechanisms()) ..
     map(function([id, code]) {

@@ -12,6 +12,7 @@
 var { readFile } = require('sjs:nodejs/fs');
 var { toPath } = require('sjs:url');
 var { sanitize: escapeXML } = require('sjs:string');
+var env = require('mho:env');
 @ = require(['./base','sjs:object']);
 
 /**
@@ -20,6 +21,8 @@ var { sanitize: escapeXML } = require('sjs:string');
 */
 
 var escapeCssAttr = (style) -> style.replace(/\s+/g, '') .. escapeXML;
+
+var staticExports = {};
 
 /**
   @function errorHandler
@@ -32,7 +35,7 @@ var escapeCssAttr = (style) -> style.replace(/\s+/g, '') .. escapeXML;
     (does not require stratified.js), so you should put it as close to the
     start of the document as possible.
 */
-exports.errorHandler = function() {
+staticExports.errorHandler = function() {
   var { _fixedNoticeStyle, _fixedNoticeAlertStyle } = require('./bootstrap/notice');
   return @Element("script", "
     (function() {
@@ -72,7 +75,7 @@ var rainbowContents = readFile(require.url('./rainbow.min.js') .. toPath);
   @setting {Number} [thickness] indicator thickness (in pixels)
   @setting {Number} [shadow] shadow blur size (in pixels)
 */
-exports.busyIndicator = function(showImmediately, opts) {
+staticExports.busyIndicator = function(showImmediately, opts) {
   opts = opts || {};
   var color = opts.color || '#C43133';
   var thickness = opts.thickness === undefined ? 2 : opts.thickness;
@@ -146,27 +149,12 @@ exports.busyIndicator = function(showImmediately, opts) {
 };
 
 /**
-  @function bootstrapCss
-  @return {surface::HtmlFragment}
-  @summary Bootstrap CSS styles
-  @desc
-    Place within <head>.
-*/
-exports.bootstrapCss = function() {
-  return @Element("link", null, {
-    rel: 'stylesheet',
-    href: "/__mho/surface/bootstrap/bootstrap-vanilla-3.css"
-//    media: 'screen'
-  });
-};
-
-/**
   @variable bootstrapColors
   @summary Object with default bootstrap CSS colors
   @desc
     Useful for exposing in a `mho:app` file
 */
-var bootstrapColors = exports.bootstrapColors = {
+var bootstrapColors = staticExports.bootstrapColors = {
   gray_darker: "#222",
   gray_dark:   "#333",
   gray:        "#555",
@@ -180,12 +168,12 @@ var bootstrapColors = exports.bootstrapColors = {
 };
 
 /**
-  @variable mhoColors 
+  @variable mhoColors
   @summary Object with default mho CSS colors
   @desc
     Useful for exposing in a `mho:app` file
 */
-var mhoColors = exports.mhoColors = bootstrapColors .. @merge({
+var mhoColors = staticExports.mhoColors = bootstrapColors .. @merge({
   onilabs_red:          "#b9090b",
   primary:              "#b9090b",
   onilabs_redhighlight: "#c43133",
@@ -194,65 +182,117 @@ var mhoColors = exports.mhoColors = bootstrapColors .. @merge({
 
 
 /**
-  @function conductanceCss
-  @return {surface::HtmlFragment}
-  @summary Conductance CSS styles
+  @function configure
+  @summary Create a paramaterised version of this module
+  @param {Settings} [settings]
+  @setting {String} [serverRoot="/"] Alternative server root
+  @return Object
   @desc
-    Place within <head> after [::bootstrapCss]
+    `configure` returns an object with the same properties as this
+    [./doc-fragment::] module.
+
+    Providing an alternative `serverRoot` will cause absolute paths to
+    be prefixed with this alternative root. This is useful if
+    conductance resources are embedded within a virtual path of another
+    web server.
 */
+staticExports.configure = function(opts) {
+  var serverRoot = -> opts.serverRoot || env.get('serverRoot', '/');
+  var exports = Object.create(staticExports);
 
-exports.conductanceCss = function() {
-  return `<style type="text/css">
-            @font-face {
-              font-family: Montserrat;
-              src: url('/__mho/surface/fonts/Montserrat/Montserrat-Regular.ttf');
-            }
-            
-            h1, h2, h3, h4, h5, h6, .lead, .btn {
-              font-family: 'Montserrat';
-            }
+  /**
+    @function bootstrapCss
+    @return {surface::HtmlFragment}
+    @summary Bootstrap CSS styles
+    @desc
+      Place within <head>.
+  */
+  exports.bootstrapCss = function() {
+    return @Element("link", null, {
+      rel: 'stylesheet',
+      href: "#{serverRoot()}__mho/surface/bootstrap/bootstrap-vanilla-3.css"
+  //    media: 'screen'
+    });
+  };
 
-            a, .btn-link { color: ${mhoColors.onilabs_red}; }
-            a:hover, a:active, .btn-link:hover, .btn-link:active { color: ${mhoColors.onilabs_redhighlight}; }
+  /**
+    @function conductanceCss
+    @return {surface::HtmlFragment}
+    @summary Conductance CSS styles
+    @desc
+      Place within <head> after [::bootstrapCss]
+  */
 
-            code {
-              color:#333;
-            }
+  exports.conductanceCss = function() {
+    return `<style type="text/css">
+              @font-face {
+                font-family: Montserrat;
+                src: url('${serverRoot}__mho/surface/fonts/Montserrat/Montserrat-Regular.ttf');
+              }
+              
+              h1, h2, h3, h4, h5, h6, .lead, .btn {
+                font-family: 'Montserrat';
+              }
 
-            code, pre {
-              background-color: #FEFAFA;
-              border: 1px solid #F5E1E1;
-            }
+              a, .btn-link { color: ${mhoColors.onilabs_red}; }
+              a:hover, a:active, .btn-link:hover, .btn-link:active { color: ${mhoColors.onilabs_redhighlight}; }
 
-            pre > code {
-              border: none;
-            }
+              code {
+                color:#333;
+              }
 
-            .btn-primary, .btn-primary.disabled, .btn-primary[disabled] { 
-              background-color: ${mhoColors.onilabs_red}; 
-              border-color: ${mhoColors.onilabs_redhighlight};  
-            }
-            .btn-primary:hover, .btn-primary:active, .btn-primary:focus { 
-              background-color: ${mhoColors.onilabs_redhighlight}; 
-              border-color: ${mhoColors.onilabs_redhighlight}; 
-            }
+              code, pre {
+                background-color: #FEFAFA;
+                border: 1px solid #F5E1E1;
+              }
 
-          </style>
-         `;
+              pre > code {
+                border: none;
+              }
+
+              .btn-primary, .btn-primary.disabled, .btn-primary[disabled] { 
+                background-color: ${mhoColors.onilabs_red}; 
+                border-color: ${mhoColors.onilabs_redhighlight};  
+              }
+              .btn-primary:hover, .btn-primary:active, .btn-primary:focus { 
+                background-color: ${mhoColors.onilabs_redhighlight}; 
+                border-color: ${mhoColors.onilabs_redhighlight}; 
+              }
+
+            </style>
+          `;
+  };
+
+
+  /**
+    @function bootstrapJavascript
+    @return {surface::HtmlFragment}
+    @summary Bootstrap CSS styles
+    @desc
+      Typically, this is placed at the end of the <body>
+      tag.
+  */
+  exports.bootstrapJavascript = function() {
+    return [
+      @Element('script', null, {src: "#{serverRoot()}__mho/surface/bootstrap/jquery-1.10.2.min.js"}),
+      @Element('script', null, {src: "#{serverRoot()}__mho/surface/bootstrap/bootstrap.min.js"}),
+    ];
+  }
+
+  /**
+    @function initializeRuntime
+    @return {surface::HtmlFragment}
+    @summary HTML required to initialize the SJS runtime and Conductance hub
+  */
+  exports.initializeRuntime = function() {
+    return [
+      @Element('script', null, {src: "#{serverRoot()}__sjs/stratified.js", asyc:'true'}),
+      @Element('script', `
+        require.hubs.push(['mho:','${serverRoot()}__mho/']);
+      `, {'type': "text/sjs"}),
+    ];
+  };
+  return exports;
 };
 
-
-/**
-  @function bootstrapJavascript
-  @return {surface::HtmlFragment}
-  @summary Bootstrap CSS styles
-  @desc
-    Typically, this is placed at the end of the <body>
-    tag.
-*/
-exports.bootstrapJavascript = function() {
-  return [
-    @Element('script', null, {src: "/__mho/surface/bootstrap/jquery-1.10.2.min.js"}),
-    @Element('script', null, {src: "/__mho/surface/bootstrap/bootstrap.min.js"}),
-  ];
-}
+module.exports = staticExports.configure({});

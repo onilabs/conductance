@@ -1,6 +1,8 @@
 @ = require(['mho:std','mho:surface/bootstrap']);
-var frag = require('mho:surface/doc-fragment');
 var serverRoot = @env.get('serverRoot', '/');
+var frag = require('mho:surface/doc-fragment').configure({
+  serverRoot: serverRoot,
+});
 
 var headerHeight = 120;
 exports.globalCss = @GlobalCSS("
