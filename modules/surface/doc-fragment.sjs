@@ -186,7 +186,7 @@ var mhoColors = staticExports.mhoColors = bootstrapColors .. @merge({
   @summary Create a paramaterised version of this module
   @param {Settings} [settings]
   @setting {String} [serverRoot="/"] Alternative server root
-  @return Object
+  @return {Object}
   @desc
     `configure` returns an object with the same properties as this
     [./doc-fragment::] module.
