@@ -30,10 +30,10 @@ var {@isAuthenticationError} = require('seed:auth');
 		reject("0name");
 		reject("a/b");
 		reject("a.b");
+		reject("a-b");
 
 		accept("name0");
 		accept("a_b");
-		accept("a-b");
 	}
 
 	@test("rejects existing users") {||
@@ -82,6 +82,7 @@ var {@isAuthenticationError} = require('seed:auth');
 		};
 
 		rejectsName('bad name');
+		rejectsName('dashed-name');
 	}
 }
 

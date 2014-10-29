@@ -429,7 +429,7 @@ exports.localAppState = (function() {
     };
 
     function getSubdomain() {
-      return "#{_loadConfig(configPath).name .. @keySafe}.#{user.id .. @keySafe()}"
+      return "#{_loadConfig(configPath).name .. @keySafe}-#{user.id .. @keySafe()}"
     };
 
     return {
@@ -602,7 +602,7 @@ exports.masterAppState = (function() {
       deploy: deploy,
       synchronize: safe.lock.synchronize.bind(safe.lock),
       endpoint: endpointStream,
-      publicUrlTemplate: "#{publicUrlBase.protocol}://{name}.#{user.id}.#{publicUrlBase.authority}/",
+      publicUrlTemplate: "#{publicUrlBase.protocol}://{name}-#{user.id}.#{publicUrlBase.authority}/",
     }
   };
 

@@ -399,7 +399,8 @@ COMPONENTS.proxy = function() {
     etcd .. @etcd.changes(keyPrefix, {recursive:true, initial:true}) .. @each(handle);
   };
 
-  var externalHost = new RegExp("[^.]+\\.[^.]+\\.#{@regexp.escape(@env.get('host-proxy'))}$");
+  // proxy should only match <username>-<appname>.externalHost
+  var externalHost = new RegExp("^[^.]+-[^.]+\\.#{@regexp.escape(@env.get('host-proxy'))}$");
 
   var internalPort = @env.get('port-proxy', null);
   // only serve on proxy port if we have one defined (generally in tests only)

@@ -5,7 +5,7 @@ exports.optionalNumber = function(n) {
 	if (!(/^[0-9]*$/.test(n))) throw new Error("Number required");
 };
 
-var identifierRe = /^[a-zA-Z][-_a-zA-Z0-9]*$/;
+var identifierRe = /^[a-zA-Z][_a-zA-Z0-9]*$/;
 var identifierValidator = function(desc) {
 	var rv = function(val) {
 		if (identifierRe.test(val)) {
@@ -13,7 +13,7 @@ var identifierValidator = function(desc) {
 		}
 		throw new Error(rv.errorMessage);
 	};
-	rv.errorMessage = "#{desc} must start with a letter and contain only numbers, letters, dashes and underscores";
+	rv.errorMessage = "#{desc} must start with a letter and contain only numbers, letters and underscores";
 	return rv;
 };
 
