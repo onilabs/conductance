@@ -1,2 +1,2 @@
 #!bash -eu
-gup -u image service
+gup -u service image

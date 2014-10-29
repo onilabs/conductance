@@ -1,8 +1,10 @@
 #!/usr/bin/env conductance
 // vim: ft=sjs
-@ = require('sjs:std');
+@ = require(['sjs:std', 'sjs:nodejs/mkdirp']);
 process.env['BROWSERS'] = 'Firefox'
 process.env['USER_BACKEND'] = 'leveldown'
 var here = @url.normalize('./', module.id) .. @url.toPath();
-@childProcess.run(@path.join(here, '../../gup'), [@path.join(here, '../install')], {'stdio':'inherit'});
+@mkdirp(@path.join(here, '../../data'));
+
+@childProcess.run(@path.join(here, '../../gup'), [@path.join(here, '../tools/etcd') ], {'stdio':'inherit'});
 @childProcess.run(@path.join(here, 'all'), [], {'stdio':'inherit'});

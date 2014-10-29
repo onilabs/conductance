@@ -39,4 +39,4 @@
 		@waitforSuccess(-> @stub.get(url, {headers: {'x-test-host': origUrl.host}}) .. @assert.eq('pong!'), null, 5);
 	}
 }
-}.browserOnly();
+}.skipIf(!(@isBrowser && @stub.getEnv('docker-enabled')));

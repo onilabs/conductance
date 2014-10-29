@@ -13,10 +13,12 @@ exports.serve = function() {
   require('./lib/stub.api').hook {||
     var corsOrigins = ["http://localhost:#{uiPort}", "http://localhost:#{karmaConf.port}"];
 
+    // used to skip tests which require docker
+    @env.lazy('docker-enabled', -> @childProcess.run('which', ['docker'], {throwing: false}).code === 0);
+
     // need to hardcode the full server URL here because bridge likes to use root paths
     // (so localhost:#{karmaPort}/app/ won't work)
     @env.set('local-api-prefix', "http://localhost:#{uiPort}/local/");
-    // @env.set('cors-origins', corsOrigins);
 
     // monkey-patch server.run to;
     // - add an /up endpoint
