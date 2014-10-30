@@ -4,7 +4,6 @@
 process.env['BROWSERS'] = 'Firefox'
 process.env['USER_BACKEND'] = 'leveldown'
 var here = @url.normalize('./', module.id) .. @url.toPath();
-@mkdirp(@path.join(here, '../../data'));
 
-@childProcess.run(@path.join(here, '../../gup'), [@path.join(here, '../tools/etcd') ], {'stdio':'inherit'});
+@childProcess.run(@path.join(here, '../../gup'), [@path.join(here, '../deps') ], {'stdio':'inherit'});
 @childProcess.run(@path.join(here, 'all'), [], {'stdio':'inherit'});

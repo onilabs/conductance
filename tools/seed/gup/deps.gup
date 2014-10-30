@@ -1,0 +1,8 @@
+#!bash -eux
+gup -u package.json
+npm install --production
+mkdir -p data
+gup -u \
+	tools/etcd \
+	;
+
