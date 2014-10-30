@@ -24,26 +24,34 @@ var versionInfo = exports.versionInfo = {
 exports.serve = function(args) {
   var defaultPort = exports.defaultPort;
 
-  var parser = require('sjs:dashdash').createParser({
-    options: [
-      {
-        name: 'master',
-        type: 'string',
-        'default': 'https://seed.conductance.io',
-        help: 'for testing use only',
-      },
-      {
-        names: ['port'],
-        type: 'number',
-        help: "serve on port (default: #{defaultPort})",
-        'default': defaultPort,
-      },
-      {
-        names: ['help', 'h'],
-        type: 'bool',
-      },
-    ],
-  });
+  var undocumentedOptions = [
+    // useful only for testing
+    {
+      name: 'master',
+      type: 'string',
+      'default': 'https://seed.conductance.io',
+    },
+    {
+      name: 'add-ca',
+      type: 'arrayOfString',
+      'default': null,
+    },
+  ];
+
+  var options = [
+    {
+      names: ['port'],
+      type: 'number',
+      help: "serve on port (default: #{defaultPort})",
+      'default': defaultPort,
+    },
+    {
+      names: ['help', 'h'],
+      type: 'bool',
+    },
+  ];
+  var dashdash = require('sjs:dashdash');
+  var parser = require('sjs:dashdash').createParser({options: options.concat(undocumentedOptions)});
 
   try {
     var opts = parser.parse(args);
@@ -54,7 +62,7 @@ exports.serve = function(args) {
 
   if (opts.help) {
     console.log("options:\n");
-    console.log(parser.help({includeEnv:true}));
+    console.log(dashdash.createParser({options:options}).help({includeEnv:true}));
     process.exit(0);
   }
 
@@ -62,6 +70,29 @@ exports.serve = function(args) {
 
   @env.set('seed-api-version', exports.apiVersion);
   @env.set('seed-master', opts.master);
+
+  var seedAgent = undefined;
+  if(opts.add_ca) {
+    var https = require('nodejs:https');
+    opts.add_ca = opts.add_ca .. @map(@fs.readFile);
+    @logging.warn("Using alternate certificate authorities");
+    seedAgent = new https.Agent(https.globalAgent.options .. @merge({
+      ca: opts.add_ca,
+    }));
+
+    // inject agent into endpoint module
+    var endpoint = require('mho:server/seed/endpoint');
+    endpoint._EndpointProto._connect = (function(orig) {
+      return function(opts, block) {
+        var api = this.server;
+        opts = opts .. @merge({
+          apiinfo: @http.json([api, {format:'json'}], {agent:seedAgent}),
+          transport: require('mho:rpc/aat-client').openTransport(@url.normalize('/', api), {agent:seedAgent}),
+        });
+        return orig.call(this, opts, block);
+      };
+    })(endpoint._EndpointProto._connect);
+  }
 
   var routes = [
     @route.SystemBridgeRoutes(),
@@ -82,6 +113,7 @@ exports.serve = function(args) {
             body: req.body,
             headers: req.request.headers,
             throwing: false,
+            agent: seedAgent,
           });
           if(!response.statusCode) {
             req .. @response.writeErrorResponse(

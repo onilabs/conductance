@@ -106,7 +106,7 @@ var endpointPool = pool({
 
 // an endpoint is a bridge-transferrable, poolable
 // API connection
-var EndpointProto = {};
+var EndpointProto = exports._EndpointProto = {};
 EndpointProto._init = function(server) {
 	@assert.string(server, "server");
 	this.server = server;
@@ -132,7 +132,7 @@ EndpointProto.connect = function(opts, block) {
 };
 
 EndpointProto._connect = function(opts, block) {
-	@bridge.connect(this.server, opts) { |conn|
+	@bridge.connect(opts.apiinfo || this.server, opts) { |conn|
 		block(conn.api);
 	}
 }
