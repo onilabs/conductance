@@ -794,11 +794,11 @@ function runInner(api, ready) {
 	}
 };
 
-exports.run = function(localServer) {
+exports.run = function(localApiAddress) {
 	@withBusyIndicator {|ready|
 		stopIndicator = ready;
 		var Notice = @
-		@withAPI("#{localServer}remote.api", commonConnectionOptions .. @merge({
+		@withAPI(localApiAddress, commonConnectionOptions .. @merge({
 			notice: -> @Notice.apply(null, arguments) .. @Class('reconnectNotification'),
 		})) {|api|
 			runInner(api, ready);

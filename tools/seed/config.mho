@@ -63,7 +63,7 @@ var runAll = function(servers, opts) {
     // add vhosts to main public interface
     var addExternal = function(proto, def) {
       if(!def || !def.externalHost) return;
-      @info("vhost (#{proto}): #{def.externalHost}");
+      @logging.print("vhost (#{proto}): #{def.externalHost}");
       external[proto].routes.push(@Host(def.externalHost, def.routes));
     };
     
@@ -72,7 +72,7 @@ var runAll = function(servers, opts) {
       if (!def) return;
       var {internalPort, routes} = def;
       if(!internalPort) return;
-      @info("Serving internal port #{internalPort} (#{proto})");
+      @logging.print("Serving internal port #{internalPort} (#{proto})");
       internal[internalPort] .. @assert.eq(undefined, "port #{internalPort} used twice");
       internal[internalPort] = {
         address: Port(internalPort),
@@ -95,25 +95,21 @@ var runAll = function(servers, opts) {
 
   ;['http','https'] .. @each {|proto|
     var numComponents = external[proto].routes.length;
-    @info(" - #{proto}: #{numComponents} components");
-    if (numComponents == 0) {
-      switch(proto) {
-        case 'http':
-          @info("   -> redirecting all traffic to https");
-          // no HTTP service, redirect all http traffic -> https
-          var canonicalPort = @env.get('port-https');
-          external['http'].routes.push(@Route(null, {
-            '*': function(req) {
-              var host = req.request.headers .. @get('host');
-              var source = host.replace(/:.*/, '');
-              var url = "https://#{source}:#{canonicalPort}#{req.url.relative ? req.url.relative : ''}";
-              req .. @writeRedirectResponse(url, 302);
-            }
-          }));
-          break;
-      }
-    }
+    @logging.print(" - #{proto}: #{numComponents} components");
   };
+
+  if(defaultProto == 'https') {
+    @logging.print("   -> adding HTTPS redirect fallback route");
+    var canonicalPort = @env.get('port-https');
+    external['http'].routes.push(@Route(null, {
+      '*': function(req) {
+        var host = req.request.headers .. @get('host');
+        var source = host.replace(/:.*/, '');
+        var url = "https://#{source}:#{canonicalPort}#{req.url.relative ? req.url.relative : ''}";
+        req .. @writeRedirectResponse(url, 302);
+      }
+    }));
+  }
 
   waitfor {
     if(jobs.length > 0) @waitforFirst(jobs);
@@ -230,7 +226,7 @@ COMPONENTS.master = function(opts) {
     require('seed:master/state').acquire();
   } catch(e) {
     if (opts.use_existing !== true) throw e;
-    @info("Couldn't acquire lockfile - checking for an existing server on port #{port}");
+    @warn("Couldn't acquire lockfile - checking for an existing server on port #{port}");
     var serverInfo = runningServerInfo(port);
     if (serverInfo) {
       console.warn("Server already running on port #{port}:", serverInfo);
@@ -405,14 +401,17 @@ COMPONENTS.proxy = function() {
   var internalPort = @env.get('port-proxy', null);
   // only serve on proxy port if we have one defined (generally in tests only)
   
+  var httpRoute = proxyRoute('http', 7075);
+  var httpsRoute = proxyRoute('https', 4043);
+
   var rv = {
     http: {
       externalHost: externalHost,
-      routes: [proxyRoute('http', 7075)],
+      routes: [httpRoute],
     },
     https: {
       externalHost: externalHost,
-      routes: [proxyRoute('http', 4043)],
+      routes: [httpRoute],
     },
     jobs: [job],
   };
@@ -420,7 +419,7 @@ COMPONENTS.proxy = function() {
   if(internalPort) {
     rv['default'] =  {
       internalPort: internalPort,
-      routes: [proxyRoute('http', 7075)],
+      routes: [httpRoute],
     }
   }
   return rv;

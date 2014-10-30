@@ -18,7 +18,7 @@ exports.serve = function() {
 
     // need to hardcode the full server URL here because bridge likes to use root paths
     // (so localhost:#{karmaPort}/app/ won't work)
-    @env.set('local-api-prefix', "http://localhost:#{uiPort}/local/");
+    @env.set('local-api-endpoint', "http://localhost:#{uiPort}/local/remote.api");
 
     // monkey-patch server.run to;
     // - add an /up endpoint
