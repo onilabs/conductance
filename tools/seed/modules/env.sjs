@@ -7,7 +7,7 @@ var PROD = process.env.NODE_ENV === 'production';
 
 function initLogLevel() {
 	if (process.env['SEED_LOG_LEVEL']) {
-		var lvlName = process.env['SEED_LOG_LEVEL'];
+		var lvlName = process.env['SEED_LOG_LEVEL'].toUpperCase();
 		var lvl = @logging[lvlName];
 		@assert.number(lvl, "not a valid log level: #{lvlName}");
 		@logging.setLevel(lvl);
@@ -98,7 +98,7 @@ exports.installSignalHandlers = function() {
 			};
 			initLogLevel();
 		} catch(e) {
-			@logging.info("Error adopting new environ: #{e}");
+			@logging.print("Error adopting new environ: #{e}");
 		}
 	});
 };

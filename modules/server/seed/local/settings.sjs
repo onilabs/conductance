@@ -212,7 +212,6 @@ var genUnique = function(genKey) {
 };
 
 var serverCache = ObjectCache('servers', function(key, serverId, props) {
-	console.log("server: key=#{key}");
 	var vals = Settings(key, defaultSettings .. @get('server'));
 	if (props) { // allow specifying properties upon construction
 		vals.modify(obj -> obj .. @merge(props));
@@ -247,7 +246,6 @@ exports.servers = store.items .. @transform(
 
 var appCache = ObjectCache('apps', function(key, serverId, appId, props) {
 	var vals = Settings(key, defaultSettings .. @get('app'), true);
-	console.log("app: key=#{key}");
 	if (props) {
 		vals.modify(o -> o .. @merge(props));
 	}

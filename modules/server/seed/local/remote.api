@@ -53,7 +53,6 @@ var Deployment = function(endpoint, serverInfo) {
 		var root = settings .. @get('path');
 		endpoint.connect {|remote|
 			if (remote.authenticate) {
-				console.log(serverInfo);
 				remote = remote.authenticate(serverInfo.config .. @first() .. @get('token'));
 			}
 			var app = remote.getApp(appId);
@@ -70,7 +69,6 @@ var Deployment = function(endpoint, serverInfo) {
 				}
 
 				var payload = @Stream(function(emit) {
-					console.log("READING!");
 					var stream = tmp.readStream();
 					var i=0;
 					var chunk;
@@ -78,8 +76,8 @@ var Deployment = function(endpoint, serverInfo) {
 					var lastTime = 0;
 					var send = function(chunk) {
 						if (chunks.length > 0) {
-							console.log("[> chunk #{i}: #{chunks.length}]");
-							console.log("[= chunk #{i++}: #{chunks.length}]");
+							@debug("[> chunk #{i}: #{chunks.length}]");
+							@debug("[= chunk #{i++}: #{chunks.length}]");
 							emit(Buffer.concat(chunks));
 							chunks = [];
 						}
