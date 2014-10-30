@@ -198,9 +198,8 @@ function runMechanisms(elems, await) {
   elems .. each {|elem|
     if (elem.nodeType === ELEMENT_NODE) {
 
-      var elems = elem.querySelectorAll('[data-oni-mechanisms]') ..
-        reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
-        concat(elem.hasAttribute('data-oni-mechanisms') ? [elem] : []) ..
+      var elems = (elem.hasAttribute('data-oni-mechanisms') ? [elem] : []) ..
+        concat(elem.querySelectorAll('[data-oni-mechanisms]')) ..
         toArray;
 
       var streams = StreamNodes(elem) .. toArray;
@@ -355,8 +354,8 @@ exports.replaceContent = replaceContent;
 
      * See also [::replaceContent], [::prependContent], [::insertBefore] and [::insertAfter].
 
-     * Any [::Mechanism]s contained in `html` will be started in post-order (i.e. mechanisms on inner 
-       DOM nodes before mechanisms on more outer DOM nodes).
+     * Any [::Mechanism]s contained in `html` will be started in pre-order (i.e. mechanisms on outer 
+       DOM nodes before mechanisms on more inner DOM nodes).
 
      * If no function `block` is provided, `appendContent` returns an
        array containing the DOM elements and comment nodes that have

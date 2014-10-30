@@ -121,9 +121,8 @@ exports.Document = function(content, settings) {
       (function () {
         var mechs = {};
         #{mechanisms .. join('\n')}
-        var { reverse, each, filter } = require('sjs:sequence');
+        var { each, filter } = require('sjs:sequence');
         (document.body.querySelectorAll('._oni_mech_') || []) .. 
-          reverse .. // we want to start mechanisms in post-order; querySelectorAll is pre-order
           each {
             |elem|
             elem.__oni_mechs = [];
