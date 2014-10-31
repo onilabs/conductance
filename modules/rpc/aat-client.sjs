@@ -281,7 +281,8 @@ function openTransport(server, requestOpts) {
             try {
               http.post([
                 server, SERVER_PATH, AAT_VERSION,
-                { cmd: "close#{transport_id_suffix}" } ]);
+                { cmd: "close#{transport_id_suffix}" } ],
+                requestOpts);
             } catch (e) { /* close is a courtesy; ignore errors */ }
           })();
         }
