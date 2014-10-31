@@ -16,6 +16,9 @@
     This template is the most minimal document template - it contains
     no default CSS styles or additional javascript.
 
+    It is most appropriate for creating static HTML documents on the
+    server-side, see [mho:surface::Document] for an example.
+
   @directive @template-title
   @summary Set the document title
   @desc

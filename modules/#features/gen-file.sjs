@@ -39,6 +39,9 @@
     [server/route::ExecutableDirectory], as serving user-generated content in
     this way trivially allows users to execute arbitrary SJS code on your server.
 
+    ### Generated static HTML documents
+
+    [mho:surface::Document] simplifies the creation of static HTML documents. See the examples there.
 
   @function content
   @summary Generate the page content
