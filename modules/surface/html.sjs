@@ -9,14 +9,11 @@
  * according to the terms contained in the LICENSE file.
  */
 
-var { Element, Mechanism, Attrib, isElementOfType } = require('./base');
-var { replaceContent, appendContent, prependContent, Prop, removeNode, insertBefore } = require('./dynamic');
-var { events } = require('sjs:event');
-var { Stream, isStream, mirror, integers, each, map, transform, indexed, filter, sort, slice, any, toArray } = require('sjs:sequence');
-var { isArrayLike } = require('sjs:array');
-var { shallowEq } = require('sjs:compare');
-var { override, merge, clone } = require('sjs:object');
-var { observe, isObservableVar } = require('sjs:observable');
+@ = require([
+  'sjs:std',
+  {id:'./base', include: ['Element', 'Mechanism', 'Attrib', 'isElementOfType']},
+  {id:'./dynamic', include: ['replaceContent']}
+]);
 
 /**
   @summary Basic HTML elements
@@ -113,9 +110,9 @@ var { observe, isObservableVar } = require('sjs:observable');
   'Form', 'FieldSet', 'Legend', 'Label', /* 'Input', */ 'Button', /* 'Select', */
   'DataList', 'OptGroup', 'Option', /*'TextArea', */ 'KeyGen', 'Output', /* 'Progress', */ 'Meter',
   'Details', 'Summary', 'MenuItem', 'Menu',
-] .. each {|name|
+] .. @each {|name|
   var tag = name.toLowerCase();
-  exports[name] = (content, attr) -> Element(tag, content, attr);
+  exports[name] = (content, attr) -> @Element(tag, content, attr);
 }
 
 //----------------------------------------------------------------------
@@ -134,20 +131,20 @@ var { observe, isObservableVar } = require('sjs:observable');
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var Input = (type, value, attrs) ->
-  Element('input', {'type':type} .. merge(attrs||{})) ..
-  Mechanism(function(node) {
+  @Element('input', {'type':type} .. @merge(attrs||{})) ..
+  @Mechanism(function(node) {
     value = value || "";
-    if (isStream(value)) {
+    if (@isStream(value)) {
       waitfor {
-        value .. each {|val|
+        value .. @each {|val|
           val = val || "";
           if (node.value !== val)
             node.value = val;
         }
       }
       and {
-        if (isObservableVar(value)) {
-          events(node, 'input') .. each { |ev|
+        if (@isObservableVar(value)) {
+          @events(node, 'input') .. @each { |ev|
             value.set(node.value);
           }
         }
@@ -191,20 +188,20 @@ exports.TextInput = TextInput;
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var TextArea = (value, attrs) ->
-  Element('textarea', null, attrs||{}) ..
-  Mechanism(function(node) {
+  @Element('textarea', null, attrs||{}) ..
+  @Mechanism(function(node) {
     value = value || "";
-    if (isStream(value)) {
+    if (@isStream(value)) {
       waitfor {
-        value .. each {|val|
+        value .. @each {|val|
           val = val || "";
           if (node.value !== val)
             node.value = val;
         }
       }
       and {
-        if (isObservableVar(value)) {
-          events(node, 'input') .. each { |ev|
+        if (@isObservableVar(value)) {
+          @events(node, 'input') .. @each { |ev|
             value.set(node.value);
           }
         }
@@ -249,19 +246,19 @@ exports.TextArea = TextArea;
     ]);
 */
 var Checkbox = (value, attribs) ->
-  Element('input', attribs) ..
-  Attrib("type", "checkbox") ..
-  Mechanism(function(node) {
-    if (isStream(value)) {
+  @Element('input', attribs) ..
+  @Attrib("type", "checkbox") ..
+  @Mechanism(function(node) {
+    if (@isStream(value)) {
       waitfor {
-        value .. each { |current|
+        value .. @each { |current|
           current = Boolean(current);
           if (node.checked !== current) node.checked = current;
         }
       }
       and {
-        if (isObservableVar(value)) {
-          events(node, 'change') .. each { |ev|
+        if (@isObservableVar(value)) {
+          @events(node, 'change') .. @each { |ev|
             value.set(node.checked);
           }
         }
@@ -326,26 +323,26 @@ function Progress(value, settings) {
   }
 
   // TODO is there a better way to do this ?
-  if (isStream(value)) {
-    value = mirror(value);
+  if (@isStream(value)) {
+    value = @mirror(value);
   } else {
     value = [value];
   }
 
-  var percentage = Element('span') ..Mechanism(function (node) {
-    value ..each(function (value) {
+  var percentage = @Element('span') ..@Mechanism(function (node) {
+    value ..@each(function (value) {
       var percent = computePercentage(value, settings.min, settings.max);
       var rounded = Math.round(percent);
       node.textContent = "#{rounded}%";
     });
   });
 
-  var top = Element('progress', percentage)
-    ..Attrib('aria-valuemin', '' + settings.min)
-    ..Attrib('aria-valuemax', '' + settings.max)
-    ..Attrib('max', '100')
-    ..Mechanism(function (node) {
-      value ..each(function (value) {
+  var top = @Element('progress', percentage)
+    ..@Attrib('aria-valuemin', '' + settings.min)
+    ..@Attrib('aria-valuemax', '' + settings.max)
+    ..@Attrib('max', '100')
+    ..@Mechanism(function (node) {
+      value ..@each(function (value) {
         var percent = computePercentage(value, settings.min, settings.max);
         node.setAttribute('aria-valuenow', '' + value);
         node.setAttribute('value', '' + percent);
@@ -395,10 +392,10 @@ exports.Progress = Progress;
 
 function selectedIndices(items, selection) {
   var rv = {};
-  if (!isArrayLike(selection))
+  if (!@isArrayLike(selection))
     selection = [selection];
   selection ..
-    map(selected_item -> items.indexOf(selected_item)) .. each {
+    @map(selected_item -> items.indexOf(selected_item)) .. @each {
       |index|
       rv[index] = true;
     }
@@ -406,26 +403,26 @@ function selectedIndices(items, selection) {
 }
 
 function SelectObserverMechanism(ft, state, updateSelected) {
-  return ft .. Mechanism(function(node) {
+  return ft .. @Mechanism(function(node) {
 
     function update(items) {
       var new_selection = node.querySelectorAll('option') ..
-        indexed ..
-        filter(([idx,elem]) -> elem.selected) ..
-        map([idx,] -> items[idx]);
-
+        @indexed ..
+        @filter(([idx,elem]) -> elem.selected) ..
+        @map([idx,] -> items[idx]);
+      
       updateSelected(new_selection);
     }
 
     var lastSelection;
     waitfor {
       var lastItems;
-      state .. each {|[items, selection]|
+      state .. @each {|[items, selection]|
         var nodes = node.querySelectorAll('option');
         var select_map;
         if (selection === undefined) {
           select_map = {};
-          nodes .. indexed .. each {|[i,n]|
+          nodes .. @indexed .. @each {|[i,n]|
             if (n.selected) select_map[i] = true;
           }
         } else {
@@ -435,14 +432,14 @@ function SelectObserverMechanism(ft, state, updateSelected) {
         if (lastItems !== items) {
           /* update content */
           node ..
-            replaceContent(
+            @replaceContent(
               items
-              .. indexed
-              .. map([idx, item] -> Element("option", item, {selected: select_map[idx]}))
+              .. @indexed
+              .. @map([idx, item] -> @Element("option", item, {selected: select_map[idx]}))
             );
         } else {
           /* update selections */
-          nodes .. indexed .. each {
+          nodes .. @indexed .. @each {
             |[index, elem]|
             elem.selected = select_map[index];
           }
@@ -458,7 +455,7 @@ function SelectObserverMechanism(ft, state, updateSelected) {
       }
     } and {
       if (updateSelected) {
-        events(node, 'change') .. each {
+        @events(node, 'change') .. @each {
           |ev|
           if (lastItems)
             update(lastItems);
@@ -473,34 +470,34 @@ function Select(settings, attribs) {
     multiple: false,
     items: [],
     selected: undefined
-  } .. override(settings);
+  } .. @override(settings);
 
   attribs = attribs ? attribs .. clone : {};
 
   if (settings.multiple)
     attribs.multiple = true;
 
-  var ensureStream = o -> isStream(o) ? o: Stream(function(emit) { emit(o); hold(); });
+  var ensureStream = o -> @isStream(o) ? o: @Stream(function(emit) { emit(o); hold(); });
   var state = [settings.items, settings.selected];
   var computedState = null;
-  if (state .. any(isStream)) {
+  if (state .. @any(@isStream)) {
     // make a single observable encapsulating the entire state
-    var args = state .. map(ensureStream);
-    args.push(function() { return arguments .. toArray});
-    computedState = observe.apply(null, args);
+    var args = state .. @map(ensureStream);
+    args.push(function() { return arguments .. @toArray});
+    computedState = @observe.apply(null, args);
   }
 
   if (computedState) {
     var updateSelected;
-    if (isObservableVar(settings.selected)) {
+    if (@isObservableVar(settings.selected)) {
       if (settings.multiple) {
         updateSelected = (sels) -> settings.selected.set(sels);
       } else {
         updateSelected = (sels) -> settings.selected.set(sels[0]);
       }
     }
-    return Element('select', null, attribs)
-    .. SelectObserverMechanism(computedState, updateSelected);
+    return @Element('select', null, attribs)
+      .. SelectObserverMechanism(computedState, updateSelected);
   }
 
   // else: statically apply selections, no mechanism needed
@@ -508,8 +505,8 @@ function Select(settings, attribs) {
   // support observable item elements (only a whole observable array)
   var selectedStream = ensureStream(settings.selected);
   var select_map = selectedIndices(settings.items, settings.selection);
-  var options = settings.items .. indexed .. map([idx, item] ->
-    Element('option', item, {selected: select_map[idx]})
+  var options = settings.items .. @indexed .. @map([idx, item] ->
+    @Element('option', item, {selected: select_map[idx]})
   );
 
   return Element('select',  options, attribs);
@@ -519,9 +516,9 @@ exports.Select = Select;
 // map each value of a stream of input if it is an Observable / Stream, else
 // just `map` them.
 var _map = function(items, fn) {
-  if (isStream(items))
-    return items .. transform(val -> map(val, fn));
-  return items .. map(fn);
+  if (@isStream(items))
+    return items .. @transform(val -> @map(val, fn));
+  return items .. @map(fn);
 }
 /**
   @function Ul
@@ -542,12 +539,12 @@ var _map = function(items, fn) {
     See [::Ol] for a demonstration.
 */
 
-__js function wrapLi(item) {
-  if (isElementOfType(item, 'li')) return item;
+__js function wrapLi(item) { 
+  if (@isElementOfType(item, 'li')) return item;
   return exports.Li(item);
 }
 
-exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attrs);
+exports.Ul = (items, attrs) -> @Element('ul', items ? items .. _map(wrapLi), attrs);
 
 /**
   @function Ol
@@ -607,7 +604,7 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
     ]);
 
 */
-exports.Ol = (items, attrs) -> Element('ol', items ? items .. _map(wrapLi), attrs);
+exports.Ol = (items, attrs) -> @Element('ol', items ? items .. _map(wrapLi), attrs);
 
 /**
   @function Submit
@@ -616,4 +613,4 @@ exports.Ol = (items, attrs) -> Element('ol', items ? items .. _map(wrapLi), attr
   @return {surface::Element}
   @summary Create an `<input type="submit">` element.
 */
-exports.Submit = (content, attr) -> Element('input', null, (attr || {}) .. merge({type:'submit', value: content}));
+exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @merge({type:'submit', value: content}));
