@@ -9,11 +9,33 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require([
+var { hostenv } = require('builtin:apollo-sys');
+
+var imports = [
   'sjs:std',
-  {id:'./base', include: ['Element', 'Mechanism', 'Attrib', 'isElementOfType']},
-  {id:'./dynamic', include: ['replaceContent']}
-]);
+  {id:'./base', include: ['Element', 'Mechanism', 'isElementOfType']}
+];
+
+if (hostenv === 'xbrowser') {
+  imports = imports.concat([
+    {id:'./dynamic', include: ['replaceContent']}
+  ]);
+}
+
+@ = require(imports);
+
+//----------------------------------------------------------------------
+// helpers:
+
+// map each value of a stream of input if it is an Observable / Stream, else
+// just `map` them.
+var _map = function(items, fn) {
+  if (@isStream(items))
+    return items .. @transform(val -> @map(val, fn));
+  return items .. @map(fn);
+}
+
+//----------------------------------------------------------------------
 
 /**
   @summary Basic HTML elements
@@ -116,6 +138,108 @@
 }
 
 //----------------------------------------------------------------------
+
+/**
+  @function Ul
+  @param {Array|sjs:sequence::Stream|undefined} [items]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @return {surface::Element}
+  @summary Create a `<ul>` element, wrapping each element of `items` in a `<li>` 
+           as required.
+  @desc
+    If `items` is a [sjs:sequence::Stream], then that stream is expected 
+    to have [sjs:observable::Observable] semantics and consist of 
+    elements of Array type. The list content will be updated every time the 
+    observable changes. This is only supported on the client-side: When using 
+    `Ul` on the server-side ([sjs:sys::hostenv] !== 'xbrowser'), `items` must not be a 
+    [sjs:sequence::Stream].
+
+    Any element in `item` that isn't a `<li>` [surface::Element] will be wrapped 
+    with a `<li>` [surface::Element].
+
+
+    See [::Ol] for a demonstration.
+*/
+
+__js function wrapLi(item) { 
+  if (@isElementOfType(item, 'li')) return item;
+  return exports.Li(item);
+}
+
+exports.Ul = (items, attrs) -> @Element('ul', items ? items .. _map(wrapLi), attrs);
+
+/**
+  @function Ol
+  @param {Array|sjs:sequence::Stream|undefined} [items]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @return {surface::Element}
+  @summary Create a `<ol>` element, wrapping each element of `items` in a `<li>`
+  @desc
+    If `items` is a [sjs:sequence::Stream], then that stream is expected 
+    to have [sjs:observable::Observable] semantics and consist of 
+    elements of Array type. The list content will be updated every time the 
+    observable changes. This is only supported on the client-side: When using 
+    `Ol` on the server-side ([sjs:sys::hostenv] !== 'xbrowser'), `items` must not be a 
+    [sjs:sequence::Stream].
+
+    Any element in `item` that isn't a `<li>` [surface::Element] will be wrapped 
+    with a `<li>` [surface::Element].
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    var plain_html = require('mho:surface/html');
+
+    var Numbers = @generate(function() {
+      hold(1000);
+      return [Math.random(), Math.random(), Math.random()];
+      });
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @ = require(['mho:app', 'mho:std']);    
+
+    @mainContent .. @appendContent(
+      @Ol(['Apples', 'Pears', 'Oranges'])
+    );",
+        plain_html.Ol(['Apples', 'Pears', 'Oranges'])
+      ),
+      @demo.CodeResult("\
+    var Numbers = @generate(function() {
+      hold(1000);
+      return [Math.random(), Math.random(), Math.random()];
+    });
+    
+    @mainContent .. @appendContent(
+      @Ol(Numbers)
+    );
+      ",
+        plain_html.Ol(Numbers)
+      ),
+      @demo.CodeResult("\
+    @mainContent .. @appendContent(
+      @Ol(['A string',
+           @Strong('HTML'),
+           `Dynamic: 
+            ${Numbers .. @transform(arr->arr .. @first)}`
+          ])
+    )",
+        plain_html.Ol(['A string', @Strong('HTML'), 
+        `Dynamic: ${Numbers .. @transform(arr->arr .. @first)}`]))
+    ]);
+
+*/
+exports.Ol = (items, attrs) -> @Element('ol', items ? items .. _map(wrapLi), attrs);
+
+/**
+  @function Submit
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @return {surface::Element}
+  @summary Create an `<input type="submit">` element.
+*/
+exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @merge({type:'submit', value: content}));
+
+//----------------------------------------------------------------------
 /**
   @function Input
   @summary A plain HTML 'input' element
@@ -124,37 +248,52 @@
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value
+    #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+    When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If (in addition)
     `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
+
+    #### On server-side ([sjs:sys::hostenv] === 'nodejs')
+
+    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
+    An element with a 'value' attribute set to `value` will be inserted into the document.
+    
 */
-var Input = (type, value, attrs) ->
-  @Element('input', {'type':type} .. @merge(attrs||{})) ..
-  @Mechanism(function(node) {
-    value = value || "";
-    if (@isStream(value)) {
-      waitfor {
-        value .. @each {|val|
-          val = val || "";
-          if (node.value !== val)
-            node.value = val;
-        }
-      }
-      and {
-        if (@isObservableVar(value)) {
-          @events(node, 'input') .. @each { |ev|
-            value.set(node.value);
+var Input;
+if (hostenv === 'xbrowser') {
+  Input = (type, value, attrs) ->
+    @Element('input', {'type':type} .. @merge(attrs||{})) ..
+    @Mechanism(function(node) {
+      value = value || "";
+      if (@isStream(value)) {
+        waitfor {
+          value .. @each {|val|
+            val = val || "";
+            if (node.value !== val)
+              node.value = val;
           }
         }
+        and {
+          if (@isObservableVar(value)) {
+            @events(node, 'input') .. @each { |ev|
+              value.set(node.value);
+            }
+          }
+        }
+      } else {
+        node.value = value;
       }
-    } else {
-      node.value = value;
-    }
-  });
+    });
+}
+else { // hostenv === 'nodejs'
+  Input = (type, value, attrs) -> 
+    @Element('input', {'type':type, 'value':value||''} .. @merge(attrs||{}));
+}
 exports.Input = Input;
-
+  
 
 //----------------------------------------------------------------------
 /**
@@ -164,11 +303,18 @@ exports.Input = Input;
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value
+    #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+    When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If (in addition)
     `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
+
+    #### On server-side ([sjs:sys::hostenv] === 'nodejs')
+
+    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
+    An element with a 'value' attribute set to `value` will be inserted into the document.
 */
 var TextInput = (value, attrs) -> Input('text', value, attrs);
 exports.TextInput = TextInput;
@@ -181,35 +327,49 @@ exports.TextInput = TextInput;
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value
+    #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+    When the element is inserted into the document, its value 
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If (in addition)
     `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
+
+    #### On server-side ([sjs:sys::hostenv] === 'nodejs')
+
+    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
+    An element with a 'value' attribute set to `value` will be inserted into the document.
 */
-var TextArea = (value, attrs) ->
-  @Element('textarea', null, attrs||{}) ..
-  @Mechanism(function(node) {
-    value = value || "";
-    if (@isStream(value)) {
-      waitfor {
-        value .. @each {|val|
-          val = val || "";
-          if (node.value !== val)
-            node.value = val;
-        }
-      }
-      and {
-        if (@isObservableVar(value)) {
-          @events(node, 'input') .. @each { |ev|
-            value.set(node.value);
+var TextArea;
+if (hostenv === 'xbrowser') {
+  TextArea = (value, attrs) ->
+    @Element('textarea', null, attrs||{}) ..
+    @Mechanism(function(node) {
+      value = value || "";
+      if (@isStream(value)) {
+        waitfor {
+          value .. @each {|val|
+            val = val || "";
+            if (node.value !== val)
+              node.value = val;
           }
         }
+        and {
+          if (@isObservableVar(value)) {
+            @events(node, 'input') .. @each { |ev|
+              value.set(node.value);
+            }
+          }
+        }
+      } else {
+        node.value = value;
       }
-    } else {
-      node.value = value;
-    }
-  });
+    });
+}
+else { // hostenv === 'nodejs'
+  TextArea = (value, attrs) -> 
+    @Element('textarea', null, {'value':value||''} .. @merge(attrs||{}));
+}
 exports.TextArea = TextArea;
 
 
@@ -217,14 +377,22 @@ exports.TextArea = TextArea;
 /**
   @function Checkbox
   @summary A HTML 'checkbox' widget
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
+  @param  {Boolean|sjs:sequence::Stream|sjs:observable::ObservableVar} [checked] 
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value
-    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If (in addition)
-    `value` is an [sjs:observable::ObservableVar],
-    then `value` will be updated to reflect any manual changes to the element's value.
+    #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+    When the element is inserted into the document, its checked state will be set to 
+    will be set to `checked`. If `checked` is a [sjs:sequence::Stream], the
+    element's state will be updated every time `checked` changes. If (in addition)
+    `checked` is an [sjs:observable::ObservableVar], 
+    then `checked` will be updated to reflect any manual changes to the element's state.
+
+    #### On server-side ([sjs:sys::hostenv] === 'nodejs')
+
+    `checked` must be a Boolean and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
+    An element with a 'checked' attribute set to `checked` will be inserted into the document.
+
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
     var surface = require('mho:surface/html');
@@ -245,28 +413,33 @@ exports.TextArea = TextArea;
       )
     ]);
 */
-var Checkbox = value ->
-  @Element('input') ..
-  @Attrib("type", "checkbox") ..
-  @Mechanism(function(node) {
-    if (@isStream(value)) {
-      waitfor {
-        value .. @each { |current|
-          current = Boolean(current);
-          if (node.checked !== current) node.checked = current;
-        }
-      }
-      and {
-        if (@isObservableVar(value)) {
-          @events(node, 'change') .. @each { |ev|
-            value.set(node.checked);
+var Checkbox;
+if (hostenv === 'xbrowser') {
+  Checkbox = value ->
+    @Element('input', {type:'checkbox'}) ..
+    @Mechanism(function(node) {
+      if (@isStream(value)) {
+        waitfor {
+          value .. @each { |current|
+            current = Boolean(current);
+            if (node.checked !== current) node.checked = current;
           }
         }
+        and {
+          if (@isObservableVar(value)) {
+            @events(node, 'change') .. @each { |ev|
+              value.set(node.checked);
+            }
+          }
+        }
+      } else {
+        node.checked = Boolean(value);
       }
-    } else {
-      node.checked = Boolean(value);
-    }
-  });
+    });
+}
+else { // hostenv === 'nodejs'
+  Checkbox = value -> @Element('input', { type: 'checkbox', checked: Boolean(value) });
+}
 exports.Checkbox = Checkbox;
 
 
@@ -360,9 +533,18 @@ exports.Progress = Progress;
   @summary A plain HTML 'select' widget
   @param  {Object} [settings] Widget settings
   @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
-  @setting {Array|sjs:sequence::Stream} [items] Selectable items
+  @setting {Array|sjs:sequence::Stream} [items] Selectable Items (Array of Strings or Observable yielding Array of Strings)
   @setting {sjs:observable::ObservableVar} [selected] Optional ObservableVar that will be synchronized to selected item(s).
   @return {surface::Element}
+  @desc
+    #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+    See demonstration below
+
+    #### On server-side ([sjs:sys::hostenv] === 'nodejs')
+
+    `items` must be an Array and not a [sjs:sequence::Stream].
+
   @demo
     @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
 
@@ -510,105 +692,3 @@ function Select(settings) {
   return @Element('select',  options, dom_attribs);
 }
 exports.Select = Select;
-
-// map each value of a stream of input if it is an Observable / Stream, else
-// just `map` them.
-var _map = function(items, fn) {
-  if (@isStream(items))
-    return items .. @transform(val -> @map(val, fn));
-  return items .. @map(fn);
-}
-/**
-  @function Ul
-  @param {Array|sjs:sequence::Stream|undefined} [items]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-  @return {surface::Element}
-  @summary Create a `<ul>` element, wrapping each element of `items` in a `<li>`
-           as required.
-  @desc
-    If `items` is a [sjs:sequence::Stream], then that stream is expected
-    to have [sjs:observable::Observable] semantics and consist of
-    elements of Array type. The list content will be updated every time the
-    observable changes.
-
-    Any elements in `item` that isn't a `<li>` [surface::Element] will be wrapped
-    with a `<li>` [surface::Element].
-
-    See [::Ol] for a demonstration.
-*/
-
-__js function wrapLi(item) { 
-  if (@isElementOfType(item, 'li')) return item;
-  return exports.Li(item);
-}
-
-exports.Ul = (items, attrs) -> @Element('ul', items ? items .. _map(wrapLi), attrs);
-
-/**
-  @function Ol
-  @param {Array|sjs:sequence::Stream|undefined} [items]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-  @return {surface::Element}
-  @summary Create a `<ol>` element, wrapping each element of `items` in a `<li>`
-  @desc
-    If `items` is a [sjs:sequence::Stream], then that stream is expected
-    to have [sjs:observable::Observable] semantics and consist of
-    elements of Array type. The list content will be updated every time the
-    observable changes.
-
-    Any element in `item` that isn't a `<li>` [surface::Element] will be wrapped
-    with a `<li>` [surface::Element].
-  @demo
-    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
-
-    var surface = require('mho:surface/html');
-
-    var Numbers = @generate(function() {
-      hold(1000);
-      return [Math.random(), Math.random(), Math.random()];
-      });
-
-    @mainContent .. @appendContent([
-      @demo.CodeResult("\
-    @ = require(['mho:app', 'mho:std']);
-
-    @mainContent .. @appendContent(
-      @Ol(['Apples', 'Pears', 'Oranges'])
-    );",
-        surface.Ol(['Apples', 'Pears', 'Oranges'])
-      ),
-      @demo.CodeResult("\
-    var Numbers = @generate(function() {
-      hold(1000);
-      return [Math.random(), Math.random(), Math.random()];
-    });
-
-    @mainContent .. @appendContent(
-      @Ol(Numbers)
-    );
-      ",
-        surface.Ol(Numbers)
-      ),
-      @demo.CodeResult("\
-    @mainContent .. @appendContent(
-      @Ol(['A string',
-           @Strong('HTML'),
-           `Dynamic:
-            ${Numbers .. @transform(arr->arr .. @first)}`
-          ])
-    )",
-        surface.Ol(['A string', @Strong('HTML'),
-        `Dynamic: ${Numbers .. @transform(arr->arr .. @first)}`]))
-    ]);
-
-*/
-exports.Ol = (items, attrs) -> @Element('ol', items ? items .. _map(wrapLi), attrs);
-
-/**
-  @function Submit
-  @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-  @return {surface::Element}
-  @summary Create an `<input type="submit">` element.
-*/
-exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @merge({type:'submit', value: content}));
