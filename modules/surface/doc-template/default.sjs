@@ -14,7 +14,10 @@
   @summary The default template for [surface::Document] objects.
   @hostenv nodejs
   @desc
-    This template includes Twitter Bootstrap (with Conductance styling), but provides no [mho:app::] module
+    This template includes Twitter Bootstrap (with Conductance styling), but provides no [mho:app::] module.
+
+    It is most appropriate for creating static HTML documents on the
+    server-side, see [mho:surface::Document] for an example.
 
   @directive @template-title
   @summary Set the document title

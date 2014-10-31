@@ -61,6 +61,23 @@ exports.CSSDocument = function(content, parent_class) {
 
     `template` must return a [sjs:quasi::Quasi].
 
+    #### Example usage inside a [mho:#features/gen-file::]
+
+    Plain (template [mho:surface/doc-template/plain::]):
+
+        // hello-plain.html.gen
+        @ = require(['mho:std']);
+
+        exports.content = -> @Document(`<h1>Hello, world</h1>`, {template:'plain'});
+        
+    Bootstrap-enabled (template [mho:surface/doc-template/default::]):
+
+        // hello.html.gen
+        @ = require(['mho:std', 'mho:surface/bootstrap']);
+
+        exports.content = -> @Document(@PageHeader('Hello, Bootstrap world'));
+        
+
 */
 exports.Document = function(content, settings) {
   var headContent, userInit, title, mainModule, template, templateData, externalScripts, runtimeInit;

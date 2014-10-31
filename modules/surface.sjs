@@ -686,6 +686,23 @@ if (require('sjs:sys').hostenv !== 'xbrowser') {
 
   `template` must return a [sjs:quasi::Quasi].
 
+  #### Example usage inside a [mho:#features/gen-file::]
+
+  Plain (template [mho:surface/doc-template/plain::]):
+
+      // hello-plain.html.gen
+      @ = require(['mho:std']);
+
+      exports.content = -> @Document(`<h1>Hello, world</h1>`, {template:'plain'});
+      
+  Bootstrap-enabled (template [mho:surface/doc-template/default::]):
+
+      // hello.html.gen
+      @ = require(['mho:std', 'mho:surface/bootstrap']);
+
+      exports.content = -> @Document(@PageHeader('Hello, Bootstrap world'));
+      
+
 
 @function loadTemplate
 @hostenv nodejs
