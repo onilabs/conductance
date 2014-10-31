@@ -116,15 +116,17 @@ exports.serve = function(args) {
             agent: seedAgent,
           });
           if(!response.statusCode) {
+            if(response.error) @error(response.error);
             req .. @response.writeErrorResponse(
               500, "Connection error",
               `<p>There was an unknown error connecting to the main seed server at ${opts.master}</p>
               <p>Please try again soon.</p>`);
             return;
+          } else {
+            req.response.writeHead(response.statusCode, response.headers);
+            response .. @stream.pump(req.response);
+            req.response.end();
           }
-          req.response.writeHead(response.statusCode, response.headers);
-          response .. @stream.pump(req.response);
-          req.response.end();
         },
       }
     ),

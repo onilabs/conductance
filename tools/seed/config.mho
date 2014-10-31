@@ -44,10 +44,10 @@ var runAll = function(servers, opts) {
   switch(opts.ssl) {
     case true: defaultProto = 'https'; break;
     case false: defaultProto = 'http'; break;
-    default: defaultProto = PROD ? 'https' : 'http'; break;
+    default: defaultProto = process.env['SEED_DEFAULT_PROTO'] || (PROD ? 'https' : 'http'); break;
   }
   @env.set('default-proto', defaultProto);
-  @info("default proto is #{defaultProto}");
+  @logging.print("default proto is #{defaultProto}");
 
   external['http'] = {
     address: Port(@env.get('port-http')),

@@ -244,11 +244,11 @@ exports.defaults = function() {
 	def('port-slave', defaultPorts.slave);
 	def('port-local', defaultPorts.local);
 
-	def('gcd-namespace', -> process.env .. @get('DATASTORE_NAMESPACE'), true);
+	def('gcd-namespace', -> devDefaultEnvvar('DATASTORE_NAMESPACE', 'seed-dev'), true);
 	def('gcd-host', process.env['DATASTORE_HOST'] || (PROD ? null : 'http://localhost:8089'));
 	def('user-storage',
 		-> this.get('gcd-credentials')
-			? require('seed:master/user-gcd').Create(process.env .. @get('DATASTORE_NAMESPACE'))
+			? require('seed:master/user-gcd').Create(this.get('gcd-namespace'))
 			: require('seed:master/user-leveldown'),
 		true);
 
