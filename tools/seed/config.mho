@@ -38,15 +38,8 @@ var runAll = function(servers, opts) {
   var jobs = [];
   var listenHost = opts.host;
   var Port = (p) -> @Port(p, listenHost);
-  var PROD = @env.get('production');
 
-  var defaultProto;
-  switch(opts.ssl) {
-    case true: defaultProto = 'https'; break;
-    case false: defaultProto = 'http'; break;
-    default: defaultProto = process.env['SEED_DEFAULT_PROTO'] || (PROD ? 'https' : 'http'); break;
-  }
-  @env.set('default-proto', defaultProto);
+  var defaultProto = @env.get('default-proto');
   @logging.print("default proto is #{defaultProto}");
 
   external['http'] = {
@@ -201,6 +194,16 @@ exports.serve = function(args) {
 
   // no_ssl exists only to disable `ssl`
   if(opts.no_ssl) opts.ssl = false;
+  var defaultProto;
+  switch(opts.ssl) {
+    case true: defaultProto = 'https'; break;
+    case false: defaultProto = 'http'; break;
+    default:
+      var PROD = @env.get('production');
+      defaultProto = process.env['SEED_DEFAULT_PROTO'] || (PROD ? 'https' : 'http'); break;
+  }
+  @env.set('default-proto', defaultProto);
+
   opts.host = opts.host == 'any' ? null : opts.host;
 
   @env.set('anonymous-access', opts.anonymous);
@@ -208,9 +211,9 @@ exports.serve = function(args) {
 
   var serviceNames = opts._args;
   if (serviceNames.length == 0) {
-
+    console.error("No components given");
+    process.exit(1);
   }
-  env.defaults();
   env.installSignalHandlers();
 
   var serverDefs = opts._args .. @map(key -> (COMPONENTS .. @get(key))(opts));

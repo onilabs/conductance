@@ -6,12 +6,24 @@
 
 var etcd = @env.get('etcd');
 
-exports.authenticate = function(token) {
-  var master_endpoint = etcd.get(@etcd.slave_endpoint('master')) .. @getPath('node.value');
-  var uid;
-  @bridge.connect(@url.normalize('/master/user.api', master_endpoint), {}) {|conn|
-    uid = conn.api.validateToken(token);
+var validateToken = function() {
+  if (@env.get('use-gcd')) {
+    // if GCD is in use, we can read the DB from multiple hosts directly.
+    var api = require('../master/user.api');
+    return api.validateToken;
+  } else {
+    // proxy to master's API
+    return function(token) {
+      var master_endpoint = etcd.get(@etcd.slave_endpoint('master')) .. @getPath('node.value');
+      @bridge.connect(@url.normalize('/master/user.api', master_endpoint), {}) {|conn|
+        return conn.api.validateToken(token);
+      }
+    }
   }
+}();
+
+exports.authenticate = function(token) {
+  var uid = validateToken(token);
   // wrap remote uid into a local object
   @assert.ok(uid);
   var user = new @user.User(uid, {});

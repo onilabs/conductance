@@ -105,6 +105,10 @@ exports.changes = function(client, key, opts) {
 					nextIndex = 0;
 					continue
 				}
+				if(err.errors) {
+					// multiple errors, set by etcd's _multiserverHelper
+					err.message += err.errors .. @map(e -> '\n - ' + e.httperror) .. @join();
+				}
 				throw err;
 			}
 			if(!change && headers['x-etcd-index']) {

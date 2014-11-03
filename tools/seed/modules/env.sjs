@@ -161,7 +161,7 @@ exports.defaults = function() {
 	def('host-local', 'localhost');
 
 	def('publicAddress', function() {
-		var defaultProto = env.get('default-proto', 'http');
+		var defaultProto = env.get('default-proto');
 		var useVhost = env.get('use-vhost');
 		return function(service, proto) {
 			proto = proto || defaultProto;
@@ -208,8 +208,8 @@ exports.defaults = function() {
 			ca:   @fs.readFile(process.env .. @get('ETCD_CA_FILE')),
 
 			// provide our client certificate
-			cert: @fs.readFile(@path.join(store, 'key-conductance-etcd-client.crt')),
-			key:  @fs.readFile(@path.join(store, 'key-conductance-etcd-client.key')),
+			cert: @fs.readFile(process.env .. @get('ETCD_PEER_CERT_FILE')),
+			key:  @fs.readFile(process.env .. @get('ETCD_PEER_KEY_FILE'))
 		};
 	}, true);
 	def('etcd-proto', PROD ? 'https' : 'http');
@@ -246,8 +246,9 @@ exports.defaults = function() {
 
 	def('gcd-namespace', -> devDefaultEnvvar('DATASTORE_NAMESPACE', 'seed-dev'), true);
 	def('gcd-host', process.env['DATASTORE_HOST'] || (PROD ? null : 'http://localhost:8089'));
+	def('use-gcd', -> Boolean(this.get('gcd-credentials')), true);
 	def('user-storage',
-		-> this.get('gcd-credentials')
+		-> this.get('use-gcd')
 			? require('seed:master/user-gcd').Create(this.get('gcd-namespace'))
 			: require('seed:master/user-leveldown'),
 		true);
