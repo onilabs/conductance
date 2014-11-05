@@ -331,7 +331,7 @@ exports.localAppState = (function() {
           "run",
           "--rm=true",
           "--publish", "7075",
-          "--publish", "4043",
+          //"--publish", "4043",
           "--name", machineName,
           "--hostname", machineName,
           "--user", runUser,
