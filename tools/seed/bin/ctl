@@ -14,8 +14,8 @@ var parser = require('sjs:dashdash').createParser({
 		{
 			names: ['user', 'u'],
 			type: 'string',
-			'default': null,
-			help: 'affect processes run by `user`',
+			'default': process.env['LOGNAME'],
+			help: 'affect processes run by `user` (default: current user)',
 		},
 		{
 			names: ['help', 'h'],
@@ -24,13 +24,7 @@ var parser = require('sjs:dashdash').createParser({
 	],
 });
 
-try {
-	var opts = parser.parse();
-	@assert.ok(opts.user || opts.port, "--user or --pid required");
-} catch(e) {
-	console.error('Error: ', e.message);
-	process.exit(1);
-}
+var opts = parser.parse();
 
 if (opts.help) {
 	console.log("Usage: seed-ctl [OPTIONS] KEY=val [...]\n\noptions:\n");
@@ -46,11 +40,9 @@ var environFile = @env.get('runtime-environ');
 
 function run(cmd, args) {
 	console.log("Running: #{cmd} #{args.join(" ")}");
-	try {
-		@childProcess.run(cmd, args, {stdio:'inherit'});
-	} catch(e) {
-		console.log(e.message);
-		@childProcess.kill(process.pid, 'SIGINT');
+	var child = @childProcess.run(cmd, args, {stdio:'inherit', throwing:false});
+	if(child.code !== 0) {
+		@error("command exited with status #{child.code}");
 	}
 };
 
@@ -59,11 +51,12 @@ var sig = @env.get('ctl-signal');
 process.on(sig, -> null);
 
 console.log("Writing #{environFile}");
-@path.join(environFile) .. @fs.writeFile(contents, {mode: 0664});
+@path.join(environFile) .. @fs.writeFile(contents, {mode: 0666});
 
 if (opts.pid) {
 	run('kill', ['--signal', sig, String(opts.pid)]);
 } else {
 	// apply to all node processes
-	run('pkill', ['--signal', sig, '--exact', 'node', '-u', opts.user]);
+	var user = opts.user || process.env['LOGNAME'] .. @assert.ok();
+	run('pkill', ['--signal', sig, '--exact', 'node', '-u', user]);
 }
