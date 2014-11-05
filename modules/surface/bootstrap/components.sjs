@@ -59,12 +59,12 @@ var callWithClasses = callWithClass;
   @altsyntax element .. TextRight 
   @summary Decorator that causes text in the given block element to be right aligned
   @param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
-  @return {::Element}
+  @return {surface::Element}
   @desc
     Returns a copy of `element` with bootstrap's "text-right" class added to the 
     element's class list (see http://getbootstrap.com/css/#type-alignment).
 
-    If `TextRight` is applied to a [::HtmlFragment] that is not of class [::Element],
+    If `TextRight` is applied to a [surface::HtmlFragment] that is not of class [surface::Element],
     `element` will automatically be wrapped using [surface::ensureElement].
 
     `TextRight` is ineffective if `element` is an inline element (`Span`, etc).
@@ -87,12 +87,12 @@ exports.TextRight = element -> element .. @Class('text-right');
   @altsyntax element .. TextCenter 
   @summary Decorator that causes text in the given block element to be horizontally centered
   @param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
-  @return {::Element}
+  @return {surface::Element}
   @desc
     Returns a copy of `element` with bootstrap's "text-center" class added to the 
     element's class list (see http://getbootstrap.com/css/#type-alignment).
 
-    If `TextCenter` is applied to a [::HtmlFragment] that is not of class [::Element],
+    If `TextCenter` is applied to a [surface::HtmlFragment] that is not of class [surface::Element],
     `element` will automatically be wrapped using [surface::ensureElement].
 
     `TextCenter` is ineffective if `element` is an inline element (`Span`, etc).
@@ -115,12 +115,12 @@ exports.TextCenter = element -> element .. @Class('text-center');
   @altsyntax element .. TextJustify 
   @summary Decorator that causes text in the given block element to be justified
   @param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
-  @return {::Element}
+  @return {surface::Element}
   @desc
     Returns a copy of `element` with bootstrap's "text-justify" class added to the 
     element's class list (see http://getbootstrap.com/css/#type-alignment).
 
-    If `TextJustify` is applied to a [::HtmlFragment] that is not of class [::Element],
+    If `TextJustify` is applied to a [surface::HtmlFragment] that is not of class [surface::Element],
     `element` will automatically be wrapped using [surface::ensureElement].
 
     `TextJustify` is ineffective if `element` is an inline element (`Span`, etc).
@@ -371,7 +371,7 @@ exports.Lbl = function(/*lbl_classes, content */) {
   @desc
     * See http://getbootstrap.com/components/#badges
     * Collapses when `content` is empty
-    * Style adapts automatically to 'active' state in [::Pill]s
+    * Style adapts automatically to 'active' state in pills
     * Automatically pulled right in [::ListGroupItem]s
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
@@ -439,7 +439,10 @@ exports.ListGroup = (items, attribs) -> callWithClass(base_html.Div, 'list-group
 
 /**
   @function ListGroupItem
-  @summary XXX document me
+  @param {optional String} [cls] String of `list-group-item-*` suffixes.
+  @param {surface::HtmlFragment} [content]
+  @summary Bootstrap list group item (`<div class='list-group-item'>...</div>`)
+  @return {surface::Element}
 */
 exports.ListGroupItem = function(/*cls, content*/) {
   if (arguments.length > 1)
