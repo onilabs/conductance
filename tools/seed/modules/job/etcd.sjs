@@ -108,6 +108,13 @@ exports.changes = function(client, key, opts) {
 				if(err.errors) {
 					// multiple errors, set by etcd's _multiserverHelper
 					err.message += err.errors .. @map(e -> '\n - ' + e.httperror) .. @join();
+					
+					// When etcd times out and we're using https, it fails with an ugly SSL protocol error.
+					// see https://github.com/coreos/etcd/issues/1607
+					if(err.errors .. @all(e -> e.httperror .. String() .. @contains('decryption failed or bad record mac'))) {
+						@verbose("Assuming error is due to timeout: " + err.message);
+						continue;
+					}
 				}
 				throw err;
 			}
