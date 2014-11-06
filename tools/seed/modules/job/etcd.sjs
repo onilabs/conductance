@@ -213,6 +213,13 @@ exports.heartbeat = function(beat) {
 	}
 };
 
+// throw an etcd-compatible error
+exports.Error = function(code) {
+	var e = new Error("Etcd error (#{code})");
+	e.errorCode = code;
+	return e;
+}
+
 if (require.main === module) {
 	require('sjs:wraplib/inspect').inspect(exports);
 }

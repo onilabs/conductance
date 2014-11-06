@@ -150,7 +150,7 @@ function discoverNewRequests(client, serverId, info, withLoad) {
 		.. @each
 	{|node|
 		@info("saw op:", node.value);
-		hold(withLoad.currentValue() * 500); // 0.5s per load
+		hold(withLoad.currentValue() * 200); // 0.2s per load
 		@debug("accepting op:", node.value);
 		var key = node .. @get('key');
 		var del = -> client.compareAndDelete(key, node .. @get('value'), {prevIndex: node .. @get('modifiedIndex')});

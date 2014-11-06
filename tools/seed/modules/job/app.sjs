@@ -356,7 +356,7 @@ exports.localAppState = (function() {
         @info("Running", args);
         var child = @childProcess.launch(args[0],
           args.slice(1).concat([
-            'serve',
+            'serve', '--port', '7075', '--host', 'any'
           ]),
           {
             stdio: stdio,

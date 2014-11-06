@@ -43,7 +43,7 @@ var etcd = exports.etcd = (function() {
 	var isRunning = function(root) {
 		root = root || root_url();
 		return exports.tryHttp {||
-			@http.get(root + "keys/", @env.get('etcd-ssl'));
+			@http.get(root + "stats/self", @env.get('etcd-ssl'));
 			@info("Found etcd server on #{root}");
 		}
 	};

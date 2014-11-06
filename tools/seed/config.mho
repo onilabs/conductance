@@ -3,6 +3,7 @@ require('./modules/hub');
 @ = require(['mho:std', 'seed:util']);
 @etcd = require('seed:job/etcd');
 @stream = require('sjs:nodejs/stream');
+@response = require('mho:server/response');
 var root = @url.normalize('./', module.id) .. @url.toPath;
 
 var staticRoute = @route.StaticDirectory(/static/, @path.join(root, 'static'));
@@ -241,7 +242,30 @@ COMPONENTS.master = function(opts) {
 
   // discard operations from previous master
   var etcd = @env.get('etcd');
-  @etcd.tryOp( -> etcd.del('app/op/', {recursive:true}));
+  @etcd.tryOp( -> etcd.del(@etcd.app_op(null), {recursive:true}));
+
+  (function() {
+    // discard all empty endpoints
+    // NOTE: blank endpoints are intentionally set in
+    // modules/job/app.sjs::masterAppState::endpoint
+    // So we need to do this while we're confident that that code
+    // isn't running. Since there is only one master server, we can do it
+    // on master startup.
+    function deleteEmpty(node) {
+      if(node.dir && node.nodes) {
+        node.nodes .. @each(deleteEmpty);
+      } else {
+        if(node.value === '') {
+          @info("Deleting empty endpoint #{node.key}");
+          etcd.del(node.key, {prevIndex: node .. @get('modifiedIndex')});
+        }
+      }
+    };
+
+    var appEndpoint = null;
+    @etcd.tryOp( -> appEndpoint = etcd.get(@etcd.app_endpoint(null), {recursive:true}).node);
+    if(appEndpoint !== null) deleteEmpty(appEndpoint);
+  })();
 
   return {
     jobs: [
@@ -305,7 +329,6 @@ COMPONENTS.proxy = function() {
   var proxyRoute = function(proto, publicPort) {
     publicPort = String(publicPort);
     return @Route(/^/, {'*': function(req) {
-      //console.log(req);
       var destRoute = proxies[publicPort];
       //console.log(JSON.stringify(proxies));
       @debug("destRoute[#{publicPort}]: ", destRoute);
@@ -326,7 +349,12 @@ COMPONENTS.proxy = function() {
           };
           //@info("PROXY -> #{dest}");
           var response = @http.request(dest, opts);
-          //@info(response.statusCode);
+          if(response.statusCode == 0) {
+            // most likely a TCP / network error
+            throw @response.HttpError(503, "Application unavailable",
+              `<p>The application (<code>${subdomain}</code>) is not responding.</p>
+              <p>This could be due to a configuration error, or a temporary network issue.</p>`);
+          }
 
           req.response.writeHead(response.statusCode, response.headers);
           response .. @stream.pump(req.response);
@@ -360,8 +388,11 @@ COMPONENTS.proxy = function() {
           if (node.dir) return;
           var key = getKey();
           var endpointKey = @etcd.app_endpoint(key);
-          var endpointExists = @etcd.tryOp(
-            -> etcd.get(endpointKey),
+          var endpointExists = @etcd.tryOp(function(){
+              var node = etcd.get(endpointKey);
+              // act like KEY_NOT_FOUND if the endpoint is empty
+              if(node.value == '') throw @etcd.Error(@etcd.err.KEY_NOT_FOUND);
+            },
             [@etcd.err.KEY_NOT_FOUND]
           );
           if(!endpointExists) {
@@ -383,6 +414,7 @@ COMPONENTS.proxy = function() {
         
         case "delete":
         case "compareAndDelete":
+          if (node.dir) return;
           var key = getKey();
           @info("Deleting routes for #{key}");
           proxies .. @ownValues .. @each {|apps|
