@@ -53,7 +53,7 @@ var getMasterCodePaths = function(user, appId) {
   }
   return [
     @path.join(root, String(user.id), appId, "code"),
-    @path.join(root, String(user.id), appId, "config.json"),
+    @path.join(root, String(user.id), appId, "state.json"),
   ];
 }
 
@@ -158,17 +158,20 @@ var _awaitExit = function(machineName) {
   }
 };
 
-var _loadConfig = function(configPath) {
+var _loadState = function(path) {
   var loaded = {};
   try {
-    loaded = @fs.readFile(configPath, 'utf-8') .. JSON.parse();
+    loaded = @fs.readFile(path, 'utf-8') .. JSON.parse();
   } catch(e) {
     if (e.code !== 'ENOENT') throw e;
-    @warn("no config found at #{configPath}");
-    loaded = {};
+    @warn("no state found at #{path}");
+    loaded = {config: {}, state: {}};
   }
-  @info("Loaded config:", loaded);
-  return DEFAULT_CONFIG .. @merge(loaded);
+  @info("Loaded state:", loaded);
+  return {
+    config: DEFAULT_CONFIG .. @merge(loaded.config),
+    state: loaded.state,
+  };
 };
 
 
@@ -185,7 +188,7 @@ exports.localAppState = (function() {
     @mkdirp(appRunBase);
     //var pidPath = getPidPath(appRunBase);
     var logPath = @path.join(appRunBase, 'log');
-    var configPath = @path.join(appRunBase, 'config.json');
+    var statePath = @path.join(appRunBase, 'state.json');
     var recheckPid = @Emitter();
     var clearLogs = -> @fs.open(logPath, 'w') .. @fs.close();
 
@@ -429,7 +432,7 @@ exports.localAppState = (function() {
     };
 
     function getSubdomain() {
-      return "#{_loadConfig(configPath).name .. @keySafe}-#{user.id .. @keySafe()}"
+      return "#{_loadState(statePath).config.name .. @keySafe}-#{user.id .. @keySafe()}"
     };
 
     return {
@@ -484,34 +487,54 @@ exports.masterAppState = (function() {
     @assert.string(id, 'appId');
     var appId = "#{user.id}/#{id}";
     var appBase = getAppPath(user, id);
-    var configPath = @path.join(appBase, 'config.json');
+    var statePath = @path.join(appBase, 'state.json');
     var safe = semaphoreWrapper();
 
-    var config = (function() {
-      var loadConfig = function() {
-        return _loadConfig(configPath);
+    var [config, state, modifyState] = (function() {
+      var loadState = function() {
+        return _loadState(statePath);
       } .. safe();
 
-      var val = @ObservableVar(loadConfig());
-      var rv = val .. @transform(x -> DEFAULT_CONFIG .. @merge(x));
-      rv.modify = function(f) {
-        f = function(orig) {
-          return function(current, unchanged) {
-            var rv = orig.apply(null, arguments);
-            if (rv === unchanged) return unchanged;
+      var val = @ObservableVar(loadState());
+      var saveState = function() {
+        var state = val.get();
+        @logging.info("saving app state:", state);
+        @mkdirp(appBase);
+        @fs.writeFile(statePath, JSON.stringify(state, null, '  '), 'utf-8');
+      };
+
+      var modifyChild = function(key, orig, check) {
+        // wraps `orig` modifier into a modificatino function that operates on
+        // a child property, with an optional `check`
+        return function(current, unchanged) {
+          var child = orig(current[key], unchanged);
+          if (child === unchanged) return unchanged;
+          if (check) check(child);
+          var rv = current .. @clone();
+          rv[key] = child;
+          return rv;
+        };
+      };
+
+      var config = val .. @transform(x -> DEFAULT_CONFIG .. @merge(x.config));
+      var state = val .. @transform(x -> x.state);
+      config.modify = function(f) {
+        f = modifyChild('config', f, function(config) {
             // validate new config before accepting
-            rv.name .. @validate.appName();
-            return rv;
-          };
-        }(f);
+            config.name .. @validate.appName();
+        });
         if (val.modify(f)) {
-          var conf = val.get();
-          @logging.info("saving app config:", conf);
-          @mkdirp(appBase);
-          @fs.writeFile(configPath, JSON.stringify(conf, null, '  '), 'utf-8');
+          saveState();
         }
       } .. safe();
-      return rv;
+
+      var modifyState = function(f) {
+        if (val.modify(modifyChild('state', f))) {
+          saveState();
+        }
+      } .. safe();
+
+      return [config, state, modifyState];
     })();
 
     @job_master = require('./master');
@@ -562,6 +585,9 @@ exports.masterAppState = (function() {
           @fs.rename(tmpdest, finaldest);
           tryRename(finaldest + '.old', tmpdest);
 
+          // modify deployment state
+          modifyState.unsafe(st -> st .. @merge({deployed: Date.now()}));
+
           // and restart it
           startApp();
         } catch (e) {
@@ -597,6 +623,7 @@ exports.masterAppState = (function() {
     return {
       id: id,
       config: config,
+      state: state,
       start: startApp,
       stop: stopApp,
       deploy: deploy,

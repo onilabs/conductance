@@ -102,6 +102,9 @@ var appNameStyle = @CSS("
 	}
 ");
 
+var deployDateStyle = d -> d .. @Style("text-align: right;") .. @Class("text-muted");
+
+
 var appStyle = @CSS("
 	.header .btn-group {
 		float:right;
@@ -196,6 +199,46 @@ var appDisplayMessageStyle = @CSS("
 }
 ");
 
+var relativeDate = function(ts) {
+	var plural = n -> n === 1 ? '' : 's';
+
+	return @Stream(function(emit) {
+		while(true) {
+			var now = Date.now();
+			var diffSec = (now - ts) / 1000;
+
+			;[
+				{
+					unit: 1, wait: 60, max: 60,
+					display: -> "seconds ago",
+				},
+				{
+					unit: 60, max: 60,
+					display: n -> "#{n} minute#{plural(n)} ago",
+				},
+				{
+					unit: 60 * 60, max: 24,
+					display: n -> "#{n} hour#{plural(n)} ago",
+				},
+
+				{
+					unit: 60 * 60 * 24,
+					display: n -> "#{n} day#{plural(n)} ago",
+				},
+			] .. @each {|spec|
+				var diff = diffSec / spec.unit;
+				if (!spec.max || diff < spec.max) {
+					var n = Math.max(1, diff) .. Math.floor();
+					emit(spec.display(n));
+					@info("Holding for #{spec.wait || spec.unit} seconds");
+					hold((spec.wait || spec.unit) * 1000);
+					break;
+				}
+			}
+		}
+	});
+};
+
 var displayApp = function(elem, token, localApi, localServer, remoteServer, app) {
 	@info("app: ", app);
 	var endpoint = app.endpoint .. @mirror();
@@ -250,12 +293,23 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 
 	var appName = app.config .. @transform(a -> a.name);
 
+	console.log(app);
+	var deployState = app.state .. @mirror();
+	var deployDate = deployState .. @transform(function(state) {
+		var ts = state.deployed;
+		if(ts) {
+			return ["Deployed ", @Span(relativeDate(ts), {'title':String(new Date(ts))})];
+		} else {
+			return "Not yet deployed";
+		}
+	});
+
 	var statusClass = isRunning .. @transform(ok -> "glyphicon-#{ok ? "play" : ok === false ? "stop" : "flash"}");
 	var statusColorClass = ['text-muted'] .. @concat(isRunning .. @transform(ok -> "text-#{ok ? "success" : ok === false ? "danger" : "warning"}"));
 
 	// NOTE: isRunning can be `null`, in which case we don't know if the app is running (we can't reach the server)
 	var disableStop = [true] .. @concat(isRunning .. @transform(ok -> ok !== true));
-	var disableStart = [true] .. @concat(isRunning .. @transform(ok -> ok !== false));
+	var disableStart = [true] .. @concat(@observe(isRunning, deployState, (ok, state) -> !(ok === false && state.deployed)));
 	var endpointUnreachable = isRunning .. @transform(ok -> ok === null) .. @dedupe();
 	var disableDeploy = [true] .. @concat(endpointUnreachable);
 
@@ -310,6 +364,7 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 			}
 		</div>
 		<div class="clearfix">
+			${@P(deployDate) .. deployDateStyle}
 			${
 			endpointUnreachable .. @transform(err -> err
 			? `<div class="alert alert-warning" role="alert">Endpoint temporarily unreachable</div>`
