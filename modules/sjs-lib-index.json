@@ -481,6 +481,88 @@
       },
       "summary": "The Conductance webserver"
     },
+    "ssh-client": {
+      "type": "module",
+      "children": {
+        "ATTRS": {
+          "type": "class",
+          "children": {
+            "atime": {
+              "type": "variable"
+            },
+            "gid": {
+              "type": "variable"
+            },
+            "mode": {
+              "type": "variable"
+            },
+            "mtime": {
+              "type": "variable"
+            },
+            "size": {
+              "type": "variable"
+            },
+            "uid": {
+              "type": "variable"
+            }
+          }
+        },
+        "ChannelStream": {
+          "type": "class",
+          "children": {}
+        },
+        "Connection": {
+          "type": "class",
+          "children": {}
+        },
+        "SFTPSession": {
+          "type": "class",
+          "children": {}
+        },
+        "Stat": {
+          "type": "class",
+          "children": {
+            "isBlockDevice": {
+              "type": "function"
+            },
+            "isCharacterDevice": {
+              "type": "function"
+            },
+            "isDirectory": {
+              "type": "function"
+            },
+            "isFIFO": {
+              "type": "function"
+            },
+            "isFile": {
+              "type": "function"
+            },
+            "isSocket": {
+              "type": "function"
+            }
+          }
+        },
+        "connect": {
+          "type": "function"
+        },
+        "exec": {
+          "type": "function"
+        },
+        "fileStream": {
+          "type": "function"
+        },
+        "readdir": {
+          "type": "function"
+        },
+        "sftp": {
+          "type": "function"
+        },
+        "stat": {
+          "type": "function"
+        }
+      },
+      "summary": "ssh client wrapping the https://github.com/mscdex/ssh2 library"
+    },
     "std": {
       "type": "module",
       "children": {},
