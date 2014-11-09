@@ -1,6 +1,6 @@
 #!bash -eux
-gup -u package.json
-npm install --production
+gup -u package.json ../../node_modules/update
+env NODE_ENV=production node ../update-deps.js
 mkdir -p data
 gup -u \
 	tools/etcd \

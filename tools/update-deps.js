@@ -10,10 +10,9 @@ var path = require('path');
 var fs = require('fs');
 var child_process = require('child_process');
 
-var root = path.dirname(path.dirname(__filename));
-process.chdir(root);
+var root = process.cwd();
 var modules = path.join(root, 'node_modules');
-var packageInfo = require(path.join(root, 'package.json'));
+var packageInfo = JSON.parse(fs.readFileSync('package.json'));
 var deps = packageInfo.dependencies;
 
 if (process.env['NODE_ENV'] != 'production') {
@@ -55,18 +54,20 @@ if (process.env['DEV_DEPENDENCIES']) {
 }
 
 // merge optionalDependencies, ignoring anything specified in $SKIP_OPTIONAL
-var optionalDepNames = Object.keys(packageInfo.optionalDependencies);
-var skipOptional = [];
-if (process.env['SKIP_OPTIONAL']) {
-	if (process.env['SKIP_OPTIONAL'] === '*') {
-		skipOptional = optionalDepNames;
-	} else {
-		skipOptional = process.env['SKIP_OPTIONAL'].split(',');
+if(packageInfo.optionalDependencies) {
+	var optionalDepNames = Object.keys(packageInfo.optionalDependencies);
+	var skipOptional = [];
+	if (process.env['SKIP_OPTIONAL']) {
+		if (process.env['SKIP_OPTIONAL'] === '*') {
+			skipOptional = optionalDepNames;
+		} else {
+			skipOptional = process.env['SKIP_OPTIONAL'].split(',');
+		}
 	}
-}
-for (var k in packageInfo.optionalDependencies) {
-	if (skipOptional.indexOf(k) === -1) {
-		deps[k] = packageInfo.optionalDependencies[k];
+	for (var k in packageInfo.optionalDependencies) {
+		if (skipOptional.indexOf(k) === -1) {
+			deps[k] = packageInfo.optionalDependencies[k];
+		}
 	}
 }
 
