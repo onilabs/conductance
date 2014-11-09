@@ -14,7 +14,7 @@ exports.monitorClusterChanges = function(client) {
 
 var op = function(client, op, id, timeout) {
 	@info("performing action [#{op}] on [#{id}]");
-	timeout = timeout || 10;
+	timeout = timeout || 30;
 	var created;
 	if (op === 'start') {
 		created = client.set(@etcd.app_job(id), op).node;

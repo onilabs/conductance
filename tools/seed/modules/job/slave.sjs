@@ -54,14 +54,7 @@ exports.main = function(client, serverId, singleton) {
 		if (owned.length > 0) info("Dropping #{owned.length} dead apps...");
 		owned .. @each {|id|
 			info("Dropping endpoint key for dead app #{id}");
-			var deleted = @etcd.tryOp(function() {
-				try {
-					client.compareAndDelete(@etcd.app_endpoint(id), serverId, {})
-				} catch(e) {
-					//@error(e);
-					throw e;
-				}
-			});
+			var deleted = @etcd.tryOp(-> client.compareAndDelete(@etcd.app_endpoint(id), serverId, {}));
 			if (!deleted) {
 				@warn("Couldn't delete!");
 			}
@@ -117,27 +110,32 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 					.. @each
 				{|node|
 					try {
-						info("saw app op:", node.value);
+						info("saw app op:", node.key, node.value);
 						switch(node.value) {
 							case "stop":
 								info("stopping app #{id}");
 								app.stop();
-								hold(); // the other branch should take over now
+								hold();
+								// the other branch will collapse this one
+								// when the app actually terminates
 								break;
 							case "start":
 								info("ignoring duplicate [start] request");
 								break;
 							default:
-								throw new Error("Unknown app op:", node.value);
+								info("Unknown app op:", node.value);
+								break;
 						}
 					} finally {
-						info("deleting app op:", node.value);
-						client.del(node.key, {});
+						info("deleting app op:", node.key, node.value);
+						@etcd.tryOp(
+							-> client.del(node.key, {prevIndex: node .. @get('modifiedIndex')}),
+							[@etcd.err.TEST_FAILED]);
 					}
 				}
 			}
 		} catch(e) {
-			@error(String(e));
+			@error("Error in appRunLoop:" + String(e));
 		}
 	}
 }
@@ -149,7 +147,7 @@ function discoverNewRequests(client, serverId, info, withLoad) {
 		.. @etcd.values(prefix, {'recursive':true})
 		.. @each
 	{|node|
-		@info("saw op:", node.value);
+		@info("saw new op:", node.value);
 		hold(withLoad.currentValue() * 200); // 0.2s per load
 		@debug("accepting op:", node.value);
 		var key = node .. @get('key');

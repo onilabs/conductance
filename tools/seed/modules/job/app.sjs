@@ -129,7 +129,7 @@ function tryRunDocker(cmd, stdout) {
     return rv;
   } catch(e) {
     if (!/Error( response from daemon)?: No such (image or )?container: /.test(e.stderr)) {
-      @error(e.stderr);
+      //@error("Docker error output from command #{cmd.join(' ')}:" + e.stderr);
       throw e;
     }
     return false;

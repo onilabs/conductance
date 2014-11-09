@@ -3,33 +3,45 @@ var wraplib = require('sjs:wraplib');
 var etcd = require('nodejs:node-etcd');
 var HEARTBEAT_INTERVAL = 1000 * 60 * 1; // 1 minute
 
+// like handle_error_and_value, except it annotates the error / value with
+// the (optional) third `headers` value.
+var handle_etcd_result = function(_fn, resume) {
+	return function(err, value, headers) {
+		if(headers) {
+			// attach to either err or result:
+			(err || value).headers = headers;
+		}
+		resume(err, value);
+	}
+};
+
 exports.Etcd = etcd;
 wraplib.annotate(exports, {
 	Etcd: {
 		"this": wraplib.sync,
 		prototype: {
 
-			compareAndDelete :  [3, wraplib.handle_error_and_value],
-			compareAndSwap   :  [4, wraplib.handle_error_and_value],
-			create           :  [3, wraplib.handle_error_and_value],
-			del              :  [2, wraplib.handle_error_and_value],
-			'delete'         :  [2, wraplib.handle_error_and_value],
-			get              :  [2, wraplib.handle_error_and_value],
-			leader           :  [0, wraplib.handle_error_and_value],
-			leaderStats      :  [0, wraplib.handle_error_and_value],
-			machines         :  [0, wraplib.handle_error_and_value],
-			mkdir            :  [2, wraplib.handle_error_and_value],
-			post             :  [3, wraplib.handle_error_and_value],
-			raw              :  [4, wraplib.handle_error_and_value],
-			rmdir            :  [2, wraplib.handle_error_and_value],
-			selfStats        :  [0, wraplib.handle_error_and_value],
-			set              :  [3, wraplib.handle_error_and_value],
-			testAndDelete    :  [3, wraplib.handle_error_and_value],
-			testAndSet       :  [4, wraplib.handle_error_and_value],
-			version          :  [0, wraplib.handle_error_and_value],
-			watch            :  [2, wraplib.handle_error_and_value],
-			watcher          :  [2, wraplib.handle_error_and_value],
-			watchIndex       :  [3, wraplib.handle_error_and_value],
+			compareAndDelete :  [3, handle_etcd_result],
+			compareAndSwap   :  [4, handle_etcd_result],
+			create           :  [3, handle_etcd_result],
+			del              :  [2, handle_etcd_result],
+			'delete'         :  [2, handle_etcd_result],
+			get              :  [2, handle_etcd_result],
+			leader           :  [0, handle_etcd_result],
+			leaderStats      :  [0, handle_etcd_result],
+			machines         :  [0, handle_etcd_result],
+			mkdir            :  [2, handle_etcd_result],
+			post             :  [3, handle_etcd_result],
+			raw              :  [4, handle_etcd_result],
+			rmdir            :  [2, handle_etcd_result],
+			selfStats        :  [0, handle_etcd_result],
+			set              :  [3, handle_etcd_result],
+			testAndDelete    :  [3, handle_etcd_result],
+			testAndSet       :  [4, handle_etcd_result],
+			version          :  [0, handle_etcd_result],
+			watch            :  [2, handle_etcd_result],
+			watcher          :  [2, handle_etcd_result],
+			watchIndex       :  [3, handle_etcd_result],
 
 		}
 	}
@@ -37,7 +49,7 @@ wraplib.annotate(exports, {
 
 exports.changes = function(client, key, opts) {
 	opts = opts ? @clone(opts) : {};
-	var nextIndex = 0;
+	var nextIndex = null;
 	if (opts .. @hasOwn('waitIndex')) {
 		nextIndex = opts.waitIndex;
 		delete opts.waitIndex;
@@ -63,36 +75,31 @@ exports.changes = function(client, key, opts) {
 			node: null,
 		};
 
-		//console.log("grabbing initial: " + key);
-		var initial;
-		var gotInitial = exports.tryOp(function() {
+		//@debug("grabbing initial: " + key);
+		var initial = null;
+		var initialHeaders = null;
+		try {
 			initial = client.get(key, opts);
-		}, [exports.err.KEY_NOT_FOUND]);
-
-		if (gotInitial) {
-			if(opts.recursive) {
-				// special-case: take the highest modifiedIndex of an initial recursive listing,
-				// otherwise we'll be flooded with all leaf modifications made after the root
-				// was last modified
-				var walk = function(node) {
-					updateIndex(node);
-					if (node.nodes) {
-						node.nodes .. @each(walk);
-					}
-				};
-				walk(initial.node);
-			} else {
-				updateIndex(initial.node);
+			initialHeaders = initial.headers;
+		} catch(e) {
+			if(e.errorCode !== exports.err.KEY_NOT_FOUND) {
+				throw e;
 			}
+			initialHeaders = e.headers;
+		}
+
+		if(nextIndex === null) {
+			nextIndex = (initialHeaders .. @get('x-etcd-index') .. parseInt(10)) + 1;
+			@debug("Initial index: ", nextIndex);
 		}
 
 		if (emitInitial) {
-			emit(gotInitial ? initial : BLANK);
+			emit(initial || BLANK);
 		}
 
 		while(true) {
 			waitfor(var err, change, headers) {
-				//console.log("grabbing changes: " + key, opts, nextIndex);
+				//@debug("grabbing changes: " + key, opts, nextIndex);
 				var req = client.watch(key, opts .. @merge({waitIndex: nextIndex}), resume);
 			} retract {
 				@info("client.watch retracted");
@@ -134,7 +141,7 @@ exports.values = function(client, key, opts) {
 	return exports.changes.apply(null, arguments)
 		//.. @filter(function(change) {
 		//	if (change.action === 'set' || change.action === 'get' || change.action === 'create') return true;
-		//	console.log("Skipping non-value change type: #{change.action}");
+		//	@debug("Skipping non-value change type: #{change.action}");
 		//})
 		.. @filter(change -> change.action === 'set' || change.action === 'get' || change.action === 'create')
 		.. @transform(change -> change.node);
@@ -149,7 +156,7 @@ exports.tryOp = function(fn, allowed_errors) {
 	try {
 		return fn() || true;
 	} catch(e) {
-		//console.log("errcode: #{e.errorCode}");
+		//@debug("errcode: #{e.errorCode}");
 		if (allowed_errors.indexOf(e.errorCode) === -1) throw e;
 		return false;
 	}

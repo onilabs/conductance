@@ -6,6 +6,10 @@ if(script) {
 	process.argv.splice(2,1);
 	require(script, {main:true});
 } else {
+	global.__oni_altns = require([
+		'mho:std',
+		{id:'seed:job/etcd', name:'etcd'},
+	]);
 	require('sjs:nodejs/repl').runREPL();
 }
 
