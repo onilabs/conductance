@@ -74,10 +74,16 @@ if(packageInfo.optionalDependencies) {
 
 var packageNames = Object.keys(deps);
 
+var skipNames = (process.env['SKIP_PACKAGES'] || '').split().filter(function(s) { return s.length > 0; });
+
 packageNames = packageNames.filter(function(pkg) {
 	var p = path.join(modules, pkg);
 	if (fs.existsSync(p) && fs.lstatSync(p).isSymbolicLink()) {
 		console.log(pkg + ": skipping (symlink)");
+		return false;
+	}
+	if(skipNames.indexOf(pkg) !== -1) {
+		console.log(pkg + ": skipping ($SKIP_PACKAGES)");
 		return false;
 	}
 	return true;
@@ -94,7 +100,7 @@ var outOfDate = packageNames.map(function(pkg) {
 		if (installed._from != id) {
 			throw new Error(pkg + " out of date. \nRequired: " + id + "\nCurrent: " + installed._from);
 		}
-		console.log(pkg + ': Up to date');
+		console.log(pkg + ': Up to date ('+id+')');
 		return false;
 	} catch(e) {
 		if(e.message) console.error("Error: " + e.message);

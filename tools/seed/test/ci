@@ -3,6 +3,8 @@
 @ = require(['sjs:std', 'sjs:nodejs/mkdirp']);
 process.env['BROWSERS'] = 'Firefox'
 process.env['USER_BACKEND'] = 'leveldown'
+// don't bother installing conductance, we'll use the checked-out version
+process.env['SKIP_PACKAGES'] = 'conductance'
 var here = @url.normalize('./', module.id) .. @url.toPath();
 
 @childProcess.run(@path.join(here, '../../gup'), [@path.join(here, '../deps') ], {'stdio':'inherit'});

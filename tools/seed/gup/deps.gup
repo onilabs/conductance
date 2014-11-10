@@ -1,6 +1,12 @@
 #!bash -eux
-gup -u package.json ../../node_modules/update
+gup -u ../../node_modules/production
+
+# debugging for travis-ci
+tree ../../node_modules
+
+gup -u package.json ../update-deps.js
 env NODE_ENV=production node ../update-deps.js
+
 mkdir -p data
 gup -u \
 	tools/etcd \
