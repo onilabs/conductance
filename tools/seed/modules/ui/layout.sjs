@@ -66,6 +66,7 @@ exports.defaultDocument = function(content, overrides) {
     showBusyIndicator: true,
     appModule: false,
     mhoStyle: false,
+    bootstrapJs: false,
     //wrapContent: false
   } .. @merge(overrides.templateData || {});
   delete overrides.templateData;
@@ -94,6 +95,7 @@ var docTemplate = function(data, settings) {
   var showBusyIndicator = settings.showBusyIndicator;
   var fluid = settings.fluid === true;
   var useMhoStyle = settings.mhoStyle !== false;
+  var useBootstrapJs = settings.bootstrapJs !== false;
 
   var content = `<div class='${fluid?'container-fluid':'container'}'>${data.body}</div>`;
 
@@ -134,7 +136,7 @@ var docTemplate = function(data, settings) {
     ${ data.script }
   </head>
   <body>${content}
-    ${frag.bootstrapJavascript()}
+    ${useBootstrapJs ? frag.bootstrapJavascript()}
   </body>
 </html>`;
 }

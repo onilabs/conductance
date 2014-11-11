@@ -1,3 +1,7 @@
+/**
+  @require mho:surface/api-connection
+  @require mho:server/seed/endpoint
+ */
 @ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom']);
 @bridge = require('mho:rpc/bridge');
 @form = require('./form');

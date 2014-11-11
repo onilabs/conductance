@@ -1,0 +1,38 @@
+@ = require('mho:std');
+@bundle = require('sjs:bundle');
+@crypto = require('nodejs:crypto');
+@stream = require('sjs:nodejs/stream');
+
+var access = (function() {
+  var allHubs = ['sjs','mho','seed'];
+  var cache = {};
+  return function(hub) {
+    if (!cache .. @hasOwn(hub)) {
+      var excludeHubs = allHubs .. @filter(h -> h !== hub) .. @map(h -> h+':');
+      var content = @bundle.create({
+        sources: [ "seed:ui/main.sjs" ],
+        compile: true,
+        exclude: excludeHubs,
+      }) .. @join('\n');
+
+      var hash = @crypto.createHash('sha1');
+      hash .. @stream.write(content, 'utf-8');
+      var digest = hash.digest('hex').slice(0, 20);
+      //console.log("DIGEST:", digest);
+
+      cache[hub] = {
+        content: content,
+        digest: digest,
+      };
+    }
+    return cache[hub];
+  };
+})();
+
+exports.content = function(params) {
+  return access(params .. @get('hub')).content;
+};
+
+exports.etag = function(params) {
+  return access(params .. @get('hub')).digest;
+};

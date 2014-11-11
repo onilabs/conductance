@@ -12,6 +12,7 @@
 /**
   @module  server/rpc/bridge
   @summary API bridge: High-level API remoting
+  @require ./aat-client
   @desc
     The RPC bridge is used for bidirectional communication between client
     and server.

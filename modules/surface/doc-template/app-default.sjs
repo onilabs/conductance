@@ -221,6 +221,7 @@ exports.Document = function(data, settings) {
   var showBusyIndicator = settings.showBusyIndicator .. toBool === true;
   var fluid = settings.fluid .. toBool === true;
   var useMhoStyle = settings.mhoStyle .. toBool !== false;
+  var useBootstrapJs = settings.bootstrapJs .. toBool !== false;
 
   var content = `<div class='${fluid?'container-fluid':'container'}'>${data.body}</div>`;
 
@@ -263,7 +264,7 @@ exports.Document = function(data, settings) {
     ${ data.script }
   </head>
   <body>${content}
-    ${frag.bootstrapJavascript()}
+    ${useBootstrapJs ? frag.bootstrapJavascript()}
   </body>
 </html>`;
 }

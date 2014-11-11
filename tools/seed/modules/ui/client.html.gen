@@ -7,6 +7,7 @@ exports.content = function() {
   return @layout.defaultDocument(null, {
     title: "Conductance Seed",
     init: "require('seed:ui/main').run('#{localAddress}')",
+    externalScripts: ['sjs','mho','seed'] .. @map(hub -> "client.html.js?hub=#{hub}"),
     templateData: {
       showBusyIndicator: true,
     }
