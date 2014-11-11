@@ -6,6 +6,10 @@ env:
   - a="test/run --karma single-run" BROWSERS=Firefox
   - a="test/run"
   - a="tools/seed/test/ci"
+
+# workaround https://github.com/npm/npm/issues/6679
+install: "npm install --production && ./tools/gup node_modules/update"
+
 matrix:
   # just run integration tests on other node versions
   include:

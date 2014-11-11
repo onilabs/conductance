@@ -15,8 +15,8 @@ var modules = path.join(root, 'node_modules');
 var packageInfo = JSON.parse(fs.readFileSync('package.json'));
 var deps = packageInfo.dependencies;
 
-if (process.env['NODE_ENV'] != 'production') {
-	process.env['DEV_DEPENDENCIES'] = process.env['DEV_DEPENDENCIES'] || '*';
+if (process.env['NODE_ENV'] != 'production' && process.env['DEV_DEPENDENCIES'] == null) {
+	process.env['DEV_DEPENDENCIES'] = '*';
 }
 
 if (process.env['DEV_DEPENDENCIES']) {
