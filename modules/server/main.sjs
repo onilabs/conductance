@@ -88,7 +88,7 @@ exports.run = function(args) {
       name: 'bundle',
       desc: 'Create a module bundle',
       fn: function() {
-        require('sjs:bundle', {main:true});
+        require('sjs:bundle').main(args);
       }
     },
     {
