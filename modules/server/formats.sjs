@@ -334,6 +334,13 @@ var withFormats = exports.withFormats = function(map, extensions) {
       - .md, for rendering as HTML
 
     Note that the source of .app files is accessible via the `src` format.
+    
+    #### Warning
+
+    You should never use these filters for locations containing untrusted or 
+    user-submitted code.
+    Certain module directives (e.g. [#features/app-file::@bundle]) could be used to expose sensitive
+    content from the server in some circumstances.
 
 */
 var conductanceVersionEtag = "#{env.conductanceVersion()}-#{env.compilerStamp()}";
@@ -407,6 +414,8 @@ exports.Jsonp = Jsonp;
     This function adds the following mappings in the returned [::FormatMap]:
 
        - .api, for SJS modules that are run only on the server and exported to the client
+
+    #### Warning
 
     You should never use these filters for locations containing untrusted or
     user-submitted content, as they enable arbitrary code execution on the server.

@@ -27,6 +27,9 @@
             "@bundle": {
               "type": "directive"
             },
+            "@bundle-compile": {
+              "type": "directive"
+            },
             "@template": {
               "type": "directive"
             }

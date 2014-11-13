@@ -333,6 +333,10 @@ var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
    @return {../server::Route}
    @summary Creates a [../server::Route] that serves code and static files from the local filesystem
    @desc
+      You should **only** ever use this route type for *trusted content* that you control. Serving any
+      user-generated files using this route can lead to sensitive content being exposed (e.g. through the use of 
+      the [#features/app-file::@bundle] directive in *.app files).
+
       - Serves the given directory with [./formats::StaticFormatMap] as well as the [./formats::Code] extension.
 
       - See the description for [::ExecutableDirectory] for details on how to specifiy `path` and `root`.

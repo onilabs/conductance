@@ -98,4 +98,43 @@
   in any file will cause the entire bundle to
   be re-downloaded.
 
+  The same limitations as mentioned in the documentation for the
+  [sjs:bundle::] module apply:
+
+  * Only modules that can be statically determined to *always* be used
+    by the module will be included in the bundle. This generally only covers
+    `require("moduleName")` statements at the top-level of the module
+    (and any transitively `require`d modules). To include other modules in the 
+    bundle you can use the [sjs:#language/metadata::@require] directive.
+
+  Furthermore, [::@bundle] makes certain assumptions about co-location 
+  of relative paths as mapped from server to client (in the server's [mho:#features/mho-file::]):
+
+  * Relative module URLs such as `require('./some-directory/foo')` will be resolved 
+    relative to the location of the `require`ing module file on the server. This means that 
+    certain server configurations (such as mapping `some-directory` to a different server location)
+    will be ineffective in the presence of automatic bundling: **The bundling algorithm will always 
+    bundle the file found at the relative path on the server, even if this path is not exposed to the client 
+    through the server's [mho:#features/mho-file::].** 
+
+  * As a safety precaution, the bundling algorithm will 
+    never include modules that are located at a higher place in the directory hierarchy than the module for 
+    which bundling is performed. E.g. the module referenced by `require('../foo')` will be ignored and not
+    included in the bundle.
+
+  * Absolute module URLs that reference a hub (e.g. `require('sjs:sequence')` or `require('myhub:mymodule')`) 
+    will resolve to locations on the server based on the *server's* [sjs:#language/builtins::require.hubs] 
+    configuration. This means that if the client and server hub configurations differ, the client will be
+    be served a module from a different location depending on whether automatic bundling is used or not. Also,
+    **every hub configured on the server is exposed to the client through automatic bundling, whether or not
+    that hub is exposed through the server's [mho:#features/mho-file::] or not.**
+
+@directive @bundle-compile
+@summary Serve up a bundled dependencies precompiled to JS
+@desc
+  In conjunction with [::@bundle], this directive causes the
+  module's dependencies to be served up as precompiled JS. 
+  This leads to shorter startup times on the client, but 
+  increases the file size of the bundle.
+
 */
