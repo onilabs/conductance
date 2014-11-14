@@ -47,6 +47,9 @@
             },
             "filetype": {
               "type": "variable"
+            },
+            "filter": {
+              "type": "function"
             }
           },
           "summary": "Server-side generator files"

@@ -92,8 +92,8 @@ function formatResponse(req, item, settings) {
   }
 
   // construct header:
-  if (formatdesc.mime) req .. setHeader("Content-Type", formatdesc.mime);
-  if (formatdesc.expires) req .. setHeader("Expires", formatdesc.expires().toUTCString());
+  if (formatdesc.mime) req .. setDefaultHeader("Content-Type", formatdesc.mime);
+  if (formatdesc.expires) req .. setDefaultHeader("Expires", formatdesc.expires().toUTCString());
   if(formatdesc.filter) {
     // There is a filter function defined for this filetype.
 
@@ -270,7 +270,7 @@ function generateFile(req, filePath, format, settings) {
   var params = req.url.params();
   if (etag) etag = checkEtag(etag.call(req, params));
 
-  formatResponse(
+  var respond = -> formatResponse(
     req,
     {
       input: function() {
@@ -295,6 +295,12 @@ function generateFile(req, filePath, format, settings) {
       etag: etag,
     },
     settings);
+  if (generator.filter) {
+    generator.filter(req, respond);
+  } else {
+    respond();
+  }
+
   return true;
 }
 

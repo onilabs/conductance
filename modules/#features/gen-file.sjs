@@ -72,10 +72,13 @@
   @return {String} etag
   @desc
     So that clients can cache responses, it's recommended to set
-    an `etag` function. This is combined with the file's
-    modification time and the conductance version so that
-    a client will not be re-sent the content for a request
-    when their cached version has an identical etag.
+    an `etag` function. This allows the client to re-use
+    a cached version with a matching etag, rather than
+    re-download the same content.
+
+    .gen files that do not have an `etag` function will
+    by default be served with a `cache-control` header that
+    disables caching.
 
     If a `.gen` file's output depends on another
     `.sjs` module, conductance will not detect this by
@@ -93,4 +96,19 @@
     ### Example:
 
         exports.etag = @moduleTimestamp();
+
+  @function filter
+  @summary Request filter function
+  @param {sjs:nodejs/http::ServerRequest} [req]
+  @param {Function} [block]
+  @desc
+    This function is equivalent to setting up
+    a [server/route::Filter] on the route serving
+    this file. In particular, it allows setting custom
+    headers or aborting the request with and error or redirect
+    before [::content] is even called.
+
+    Note: as with functions passed to a [server/route::Filter],
+    this function should always call `block` unless
+    it fully handles the request.
 */

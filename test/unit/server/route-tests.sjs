@@ -148,38 +148,38 @@ var respondOK = {'*': req -> req.response.end('OK') };
 
 	@test("accepts a single settings object") {||
 		var get = make({origins: "foo", methods: "GET,PUSH,POKE", headers: "origin, x-version"});
-		var headers = get({ method: 'OPTIONS'}).result().headers;
-		headers['Access-Control-Allow-Origin'] .. @assert.eq("foo");
-		headers["Access-Control-Allow-Methods"] .. @assert.eq("GET,PUSH,POKE");
-		headers["Access-Control-Allow-Headers"] .. @assert.eq("origin, x-version");
+		var result = get({ method: 'OPTIONS'}).result();
+		result.getHeader('Access-Control-Allow-Origin') .. @assert.eq("foo");
+		result.getHeader("Access-Control-Allow-Methods") .. @assert.eq("GET,PUSH,POKE");
+		result.getHeader("Access-Control-Allow-Headers") .. @assert.eq("origin, x-version");
 	}
 
 	@test("only sets allow-methods and allow-headers on OPTIONS preflights") {||
-		var headers = make()().result().headers;
-		headers['Access-Control-Allow-Methods'] .. @assert.eq(undefined);
-		headers['Access-Control-Allow-Headers'] .. @assert.eq(undefined);
+		var result = make()().result();
+		result.getHeader('Access-Control-Allow-Methods') .. @assert.eq(undefined);
+		result.getHeader('Access-Control-Allow-Headers') .. @assert.eq(undefined);
 	}
 
 	@test("accepts a single string") {||
-		var headers = make("example.com")().result().headers[ALLOW_ORIGIN] .. @assert.eq("example.com");
+		var headers = make("example.com")().result().getHeader(ALLOW_ORIGIN) .. @assert.eq("example.com");
 	}
 
 	@test("accepts a single function") {||
 		var get = make((origin) -> origin == "myapp.com");
-		get({headers: {origin: 'myapp.com'}}).result().headers[ALLOW_ORIGIN] .. @assert.eq("myapp.com");
-		get({headers: {origin: 'elswehere.ville'}}).result().headers[ALLOW_ORIGIN] .. @assert.eq(undefined);
+		get({headers: {origin: 'myapp.com'}}).result().getHeader(ALLOW_ORIGIN) .. @assert.eq("myapp.com");
+		get({headers: {origin: 'elswehere.ville'}}).result().getHeader(ALLOW_ORIGIN) .. @assert.eq(undefined);
 	}
 
 	@test("accepts both `accept` and `settingss`") {||
 		var get = make(-> true, {methods: "GET,PUSH,POKE"});
-		var headers = get({ method: 'OPTIONS', headers: {origin: "foo.com"}}).result().headers;
-		headers['Access-Control-Allow-Origin'] .. @assert.eq("foo.com");
-		headers["Access-Control-Allow-Methods"] .. @assert.eq("GET,PUSH,POKE");
+		var result = get({ method: 'OPTIONS', headers: {origin: "foo.com"}}).result();
+		result.getHeader('Access-Control-Allow-Origin') .. @assert.eq("foo.com");
+		result.getHeader("Access-Control-Allow-Methods") .. @assert.eq("GET,PUSH,POKE");
 	}
 
 	@test("treats a boolean function as a filter") {||
-		var get = make(-> true)({ headers: {origin: "foo.com"}}).result().headers[ALLOW_ORIGIN] .. @assert.eq("foo.com");
-		var get = make(-> false)({ headers: {origin: "foo.com"}}).result().headers[ALLOW_ORIGIN] .. @assert.eq(undefined);
+		var get = make(-> true)({ headers: {origin: "foo.com"}}).result().getHeader(ALLOW_ORIGIN) .. @assert.eq("foo.com");
+		var get = make(-> false)({ headers: {origin: "foo.com"}}).result().getHeader(ALLOW_ORIGIN) .. @assert.eq(undefined);
 	}
 }
 

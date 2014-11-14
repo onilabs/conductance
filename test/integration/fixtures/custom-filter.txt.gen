@@ -1,0 +1,18 @@
+@response = require('mho:server/response');
+
+exports.content = -> "hello!";
+exports.filter = function(req, block) {
+	// adding a new header
+	req.response.setHeader("x-gen-was-here", "yup");
+
+	// modifying default headers
+	req.response.setHeader("Content-type", "application/x-special-format");
+	req.response.setHeader("Cache-control", "private, max-age=10");
+
+	// altering response type entirely
+	var redirect = req.url.params().redirect;
+	if(redirect) {
+		return req .. @response.writeRedirectResponse(redirect);
+	}
+	block();
+}

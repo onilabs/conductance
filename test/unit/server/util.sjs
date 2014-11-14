@@ -22,6 +22,7 @@ exports.mockRequest = function(settings) {
     result: -> {
       status: this.response.status,
       headers: this.response.headers,
+      getHeader: (k) -> this.headers[k.toLowerCase()],
       body: this.response.data,
     }
   }
