@@ -90,6 +90,7 @@ function formatResponse(req, item, settings) {
     // no etag given, assume dynamic
     req .. setDefaultHeader('Cache-control', 'no-cache');
   }
+  req .. setDefaultHeader('Vary', 'Accept-encoding');
 
   // construct header:
   if (formatdesc.mime) req .. setDefaultHeader("Content-Type", formatdesc.mime);
