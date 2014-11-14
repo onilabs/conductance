@@ -492,7 +492,7 @@ exports.DeveloperMode = function(responder) {
         additional = e.description;
       }
       if (req.response.headersSent) {
-        logging.warn("Couldn't send stacktrace response - headers already sent");
+        logging.warn("Couldn't send stacktrace response - headers already sent:\n#{additional || e}");
       } else {
         try {
           req .. writeErrorResponse(e.code, e.statusText, `
@@ -727,7 +727,7 @@ var applyEtag = exports._applyEtag = function(req, currentEtag) {
       }
       else {
         logging.debug("#{req.url} outdated");
-      }  
+      }
     }
     else {
       logging.debug("#{req.url}: requested without etag");

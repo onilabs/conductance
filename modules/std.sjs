@@ -162,6 +162,10 @@ module.exports = require(modules);
    - **isHttpError**: (function [mho:server/response::isHttpError])
    - **NotFound**: (function [mho:server/response::NotFound])
    - **ServerError**: (function [mho:server/response::ServerError])
+   - **setDefaultHeader**: (function [mho:server/response::setDefaultHeader])
+   - **setHeader**: (function [mho:server/response::setHeader])
+   - **setStatus**: (function [mho:server/response::setStatus])
+   - **writeRedirectResponse**: (function [mho:server/response::writeRedirectResponse])
   
   
   ### Symbols from the [mho:server/storage](#mho%3Aserver%2Fstorage) module:

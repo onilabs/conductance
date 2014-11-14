@@ -1,0 +1,7 @@
+exports.etag = function(params) {
+	return params.etag;
+};
+
+exports.content = function(params) {
+	return "ok: #{params.etag}";
+};

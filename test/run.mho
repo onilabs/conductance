@@ -70,7 +70,7 @@ var serverConfig = {
     })(),
     SystemRoutes(),
 
-    Route('etagTest', {'GET':
+    Route('etagRoute', {'GET':
       function(req) {
         req .. setStatus(200);
         req.response.end("ok: #{req.url.params()["etag"]}");

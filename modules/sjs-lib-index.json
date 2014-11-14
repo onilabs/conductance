@@ -319,6 +319,18 @@
             },
             "isHttpError": {
               "type": "function"
+            },
+            "setDefaultHeader": {
+              "type": "function"
+            },
+            "setHeader": {
+              "type": "function"
+            },
+            "setStatus": {
+              "type": "function"
+            },
+            "writeRedirectResponse": {
+              "type": "function"
             }
           },
           "summary": "Utilities for generating and handling HTTP responses"

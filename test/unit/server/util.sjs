@@ -15,7 +15,8 @@ exports.mockRequest = function(settings) {
     response: (new @stream.WritableStringStream()) .. @extend({
       headers: {},
       writeHead: (status) -> this.status = status,
-      setHeader: (k,v) -> this.headers[k]=v,
+      setHeader: (k,v) -> this.headers[k.toLowerCase()]=v,
+      getHeader: (k) -> this.headers[k.toLowerCase()],
     }),
 
     result: -> {

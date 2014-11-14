@@ -24,7 +24,7 @@ var { override } = require('sjs:object');
 var { each, any } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
-var { setStatus, setHeader, writeRedirectResponse, HttpError, NotFound } = require('./response');
+var { setStatus, setHeader, setDefaultHeader, writeRedirectResponse, HttpError, NotFound } = require('./response');
 var { _applyEtag } = require('./route');
 var lruCache = require('sjs:lru-cache');
 
@@ -84,6 +84,13 @@ function formatResponse(req, item, settings) {
     return;
   }
 
+  if(etag) {
+    req .. setDefaultHeader('Cache-control', 'must-revalidate');
+  } else {
+    // no etag given, assume dynamic
+    req .. setDefaultHeader('Cache-control', 'no-cache');
+  }
+
   // construct header:
   if (formatdesc.mime) req .. setHeader("Content-Type", formatdesc.mime);
   if (formatdesc.expires) req .. setHeader("Expires", formatdesc.expires().toUTCString());
@@ -110,8 +117,7 @@ function formatResponse(req, item, settings) {
       else // no cache or no etag -> filter straight to response
         formatdesc.filter(input(), req.response, { request: req, apiinfo: apiinfo });
     }
-  } 
-  else {
+  } else {
     // No filter function -> serve the file straight from disk
 
     if (item.length) {
@@ -134,8 +140,7 @@ function formatResponse(req, item, settings) {
         if (req.request.method == "GET") // as opposed to "HEAD"
           stream.pump(input({start:from, end:to}), req.response);
       }
-    }
-    else {
+    } else {
       // normal request
       req .. setStatus(200);
 
@@ -263,7 +268,7 @@ function generateFile(req, filePath, format, settings) {
   require.modules[resolved_path].etag = generator_file_mtime;
   var etag = generator.etag;
   var params = req.url.params();
-  etag = "#{generator_file_mtime}-#{etag ? checkEtag(etag.call(req, params)) : Date.now()}";
+  if (etag) etag = checkEtag(etag.call(req, params));
 
   formatResponse(
     req,

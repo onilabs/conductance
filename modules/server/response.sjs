@@ -77,17 +77,51 @@ exports.ServerError = (msg, desc) -> HttpError(500, msg || "Internal Server Erro
 //----------------------------------------------------------------------
 // response helpers
 
+/**
+  @function setStatus
+  @param {sjs:nodejs/http::ServerRequest} [request]
+  @param {Number} [code] HTTP status code
+  @param {optional String} [reasonPhrase]
+  @param {optional Object} [headers]
+  @summary Calls [writeHead](http://nodejs.org/api/http.html#http_response_writehead_statuscode_reasonphrase_headers) on the underlying response.
+*/
 function setStatus(req, code /*, ... */) {
   info("#{req.url} #{code}");
-  req.response.writeHead.apply(req.response, 
-                               Array.prototype.slice.call(arguments,1));
+  req.response.writeHead.apply(req.response, Array.prototype.slice.call(arguments,1));
 }
 exports.setStatus = setStatus;
 
+/**
+  @function setHeader
+  @param {sjs:nodejs/http::ServerRequest} [request]
+  @param {String} [key]
+  @param {String} [value]
+  @summary Set a response header
+*/
 var setHeader = exports.setHeader = function setHeader(req, key, val) {
-  req.response.setHeader.call(req.response, key, val)
+  req.response.setHeader(key, val)
 }
 
+/**
+  @function setDefaultHeader
+  @param {sjs:nodejs/http::ServerRequest} [request]
+  @param {String} [key]
+  @param {String} [value]
+  @summary Set a response header (if not already set)
+*/
+var setDefaultHeader = exports.setDefaultHeader = function setDefaultHeader(req, key, val) {
+  if (req.response.getHeader(key) == null) {
+    req.response.setHeader(key, val)
+  }
+}
+
+/**
+  @function writeRedirectResponse
+  @param {sjs:nodejs/http::ServerRequest} [request]
+  @param {String} [location]
+  @param {optional Number} [status=302]
+  @summary Write a redirect response
+*/
 function writeRedirectResponse(req, location, status) {
   if (!status) status = 302; // moved temporarily
   var resp = "<html><head><title>"+status+" Redirect</title></head>";
