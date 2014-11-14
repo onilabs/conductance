@@ -238,6 +238,13 @@ function serveFile(req, filePath, format, settings) {
 }
 exports.serveFile = serveFile;
 
+var ensureStream = function(data) {
+  // (assumes non-string data is already a stream)
+  if (isString(data))
+    return new stream.ReadableStringStream(data, true);
+  return data;
+}
+
 function generateFile(req, filePath, format, settings) {
   var genPath = filePath + ".gen";
   try {
@@ -256,7 +263,7 @@ function generateFile(req, filePath, format, settings) {
   // purge module if it is loaded already, but the mtime doesn't match:
   var module_desc = require.modules[resolved_path];
   if (module_desc && module_desc.etag !== generator_file_mtime) {
-    logging.verbose("reloading generator file #{resolved_path}; mtime doesn't match");
+    logging.verbose("reloading generator file #{resolved_path}; mtime #{module_desc.etag} doesn't match stat #{generator_file_mtime}");
     delete require.modules[resolved_path];
   }
 
@@ -275,19 +282,27 @@ function generateFile(req, filePath, format, settings) {
     req,
     {
       input: function() {
-        // check cache: 
+        // check cache:
         // XXX this caching functionality should move to formats.sjs
-        var cache_entry = generatorCache.get(req.request.url);
-        if (!cache_entry || cache_entry.etag !== etag) {
-          var data = generator.content.call(req, params);
-          if (!isString(data) && data.read) {
-            data = stream.readAll(data);
+        var data;
+        var getContents = -> generator.content.call(req, params);
+        if(etag) {
+          // cache the generated content internally
+          var cache_entry = generatorCache.get(req.request.url);
+          if (!cache_entry || cache_entry.etag !== etag) {
+            var contents = getContents();
+            if (!isString(contents) && contents.read) {
+              // force string for values we're caching
+              contents = stream.readAll(contents);
+            }
+            cache_entry = { etag: etag, data: contents }
+            generatorCache.put(req.request.url, cache_entry, cache_entry.data.length);
           }
-          cache_entry = { etag: etag, data: data }
-          generatorCache.put(req.request.url, cache_entry, cache_entry.data.length);
+          data = cache_entry.data;
+        } else {
+          data = getContents();
         }
-
-        return new stream.ReadableStringStream(cache_entry.data, true);
+        return data .. ensureStream();
       },
       
       filetype: generator.filetype ? generator.filetype : path.extname(filePath).slice(1),

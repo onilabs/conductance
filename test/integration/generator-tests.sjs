@@ -9,14 +9,21 @@
       {response: 'full', 'throwing': false, headers: headers || {}})
 
     @test("without an etag") {||
-      var url = @helper.url('test/integration/fixtures/hello.txt');
+      var url = @helper.url('test/integration/fixtures/counter.txt');
       var get = getter(url);
 
+      // make sure the counter starts at 0
+      @http.get(url + '?reset=1');
+      
       var response = get();
       response.status .. @assert.eq(200);
-      response.content .. @assert.eq('world!');
+      response.content .. @assert.eq('current: 0');
       response.getHeader('etag') .. @assert.eq(undefined);
       response.getHeader('cache-control') .. @assert.eq('no-cache');
+
+      // without an etag, the content function should always be called
+      @info("req2");
+      get().content .. @assert.eq('current: 1');
     }
 
     @test("custom etag") {||
