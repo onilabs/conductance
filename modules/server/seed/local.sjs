@@ -16,10 +16,6 @@
 
 exports.apiVersion = 1;
 exports.defaultPort = 1608;
-var versionInfo = exports.versionInfo = {
-  conductanceVersion: @env.get('conductanceVersion'),
-  apiVersion: exports.apiVersion,
-};
 
 exports.serve = function(args) {
   var defaultPort = exports.defaultPort;
@@ -96,11 +92,7 @@ exports.serve = function(args) {
 
   var routes = [
     @route.SystemBridgeRoutes(),
-    @Route('version', {GET: function(req) {
-      req .. @setHeader('content-type', 'text/json; charset=utf-8');
-      req .. @setStatus(200);
-      req.response.end(JSON.stringify(versionInfo, null, '  '));
-    }}),
+    @route.ExecutableDirectory('local/', @url.normalize('./local', module.id) .. @url.toPath()),
 
     // proxy index to master. We can't just redirect, because then we run into cross-origin issues
     // when trying to connect to local API.
@@ -130,7 +122,6 @@ exports.serve = function(args) {
         },
       }
     ),
-    @route.ExecutableDirectory('local/', @url.normalize('./local', module.id) .. @url.toPath()),
 
     // redirect all other requests to master server
     @Route(/^/, {'*': function(req) {

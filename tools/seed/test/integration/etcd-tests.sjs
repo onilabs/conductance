@@ -28,7 +28,7 @@
       var terminal = "final value";
       waitfor {
         client .. @etcd.changes(root, {recursive:true}) .. @each {|c|
-          console.log(c);
+          @info(c);
           changes.push(c.node.value);
           seen.set();
           if (c.node.value == terminal) break;

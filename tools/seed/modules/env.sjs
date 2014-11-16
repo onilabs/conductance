@@ -160,6 +160,8 @@ exports.defaults = function() {
 	}
 	def('host-local', 'localhost');
 
+	if(!PROD) def('default-proto', 'http');
+
 	def('publicAddress', function() {
 		var defaultProto = env.get('default-proto');
 		var useVhost = env.get('use-vhost');

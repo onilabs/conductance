@@ -1,13 +1,19 @@
 @ = require('mho:std');
 @layout = require('./layout');
+@generator = require('./client.html.js.gen');
 
 exports.content = function() {
   //var localAddress = @env.get('publicAddress')('local', 'http');
   var localAddress = @env.get('local-api-endpoint');
+
+  // We want to pre-resolve script URLs to the absolute master URL, because
+  // otherwise chrome never caches them - see https://code.google.com/p/chromium/issues/detail?id=433702
+  var masterRoot = @env.get('publicAddress')('master');
+
   return @layout.defaultDocument(null, {
     title: "Conductance Seed",
     init: "require('seed:ui/main').run('#{localAddress}')",
-    externalScripts: ['sjs','mho','seed'] .. @map(hub -> "client.html.js?hub=#{hub}"),
+    externalScripts: @generator.urls(masterRoot + this.url.relative.slice(1)),
     templateData: {
       showBusyIndicator: true,
     }

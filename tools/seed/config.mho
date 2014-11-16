@@ -8,12 +8,12 @@ var root = @url.normalize('./', module.id) .. @url.toPath;
 
 var staticRoute = @route.StaticDirectory(/static/, @path.join(root, 'static'));
 
-var commonRouteOptions = function(route) {
-  route = route .. @route.SetHeaders({
+var dontCache = route -> route .. @route.SetHeaders({
     "Cache-control": "no-cache",
     "Expires": "-1",
   });
 
+var commonRouteOptions = function(route) {
   if (@env.get('cors')) {
     //console.warn("Allowing all CORS requests");
     route = route .. @route.AllowCORS();
@@ -285,7 +285,7 @@ COMPONENTS.master = function(opts) {
 
         staticRoute,
 
-        @Route(verification.verifyRoute, {GET: verification.verifyHandler}),
+        @Route(verification.verifyRoute, {GET: verification.verifyHandler}) .. dontCache(),
 
         // override modules/master to be executable
         @route.ExecutableDirectory('master', @url.normalize('./modules/master', module.id) .. @url.toPath),
@@ -347,7 +347,7 @@ COMPONENTS.proxy = function() {
             agent: proxyAgent,
             throwing: false,
           };
-          //@info("PROXY -> #{dest}");
+          @debug("proxy dest: #{dest}");
           var response = @http.request(dest, opts);
           if(response.statusCode == 0) {
             // most likely a TCP / network error
@@ -371,7 +371,7 @@ COMPONENTS.proxy = function() {
     var keyPrefix = @etcd.app_port_mappings(null);
 
     var handle = function(change) {
-      //@info("CHANGE:", change);
+      @debug("app endpoint change:", change);
       var action = change.action || 'set';
       if (change.node === null) return;
       node = change.node || change;

@@ -1,0 +1,7 @@
+@env = require('mho:env');
+
+var versionInfo = exports.versionInfo = {
+  conductanceVersion: @env.get('conductanceVersion'),
+  apiVersion: require('../local').apiVersion,
+};
+exports.content = -> JSON.stringify(versionInfo, null, '  ');

@@ -2,9 +2,11 @@
 @bundle = require('sjs:bundle');
 @crypto = require('nodejs:crypto');
 @stream = require('sjs:nodejs/stream');
+@response = require('mho:server/response');
 
+var DIGEST_KEY='d';
+var allHubs = ['sjs','mho','seed'];
 var access = (function() {
-  var allHubs = ['sjs','mho','seed'];
   var cache = {};
   return function(hub) {
     if (!cache .. @hasOwn(hub)) {
@@ -18,7 +20,6 @@ var access = (function() {
       var hash = @crypto.createHash('sha1');
       hash .. @stream.write(content, 'utf-8');
       var digest = hash.digest('hex').slice(0, 20);
-      //console.log("DIGEST:", digest);
 
       cache[hub] = {
         content: content,
@@ -29,10 +30,36 @@ var access = (function() {
   };
 })();
 
-exports.content = function(params) {
-  return access(params .. @get('hub')).content;
+
+exports.urls = function(root) {
+  return allHubs .. @map(hub -> @url.normalize("client.html.js?hub=#{hub}&#{DIGEST_KEY}=#{access(hub).digest}", root));
 };
 
-exports.etag = function(params) {
-  return access(params .. @get('hub')).digest;
+var daysInSeconds = 60 * 60 * 24;
+var longExpiry = 90 * daysInSeconds;
+
+exports.filter = function(req, block) {
+  var params = req.url.params();
+  var bundle = access(params .. @get('hub'));
+  var {content, digest} = bundle;
+  if(params[DIGEST_KEY]) {
+    if(params[DIGEST_KEY] !== digest) {
+      // does this ever happen?
+      @info("digest mismatch: #{params[DIGEST_KEY]} != #{digest}");
+      throw @response.NotFound();
+    }
+    // files served with a digest are valid forever
+    req.response.setHeader("Cache-control", "public, max-age=#{longExpiry}");
+  } else {
+    @info("js bundle requested without a digest; redirecting");
+    params[DIGEST_KEY] = digest;
+    req .. @response.writeRedirectResponse(@url.normalize('?' + @url.buildQuery(params), req.url.source));
+    return;
+  }
+  req.bundle = bundle;
+  block();
+};
+
+exports.content = function(params) {
+  return this .. @getPath('bundle.content');
 };
