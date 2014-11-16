@@ -49,6 +49,17 @@
     This means that all argument and return values for functions exposed over a
     bridge must themselves be serializable.
 
+    ### Signalled calls
+
+    When the caller of a function across the bridge is not interested in the return 
+    value of the call (and doesn't want to block until the call has been acknowledged 
+    by the other end), then network traffic can be conserved by making a 'signalled call' using
+    the [sjs:function::signal] function: `foo .. @fn.signal(null, [x,y,z])` instead of `foo(x,y,z)` or 
+    `spawn foo(x,y,z)`. The latter calls both cause the other end of the bridge connection to send
+    out a return value when the call has finished there, whereas the signalled call does not.
+    
+
+
     ### Custom types:
 
     For custom object types where the default `Object` serialization does
@@ -88,6 +99,7 @@
 
     then the calls will be initiated on the receiver in this order.
 
+
 */
 
 
@@ -102,6 +114,8 @@ Protocol:
 
   ['abort', call# ]
 
+  ['signal', API, METHOD, [ARG1, ARG2, ARG3, ...]]
+
 
   Marshalling: values are being serialized as JSON
   special objects get an __oni_type attribute
@@ -114,7 +128,7 @@ var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
 var { isString, startsWith } = require('sjs:string');
-var { isFunction, exclusive } = require('sjs:function');
+var { isFunction, ITF_SIGNAL, signal } = require('sjs:function');
 var { Emitter, wait } = require('sjs:event');
 var { Quasi, isQuasi } = require('sjs:quasi');
 var { ownKeys, keys, propertyPairs, get } = require('sjs:object');
@@ -464,18 +478,31 @@ function unmarshallAPI(obj, connection) {
 
   obj.methods .. each {
     |m| 
-    proxy[m] = function() { 
-      return connection.makeCall(obj.id, m, arguments);
-    };
+    __js {
+      var f = function() { 
+        return connection.makeCall(obj.id, m, arguments);
+      };
+      f[ITF_SIGNAL] = function(this_obj, args) {
+        return connection.makeSignalledCall(obj.id, m, args);
+      };
+      proxy[m] = f;
+    }
   }
+
   return proxy;
 }
 
 function unmarshallFunction(obj, connection) {
   // make a proxy for the function:
-  return function() {
-    return connection.makeCall(-1, obj.id, arguments);
-  };
+  __js {
+    var f = function() {
+      return connection.makeCall(-1, obj.id, arguments);
+    };
+    f[ITF_SIGNAL] = function(this_obj, args) {
+      return connection.makeSignalledCall(-1, obj.id, args);
+    };
+  }
+  return f;
 }
 
 function unmarshallStream(obj, connection) {
@@ -561,6 +588,10 @@ function BridgeConnection(transport, opts) {
     sendBlob: function(id, obj) {
       transport.sendData(id, obj);
       return id;
+    },
+    makeSignalledCall: function(api, method, args) {
+      var args = marshall(['signal', api, method, toArray(args)], connection);
+      if (transport) transport.send(args);
     },
     makeCall: function(api, method, args) {
       var call_no = ++call_counter;
@@ -715,6 +746,16 @@ function BridgeConnection(transport, opts) {
       var cb = pending_calls[message[1]];
       if (cb)
         cb(message[2], true);
+      break;
+    case 'signal':
+      console.log(message);
+      if (message[1] /*api_id*/ == -1) {
+        published_funcs[message[2] /*method*/] .. signal(null, message[3] /*args*/);
+      }
+      else {
+        published_apis[message[1] /*api_id*/][message[2] /*method*/] .. 
+          signal(published_apis[message[1]], message[3] /*args*/);
+      }
       break;
     case 'call':
       if (executing_calls[message[1]]) break; // duplicate call
