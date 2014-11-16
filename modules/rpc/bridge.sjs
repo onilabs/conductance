@@ -70,6 +70,24 @@
        remote versions of that object. If you have an object with properties that
        may change, you should expose them as methods (i.e `getFoo()` and `setFoo(newVal)`).
 
+    ### Ordering guarantees
+
+    The bridge module guarantees that calls/returns/exceptions are
+    made on the receiver in the order that they are made on the
+    sender. In particular, if the sender initiates two calls
+    `receiver.foo()` and `receiver.bar()`, where `bar` is initiated
+    after `foo` is initiated, e.g.:
+
+        waitfor {
+          receiver.foo();
+        }
+        and {
+          receiver.bar();
+        }
+
+
+    then the calls will be initiated on the receiver in this order.
+
 */
 
 
@@ -108,6 +126,15 @@ var apiRegistry;
 if (hostenv !== 'xbrowser') {
   apiRegistry = require('../server/api-registry')
 }
+
+//----------------------------------------------------------------------
+// maximum number of messages we will buffer when packets from our
+// transport arrive out of order:
+var MAX_MSG_REORDER_BUFFER = 10000;
+
+
+//----------------------------------------------------------------------
+
 
 // helper to identify binary data:
 var BinaryCtors = ['Blob', 'ArrayBuffer', 'DataView', 
@@ -327,7 +354,8 @@ function marshall(value, connection) {
       return rv;
     }
 
-    var rv = value .. prepare .. JSON.stringify;
+    var rv = value .. prepare;
+    rv = { seq: ++connection.msg_seq_counter, msg:rv } .. JSON.stringify;
     return rv;
   } catch(e) {
     e.message = "Error marshalling value: #{e.message || ""}";
@@ -335,13 +363,12 @@ function marshall(value, connection) {
   }
 }
 
-function unmarshall(str, connection) {
-  var raw = JSON.parse(str);
+function unmarshall(message, connection) {
   try {
     // unmarshall special types:
-    return unmarshallComplexTypes(raw, connection);
+    return unmarshallComplexTypes(message, connection);
   } catch(e) {
-    return ['unserializable', raw, e];
+    return ['unserializable', message, e];
   }
 }
 
@@ -525,6 +552,7 @@ function BridgeConnection(transport, opts) {
 
   var connection = {
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
+    msg_seq_counter: 0, // sequence counter to facilitate ordering of (non-data) messages; aat doesn't guarantee order
     received_blobs: {},
     sessionLost: sessionLost,
     dataReceived: dataReceived,
@@ -602,6 +630,10 @@ function BridgeConnection(transport, opts) {
     },
   };
 
+
+  var expected_msg_seq = 1;
+  var msg_reorder_buffer = {};
+  var queued_msg_count = 0;
   function receiver() {
 
     function inner() {
@@ -609,8 +641,27 @@ function BridgeConnection(transport, opts) {
       var packet = transport.receive();
       //logging.debug("received packet", packet);
       waitfor {
-        if (packet.type === 'message')
-          receiveMessage(packet);
+        if (packet.type === 'message') {
+          var data = JSON.parse(packet.data);
+          if (data.seq !== expected_msg_seq) {
+            msg_reorder_buffer[data.seq] = data.msg;
+            ++queued_msg_count;
+            if (queued_msg_count > MAX_MSG_REORDER_BUFFER)
+              throw TransportError("Message reorder buffer exhausted"); 
+          }
+          else {
+            receiveMessage(data.msg);
+            ++expected_msg_seq;
+            while (queued_msg_count > 0) {
+              var msg;
+              if (!(msg = msg_reorder_buffer[expected_msg_seq])) break;
+              delete msg_reorder_buffer[expected_msg_seq];
+              ++expected_msg_seq;
+              --queued_msg_count;
+              receiveMessage(msg);
+            }
+          }
+        }
         else if (packet.type === 'data')
           receiveData(packet);
         else {
@@ -651,8 +702,8 @@ function BridgeConnection(transport, opts) {
     dataReceived.emit();
   }
 
-  function receiveMessage(packet) {
-    var message = unmarshall(packet.data, connection);
+  function receiveMessage(message) {
+    var message = unmarshall(message, connection);
 
     switch (message[0]) {
     case 'return':

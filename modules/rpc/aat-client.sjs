@@ -12,7 +12,17 @@
 /**
    @module  server/rpc/aat-client
    @summary Asymmetric AJAX Transport Client v2 for modern browsers
-   @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
+   @desc    
+     AAT is an efficient bi-directional message exchange protocol over HTTP
+
+     #### Notes
+
+     - AAT is mainly designed to be used as a transport for the [bridge::] module.
+
+     - AAT makes no guarantees about the order in which messages will be received.
+       Any message M(sent=t+x) sent after a message M(sent=t) might arrive out of order
+       at the other end: M(sent=t+x, received=T), M(sent=t, received=T+y)
+       
    @nodoc
 */
 
