@@ -20,7 +20,7 @@
   , "fstream": "~0.1.25"
   }
 , "dependencies":
-  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#408ef9e9a6cfbe2c3fc17e33412bc9fd11e42100"
+  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#324a42b31c0071824fdc3cd236e60d364a8a17d4"
   , "nodemon": "~1.0.15"
   , "google-oauth-jwt": "~0.0.7"
   , "agentkeepalive": "=0.1.5"
