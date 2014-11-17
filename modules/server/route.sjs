@@ -146,6 +146,51 @@ exports.ErrorResponse = ErrorResponse;
 //----------------------------------------------------------------------
 
 /**
+  @function ErrorFilter
+  @altsyntax responder .. ErrorFilter(handler_function)
+  @param {../server::Responder|Array} [responder]
+  @param {Function} [handler_function] 
+  @return {../server::Responder|Array} A copy of `responder` with error filtering applied
+  @summary Handle request errors
+  @desc
+    When `responder` generates a [./response::HttpError] "err", `ErrorFilter` calls 
+    `handler_function(err, req)` (where `req` is the current request object). 
+
+    `handler_function` should return a string consisting of the HTML
+    body to be sent to the client for the given error. If `handler_function` doesn't 
+    want to handle a particular error, it should pass this on by rethrowing `err`.
+*/
+exports.ErrorFilter = function(responder, handler_function) {
+  return responder .. Filter(function(req, block) {
+    try {
+      block();
+    } catch(e) {
+      if (req.response.headersSent) {
+        logging.warn("Couldn't handle error response in ErrorFilter - headers already sent");
+        throw e;
+      }
+      var originalError = e;
+      if (!isHttpError(e)) {
+        e = ServerError(e.message);
+      } 
+
+      var body = handler_function(e, req);
+
+      if (typeof(body) !== 'string') {
+        logging.warn("ErrorFilter return value is not a string");
+        throw originalError;
+      }
+
+      req .. setStatus(e.code, e.statusText, {'Content-type':'text/html'});
+      req.response.end(body);
+    }
+  });
+};
+
+
+//----------------------------------------------------------------------
+
+/**
    @function PortRedirect
    @param {optional RegExp|String} [path] Path to match
    @param {Integer} [port] Port to redirec to
