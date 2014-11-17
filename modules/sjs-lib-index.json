@@ -356,6 +356,9 @@
             "ETagFilter": {
               "type": "function"
             },
+            "ErrorFilter": {
+              "type": "function"
+            },
             "ErrorResponse": {
               "type": "function"
             },
