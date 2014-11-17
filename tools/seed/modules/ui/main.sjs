@@ -856,7 +856,6 @@ function runInner(api, ready) {
 exports.run = function(localApiAddress) {
 	@withBusyIndicator {|ready|
 		stopIndicator = ready;
-		var Notice = @
 		@withAPI(localApiAddress, commonConnectionOptions .. @merge({
 			notice: -> @Notice.apply(null, arguments) .. @Class('reconnectNotification'),
 		})) {|api|
