@@ -1,0 +1,12 @@
+@ = require('sjs:logging');
+exports.counter = exports.initialCounter = 0;
+@verbose('gen import time', module.id, exports.counter);
+exports.content = function(params) {
+	var current = exports.counter;
+	if(params.reset) {
+		exports.counter = 0;
+	} else {
+		exports.counter++;
+	}
+	return "current: #{current}";
+}
