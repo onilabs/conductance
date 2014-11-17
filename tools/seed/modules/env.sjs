@@ -248,7 +248,16 @@ exports.defaults = function() {
 
 	def('gcd-namespace', -> devDefaultEnvvar('DATASTORE_NAMESPACE', 'seed-dev'), true);
 	def('gcd-host', process.env['DATASTORE_HOST'] || (PROD ? null : 'http://localhost:8089'));
-	def('use-gcd', -> Boolean(this.get('gcd-credentials')), true);
+	def('use-gcd', function() {
+		var backend = process.env['SEED_DB_BACKEND'] || 'gcd';
+		switch(backend) {
+			case 'gcd': return true;
+			case 'leveldown': return false;
+			default:
+				throw new Error("Unknown DB backend: #{backend}");
+		}
+	}, true);
+
 	def('user-storage',
 		-> this.get('use-gcd')
 			? require('seed:master/user-gcd').Create(this.get('gcd-namespace'))

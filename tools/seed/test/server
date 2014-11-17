@@ -109,6 +109,7 @@ if (require.main === module) {
   var TRAVIS = process.env.TRAVIS === 'true';
   var args = require('sjs:sys').argv();
   var runKarma = function() {
+    @info("Running karma with args: ", args);
     require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
   }
   args.splice(1,0, karmaConfUrl .. @url.toPath);

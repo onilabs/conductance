@@ -45,18 +45,12 @@ exports.hook = function(block) {
 		@env.set('data-root', tempdir);
 		@env.set('gcd-credentials', null);
 
-		var user_backend = process.env['USER_BACKEND'] || 'gcd';
-		@info("Using user backend: #{user_backend} (set $USER_BACKEND to override)");
-		switch(user_backend) {
-			case 'gcd':
-				user_backend = require('seed:master/user-gcd').Create('test');
-				break;
-			case 'leveldown':
-				user_backend = require('seed:master/user-leveldown');
-				break;
-			default:
-				throw new Error("Unknown user backend: #{user_backend}");
-				break;
+		var user_backend = process.env['SEED_DB_BACKEND'] || 'gcd';
+		@info("Using user backend: #{user_backend} (set $SEED_DB_BACKEND to override)");
+		if (@env.get('use-gcd')) {
+			user_backend = require('seed:master/user-gcd').Create('test');
+		} else {
+			user_backend = require('seed:master/user-leveldown');
 		}
 		@env.set('user-storage', user_backend);
 

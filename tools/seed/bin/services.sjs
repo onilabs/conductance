@@ -102,6 +102,11 @@ var gcd = exports.gcd = (function() {
 	}
 
 	rv.withServer = function(block) {
+		if (!@env.get('use-gcd')) {
+			@info("gcd server not required");
+			return block();
+		}
+
 		if (isRunning()) {
 			@info("Using existing gcd server");
 			block();
@@ -145,5 +150,18 @@ exports.withServices = function(block) {
 };
 
 if (require.main === module) {
-	exports.withServices(->hold());
+	var exitStatus = 0;
+	exports.withServices {||
+		var args = @argv();
+		if(args.length == 0) {
+			console.log("services ready ...");
+			hold();
+		} else {
+			var cmd = args.shift();
+			var proc = @childProcess.run(cmd, args, {stdio:'inherit', throwing: false});
+			exitStatus = proc.code;
+			exitStatus .. @assert.number();
+		}
+	}
+	process.exit(exitStatus);
 }

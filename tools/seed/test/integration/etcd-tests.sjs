@@ -1,9 +1,9 @@
 @ = require([
   'sjs:test/std',
   'mho:std',
-  {id: 'seed:job/etcd', 'name':'etcd'},
 ]);
 @context("etcd") {||
+  @etcd = require('seed:job/etcd');
   var client;
   var root = '/__test/';
   var key = k -> k ? root+k : root;

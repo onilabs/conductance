@@ -2,10 +2,10 @@
 // vim: ft=sjs
 @ = require(['sjs:std', 'sjs:nodejs/mkdirp']);
 process.env['BROWSERS'] = 'Firefox'
-process.env['USER_BACKEND'] = 'leveldown'
+process.env['SEED_DB_BACKEND'] = 'leveldown'
 // don't bother installing conductance, we'll use the checked-out version
 process.env['SKIP_PACKAGES'] = 'conductance'
 var here = @url.normalize('./', module.id) .. @url.toPath();
 
 @childProcess.run(@path.join(here, '../../gup'), [@path.join(here, '../deps') ], {'stdio':'inherit'});
-@childProcess.run(@path.join(here, 'all'), [], {'stdio':'inherit'});
+@childProcess.run(@path.join(here, '../bin/services.sjs'), [@path.join(here, 'all')], {'stdio':'inherit'});
