@@ -6,28 +6,27 @@
 
 var DIGEST_KEY='d';
 var allHubs = ['sjs','mho','seed'];
+
 var access = (function() {
+  var dependencies = @bundle.findDependencies([ "seed:ui/main.sjs" ]);
   var cache = {};
-  return function(hub) {
-    if (!cache .. @hasOwn(hub)) {
-      var excludeHubs = allHubs .. @filter(h -> h !== hub) .. @map(h -> h+':');
-      var content = @bundle.create({
-        sources: [ "seed:ui/main.sjs" ],
-        compile: true,
-        exclude: excludeHubs,
-      }) .. @join('\n');
+  allHubs .. @each {|hub|
+    var excludeHubs = allHubs .. @filter(h -> h !== hub) .. @map(h -> h+':');
+    var content = @bundle.generateBundle(dependencies, {
+      compile: true,
+      exclude: excludeHubs,
+    }) .. @join('\n');
 
-      var hash = @crypto.createHash('sha1');
-      hash .. @stream.write(content, 'utf-8');
-      var digest = hash.digest('hex').slice(0, 20);
+    var hash = @crypto.createHash('sha1');
+    hash .. @stream.write(content, 'utf-8');
+    var digest = hash.digest('hex').slice(0, 20);
 
-      cache[hub] = {
-        content: content,
-        digest: digest,
-      };
-    }
-    return cache[hub];
-  };
+    cache[hub] = {
+      content: content,
+      digest: digest,
+    };
+  }
+  return (hub) -> cache .. @get(hub);
 })();
 
 
