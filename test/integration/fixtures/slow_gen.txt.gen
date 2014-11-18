@@ -1,0 +1,11 @@
+@ = require('mho:std');
+
+@info("slow_gen load start");
+
+console.log("GEN MODULE SELF = #{require.modules[module.id]}");
+module.etag = 'DUMMY'; // make sure file-server always thinks this module is out of date
+hold(1000);
+
+exports.content = -> "So slow!"
+
+@info("slow_gen loaded");

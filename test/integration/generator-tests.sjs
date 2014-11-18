@@ -71,6 +71,22 @@
       response.status .. @assert.eq(302);
       response.getHeader('location') .. @assert.eq('/elsewhere');
     }
+  }
 
+  @test("slow generator import race condition") {||
+    var modulePath = require.resolve('./fixtures/slow_gen.txt.gen').path;
+    var url = @helper.url('test/integration/fixtures/slow_gen.txt');
+    var msg = "So slow!";
+    
+    // make sure we start fresh
+    delete require.modules[modulePath];
+
+    @integers(0, 3) .. @each.par(100) {|i|
+      hold(100 * i);
+      @http.get(url, {agent:false}) .. @assert.ok(msg);
+    };
+
+    // make sure modulePath was actually the path that got populated
+    require.modules[modulePath].exports.content() .. @assert.eq(msg);
   }
 }.serverOnly();

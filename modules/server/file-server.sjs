@@ -262,12 +262,10 @@ function generateFile(req, filePath, format, settings) {
 
   // purge module if it is loaded already, but the mtime doesn't match:
   var module_desc = require.modules[resolved_path];
-  if (module_desc && module_desc.etag !== generator_file_mtime) {
-    logging.verbose("reloading generator file #{resolved_path}; mtime #{module_desc.etag} doesn't match stat #{generator_file_mtime}");
-    delete require.modules[resolved_path];
-  }
+  var outOfDate = module_desc && module_desc.etag && module_desc.etag !== generator_file_mtime;
+  if (outOfDate) logging.verbose("reloading generator file #{resolved_path}; mtime #{module_desc.etag} doesn't match stat #{generator_file_mtime}");
 
-  var generator = require(resolved_path);
+  var generator = require(resolved_path, {reload: outOfDate});
   if (!generator.content) throw new Error("Generator #{filePath} has no `content` method");
 
   if (!require.modules[resolved_path])
