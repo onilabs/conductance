@@ -237,7 +237,7 @@ function findMatchingRoute(routes, req, path) {
       }
       return !!(matchResult = route.matchesPath(path));
     } else {
-      return !!(matchResult = route.matches(req));
+      return !!(matchResult = route.matches(req, path));
     }
   }, undefined);
   if (!route) {
@@ -367,6 +367,8 @@ RouteProto._init = func.seq(RouteProto._init, function(matcher, handlers) {
   // note that the return value should always look like a regexp match object
   if (string.isString(matcher)) {
     this.matchesPath = stringMatchesPath(matcher, isNested);
+  } else if (typeof matcher === 'function') {
+    this.matches = matcher;
   } else {
     // assume regexp
     this.matchesPath = (p) -> matcher.exec(p);
@@ -374,7 +376,7 @@ RouteProto._init = func.seq(RouteProto._init, function(matcher, handlers) {
 
   if (logging.isEnabled(logging.DEBUG)) {
     // augment matcher function with debug info
-    var orig = this.matchesPath;
+    var orig = this.matchesPath ||this.matches;
     this.matchesPath = function(path) {
       var rv = orig.apply(this, arguments);
       logging.debug("Route(#{matcher}) #{rv ? "matched" : "did not match"} path: #{path}");
@@ -405,6 +407,7 @@ RouteProto._clone = function() {
   rv._initClone(this);
   rv._handle = this._handle;
   rv.matchesPath = this.matchesPath;
+  rv.matches = this.matches;
   rv.handlers = clone(this.handlers);
   return rv;
 }
@@ -430,18 +433,33 @@ RouteProto._handleDirect = function(req, pathMatches) {
   @class Route
   @summary Route descriptor for use in a [::run] server configuration.
   @function Route
-  @param {optional RexExp|String} [path] Path to match
+  @param {optional RexExp|String|Function} [matcher] Path/request matcher
   @param {Object|Array} [handlers] handler object or array of sub-routes
   @desc
-    **Note**: `path` is matched against the request path, *without* the leading slash.
+    #### Matchers
+
+    If `matcher` is a string or regexp, it will be used to match the request's **path without the leading slash**.
+
     So to handle a HTTP request for "/foo/bar", you would use
     `Route(/^foo\/bar$/, ...)` or `Route("foo/bar", ...)`
 
-    A `null` or missing `path` parameter is treated as if it were `/^/`
+    A `null` or missing `matcher` parameter is treated as if it were `/^/`
     (i.e match any path and consume nothing).
 
-    If `handlers` is an array, it must contain only [::Route] objects. If `path`
-    matches a request's path, the matched portion will be removed and the remaining
+    If `matcher` is a function, then this function will called with the request object 
+    (a [sjs:nodejs/http::ServerRequest]) as first argument, and the request's path 
+    (possibly truncated by ancestor handlers - see section on handlers below) as second argument. 
+    It must return a truthy value to indicate that a
+    request matches this route, or a non-truthy value otherwise. For compatibility with 
+    sub-routes that perform sub-path matching, and other handlers that depend on path matching information, 
+    the truthy result value should be an object equivalent to the result of a regexp match on 
+    the request path (`matching_regexp.exec(requestPath)`).
+
+
+    #### Handlers
+
+    If `handlers` is an array, it must contain only [::Route] objects. If `matcher`
+    matches a request's path, the matched portion will be removed and the remaining 
     path will be used to find the appropriate sub-route.
 
     If `handlers` is not an Array, it should be an object with a property for each
@@ -449,12 +467,12 @@ RouteProto._handleDirect = function(req, pathMatches) {
     that aren't explicitly mentioned.
 
     Each property value of `handlers` should be a function which will be called with
-    `req` (a [sjs:nodejs/http::ServerRequest]) and `matches`, which is the result of `path.exec(requestPath)`
-    when `path` is a regular expression. If `path` is a string, then `match` is
-    the match object you would get if `path` were `new RegExp(/^#{regexp.escape(path)}$/)`
-    (i.e a RegExp matching the exact `path` string).
+    `req` (a [sjs:nodejs/http::ServerRequest]) and `matches`, which is the result of `matcher.exec(requestPath)`
+    when `matcher` is a regular expression. If `matcher` is a string, then `match` is
+    the match object you would get if `matcher` were `new RegExp(/^#{regexp.escape(matcher)}$/)`
+    (i.e a RegExp matching the exact `matcher` string).
 
-    ### Example:
+    #### Example:
 
         Route(/^dir\/(.*)/, {
           GET: function(req, [path, remainder]) {
