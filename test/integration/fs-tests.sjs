@@ -35,7 +35,9 @@ context("serving files") {||
 	test("Can't access source code of .api files") {||
 		var url = rel('hello.api');
 		http.get(url) .. /rpc\/bridge/.test() .. assert.ok(); // client-side connection code
-		assert.raises({filter: e -> e.status === 406}, -> http.get(url + '!src'));
+    // we can access the content, but should not be able to get at the source code
+		var contents = http.get(url + '!src');
+    contents .. assert.notContains('hello');
 	}
 
 	test("Can't access source code of .gen files") {||
