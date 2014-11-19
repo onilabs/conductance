@@ -1,6 +1,7 @@
 @ = require(['mho:std', 'sjs:nodejs/tempfile']);
 var { @Endpoint } = require('../endpoint');
 var deployLoopback = @env.get('deployLoopback', false);
+@tar = require('sjs:nodejs/tar');
 
 @settings = require('./settings');
 
@@ -61,45 +62,35 @@ var Deployment = function(endpoint, serverInfo) {
 
 			// XXX we should be able to use `tar` output directly,
 			// but https://github.com/joyent/node/issues/6595
-			@TemporaryFile {|tmp|
-				try {
-					@childProcess.run('tar', ['-cvzf', tmp.path, '-C', root, '.'], {stdio: ['ignore', 'ignore',2]});
-				} catch(e) {
-					throw new Error("`tar` failed: #{e}");
-				}
+			var contents = @tar.pack(root) .. @tar.gzip;
 
-				var payload = @Stream(function(emit) {
-					var stream = tmp.readStream();
-					var i=0;
-					var chunk;
-					var chunks=[];
-					var lastTime = 0;
-					var send = function(chunk) {
-						if (chunks.length > 0) {
-							@debug("[> chunk #{i}: #{chunks.length}]");
-							@debug("[= chunk #{i++}: #{chunks.length}]");
-							emit(Buffer.concat(chunks));
-							chunks = [];
-						}
-					};
-					while(true) {
-						chunk = stream .. @read();
-						if (chunk == null) {
-							send();
-							break;
-						}
-						chunks.push(chunk);
-
-						var now = Date.now();
-						if (Math.abs(now - lastTime) > 200) {
-							// if last round-trip was less than 200ms ago, keep accumulating
-							lastTime = now;
-							send();
-						}
+			var payload = @Stream(function(emit) {
+				var i=0;
+				var chunk;
+				var chunks=[];
+				var lastTime = 0;
+				var send = function(chunk) {
+					if (chunks.length > 0) {
+						@debug("[> chunk #{i}: #{chunks.length}]");
+						@debug("[= chunk #{i++}: #{chunks.length}]");
+						emit(Buffer.concat(chunks));
+						chunks = [];
 					}
-				});
-				app.deploy(payload);
-			}
+				};
+
+				contents .. @each {|chunk|
+					chunks.push(chunk);
+
+					var now = Date.now();
+					if (Math.abs(now - lastTime) > 200) {
+						// if last round-trip was less than 200ms ago, keep accumulating
+						lastTime = now;
+						send();
+					}
+				}
+				send();
+			});
+			app.deploy(payload, {strip:1});
 		}
 	};
 };

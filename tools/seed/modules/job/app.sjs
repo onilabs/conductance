@@ -5,6 +5,7 @@
 @crypto = require('nodejs:crypto');
 @tempfile = require('sjs:nodejs/tempfile');
 @nodeFs = require('nodejs:fs');
+@tar = require('sjs:nodejs/tar');
 @util = require('../util');
 @constants = require('nodejs:constants');
 @etcd = require('./etcd');
@@ -547,54 +548,45 @@ exports.masterAppState = (function() {
       etcd .. @job_master.stop(appId);
     };
 
-    var deploy = function(stream) {
+    var deploy = function(stream, opts) {
+      opts = opts || {};
+      var strip = opts.strip;
       @mkdirp(appBase);
-      var expectedSize = 0;
-      @tempfile.TemporaryFile({prefix:"conductance-deploy-"}) {|tmpfile|
-        @info("receiving #{id} -> #{tmpfile.path}");
+      var tmpdest = @path.join(appBase, "_code");
+      var finaldest = @path.join(appBase, "code");
+      
+      var cleanup = -> @rimraf(tmpdest);
 
-        var outstream = tmpfile.writeStream();
-        stream .. @each {|chunk|
-          expectedSize += chunk.length;
-          outstream .. @stream.write(chunk);
-        }
-        outstream .. @stream.end();
+      if (@fs.exists(tmpdest)) {
+        cleanup();
+      }
+      @mkdirp(tmpdest);
+      try {
+        console.log("TMPDEST=",tmpdest);
+        stream .. @tar.gunzip .. @tar.extract({
+          path: tmpdest,
+          strip: strip,
+        });
 
-        @info("upload done (#{expectedSize}b), unpacking");
-        @assert.ok(expectedSize > 0, "can't deploy an empty file");
-        var tmpdest = @path.join(appBase, "_code");
-        var finaldest = @path.join(appBase, "code");
-        
-        var cleanup = -> @rimraf(tmpdest);
+        //// sanity check that we have a config.mho
+        //@assert.ok(@fs.exists(@path.join(tmpdest, 'config.mho')), "no config.mho found in code!");
 
-        if (@fs.exists(tmpdest)) {
-          cleanup();
-        }
-        @mkdirp(tmpdest);
-        try {
-          @fs.fstat(tmpfile.file).size .. @assert.eq(expectedSize, "uploaded file size");
-          @childProcess.run('tar', ['xzf', tmpfile.path, '-C', tmpdest], {stdio:'inherit'});
+        // stop app so that nothing is trying to run code while we're modifying it
+        stopApp();
 
-          //// sanity check that we have a config.mho
-          //@assert.ok(@fs.exists(@path.join(tmpdest, 'config.mho')), "no config.mho found in code!");
+        // overwrite dir
+        tryRename(finaldest, finaldest + '.old');
+        @fs.rename(tmpdest, finaldest);
+        tryRename(finaldest + '.old', tmpdest);
 
-          // stop app so that nothing is trying to run code while we're modifying it
-          stopApp();
+        // modify deployment state
+        modifyState.unsafe(st -> st .. @merge({deployed: Date.now()}));
 
-          // overwrite dir
-          tryRename(finaldest, finaldest + '.old');
-          @fs.rename(tmpdest, finaldest);
-          tryRename(finaldest + '.old', tmpdest);
-
-          // modify deployment state
-          modifyState.unsafe(st -> st .. @merge({deployed: Date.now()}));
-
-          // and restart it
-          startApp();
-        } catch (e) {
-          cleanup();
-          throw e;
-        }
+        // and restart it
+        startApp();
+      } catch (e) {
+        cleanup();
+        throw e;
       }
     } .. safe();
 
