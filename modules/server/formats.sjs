@@ -232,6 +232,20 @@ function apiinfo(src, dest, aux) {
   dest.write(JSON.stringify(aux.apiinfo));
 }
 
+// filter that generates a safe version of the api's source code:
+// (extracting just the comments)
+function apisrc(src, dest, aux) {
+  var docutil = require('sjs:docutil');
+  var comments = [];
+  docutil.parseSource(readAll(src)) { 
+    |comment|
+    // extract only comments beginning with '/**'
+    if (!/^\/\*\*(?:.|\n|\r)*\*\/$/.test(comment)) continue;
+    comments.push(comment);
+  }
+  dest.write("/* SOURCE CODE REDACTED */\n\n"+comments.join('\n'));
+}
+
 //----------------------------------------------------------------------
 // filter that generates html for markdown (*.md) files:
 function gen_markdown_html(src, dest, aux) {
@@ -335,6 +349,9 @@ var withFormats = exports.withFormats = function(map, extensions) {
 
     Note that the source of .app files is accessible via the `src` format.
     
+    .api files will be served non-executable and with their source code 
+    redacted (only documentation comments will be returned). 
+
     #### Warning
 
     You should never use these filters for locations containing untrusted or 
@@ -384,7 +401,10 @@ var Code = (base) -> base
                         },
                  src  : { mime: "text/plain" }
                },
-
+    api      : { none : { mime: "text/plain",
+                          filter: apisrc
+                        }
+               }
   });
 exports.Code = Code;
 
@@ -415,6 +435,9 @@ exports.Jsonp = Jsonp;
 
        - .api, for SJS modules that are run only on the server and exported to the client
 
+    Note that the redacted source (only documentation comments) of .api files is
+    accessible via the `src` format.
+
     #### Warning
 
     You should never use these filters for locations containing untrusted or
@@ -427,6 +450,9 @@ var Executable = (base) -> base
                         },
                  json : { mime: "application/json",
                           filter: apiinfo
+                        },
+                 src  : { mime: "text/plain",
+                          filter: apisrc
                         }
                },
   });
