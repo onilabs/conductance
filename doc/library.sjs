@@ -156,8 +156,12 @@ Library.prototype.loadModuleDocs = function(path) {
 		try {
 			if (!path.length || path .. str.endsWith('/')) {
 				docs = docutil.parseSJSLibDocs(this.loadFile(path + "sjs-lib-index.txt"));
-			} else {
-				docs = docutil.parseModuleDocs(this.loadFile(path + ".sjs", {format:"src"}));
+			}
+      else if (/.*\..*/.test(path)) {
+        docs = docutil.parseModuleDocs(this.loadFile(path, { format:"src"}));
+      }
+      else {
+				docs = docutil.parseModuleDocs(this.loadFile(path + ".sjs" , {format:"src"}));
 			}
 		} catch(e) {
 			if (e.status != 404) throw e;

@@ -139,10 +139,18 @@ exports.renderer = function(libraries, rootSymbol) {
 	}
 
 	function makeRequireSnippet(fullModulePath, name) {
-		if(fullModulePath .. find(p -> p .. startsWith('#'), false)) {
-			// documentation URL - not actually importable
+		if(fullModulePath .. find(p -> p .. startsWith('#'), false) ||
+       /\.app$/.test(fullModulePath[fullModulePath.length-1])
+      ) {
+			//    documentation URL - not actually importable
+      // or app file - doesn't make sense to import
 			return undefined;
 		}
+    else if (/\.api$/.test(fullModulePath[fullModulePath.length-1])) {
+      return Element("div", 
+                     `<code>require('${fullModulePath.join('')}').connect { |api| ${name ? "api." + name : '...'} }</code>`) .. 
+        Class('mb-require');
+    }
 		return Element("div", `<code>require('${fullModulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
 	};
 
@@ -551,13 +559,13 @@ exports.renderer = function(libraries, rootSymbol) {
 					var library = symbol.library;
 					var root = library.root;
 					var path = symbol.relativeModulePath .. join();
-					if (!path .. endsWith('/')) path += '.sjs';
+					if (!path .. endsWith('/') && !/.*\..*/.test(path)) path += '.sjs';
 					var pathURI = path .. encodeNonSlashes();
 
 					view = [view, Element("div", [
 						`<p>
 							${versionWidget(library)}
-							<a href="${root}${pathURI}">[source]</a>
+							<a href="${root}${pathURI}?format=src">[source]</a>
 						</p>`,
 					],
 					{"class":"mb-canonical-url"})];
