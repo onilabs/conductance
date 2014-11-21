@@ -76,7 +76,7 @@ function gen_app_html(src, dest, aux) {
     externalScripts: [],
   };
   var docutil = require('sjs:docutil');
-  var docs = docutil.parseModuleDocs(readAll(src));
+  var docs = docutil.parseModuleDocs(readAll(src, 'utf-8'));
 
   var [template, metadata] = docutil.getPrefixedProperties(docs, 'template');
   if (!template) template = 'app-default';
@@ -168,7 +168,7 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
 //----------------------------------------------------------------------
 // filter that generates html for a directory listing:
 function gen_dir_html(src, dest, aux) {
-  var listing = require('../server-ui/dir-listing').generateDirListing(JSON.parse(readAll(src)));
+  var listing = require('../server-ui/dir-listing').generateDirListing(JSON.parse(readAll(src, 'ascii')));
 
   dest.write(require('../surface').Document(listing));
 }
@@ -176,7 +176,7 @@ function gen_dir_html(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates docs for an sjs module:
 function gen_moduledocs_html(src, dest, aux) {
-  var docs = require('../server-ui/module-doc').generateModuleDoc(aux.request.url.path, readAll(src));
+  var docs = require('../server-ui/module-doc').generateModuleDoc(aux.request.url.path, readAll(src, 'utf-8'));
   dest.write(require('../surface').Document(docs));
 }
 
@@ -249,7 +249,7 @@ function apisrc(src, dest, aux) {
 //----------------------------------------------------------------------
 // filter that generates html for markdown (*.md) files:
 function gen_markdown_html(src, dest, aux) {
-  var docs = require('../server-ui/markdown-file').generateMarkdown(readAll(src));
+  var docs = require('../server-ui/markdown-file').generateMarkdown(readAll(src, 'utf-8'));
   dest.write(require('../surface').Document(docs));
 }
 
