@@ -15,7 +15,7 @@
 */
 
 var env = require('./env');
-var { pump, readAll } = require('sjs:nodejs/stream');
+var { pump, readAll, end } = require('sjs:nodejs/stream');
 var { map, each, toArray, join } = require('sjs:sequence');
 var { clone, merge, ownPropertyPairs } = require('sjs:object');
 var { matches } = require('sjs:regexp');
@@ -42,8 +42,9 @@ function json2jsonp(src, dest, aux) {
   var callback = aux.request.url.params()['callback'];
   if (!callback) callback = "callback";
   dest.write(callback + "(");
-  pump(src, dest);
+  pump(src, dest, {end:false});
   dest.write(")");
+  dest .. end();
 }
 
 //----------------------------------------------------------------------
@@ -64,6 +65,7 @@ function sjscompile(src, dest, aux) {
   }
 
   dest.write("/*__oni_compiled_sjs_1*/"+src);
+  dest .. end();
 }
 
 //----------------------------------------------------------------------
@@ -101,6 +103,7 @@ function gen_app_html(src, dest, aux) {
       title: metadata.title,
     }))
   );
+  dest .. end();
 }
 
 //----------------------------------------------------------------------

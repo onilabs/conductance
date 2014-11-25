@@ -150,7 +150,6 @@ function formatResponse(req, item, settings) {
         stream.pump(input(), req.response);
     }
   }
-  req.response.end();
 };
 
 //----------------------------------------------------------------------

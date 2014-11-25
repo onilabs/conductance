@@ -117,7 +117,6 @@ exports.serve = function(args) {
           } else {
             req.response.writeHead(response.statusCode, response.headers);
             response .. @stream.pump(req.response);
-            req.response.end();
           }
         },
       }
