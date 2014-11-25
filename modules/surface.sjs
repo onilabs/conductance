@@ -185,14 +185,15 @@ if (require('sjs:sys').hostenv !== 'xbrowser') {
   will not be scoped to any particular widget.
 
 @function Mechanism
-@altsyntax element .. Mechanism(mechanism)
+@altsyntax element .. Mechanism(mechanism, [prepend])
 @param {optional ::HtmlFragment} [element]
-@param {Function|String} [mechanism]
+@param {Function|String} [mechanism] Function to execute when `element` is added to the DOM
+@param {optional Boolean} [prepend=false] If `true`, this mechanism will be executed before any other existing mechanisms on `element`.
 @summary Add a mechanism to an element
 @return {::Element|Function}
 @desc
   Whenever an instance of the returned element is inserted into the
-  document using [::appendContent] or one of the surface module's other \
+  document using [::appendContent] or one of the surface module's other
   content insertion functions, `mechanism` will be called 
   with its first argument and
   `this` pointer both set to `element`s DOM node.
@@ -214,6 +215,17 @@ if (require('sjs:sys').hostenv !== 'xbrowser') {
 
   If `Mechanism` is applied to a [::HtmlFragment] that is not of class [::Element], 
   `element` will automatically be wrapped using [::ensureElement].
+
+  The `prepend` flag is used to coordinate the order of execution
+  when there are multiple mechanisms on an element. By default,
+  mechanisms will be executed in the order that they were
+  added. `prepend`=`true` overrides this by adding a mechanism to the
+  front of the queue. It guarantees that a given mechanism will be
+  executed before all mechanisms with `prepend`=`false`.
+
+  Mechanisms that inject interfaces/apis into a DOM element should
+  generally be added with `prepend`=`true`, so that other mechanisms
+  on the element can make use of them.
 
  
 
