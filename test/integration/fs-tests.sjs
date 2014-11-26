@@ -1,3 +1,4 @@
+@ = require('sjs:test/std');
 var { context, test, assert, isBrowser } = require('sjs:test/suite');
 var http = require('sjs:http');
 var url = require('sjs:url');
@@ -33,11 +34,19 @@ context("serving files") {||
 	}.skipIf(isBrowser);
 
 	test("Can't access source code of .api files") {||
-		var url = rel('hello.api');
-		http.get(url) .. /rpc\/bridge/.test() .. assert.ok(); // client-side connection code
-    // we can access the content, but should not be able to get at the source code
-		var contents = http.get(url + '!src');
-    contents .. assert.notContains('hello');
+		var executable_url = rel('hello.api');
+		var code_url = executable_url.replace('/test/','/test_as_code/');
+		http.get(executable_url) .. assert.contains('rpc/bridge'); // client-side connection code
+		http.get(code_url) .. assert.contains('rpc/bridge'); // client-side connection code
+
+		// we can access the content, but should not be able to get at the source code
+		;['', '?format=src','?format=notarealformat','!src','!plain', '!unknown'] .. @each {|fmt|
+			;[executable_url, code_url] .. @each {|url|
+				url = url + fmt;
+				var contents = http.get(url);
+				contents .. assert.notContains('hello', "raw api contents served at #{url}");
+			}
+		}
 	}
 
 	test("Can't access source code of .gen files") {||

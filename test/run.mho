@@ -2,6 +2,7 @@
 
 var { SystemRoutes,
       ExecutableDirectory,
+      CodeDirectory,
       Filter,
       ETagFilter,
     } = require('mho:server/route');
@@ -80,6 +81,7 @@ var serverConfig = {
     }),
 
     ExecutableDirectory(/(?=hello.api$)/, './test'),
+    CodeDirectory('test_as_code', './test'),
     ExecutableDirectory('.'),
   ] .. Filter(function(req, block) {
       var origin = req.request.headers.origin;
