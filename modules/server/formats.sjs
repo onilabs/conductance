@@ -161,6 +161,7 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
       // overwrite cache entry each time to update cache length
       bundleCache.put(src.path, getBundle, content.length);
       dest.write(content);
+      dest .. end();
     },
     gen_sjs_bundle_etag: function(request, filePath) {
       return bundleAccessor(filePath)(request.url).etag();
@@ -172,8 +173,8 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
 // filter that generates html for a directory listing:
 function gen_dir_html(src, dest, aux) {
   var listing = require('../server-ui/dir-listing').generateDirListing(JSON.parse(readAll(src, 'ascii')));
-
   dest.write(require('../surface').Document(listing));
+  dest .. end();
 }
 
 //----------------------------------------------------------------------
@@ -181,6 +182,7 @@ function gen_dir_html(src, dest, aux) {
 function gen_moduledocs_html(src, dest, aux) {
   var docs = require('../server-ui/module-doc').generateModuleDoc(aux.request.url.path, readAll(src, 'utf-8'));
   dest.write(require('../surface').Document(docs));
+  dest .. end();
 }
 
 
@@ -226,6 +228,7 @@ exports.connect = function(opts, block) {
     return bridge.connect(moduleURL, opts).api;
 };
 ");
+  dest .. end();
 }
 
 // filter that generates JSON info about api endpoint:
@@ -233,6 +236,7 @@ function apiinfo(src, dest, aux) {
   if (!aux.apiinfo)
     throw new Error("API access not enabled");
   dest.write(JSON.stringify(aux.apiinfo));
+  dest .. end();
 }
 
 // filter that generates a safe version of the api's source code:
@@ -240,13 +244,15 @@ function apiinfo(src, dest, aux) {
 function apisrc(src, dest, aux) {
   var docutil = require('sjs:docutil');
   var comments = [];
-  docutil.parseSource(readAll(src)) { 
+  docutil.parseSource(readAll(src)) {
     |comment|
     // extract only comments beginning with '/**'
-    if (!/^\/\*\*(?:.|\n|\r)*\*\/$/.test(comment)) continue;
-    comments.push(comment);
+    if (comment .. startsWith('/**'))
+      comments.push(comment);
   }
-  dest.write("/* SOURCE CODE REDACTED */\n\n"+comments.join('\n'));
+  comments.unshift('/* SOURCE CODE REDACTED */');
+  dest.write(comments .. join('\n'));
+  dest .. end();
 }
 
 //----------------------------------------------------------------------
@@ -254,6 +260,7 @@ function apisrc(src, dest, aux) {
 function gen_markdown_html(src, dest, aux) {
   var docs = require('../server-ui/markdown-file').generateMarkdown(readAll(src, 'utf-8'));
   dest.write(require('../surface').Document(docs));
+  dest .. end();
 }
 
 //----------------------------------------------------------------------
