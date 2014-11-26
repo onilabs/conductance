@@ -18,7 +18,8 @@ var imports = [
 
 if (hostenv === 'xbrowser') {
   imports = imports.concat([
-    {id:'./dynamic', include: ['replaceContent']}
+    {id:'./dynamic', include: ['replaceContent']},
+    {id:'./field', name:'field'}
   ]);
 }
 
@@ -129,7 +130,7 @@ var _map = function(items, fn) {
   'Img', 'Iframe', 'Embed', 'Object', 'Param', 'Video', 'Audio', 'Source', 'Track',
   'Canvas', 'Map', 'Area', 'Svg', 'Math',
   'Table', 'Caption', 'ColGroup', /* 'Col' ,*/ 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
-  'Form', 'FieldSet', 'Legend', 'Label', /* 'Input', */ 'Button', /* 'Select', */
+  'Form', 'FieldSet', 'Legend', /*'Label', */ /* 'Input', */ 'Button', /* 'Select', */
   'DataList', 'OptGroup', 'Option', /*'TextArea', */ 'KeyGen', 'Output', /* 'Progress', */ 'Meter',
   'Details', 'Summary', 'MenuItem', 'Menu',
 ] .. @each {|name|
@@ -241,11 +242,42 @@ exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @mer
 
 //----------------------------------------------------------------------
 /**
+  @function Label
+  @summary XXX write me
+  @desc
+    ** Binding to fields **
+    `Label` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+
+*/
+var Label;
+if (hostenv === 'xbrowser') {
+
+  var FieldLabelMechanism = @Mechanism(function(node) {
+    // XXX should use more specific api here; not [CTX_FIELD].id directly
+    var ctx = node .. @field.findContext(@field.CTX_FIELD);
+    if (ctx) {
+      node.setAttribute('for', ctx.id);
+    }
+  });
+
+  Label = (content, attr) -> @Element('label', content, attr) .. FieldLabelMechanism();
+}
+else { // hostenv === 'nodejs'
+ Label = (content, attr) -> @Element('label', content, attr);
+}
+exports.Label = Label;
+
+//----------------------------------------------------------------------
+/**
   @function Input
-  @summary A plain HTML 'input' element
+  @altsyntax Input(type, value, [attrs])
+  @summary A plain HTML 'input' element 
   @param  {String} [type]
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
+  @param  {optional Object} [settings]
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @setting {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+  @setting {Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
+  @setting {Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
   @return {surface::Element}
   @desc
     #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
@@ -256,6 +288,9 @@ exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @mer
     `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
 
+    ** Binding to fields **
+    If `value` is undefined, `Input` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
     `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
@@ -264,29 +299,87 @@ exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @mer
 */
 var Input;
 if (hostenv === 'xbrowser') {
-  Input = (type, value, attrs) ->
-    @Element('input', {'type':type} .. @merge(attrs||{})) ..
-    @Mechanism(function(node) {
-      value = value || "";
-      if (@isStream(value)) {
-        waitfor {
-          value .. @each {|val|
-            val = val || "";
-            if (node.value !== val)
-              node.value = val;
-          }
+
+  // helper to keep a node's value synchronized with an observable (or
+  // just setting it, if the given value is not an observable):
+  function syncValue(node, value, edited, settings) {
+    settings = settings || {};
+    if (@isStream(value)) {
+      var internal_set = false;
+      waitfor {
+        value .. @each {|val|
+          if (internal_set) continue;
+          if (settings.valToTxt)
+            val = settings.valToTxt(val);
+          val = val || "";
+          if (node.value !== val)
+            node.value = val;
         }
-        and {
-          if (@isObservableVar(value)) {
-            @events(node, 'input') .. @each { |ev|
-              value.set(node.value);
-            }
-          }
-        }
-      } else {
-        node.value = value;
       }
+      and {
+        if (@isObservableVar(value)) {
+          @events(node, 'input') .. @each.track { |ev|
+            var val = node.value;
+            if (settings.txtToVal)
+              val = settings.txtToVal(val);
+
+            internal_set = true;
+            value.set(val);
+            internal_set = false;
+
+            if (edited)
+              edited.set(true);
+          }
+        }
+      }
+    } else {
+      node.value = value;
+    }
+  }
+
+  // mechanism for inputs and textareas: 
+  var FieldInputMechanism = (content, settings) ->
+    content .. @Mechanism(function(node) {
+    // XXX should use more specific api here; not
+    // [CTX_FIELD].id/.value/.auto_validate directly
+      var ctx = node .. @field.findContext(@field.CTX_FIELD);
+      if (ctx) {
+        var value = ctx.value;
+        node.setAttribute('id', ctx.id);
+      }
+      else {
+        value = '';
+      }
+      // keep node's value in sync with observable:
+      syncValue(node, value, ctx ? ctx.auto_validate, settings);
     });
+
+
+  Input = function(type, settings, attrs) {
+    // untangle settings
+    if (typeof settings === 'string' ||
+        settings .. @isStream) {
+      settings = {value: settings};
+    }
+    else {
+      settings = {
+        value: undefined,
+        valToTxt: undefined,
+        txtToVal: undefined
+      } .. @override(settings);
+    }
+    var rv = @Element('input', {'type':type} .. @merge(attrs||{}));
+    if (settings.value === undefined) {
+      // a field input element
+      rv = rv .. FieldInputMechanism(settings);
+    }
+    else {
+      rv = rv .. @Mechanism(function(node) {
+        syncValue(node, settings.value);
+      });
+    }
+    return rv;
+  }
 }
 else { // hostenv === 'nodejs'
   Input = (type, value, attrs) -> 
@@ -323,7 +416,7 @@ exports.TextInput = TextInput;
 /**
   @function TextArea
   @summary A plain HTML 'textarea' element
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
+  @param  {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
@@ -335,6 +428,10 @@ exports.TextInput = TextInput;
     `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
 
+    ** Binding to fields **
+    If `value` is undefined, `TextArea` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+
+
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
     `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
@@ -342,29 +439,19 @@ exports.TextInput = TextInput;
 */
 var TextArea;
 if (hostenv === 'xbrowser') {
-  TextArea = (value, attrs) ->
-    @Element('textarea', null, attrs||{}) ..
-    @Mechanism(function(node) {
-      value = value || "";
-      if (@isStream(value)) {
-        waitfor {
-          value .. @each {|val|
-            val = val || "";
-            if (node.value !== val)
-              node.value = val;
-          }
-        }
-        and {
-          if (@isObservableVar(value)) {
-            @events(node, 'input') .. @each { |ev|
-              value.set(node.value);
-            }
-          }
-        }
-      } else {
-        node.value = value;
-      }
-    });
+  TextArea = function(value, attrs) {
+    var rv = @Element('textarea', null, attrs||{});
+    if (value === undefined) {
+      // a field textarea element
+      rv = rv .. FieldInputMechanism();
+    }
+    else {
+      rv = rv .. @Mechanism(function(node) {
+        syncValue(node, value);
+      });
+    }
+    return rv;
+  }
 }
 else { // hostenv === 'nodejs'
   TextArea = (value, attrs) -> 
@@ -377,7 +464,7 @@ exports.TextArea = TextArea;
 /**
   @function Checkbox
   @summary A HTML 'checkbox' widget
-  @param  {Boolean|sjs:sequence::Stream|sjs:observable::ObservableVar} [checked] 
+  @param  {optional Boolean|sjs:sequence::Stream|sjs:observable::ObservableVar} [checked=undefined] 
   @return {surface::Element}
   @desc
     #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
@@ -387,6 +474,10 @@ exports.TextArea = TextArea;
     element's state will be updated every time `checked` changes. If (in addition)
     `checked` is an [sjs:observable::ObservableVar], 
     then `checked` will be updated to reflect any manual changes to the element's state.
+
+    ** Binding to fields **
+    If `checked` is undefined, `Checkbox` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+
 
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
@@ -415,27 +506,63 @@ exports.TextArea = TextArea;
 */
 var Checkbox;
 if (hostenv === 'xbrowser') {
-  Checkbox = value ->
-    @Element('input', {type:'checkbox'}) ..
-    @Mechanism(function(node) {
-      if (@isStream(value)) {
-        waitfor {
-          value .. @each { |current|
-            current = Boolean(current);
-            if (node.checked !== current) node.checked = current;
-          }
+
+
+  // helper to keep a node's value synchronized with an observable (or
+  // just setting it, if the given value is not an observable):
+  function syncCheckboxValue(node, value, edited) {
+    if (@isStream(value)) {
+      waitfor {
+        value .. @each {|val|
+          val = Boolean(val);
+          if (node.checked !== val)
+            node.checked = val;
         }
-        and {
-          if (@isObservableVar(value)) {
-            @events(node, 'change') .. @each { |ev|
-              value.set(node.checked);
-            }
-          }
-        }
-      } else {
-        node.checked = Boolean(value);
       }
-    });
+      and {
+        if (@isObservableVar(value)) {
+          @events(node, 'change') .. @each { |ev|
+            value.set(node.checked);
+            if (edited)
+              edited.set(true);
+          }
+        }
+      }
+    } else {
+      node.checked = Boolean(value);
+    }
+  }
+
+  // mechanism for checkboxes: 
+  var FieldCheckboxMechanism = @Mechanism(function(node) {
+    // XXX should use more specific api here; not
+    // [CTX_FIELD].id/.value/.auto_validate directly
+    var ctx = node .. @field.findContext(@field.CTX_FIELD);
+    if (ctx) {
+      var value = ctx.value;
+      node.setAttribute('id', ctx.id);
+    }
+    else {
+      value = '';
+    }
+    // keep node's value in sync with observable:
+    syncCheckboxValue(node, value, ctx ? ctx.auto_validate);
+  });
+
+
+  Checkbox = function(value) {
+    var rv = @Element('input', {type:'checkbox'});
+    if (value === undefined) {
+      // a field input element
+      rv = rv .. FieldCheckboxMechanism();
+    }
+    else {
+      rv = rv .. @Mechanism(function(node) {
+        syncCheckboxValue(node, value);
+      });
+    }
+    return rv;
+  };
 }
 else { // hostenv === 'nodejs'
   Checkbox = value -> @Element('input', { type: 'checkbox', checked: Boolean(value) });
