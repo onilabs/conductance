@@ -20,13 +20,17 @@
 
     ### Symbols exported in mho:app
 
-    In addition to the symbols documented below, app-default's `mho:app` module
-    exports all the HTML building blocks provided by [surface/bootstrap::].
+    In addition to the symbols explicitly documented below,
+    app-default's `mho:app` module exports:
+
+    * All the HTML building blocks provided by [surface/bootstrap::].
+    * All the symbol of the [surface/field::] module under the module alias **field**.
 
 
   @require mho:surface/bootstrap
   @require mho:surface/bootstrap/notice
   @require mho:surface/api-connection
+  @require mho:surface/field
   @require mho:surface
   @require sjs:xbrowser/dom
   @require sjs:event
@@ -246,6 +250,9 @@ exports.Document = function(data, settings) {
                                     },
                                     { id:'mho:surface/bootstrap/notice',
                                       include: ['Notice']
+                                    },
+                                    { id:'mho:surface/field',
+                                      name: 'field'
                                     }
                                   ]);
         } and {
