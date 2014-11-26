@@ -36,13 +36,17 @@ context("serving files") {||
 	test("Can't access source code of .api files") {||
 		var executable_url = rel('hello.api');
 		var code_url = executable_url.replace('/test/','/test_as_code/');
+		code_url .. @assert.notEqual(executable_url);
 		http.get(executable_url) .. assert.contains('rpc/bridge'); // client-side connection code
 		http.get(code_url) .. assert.contains('rpc/bridge'); // client-side connection code
 
 		// we can access the content, but should not be able to get at the source code
-		;['', '?format=src','?format=notarealformat','!src','!none'] .. @each {|fmt|
-			;[executable_url /*, code_url */] .. @each {|url|
-				url = url + fmt;
+		;[
+			[executable_url, ['', '?format=src','?format=notarealformat','!none','!src']],
+			[executable_url, ['', '?format=src','?format=notarealformat','!none']],
+		] .. @each {|[base_url, formats]|
+			formats .. @each {|fmt|
+				var url = base_url + fmt;
 				var contents = http.get(url);
 				contents .. assert.notContains('is_source_code', "raw api contents served at #{url}");
 			}
