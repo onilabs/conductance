@@ -1,1 +1,3 @@
+exports.is_source_code = true; // DO NOT REMOVE (see fs-tests)
+
 exports.hello = -> "world!";

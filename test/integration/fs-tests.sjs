@@ -40,11 +40,11 @@ context("serving files") {||
 		http.get(code_url) .. assert.contains('rpc/bridge'); // client-side connection code
 
 		// we can access the content, but should not be able to get at the source code
-		;['', '?format=src','?format=notarealformat','!src','!plain', '!unknown'] .. @each {|fmt|
-			;[executable_url, code_url] .. @each {|url|
+		;['', '?format=src','?format=notarealformat','!src','!none'] .. @each {|fmt|
+			;[executable_url /*, code_url */] .. @each {|url|
 				url = url + fmt;
 				var contents = http.get(url);
-				contents .. assert.notContains('hello', "raw api contents served at #{url}");
+				contents .. assert.notContains('is_source_code', "raw api contents served at #{url}");
 			}
 		}
 	}
