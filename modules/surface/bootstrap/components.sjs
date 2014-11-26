@@ -12,7 +12,8 @@
 @ = require([
   'sjs:std',
   '../../surface', 
-  {id:'./html', name: 'html'}
+  {id:'./html', name: 'html'},
+  {id:'../field', name: 'field'}
 ]);
 
 /**
@@ -1303,10 +1304,10 @@ exports.HorizontalForm = content -> @html.Div(content, {'class':'form-horizontal
 */
 exports.FormGroup = (content, name, startval) -> 
   @html.Div(content, {'class': 'form-group'}) .. 
-  @html.Field(name, startval) ..
+  @field.Field(name, startval) ..
   @Mechanism(function(node) {
     var state = 'unknown';
-    this[@html.CTX_FIELD].validation_state .. @each {
+    this[@field.CTX_FIELD].validation_state .. @each {
       |validation|
       if (state == validation.state) continue;
       node.classList.remove("has-#{state}");
@@ -1428,7 +1429,7 @@ var SelectInput = function(settings) {
                 },
                 function({node}) {
                   // XXX distinguish between contextual and non-contextual SelectInputs
-                  var field = (node .. @html.getField())[@html.CTX_FIELD];
+                  var field = (node .. @field.getField())[@field.CTX_FIELD];
                   @dom.findNode('.input-group', node).firstChild.value = node.txt;
                   var val = node.txt;
                   if (settings.txtToVal)
