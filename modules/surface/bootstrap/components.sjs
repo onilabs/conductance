@@ -9,14 +9,17 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['sjs:object', 'sjs:sequence', '../../surface', 'sjs:quasi']);
+@ = require([
+  'sjs:std',
+  '../../surface', 
+  {id:'./html', name: 'html'}
+]);
 
 /**
   @nodoc
   @noindex
   (documented as mho:surface/bootstrap)
 */
-var base_html = require('../html');
 
 // xxx helper that's also in ../html.sjs
 // map each value of a stream of input if it is an Observable / Stream, else
@@ -25,10 +28,6 @@ function _map(items, fn) {
   if (@isStream(items))
     return items .. @transform(val -> @map(val, fn));
   return items .. @map(fn);
-}
-
-function hasClass(elem,cls) {
-  return @isElement(elem) && (elem._normalizeClasses().indexOf(cls) !== -1);
 }
 
 function prefixClasses(classes, prefix) {
@@ -179,7 +178,7 @@ exports.TextJustify = element -> element .. @Class('text-justify');
     ]);
 */
 exports.Btn = (btn_classes, content, attribs) ->
-  callWithClass(base_html.Button,
+  callWithClass(@html.Button,
     ['btn'].concat(prefixClasses(btn_classes,'btn-')),
     content, attribs);
 
@@ -221,7 +220,7 @@ var AvailableIcons = exports.AvailableIcons = [
       @Icon('heart') .. @Style('color:red;font-size: 80px'))
     ]);
 */
-exports.Icon = (name, attribs) -> callWithClasses(base_html.Span, ["glyphicon", "glyphicon-#{name}"], '', attribs);
+exports.Icon = (name, attribs) -> callWithClasses(@html.Span, ["glyphicon", "glyphicon-#{name}"], '', attribs);
 
 /**
   @function Row
@@ -391,7 +390,7 @@ exports.Icon = (name, attribs) -> callWithClasses(base_html.Span, ["glyphicon", 
     ], { 'class': 'demo' }))
     ]);
 */
-exports.Row = wrapWithClass(base_html.Div, 'row');
+exports.Row = wrapWithClass(@html.Div, 'row');
 
 /**
   @function Col
@@ -414,7 +413,7 @@ exports.Row = wrapWithClass(base_html.Div, 'row');
     * **pushing right**: one or more of `xs-push-M`, `sm-push-M`, `md-push-M`, `lg-push-M`.
 */
 exports.Col = (col_classes, content, attribs) ->
-  callWithClasses(base_html.Div, prefixClasses(col_classes,'col-'), content, attribs);
+  callWithClasses(@html.Div, prefixClasses(col_classes,'col-'), content, attribs);
 
 /**
   @function Container
@@ -443,7 +442,7 @@ exports.Col = (col_classes, content, attribs) ->
     by default, or a [::FluidContainer] if the
     [mho:surface/doc-template/app-default::@template-fluid] directive is set to `true`.
 */
-exports.Container = wrapWithClass(base_html.Div, 'container');
+exports.Container = wrapWithClass(@html.Div, 'container');
 
 /**
   @function FluidContainer
@@ -456,7 +455,7 @@ exports.Container = wrapWithClass(base_html.Div, 'container');
 
     See the notes for [::Container]
 */
-exports.FluidContainer = wrapWithClass(base_html.Div, 'container-fluid');
+exports.FluidContainer = wrapWithClass(@html.Div, 'container-fluid');
 
 
 /**
@@ -480,7 +479,7 @@ exports.FluidContainer = wrapWithClass(base_html.Div, 'container-fluid');
     ])
 
 */
-exports.Lead = wrapWithClass(base_html.P, 'lead');
+exports.Lead = wrapWithClass(@html.P, 'lead');
 
 /**
   @function Lbl
@@ -561,7 +560,7 @@ exports.Lbl = function(/*lbl_classes, content */) {
     ])
 
 */
-exports.Badge = wrapWithClass(base_html.Span, 'badge');
+exports.Badge = wrapWithClass(@html.Span, 'badge');
 
 /**
   @function Jumbotron
@@ -591,7 +590,7 @@ exports.Badge = wrapWithClass(base_html.Span, 'badge');
       )]);
 
 */
-exports.Jumbotron = wrapWithClass(base_html.Div, 'jumbotron');
+exports.Jumbotron = wrapWithClass(@html.Div, 'jumbotron');
 
 /**
   @function ListGroup
@@ -646,8 +645,8 @@ exports.Jumbotron = wrapWithClass(base_html.Div, 'jumbotron');
     ]))
     ]);
 */
-exports.ListGroup = (items, attribs) -> callWithClass(base_html.Div, 'list-group',
-  items .. _map(item -> item .. hasClass('list-group-item') ? item : base_html.Div(item, {'class':'list-group-item'})),
+exports.ListGroup = (items, attribs) -> callWithClass(@html.Div, 'list-group',
+  items .. _map(item -> item .. @isElementWithClass('list-group-item') ? item : @html.Div(item, {'class':'list-group-item'})),
   attribs);
 
 
@@ -924,14 +923,13 @@ exports.Thumbnail = function (settings) {
     ])
     ]);
 */
-exports.PageHeader = (content, attribs) -> callWithClass(base_html.Div, 'page-header', `<h1>$content</h1>`, attribs);
+exports.PageHeader = (content, attribs) -> callWithClass(@html.Div, 'page-header', `<h1>$content</h1>`, attribs);
 
 /**
   @function Panel
   @summary Bootstrap-style panel ("<div class='panel'>") with additional `panel-*` classes applied.
-  @param {String} [panel_classes] String of `panel-*` classes to apply to the button
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @param {optional String} [panel_classes='default'] String of `panel-*` classes to apply to the button
   @return {surface::Element}
   @desc
     `panel_classes` is a space-separated list of `panel-*` classes that should be applied to the
@@ -1105,9 +1103,11 @@ exports.PageHeader = (content, attribs) -> callWithClass(base_html.Div, 'page-he
     ]))
     ]);
 */
-exports.Panel = (panel_classes, content, attribs) ->
-  callWithClasses(base_html.Div, ['panel'].concat(prefixClasses(panel_classes, 'panel-')),
-    content, attribs);
+exports.Panel = function(content, panel_classes) {
+  if (!panel_classes) panel_classes = 'default';
+  return callWithClasses(@html.Div, ['panel'].concat(prefixClasses(panel_classes, 'panel-')),
+    content);
+};
 
 
 /**
@@ -1247,7 +1247,7 @@ exports.ButtonGroup = function (buttons, settings) {
   @desc
     See [::Panel] for examples
 */
-exports.PanelBody = wrapWithClass(base_html.Div, 'panel-body');
+exports.PanelBody = wrapWithClass(@html.Div, 'panel-body');
 
 /**
   @function PanelFooter
@@ -1269,7 +1269,7 @@ exports.PanelFooter = wrapWithClass(base_html.Div, 'panel-footer');
   @desc
     See [::Panel] for examples
 */
-exports.PanelHeading = wrapWithClass(base_html.Div, 'panel-heading');
+exports.PanelHeading = wrapWithClass(@html.Div, 'panel-heading');
 
 /**
   @function PanelTitle
@@ -1280,11 +1280,170 @@ exports.PanelHeading = wrapWithClass(base_html.Div, 'panel-heading');
   @desc
     See [::Panel] for examples
 */
-exports.PanelTitle = wrapWithClass(base_html.H3, 'panel-title');
+exports.PanelTitle = wrapWithClass(@html.H3, 'panel-title');
+
+//----------------------------------------------------------------------
+// FORMS
+
+/**
+  @function InlineForm
+  @summary XXX write me
+*/
+exports.InlineForm = content -> @html.Div(content, {'class':'form-inline'});
+
+/**
+  @function HorizontalForm
+  @summary XXX write me
+*/
+exports.HorizontalForm = content -> @html.Div(content, {'class':'form-horizontal'});
+
+/**
+  @function FormGroup
+  @summary XXX write me
+*/
+exports.FormGroup = (content, name, startval) -> 
+  @html.Div(content, {'class': 'form-group'}) .. 
+  @html.Field(name, startval) ..
+  @Mechanism(function(node) {
+    var state = 'unknown';
+    this[@html.CTX_FIELD].validation_state .. @each {
+      |validation|
+      if (state == validation.state) continue;
+      node.classList.remove("has-#{state}");
+      state = validation.state;
+      node.classList.add("has-#{state}");
+    }
+  });
+
+/**
+  @function ControlLabel
+  @summary XXX write me
+*/
+exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label'});
+
 
 //----------------------------------------------------------------------
 // HIGH-LEVEL BOOTSTRAP-SPECIFIC CONSTRUCTS:
 
+
+/**
+   @function SelectInput
+   @summary XXX write me
+   @param {Object} [settings]
+   @setting {Function} [suggestions] function search_term_stream -> suggestions_stream
+   @desc
+     suggestions can be a stream of arrays of strings or objects:
+      { text:String, highlight:Boolean }
+*/
+
+
+function ElemClass(elem,cls) { 
+  return content -> @Element(elem, content, {'class':cls})
+}
+
+var InputGroup      = ElemClass('div','input-group');
+var InputGroupBtn   = ElemClass('span', 'input-group-btn');
+var Caret           = ElemClass('span', 'caret');
+var DropdownMenuRight = content -> @html.Ul(content,{'class':'dropdown-menu pull-right'});
+
+// helper to format suggestions:
+function format_suggestion(s, filter_term) {
+  if (typeof s === 'string' || typeof s === 'number') {
+    s = { text: s }
+  }
+
+  if (typeof s.text !== 'string')
+    s.text = String(s.text);
+
+  var markup = s.text;
+
+  var index = markup.indexOf(filter_term);
+  if (index == -1) {
+    // suggestion is not really applicable; grey out
+    markup = @html.Span(markup, {style:'color:grey'});
+  }
+  else
+    markup = `${markup.substr(0,index)}$@html.Em(filter_term)${markup.substr(index+filter_term.length)}`;
+
+  if (s.highlight)
+    markup = @html.Strong(markup);
+
+  return  markup .. @html.A({href:'#'}) .. @Prop('txt', s.text);
+}
+
+var SelectInput = function(settings) {
+  // untangle arguments:
+  if (settings .. @isSequence) {
+    settings = {suggestions: settings};
+  }
+  else if (typeof settings === 'function') {
+    settings = {suggestions: settings};
+  }
+  else {
+    settings = 
+      { 
+        suggestions : [],
+        txtToVal: null,
+        valToTxt: null
+      } .. @override(settings);
+  }
+  
+  var rv = 
+    InputGroup(
+      [
+        @html.TextInput(settings) ..
+          @On('input', 
+              ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
+        InputGroupBtn([
+          exports.Btn('default', 
+               Caret(), 
+               {'class':'dropdown-toggle', type:'button','data-toggle': 'dropdown'}),
+          DropdownMenuRight(
+            // XXX need to get at value here; could pass in as property on the stream receiver ('r')
+            @Stream(function(r) {
+              var suggestions;
+              if (settings.suggestions .. @isSequence)
+                suggestions = settings.suggestions;
+              else // function implied
+                suggestions = settings.suggestions(/*XXX value*/);
+
+              if (suggestions .. @isStream) {
+                suggestions .. @each { |x| 
+                  if (!@isSequence(x))
+                    x = [x];
+                  r(x .. @map(s -> format_suggestion(s,'XXX value')));
+                }
+              }
+              else { // array implied
+                r(suggestions .. @map(s -> format_suggestion(s,'XXX value')));
+              }
+            })
+          ) .. 
+            @On('click', 
+                {
+                  transform: ev -> { node: @dom.findNode('a', ev.target, ev.currentTarget),
+                                     ev: ev },
+                  filter: {node} -> !!node,
+                  handle: {ev} -> @dom.preventDefault(ev)
+                },
+                function({node}) {
+                  // XXX distinguish between contextual and non-contextual SelectInputs
+                  var field = (node .. @html.getField())[@html.CTX_FIELD];
+                  @dom.findNode('.input-group', node).firstChild.value = node.txt;
+                  var val = node.txt;
+                  if (settings.txtToVal)
+                    val = val .. settings.txtToVal;
+                  field.auto_validate.set(true);
+                  field.value.set(val);
+                }
+               )
+        ])
+      ]
+    );
+      
+  return rv;
+};
+exports.SelectInput = SelectInput;
 
 /**
   @function doModal
