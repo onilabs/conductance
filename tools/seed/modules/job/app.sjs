@@ -6,6 +6,7 @@
 @tempfile = require('sjs:nodejs/tempfile');
 @nodeFs = require('nodejs:fs');
 @tar = require('sjs:nodejs/tar');
+@gzip = require('sjs:nodejs/gzip');
 @util = require('../util');
 @constants = require('nodejs:constants');
 @etcd = require('./etcd');
@@ -562,8 +563,7 @@ exports.masterAppState = (function() {
       }
       @mkdirp(tmpdest);
       try {
-        console.log("TMPDEST=",tmpdest);
-        stream .. @tar.gunzip .. @tar.extract({
+        stream .. @gzip.decompress .. @tar.extract({
           path: tmpdest,
           strip: strip,
         });

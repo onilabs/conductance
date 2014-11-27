@@ -2,6 +2,7 @@
 var { @Endpoint } = require('../endpoint');
 var deployLoopback = @env.get('deployLoopback', false);
 @tar = require('sjs:nodejs/tar');
+@gzip = require('sjs:nodejs/gzip');
 
 @settings = require('./settings');
 
@@ -60,10 +61,7 @@ var Deployment = function(endpoint, serverInfo) {
 			var config = app.config .. @first();
 			@info("deploying #{config.name} (#{appId}) from #{root}");
 
-			// XXX we should be able to use `tar` output directly,
-			// but https://github.com/joyent/node/issues/6595
-			var contents = @tar.pack(root) .. @tar.gzip;
-
+			var contents = @tar.pack(root) .. @gzip.compress;
 			var payload = @Stream(function(emit) {
 				var i=0;
 				var chunk;
