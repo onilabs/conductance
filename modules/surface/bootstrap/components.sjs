@@ -9,12 +9,21 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require([
+var { hostenv } = require('builtin:apollo-sys');
+
+var imports = [
   'sjs:std',
   '../../surface', 
-  {id:'./html', name: 'html'},
-  {id:'../field', name: 'field'}
-]);
+  {id:'./html', name: 'html'}
+]; 
+
+if (hostenv === 'xbrowser') {
+  imports = imports.concat([
+    {id:'./field', name:'field'}
+  ]);
+}
+
+@ = require(imports);
 
 /**
   @nodoc
