@@ -59,7 +59,7 @@ function sjscompile(src, dest, aux) {
     // communicate the compilation error to the caller in a little bit
     // of a round-about way: We create a compiled SJS file that throws
     // our compile error as an exception on execution
-    var error_message = 
+    var error_message =
       "'SJS syntax error in \\''+__onimodulename+'\\' at line #{e.compileError.line}: #{e.compileError.message.toString().replace(/\'/g, '\\\'')}'";
     src = __oni_rt.c1.compile("throw new Error(#{error_message});", {globalReturn:true, filename:"'compilation@rocket_server'"});
   }
@@ -191,7 +191,7 @@ function gen_moduledocs_html(src, dest, aux) {
 function apiimport(src, dest, aux) {
   // To facilitate redirecting apis, as in e.g.:
   //   @PortRedirect(/^database\/.*\.api/,  8082),
-  // we'll make sure that the client makes all future access to the api 
+  // we'll make sure that the client makes all future access to the api
   // module directly to our server:
   var moduleURL = "#{aux.request.url.protocol}://#{aux.request.url.authority}#{aux.request.url.path}";
   // XXX In addition to the `connect` function, we're currently also
@@ -315,12 +315,12 @@ exports.StaticFormatMap = {
   md   : { none : { mime: "text/plain" } },
 
   ttf  : { none : { mime: "application/x-font-ttf",
-                    // give fonts an expiry of access + 1 month: 
+                    // give fonts an expiry of access + 1 month:
                     expires: -> new Date(Date.now() + 1000*60*60*24*30)
                   }
          },
   woff : { none : { mime: "application/font-woff",
-                    // give fonts an expiry of access + 1 month: 
+                    // give fonts an expiry of access + 1 month:
                     expires: -> new Date(Date.now() + 1000*60*60*24*30)
                   }
          }
@@ -358,13 +358,13 @@ var withFormats = exports.withFormats = function(map, extensions) {
       - .md, for rendering as HTML
 
     Note that the source of .app files is accessible via the `src` format.
-    
-    .api files will be served non-executable and with their source code 
-    redacted (only documentation comments will be returned). 
+
+    .api files will be served non-executable and with their source code
+    redacted (only documentation comments will be returned).
 
     #### Warning
 
-    You should never use these filters for locations containing untrusted or 
+    You should never use these filters for locations containing untrusted or
     user-submitted code.
     Certain module directives (e.g. [#features/app-file::@bundle]) could be used to expose sensitive
     content from the server in some circumstances.

@@ -127,7 +127,7 @@ function formatResponse(req, item, settings) {
       req .. setHeader("Accept-Ranges", "bytes");
     }
     var range;
-    if (item.length && req.request.headers["range"] && 
+    if (item.length && req.request.headers["range"] &&
         (range=/^bytes=(\d*)-(\d*)$/.exec(req.request.headers["range"]))) {
       // we honor simple range requests
       var from = range[1] ? parseInt(range[1]) : 0;
@@ -161,7 +161,7 @@ function listDirectory(req, root, branch, format, settings) {
     directories: [],
     files: []
   };
-  
+
   // add ".." unless we're listing the root
   if(branch && branch !== '/') {
     listing.directories.push("..");
@@ -204,7 +204,7 @@ function serveFile(req, filePath, format, settings) {
     return settings.allowGenerators ? generateFile(req, filePath, format, settings) : false;
   }
   if (!stat.isFile()) return false;
-  
+
   var apiinfo;
   var extension = path.extname(filePath).slice(1);
   if (settings.allowGenerators && extension == 'gen') {
@@ -258,7 +258,7 @@ function generateFile(req, filePath, format, settings) {
     return false;
   }
   if (!stat.isFile()) return false;
-  
+
   var generator_file_mtime = stat.mtime.getTime();
 
   var resolved_path = require.resolve(genPath .. url.fileURL).path;
@@ -305,7 +305,7 @@ function generateFile(req, filePath, format, settings) {
         }
         return data .. ensureNodejsStream();
       },
-      
+
       filetype: generator.filetype ? generator.filetype : path.extname(filePath).slice(1),
       format: format,
 //      length: generator.content().length,
@@ -336,7 +336,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
   // serving untrusted files.
   // ExecutableDirectory and CodeDirectory will selectively enable more dynamic
   // (and less safe) behaviour.
-  
+
   root = path.normalize(root);
 
   settings = { mapIndexToDir:   true,
