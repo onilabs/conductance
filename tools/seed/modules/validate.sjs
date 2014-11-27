@@ -6,6 +6,8 @@ exports.optionalNumber = function(n) {
 };
 
 var identifierRe = /^[a-zA-Z][_a-zA-Z0-9]*$/;
+var appNameRe =    /^[a-zA-Z][-_a-zA-Z0-9]*$/; // identifier + dashes
+
 var identifierValidator = function(desc) {
 	var rv = function(val) {
 		if (identifierRe.test(val)) {
@@ -18,7 +20,13 @@ var identifierValidator = function(desc) {
 };
 
 exports.username = identifierValidator("Username");
-exports.appName = identifierValidator("Application name");
+exports.appName = function(val) {
+	if (appNameRe.test(val)) {
+		return val;
+	}
+	throw new Error(exports.appName.errorMessage);
+};
+exports.appName.errorMessage = "App name must start with a letter and contain only numbers, letters, dashes and underscores";
 
 exports.required = function(n) {
 	if (!n || n == '') throw new Error("Required");

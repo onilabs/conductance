@@ -538,7 +538,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 						var retry = @Emitter();
 						container .. @appendContent(@Div([
 							@H3(`Uncaught Error: ${msg}`),
-							@P(@Button("Try again...", {'class':'btn-danger'}) .. OnClick(-> retry.emit()))
+							@P(@Button("Continue ...", {'class':'btn-danger'}) .. OnClick(-> retry.emit()))
 						]), -> retry .. @wait());
 					}
 				}

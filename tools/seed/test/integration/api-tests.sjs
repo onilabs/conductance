@@ -82,7 +82,7 @@ var {@isAuthenticationError} = require('seed:auth');
 		};
 
 		rejectsName('bad name');
-		rejectsName('dashed-name');
+		rejectsName('-leading-dash');
 	}
 }
 

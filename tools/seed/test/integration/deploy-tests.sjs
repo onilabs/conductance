@@ -10,7 +10,7 @@
 		s.createAppButton() .. s.driver.click();
 		var form = @waitforSuccess( -> s.modal('form'));
 		var appPath = @stub.testPath('integration/fixtures/hello_app');
-		var appName = 'appone';
+		var appName = 'app-one';
 		form .. s.fillForm({
 			name: appName,
 			path: appPath,
