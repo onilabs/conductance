@@ -161,7 +161,7 @@ function JSValueToGCDValue(js_val, descriptor) {
     if (descriptor.__allowNull)
       return value;
     else
-      throw new Errors("Invalid 'null' value on a #{descriptor.__type} property without '__allowNull'");
+      throw new Error("Invalid 'null' value on a #{descriptor.__type} property without '__allowNull'");
   }
   
   switch (descriptor.__type) {
