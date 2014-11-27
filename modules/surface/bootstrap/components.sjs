@@ -19,7 +19,7 @@ var imports = [
 
 if (hostenv === 'xbrowser') {
   imports = imports.concat([
-    {id:'./field', name:'field'}
+    {id:'../field', name:'field'}
   ]);
 }
 
