@@ -390,6 +390,7 @@ exports.stat = stat;
 */
 function fileStream(conn, path, options) {
   var session = conn .. getSFTSession();
+
   return @Stream(function(receiver) {
     try {
       var stream = session.createReadStream(path, options);
