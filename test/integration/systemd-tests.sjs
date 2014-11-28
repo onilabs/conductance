@@ -269,7 +269,7 @@ if (require.main === module) {
         } or {
           try {
             waitfor {
-              proc.stdout .. lines .. @skip(1) .. @transform(JSON.parse) .. @filter(log -> log.SYSLOG_IDENTIFIER==unitName) .. @each {|line|
+              proc.stdout .. @stream.lines .. @skip(1) .. @transform(JSON.parse) .. @filter(log -> log.SYSLOG_IDENTIFIER==unitName) .. @each {|line|
                 //console.warn('##', line);
                 //console.warn(line.SYSLOG_IDENTIFIER, line.SYSLOG_PID);
                 line = line.MESSAGE;

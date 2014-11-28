@@ -10,21 +10,20 @@ var [dest] = require('sjs:sys').argv();
 
 var checksum = @childProcess.launch('gup', ['--contents'], {stdio: ['pipe', 1, 2]});
 
-var echo = function(line) {
-	checksum.stdin .. @stream.write(line + "\n");
-};
-
-require('../walkdir').walk('.') {|file|
-	var docLine = /^[ *]*@/;
-	if (file .. @endsWith(".sjs") || file .. @endsWith("sjs-lib-index.txt")) {
-		echo(file);
-		@fs.readFile(file, 'utf-8').split(/[\r\n]+/g) .. @each {|line|
-			if(docLine.test(line)) {
-				echo(line);
+@Stream(function(emit) {
+	var echo = function(line) {
+		emit(line + "\n");
+	};
+	require('../walkdir').walk('.') {|file|
+		var docLine = /^[ *]*@/;
+		if (file .. @endsWith(".sjs") || file .. @endsWith("sjs-lib-index.txt")) {
+			echo(file);
+			@fs.readFile(file, 'utf-8').split(/[\r\n]+/g) .. @each {|line|
+				if(docLine.test(line)) {
+					echo(line);
+				}
 			}
 		}
 	}
-}
-
-checksum.stdin.end();
+}) .. @stream.pump(checksum.stdin);
 checksum .. @childProcess.wait();

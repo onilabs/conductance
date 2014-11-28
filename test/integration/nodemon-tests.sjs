@@ -9,10 +9,7 @@
     var restarted = @Emitter();
     waitfor {
       var data;
-      while(true) {
-        data = proc.stderr .. @read();
-        if (data == null) break;
-        data = data.toString('utf-8');
+      proc.stderr .. @stream.contents('utf-8') .. @each {|data|
         @info("got data: #{data}");
         var newRestarts = data .. @regexp.matches(/Conductance serving address:/g) .. @count();
         if (newRestarts > 0) {
@@ -23,11 +20,8 @@
         }
       }
     } or {
-      while(proc.stdout) {
-        var out = proc.stdout .. @read();
-        if (out == null) break;
-        out = out.toString('utf-8');
-        @info(out);
+      if(proc.stdout) {
+        proc.stdout .. @stream.contents('utf-8') .. @each(@info);
       }
       hold();
     } or {
@@ -73,7 +67,7 @@
 
   @test.afterAll() {|s|
     var drain = function(s) {
-      while(s .. @read() != null);
+      s .. @each(->null);
     }
 
     waitfor {

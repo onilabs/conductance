@@ -105,16 +105,16 @@ exports.connect = connect;
 /**
    @class ChannelStream
    @summary https://github.com/onilabs/ssh2 `ChannelStream` object
-   @desc 
+   @desc
      - The interactive form of [::exec] passes a `ChannelStream` to its `block` function.
  
      - A ChannelStream is a normal nodejs 'streams2' duplex stream with the changes described at https://github.com/onilabs/ssh2. In particular:
 
-        - The readable side represents stdout (which `block` can read from using [sjs:nodejs/stream::read] or [sjs:nodejs/stream::readAll]).
+        - The readable side represents stdout (which `block` can read from using e.g. [sjs:nodejs/stream::contents].
         
-        - The writable side represents stdin (which `block` can write to using [sjs:nodejs/stream::write]).
+        - The writable side represents stdin (which `block` can write to using e.g. [sjs:nodejs/stream::pump]).
         
-        - ChannelStream has a `stderr` property that represents the stream of output from stderr. 
+        - ChannelStream has a `stderr` property that represents the stream of output from stderr.
 
         - An `'exit'` event will be emitted when the process finishes (which `block` can wait on using [sjs:event::wait]).
 
@@ -192,10 +192,10 @@ function exec(conn, command, opts, block) {
   else {
     var stdout, stderr;
     waitfor {
-      stdout = stream .. @readAll;
+      stdout = stream .. @stream.readAll;
     }
     and {
-      stderr = stream.stderr .. @readAll;
+      stderr = stream.stderr .. @stream.readAll;
     }
     retract {
       //        stream.signal('KILL'); XXX doesn't seem to work
@@ -393,9 +393,7 @@ function fileStream(conn, path, options) {
   return @Stream(function(receiver) {
     try {
       var stream = session.createReadStream(path, options);
-      var data;
-      while ((data = @read(stream)) !== null)
-        receiver(data);
+      stream .. @each(receiver);
     }
     finally {
       stream.destroy();

@@ -23,7 +23,7 @@ var stream = require('sjs:nodejs/stream');
 var child_process = require('sjs:nodejs/child-process');
 var path = require('nodejs:path');
 var seq  = require('sjs:sequence');
-var { concat, each, map, toArray, filter, find, any, join, hasElem, transform } = seq;
+var { Stream, concat, each, map, toArray, filter, find, any, join, hasElem, transform } = seq;
 var string = require('sjs:string');
 var array = require('sjs:array');
 var { isArrayLike } = array;
@@ -651,17 +651,6 @@ SystemCtl.prototype.log = function(units, args) {
 
 
 /**
- * write a line to a writable stream
- */
-var writeln = function(f, s) {
-	if (s) {
-		logging.debug(s);
-		f .. stream.write(s);
-	}
-	f .. stream.write('\n');
-}
-
-/**
  * Confirm an action i opts.interactive is set
  */
 var confirm = function(opts, msg) {
@@ -906,14 +895,17 @@ UnitFile.prototype.toString = -> "<UnitFile(#{this.name})>";
 
 var fst = pair -> pair[0];
 
-UnitFile.prototype._write = function(f) {
-	this.sections .. ownPropertyPairs .. each {|[name, params]|
-		f .. writeln("[#{name}]");
-		params .. seq.sortBy([key, val] -> key) .. each {|[key,val]|
-			f .. writeln(key + '=' + val);
+UnitFile.prototype._write = function(dest) {
+	var self = this;
+	return Stream(function(emit) {
+		self.sections .. ownPropertyPairs .. each {|[name, params]|
+			emit("[#{name}]");
+			params .. seq.sortBy([key, val] -> key) .. each {|[key,val]|
+				emit(key + '=' + val);
+			}
+			emit("");
 		}
-		f .. writeln();
-	}
+	}) .. seq.intersperse("\n") .. stream.pump(dest);
 };
 
 UnitFile.prototype.path = -> path.join(this.base, this.name);
