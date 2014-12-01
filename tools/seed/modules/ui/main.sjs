@@ -384,26 +384,26 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 							var panelRoot = @findNode('.log-panel', elem);
 							var container = panelRoot.querySelector('.panel-body');
 							var hasBody = "has-body";
-							var content = @Pre(null) .. @Mechanism(function(elem) {
+							var content = @Pre(null, {'class':'output-content'}) .. @Mechanism(function(elem) {
 								var placeholder = true;
-								elem.innerText = " -- loading -- ";
+								elem.textContent = " -- loading -- ";
 								tailLogs(100) {|chunk|
 									if (!chunk) {
 										@info("logs reset");
 										if(chunk === false) {
-											elem.innerText = " -- no output --";
+											elem.textContent = " -- no output --";
 										}
 										placeholder = true;
 									} else {
 										if (placeholder) {
 											// first new output clears the placeholder
-											elem.innerText = "";
+											elem.textContent = "";
 										}
 										placeholder = false;
 										var bottom = elem.scrollTop + elem.offsetHeight;
 										var contentSize = elem.scrollHeight;
 										var following = (bottom >= contentSize);
-										elem.innerText += chunk;
+										elem.textContent += chunk;
 										if (following) {
 											elem.scrollTop = elem.scrollHeight;
 										}
@@ -839,7 +839,7 @@ function runInner(api, ready) {
 		]) {|content|
 			ready();
 			api.servers .. @each.track {|servers|
-				@info("api.servers changed");
+				@info("api.servers changed to ", servers);
 				var server = servers[0];
 				@route.modify(function(current, unchanged) {
 					if(current.server == server.id) return unchanged;
