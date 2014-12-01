@@ -129,10 +129,10 @@ exports.defaults = function() {
 	def('internalAddress', process.env['SEED_INTERNAL_ADDRESS'] || internalHost);
 	def('local-api-endpoint', '/local/remote.api');
 
-	var selfHost = process.env['SEED_PUBLIC_ADDRESS'] || 'localhost.self';
-	/* ^^ localhost.self is used for development, requires dnsmasq config:
+	var selfHost = process.env['SEED_PUBLIC_ADDRESS'] || 'localhost';
+	/* ^^ used for development, accessing apps requires dnsmasq config:
 		$ cat /etc/dnsmasq.d/self.conf
-		address=/.self/127.0.0.1
+		address=/.localhost/127.0.0.1
 	*/
 
 	def('host-aliases', function() {

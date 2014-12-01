@@ -81,9 +81,7 @@ exports.follow = function(path, encoding, sep) {
               start: startPos,
             });
 
-            while(true) {
-              var chunk = stream .. @read();
-              if (chunk === null) break;
+            stream .. @each { |chunk|
               startPos += Buffer.byteLength(chunk, encoding);
               buf += chunk;
               var chunks = buf.split(sep);

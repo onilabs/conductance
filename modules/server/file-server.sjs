@@ -26,7 +26,6 @@ var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
 var { setStatus, setHeader, setDefaultHeader, writeRedirectResponse, HttpError, NotFound } = require('./response');
 var { _applyEtag } = require('./route');
-var { Readable } = require('nodejs:stream');
 var lruCache = require('sjs:lru-cache');
 
 var Forbidden = -> HttpError(403, 'Forbidden', 'Invalid Path' );
@@ -239,12 +238,9 @@ function serveFile(req, filePath, format, settings) {
 exports.serveFile = serveFile;
 
 var ensureNodejsStream = function(data) {
-  if(Readable.isPrototypeOf(data)) return data;
-
-  if (isString(data))
-    return new stream.ReadableStringStream(data);
-  if (Buffer.isBuffer(data))
-    return new stream.ReadableStream(data);
+  if(stream.isReadableStream(data)) return data;
+  if (isString(data)) return new stream.ReadableStringStream(data);
+  if (Buffer.isBuffer(data)) return new stream.ReadableStream(data);
   throw new Error("Can't coerce to nodejs stream: #{data}");
 }
 

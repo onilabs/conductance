@@ -56,7 +56,7 @@ var tokens = new TokenCache();
 // the local development server doesn't have a json option. 
 var { Schema } = require('protobuf');
 var { readFile } = require('sjs:nodejs/fs');
-var { read:readStream } = require('sjs:nodejs/stream');
+var { readAll } = require('sjs:nodejs/stream');
 var { normalize, toPath } = require('sjs:url');
 
 var datastore_schema = new Schema(readFile('./protobuf/datastore_v1.desc' .. normalize(module.id) .. toPath));
@@ -310,11 +310,7 @@ function Context(attribs) {
       );
 
       // extract content into a buffer:
-      var content = [];
-      var data;
-      while (data = readStream(response))
-        content.push(data);
-      content = Buffer.concat(content);
+      var content = readAll(response);
       
       if (response.statusCode !== 200) {
 

@@ -15,10 +15,11 @@ var access = (function() {
     var content = @bundle.generateBundle(dependencies, {
       compile: true,
       exclude: excludeHubs,
-    }) .. @join('\n');
+    }) .. @join();
 
     var hash = @crypto.createHash('sha1');
-    hash .. @stream.write(content, 'utf-8');
+    content
+      .. @stream.pump(hash, {end:false});
     var digest = hash.digest('hex').slice(0, 20);
 
     cache[hub] = {
