@@ -16,7 +16,7 @@ if (exports.multipleServers) {
 } else {
 	// in single-server mode, just use the "central" server
 	// with empty addess
-	exports.servers = @settings.servers .. @transform(function(servers) {
+	exports.server = function() {
 		var central = @settings.server('central', {name: null}, true);
 		central.config.modify(function(current, unchanged) {
 			var updated = current .. @merge({
@@ -28,8 +28,8 @@ if (exports.multipleServers) {
 			if (updated .. @eq(current)) return unchanged;
 			return updated;
 		});
-		return [central];
-	});
+		return central;
+	}();
 }
 
 var Deployment = function(endpoint, serverInfo) {

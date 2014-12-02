@@ -10,7 +10,8 @@ var testDir = @url.normalize('./', module.id) .. @url.toPath();
 @response = require('mho:server/response');
 
 exports.serve = function() {
-  require('./lib/stub.api').hook {||
+  var stubModule = require('./lib/stub.api');
+  stubModule.hook {||
     var corsOrigins = ["http://localhost:#{uiPort}", "http://localhost:#{karmaConf.port}"];
 
     // used to skip tests which require docker
@@ -37,6 +38,13 @@ exports.serve = function() {
               req .. @response.setStatus(200);
               req.response.end();
             }}),
+
+            @Route(/^stub\/([^\/]+)$/, {GET: function(req, [_,fn]) {
+              var rv = stubModule[fn]();
+              req .. @response.setStatus(200);
+              req.response.end(String(rv || 'OK'));
+            }}),
+
             @route.ExecutableDirectory('test', testDir),
           ].concat(spec.routes) .. @route.AllowCORS(h -> corsOrigins .. @hasElem(h.replace('127.0.0.1','localhost')));
           return spec;
@@ -108,47 +116,52 @@ function serveAnd(block) {
 if (require.main === module) {
   var TRAVIS = process.env.TRAVIS === 'true';
   var args = require('sjs:sys').argv();
-  var runKarma = function() {
-    @info("Running karma with args: ", args);
-    require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
-  }
-  args.splice(1,0, karmaConfUrl .. @url.toPath);
-  if(args[0] === 'run') {
-    args.splice(2, 0, '-vv', '--', karmaConf.testScript);
-    //console.log(args);
-    runKarma();
-  } else if(args[0] === 'start' || args[0] == 'single-run') {
-    if (args[0] == 'single-run') {
-      args[0] = 'start';
-      args.splice(2, 0, '--single-run', '--', karmaConf.testScript);
-    }
-    // XXX this means only an app running in the _current process_ will work with karma
-    @env.set('serverRoot', '/app/');
-    var browsers = process.env.BROWSERS;
-    if (browsers) {
-      if (TRAVIS && browsers != 'PhantomJS') {
-        process.env['DISPLAY'] = ':99';
-        childProcess.run("sh", ["-e", "/etc/init.d/xvfb", "start"], {stdio: "inherit"});
-        hold(3000);
-      }
-      args.splice(2, 0, '--browsers', browsers);
-    }
-    serveAnd {||
-      runKarma();
-      // XXX karma is fire-and-forget, we can't wait for its completion
-      hold();
-    }
-  } else if(args[0] === 'app') {
+  if(args[0] === 'app') {
+    args.splice(0, 1, 'serve', module.id);
+    var isPreArg = a -> /^(-v|--verbose|-q|--quiet)/.test(a);
+    var preArgs = args .. @filter(isPreArg) .. @toArray;
+    require('mho:server/main').processGlobalOptions(preArgs);
     exports.serve();
   } else {
-    console.warn("Usage: run.mho <action> [args ...]
+    var runKarma = function() {
+      @info("Running karma with args: ", args);
+      require('nodejs:karma-sjs-adapter/karma.sjs').run(args);
+    }
+    args.splice(1,0, karmaConfUrl .. @url.toPath);
+    if(args[0] === 'run') {
+      args.splice(2, 0, '-vv', '--', karmaConf.testScript);
+      //console.log(args);
+      runKarma();
+    } else if(args[0] === 'start' || args[0] == 'single-run') {
+      if (args[0] == 'single-run') {
+        args[0] = 'start';
+        args.splice(2, 0, '--single-run', '--', karmaConf.testScript);
+      }
+      // XXX this means only an app running in the _current process_ will work with karma
+      @env.set('serverRoot', '/app/');
+      var browsers = process.env.BROWSERS;
+      if (browsers) {
+        if (TRAVIS && browsers != 'PhantomJS') {
+          process.env['DISPLAY'] = ':99';
+          childProcess.run("sh", ["-e", "/etc/init.d/xvfb", "start"], {stdio: "inherit"});
+          hold(3000);
+        }
+        args.splice(2, 0, '--browsers', browsers);
+      }
+      serveAnd {||
+        runKarma();
+        // XXX karma is fire-and-forget, we can't wait for its completion
+        hold();
+      }
+    } else {
+      console.warn("Usage: run.mho <action> [args ...]
 
-  ACTIONS:
-    app           Run app server only (for manually running tests in a browser)
-    start         Run app & karma server
-    run           Run tests on the running karma server
-    single-run    `start` & `run` in a single invocation
-");
-    process.exit(1);
+ACTIONS:
+  app           Run app server only (for manually running tests in a browser)
+  start         Run app & karma server
+  run           Run tests on the running karma server
+  single-run    `start` & `run` in a single invocation");
+      process.exit(1);
+    }
   }
 }

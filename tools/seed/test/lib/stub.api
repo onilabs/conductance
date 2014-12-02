@@ -60,10 +60,25 @@ exports.hook = function(block) {
 	}
 };
 
+exports.stopAllApps = function() {
+	if(!@app) @app = require('seed:job/app');
+	@app.localAppState.runningApps .. @each.par {|[id, app]|
+		waitfor {
+			app.wait();
+		} and {
+			@info("Stopping running app: #{id}");
+			app.stop();
+		}
+	}
+}
+
 exports.clearData = function() {
 	@settings = require('mho:server/seed/local/settings');
 	@assert.ok(hooked, "test hook not installed!");
 	@assert.ok(temporaryDataDir);
+
+	exports.stopAllApps();
+
 	@rimraf(temporaryDataDir);
 	@mkdirp(@settings._store.root);
 	@settings._store.reload();
@@ -80,6 +95,7 @@ exports.testPath = function(rel) {
 
 // needed to get around CORS restrictions
 exports.getEnv = -> @env.get.apply(@env, arguments);
-exports.get = function(/* .. */) {
-	return @http.get.apply(null, arguments);
+
+exports.request = function(/* .. */) {
+	return @http.request.apply(null, arguments);
 };

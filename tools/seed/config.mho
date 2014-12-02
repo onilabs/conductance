@@ -321,7 +321,12 @@ COMPONENTS.proxy = function() {
             req.url.host = host;
           }
         }
-        return orig.apply(this, arguments);
+        try {
+          return orig.apply(this, arguments);
+        } catch(e) {
+          @warn("Error proxying #{req.request.method} #{req.url.source} with host #{req.url.host} and headers", req.request.headers);
+          throw e;
+        }
       };
     }(getSubdomain);
   };
@@ -366,7 +371,7 @@ COMPONENTS.proxy = function() {
           return;
         }
       }
-      throw @NotFound();
+      throw @response.NotFound();
     }});
   };
 

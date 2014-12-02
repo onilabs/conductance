@@ -837,18 +837,13 @@ function runInner(api, ready) {
 		@mainContent .. @appendContent([
 			@Div(),
 		]) {|content|
+			var server = api.server;
+			@route.modify(function(current, unchanged) {
+				if(current.server == server.id) return unchanged;
+				return { server: server.id };
+			});
 			ready();
-			api.servers .. @each.track {|servers|
-				@info("api.servers changed to ", servers);
-				var server = servers[0];
-				@route.modify(function(current, unchanged) {
-					if(current.server == server.id) return unchanged;
-					return { server: server.id };
-				});
-				while(true) {
-					content .. displayServer(header, api, server);
-				}
-			}
+			content .. displayServer(header, api, server);
 		}
 	}
 };

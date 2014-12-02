@@ -4,8 +4,19 @@ exports.serve = function() {
     address: @Port(7075),
     routes: [
       @Route('ping', {GET: function(req) {
-        req .. @setStatus(200);
+        req .. @response.setStatus(200);
         req.response.end("pong!");
+      }}),
+
+      @Route('headers', {GET: function(req) {
+        req .. @response.setStatus(200);
+        req.response.end(req.request.headers .. JSON.stringify(null, '  '));
+      }}),
+
+      @Route('log', {POST: function(req) {
+        req .. @response.setStatus(200);
+        console.log("message from client: #{req.body.toString('utf-8')}");
+        req.response.end();
       }}),
     ],
   });

@@ -70,8 +70,7 @@ if (isBrowser) {
 
 }
 
-lib.addTestHooks = function() {
-
+lib.addTestHooks = function(opts) {
 	if(isBrowser) {
 		lib.test.beforeAll {|s|
 			s.modal = (sel, pred) -> s.driver.elem(".overlay #{sel ? sel : ""}", pred);
@@ -81,7 +80,7 @@ lib.addTestHooks = function() {
 				@waitforSuccess(function() {
 					var panel = s.modal('.panel-title');
 					@assert.ok(matches(panel.textContent));
-				});
+				}, null, 5);
 			}
 			s.clickLink = (elem, text) -> elem .. @elems('a') .. @find(@contentPredicate(text)) .. s.driver.click();
 			s.clickButton = (elem, text) -> elem .. @elems('button') .. @find(@contentPredicate(text)) .. s.driver.click();
@@ -117,9 +116,41 @@ lib.addTestHooks = function() {
 		}
 	}
 
-	lib.test.beforeEach {|s|
+	var clearScope = opts && opts.clearAround || 'each';
+	clearScope = clearScope.slice(0,1).toUpperCase() + clearScope.slice(1);
+	var clearBeforeMethod = 'before' + clearScope;
+	var clearAfterMethod = 'after' + clearScope;
+	@assert.ok(clearBeforeMethod in lib.test, "Unknown method: #{clearBeforeMethod}");
+	lib.test[clearBeforeMethod] {|s|
 		api.clearData();
 	}
+
+	lib.test[clearAfterMethod] {|s|
+		@info("Stopping all apps...");
+		api.stopAllApps();
+	}
+
+	lib.test.beforeAll {|s|
+		s.captureScreenshot = function() {
+			if (isBrowser && HtmlOutput && HtmlOutput.instance) {
+				// if we're running in a browser (manually; not under karma), we can inject
+				// screenshots directly in log output
+				var screenshot = s.driver.document().body .. require('sjs:xbrowser/html2canvas').render();
+				HtmlOutput.instance.log("Captured screenshot:");
+				HtmlOutput.instance.log(screenshot);
+			} else {
+				@logging.debug("Can't capture screenshot in this environment");
+			}
+		};
+
+		s.screenshotOnFailure = function(block) {
+			try { return block(); } catch(e) {
+				s.captureScreenshot();
+				throw e;
+			}
+		}
+	}
+
 
 	if (isBrowser) {
 		lib.test.beforeAll {|s|
@@ -127,13 +158,7 @@ lib.addTestHooks = function() {
 		};
 
 		lib.test.afterEach {|s, err|
-			if (err && HtmlOutput && HtmlOutput.instance) {
-				// if we're running in a browser, we can sneakily inject
-				// iscreenshots directly in log output
-				var screenshot = s.driver.document().body .. require('sjs:xbrowser/html2canvas').render();
-				HtmlOutput.instance.log("Captured screenshot:");
-				HtmlOutput.instance.log(screenshot);
-			}
+			if (err) s.captureScreenshot();
 		};
 
 		driver.addTestHooks();
