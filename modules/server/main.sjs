@@ -51,86 +51,8 @@ var printBanner = function() {
   }
 }
 
-exports.run = function(args) {
-  args = args || sys.argv();
-  var actions = [
-    {
-      name: 'serve',
-      args: '[<file>]',
-      desc: 'Run the conductance server
-       -r, --autorestart - Restart the server whenever any
-                           file changes (using `nodemon`)\n',
-      fn: exports.serve,
-      defaultVerbosity: -1, // WARN
-    },
-    {
-      name: 'exec',
-      args: '<file>',
-      desc: 'Execute a SJS script (equivalent to `conductance <file>`)',
-      fn: exports.exec,
-    },
-    {
-      name: 'shell',
-      desc: 'Run an interactive shell',
-      fn: function() {
-        printBanner();
-        global.__oni_altns = require('mho:std');
-        require('sjs:nodejs/repl', {main:true});
-      }
-    },
-    {
-      name: 'seed',
-      desc: 'Run a local seed server',
-      fn: exports.localSeedServer,
-      defaultVerbosity: -1, // WARN
-    },
-    {
-      name: 'bundle',
-      desc: 'Create a module bundle',
-      fn: function() {
-        require('sjs:bundle').main(args);
-      }
-    },
-    {
-      name: 'version',
-      desc: 'Print version information',
-      fn: exports.printVersion,
-    },
-    {
-      name: 'systemd',
-      args: '<command> ...',
-      desc: 'Conductance systemd integration',
-      fn: function(args) {
-        require('./systemd')._run(args);
-      }
-    },
-  ];
 
-  var selfUpdate = require('./self-update');
-  if (selfUpdate.available) {
-    actions.push({
-      name: 'update-check',
-      desc: 'Check for available updates',
-      fn: selfUpdate.check
-    });
-    actions.push({
-      name: 'self-update',
-      desc: 'Update to the latest conductance',
-      fn: selfUpdate.update
-    });
-  }
-
-  var usage = function(exitcode) {
-    console.warn("Usage: conductance [-v|--verbose|-q|--quiet] [<file>|<action>] ...");
-    console.warn();
-    actions .. each {|a|
-      var args = a.args ? a.args : "";
-      console.warn("#{a.name .. str.padLeft(12)} #{args .. str.padRight(13)} : #{a.desc}");
-    }
-    console.warn("\nRun `conductance <action> --help` for more specific help.\n");
-    return process.exit(exitcode === undefined ? 1 : exitcode);
-  }
-
+var processGlobalOptions = exports.processGlobalOptions = function(args) {
   var command;
   var verbosity = 0;
   while (command = args.shift()) {
@@ -162,6 +84,14 @@ exports.run = function(args) {
   }
 
   logging.verbose("Log level: #{logging.levelNames[logging.getLevel()]}");
+  return [action, command]
+}
+
+
+exports.run = function(args) {
+  args = args || sys.argv();
+
+  var [ action, command ] = processGlobalOptions(args);
 
   // shortcut (required for shebang lines):
   // if run as: `conductance <filename> [...]`,
@@ -273,6 +203,85 @@ exports.printVersion = function() {
   Conductance version: #{env.conductanceVersion()}
   Conductance path:    #{env.executable}
 ");
+}
+
+var actions = [
+  {
+    name: 'serve',
+    args: '[<file>]',
+    desc: 'Run the conductance server
+      -r, --autorestart - Restart the server whenever any
+                          file changes (using `nodemon`)\n',
+    fn: exports.serve,
+    defaultVerbosity: -1, // WARN
+  },
+  {
+    name: 'exec',
+    args: '<file>',
+    desc: 'Execute a SJS script (equivalent to `conductance <file>`)',
+    fn: exports.exec,
+  },
+  {
+    name: 'shell',
+    desc: 'Run an interactive shell',
+    fn: function() {
+      printBanner();
+      global.__oni_altns = require('mho:std');
+      require('sjs:nodejs/repl', {main:true});
+    }
+  },
+  {
+    name: 'seed',
+    desc: 'Run a local seed server',
+    fn: exports.localSeedServer,
+    defaultVerbosity: -1, // WARN
+  },
+  {
+    name: 'bundle',
+    desc: 'Create a module bundle',
+    fn: function(args) {
+      require('sjs:bundle').main(args);
+    }
+  },
+  {
+    name: 'version',
+    desc: 'Print version information',
+    fn: exports.printVersion,
+  },
+  {
+    name: 'systemd',
+    args: '<command> ...',
+    desc: 'Conductance systemd integration',
+    fn: function(args) {
+      require('./systemd')._run(args);
+    }
+  },
+];
+
+var selfUpdate = require('./self-update');
+if (selfUpdate.available) {
+  actions.push({
+    name: 'update-check',
+    desc: 'Check for available updates',
+    fn: selfUpdate.check
+  });
+  actions.push({
+    name: 'self-update',
+    desc: 'Update to the latest conductance',
+    fn: selfUpdate.update
+  });
+}
+
+
+var usage = function(exitcode) {
+  console.warn("Usage: conductance [-v|--verbose|-q|--quiet] [<file>|<action>] ...");
+  console.warn();
+  actions .. each {|a|
+    var args = a.args ? a.args : "";
+    console.warn("#{a.name .. str.padLeft(12)} #{args .. str.padRight(13)} : #{a.desc}");
+  }
+  console.warn("\nRun `conductance <action> --help` for more specific help.\n");
+  return process.exit(exitcode === undefined ? 1 : exitcode);
 }
 
 if (require.main === module) {
