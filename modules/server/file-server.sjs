@@ -16,6 +16,7 @@
 var fs     = require('sjs:nodejs/fs');
 var nodefs = require('fs');
 var stream = require('sjs:nodejs/stream');
+var gzip   = require('sjs:nodejs/gzip');
 var path   = require('path');
 var url    = require('sjs:url');
 var logging = require('sjs:logging');
@@ -33,6 +34,51 @@ var Forbidden = -> HttpError(403, 'Forbidden', 'Invalid Path' );
 function checkEtag(t) {
   if (!isString(t)) throw new Error("non-string etag: #{t}");
   return t;
+}
+
+// http://tools.ietf.org/html/rfc2616#section-3.9
+function isQvalue(s) {
+  return /^(?:1(?:\.0{0,3})?|0(?:\.[0-9]{0,3})?)$/.test(s);
+}
+
+function canCompressFormat(encodings, format) {
+  return encodings[format] != null && encodings[format] > 0;
+}
+
+// http://tools.ietf.org/html/rfc2616#section-14.3
+// TODO should handle identity;q=0 and *;q=0
+function canCompress(headers, format) {
+  var encodings = { 'identity': 1 };
+  var accept    = headers['accept-encoding'];
+
+  accept.split(/ *, */) ..each(function (s) {
+    var a = /^([^ ;]+) *(?:; *q *= *([\d\.]+))?$/.exec(s);
+    // TODO should set status code to 406 if this is null
+    if (a !== null) {
+      var encoding = a[1];
+      var qvalue   = a[2];
+
+      if (qvalue == null) {
+        encodings[encoding] = 1;
+
+      // TODO should set status code to 406 if this is false
+      } else if (isQvalue(qvalue)) {
+        encodings[encoding] = +qvalue;
+      }
+    }
+  });
+
+  return canCompressFormat(encodings, format) ||
+         canCompressFormat(encodings, '*');
+}
+
+function compress(req, format, input) {
+  if (format.compress && canCompress(req.request.headers, 'gzip')) {
+    req ..setHeader('Content-Encoding', 'gzip');
+    return gzip.compress(input);
+  } else {
+    return input;
+  }
 }
 
 // XXX this should be consolidated with the caching in formats.sjs
@@ -119,19 +165,21 @@ function formatResponse(req, item, settings) {
         verbose("stream from cache #{req.url}");
         // TODO a little bit ugly
         output = Stream(function (emit) { emit(cache_entry.data); });
+        output = compress(req, formatdesc, output);
 
       // no cache or no etag -> filter straight to response
       } else {
         output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
+        output = compress(req, formatdesc, output);
       }
 
     // No filter function -> serve the file straight from disk
     // normal request
     } else {
-      if (item.length) {
+      /*if (item.length) {
         req .. setHeader("Content-Length", item.length);
         req .. setHeader("Accept-Ranges", "bytes");
-      }
+      }*/
       var range;
       // TODO what about HEAD requests?
       // TODO what about byte suffix syntax ?
@@ -152,6 +200,7 @@ function formatResponse(req, item, settings) {
         }
       } else {
         output = input();
+        output = compress(req, formatdesc, output);
       }
     }
   }
