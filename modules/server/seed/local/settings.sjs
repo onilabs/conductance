@@ -96,6 +96,7 @@ var store = exports._store = (function() {
 		save(root);
 	};
 
+	reload();
 	return {
 		root: config_root,
 		items: obs .. @transform(x -> x),
