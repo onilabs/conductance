@@ -21,7 +21,7 @@ var url    = require('sjs:url');
 var logging = require('sjs:logging');
 var { isString } = require('sjs:string');
 var { override } = require('sjs:object');
-var { each, any } = require('sjs:sequence');
+var { each, any, join, Stream } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
 var { setStatus, setHeader, setDefaultHeader, writeRedirectResponse, HttpError, NotFound } = require('./response');
@@ -105,18 +105,20 @@ function formatResponse(req, item, settings) {
         // check cache:
         var cache_entry = formatdesc.cache.get(req.request.url);
         if (!cache_entry || cache_entry.etag != etag) {
-          var data_stream = new (stream.WritableStringStream);
-          formatdesc.filter(input(), data_stream, { request: req, apiinfo: apiinfo });
-          cache_entry = { etag: etag, data: data_stream.data };
+          var output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
+          cache_entry = { etag: etag, data: output ..join('') };
           info("populating cache #{req.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(req.request.url, cache_entry, cache_entry.data.length);
         }
         // write to response stream:
         verbose("stream from cache #{req.url}");
-        stream.pump(new (stream.ReadableStringStream)(cache_entry.data), req.response);
+        // TODO a little bit ugly
+        stream.pump(Stream(function (emit) { emit(cache_entry.data); }), req.response);
+
+      } else { // no cache or no etag -> filter straight to response
+        var output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
+        stream.pump(output, req.response);
       }
-      else // no cache or no etag -> filter straight to response
-        formatdesc.filter(input(), req.response, { request: req, apiinfo: apiinfo });
     }
   } else {
     // No filter function -> serve the file straight from disk

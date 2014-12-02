@@ -16,7 +16,7 @@
 
 var env = require('./env');
 var { pump, readAll, end } = require('sjs:nodejs/stream');
-var { map, each, toArray, join } = require('sjs:sequence');
+var { map, each, toArray, join, Stream } = require('sjs:sequence');
 var { clone, merge, ownPropertyPairs } = require('sjs:object');
 var { matches } = require('sjs:regexp');
 var { startsWith } = require('sjs:string');
@@ -38,72 +38,74 @@ var bundleCache = lruCache.makeCache(10*1000*1000); // 10MB
 
 //----------------------------------------------------------------------
 // helper filter to wrap a file in a jsonp response:
-function json2jsonp(src, dest, aux) {
-  var callback = aux.request.url.params()['callback'];
-  if (!callback) callback = "callback";
-  dest.write(callback + "(");
-  pump(src, dest, {end:false});
-  dest.write(")");
-  dest .. end();
+function json2jsonp(src, aux) {
+  return Stream(function (emit) {
+    var callback = aux.request.url.params()['callback'];
+    if (!callback) callback = "callback";
+    emit(callback + "(");
+    src ..each(emit);
+    emit(")");
+  });
 }
 
 //----------------------------------------------------------------------
 // filter that compiles sjs into '__oni_compiled_sjs_1' format:
-function sjscompile(src, dest, aux) {
-  if (typeof src !== 'string') src = readAll(src);
-  try {
-    src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
-  }
-  catch (e) {
-    logging.error("sjscompiler: #{aux.request.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
-    // communicate the compilation error to the caller in a little bit
-    // of a round-about way: We create a compiled SJS file that throws
-    // our compile error as an exception on execution
-    var error_message =
-      "'SJS syntax error in \\''+__onimodulename+'\\' at line #{e.compileError.line}: #{e.compileError.message.toString().replace(/\'/g, '\\\'')}'";
-    src = __oni_rt.c1.compile("throw new Error(#{error_message});", {globalReturn:true, filename:"'compilation@rocket_server'"});
-  }
-
-  dest.write("/*__oni_compiled_sjs_1*/"+src);
-  dest .. end();
+function sjscompile(src, aux) {
+  return Stream(function (emit) {
+    if (typeof src !== 'string') src = readAll(src);
+    try {
+      src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
+    }
+    catch (e) {
+      logging.error("sjscompiler: #{aux.request.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
+      // communicate the compilation error to the caller in a little bit
+      // of a round-about way: We create a compiled SJS file that throws
+      // our compile error as an exception on execution
+      var error_message =
+        "'SJS syntax error in \\''+__onimodulename+'\\' at line #{e.compileError.line}: #{e.compileError.message.toString().replace(/\'/g, '\\\'')}'";
+      src = __oni_rt.c1.compile("throw new Error(#{error_message});", {globalReturn:true, filename:"'compilation@rocket_server'"});
+    }
+    emit("/*__oni_compiled_sjs_1*/"+src);
+  });
 }
 
 //----------------------------------------------------------------------
 // filter that generates the html boilerplate for *.app files:
-function gen_app_html(src, dest, aux) {
-  var app_name = aux.request.url.file || "index.app";
+function gen_app_html(src, aux) {
+  return Stream(function (emit) {
+    var app_name = aux.request.url.file || "index.app";
 
-  var documentSettings = {
-    init: "require(\"#{app_name}!sjs\");",
-    externalScripts: [],
-  };
-  var docutil = require('sjs:docutil');
-  var docs = docutil.parseModuleDocs(readAll(src, 'utf-8'));
+    var documentSettings = {
+      init: "require(\"#{app_name}!sjs\");",
+      externalScripts: [],
+    };
+    var docutil = require('sjs:docutil');
+    var docs = docutil.parseModuleDocs(readAll(src, 'utf-8'));
 
-  var [template, metadata] = docutil.getPrefixedProperties(docs, 'template');
-  if (!template) template = 'app-default';
-  var externalScripts = metadata['externalScript'];
-  if (externalScripts) {
-    if (Array.isArray(externalScripts)) {
-      documentSettings.externalScripts = documentSettings.externalScripts.concat(externalScripts);
-    } else {
-      documentSettings.externalScripts.push(externalScripts);
+    var [template, metadata] = docutil.getPrefixedProperties(docs, 'template');
+    if (!template) template = 'app-default';
+    var externalScripts = metadata['externalScript'];
+    if (externalScripts) {
+      if (Array.isArray(externalScripts)) {
+        documentSettings.externalScripts = documentSettings.externalScripts.concat(externalScripts);
+      } else {
+        documentSettings.externalScripts.push(externalScripts);
+      }
     }
-  }
 
-  if (docs['bundle'] .. docutil.toBool === true) {
-      documentSettings.externalScripts.push("#{app_name}!bundle");
-  }
+    if (docs['bundle'] .. docutil.toBool === true) {
+        documentSettings.externalScripts.push("#{app_name}!bundle");
+    }
 
-  var { Document, loadTemplate } = require('../surface');
-  dest.write(
-    Document(null, documentSettings .. merge({
-      template: loadTemplate(template, src.path .. Url.fileURL),
-      templateData: metadata,
-      title: metadata.title,
-    }))
-  );
-  dest .. end();
+    var { Document, loadTemplate } = require('../surface');
+    emit(
+      Document(null, documentSettings .. merge({
+        template: loadTemplate(template, src.path .. Url.fileURL),
+        templateData: metadata,
+        title: metadata.title,
+      }))
+    );
+  });
 }
 
 //----------------------------------------------------------------------
@@ -154,14 +156,15 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
   };
 
   return {
-    gen_sjs_bundle: function(src, dest, aux) {
-      var getBundle = bundleAccessor(src.path);
-      var bundle = getBundle(aux.request.url);
-      var content = bundle.content();
-      // overwrite cache entry each time to update cache length
-      bundleCache.put(src.path, getBundle, content.length);
-      dest.write(content);
-      dest .. end();
+    gen_sjs_bundle: function(src, aux) {
+      return Stream(function (emit) {
+        var getBundle = bundleAccessor(src.path);
+        var bundle = getBundle(aux.request.url);
+        var content = bundle.content();
+        // overwrite cache entry each time to update cache length
+        bundleCache.put(src.path, getBundle, content.length);
+        emit(content);
+      });
     },
     gen_sjs_bundle_etag: function(request, filePath) {
       return bundleAccessor(filePath)(request.url).etag();
@@ -171,38 +174,41 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
 
 //----------------------------------------------------------------------
 // filter that generates html for a directory listing:
-function gen_dir_html(src, dest, aux) {
-  var listing = require('../server-ui/dir-listing').generateDirListing(JSON.parse(readAll(src, 'ascii')));
-  dest.write(require('../surface').Document(listing));
-  dest .. end();
+function gen_dir_html(src, aux) {
+  return Stream(function (emit) {
+    var listing = require('../server-ui/dir-listing').generateDirListing(JSON.parse(readAll(src, 'ascii')));
+    emit(require('../surface').Document(listing));
+  });
 }
 
 //----------------------------------------------------------------------
 // filter that generates docs for an sjs module:
-function gen_moduledocs_html(src, dest, aux) {
-  var docs = require('../server-ui/module-doc').generateModuleDoc(aux.request.url.path, readAll(src, 'utf-8'));
-  dest.write(require('../surface').Document(docs));
-  dest .. end();
+function gen_moduledocs_html(src, aux) {
+  return Stream(function (emit) {
+    var docs = require('../server-ui/module-doc').generateModuleDoc(aux.request.url.path, readAll(src, 'utf-8'));
+    emit(require('../surface').Document(docs));
+  });
 }
 
 
 //----------------------------------------------------------------------
 // filter that generates import sjs for an api:
-function apiimport(src, dest, aux) {
-  // To facilitate redirecting apis, as in e.g.:
-  //   @PortRedirect(/^database\/.*\.api/,  8082),
-  // we'll make sure that the client makes all future access to the api
-  // module directly to our server:
-  var moduleURL = "#{aux.request.url.protocol}://#{aux.request.url.authority}#{aux.request.url.path}";
-  // XXX In addition to the `connect` function, we're currently also
-  // exporting the `server` URL to the client. This is so that we can
-  // correctly address keyhole files on a redirected server, which is
-  // a bit of a hack. (The keyhole module need some redesigning; it
-  // should itself be able to give full urls - but that would probably
-  // require strata-local storage for communicating the request
-  // downstream).
-  var serverRoot = Url.normalize('/', aux.request.url.source);
-  dest.write("\
+function apiimport(src, aux) {
+  return Stream(function (emit) {
+    // To facilitate redirecting apis, as in e.g.:
+    //   @PortRedirect(/^database\/.*\.api/,  8082),
+    // we'll make sure that the client makes all future access to the api
+    // module directly to our server:
+    var moduleURL = "#{aux.request.url.protocol}://#{aux.request.url.authority}#{aux.request.url.path}";
+    // XXX In addition to the `connect` function, we're currently also
+    // exporting the `server` URL to the client. This is so that we can
+    // correctly address keyhole files on a redirected server, which is
+    // a bit of a hack. (The keyhole module need some redesigning; it
+    // should itself be able to give full urls - but that would probably
+    // require strata-local storage for communicating the request
+    // downstream).
+    var serverRoot = Url.normalize('/', aux.request.url.source);
+    emit("\
 var serverURL = #{JSON.stringify(serverRoot)};
 var moduleURL = #{JSON.stringify(moduleURL)};
 var bridge = require('mho:rpc/bridge');
@@ -228,39 +234,42 @@ exports.connect = function(opts, block) {
     return bridge.connect(moduleURL, opts).api;
 };
 ");
-  dest .. end();
+  });
 }
 
 // filter that generates JSON info about api endpoint:
-function apiinfo(src, dest, aux) {
-  if (!aux.apiinfo)
-    throw new Error("API access not enabled");
-  dest.write(JSON.stringify(aux.apiinfo));
-  dest .. end();
+function apiinfo(src, aux) {
+  return Stream(function (emit) {
+    if (!aux.apiinfo)
+      throw new Error("API access not enabled");
+    emit(JSON.stringify(aux.apiinfo));
+  });
 }
 
 // filter that generates a safe version of the api's source code:
 // (extracting just the comments)
-function apisrc(src, dest, aux) {
-  var docutil = require('sjs:docutil');
-  var comments = [];
-  docutil.parseSource(readAll(src)) {
-    |comment|
-    // extract only comments beginning with '/**'
-    if (comment .. startsWith('/**'))
-      comments.push(comment);
-  }
-  comments.unshift('/* SOURCE CODE REDACTED */');
-  dest.write(comments .. join('\n'));
-  dest .. end();
+function apisrc(src, aux) {
+  return Stream(function (emit) {
+    var docutil = require('sjs:docutil');
+    var comments = [];
+    docutil.parseSource(readAll(src)) {
+      |comment|
+      // extract only comments beginning with '/**'
+      if (comment .. startsWith('/**'))
+        comments.push(comment);
+    }
+    comments.unshift('/* SOURCE CODE REDACTED */');
+    emit(comments .. join('\n'));
+  });
 }
 
 //----------------------------------------------------------------------
 // filter that generates html for markdown (*.md) files:
-function gen_markdown_html(src, dest, aux) {
-  var docs = require('../server-ui/markdown-file').generateMarkdown(readAll(src, 'utf-8'));
-  dest.write(require('../surface').Document(docs));
-  dest .. end();
+function gen_markdown_html(src, aux) {
+  return Stream(function (emit) {
+    var docs = require('../server-ui/markdown-file').generateMarkdown(readAll(src, 'utf-8'));
+    emit(require('../surface').Document(docs));
+  });
 }
 
 //----------------------------------------------------------------------
