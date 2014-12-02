@@ -279,40 +279,42 @@ function gen_markdown_html(src, dest, aux) {
 */
 exports.StaticFormatMap = {
   "/"  : { none : { mime: "text/html",
-                    filter: gen_dir_html
+                    filter: gen_dir_html,
+                    compress: true
                   },
-           json : { mime: "application/json"
+           json : { mime: "application/json",
+                    compress: true
                   }
          },
-  html : { none : { mime: "text/html" },
-           src  : { mime: "text/plain" }
+  html : { none : { mime: "text/html",  compress: true },
+           src  : { mime: "text/plain", compress: true }
          },
-  js   : { none : { mime: "text/javascript" },
-           src  : { mime: "text/plain" }
+  js   : { none : { mime: "text/javascript", compress: true },
+           src  : { mime: "text/plain", compress: true }
          },
-  json : { none : { mime: "application/json" },
-           src  : { mime: "text/plain" },
+  json : { none : { mime: "application/json", compress: true },
+           src  : { mime: "text/plain", compress: true },
          },
-  sjs  : { none : { mime: "text/plain", },
+  sjs  : { none : { mime: "text/plain", compress: true },
          },
-  xml  : { none : { mime: "text/xml" },
-           src  : { mime: "text/plain" }
+  xml  : { none : { mime: "text/xml", compress: true },
+           src  : { mime: "text/plain", compress: true }
          },
   png  : { none : { mime: "image/png" } },
   jpg  : { none : { mime: "image/jpeg" } },
   gif  : { none : { mime: "image/gif" } },
   mp4  : { none : { mime: "video/mp4" } },
   wav  : { none : { mime: "audio/wav" } },
-  svg  : { none : { mime: "image/svg+xml" } },
-  txt  : { none : { mime: "text/plain" } },
-  css  : { none : { mime: "text/css" },
-           src  : { mime: "text/plain" },
+  svg  : { none : { mime: "image/svg+xml", compress: true } },
+  txt  : { none : { mime: "text/plain", compress: true } },
+  css  : { none : { mime: "text/css", compress: true },
+           src  : { mime: "text/plain", compress: true },
          },
   "*"  : { none : { /* serve without mimetype */ }
          },
-  app  : { none : { mime: "text/plain" } },
-  api  : { none : { mime: "text/plain" } },
-  md   : { none : { mime: "text/plain" } },
+  app  : { none : { mime: "text/plain", compress: true } },
+  api  : { none : { mime: "text/plain", compress: true } },
+  md   : { none : { mime: "text/plain", compress: true } },
 
   ttf  : { none : { mime: "application/x-font-ttf",
                     // give fonts an expiry of access + 1 month:
@@ -374,7 +376,8 @@ var conductanceVersionEtag = "#{env.conductanceVersion()}-#{env.compilerStamp()}
 var Code = (base) -> base
   .. withFormats({
     sjs: { none     : { mime: "text/html",
-                        filter: gen_moduledocs_html
+                        filter: gen_moduledocs_html,
+                        compress: true
                       },
            compiled : { mime: "text/plain",
                         filter: sjscompile,
@@ -384,35 +387,42 @@ var Code = (base) -> base
                         filterETag: -> conductanceVersionEtag,
                         // cache is an lru-cache object which caches requests to filtered
                         // files (requires presence of filterETag() ):
-                        cache: SJSCache
+                        cache: SJSCache,
+                        compress: true
                       },
-           src      : { mime: "text/plain" },
-          bundle    : { mime: "text/javascript",
+           src      : { mime: "text/plain", compress: true },
+           bundle   : { mime: "text/javascript",
                         filter: gen_sjs_bundle,
                         filterETag: gen_sjs_bundle_etag,
+                        compress: true
                       },
          },
     md       : { none : { mime: "text/html",
-                          filter: gen_markdown_html
+                          filter: gen_markdown_html,
+                          compress: true
                         },
-                 src  : { mime: "text/plain" },
+                 src  : { mime: "text/plain", compress: true },
     },
     app      : { none : { mime: "text/html",
-                        filter: gen_app_html
+                          filter: gen_app_html,
+                          compress: true
                         },
                  sjs  : { mime: "text/plain",
                           filter: sjscompile,
                           filterETag: -> conductanceVersionEtag,
-                          cache: SJSCache
+                          cache: SJSCache,
+                          compress: true
                         },
                  bundle:{ mime: "text/javascript",
                           filter: gen_sjs_bundle,
                           filterETag: gen_sjs_bundle_etag,
+                          compress: true
                         },
-                 src  : { mime: "text/plain" }
+                 src  : { mime: "text/plain", compress: true }
                },
     api      : { none : { mime: "text/plain",
-                          filter: apisrc
+                          filter: apisrc,
+                          compress: true
                         }
                }
   });
@@ -429,7 +439,7 @@ exports.Code = Code;
 var Jsonp = (base) -> base
   .. withFormats({
     json: {
-      jsonp    : { mime: "text/javascript", filter: json2jsonp }
+      jsonp    : { mime: "text/javascript", filter: json2jsonp, compress: true }
     }
   });
 exports.Jsonp = Jsonp;
@@ -456,13 +466,16 @@ exports.Jsonp = Jsonp;
 var Executable = (base) -> base
   .. withFormats({
     api      : { none : { mime: "text/plain",
-                          filter: apiimport
+                          filter: apiimport,
+                          compress: true
                         },
                  json : { mime: "application/json",
-                          filter: apiinfo
+                          filter: apiinfo,
+                          compress: true
                         },
                  src  : { mime: "text/plain",
-                          filter: apisrc
+                          filter: apisrc,
+                          compress: true
                         }
                },
   });
