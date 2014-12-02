@@ -63,8 +63,9 @@ function formatResponse(req, item, settings) {
   }
 
   var formatdesc = filedesc[format.name];
-  if (!formatdesc && !format.mandatory)
+  if (!formatdesc && !format.mandatory) {
     formatdesc = filedesc["none"];
+  }
   if (!formatdesc) {
     info("Can't serve item of type '#{filetype}' in format '#{format.name}'");
     throw notAcceptable;
@@ -73,10 +74,11 @@ function formatResponse(req, item, settings) {
   // try to construct an etag, based on the file's & (potential) filter's etag:
   var etag;
   if (item.etag) {
-    if (formatdesc.filter && formatdesc.filterETag)
+    if (formatdesc.filter && formatdesc.filterETag) {
       etag = "\"#{formatdesc.filterETag(req, filePath) .. checkEtag}-#{item.etag .. checkEtag}\"";
-    else if (!formatdesc.filter)
+    } else if (!formatdesc.filter) {
       etag = "\"#{item.etag .. checkEtag}\"";
+    }
   }
 
   if (_applyEtag(req, etag)) {
@@ -84,7 +86,7 @@ function formatResponse(req, item, settings) {
     return;
   }
 
-  if(etag) {
+  if (etag) {
     req .. setDefaultHeader('Cache-control', 'must-revalidate');
   } else {
     // no etag given, assume dynamic
@@ -92,64 +94,71 @@ function formatResponse(req, item, settings) {
   }
   req .. setDefaultHeader('Vary', 'Accept-encoding');
 
+  var output = null;
+  var status = 200;
+
   // construct header:
   if (formatdesc.mime) req .. setDefaultHeader("Content-Type", formatdesc.mime);
   if (formatdesc.expires) req .. setDefaultHeader("Expires", formatdesc.expires().toUTCString());
-  if(formatdesc.filter) {
+
+  if (req.request.method == "GET") { // as opposed to "HEAD"
     // There is a filter function defined for this filetype.
-
-    req .. setStatus(200);
-
-    if (req.request.method == "GET") { // as opposed to "HEAD"
+    if (formatdesc.filter) {
       if (formatdesc.cache && etag) {
         // check cache:
         var cache_entry = formatdesc.cache.get(req.request.url);
+
         if (!cache_entry || cache_entry.etag != etag) {
-          var output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
+          output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
           cache_entry = { etag: etag, data: output ..join('') };
           info("populating cache #{req.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(req.request.url, cache_entry, cache_entry.data.length);
         }
+
         // write to response stream:
         verbose("stream from cache #{req.url}");
         // TODO a little bit ugly
-        stream.pump(Stream(function (emit) { emit(cache_entry.data); }), req.response);
+        output = Stream(function (emit) { emit(cache_entry.data); });
 
-      } else { // no cache or no etag -> filter straight to response
-        var output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
-        stream.pump(output, req.response);
+      // no cache or no etag -> filter straight to response
+      } else {
+        output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
       }
-    }
-  } else {
+
     // No filter function -> serve the file straight from disk
-
-    if (item.length) {
-      req .. setHeader("Content-Length", item.length);
-      req .. setHeader("Accept-Ranges", "bytes");
-    }
-    var range;
-    if (item.length && req.request.headers["range"] &&
-        (range=/^bytes=(\d*)-(\d*)$/.exec(req.request.headers["range"]))) {
-      // we honor simple range requests
-      var from = range[1] ? parseInt(range[1]) : 0;
-      var to = range[2] ? parseInt(range[2]) : item.length-1;
-      to = Math.min(to, item.length-1);
-      if (isNaN(from) || isNaN(to) || from<0 || to<from)
-        req .. setStatus(416); // range not satisfiable
-      else {
-        req .. setHeader("Content-Length", (to-from+1));
-        req .. setHeader("Content-Range", "bytes "+from+"-"+to+"/"+item.length);
-        req .. setStatus(206);
-        if (req.request.method == "GET") // as opposed to "HEAD"
-          stream.pump(input({start:from, end:to}), req.response);
-      }
+    // normal request
     } else {
-      // normal request
-      req .. setStatus(200);
-
-      if (req.request.method == "GET") // as opposed to "HEAD"
-        stream.pump(input(), req.response);
+      if (item.length) {
+        req .. setHeader("Content-Length", item.length);
+        req .. setHeader("Accept-Ranges", "bytes");
+      }
+      var range;
+      // TODO what about HEAD requests?
+      // TODO what about byte suffix syntax ?
+      // TODO what about malformed syntax ?
+      if (item.length && req.request.headers["range"] &&
+          (range=/^bytes=(\d*)-(\d*)$/.exec(req.request.headers["range"]))) {
+        // we honor simple range requests
+        var from = range[1] ? parseInt(range[1]) : 0;
+        var to = range[2] ? parseInt(range[2]) : item.length-1;
+        to = Math.min(to, item.length-1);
+        if (isNaN(from) || isNaN(to) || from<0 || to<from) {
+          status = 416; // range not satisfiable
+        } else {
+          req .. setHeader("Content-Length", (to-from+1));
+          req .. setHeader("Content-Range", "bytes "+from+"-"+to+"/"+item.length);
+          status = 206;
+          output = input({start:from, end:to});
+        }
+      } else {
+        output = input();
+      }
     }
+  }
+
+  req .. setStatus(status);
+  if (output !== null) {
+    stream.pump(output, req.response);
   }
 };
 
