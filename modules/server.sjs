@@ -43,9 +43,14 @@ var string = require('sjs:string');
     If `block` is not given, the server will run indefinitely (until
     a fatal error occurs such as the process being terminated).
 
-    If `block` is given, the server will call `block()` when
+    If `block` is given, the server will call `block(servers)` when
     it's started listening on all ports. Once block() returns,
     the server will shut down.
+
+    The `servers` argument passed to block is an array of [sjs:nodejs/http::Server]
+    objects (one per listening address). This is mostly useful when you
+    need to access some low-level detail in the underlying nodejs server object
+    (e.g the allocated port when using `Port(0)`).
     
     ### Example 1: A simple server:
 
@@ -146,14 +151,17 @@ exports.run = function(config, block) {
   var shutdown = cutil.Condition();
   var ready = cutil.Condition();
 
-  function runServer([app, address, routes]) {
+  function runServer(spec) {
+    var [app, address, routes] = spec;
     var port_config = address.getConfig();
+    port_config.print = false;
     logging.debug("server config: ", port_config);
 
     // run a http(s) server on the port:
     http.withServer(port_config) {
       |server|
-      logging.print("Conductance serving address:", port_config.address);
+      spec.server = server;
+      logging.print("Conductance serving address:", server.address);
       if (--unstartedServers == 0) {
         ready.set();
       }
@@ -203,7 +211,7 @@ exports.run = function(config, block) {
     if (block) {
       try {
         ready.wait();
-        block();
+        block(servers .. map(s -> s.server));
       } finally {
         shutdown.set();
       }
