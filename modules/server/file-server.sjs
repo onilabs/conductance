@@ -51,22 +51,24 @@ function canCompress(headers, format) {
   var encodings = { 'identity': 1 };
   var accept    = headers['accept-encoding'];
 
-  accept.split(/ *, */) ..each(function (s) {
-    var a = /^([^ ;]+) *(?:; *q *= *([\d\.]+))?$/.exec(s);
-    // TODO should set status code to 406 if this is null
-    if (a !== null) {
-      var encoding = a[1];
-      var qvalue   = a[2];
+  if (accept != null) {
+    accept.split(/ *, */) ..each(function (s) {
+      var a = /^([^ ;]+) *(?:; *q *= *([\d\.]+))?$/.exec(s);
+      // TODO should set status code to 406 if this is null
+      if (a !== null) {
+        var encoding = a[1];
+        var qvalue   = a[2];
 
-      if (qvalue == null) {
-        encodings[encoding] = 1;
+        if (qvalue == null) {
+          encodings[encoding] = 1;
 
-      // TODO should set status code to 406 if this is false
-      } else if (isQvalue(qvalue)) {
-        encodings[encoding] = +qvalue;
+        // TODO should set status code to 406 if this is false
+        } else if (isQvalue(qvalue)) {
+          encodings[encoding] = +qvalue;
+        }
       }
-    }
-  });
+    });
+  }
 
   return canCompressFormat(encodings, format) ||
          canCompressFormat(encodings, '*');
