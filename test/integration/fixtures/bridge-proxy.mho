@@ -1,0 +1,91 @@
+@ = require('mho:std');
+exports.serve = function(args, condition) {
+	var dynamicPort = @Port(0);
+	var [proxyPort] = args;
+	var mainPort;
+	var here = @url.normalize('./', module.id) .. @url.toPath;
+	var proxyAddress = dynamicPort;
+	if(proxyPort) {
+		proxyPort = parseInt(proxyPort, 0);
+		proxyAddress = @Port(proxyPort);
+	}
+
+	var removeLeading = function(s, prefix) {
+		@assert.ok(s .. @startsWith(prefix));
+		return s.slice(prefix.length);
+	}
+
+	var canonicalizedSettings = {};
+
+	@server.run([
+		{
+			address: proxyAddress,
+			routes: [
+				@Route(/^proxy/, {
+					GET: function(req) {
+						var url = req.url;
+						var dest = "#{url.protocol}://#{url.host}:#{mainPort}#{url.relative .. removeLeading('/proxy')}";
+						@info("GET: #{url.source} -> #{dest}");
+						var opts = {
+							method: req.request.method,
+							response: 'raw',
+							body: req.body,
+							headers: req.request.headers .. @merge({
+								'x-forwarded-proto': req.url.protocol,
+								'x-forwarded-host': req.request.headers.host,
+							}),
+							throwing: false,
+						};
+						var response = @http.request(dest, opts);
+						req.response.writeHead(response.statusCode, response.headers);
+						response .. @stream.pump(req.response);
+					}
+				}),
+
+				@Route(/^redirect/, {
+					GET: function(req) {
+						var url = req.url;
+						var dest = "#{url.protocol}://#{url.host}:#{mainPort}#{url.relative .. removeLeading('/redirect')}";
+						@info("GET: #{url.source} -> #{dest}");
+						req .. @response.writeRedirectResponse(dest, 302);
+					}
+				}),
+
+				@Route(/^canonicalize/, {
+					GET: function(req) {
+						var url = req.url;
+						var dest = "#{url.protocol}://#{url.host}:#{mainPort}#{url.relative}";
+						@info("GET: #{url.source} -> #{dest}");
+						req .. @response.writeRedirectResponse(dest, 302);
+					}
+				}),
+			] .. @route.AllowCORS()
+		},
+		{
+			address: dynamicPort,
+			routes: [
+				@route.SystemRoutes(),
+				@route.ExecutableDirectory('parent/', @path.dirname(here)),
+				@route.ExecutableDirectory('double/prefix/', here),
+				@Route('nested/', [
+					@route.ExecutableDirectory('prefix/', here),
+				]),
+				@Route('nested-', [
+					@route.ExecutableDirectory('dir-prefix/', here),
+					@route.ExecutableDirectory('prefix-', here),
+				]),
+				@route.ExecutableDirectory('canonicalize/', here, {bridgeRoot: 'http://example.com/rpc/'}),
+				@route.ExecutableDirectory(here),
+			] .. @route.AllowCORS()
+		}
+	]) {|servers|
+		[proxyPort, mainPort] = servers .. @map(s -> s.nodeServer.address().port);
+		// XXX hacky; relies on mutation because we can't tell what port we'll be
+		// on in advance.
+		canonicalizedSettings.rpcRoot = "http://localhost:#{mainPort}/";
+
+		@info("Server up (port #{proxyPort}, proxying to #{mainPort})");
+		if(condition) condition.set([proxyPort, mainPort]);
+		hold();
+	}
+}

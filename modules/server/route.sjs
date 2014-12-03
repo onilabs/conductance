@@ -22,7 +22,7 @@ var { setStatus, setHeader, writeRedirectResponse, writeErrorResponse, isHttpErr
 var { flatten } = require('sjs:array');
 var { isString, sanitize, endsWith } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
-var { keys, ownPropertyPairs } = require('sjs:object');
+var { keys, ownPropertyPairs, merge } = require('sjs:object');
 var { Route } = require('../server');
 var fs = require('sjs:nodejs/fs');
 var nodePath = require('nodejs:path');
@@ -218,7 +218,7 @@ function PortRedirect(/*path, port, status*/) {
   return Route(path, {
     '*': function(req) {
       var url = "#{req.url.protocol}://#{req.url.host}:#{port}#{req.url.relative ? req.url.relative : ''}";
-      logging.info("redirect #{req.url.toString()} to #{url}"); 
+      logging.verbose("redirect #{req.url.toString()} to #{url}"); 
       req .. writeRedirectResponse(url, status);
     }
   });
@@ -254,7 +254,7 @@ function HostRedirect(/* path, host, status */) {
   return Route(path, {
     '*': function(req) {
       var url = "#{host}#{req.url.relative ? req.url.relative : ''}";
-      logging.info("redirect #{req.url.toString()} to #{url}"); 
+      logging.verbose("redirect #{req.url.toString()} to #{url}"); 
       req .. writeRedirectResponse(url, status);
     }
   });
@@ -300,7 +300,7 @@ function Redirect(/* path, rewrite, status */) {
   return Route(path, {
     '*': function(req) {
       var url = rewrite(req.url);
-      logging.info("redirect #{req.url.toString()} to #{url}"); 
+      logging.verbose("redirect #{req.url.toString()} to #{url}"); 
       req .. writeRedirectResponse(url, status);
     }
   });
@@ -313,7 +313,7 @@ var formats = require('./formats');
 
 //XXX document
 var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
-  return function(path, root) {
+  return function(path, root, overrides) {
     if (arguments.length == 1) {
       root = path;
       path = /^/;
@@ -322,7 +322,8 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
     }
 
     root = fs.realpath(root);
-    return Route(path, require('./file-server').MappedDirectoryHandler(root, settings));
+    var opts = overrides ? merge(settings, overrides) : settings;
+    return Route(path, require('./file-server').MappedDirectoryHandler(root, opts));
   }
 };
 
@@ -330,6 +331,8 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
    @function ExecutableDirectory
    @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem
+   @param {optional Settings} [options]
+   @setting {String} [bridgeRoot] Override root location for bridge connections
    @return {../server::Route}
    @summary Creates a [../server::Route] that serves executable, code and static files from the local filesystem
    @desc

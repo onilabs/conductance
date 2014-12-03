@@ -195,43 +195,21 @@ function gen_moduledocs_html(src, aux) {
 // filter that generates import sjs for an api:
 function apiimport(src, aux) {
   return Stream(function (emit) {
-    // To facilitate redirecting apis, as in e.g.:
-    //   @PortRedirect(/^database\/.*\.api/,  8082),
-    // we'll make sure that the client makes all future access to the api
-    // module directly to our server:
-    var moduleURL = "#{aux.request.url.protocol}://#{aux.request.url.authority}#{aux.request.url.path}";
-    // XXX In addition to the `connect` function, we're currently also
-    // exporting the `server` URL to the client. This is so that we can
-    // correctly address keyhole files on a redirected server, which is
-    // a bit of a hack. (The keyhole module need some redesigning; it
-    // should itself be able to give full urls - but that would probably
-    // require strata-local storage for communicating the request
-    // downstream).
-    var serverRoot = Url.normalize('/', aux.request.url.source);
     emit("\
-var serverURL = #{JSON.stringify(serverRoot)};
-var moduleURL = #{JSON.stringify(moduleURL)};
-var bridge = require('mho:rpc/bridge');
-var {merge} = require('sjs:object');
-exports.server = serverURL;
-exports.module = moduleURL;
-var defaultOpts = {server:serverURL};
-
 exports.connect = function(opts, block) {
+  var bridge = require('mho:rpc/bridge');
   if (typeof(opts) == 'function') {
     block = opts;
     opts = null;
   }
-  opts = opts ? (defaultOpts .. merge(opts)) : defaultOpts;
-
   if (block) {
-    bridge.connect(moduleURL, opts) {
+    bridge.connect(module.id, opts) {
       |connection|
       block(connection.api);
     }
   }
   else
-    return bridge.connect(moduleURL, opts).api;
+    return bridge.connect(module.id, opts).api;
 };
 ");
   });
@@ -242,7 +220,7 @@ function apiinfo(src, aux) {
   return Stream(function (emit) {
     if (!aux.apiinfo)
       throw new Error("API access not enabled");
-    emit(JSON.stringify(aux.apiinfo));
+    emit(JSON.stringify(aux.apiinfo()));
   });
 }
 

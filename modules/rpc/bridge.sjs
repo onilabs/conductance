@@ -824,9 +824,31 @@ function BridgeConnection(transport, opts) {
 }
 
 /**
+  @function resolve
+  @summary Resolve an .api module by URL
+  @param {String} [api] .api URL
+  @return {Object} apiinfo
+  @desc
+    For advanced use only; called automatically by [::connect].
+*/
+exports.resolve = function(api_name) {
+  try {
+    var apiinfo = http.json([api_name, {format:'json'}]);
+  }
+  catch(e) {
+    throw TransportError(e.message);
+  }
+  // catch syntax errors in the api module; don't throw as transport errors:
+  if (apiinfo.error) throw new Error(apiinfo.error);
+  apiinfo.server = Url.normalize(apiinfo.root || '/', api_name);
+  return apiinfo;
+};
+
+
+/**
   @function connect
   @summary Connect to a remote API
-  @param {String|Object} [api] .api URL (or pre-fetched apiinfo)
+  @param {String|Object} [api] .api URL (or pre-fetched apiinfo from [::resolve])
   @param {Settings} [settings]
   @param {optional Function} [block]
   @setting {String} [server] Server root
@@ -862,31 +884,17 @@ function BridgeConnection(transport, opts) {
        [sjs:#language/syntax::using] block)
      - abort any code that relies upon the (now dead) connection.
 */
-exports.connect = function(api_name, opts, block) {
+exports.connect = function(apiinfo, opts, block) {
+  if(!opts) opts={};
   var transport = opts.transport;
-  var apiinfo = null;
-  if (!isString(api_name)) {
-    apiinfo = api_name;
-    api_name = null;
+  if (isString(apiinfo)) {
+    apiinfo = exports.resolve(apiinfo);
   }
+
   waitfor {
-    waitfor {
-      if (!transport) {
-        var server = opts.server || Url.normalize('/', api_name);
-        transport = require('./aat-client').openTransport(server);
-      }
-    }
-    and {
-      if (!apiinfo) {
-        try {
-          apiinfo = http.json([api_name, {format:'json'}]);
-        }
-        catch(e) {
-          throw TransportError(e.message);
-        }
-      }
-      // catch syntax errors in the api module; don't throw as transport errors:
-      if (apiinfo.error) throw new Error(apiinfo.error);
+    if (!transport) {
+      var server = opts.server || apiinfo.server;
+      transport = require('./aat-client').openTransport(server);
     }
     var marshallers = defaultMarshallers.concat(opts.localWrappers || []);
     var connection = BridgeConnection(transport, opts .. merge({

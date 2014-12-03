@@ -98,7 +98,7 @@ var generatorCache = lruCache.makeCache(10*1000*1000); // 10MB
 //  - format
 // Optionally:
 //  - etag:  etag of the input stream
-//  - apiinfo: (for api files; only if settings.allowApis == true)
+//  - apiinfo: function returning API info object (for api files; only if settings.allowApis == true)
 function formatResponse(req, item, settings) {
   var { input, filePath, filetype, format, apiinfo } = item;
 
@@ -256,6 +256,10 @@ function listDirectory(req, root, branch, format, settings) {
 //----------------------------------------------------------------------
 // file serving
 
+// if `serveFile` doesn't provide a custom apiinfo,
+// throw an error if code tries to access it
+var defaultApiinfo = function() { throw new Error("apiinfo not set"); }
+
 // attempt to serve the given file; return 'false' if not found
 function serveFile(req, filePath, format, settings) {
   try {
@@ -266,19 +270,39 @@ function serveFile(req, filePath, format, settings) {
   }
   if (!stat.isFile()) return false;
 
-  var apiinfo;
   var extension = path.extname(filePath).slice(1);
   if (settings.allowGenerators && extension == 'gen') {
     return false;
   }
 
-  if (settings.allowApis && extension == 'api' && format.name == 'json') {
-    try {
-      var apiid = require('./api-registry').registerAPI(filePath .. url.fileURL);
-      logging.info("registered API #{filePath} -> #{apiid}");
-      apiinfo = {id: apiid};
-    } catch(e) {
-      apiinfo = {error: String(e) }
+  var apiinfo = defaultApiinfo;
+  if (settings.allowApis && extension == 'api') {
+    apiinfo = function() {
+      var relativeRoot = settings.bridgeRoot || null;
+      if (relativeRoot == null) {
+        // use relativeUri to construct a relative path back to
+        // the server root
+        var depth = req.url.path.split(/\//g);
+        depth = depth.length - 2; // assume leading slash
+        if(depth < 0) throw new Error("negative depth for server root");
+        if(depth <= 0) {
+          relativeRoot = './';
+        } else {
+          relativeRoot = '';
+          while(depth>0) {
+            relativeRoot += "../";
+            depth--;
+          }
+        }
+      }
+
+      try {
+        var apiid = require('./api-registry').registerAPI(filePath .. url.fileURL);
+        logging.info("registered API #{filePath} -> #{apiid}");
+        return {id: apiid, root: relativeRoot};
+      } catch(e) {
+        return {error: String(e) }
+      }
     }
   }
 
@@ -404,6 +428,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
                context:         null,
                formats: StaticFormatMap,
                etag: null,
+               bridgeRoot: null,
              } ..
     override(settings || {});
 

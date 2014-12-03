@@ -254,6 +254,9 @@
             "isTransportError": {
               "type": "function"
             },
+            "resolve": {
+              "type": "function"
+            },
             "setMarshallingDescriptor": {
               "type": "function"
             }

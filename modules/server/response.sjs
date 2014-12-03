@@ -86,7 +86,7 @@ exports.ServerError = (msg, desc) -> HttpError(500, msg || "Internal Server Erro
   @summary Calls [writeHead](http://nodejs.org/api/http.html#http_response_writehead_statuscode_reasonphrase_headers) on the underlying response.
 */
 function setStatus(req, code /*, ... */) {
-  info("#{req.url} #{code}");
+  verbose("#{req.url} #{code}");
   req.response.writeHead.apply(req.response, Array.prototype.slice.call(arguments,1));
 }
 exports.setStatus = setStatus;

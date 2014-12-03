@@ -4,10 +4,10 @@ var bridge = require('mho:rpc/bridge');
 var { isTransportError } = bridge;
 var http = require('sjs:http');
 var { Emitter } = require('sjs:event');
-var { Condition } = require('sjs:cutil');
+var { Condition, breaking } = require('sjs:cutil');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
-var { each, at, all, map, hasElem } = require('sjs:sequence');
+var { each, at, all, map, hasElem, indexed } = require('sjs:sequence');
 var { contains, startsWith } = require('sjs:string');
 var { eq } = require('sjs:compare');
 
@@ -370,3 +370,58 @@ context() {||
     }.browserOnly().timeout(15);
   }
 }
+
+context("non-root locations") {||
+  test.beforeAll {|s|
+    var ready = Condition();
+    s.server = breaking {|brk|
+      waitfor {
+        require('./fixtures/bridge-proxy.mho').serve([], ready);
+        throw new Error("server ended prematurely");
+      } or {
+        s.ports = ready.wait();
+        brk();
+      }
+    }
+  }
+
+  test.afterAll {|s|
+    s.server.resume();
+  }
+
+  var testResolve = function(dest, path, expectedRelative) {
+    return test(dest + path) {|s|
+      var port = s.ports[0];
+      var url = "http://localhost:#{port}#{dest}#{path}bridge.api";
+      logging.info("Resolving: #{url}");
+      var resolved = bridge.resolve(url);
+      resolved.server .. assert.eq("http://localhost:#{port}#{dest}");
+      resolved.root .. assert.eq(expectedRelative);
+    }
+  }
+
+  context("proxied API maintains relative address") {||
+    testResolve('/proxy/', '', './');
+    testResolve('/proxy/', 'double/prefix/', '../../');
+    testResolve('/proxy/', 'nested/prefix/', '../../');
+    testResolve('/proxy/', 'nested-prefix-', './');
+    testResolve('/proxy/', 'nested-dir-prefix/', '../');
+    testResolve('/proxy/', 'parent/fixtures/', '../../');
+    
+    // non-canonical URLs are unlikely, but can probably happen:
+    testResolve('/proxy/', 'parent/fixtures/../fixtures/', '../../');
+    testResolve('/proxy/', 'parent//fixtures/../fixtures/', '../../../');
+  }
+
+  context("redirected API maintains relative address") {||
+    testResolve('/redirect/', 'double/prefix/', '../../');
+  }
+
+  test("custom bridgeRoot") {|s|
+    var [proxyPort, canonicalPort] = s.ports;
+    var url = "http://localhost:#{proxyPort}/canonicalize/bridge.api";
+    logging.info("Resolving: #{url}");
+    var resolved = bridge.resolve(url);
+    resolved.server .. assert.eq("http://example.com/rpc/");
+  }
+}.serverOnly();
