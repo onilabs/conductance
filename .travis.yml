@@ -41,5 +41,5 @@ branches:
     - master
     - /^\d+(\.\d+)+$/
 
-script: "./conductance $a --show-failed"
+script: "./conductance exec $a --show-failed"
 

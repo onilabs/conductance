@@ -48,7 +48,7 @@
 			}
 
 			var outputContent = main .. @elem('.output-content');
-			@waitforSuccess(-> String(outputContent.textContent) .. @assert.contains('Conductance serving address:'), null, 5);
+			@waitforSuccess(-> String(outputContent.textContent) .. @assert.contains('Conductance serving address:'), null, 20);
 		}
 	}
 

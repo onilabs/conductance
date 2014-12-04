@@ -827,13 +827,14 @@ function BridgeConnection(transport, opts) {
   @function resolve
   @summary Resolve an .api module by URL
   @param {String} [api] .api URL
+  @param {Settings} [opts] options passed to [sjs:http::request]
   @return {Object} apiinfo
   @desc
     For advanced use only; called automatically by [::connect].
 */
-exports.resolve = function(api_name) {
+exports.resolve = function(api_name, opts) {
   try {
-    var apiinfo = http.json([api_name, {format:'json'}]);
+    var apiinfo = http.json([api_name, {format:'json'}], opts);
   }
   catch(e) {
     throw TransportError(e.message);
@@ -885,6 +886,7 @@ exports.resolve = function(api_name) {
      - abort any code that relies upon the (now dead) connection.
 */
 exports.connect = function(apiinfo, opts, block) {
+  if(typeof(opts) == 'function') throw new Error("opts are required when passing a block to connect()");
   if(!opts) opts={};
   var transport = opts.transport;
   if (isString(apiinfo)) {

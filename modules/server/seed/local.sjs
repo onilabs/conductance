@@ -13,6 +13,7 @@
 @ = require('mho:std');
 @stream = require('sjs:nodejs/stream');
 @response = require('mho:server/response');
+@bridge = require('mho:rpc/bridge');
 
 exports.apiVersion = 1;
 exports.defaultPort = 1608;
@@ -81,9 +82,10 @@ exports.serve = function(args) {
     endpoint._EndpointProto._connect = (function(orig) {
       return function(opts, block) {
         var api = this.server;
+        var apiinfo = @bridge.resolve(api, {agent:seedAgent});
         opts = opts .. @merge({
-          apiinfo: @http.json([api, {format:'json'}], {agent:seedAgent}),
-          transport: require('mho:rpc/aat-client').openTransport(@url.normalize('/', api), {agent:seedAgent}),
+          apiinfo: apiinfo,
+          transport: require('mho:rpc/aat-client').openTransport(apiinfo.server, {agent:seedAgent}),
         });
         return orig.call(this, opts, block);
       };

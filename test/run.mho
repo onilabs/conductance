@@ -13,6 +13,7 @@ var childProcess = require('sjs:nodejs/child-process');
 var logging = require('sjs:logging');
 var helper = require('./helper');
 var path = require('nodejs:path');
+var string = require('sjs:string');
 var { map, hasElem, at, concat, toArray } = require('sjs:sequence');
 var root = url.normalize('../', module.id) .. url.toPath;
 process.chdir(root);

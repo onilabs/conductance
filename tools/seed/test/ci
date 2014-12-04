@@ -6,6 +6,11 @@ process.env['SEED_DB_BACKEND'] = 'leveldown'
 // don't bother installing conductance, we'll use the checked-out version
 process.env['SKIP_PACKAGES'] = 'conductance'
 var here = @url.normalize('./', module.id) .. @url.toPath();
+var conductanceBin = @path.join(here, '../../../conductance');
+var gupBin = @path.join(here, '../../gup');
 
-@childProcess.run(@path.join(here, '../../gup'), [@path.join(here, '../deps') ], {'stdio':'inherit'});
-@childProcess.run(@path.join(here, '../bin/services.sjs'), [@path.join(here, 'all')], {'stdio':'inherit'});
+// make sure everything's built / installed
+@childProcess.run(gupBin, [@path.join(here, '../deps') ], {'stdio':'inherit'});
+
+// with services running, execute ./all
+@childProcess.run(conductanceBin, [@path.join(here, '../bin/services.sjs'), @path.join(here, 'all')].concat(@argv()), {'stdio':'inherit'});

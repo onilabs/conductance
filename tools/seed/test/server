@@ -116,11 +116,13 @@ function serveAnd(block) {
 if (require.main === module) {
   var TRAVIS = process.env.TRAVIS === 'true';
   var args = require('sjs:sys').argv();
+
+  var isPreArg = a -> /^(-v|--verbose|-q|--quiet)/.test(a);
+  var [preArgs, args] = args .. @partition(isPreArg) .. @map(@toArray);
+  require('mho:server/main').processGlobalOptions(preArgs);
+
   if(args[0] === 'app') {
     args.splice(0, 1, 'serve', module.id);
-    var isPreArg = a -> /^(-v|--verbose|-q|--quiet)/.test(a);
-    var preArgs = args .. @filter(isPreArg) .. @toArray;
-    require('mho:server/main').processGlobalOptions(preArgs);
     exports.serve();
   } else {
     var runKarma = function() {
@@ -129,7 +131,7 @@ if (require.main === module) {
     }
     args.splice(1,0, karmaConfUrl .. @url.toPath);
     if(args[0] === 'run') {
-      args.splice(2, 0, '-vv', '--', karmaConf.testScript);
+      args.splice(2, 0, '--', karmaConf.testScript);
       //console.log(args);
       runKarma();
     } else if(args[0] === 'start' || args[0] == 'single-run') {

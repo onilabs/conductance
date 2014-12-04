@@ -3,7 +3,7 @@
   , "dependencies":
     { "fs-ext": "^0.4.0"
     , "node-etcd": "^3.0.0"
-    , "conductance": "git://github.com/onilabs/conductance.git#fa0bd00106eaa3e69fe98c5deb958437618b0730"
+    , "conductance": "git://github.com/onilabs/conductance.git#d267c2071fb28506c754b92e630416f96ddd89a6"
     , "nodemailer": "^1.2.0"
     , "nodemailer-smtp-transport": "^0.1.11"
   }

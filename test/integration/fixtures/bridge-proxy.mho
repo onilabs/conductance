@@ -15,8 +15,6 @@ exports.serve = function(args, condition) {
 		return s.slice(prefix.length);
 	}
 
-	var canonicalizedSettings = {};
-
 	@server.run([
 		{
 			address: proxyAddress,
@@ -80,9 +78,6 @@ exports.serve = function(args, condition) {
 		}
 	]) {|servers|
 		[proxyPort, mainPort] = servers .. @map(s -> s.nodeServer.address().port);
-		// XXX hacky; relies on mutation because we can't tell what port we'll be
-		// on in advance.
-		canonicalizedSettings.rpcRoot = "http://localhost:#{mainPort}/";
 
 		@info("Server up (port #{proxyPort}, proxying to #{mainPort})");
 		if(condition) condition.set([proxyPort, mainPort]);
