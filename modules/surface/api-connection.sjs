@@ -20,6 +20,7 @@ var {@warn} = require('sjs:logging');
   @param {Object} [api] api module
   @param {optional Settings} [settings] settings passed to [rpc/bridge::connect]
   @setting {Function} [notice] Notice constructor (default: [surface/bootstrap/notice::Notice])
+  @setting {Function} [disconnectMonitor] Notice constructor (default: [surface/bootstrap/notice::Notice])
   @param {Function} [block]
   @summary Connect and use an `.api` module
   @desc
@@ -67,19 +68,26 @@ exports.withAPI = function(api, opts, block) {
         hold(300); // small delay before showing ui feedback
         if (window.onerror && window.onerror.triggered) return;
 
-        document.body .. @appendContent(Notice(
-          `Not connected. Reconnect in ${@Countdown(Math.floor(delay/1000))}s. ${@Element('a', "Try Now", {href:'#'})}`,
-          {'class':'alert-warning'}))
-        {|elem|
-          waitfor {
-            hold(delay);
-            delay *= 1.5;
-            if (delay > 60*1000*10) // cap at 10 minutes
-              delay = 60*1000*10;
-          } or {
-            elem.querySelector('a') .. @wait('click', {handle:@preventDefault});
+        var disconnectBody = function(elem) {
+          (elem || document.body) .. @appendContent(Notice(
+            `Not connected. Reconnect in ${@Countdown(Math.floor(delay/1000))}s. ${@Element('a', "Try Now", {href:'#'})}`,
+            {'class':'alert-warning'}))
+          {|elem|
+            waitfor {
+              hold(delay);
+              delay *= 1.5;
+              if (delay > 60*1000*10) // cap at 10 minutes
+                delay = 60*1000*10;
+            } or {
+              elem.querySelector('a') .. @wait('click', {handle:@preventDefault});
+            }
           }
-        }
+        };
+        if (opts.disconnectMonitor)
+          opts.disconnectMonitor(disconnectBody);
+        else
+          disconnectBody();
+
         continue;
       }
       else throw e;

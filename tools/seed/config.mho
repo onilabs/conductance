@@ -85,6 +85,7 @@ var runAll = function(servers, opts) {
     if(server.jobs) {
       jobs = jobs.concat(server.jobs);
     }
+
   }
 
   ;['http','https'] .. @each {|proto|

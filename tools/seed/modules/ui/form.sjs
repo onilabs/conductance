@@ -1,4 +1,4 @@
-@ = require(['mho:std', 'mho:app']);
+@ = require(['mho:std', 'mho:app', './busy-indicator']);
 @bridge = require('mho:rpc/bridge');
 @validate = require('seed:validate');
 @form = require('./generic-form');
@@ -74,7 +74,7 @@ var serverConfigEditor = exports.serverConfigEditor = function(container, conf) 
 			@Div(saveButton, {'class':'pull-right'}),
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
 	) {|elem|
-		var newvals = form.wait(elem);
+		var newvals = @withoutBusyIndicator( -> form.wait(elem));
 		conf.modify(current -> current .. @merge(newvals));
 	};
 };
@@ -339,7 +339,7 @@ exports.loginDialog = function(parent, conf, actions) {
 
 		while(true) {
 			try {
-				values = formElem .. form.wait();
+				values = @withoutBusyIndicator( -> formElem .. form.wait());
 				if (isSignup.get()) {
 					actions.signup(values);
 					break;
@@ -367,7 +367,7 @@ exports.loginDialog = function(parent, conf, actions) {
 	`);
 	parent .. @appendContent(@Div(message) .. @CSS('h1,h2,h3 { margin-top:0; }')) {|elem|
 		while(true) {
-			elem.querySelector('button') .. @wait('click');
+			@withoutBusyIndicator( -> elem.querySelector('button') .. @wait('click'));
 			try {
 				return login(values);
 			} catch(e) {

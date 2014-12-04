@@ -96,34 +96,36 @@ staticExports.busyIndicator = function(showImmediately, opts) {
         })();
     "),
     @Element('script', "
-      var busy_indicator_refcnt = 0, busy_indicator_stratum, busy_indicator_shown = #{showImmediately ? 'true' : 'false'};
+      var count = 0, stratum, shown = #{showImmediately ? 'true' : 'false'};
 
-      function showBusyIndicator(delay) {
+      function show(delay) {
         window.inhibit_auto_busy_indicator = true;
         delay = delay || 500;
-        if (++busy_indicator_refcnt === 1) {
-          busy_indicator_stratum = spawn (function() {
+        if (++count === 1) {
+          stratum = spawn (function() {
             hold(delay);
             rainbow.show();
-            busy_indicator_shown = true;
+            shown = true;
           })();
         }
       }
 
-      function hideBusyIndicator() {
+      function hide() {
+      " +
         // we're spawning/holding to get some hysteresis: if someone
-        // calls showBusyIndicator next, we
+        // calls show next, we
         // don't want to stop a currently running indicator
+      "
         spawn (function() {
           hold(10);
-          if (--busy_indicator_refcnt === 0) {
-            if (busy_indicator_stratum) {
-              busy_indicator_stratum.abort();
-              busy_indicator_stratum = null;
+          if (--count === 0) {
+            if (stratum) {
+              stratum.abort();
+              stratum = null;
             }
-            if(busy_indicator_shown) {
+            if(shown) {
               rainbow.hide();
-              busy_indicator_shown = false;
+              shown = false;
             }
           }
         })();
@@ -133,16 +135,17 @@ staticExports.busyIndicator = function(showImmediately, opts) {
       function withBusyIndicator(block) {
         var done = function() {
           done = noop; // prevent duplicate calls
-          hideBusyIndicator();
+          hide();
         }
         try {
-          showBusyIndicator();
+          show();
           return block ? block(done);
         }
         finally {
           done();
         }
       }
+      withBusyIndicator.show = show; withBusyIndicator.hide = hide;
       window.withBusyIndicator = withBusyIndicator;
     ", {'type': 'text/sjs'}),
   ]

@@ -2,7 +2,8 @@
   @require mho:surface/api-connection
   @require mho:server/seed/endpoint
  */
-@ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom']);
+@ = require(['mho:std', 'mho:app', 'sjs:xbrowser/dom', './busy-indicator']);
+withBusyIndicator.show();
 @bridge = require('mho:rpc/bridge');
 @form = require('./form');
 @modal = require('./modal');
@@ -14,6 +15,13 @@ var { @isTransportError, @connect } = require('mho:rpc/bridge');
 var { @Notice } = require('mho:surface/bootstrap/notice');
 
 var OnClick = (elem, action) -> @OnClick(elem, {handle:@stopEvent}, action);
+
+
+// a block to pass to `appendContent` which shows the content
+// (and halts the busy indicator)
+var staticContentBlock = function() {
+	@withoutBusyIndicator( -> hold() );
+};
 
 var commonConnectionOptions = {
 	localWrappers: [
@@ -189,9 +197,8 @@ var editServerSettings = function(server) {
 	}
 };
 
-var appButton = function(initialName, app, activate) {
-	var appName = [initialName] .. @concat(app.config .. @transform(x -> x.name));
-	return @A(appName, {'class':'clickable'}) .. appNameStyle .. OnClick(activate);
+var appButton = function(name, activate) {
+	return @A(name, {'class':'clickable'}) .. appNameStyle .. OnClick(activate);
 };
 
 var appDisplayMessageStyle = @CSS("
@@ -433,7 +440,7 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 		</div>
 	`) .. appStyle();
 
-	elem .. @appendContent(appDetail, -> hold());
+	elem .. @appendContent(appDetail, staticContentBlock);
 };
 
 var showServer = function(token, localApi, localServer, remoteServer, container, header) {
@@ -498,8 +505,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 								.. @map(([i, app]) -> [appNames[i], app])
 								.. @sortBy(pair -> pair[0])
 								.. @map(([name, app]) ->
-									@Li(appButton(name, app, -> activeApp.set(app)))
-										.. appNameStyle()
+									@Li(appButton(name, -> activeApp.set(app)))
 										.. @Class("active", activeApp .. @transform(a -> a && a === app))
 								);
 							return @Col("xs-4 md-3",
@@ -523,9 +529,9 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 										@Div(apps.length > 0
 										? [ @H3("No app selected") ]
 										: [ @H3("You don't have any apps yet"),
-											  @P('Click the "new" button on the left to get started.'),
+												@P('Click the "new" button on the left to get started.'),
 											]
-										) .. appDisplayMessageStyle), -> hold());
+										) .. appDisplayMessageStyle), staticContentBlock);
 								} else {
 									display .. displayApp(token, localApi, localServer, remoteServer, app);
 								}
@@ -539,7 +545,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 						container .. @appendContent(@Div([
 							@H3(`Uncaught Error: ${msg}`),
 							@P(@Button("Continue ...", {'class':'btn-danger'}) .. OnClick(-> retry.emit()))
-						]), -> retry .. @wait());
+						]), -> withoutBusyIndicator(-> retry .. @wait()));
 					}
 				}
 			} or {
@@ -570,10 +576,15 @@ function displayServer(elem, header, api, server) {
 		}});
 
 		waitfor {
-			elem .. @appendContent(connectionError .. @transform(err -> err ? @Div([
+			var errorMessage = @Div([
 				@H2(`Server unavailable.`),
 				@P(`The server may be experiencing temporary downtime. <b>TODO: link to status page</b>`),
-			])), -> hold());
+			]);
+			connectionError .. @each {|err|
+				if (err) {
+					elem .. @appendContent(errorMessage, staticContentBlock);
+				}
+			}
 		} or {
 			while(true) {
 				@info("Connecting to server #{id}");
@@ -644,13 +655,15 @@ function displayServer(elem, header, api, server) {
 							@P(`Reconnecting in ${@Countdown((reconnectDelay/1000) .. Math.floor())}s`),
 							@Button('Reconnect now...', {'class':'btn-danger'}),
 						])) {|elem|
-							waitfor {
-								hold(reconnectDelay);
-								reconnectDelay *= 1.5;
-								if (reconnectDelay > 60*1000*10) // cap at 10 minutes
-									reconnectDelay = 60*1000*10;
-							} or {
-								elem.querySelector('button') .. @wait('click', {handle:@preventDefault});
+							@withoutBusyIndicator {||
+								waitfor {
+									hold(reconnectDelay);
+									reconnectDelay *= 1.5;
+									if (reconnectDelay > 60*1000*10) // cap at 10 minutes
+										reconnectDelay = 60*1000*10;
+								} or {
+									elem.querySelector('button') .. @wait('click', {handle:@preventDefault});
+								}
 							}
 						};
 						continue;
@@ -667,12 +680,11 @@ function displayServer(elem, header, api, server) {
 	};
 };
 
-function runInner(api, ready) {
+function runInner(api) {
 	var apiVersion = api.version;
 	@assert.number(api.version);
 	var minVersion = 1;
 	if (apiVersion < minVersion) {
-		ready();
 		@logging.warn("Old remote.api version #{apiVersion}");
 		while(true) {
 			@modal.withOverlay({title: "Version error", 'class':'panel-danger', close:false}) {|elem|
@@ -687,7 +699,7 @@ function runInner(api, ready) {
 				<p>
 					If that doesn't work, see <a href="https://conductance.io/install">conductance.io/install</a> for more details.
 					(In particular, the <code>self-update</code> command is not available if you installed Conductance via <code>npm</code> or <code>git</code>.)
-				</p>`, -> hold());
+				</p>`, staticContentBlock);
 			}
 		}
 		return ;
@@ -718,7 +730,7 @@ function runInner(api, ready) {
 					elem .. @appendContent([
 						@H3(`No server selected`),
 						@P(`Create or select a server above to get started`),
-					], ->hold());
+					], staticContentBlock);
 				} else {
 					try {
 						elem .. displayServer(api, server);
@@ -829,7 +841,6 @@ function runInner(api, ready) {
 			serverList,
 			@Div(),
 		]) {|_, content|
-			ready();
 			content .. displayCurrentServer();
 		}
 	} else {
@@ -842,20 +853,17 @@ function runInner(api, ready) {
 				if(current.server == server.id) return unchanged;
 				return { server: server.id };
 			});
-			ready();
 			content .. displayServer(header, api, server);
 		}
 	}
 };
 
 exports.run = function(localApiAddress) {
-	@withBusyIndicator {|ready|
-		stopIndicator = ready;
-		@withAPI(localApiAddress, commonConnectionOptions .. @merge({
-			notice: -> @Notice.apply(null, arguments) .. @Class('reconnectNotification'),
-		})) {|api|
-			runInner(api, ready);
-		}
+	@withAPI(localApiAddress, commonConnectionOptions .. @merge({
+		notice: -> @Notice.apply(null, arguments) .. @Class('reconnectNotification'),
+		disconnectMonitor: block -> @withoutBusyIndicator(block),
+	})) {|api|
+		runInner(api);
 	}
 }
 
