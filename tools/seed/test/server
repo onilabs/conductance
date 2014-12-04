@@ -145,7 +145,7 @@ if (require.main === module) {
       if (browsers) {
         if (TRAVIS && browsers != 'PhantomJS') {
           process.env['DISPLAY'] = ':99';
-          childProcess.run("sh", ["-e", "/etc/init.d/xvfb", "start"], {stdio: "inherit"});
+          @childProcess.run("sh", ["-e", "/etc/init.d/xvfb", "start"], {stdio: "inherit"});
           hold(3000);
         }
         args.splice(2, 0, '--browsers', browsers);
