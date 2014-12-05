@@ -5,6 +5,7 @@ var ESCAPE = 27;
 var withOverlay = exports.withOverlay = (function() {
 	var overlayWidget = @Element("div") .. @CSS('{
 		position: fixed;
+		overflow: auto;
 		left:0;
 		top:0;
 		bottom: 0;
