@@ -216,21 +216,21 @@ function formatResponse(req, item, settings) {
 //----------------------------------------------------------------------
 // directory listing server
 
-function listDirectory(req, root, branch, format, settings) {
+function listDirectory(req, dir, uriPath, format, settings) {
   var listing = {
-    path: branch,
+    path: uriPath,
     directories: [],
     files: []
   };
 
   // add ".." unless we're listing the root
-  if(branch && branch !== '/') {
+  if(uriPath && uriPath !== '/') {
     listing.directories.push("..");
   }
 
-  fs.readdir(path.join(root, branch)) .. each {
+  fs.readdir(dir) .. each {
     |filename|
-    var filepath = path.join(root, branch, filename);
+    var filepath = path.join(dir, filename);
 
     if (fs.isDirectory(filepath)) {
       listing.directories.push(filename);
@@ -474,7 +474,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
       }
       if (!served) {
         if (settings.allowDirListing)
-          listDirectory(req, root, relativePath, format, settings);
+          listDirectory(req, file, relativeURI, format, settings);
       }
     }
     else {

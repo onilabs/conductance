@@ -24,7 +24,7 @@ function formatBytes(size) {
 // helper to make a breadcrumbs trail out of the given path:
 function Crumbs(path) {
   var link = '';
-  return path.split('/') .. 
+  return path .. @strip('/') .. @split('/') ..
     @map(function(elem) {
       link += "/#{elem}";
       return `<a href='$link'>$elem</a>`;
