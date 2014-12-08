@@ -99,3 +99,19 @@ exports.getEnv = -> @env.get.apply(@env, arguments);
 exports.request = function(/* .. */) {
 	return @http.request.apply(null, arguments);
 };
+
+exports.deployOfSize = function(kbSize, block) {
+	var bufferOfLength = function(l) {
+		var rv = [];
+		for(var i=0;i<l;i++) rv[i] = 0;
+		return new Buffer(rv);
+	}
+	var kilobyte = bufferOfLength(1024);
+	@TemporaryDir {|dir|
+		@fs.withWriteStream(@path.join(dir, 'payload')) {|out|
+			@info("creating #{kbSize}kb payload");
+			@integers(0, kbSize) .. @transform(_ -> kilobyte) .. @pump(out);
+		}
+		block(dir);
+	}
+}

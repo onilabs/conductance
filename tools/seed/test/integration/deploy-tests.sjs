@@ -2,36 +2,55 @@
 @context {||
 @addTestHooks({clearAround:'all'});
 
+var setUploadPath = function(s, path) {
+	s.mainElem .. @elem('.app-display button[title="settings"]') .. s.driver.click();
+
+	var form = @waitforSuccess( -> s.modal('form'));
+	form .. s.fillForm({
+		path: path,
+	}, false);
+	form .. @trigger('submit');
+	s.waitforNoModal();
+}
+
+@test.beforeAll {|s|
+	s.screenshotOnFailure {||
+		s .. @actions.signup(true);
+		var appList = @waitforSuccess(s.appList);
+		appList .. @map(el -> el.textContent) .. @assert.eq([]);
+		s.createAppButton() .. s.driver.click();
+		var form = @waitforSuccess( -> s.modal('form'));
+		var appName = s.appName = 'app-one';
+		form .. s.fillForm({
+			name: appName,
+			path: '/not-yet-set',
+		});
+		form .. @trigger('submit');
+		s.waitforNoModal();
+		var appList;
+		@waitforCondition(-> (appList = s.appList()).length > 0);
+		appList .. @map(el -> el.textContent) .. @assert.eq([appName]);
+		appList[0] .. @elem('a') .. s.driver.click();
+
+		s.mainElem = s.driver.elem('.app-display');
+		s.appHeader = @waitforSuccess(-> s.mainElem .. @elem('h3 a', el -> el.textContent === appName));
+		// show the console output, for debugging
+		var outputToggle = @waitforSuccess( -> s.mainElem .. @elem('.output-toggle'));
+		outputToggle .. s.driver.click();
+
+	}
+}
+
 @context("deploy a simple app") {||
 	@test.beforeAll {|s|
 		s.screenshotOnFailure {||
-			s .. @actions.signup(true);
-			var appList = @waitforSuccess(s.appList);
-			appList .. @map(el -> el.textContent) .. @assert.eq([]);
-			s.createAppButton() .. s.driver.click();
-			var form = @waitforSuccess( -> s.modal('form'));
-			var appPath = @stub.testPath('integration/fixtures/hello_app');
-			var appName = 'app-one';
-			form .. s.fillForm({
-				name: appName,
-				path: appPath,
-			});
-			form .. @trigger('submit');
-			s.waitforNoModal();
-			var appList;
-			@waitforCondition(-> (appList = s.appList()).length > 0);
-			appList .. @map(el -> el.textContent) .. @assert.eq([appName]);
-			appList[0] .. @elem('a') .. s.driver.click();
+			s .. setUploadPath(@stub.testPath('integration/fixtures/hello_app'));
+			s.mainElem .. s.clickButton(/deploy/);
 
-			var main = s.mainElem = s.driver.elem('.app-display');
-			var appLink = @waitforSuccess(-> main .. @elem('h3 a', el -> el.textContent === appName)).getAttribute('href') + 'ping';
-			// show the console output, for debugging
-			var outputToggle = @waitforSuccess( -> main .. @elem('.output-toggle'));
-			outputToggle .. s.driver.click();
-			main .. s.clickButton(/deploy/);
+			var appLink = s.appHeader.getAttribute('href') + 'ping';
 			var origUrl = @url.parse(appLink);
 			var appId = origUrl.host.replace(/\.localhost.*$/, '');
-			appId .. @assert.eq("#{appName}-#{s.creds .. @get('username')}");
+			appId .. @assert.eq("#{s.appName}-#{s.creds .. @get('username')}");
 
 			var baseUrl = "http://localhost:#{@stub.getEnv('port-proxy')}/";
 			s.appRequest = function(rel, opts) {
@@ -47,7 +66,7 @@
 				return rv;
 			}
 
-			var outputContent = main .. @elem('.output-content');
+			var outputContent = s.mainElem .. @elem('.output-content');
 			@waitforSuccess(-> String(outputContent.textContent) .. @assert.contains('Conductance serving address:'), null, 20);
 		}
 	}
@@ -68,6 +87,20 @@
 		var headers = @waitforSuccess(-> s.appRequest('/log', {body:'Hello!', method:'POST'}));
 		var outputContent = s.mainElem .. @elem('.output-content');
 		@waitforSuccess(-> outputContent.textContent .. @assert.contains('message from client: Hello!'));
+	}
+}
+
+var maxmb = 10;
+@test("upload size is limited to #{maxmb}mb") {|s|
+	@stub.deployOfSize((maxmb * 1024) + 1) {|dir|
+		s .. setUploadPath(dir);
+		s.mainElem .. s.clickButton(/deploy/);
+		var errorDialog = @waitforSuccess( -> s.modal());
+
+		var panel = s.waitforPanel('Application too large');
+		(panel .. @elem('p')).textContent .. @assert.eq("Sorry, this application is a bit big. Applications are currently limited to #{maxmb}mb.");
+		(panel .. @elem('button')) .. s.driver.click();
+		s.waitforNoModal();
 	}
 }
 }.skipIf(!(@isBrowser && @stub.getEnv('docker-enabled')));

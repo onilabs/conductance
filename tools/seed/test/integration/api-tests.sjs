@@ -84,6 +84,19 @@ var {@isAuthenticationError} = require('seed:auth');
 		rejectsName('bad name');
 		rejectsName('-leading-dash');
 	}
+
+	var maxmb = 10;
+	@test("upload size is limited to #{maxmb}mb") {|s|
+		@stub.deployOfSize(10 * 1024 + 1) {|dir|
+			var app = s.api.createApp('123', {name:"biggie"});
+			@assert.raises({
+				filter: function(err) {
+					return err.message === 'Application too large' && err.tooLarge === true && err.maxkb === maxmb*1024;
+				}},
+				-> require('mho:server/seed/local/upload').upload(app, dir)
+			);
+		}
+	}
 }
 
 @context("verification.sjs") {||

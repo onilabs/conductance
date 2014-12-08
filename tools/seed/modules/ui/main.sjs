@@ -358,8 +358,19 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 					btn.disabled = true;
 					try {
 						var overlayStyle = el -> el .. @Style("border-radius: 3px; background-color: rgba(156, 147, 141, 0.55);");
-						@findNode('.btn-group', btn) .. @modal.spinner(overlayStyle) {||
-							localServer.deploy(app.id, @info);
+						try {
+							@findNode('.btn-group', btn) .. @modal.spinner(overlayStyle) {||
+								localServer.deploy(app.id, @info);
+							}
+						} catch(e) {
+							if(e.tooLarge && e.maxkb) {
+								@modal.withOverlay({title:`Application too large`}) {|elem|
+									elem .. @appendContent([
+										@P(`Sorry, this application is a bit big. Applications are currently limited to ${Math.floor(e.maxkb/1024)}mb.`),
+										@Btn('primary', "ok") .. @Class('pull-right'),
+									], (_,btn) -> btn .. @wait('click'));
+								}
+							} else throw e;
 						}
 					} finally {
 						btn.disabled = false;
@@ -545,7 +556,7 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 						container .. @appendContent(@Div([
 							@H3(`Uncaught Error: ${msg}`),
 							@P(@Button("Continue ...", {'class':'btn-danger'}) .. OnClick(-> retry.emit()))
-						]), -> withoutBusyIndicator(-> retry .. @wait()));
+						]), -> @withoutBusyIndicator(-> retry .. @wait()));
 					}
 				}
 			} or {

@@ -10,6 +10,7 @@
 @util = require('../util');
 @constants = require('nodejs:constants');
 @etcd = require('./etcd');
+@bridge = require('mho:rpc/bridge');
 var { @User } = require('../auth/user');
 var { @Endpoint } = require('mho:server/seed/endpoint');
 var { @follow } = require('./follow');
@@ -32,6 +33,7 @@ var conductanceRoot = @path.dirname(require.resolve('mho:').path .. @url.toPath)
 var sjsRoot =         @path.dirname(require.resolve('sjs:').path .. @url.toPath);
 
 var expected_exe_name = /docker/;
+var appSizeLimit = 1024 * 10; // 10mb
 
 var getUserAppRoot = exports.getUserAppRoot = function(user) {
   @assert.ok(user instanceof @User);
@@ -176,6 +178,25 @@ var _loadState = function(path) {
     state: loaded.state,
   };
 };
+
+
+function limitStreamSize(stream, maxkb) {
+  return @Stream(function(emit) {
+    var size = 0;
+    stream .. @each {|chunk|
+      Buffer.isBuffer(chunk) .. @assert.ok();
+      size += chunk.length;
+      if((size/1024) > maxkb) {
+        var err = new Error("Application too large");
+        err.tooLarge = true;
+        err.maxkb = maxkb;
+        err .. @bridge.setMarshallingProperties(['tooLarge', 'maxkb']);
+        throw err;
+      }
+      emit(chunk);
+    }
+  });
+}
 
 
 // local app state (exposed by slaves). Provides information
@@ -563,7 +584,7 @@ exports.masterAppState = (function() {
       }
       @mkdirp(tmpdest);
       try {
-        stream .. @gzip.decompress .. @tar.extract({
+        stream .. @gzip.decompress .. limitStreamSize(appSizeLimit) .. @tar.extract({
           path: tmpdest,
           strip: strip,
         });

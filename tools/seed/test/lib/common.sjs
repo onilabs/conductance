@@ -78,9 +78,10 @@ lib.addTestHooks = function(opts) {
 			s.waitforPanel = function(title) {
 				var matches = @isString(title) ? t -> t === title : t -> title.test(t);
 				@waitforSuccess(function() {
-					var panel = s.modal('.panel-title');
-					@assert.ok(matches(panel.textContent));
+					var panel = s.modal('.panel-title span');
+					@assert.ok(matches(panel.textContent), "Panel title (#{panel.textContent}) doesn't match: #{title}");
 				}, null, 5);
+				return s.modal('.panel-body');
 			}
 			s.clickLink = (elem, text) -> elem .. @elems('a') .. @find(@contentPredicate(text)) .. s.driver.click();
 			s.clickButton = (elem, text) -> elem .. @elems('button') .. @find(@contentPredicate(text)) .. s.driver.click();
@@ -97,13 +98,18 @@ lib.addTestHooks = function(opts) {
 				return match[1];
 			};
 
-			s.fillForm = function(form, props, expectedFields) {
+			s.fillForm = function(form, props, expected) {
 				var inputs = form .. @formInputs();
-				if(!expectedFields) expectedFields = props .. @ownKeys .. @toArray();
-				inputs .. @ownKeys .. @sort() .. @assert.eq(expectedFields .. @sort);
-				inputs .. @ownPropertyPairs .. @each {|[key, elem]|
-					@info("Entering #{props .. @get(key)} into elem #{elem}");
-					elem .. @enter(props .. @get(key));
+				var expectedFields = expected || props .. @ownKeys .. @toArray();
+				if(expected !== false) {
+					// check for completeness
+					inputs .. @ownKeys .. @sort() .. @assert.eq(expectedFields .. @sort);
+				}
+				expectedFields .. @each {|key|
+					var val = props .. @get(key);
+					var elem = inputs[key];
+					@info("Entering #{val} into elem #{elem}");
+					elem .. @enter(val);
 				}
 			}
 
