@@ -1,10 +1,10 @@
+@bridge = require('mho:rpc/bridge');
 var msg = "Authentication error";
 var AuthenticationError = exports.AuthenticationError = function() {
   var rv = new Error(msg);
+  rv.authenticationError = true;
+  rv .. @bridge.setMarshallingProperties(['authenticationError']);
   return rv;
 }
 
-// NOTE: this is deliberately weak, otherwise we'd have to do
-// something more fancy to ensure attributes get persisted across the bridge:
-exports.isAuthenticationError = e -> e.message === msg;
-//exports.isAuthenticationError = e -> e.authentication_error === true;
+exports.isAuthenticationError = e -> e.authenticationError === true;
