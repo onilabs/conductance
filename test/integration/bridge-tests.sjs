@@ -246,6 +246,46 @@ context() {||
       }
     }
 
+    test("Explicit property list") {||
+      var obj = {
+        prop1: 'val1',
+        prop2: 'val2',
+        prop3: 'val3',
+      };
+      obj .. bridge.setMarshallingProperties(['prop1','prop3']);
+
+      var err = new Error("Some failure");
+      err.flag = 'error!';
+      err .. bridge.setMarshallingProperties(['flag']);
+
+      var func = -> null;
+      func.flag = 'function!';
+      func .. bridge.setMarshallingProperties(['flag']);
+
+      bridge.connect(apiUrl(), {server: helper.getRoot()}) {|connection|
+        var api = connection.api;
+        var marshalled = api.identity(obj);
+
+        // used on objects to whitelist properties
+        marshalled .. assert.eq({
+          'prop1':'val1',
+          'prop3':'val3',
+          '__oni_marshalling_properties':['prop1','prop3'],
+        });
+
+        // used on error / function types to include specific
+        // object properties (which are ignored by default)
+        marshalled = api.identity(err);
+        marshalled.__oni_marshalling_properties .. assert.eq(['flag']);
+        marshalled.flag .. assert.eq('error!');
+
+        marshalled = api.identity(func);
+        marshalled.__oni_marshalling_properties .. assert.eq(['flag']);
+        marshalled.flag .. assert.eq('function!');
+      }
+
+    }
+
     test("Error during unmarshalling") {||
       var obj = {text: "Hi there!"};
       bridge.connect(apiUrl(), {server: helper.getRoot()}) {|connection|

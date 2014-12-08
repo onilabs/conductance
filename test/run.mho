@@ -1,4 +1,5 @@
 #!/usr/bin/env conductance
+// vim:syntax=sjs
 
 var { SystemRoutes,
       ExecutableDirectory,

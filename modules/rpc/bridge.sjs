@@ -194,6 +194,9 @@ exports.TransportError = TransportError;
     If called on an object prototype, all objects inherited from that
     prototype will use this marshalling descriptor.
 
+    If you only wish to control which properties of an object are
+    marshalled, see [::setMarshallingProperties].
+
     `descr` must be an object with the following properties:
 
      - wrapLocal: A method accepting a single `localObject` argument,
@@ -231,6 +234,30 @@ exports.setMarshallingDescriptor = setMarshallingDescriptor;
 var defaultMarshallers = [];
 
 exports.defaultMarshallers = defaultMarshallers;
+
+
+/**
+  @function setMarshallingProperties
+  @summary control which properties are marshalled for an object
+  @param {Object} [obj] object or prototype
+  @param {Array} [props] list of (String) property names
+  @desc
+    When called on a plain object, the properties which will be marshalled
+    are limited to `props`, rather than sending all properties defined on the object.
+
+    For special objects which don't marshall properties by default (e.g
+    `Function` or `Error` instances), the properties listed will be
+    marshalled this in addition to the object's standard marshalling behaviour.
+    Note that this is in addition to the default marshalling behaviour, i.e.
+    the stack trace and `message` property will still be marshalled for an `Error`
+    instance even when they aren't listed in `props`.
+
+    For more control over how an object is marshalled, see [::setMarshallingDescriptor].
+*/
+exports.setMarshallingProperties = function (obj, props) {
+  obj.__oni_marshalling_properties = props;
+  return obj;
+};
 
 /**
    @class API
@@ -288,25 +315,34 @@ function marshall(value, connection) {
     var stringifyable = {};
 
     function processProperties(value, root) {
-      return value .. propertyPairs ..
-        filter([name,val] ->
-          root[name] !== val && (
+      var k;
+      if(value.__oni_marshalling_properties)
+        k = value.__oni_marshalling_properties.concat('__oni_marshalling_properties');
+      else
+        k = keys(value) .. filter(name ->
+          root[name] !== value[name] && (
             name === '__oni_apiid' || (
               name != 'toString' && !name.. startsWith('_')
             )
           )
-        ) ..
-        transform([name, val] -> [name, prepare(val)]);
+        );
+      return k .. transform(name -> [name, prepare(value[name])]);
     }
 
     function withProperties(dest, value, root) {
-      var props;
+      var props = dest.props = {};
       processProperties(value, root) .. each {|[name, val]|
-        if (!props) props = dest.props = {};
         props[name] = val;
       }
       return dest;
     }
+
+    function withExplicitProperties(rv, value) {
+      if(value.__oni_marshalling_properties) {
+        rv = rv .. withProperties(value);
+      }
+      return rv;
+    };
 
     function prepare(value) {
       var rv = value;
@@ -318,7 +354,7 @@ function marshall(value, connection) {
         else {
           // a normal function
           // XXX we'll be calling the function with the wrong 'this' object
-          rv = { __oni_type: 'func', id: connection.publishFunction(value) };
+          rv = { __oni_type: 'func', id: connection.publishFunction(value) } .. withExplicitProperties(value);
         }
         rv = rv .. withProperties(value, Function.prototype);
       }
@@ -338,7 +374,7 @@ function marshall(value, connection) {
           rv = { __oni_type: 'custom_marshalled', proxy: rv, wrap: descriptor.wrapRemote };
         }
         else if (value instanceof Error || value._oniE) {
-          rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack };
+          rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack } .. withExplicitProperties(value);
         }
         else if (value.__oni_type == 'api') {
           // publish on the connection:
