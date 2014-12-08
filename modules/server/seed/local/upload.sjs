@@ -9,6 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/** @nodoc */
 @ = require(['mho:std']);
 @tar = require('sjs:nodejs/tar');
 @gzip = require('sjs:nodejs/gzip');
