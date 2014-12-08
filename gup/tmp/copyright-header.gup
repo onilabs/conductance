@@ -10,6 +10,7 @@ var headerFile = @url.normalize('../../tools/copyright-header.txt', module.id) .
 var headerContent = @fs.readFile(headerFile);
 
 var addHeader = exports.addHeader = function(target) {
+  @run('gup',['-u',target]);
   var src = @fs.readFile(target).toString();
   // remove existing header
   var orig = src;
@@ -32,10 +33,11 @@ var addHeader = exports.addHeader = function(target) {
 
 if (require.main === module) {
   var [ stamp, _ ] = @argv();
-  require('../walkdir').walk("../modules") { |m|
-    if (/.+\.(sjs|mho)$/.test(m)) {
-      addHeader(m);
-    }
-  };
-  @fs.writeFile(stamp, '');
+  @run('gup',['-u','./module-list']);
+
+  @fs.withReadStream('./module-list', {encoding:'utf-8'}) {|f|
+    @stream.lines(f) .. @each(path -> addHeader(path.trim()));
+  }
+
+  @fs.writeFile(stamp);
 }

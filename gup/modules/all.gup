@@ -4,3 +4,4 @@ gup -u \
 	surface.sjs \
 	surface/all \
 	sjs-lib-index.json
+gup -u ../tmp/copyright-header
