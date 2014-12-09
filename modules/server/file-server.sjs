@@ -22,7 +22,7 @@ var url    = require('sjs:url');
 var logging = require('sjs:logging');
 var { isString } = require('sjs:string');
 var { override } = require('sjs:object');
-var { each, any, join, Stream } = require('sjs:sequence');
+var { each, any, join, Stream, isStream, toStream, toArray } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
 var { setStatus, setHeader, setDefaultHeader, writeRedirectResponse, HttpError, NotFound } = require('./response');
@@ -47,6 +47,7 @@ function canCompressFormat(encodings, format) {
 
 // http://tools.ietf.org/html/rfc2616#section-14.3
 // TODO should handle identity;q=0 and *;q=0
+// TODO should more specific things like gzip;q=1 take precedence over *;q=0 ?
 function canCompress(headers, format) {
   var encodings = { 'identity': 1 };
   var accept    = headers['accept-encoding'];
@@ -81,6 +82,14 @@ function compress(req, format, input) {
   } else {
     return input;
   }
+}
+
+function isFiniteResponse(x) {
+  return Array.isArray(x);
+}
+
+function isInfiniteResponse(x) {
+  return isStream(x);
 }
 
 // XXX this should be consolidated with the caching in formats.sjs
@@ -149,7 +158,7 @@ function formatResponse(req, item, settings) {
   if (formatdesc.mime) req .. setDefaultHeader("Content-Type", formatdesc.mime);
   if (formatdesc.expires) req .. setDefaultHeader("Expires", formatdesc.expires().toUTCString());
 
-  if (req.request.method == "GET") { // as opposed to "HEAD"
+  if (req.request.method === "GET") { // as opposed to "HEAD"
     // There is a filter function defined for this filetype.
     if (formatdesc.filter) {
       if (formatdesc.cache && etag) {
@@ -157,7 +166,7 @@ function formatResponse(req, item, settings) {
         var cache_entry = formatdesc.cache.get(req.request.url);
 
         if (!cache_entry || cache_entry.etag != etag) {
-          output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
+          output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, filepath: filePath });
           cache_entry = { etag: etag, data: output ..join('') };
           info("populating cache #{req.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(req.request.url, cache_entry, cache_entry.data.length);
@@ -166,23 +175,17 @@ function formatResponse(req, item, settings) {
         // write to response stream:
         verbose("stream from cache #{req.url}");
         // TODO a little bit ugly
-        output = Stream(function (emit) { emit(cache_entry.data); });
-        output = compress(req, formatdesc, output);
+        output = [cache_entry.data];
 
       // no cache or no etag -> filter straight to response
       } else {
-        output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo });
-        output = compress(req, formatdesc, output);
+        output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, filepath: filePath });
       }
 
     // No filter function -> serve the file straight from disk
     // normal request
     } else {
-      /*if (item.length) {
-        req .. setHeader("Content-Length", item.length);
-        req .. setHeader("Accept-Ranges", "bytes");
-      }*/
-      var range;
+      /*var range;
       // TODO what about HEAD requests?
       // TODO what about byte suffix syntax ?
       // TODO what about malformed syntax ?
@@ -198,17 +201,39 @@ function formatResponse(req, item, settings) {
           req .. setHeader("Content-Length", (to-from+1));
           req .. setHeader("Content-Range", "bytes "+from+"-"+to+"/"+item.length);
           status = 206;
-          output = input({start:from, end:to});
+          output = input({ start: from, end: to });
         }
-      } else {
+      } else {*/
         output = input();
-        output = compress(req, formatdesc, output);
-      }
+      //}
     }
   }
 
-  req .. setStatus(status);
-  if (output !== null) {
+  if (output === null) {
+    req .. setStatus(status);
+
+  } else {
+    if (isFiniteResponse(output) || isInfiniteResponse(output)) {
+      output = compress(req, formatdesc, output);
+    } else {
+      throw new Error("expected Array or Stream but got #{output}");
+    }
+
+    /*if (isFiniteResponse(output)) {
+      output = compress(req, formatdesc, output);
+      output = new Buffer(output ..join(''));
+      req .. setHeader("Content-Length", output.length);
+      req .. setHeader("Accept-Ranges", "bytes");
+      output = [output];
+
+    } else if (isInfiniteResponse(output)) {
+
+
+    } else {
+
+    }*/
+
+    req .. setStatus(status);
     stream.pump(output, req.response);
   }
 };
@@ -245,7 +270,7 @@ function listDirectory(req, dir, uriPath, format, settings) {
   var listingJson = JSON.stringify(listing);
   formatResponse(
     req,
-    { input: -> new stream.ReadableStringStream(listingJson, true),
+    { input: -> [listingJson],
       filetype: "/",
       format: format
     },
@@ -309,10 +334,11 @@ function serveFile(req, filePath, format, settings) {
   formatResponse(
     req,
     { input: opts ->
-              // XXX hmm, might need to destroy this somewhere
-              nodefs.createReadStream(filePath, opts),
+               // XXX hmm, might need to destroy this somewhere
+               // TODO this is a temporary hack
+               // TODO I would like to use toStream here, but I can't because of some bug
+               nodefs.createReadStream(filePath, opts) .. toArray,
       filePath: filePath,
-      length: stat.size,
       apiinfo: apiinfo,
       filetype: extension,
       format: format,
@@ -322,13 +348,6 @@ function serveFile(req, filePath, format, settings) {
   return true;
 }
 exports.serveFile = serveFile;
-
-var ensureNodejsStream = function(data) {
-  if(stream.isReadableStream(data)) return data;
-  if (isString(data)) return new stream.ReadableStringStream(data);
-  if (Buffer.isBuffer(data)) return new stream.ReadableStream(data);
-  throw new Error("Can't coerce to nodejs stream: #{data}");
-}
 
 function generateFile(req, filePath, format, settings) {
   var genPath = filePath + ".gen";
@@ -385,12 +404,12 @@ function generateFile(req, filePath, format, settings) {
         } else {
           data = getContents();
         }
-        return data .. ensureNodejsStream();
+        // TODO this is a temporary hack
+        return data .. toStream;
       },
 
       filetype: generator.filetype ? generator.filetype : path.extname(filePath).slice(1),
       format: format,
-//      length: generator.content().length,
       etag: etag,
     },
     settings);
