@@ -37,18 +37,6 @@ var bundleCache = lruCache.makeCache(10*1000*1000); // 10MB
 // filters XXX these should maybe go in their own module
 
 //----------------------------------------------------------------------
-// helper filter to wrap a file in a jsonp response:
-function json2jsonp(src, aux) {
-  return Stream(function (emit) {
-    var callback = aux.request.url.params()['callback'];
-    if (!callback) callback = "callback";
-    emit(callback + "(");
-    src ..each(emit);
-    emit(")");
-  });
-}
-
-//----------------------------------------------------------------------
 // filter that compiles sjs into '__oni_compiled_sjs_1' format:
 function sjscompile(src, aux) {
   // TODO what if src is a Buffer ?
@@ -401,22 +389,6 @@ var Code = (base) -> base
                }
   });
 exports.Code = Code;
-
-/**
-  @function Jsonp
-  @altsyntax base .. Jsonp
-  @param {::FormatMap} [base]
-  @summary return a copy of `base` with mappings for serving JSON files via jsonp
-  @return {::FormatMap}
-  @deprecated
-*/
-var Jsonp = (base) -> base
-  .. withFormats({
-    json: {
-      jsonp    : { mime: "text/javascript", filter: json2jsonp, compress: true }
-    }
-  });
-exports.Jsonp = Jsonp;
 
 
 /**
