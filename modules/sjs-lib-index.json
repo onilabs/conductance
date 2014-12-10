@@ -285,9 +285,6 @@
               "type": "class",
               "children": {}
             },
-            "Jsonp": {
-              "type": "function"
-            },
             "StaticFormatMap": {
               "type": "variable"
             },
