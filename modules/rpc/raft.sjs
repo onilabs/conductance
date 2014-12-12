@@ -10,6 +10,7 @@
  */
 
 /**
+   @nodoc
    @module  server/rpc/raft
    @summary An implementation of the Raft consensus algorithm
 */
