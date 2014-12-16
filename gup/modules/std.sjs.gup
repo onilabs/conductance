@@ -37,8 +37,7 @@ if (hostenv === 'nodejs') {
     {id:'mho:server', name:'server'},
     {id:'mho:server/route', name:'route'},
     {id:'mho:server/response', name:'response'},
-    'mho:server/generator',
-    'mho:server/storage'
+    'mho:server/generator'
   ]);
 }
 

@@ -100,8 +100,7 @@ if (hostenv === 'nodejs') {
     {id:'mho:server', name:'server'},
     {id:'mho:server/route', name:'route'},
     {id:'mho:server/response', name:'response'},
-    'mho:server/generator',
-    'mho:server/storage'
+    'mho:server/generator'
   ]);
 }
 
@@ -157,12 +156,6 @@ module.exports = require(modules);
   
    - **BundleGenerator**: (function [mho:server/generator::BundleGenerator])
    - **moduleTimestamp**: (function [mho:server/generator::moduleTimestamp])
-  
-  
-  ### Symbols from the [mho:server/storage](#mho%3Aserver%2Fstorage) module:
-  *(when in the nodejs environment)*
-  
-   - **Storage**: (class [mho:server/storage::Storage])
   
   
   ### Symbols from the [mho:surface](#mho%3Asurface) module:
