@@ -1,0 +1,2 @@
+@summary Flux Google Cloud Datastore bindings
+@nodoc

@@ -305,7 +305,7 @@ __js {
   exports.encodedKeyEquals = encodedKeyEquals;
 
   /**
-     @function encodedKeyEquals
+     @function encodedKeyCompare
      @summary Returns -1 if k1 < k2, +1, if k1 > k2, 0 otherwise
    */
   function encodedKeyCompare(k1,k2) {
