@@ -15,6 +15,7 @@ var { Context } = require('./gcd/backend');
 var { ChangeBuffer } = require('./helpers');
 
 /**
+  @nodoc
   @hostenv nodejs
 */
 

@@ -95,120 +95,61 @@
     "flux/": {
       "type": "lib",
       "children": {
-        "gcd/": {
-          "type": "lib",
-          "children": {
-            "backend": {
-              "type": "module",
-              "children": {
-                "Context": {
-                  "type": "class",
-                  "children": {
-                    "Context": {
-                      "type": "ctor"
-                    },
-                    "allocateIds": {
-                      "type": "function"
-                    },
-                    "blindWrite": {
-                      "type": "function"
-                    },
-                    "lookup": {
-                      "type": "function"
-                    },
-                    "runQuery": {
-                      "type": "function"
-                    },
-                    "withTransaction": {
-                      "type": "function"
-                    }
-                  }
-                },
-                "DatastoreError": {
-                  "type": "class",
-                  "children": {
-                    "content": {
-                      "type": "variable"
-                    },
-                    "func": {
-                      "type": "variable"
-                    },
-                    "response": {
-                      "type": "variable"
-                    },
-                    "statusCode": {
-                      "type": "variable"
-                    },
-                    "type": {
-                      "type": "variable"
-                    }
-                  }
-                },
-                "Transaction": {
-                  "type": "class",
-                  "children": {
-                    "commit": {
-                      "type": "function"
-                    },
-                    "lookup": {
-                      "type": "function"
-                    },
-                    "runQuery": {
-                      "type": "function"
-                    }
-                  }
-                }
-              },
-              "summary": "API for accessing the [Google Cloud Datastore](https://developers.google.com/datastore/)"
-            }
-          },
-          "summary": "Google cloud datastore backend bindings"
-        },
-        "gcd": {
+        "kv": {
           "type": "module",
           "children": {
-            "Entity": {
+            "ITF_KVSTORE": {
+              "type": "variable"
+            },
+            "KVStore": {
               "type": "class",
               "children": {}
             },
-            "GoogleCloudDatastore": {
+            "Key": {
+              "type": "class",
+              "children": {}
+            },
+            "LevelDB": {
               "type": "class",
               "children": {
-                "GoogleCloudDatastore": {
+                "LevelDB": {
                   "type": "ctor"
-                },
-                "query": {
-                  "type": "function"
-                },
-                "read": {
-                  "type": "function"
-                },
-                "watch": {
-                  "type": "function"
-                },
-                "withTransaction": {
-                  "type": "function"
-                },
-                "write": {
-                  "type": "function"
                 }
               }
             },
-            "Transaction": {
+            "Value": {
               "type": "class",
-              "children": {
-                "query": {
-                  "type": "function"
-                },
-                "read": {
-                  "type": "function"
-                },
-                "write": {
-                  "type": "function"
-                }
-              }
+              "children": {}
+            },
+            "children": {
+              "type": "function"
+            },
+            "clear": {
+              "type": "function"
+            },
+            "get": {
+              "type": "function"
+            },
+            "observe": {
+              "type": "function"
+            },
+            "observeChildren": {
+              "type": "function"
+            },
+            "observeRange": {
+              "type": "function"
+            },
+            "range": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "withTransaction": {
+              "type": "function"
             }
-          }
+          },
+          "summary": "Key-Value Storage"
         }
       },
       "summary": "Flux database framework"

@@ -1,1 +1,0 @@
-@summary Google cloud datastore backend bindings
