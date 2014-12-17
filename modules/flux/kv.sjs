@@ -11,6 +11,7 @@
 
 /**
   @summary Key-Value Storage
+  @hostenv nodejs
 */
 
 module.setCanonicalId('mho:flux/kv');
@@ -43,13 +44,13 @@ module.setCanonicalId('mho:flux/kv');
      
          obj[ITF_KVSTORE].put(key, encoded_value) // set or delete (if value===undefined) entries in the store
 
-         obj[ITF_KVSTORE].range(begin, [end], [options]) // XXX
+         obj[ITF_KVSTORE].range(begin, [end], [options]) // return range of [key,value] pairs in interval [begin, end[
 
-         obj[ITF_KVSTORE].observe(key) // XXX
+         obj[ITF_KVSTORE].observe(key) // return observable tracking key
 
-         obj[ITF_KVSTORE].observeRange(begin, [end], [options]) // XXX
+         obj[ITF_KVSTORE].observeRange(begin, [end], [options]) // return observable tracking range
          
-         obj[ITF_KVSTORE].withTransaction([options], block) // XXX
+         obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
 
     ITF_KVSTORE functions operate on 'encoded' key and value buffers. The [./kv::] API function
     ([::get], etc) mediate between the user-facing key and value representations ([::Key]s and 
