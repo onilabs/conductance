@@ -2,3 +2,4 @@
 /data
 /docker/image
 /key-conductance-apis.json
+/tools/etcd-*/

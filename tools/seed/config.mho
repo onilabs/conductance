@@ -101,7 +101,7 @@ var runAll = function(servers, opts) {
         var host = req.request.headers .. @get('host');
         var source = host.replace(/:.*/, '');
         var url = "https://#{source}:#{canonicalPort}#{req.url.relative ? req.url.relative : ''}";
-        req .. @writeRedirectResponse(url, 302);
+        req .. @response.writeRedirectResponse(url, 302);
       }
     }));
   }
