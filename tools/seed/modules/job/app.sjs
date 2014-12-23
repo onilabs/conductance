@@ -215,6 +215,7 @@ exports.localAppState = (function() {
     var statePath = @path.join(appRunBase, 'state.json');
     var recheckPid = @Emitter();
     var clearLogs = -> @fs.open(logPath, 'w') .. @fs.close();
+    var isStarting = @Condition();
 
     var tailLogs = function(count, emit) {
       if(count === undefined) count = 100;
@@ -274,11 +275,20 @@ exports.localAppState = (function() {
             awaitExit(machineName);
           }
         }
-        emit(false);
-        recheckPid .. @wait();
+        if (!isStarting.isSet) {
+          waitfor {
+            emit(false); // not running, and not starting
+          } and {
+            isStarting.wait();
+          }
+        }
+        waitfor {
+          emit(null);
+        } and {
+          recheckPid .. @wait();
+        }
       }
-    // XXX: add @dedupe
-    }) .. @mirror;
+    }) .. @dedupe .. @mirror;
 
     var startApp = function(throwing) {
       @info("Starting app: #{id}");
@@ -287,131 +297,137 @@ exports.localAppState = (function() {
         else return false;
       }
 
-      @mkdirp(appRunBase);
-
-      var stdio = ['ignore'];
-      // truncate file
-      clearLogs();
-      // then open it twice in append mode (for stdout & stderr)
-      // XXX does having two file descriptors pointing to the same place
-      // lead to interleaving that could otherwise be avoided by
-      // using dup()?
-      waitfor {
-        stdio[1] = @fs.open(logPath, 'a');
-      } and {
-        stdio[2] = @fs.open(logPath, 'a');
-      }
-
-      function log() {
-        var formatted = @logging.formatMessage(@logging.INFO, arguments)[1] + "\n";
-        formatted = new Buffer(formatted);
-        stdio[1] .. @fs.write(formatted,0, formatted.length,null);
-      }
-
-      log("Syncing code...");
-      @info("syncing current code for app #{id}");
-      var codeSources = getMasterCodePaths(user, id);
-      
-      // make sure the server identity matches key-all-ssh-known-hosts to prevent MITM
-      var sshCmd = ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=yes'];
-      if(keyStore) {
-        // if there's no key store (e.g in dev), the current user must already have ssh access
-        sshCmd = sshCmd.concat([
-          '-o', "GlobalKnownHostsFile=#{@path.join(keyStore, "key-all-ssh-known-hosts")}",
-          '-o', "IdentityFile=#{@path.join(keyStore, "key-slave-ssh-id")}",
-        ]);
-      }
-      var cmd = ['rsync', '-az', '-e', sshCmd .. @shellQuote, '--chmod=go-w', '--delete']
-        .concat(codeSources)
-        .concat([ appRunBase ]);
-
-      @info("Running:", cmd);
+      isStarting.set();
       try {
-        @childProcess.run(cmd[0], cmd.slice(1), { stdio: 'inherit'});
-      } catch(e) {
-        log("Code sync failed.");
-        throw e;
-      }
 
-      var codeDest = @path.join(appRunBase, "code");
+        @mkdirp(appRunBase);
 
-      // node does a terrible job of closing open file descriptors (may be
-      // improved in 0.12). So we need to manually mark everything as cloexec.
-      // XXX this is not portable
-      // XXX we use *Sync functions to make sure nobody is opening new file descriptors behind our back
-
-      try {
-        closeAllFileDescriptorsOnExec();
-
-        // Make sure there's no leftover container
-        // (`docker run -rm` is not 100% reliable)
-        // XXX an idempotent `rm` would be much better...
-        tryRunDocker(["rm", machineName]);
-
-        log("Building environment...");
-        var args = ConductanceArgs;
-        var runUser = "app";
-        var readOnly = (path) -> "#{path}:#{path}:ro";
-
-        args = [
-          "docker",
-          "run",
-          "--rm=true",
-          "--publish", "7075",
-          //"--publish", "4043",
-          "--name", machineName,
-          "--hostname", machineName,
-          "--user", runUser,
-          "--memory", '250m', // XXX tune / configure
-          "--workdir", codeDest,
-          "--volume", readOnly(codeDest),
-        ].concat(production ? [
-          "--volume", readOnly('/nix/store'),
-        ] : [
-          // kinda hacky - just ensure that we have all required paths in dev
-          // (it's harmless to add paths that we only need on some boxes)
-          "--volume", readOnly('/usr'),
-          "--volume", readOnly('/bin'),
-          "--volume", readOnly('/lib'),
-          "--volume", readOnly('/lib64'),
-          "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
-          "--volume", readOnly(conductanceRoot),
-          "--volume", readOnly(sjsRoot),
-        ]).concat([
-          "local/conductance-base", // image name
-        ]).concat(args);
-        @info("Running", args);
-        var child = @childProcess.launch(args[0],
-          args.slice(1).concat([
-            'serve', '--port', '7075', '--host', 'any'
-          ]),
-          {
-            stdio: stdio,
-            detached: true,
-          }
-        );
-
-        @info("launched child process: #{child.pid}");
-        var tries = 100;
-        // wait until docker reports this container as running
-        while(true) {
-          if (isRunning.unsafe()) break;
-          if (!@childProcess.isRunning(child.pid)) {
-            if(!@childProcess.isRunning(child.pid)) throw new Error("process died");
-          }
-          if(tries <= 0) {
-            throw new Error("timed out waiting for app start");
-          }
-          hold(500);
-          tries--;
+        var stdio = ['ignore'];
+        // truncate file
+        clearLogs();
+        // then open it twice in append mode (for stdout & stderr)
+        // XXX does having two file descriptors pointing to the same place
+        // lead to interleaving that could otherwise be avoided by
+        // using dup()?
+        waitfor {
+          stdio[1] = @fs.open(logPath, 'a');
+        } and {
+          stdio[2] = @fs.open(logPath, 'a');
         }
-        recheckPid.emit();
-        return true;
-      } catch(e) {
-        log(e.message);
-        throw e;
+
+        function log() {
+          var formatted = @logging.formatMessage(@logging.INFO, arguments)[1] + "\n";
+          formatted = new Buffer(formatted);
+          stdio[1] .. @fs.write(formatted,0, formatted.length,null);
+        }
+
+        log("Syncing code...");
+        @info("syncing current code for app #{id}");
+        var codeSources = getMasterCodePaths(user, id);
+        
+        // make sure the server identity matches key-all-ssh-known-hosts to prevent MITM
+        var sshCmd = ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=yes'];
+        if(keyStore) {
+          // if there's no key store (e.g in dev), the current user must already have ssh access
+          sshCmd = sshCmd.concat([
+            '-o', "GlobalKnownHostsFile=#{@path.join(keyStore, "key-all-ssh-known-hosts")}",
+            '-o', "IdentityFile=#{@path.join(keyStore, "key-slave-ssh-id")}",
+          ]);
+        }
+        var cmd = ['rsync', '-az', '-e', sshCmd .. @shellQuote, '--chmod=go-w', '--delete']
+          .concat(codeSources)
+          .concat([ appRunBase ]);
+
+        @info("Running:", cmd);
+        try {
+          @childProcess.run(cmd[0], cmd.slice(1), { stdio: 'inherit'});
+        } catch(e) {
+          log("Code sync failed.");
+          throw e;
+        }
+
+        var codeDest = @path.join(appRunBase, "code");
+
+        // node does a terrible job of closing open file descriptors (may be
+        // improved in 0.12). So we need to manually mark everything as cloexec.
+        // XXX this is not portable
+        // XXX we use *Sync functions to make sure nobody is opening new file descriptors behind our back
+
+        try {
+          closeAllFileDescriptorsOnExec();
+
+          // Make sure there's no leftover container
+          // (`docker run -rm` is not 100% reliable)
+          // XXX an idempotent `rm` would be much better...
+          tryRunDocker(["rm", machineName]);
+
+          log("Building environment...");
+          var args = ConductanceArgs;
+          var runUser = "app";
+          var readOnly = (path) -> "#{path}:#{path}:ro";
+
+          args = [
+            "docker",
+            "run",
+            "--rm=true",
+            "--publish", "7075",
+            //"--publish", "4043",
+            "--name", machineName,
+            "--hostname", machineName,
+            "--user", runUser,
+            "--memory", '250m', // XXX tune / configure
+            "--workdir", codeDest,
+            "--volume", readOnly(codeDest),
+          ].concat(production ? [
+            "--volume", readOnly('/nix/store'),
+          ] : [
+            // kinda hacky - just ensure that we have all required paths in dev
+            // (it's harmless to add paths that we only need on some boxes)
+            "--volume", readOnly('/usr'),
+            "--volume", readOnly('/bin'),
+            "--volume", readOnly('/lib'),
+            "--volume", readOnly('/lib64'),
+            "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
+            "--volume", readOnly(conductanceRoot),
+            "--volume", readOnly(sjsRoot),
+          ]).concat([
+            "local/conductance-base", // image name
+          ]).concat(args);
+          @info("Running", args);
+          var child = @childProcess.launch(args[0],
+            args.slice(1).concat([
+              'serve', '--port', '7075', '--host', 'any'
+            ]),
+            {
+              stdio: stdio,
+              detached: true,
+            }
+          );
+
+          @info("launched child process: #{child.pid}");
+          var tries = 100;
+          // wait until docker reports this container as running
+          while(true) {
+            if (isRunning.unsafe()) break;
+            if (!@childProcess.isRunning(child.pid)) {
+              if(!@childProcess.isRunning(child.pid)) throw new Error("process died");
+            }
+            if(tries <= 0) {
+              throw new Error("timed out waiting for app start");
+            }
+            hold(500);
+            tries--;
+          }
+          recheckPid.emit();
+          return true;
+        } catch(e) {
+          log(e.message);
+          throw e;
+        } finally {
+          stdio.slice(1) .. @each(@fs.close);
+        }
       } finally {
-        stdio.slice(1) .. @each(@fs.close);
+        isStarting.clear();
       }
     } .. safe();
 

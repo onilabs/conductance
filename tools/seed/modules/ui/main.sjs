@@ -279,17 +279,33 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 		}
 	}) .. @mirror;
 
-	var isRunning = @Stream(function(emit) {
+	// states
+	var RUNNING = 'running';
+	var STOPPED = 'stopped';
+	var STARTING = 'starting';
+	var UNKNOWN = 'unknown';
+	var statusClasses = {
+		running: {icon: 'play', color: 'success'},
+		stopped: {icon: 'stop', color: 'danger'},
+		unknown: {icon: 'flash', color: 'warning'},
+		starting: {icon: 'play', color: 'muted'},
+	};
+
+	var runState = @Stream(function(emit) {
 		appState .. @each.track {|state|
-			if (!state) {
-				// could be either `null` (can't reach server) or `false` (not running; no server assigned)
-				emit(state);
+			if(state === null) {
+				emit(UNKNOWN);
+			} else if (state === false) {
+				emit(STOPPED);
 			} else {
-				state.isRunning .. @each(emit);
+				state.isRunning .. @each {|running|
+					if(running) emit(RUNNING);
+					else if (running === false) emit(STOPPED);
+					else if (running === null) emit(STARTING);
+				}
 			}
 		}
 	}) .. @mirror;
-
 
 	var tailLogs = function(limit, block) {
 		appState .. @each.track(function(state) {
@@ -304,7 +320,6 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 
 	var appName = app.config .. @transform(a -> a.name);
 
-	console.log(app);
 	var deployState = app.state .. @mirror();
 	var deployDate = deployState .. @transform(function(state) {
 		var ts = state.deployed;
@@ -315,13 +330,12 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 		}
 	});
 
-	var statusClass = isRunning .. @transform(ok -> "glyphicon-#{ok ? "play" : ok === false ? "stop" : "flash"}");
-	var statusColorClass = ['text-muted'] .. @concat(isRunning .. @transform(ok -> "text-#{ok ? "success" : ok === false ? "danger" : "warning"}"));
+	var statusClass = runState .. @transform(state -> "glyphicon-#{statusClasses[state].icon}");
+	var statusColorClass = ['text-muted'] .. @concat(runState .. @transform(state -> "text-#{statusClasses[state].color}"));
 
-	// NOTE: isRunning can be `null`, in which case we don't know if the app is running (we can't reach the server)
-	var disableStop = [true] .. @concat(isRunning .. @transform(ok -> ok !== true));
-	var disableStart = [true] .. @concat(@observe(isRunning, deployState, (ok, state) -> !(ok === false && state.deployed)));
-	var endpointUnreachable = isRunning .. @transform(ok -> ok === null) .. @dedupe();
+	var disableStop = [true] .. @concat(runState .. @transform(st -> st !== RUNNING));
+	var disableStart = [true] .. @concat(@observe(runState, deployState, (st, state) -> st !== STOPPED || !state.deployed));
+	var endpointUnreachable = endpoint .. @transform(ep -> ep === null) .. @dedupe();
 	var disableDeploy = [true] .. @concat(endpointUnreachable);
 
 	var disabled = (elem, cond) -> elem .. @Class('disabled', cond);
@@ -355,12 +369,23 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 			}
 		}
 	};
+
+	var startApp = function() {
+		waitfor {
+			// app.start returns as soon as the op is accepted, but we'd like the UI
+			// to spin until at least the endpoint is picked
+			appState .. @filter() .. @first;
+		} and {
+			app.start();
+		}
+	};
+
 	var appDetail = @Div(`
 		<div class="header">
 
 			<div class="btn-group">
 				${toolBtn("stop", 'stop')  .. disabled(disableStop) .. OnClick(toolbarAction(app.stop))}
-				${toolBtn("start", 'play') .. disabled(disableStart) .. OnClick(toolbarAction(app.start))}
+				${toolBtn("start", 'play') .. disabled(disableStart) .. OnClick(toolbarAction(startApp))}
 				${toolBtn("settings", 'cog') .. OnClick(editAppSettings)}
 				${toolBtn("deploy", 'cloud-upload', {'class':'btn-danger'}) .. disabled(disableDeploy) .. OnClick(function(ev) {
 					var btn = ev.currentTarget;
