@@ -210,8 +210,12 @@ function run_validators(field) {
     if (typeof validation_result === 'object') {
       if (validation_result.error)
         errors.push(validation_result.error);
-      else if (validation_result.warning)
+      if (validation_result.warning)
         warnings.push(validation_result.warning);
+      if (validation_result.errors)
+        errors = errors.concat(validation_result.errors);
+      if (validation_result.warnings)
+        warnings = warnings.concat(validation_result.warnings);
     }
     else
       errors.push("Unspecified validation error");
@@ -377,12 +381,12 @@ var FieldMap = (elem) ->
       field.validators.push(function() {
         var errors = [], warnings = [];
         @propertyPairs(fieldmap) .. 
-          @transform.par([key,subfield] -> [key,subfield[CTX_FIELD].validate()]) .. @each {
+          @transform.par([key,subfield] -> [key, subfield[CTX_FIELD].validate()]) .. @each {
             |[key,state]|
-            if (state.errors)
+            if (state.errors.length)
               errors.push({key:key, errors: state.errors});
-            if (state.warnings)
-              errors.push({key:key, warnings: state.warnings});
+            if (state.warnings.length)
+              warnings.push({key:key, warnings: state.warnings});
           }
         return {errors: errors, warnings: warnings};
       });
@@ -471,6 +475,23 @@ var FieldArray = (elem, template) ->
         if (array_mutation) array_mutation_emitter.emit();
       };
     }
+    and {
+      // add validator to the field:
+      field.validators.push(function() {
+        var errors = [], warnings = [];
+        fieldarray .. @indexed .. 
+          @transform.par([key, subfield] -> [key, subfield[CTX_FIELD].validate()]) .. 
+          @each {
+            |[key,state]|
+            if (state.errors.length)
+              errors.push({key:key, errors: state.errors});
+            if (state.warnings.length)
+              warnings.push({key:key, warnings: state.warnings});
+          }
+        return {errors: errors, warnings: warnings};
+      });
+      // XXX could remove validator in finally clause
+    }
   });
 
 exports.FieldArray = FieldArray;
@@ -490,5 +511,6 @@ var Validate = (elem, validator) ->
     if (validator .. @isArrayLike) {
       validator[0] .. @each { |dep| field.validators_deps[dep] = true }
     }
+    // XXX could remove validator in finally clause
   });
 exports.Validate = Validate;
