@@ -105,9 +105,9 @@ var CTX_FIELD = exports.CTX_FIELD = @Interface(module, "ctx_field");
        the following functions defined:
        
        obj[CTX_FIELDCONTAINER] = {
-       getField: function(name),
-       addField: function(name, node),
-       removeField: function(name, node)
+         getField: function(name),
+         addField: function(name, node),
+         removeField: function(name, node)
        }
 
        CTX_FIELDCONTAINER is an internal implementation detail that might
@@ -228,6 +228,7 @@ function validate_field() {
     var {errors, warnings} = field .. run_validators();
   }
   or {
+    hold(100);
     // if the validators don't return immediately, we reset
     // the validation_state to 'unknown':
     if ((field.validation_state .. @current).state !== 'unknown')
@@ -263,29 +264,35 @@ var Field = (elem, name, startval) ->
       validate: validate_field
     };
     
-    var container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
+    var parent_container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
     
     try {
-      if (container) 
-        container.addField(name, node);
+      if (parent_container) 
+        parent_container.addField(name, node);
       
       // asynchronize so that tree gets built before we start validating:
       hold(0);
       
       field.auto_validate .. @each.track {
         |flag|
-        if (!flag) continue;
         field.value .. @each.track {
           ||
-          field.validate();
+          if (flag) {
+            // validate whenever value changes
+            field.validate();
+          }
+          else {
+            // reset to 'unknown' whenever value changes
+            field.validation_state.modify(state -> state.state === 'unknown' ? state : {state: 'unknown', errors:[], warnings:[]});
+          }
         }
       }
     }
     finally {
-      if (container)
-        container.removeField(name, node);
+      if (parent_container)
+        parent_container.removeField(name, node);
     }
-  }, true /* we PREPEND this mechanism, so that ContextualInputMechanism works correctly, even when setting Field  directly on an input element */);
+  }, true /* we PREPEND this mechanism, so that Mechanisms that search for a Field interface (like ContextualInputMechanism) works correctly, even when the Field interface and the Mechanism depending on the Field are on the same element */);
 exports.Field = Field;
 
 
@@ -294,81 +301,17 @@ exports.Field = Field;
    @summary XXX write me
 */
 
-var FieldMap = (elem, name) ->
+var FieldMap = (elem) ->
   elem ..
   @Mechanism(function(node) {
+
+    var field = node .. findContext(CTX_FIELD);
+    if (!field) throw new Error("FieldMap must be contained in a Field");
+    // XXX maybe instantiate a field on us if there isn't one?
+
     var fieldmap = {};
-    
-    var value = @Stream(function(r) {
-      var args = @propertyPairs(fieldmap) .. @map([,subfield] -> subfield[CTX_FIELD].value);
-      // the hold(0) is necessary so that we don't get individual notifications when setting several 
-      // subfields in a temporally contiguous block
-      args.push(-> (hold(0),@zip(@keys(fieldmap), arguments) .. @pairsToObject));
-      @observe.apply(null, args) .. @each {|x| r(x) }
-    }) .. @mirror;
-    
-    value.set = function(x) {
-      @propertyPairs(x) .. @each {
-        |[key,val]|
-        var subfield = fieldmap[key];
-        if (!subfield) continue;
-        subfield[CTX_FIELD].value.set(val);
-      }
-    }
-    
-    var validation_state = @Stream(function(r) {
-      var args = @propertyPairs(fieldmap) .. @map([,subfield] -> subfield[CTX_FIELD].validation_state);
-      args.push(function() {
-        // collect multiple contiguous notifications:
-        hold(0);
-        var unknowns = false;
+    var field_mutation_emitter = @Emitter();
         
-        var {errors, warnings} = field .. run_validators();
-        
-        // collect childrens' validation states:
-        @zip(@keys(fieldmap), arguments) .. @each {
-          |[key, child_state]|
-          switch (child_state.state) {
-          case 'unknown':
-            unknowns = true;
-            break;
-          case 'error':
-            errors.push({key:key, errors: child_state.errors});
-            if (!child_state.warnings.length) break;
-            // else fall through
-          case 'warning':
-            warnings.push({key:key, warnings: child_state.warnings});
-          }
-        }
-        var state;
-        if (errors.length) 
-          state = 'error';
-        else if (warnings.length)
-          state = 'warning';
-        else if (unknowns)
-          state = 'unknown';
-        else
-          state = 'success';
-        return { state: state, errors: errors, warnings: warnings};
-      });
-      
-      @observe.apply(null, args) .. @each {|x| r(x) }
-    }) .. @mirror;
-    
-    
-    var field = node[CTX_FIELD] = {
-      id: "__oni_field_#{++field_id_counter}",
-      
-      value: value,
-      
-      validation_state: validation_state,
-      validators: [],
-      validators_deps: {},
-      validate: function() { 
-        console.log('XXX write me'); 
-      }
-    };
-    
     node[CTX_FIELDCONTAINER] = {
       getField: function(name) { return fieldmap[name]; },
       addField: function(name, field_node) {
@@ -376,27 +319,75 @@ var FieldMap = (elem, name) ->
         if (fieldmap[name]) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
         
         fieldmap[name] = field_node;
+        field_mutation_emitter.emit();
       },
       removeField: function(name, field_node) {
         var entry = fieldmap[name];
         if (!entry) throw new Error("Field '#{name}' not found in FieldMap");
         delete fieldmap[name];
+        field_mutation_emitter.emit();
       }
     };
-    
-    // register with our container if there is one:
-    var container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
-    
-    if (container) {
-      try {
-        container.addField(name, node);
-        hold();
-      }
-      finally {
-        container.removeField(name, node);
+
+
+    var current_value = undefined;
+
+    waitfor {
+      // Keep our associated observable up to date:
+      while (1) {
+        waitfor {
+          var args = @propertyPairs(fieldmap) .. @map([,subfield] -> subfield[CTX_FIELD].value);
+          
+          if (args.length === 0) {
+            current_value = {};
+            field.value.set(current_value);
+            hold();
+          }
+          
+          // the hold(0) is necessary so that we don't get individual notifications when setting several 
+          // subfields in a temporally contiguous block
+          args.push(-> (hold(0),@zip(@keys(fieldmap), arguments) .. @pairsToObject));
+          @observe.apply(null, args) .. @each {
+            |x| 
+            current_value = x;
+            field.value.set(current_value);
+          }
+        }
+        or {
+          field_mutation_emitter .. @wait;
+        }
       }
     }
-    
+    and {
+      // Propagate changes from our associated observable to our
+      // children:
+      field.value .. @each {
+        |x|
+        if (x === current_value) continue;
+        @propertyPairs(x) .. @each {
+          |[key,val]|
+          var subfield = fieldmap[key];
+          if (!subfield) continue;
+          subfield[CTX_FIELD].value.set(val);
+        }
+      }
+    }
+    and {
+      // add validator to the field:
+      field.validators.push(function() {
+        var errors = [], warnings = [];
+        @propertyPairs(fieldmap) .. 
+          @transform.par([key,subfield] -> [key,subfield[CTX_FIELD].validate()]) .. @each {
+            |[key,state]|
+            if (state.errors)
+              errors.push({key:key, errors: state.errors});
+            if (state.warnings)
+              errors.push({key:key, warnings: state.warnings});
+          }
+        return {errors: errors, warnings: warnings};
+      });
+      // XXX could remove validator in finally clause
+    }
   });
 exports.FieldMap = FieldMap;
 
@@ -420,57 +411,17 @@ var FieldArrayItem = (elem, i) ->
     }
   });
 
-var FieldArray = (elem, template, name) ->
+var FieldArray = (elem, template) ->
   elem ..
   @Mechanism(function(node) {
-    
+
+    var field = node .. findContext(CTX_FIELD);
+    if (!field) throw new Error("FieldArray must be contained in a Field");
+    // XXX maybe instantiate a field on us if there isn't one?
+
     var fieldarray = [];
     var array_mutation_emitter = @Emitter();
-    
-    var value = @Stream(function(r) { 
-      while (1) {
-        waitfor {
-          if (!fieldarray.length) { r([]); hold(); }
-          var args = fieldarray .. @map(field -> field[CTX_FIELD].value);
-          // the hold(0) is necessary so that we don't get individual notifications when setting several
-          // fields in a temporally contiguous block
-          args.push(-> (hold(0),arguments .. @toArray));
-          @observe.apply(null, args) .. @each {|x| r(x) }
-        }
-        or {
-          array_mutation_emitter .. @wait;
-        } 
-      }
-    }) .. @mirror;
-    
-    value.set = function(x) { 
-      var array_mutation = false;
-      x .. @indexed .. @each { |[i,val]|
-        if (!fieldarray[i]) { 
-          array_mutation = true;
-          var inserted = (node .. @appendContent(template));
-          fieldarray[i] = inserted[0];
-        }
-        fieldarray[i][CTX_FIELD].value.set(val);
-      }
-      while ( fieldarray.length > x.length) {
-        array_mutation = true;
-        fieldarray.pop() .. @removeNode();
-      }
-      if (array_mutation) array_mutation_emitter.emit();
-    };
-    
-    var field = node[CTX_FIELD] = {
-      id: "__oni_field_#{++field_id_counter}",
-      
-      value: value,
-      
-      validation_state: @ObservableVar({state:'unknown'}), // XXX
-      validators: [],
-      validators_deps: {},
-      validate: function() { /* XXX */ }
-    };
-    
+        
     // fieldcontainer for our array items
     node[CTX_FIELDCONTAINER] = {
       getField: function(name) { /* XXX */ },
@@ -486,24 +437,58 @@ var FieldArray = (elem, template, name) ->
       }
     };
     
-    var container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
-    
-    try {
-      //console.log("Registering #{name} -> #{node}");
-      if (container)
-        container.addField(name, node);
-      hold();
+    var current_value = undefined;
+    waitfor {
+      // Keep our associated observable up to date:
+      while (1) {
+        waitfor {
+          if (!fieldarray.length) { 
+            current_value = []; 
+            field.value.set(current_value); 
+            hold(); 
+          }
+          var args = fieldarray .. @map(field -> field[CTX_FIELD].value);
+          // the hold(0) is necessary so that we don't get individual
+          // notifications when setting several fields in a temporally
+          // contiguous block
+          args.push(-> (hold(0),arguments .. @toArray));
+          @observe.apply(null, args) .. @each {
+            |x|
+            current_value = x;
+            field.value.set(current_value);
+          }
+        }
+        or {
+          array_mutation_emitter .. @wait;
+        } 
+      }
     }
-    finally {
-      if (container)
-        container.removeField(name, node);
+    and {
+      // Propagate changes from our associated observable to our
+      // children:
+      field.value .. @each {
+        |x|
+        if (x === current_value) continue;
+        var array_mutation = false;
+        x .. @indexed .. @each { |[i,val]|
+          if (!fieldarray[i]) { 
+            array_mutation = true;
+            var inserted = (node .. @appendContent(template));
+            fieldarray[i] = inserted[0];
+          }
+          fieldarray[i][CTX_FIELD].value.set(val);
+        }
+        while ( fieldarray.length > x.length) {
+          array_mutation = true;
+          fieldarray.pop() .. @removeNode();
+        }
+        if (array_mutation) array_mutation_emitter.emit();
+      };
     }
-    
-    
   });
 
 exports.FieldArray = FieldArray;
-      
+
 
 /**
    @function Validate
