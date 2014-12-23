@@ -1,0 +1,13 @@
+@assert = require('sjs:assert');
+exports.build = function(size) {
+	var b = new Buffer(size);
+	b.fill("x");
+	return b.toString('ascii');
+};
+
+exports.content = function(params) {
+	var size = parseInt(params.size);
+	@assert.ok(size > 0 && size < (1024 * 1000), "bad size:#{params.size}");
+	return exports.build(size);
+}
+exports.filetype='txt';

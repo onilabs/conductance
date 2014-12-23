@@ -58,5 +58,18 @@ context("serving files") {||
 		http.get(url) .. assert.eq('world!');
 		assert.raises({filter: e -> e.status === 404}, -> http.get(url + '.gen'));
 	}
+
+	test("gzipping a large file") {||
+		var size = 1024 * 50;
+		var rv = http.get(rel("bigfile.txt?size=#{size}"), {
+			headers: {'accept-encoding':'gzip'},
+			response: 'raw',
+		});
+		rv.headers['content-encoding'] .. @assert.eq('gzip', "content was not gzipped!");
+		var contents = (rv .. require('sjs:nodejs/gzip').decompress .. @join()).toString('ascii');
+		var expected = require('./fixtures/bigfile.txt.gen').build(size);
+		contents.length .. @assert.eq(expected.length);
+		contents .. @assert.eq(expected);
+	}.skip("BROKEN");
 }
 
