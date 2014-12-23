@@ -397,20 +397,6 @@ exports.FieldMap = FieldMap;
    @summary XXX write me
 */
 
-var FieldArrayItem = (elem, i) ->
-  elem ..
-  @Mechanism(function(node) {
-    // we allow for node to be an unamed FieldMap or generic HTML
-    // in the latter case we need to add a CTX_FIELD interface:
-    if (!node[CTX_FIELD]) {
-      // inject a field
-      throw new Error("FieldArrays currently only support FieldMap children");
-      node[CTX_FIELD] = {
-        // XXX
-      };
-    }
-  });
-
 var FieldArray = (elem, template) ->
   elem ..
   @Mechanism(function(node) {
@@ -473,7 +459,7 @@ var FieldArray = (elem, template) ->
         x .. @indexed .. @each { |[i,val]|
           if (!fieldarray[i]) { 
             array_mutation = true;
-            var inserted = (node .. @appendContent(template));
+            var inserted = (node .. @appendContent(template .. Field()));
             fieldarray[i] = inserted[0];
           }
           fieldarray[i][CTX_FIELD].value.set(val);
