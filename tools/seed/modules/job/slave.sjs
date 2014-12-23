@@ -69,6 +69,7 @@ exports.main = function(client, serverId, singleton) {
 	}
 };
 
+var { ping:@pingAppOwner } = require('./master');
 
 function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 	var endpointKey = @etcd.app_endpoint(id);
@@ -76,14 +77,51 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 	var portMappingValue = null;
 	withLoad {||
 		try {
-			// clear the logs so user doesn't see a flash of old logs when a new slave takes over
-			if(!alreadyRunning) app.clearLogs();
-			client.set(endpointKey, serverId);
+			// XXX this would be much simpler (we cound just try multiple `prevValue` ops)
+			// if not for https://github.com/coreos/etcd/issues/1619
+			var mightBeRunning = false;
+			while(true) {
+				var currentEndpoint = null;
+				@etcd.tryOp( -> currentEndpoint = client.get(endpointKey).node, [@etcd.err.KEY_NOT_FOUND]);
+				@debug("Current endpoint for #{id} =",currentEndpoint);
+				var currentEndpointValue = currentEndpoint == null ? null : currentEndpoint .. @get('value');
+				if (!([null, "", serverId] .. @hasElem(currentEndpointValue))) {
+					// app is running elsewhere. Ping it, and only take over if it doesn't respond
+					@info("App is already running on another node: #{currentEndpointValue}");
+					if (client .. @pingAppOwner(id)) {
+						@warn("App #{id} is already running on #{currentEndpoint}");
+						return;
+					}
+					@warn("App owner for #{id} did not respond to ping - forcibly taking over");
+				}
+				var setOpts = currentEndpoint
+					? {prevIndex:currentEndpoint .. @get('modifiedIndex')}
+					: {prevExist:false};
+				if(@etcd.tryOp(
+					-> client.set(endpointKey, serverId, setOpts),
+					[@etcd.err.TEST_FAILED]
+				)) {
+					// success, we own the key now
+					mightBeRunning = currentEndpointValue == serverId;
+					break;
+				} else {
+					@info("Race condition when claiming app endpoint; retrying...");
+				}
+			}
+			
+			// if this node was not already running the app, clear the logs so user doesn't
+			// see a flash of logs from some way-old run
+			if(!(alreadyRunning || mightBeRunning)) app.clearLogs();
+
 			waitfor {
 				if (!alreadyRunning) {
-					app.stop();
-					info("running app #{id}");
-					app.start(true);
+					if (mightBeRunning) {
+						app.start(false);
+					} else {
+						app.stop();
+						info("running app #{id}");
+						app.start(true);
+					}
 				}
 				var portBindings = app.getPortBindings();
 				var subdomain = app.subdomain();
@@ -121,6 +159,10 @@ function appRunLoop(client, serverId, info, app, id, withLoad, alreadyRunning) {
 								break;
 							case "start":
 								info("ignoring duplicate [start] request");
+								break;
+							case "ping":
+								// noop, used on duplicate `start` requests to check that the
+								// owning node is still up
 								break;
 							default:
 								info("Unknown app op:", node.value);

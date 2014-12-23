@@ -172,7 +172,7 @@ var _loadState = function(path) {
     @warn("no state found at #{path}");
     loaded = {config: {}, state: {}};
   }
-  @info("Loaded state:", loaded);
+  @debug("Loaded state:", loaded);
   return {
     config: DEFAULT_CONFIG .. @merge(loaded.config),
     state: loaded.state,
@@ -281,6 +281,12 @@ exports.localAppState = (function() {
     }) .. @mirror;
 
     var startApp = function(throwing) {
+      @info("Starting app: #{id}");
+      if(isRunning.unsafe()) {
+        if (throwing) @assert.fail("app already running!");
+        else return false;
+      }
+
       @mkdirp(appRunBase);
 
       var stdio = ['ignore'];
@@ -300,12 +306,6 @@ exports.localAppState = (function() {
         var formatted = @logging.formatMessage(@logging.INFO, arguments)[1] + "\n";
         formatted = new Buffer(formatted);
         stdio[1] .. @fs.write(formatted,0, formatted.length,null);
-      }
-
-      @info("Starting app: #{id}");
-      if(isRunning.unsafe()) {
-        if (throwing) @assert.fail("app already running!");
-        else return false;
       }
 
       log("Syncing code...");
@@ -644,6 +644,7 @@ exports.masterAppState = (function() {
       synchronize: safe.lock.synchronize.bind(safe.lock),
       endpoint: endpointStream,
       publicUrlTemplate: "#{publicUrlBase.protocol}://{name}-#{user.id}.#{publicUrlBase.authority}/",
+      toString: -> "<#App #{appId}>",
     }
   };
 

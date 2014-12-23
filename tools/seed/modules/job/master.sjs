@@ -42,11 +42,16 @@ var op = function(client, op, id, timeout) {
 		if (!@etcd.tryOp(del)) {
 			@warn("delete failed!");
 		}
+		if(op == 'ping') {
+			// specifically designed to check whether a node is failing, so don't throw
+			return false;
+		}
 		throw new Error("#{op} operation failed");
 	}
 }
 
 exports.start = (client, id) -> op(client, 'start', id);
+exports.ping = (client, id) -> op(client, 'ping', id, 5);
 exports.stop = (client, id) -> op(client, 'stop', id);
 exports.sync_code = (client, id) -> op(client, 'sync_code', id);
 

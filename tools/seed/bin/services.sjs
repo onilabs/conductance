@@ -154,7 +154,7 @@ if (require.main === module) {
 	exports.withServices {||
 		var args = @argv();
 		if(args.length == 0) {
-			console.log("services ready ...");
+			console.log("services ready, waiting for shutdown ...");
 			hold();
 		} else {
 			var cmd = args.shift();

@@ -346,22 +346,28 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 
 	var hideSm = c -> @Span(c, {'class':'hidden-sm hidden-xs'});
 	var toolBtn = (text, icon, attrs) -> @Button(["#{text} " .. hideSm, @Icon(icon)], (attrs || {}) .. @merge({title:text}));
+	var toolbarAction = function(action) {
+		return function(ev) {
+			var btn = ev.currentTarget;
+			var overlayStyle = el -> el .. @Style("border-radius: 3px; background-color: rgba(156, 147, 141, 0.55);");
+			@findNode('.btn-group', btn) .. @modal.spinner(overlayStyle) {||
+				action();
+			}
+		}
+	};
 	var appDetail = @Div(`
 		<div class="header">
 
 			<div class="btn-group">
-				${toolBtn("stop", 'stop')  .. disabled(disableStop) .. OnClick(-> app.stop())}
-				${toolBtn("start", 'play') .. disabled(disableStart) .. OnClick(-> app.start())}
+				${toolBtn("stop", 'stop')  .. disabled(disableStop) .. OnClick(toolbarAction(app.stop))}
+				${toolBtn("start", 'play') .. disabled(disableStart) .. OnClick(toolbarAction(app.start))}
 				${toolBtn("settings", 'cog') .. OnClick(editAppSettings)}
 				${toolBtn("deploy", 'cloud-upload', {'class':'btn-danger'}) .. disabled(disableDeploy) .. OnClick(function(ev) {
 					var btn = ev.currentTarget;
 					btn.disabled = true;
 					try {
-						var overlayStyle = el -> el .. @Style("border-radius: 3px; background-color: rgba(156, 147, 141, 0.55);");
 						try {
-							@findNode('.btn-group', btn) .. @modal.spinner(overlayStyle) {||
-								localServer.deploy(app.id, @info);
-							}
+							toolbarAction(-> localServer.deploy(app.id, @info))(ev);
 						} catch(e) {
 							if(e.tooLarge && e.maxkb) {
 								@modal.withOverlay({title:`Application too large`}) {|elem|
