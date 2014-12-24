@@ -398,20 +398,35 @@ exports.FieldMap = FieldMap;
 
 /**
    @function FieldArray
+   @altsyntax elem .. FieldArray(settings)
+   @altsyntax elem .. FieldArray(template)
+   @setting {Function} [arrToVal]
+   @setting {Function} [valToArr]
    @summary XXX write me
 */
 
-var FieldArray = (elem, template) ->
-  elem ..
-  @Mechanism(function(node) {
+function FieldArray(elem, settings) {
+
+  // untangle settings:
+  if (typeof settings === 'function') {
+    settings = { template: settings };
+  }
+
+  return elem ..
+    @Mechanism(function(node) {
 
     var field = node .. findContext(CTX_FIELD);
     if (!field) throw new Error("FieldArray must be contained in a Field");
     // XXX maybe instantiate a field on us if there isn't one?
 
     var fieldarray = [];
+    var FieldArrayLength = @ObservableVar(0);
     var array_mutation_emitter = @Emitter();
         
+    // IndexObservable to pass to template:
+    // all of our indices stay constant atm, but this might change
+    var IndexObservable = i -> @Stream(function(r) { r(i); hold(); });
+
     // fieldcontainer for our array items
     node[CTX_FIELDCONTAINER] = {
       getField: function(name) { /* XXX */ },
@@ -423,12 +438,40 @@ var FieldArray = (elem, template) ->
         var idx = fieldarray.indexOf(field_node);
         if (idx == -1) return; // already removed (from value.set) or we don't know about it
         fieldarray.splice(idx,1);
+        FieldArrayLength.modify(x -> --x);
         array_mutation_emitter.emit();
       }
     };
     
     var current_value = undefined;
     waitfor {
+      // Propagate changes from our associated observable to our
+      // children:
+      field.value .. @each {
+        |x|
+        if (x === current_value) continue;
+
+        if (settings.valToArr)
+          x = settings.valToArr(x);
+
+        var array_mutation = false;
+        FieldArrayLength.modify(l -> x.length);
+        x .. @indexed .. @each { |[i,val]|
+          if (!fieldarray[i]) { 
+            array_mutation = true;
+            var inserted = (node .. @appendContent(settings.template(IndexObservable(i),FieldArrayLength) .. Field()));
+            fieldarray[i] = inserted[0];
+          }
+          fieldarray[i][CTX_FIELD].value.set(val);
+        }
+        while ( fieldarray.length > x.length) {
+          array_mutation = true;
+          fieldarray.pop() .. @removeNode();
+        }
+        if (array_mutation) array_mutation_emitter.emit();
+      };
+    }
+    and {
       // Keep our associated observable up to date:
       while (1) {
         waitfor {
@@ -444,6 +487,10 @@ var FieldArray = (elem, template) ->
           args.push(-> (hold(0),arguments .. @toArray));
           @observe.apply(null, args) .. @each {
             |x|
+            
+            if (settings.arrToVal)
+              x = settings.arrToVal(x);
+
             current_value = x;
             field.value.set(current_value);
           }
@@ -452,28 +499,6 @@ var FieldArray = (elem, template) ->
           array_mutation_emitter .. @wait;
         } 
       }
-    }
-    and {
-      // Propagate changes from our associated observable to our
-      // children:
-      field.value .. @each {
-        |x|
-        if (x === current_value) continue;
-        var array_mutation = false;
-        x .. @indexed .. @each { |[i,val]|
-          if (!fieldarray[i]) { 
-            array_mutation = true;
-            var inserted = (node .. @appendContent(template .. Field()));
-            fieldarray[i] = inserted[0];
-          }
-          fieldarray[i][CTX_FIELD].value.set(val);
-        }
-        while ( fieldarray.length > x.length) {
-          array_mutation = true;
-          fieldarray.pop() .. @removeNode();
-        }
-        if (array_mutation) array_mutation_emitter.emit();
-      };
     }
     and {
       // add validator to the field:
@@ -493,6 +518,7 @@ var FieldArray = (elem, template) ->
       // XXX could remove validator in finally clause
     }
   });
+};
 
 exports.FieldArray = FieldArray;
 
