@@ -1311,12 +1311,13 @@ exports.HorizontalForm = content -> @html.Div(content, {'class':'form-horizontal
   @function FormGroup
   @summary XXX write me
 */
-exports.FormGroup = (content, name, startval) -> 
+exports.FormGroup = (content) -> 
   @html.Div(content, {'class': 'form-group'}) .. 
-  @field.Field(name, startval) ..
   @Mechanism(function(node) {
+    var field = node .. @field.getField();
+    if (!field) return;
     var state = 'unknown';
-    this[@field.CTX_FIELD].validation_state .. @each {
+    field .. @field.validationState() .. @each {
       |validation|
       if (state == validation.state) continue;
       node.classList.remove("has-#{state}");
@@ -1341,6 +1342,7 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
    @summary XXX write me
    @param {Object} [settings]
    @setting {Function} [suggestions] function search_term_stream -> suggestions_stream
+   @setting {HTML} [extra_buttons] 
    @desc
      suggestions can be a stream of arrays of strings or objects:
       { text:String, highlight:Boolean }
@@ -1394,10 +1396,59 @@ var SelectInput = function(settings) {
       { 
         suggestions : [],
         txtToVal: null,
-        valToTxt: null
+        valToTxt: null,
+        extra_buttons: undefined
       } .. @override(settings);
   }
+
+
+  var dropdown = [exports.Btn('default', 
+                              Caret(), 
+                              {'class':'dropdown-toggle', type:'button','data-toggle': 'dropdown'}),
+                  DropdownMenuRight(
+                    // XXX need to get at value here; could pass in as property on the stream receiver ('r')
+                    @Stream(function(r) {
+                      var suggestions;
+                      if (settings.suggestions .. @isSequence)
+                        suggestions = settings.suggestions;
+                      else // function implied
+                        suggestions = settings.suggestions(/*XXX value*/);
+                      
+                      if (suggestions .. @isStream) {
+                        suggestions .. @each { |x| 
+                          if (!@isSequence(x))
+                            x = [x];
+                          r(x .. @map(s -> format_suggestion(s,'XXX value')));
+                        }
+                      }
+                      else { // array implied
+                        r(suggestions .. @map(s -> format_suggestion(s,'XXX value')));
+                      }
+                    })
+                  ) .. 
+                  @On('click', 
+                      {
+                        transform: ev -> { node: @dom.findNode('a', ev.target, ev.currentTarget),
+                                           ev: ev },
+                        filter: {node} -> !!node,
+                        handle: {ev} -> @dom.preventDefault(ev)
+                      },
+                      function({node}) {
+                        // XXX distinguish between contextual and non-contextual SelectInputs
+                        var field = (node .. @field.getField())[@field.CTX_FIELD];
+                        @dom.findNode('.input-group', node).firstChild.value = node.txt;
+                        var val = node.txt;
+                        if (settings.txtToVal)
+                          val = val .. settings.txtToVal;
+                        field.auto_validate.set(true);
+                        field.value.set(val);
+                      }
+                     )
+                 ];
   
+  if (settings.extra_buttons)
+    dropdown[0] = dropdown[0] .. @Style('border-radius:0px');
+
   var rv = 
     InputGroup(
       [
@@ -1405,48 +1456,8 @@ var SelectInput = function(settings) {
           @On('input', 
               ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
         InputGroupBtn([
-          exports.Btn('default', 
-               Caret(), 
-               {'class':'dropdown-toggle', type:'button','data-toggle': 'dropdown'}),
-          DropdownMenuRight(
-            // XXX need to get at value here; could pass in as property on the stream receiver ('r')
-            @Stream(function(r) {
-              var suggestions;
-              if (settings.suggestions .. @isSequence)
-                suggestions = settings.suggestions;
-              else // function implied
-                suggestions = settings.suggestions(/*XXX value*/);
-
-              if (suggestions .. @isStream) {
-                suggestions .. @each { |x| 
-                  if (!@isSequence(x))
-                    x = [x];
-                  r(x .. @map(s -> format_suggestion(s,'XXX value')));
-                }
-              }
-              else { // array implied
-                r(suggestions .. @map(s -> format_suggestion(s,'XXX value')));
-              }
-            })
-          ) .. 
-            @On('click', 
-                {
-                  transform: ev -> { node: @dom.findNode('a', ev.target, ev.currentTarget),
-                                     ev: ev },
-                  filter: {node} -> !!node,
-                  handle: {ev} -> @dom.preventDefault(ev)
-                },
-                function({node}) {
-                  // XXX distinguish between contextual and non-contextual SelectInputs
-                  var field = (node .. @field.getField())[@field.CTX_FIELD];
-                  @dom.findNode('.input-group', node).firstChild.value = node.txt;
-                  var val = node.txt;
-                  if (settings.txtToVal)
-                    val = val .. settings.txtToVal;
-                  field.auto_validate.set(true);
-                  field.value.set(val);
-                }
-               )
+          dropdown,
+          settings.extra_buttons
         ])
       ]
     );
