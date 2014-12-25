@@ -423,10 +423,6 @@ function FieldArray(elem, settings) {
     var FieldArrayLength = @ObservableVar(0);
     var array_mutation_emitter = @Emitter();
         
-    // IndexObservable to pass to template:
-    // all of our indices stay constant atm, but this might change
-    var IndexObservable = i -> @Stream(function(r) { r(i); hold(); });
-
     // fieldcontainer for our array items
     node[CTX_FIELDCONTAINER] = {
       getField: function(name) { /* XXX */ },
@@ -459,14 +455,30 @@ function FieldArray(elem, settings) {
         x .. @indexed .. @each { |[i,val]|
           if (!fieldarray[i]) { 
             array_mutation = true;
-            var inserted = (node .. @appendContent(settings.template(IndexObservable(i),FieldArrayLength) .. Field()));
-            fieldarray[i] = inserted[0];
+            var Index = @ObservableVar(i);
+            var inserted = (node .. 
+                            @appendContent(settings.template(
+                              {
+                                Index:       Index,
+                                ArrayLength: FieldArrayLength,
+                                remove:      function() {
+                                  var i = Index .. @current;
+                                  var field = fieldarray.splice(i, 1)[0];
+                                  field.node .. @removeNode();
+                                  for (/**/;i<fieldarray.length;++i)
+                                    fieldarray[i].Index.modify(l-> --l);
+                                  FieldArrayLength.modify(l-> --l);
+                                  array_mutation_emitter.emit();
+                                }
+                              }) .. 
+                                           Field()));
+            fieldarray[i] = {node: inserted[0], Index: Index};
           }
-          fieldarray[i][CTX_FIELD].value.set(val);
+          fieldarray[i].node[CTX_FIELD].value.set(val);
         }
         while ( fieldarray.length > x.length) {
           array_mutation = true;
-          fieldarray.pop() .. @removeNode();
+          fieldarray.pop().node .. @removeNode();
         }
         if (array_mutation) array_mutation_emitter.emit();
       };
@@ -480,7 +492,7 @@ function FieldArray(elem, settings) {
             field.value.set(current_value); 
             hold(); 
           }
-          var args = fieldarray .. @map(field -> field[CTX_FIELD].value);
+          var args = fieldarray .. @map(field -> field.node[CTX_FIELD].value);
           // the hold(0) is necessary so that we don't get individual
           // notifications when setting several fields in a temporally
           // contiguous block
@@ -505,7 +517,7 @@ function FieldArray(elem, settings) {
       field.validators.push(function() {
         var errors = [], warnings = [];
         fieldarray .. @indexed .. 
-          @transform.par([key, subfield] -> [key, subfield[CTX_FIELD].validate()]) .. 
+          @transform.par([key, subfield] -> [key, subfield.node[CTX_FIELD].validate()]) .. 
           @each {
             |[key,state]|
             if (state.errors.length)
