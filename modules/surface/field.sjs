@@ -252,53 +252,68 @@ function validate_field() {
 }
 
 
-var Field = (elem, name, startval) ->
-  elem ..
-  @Mechanism(function(node) {
+function Field(elem, settings /* || name, startval */) {
+  // untangle settings
+  if (arguments.length === 2 && typeof settings === 'string') {
+    settings = { name: settings };
+  }
+  else if (arguments.length === 3) {
+    settings = { name: settings, startval: arguments[2] }
+  }
+
+  settings = {
+    name:     undefined,
+    startval: '',
+    Value:    undefined
+  } .. @override(settings);
+
+  return elem ..
+    @Mechanism(function(node) {
     
-    var field = node[CTX_FIELD] = {
-      id: "__oni_field_#{++field_id_counter}",
+      var field = node[CTX_FIELD] = {
+        id: "__oni_field_#{++field_id_counter}",
+        
+        value: settings.Value || @ObservableVar(settings.startval),
+        
+        validation_state: @ObservableVar({state:'unknown'}),
+        auto_validate: @ObservableVar(false),
+        validators: [],
+        validators_deps: {},
+        validate: validate_field
+      };
       
-      value: @ObservableVar(startval === undefined ? '' : startval),
+      var parent_container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
       
-      validation_state: @ObservableVar({state:'unknown'}),
-      auto_validate: @ObservableVar(false),
-      validators: [],
-      validators_deps: {},
-      validate: validate_field
-    };
-    
-    var parent_container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
-    
-    try {
-      if (parent_container) 
-        parent_container.addField(name, node);
-      
-      // asynchronize so that tree gets built before we start validating:
-      hold(0);
-      
-      field.auto_validate .. @each.track {
-        |flag|
-        field.value .. @each.track {
-          ||
-          if (flag) {
-            // validate whenever value changes
-            field.validate();
-          }
-          else {
-            // reset to 'unknown' whenever value changes
-            field.validation_state.modify(state -> state.state === 'unknown' ? state : {state: 'unknown', errors:[], warnings:[]});
+      try {
+        if (parent_container) 
+          parent_container.addField(settings.name, node);
+        
+        // asynchronize so that tree gets built before we start validating:
+        hold(0);
+        
+        field.auto_validate .. @each.track {
+          |flag|
+          field.value .. @each.track {
+            ||
+            if (flag) {
+              // validate whenever value changes
+              field.validate();
+            }
+            else {
+              // reset to 'unknown' whenever value changes
+              field.validation_state.modify(state -> state.state === 'unknown' ? state : {state: 'unknown', errors:[], warnings:[]});
+            }
           }
         }
       }
-    }
-    finally {
-      if (parent_container)
-        parent_container.removeField(name, node);
-    }
-  }, true /* we PREPEND this mechanism, so that Mechanisms that search for a Field interface (like ContextualInputMechanism) works correctly, even when the Field interface and the Mechanism depending on the Field are on the same element */);
+      finally {
+        if (parent_container)
+          parent_container.removeField(settings.name, node);
+      }
+    }, true /* we PREPEND this mechanism, so that Mechanisms that search for a Field interface (like ContextualInputMechanism) works correctly, even when the Field interface and the Mechanism depending on the Field are on the same element */);
+};
 exports.Field = Field;
-
+  
 
 /**
    @function FieldMap
