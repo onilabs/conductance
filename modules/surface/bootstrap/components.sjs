@@ -1431,7 +1431,7 @@ var SelectInput = function(settings) {
                       if (settings.suggestions .. @isSequence)
                         suggestions = settings.suggestions;
                       else // function implied
-                        suggestions = settings.suggestions(TextValue);
+                        suggestions = settings.suggestions({TextValue: TextValue, node:textinput});
                       
                       if (suggestions .. @isStream) {
                         node .. @appendContent(
