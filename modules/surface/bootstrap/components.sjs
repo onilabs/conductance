@@ -1359,7 +1359,7 @@ var Caret           = ElemClass('span', 'caret');
 var DropdownMenuRight = content -> @html.Ul(content,{'class':'dropdown-menu pull-right'});
 
 // helper to format suggestions:
-function format_suggestion(s, filter_term) {
+__js function format_suggestion(s, filter_term) {
   if (typeof s === 'string' || typeof s === 'number') {
     s = { text: s }
   }
@@ -1369,18 +1369,30 @@ function format_suggestion(s, filter_term) {
 
   var markup = s.text;
 
-  var index = markup.indexOf(filter_term);
-  if (index == -1) {
-    // suggestion is not really applicable; grey out
-    markup = @html.Span(markup, {style:'color:grey'});
+  if (filter_term.length) {
+    var index = markup.indexOf(filter_term);
+    if (index == -1) {
+      // suggestion is not really applicable; grey out
+      markup = @html.Span(markup, {style:'color:grey'});
+    }
+    else
+      markup = @Quasi(['',
+                       markup.substr(0,index),
+                       '',
+                       @html.Em(filter_term),
+                       '',
+                       markup.substr(index+filter_term.length)
+                      ]);
   }
   else
-    markup = `${markup.substr(0,index)}$@html.Em(filter_term)${markup.substr(index+filter_term.length)}`;
+    markup = @Quasi(['',markup]);
 
   if (s.highlight)
     markup = @html.Strong(markup);
 
-  return  markup .. @html.A({href:'#'}) .. @Prop('txt', s.text);
+  // XXX @Prop introduces a mechanism on *each and every* <li>
+  // here. There is probably a way to make this more efficient.
+  return  markup .. @html.A({href:'#'}) .. @Prop('txt', s.text) .. @html.Li();
 }
 
 var SelectInput = function(settings) {
@@ -1405,28 +1417,46 @@ var SelectInput = function(settings) {
   var dropdown = [exports.Btn('default', 
                               Caret(), 
                               {'class':'dropdown-toggle', type:'button','data-toggle': 'dropdown'}),
-                  DropdownMenuRight(
-                    // XXX need to get at value here; could pass in as property on the stream receiver ('r')
-                    @Stream(function(r) {
+                  DropdownMenuRight() .. 
+                    @Mechanism(function(node) {
+                      // get our associated text input:
+                      var textinput = node.parentNode.parentNode.firstChild;
+
+                      // create an observable for the text entered in the textfield:
+                      var TextValue = @eventStreamToObservable(
+                        @events(textinput, 'input') .. @transform(ev -> ev.target.value),
+                        -> textinput.value);
+
                       var suggestions;
                       if (settings.suggestions .. @isSequence)
                         suggestions = settings.suggestions;
                       else // function implied
-                        suggestions = settings.suggestions(/*XXX value*/);
+                        suggestions = settings.suggestions(TextValue);
                       
                       if (suggestions .. @isStream) {
-                        suggestions .. @each { |x| 
-                          if (!@isSequence(x))
-                            x = [x];
-                          r(x .. @map(s -> format_suggestion(s,'XXX value')));
-                        }
+                        node .. @appendContent(
+                          @observe(suggestions, TextValue, 
+                                   function(suggestions,text) {
+                                     hold(50);
+                                     if (!@isSequence(suggestions))
+                                       suggestions = [suggestions];
+                                     return suggestions .. 
+                                       @map(s -> format_suggestion(s,text));
+                                   })) { 
+                          || hold() }
                       }
                       else { // array implied
-                        r(suggestions .. @map(s -> format_suggestion(s,'XXX value')));
+                        node .. @appendContent(
+                          @observe(TextValue,
+                                   function(text) {
+                                     hold(50);
+                                     return suggestions .. 
+                                       @map(s -> format_suggestion(s,text));
+                                   })) {
+                          || hold() }
                       }
-                    })
-                  ) .. 
-                  @On('click', 
+                    }) .. 
+                    @On('click', 
                       {
                         transform: ev -> { node: @dom.findNode('a', ev.target, ev.currentTarget),
                                            ev: ev },
