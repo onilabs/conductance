@@ -307,7 +307,7 @@ if (hostenv === 'xbrowser') {
     if (@isStream(value)) {
       var internal_set = false;
       waitfor {
-        value .. @each {|val|
+        value .. @each.track {|val|
           if (internal_set) continue;
           if (settings.valToTxt)
             val = settings.valToTxt(val);
