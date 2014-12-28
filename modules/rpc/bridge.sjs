@@ -123,7 +123,7 @@ Protocol:
 */
 
 var logging = require('sjs:logging');
-var { each, toArray, map, filter, find, join, transform, isStream, Stream, at, any } = require('sjs:sequence');
+var { each, toArray, map, filter, find, join, transform, isStream, isBatchedStream, BatchedStream, Stream, at, any } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
@@ -348,8 +348,9 @@ function marshall(value, connection) {
       var rv = value;
       if (typeof value === 'function') {
         if (isStream(value)) {
-          // XXX we want to batch up streams
           rv = { __oni_type: 'stream', id: connection.publishFunction(value) };
+          if (isBatchedStream(value))
+            rv.batched = true;
         }
         else {
           // a normal function
@@ -547,7 +548,9 @@ function unmarshallStream(obj, connection) {
   // them. 
   // To fix this, we introduce an intermediate `getter` function:
 
-  return Stream(
+  var ctor = obj.batched ? BatchedStream : Stream;
+
+  return ctor(
     function(receiver) {
       var have_val, want_val;
       function getter(x) {
