@@ -211,6 +211,7 @@ function formatResponse(req, item, settings) {
 
   if (output === null) {
     req .. setStatus(status);
+    req.response.end();
 
   } else {
     if (isFiniteResponse(output) || isInfiniteResponse(output)) {
