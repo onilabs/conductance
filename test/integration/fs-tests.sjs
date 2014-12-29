@@ -88,8 +88,6 @@ context("serving files") {||
 			@assert.eq(rv.headers['content-length'], "" + buffer.length);
 			@assert.eq(rv.statusCode, 206);
 
-			var length = 6;
-
 			if (from !== "") {
 				@assert.eq(rv.headers['content-range'], "bytes #{from}-#{buffer.length + from - 1}/#{length}");
 			} else {
