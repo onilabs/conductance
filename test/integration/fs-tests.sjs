@@ -3,6 +3,7 @@ var { context, test, assert, isBrowser } = require('sjs:test/suite');
 var http = require('sjs:http');
 var url = require('sjs:url');
 var helper = require('../helper');
+var { contents } = require("sjs:nodejs/stream");
 
 context("serving files") {||
 	var rel = p -> helper.url('test/integration/fixtures/' + p);
@@ -71,5 +72,74 @@ context("serving files") {||
 		contents.length .. @assert.eq(expected.length);
 		contents .. @assert.eq(expected);
 	}.skip("BROKEN");
+
+	test("Range requests") {||
+		var length = 6;
+		var file = "hello.txt";
+
+		function test(from, to, expected) {
+			var rv = http.get(rel(file), {
+				headers: { 'range': "bytes=#{from}-#{to}" },
+				response: 'raw',
+			});
+
+			var buffer = new Buffer(expected);
+			@assert.eq(rv ..contents ..@join(), buffer);
+			@assert.eq(rv.headers['content-length'], "" + buffer.length);
+			@assert.eq(rv.statusCode, 206);
+
+			var length = 6;
+
+			if (from !== "") {
+				@assert.eq(rv.headers['content-range'], "bytes #{from}-#{buffer.length + from - 1}/#{length}");
+			} else {
+				if (to > length) {
+					to = length;
+				}
+
+				@assert.eq(rv.headers['content-range'], "bytes #{length - to}-#{length - 1}/#{length}");
+			}
+		}
+
+		function test_failure(from, to) {
+			var rv = http.get(rel("hello.txt"), {
+				headers: { 'range': "bytes=#{from}-#{to}" },
+				throwing: false,
+				response: 'raw',
+			});
+
+			@assert.eq(rv.statusCode, 416);
+			@assert.eq(rv.headers['content-range'], "bytes */#{length}");
+		}
+
+		test(0, 2, "wor");
+		test(3, 4, "ld");
+		test(0, 4, "world");
+		test(0, 5, "world!");
+		test(0, 9001, "world!");
+		test(0, "", "world!");
+		test(1, "", "orld!");
+
+		test("", 1, "!");
+		test("", 2, "d!");
+		test("", 6, "world!");
+		test("", 9001, "world!");
+
+		test_failure("", "");
+		test_failure(-1, "");
+		test_failure(1, 0);
+		test_failure(6, 7);
+		test_failure("", 0);
+	}.skip("BROKEN");
+
+	test("HEAD") {||
+		var rv = http.request(rel("hello.txt"), {
+			method: 'HEAD',
+			response: 'raw'
+		});
+
+		@assert.eq(rv.statusCode, 200);
+		@assert.eq(rv ..contents ..@join(), '');
+	};
 }
 

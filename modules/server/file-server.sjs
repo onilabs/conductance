@@ -92,6 +92,26 @@ function isInfiniteResponse(x) {
   return isStream(x);
 }
 
+function range_output(req, buffer, from, to) {
+  to = Math.min(to, buffer.length - 1);
+
+  if (from < 0 || from > to || from >= buffer.length) {
+    range_error(req, buffer);
+  } else {
+    var output = buffer.slice(from, to + 1);
+    req .. setHeader("Content-Length", "" + (to - from + 1));
+    req .. setHeader("Content-Range", "bytes #{from}-#{to}/#{buffer.length}");
+    req .. setStatus(206);
+    stream.pump(output, req.response);
+  }
+}
+
+function range_error(req, buffer) {
+  req .. setHeader("Content-Range", "bytes */#{buffer.length}");
+  req .. setStatus(416);
+  req.response.end();
+}
+
 // XXX this should be consolidated with the caching in formats.sjs
 var generatorCache = lruCache.makeCache(10*1000*1000); // 10MB
 
@@ -185,27 +205,7 @@ function formatResponse(req, item, settings) {
     // No filter function -> serve the file straight from disk
     // normal request
     } else {
-      /*var range;
-      // TODO what about HEAD requests?
-      // TODO what about byte suffix syntax ?
-      // TODO what about malformed syntax ?
-      if (item.length && req.request.headers["range"] &&
-          (range=/^bytes=(\d*)-(\d*)$/.exec(req.request.headers["range"]))) {
-        // we honor simple range requests
-        var from = range[1] ? parseInt(range[1]) : 0;
-        var to = range[2] ? parseInt(range[2]) : item.length-1;
-        to = Math.min(to, item.length-1);
-        if (isNaN(from) || isNaN(to) || from<0 || to<from) {
-          status = 416; // range not satisfiable
-        } else {
-          req .. setHeader("Content-Length", (to-from+1));
-          req .. setHeader("Content-Range", "bytes "+from+"-"+to+"/"+item.length);
-          status = 206;
-          output = input({ start: from, end: to });
-        }
-      } else {*/
-        output = input();
-      //}
+      output = input();
     }
   }
 
@@ -233,8 +233,50 @@ function formatResponse(req, item, settings) {
 
     }*/
 
-    req .. setStatus(status);
-    stream.pump(output, req.response);
+    // TODO what about HEAD requests?
+    if (req.request.headers["range"]) {
+      var buffer = new Buffer(output .. join(''));
+
+      // We only handle simple ranges
+      var range = /^bytes=(\d*)-(\d*)$/.exec(req.request.headers["range"]);
+      if (range) {
+        var from = range[1];
+        var to   = range[2];
+
+        if (from) {
+          from = +from;
+
+          if (to) {
+            to = +to;
+          } else {
+            to = buffer.length - 1;
+          }
+
+          range_output(req, buffer, from, to);
+
+        } else if (to) {
+          var offset = +to;
+          from = buffer.length - offset;
+          to   = buffer.length - 1;
+
+          if (from < 0) {
+            from = 0;
+          }
+
+          range_output(req, buffer, from, to);
+
+        } else {
+          range_error(req, buffer);
+        }
+
+      } else {
+        range_error(req, buffer);
+      }
+
+    } else {
+      req .. setStatus(status);
+      stream.pump(output, req.response);
+    }
   }
 };
 
