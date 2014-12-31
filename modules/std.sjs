@@ -164,7 +164,9 @@ module.exports = require(modules);
    - **Attrib**: (function [mho:surface::Attrib])
    - **Autofocus**: (function [mho:surface::Autofocus])
    - **Class**: (function [mho:surface::Class])
+   - **CollectStream**: (function [mho:surface::CollectStream])
    - **Content**: (function [mho:surface::Content])
+   - **ContentGenerator**: (function [mho:surface::ContentGenerator])
    - **CSS**: (function [mho:surface::CSS])
    - **Document**: (function [mho:surface::Document])
    - **Element**: (class [mho:surface::Element])
@@ -188,6 +190,7 @@ module.exports = require(modules);
    - **replaceContent**: (function [mho:surface::replaceContent])
    - **RequireExternalCSS**: (function [mho:surface::RequireExternalCSS])
    - **RequireExternalScript**: (function [mho:surface::RequireExternalScript])
+   - **ScrollStream**: (function [mho:surface::ScrollStream])
    - **Style**: (function [mho:surface::Style])
   
   
@@ -337,6 +340,7 @@ module.exports = require(modules);
    - **monitor**: (function [sjs:sequence::monitor])
    - **pack**: (function [sjs:sequence::pack])
    - **partition**: (function [sjs:sequence::partition])
+   - **product**: (function [sjs:sequence::product])
    - **reduce**: (function [sjs:sequence::reduce])
    - **reduce1**: (function [sjs:sequence::reduce1])
    - **reverse**: (function [sjs:sequence::reverse])

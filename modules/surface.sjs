@@ -21,7 +21,6 @@ if (require('sjs:sys').hostenv === 'xbrowser') {
 }
 module.exports = require(modules);
 
-
 // GENERATED DOCS FOLLOW:
 
 /**
@@ -51,12 +50,14 @@ module.exports = require(modules);
      inserting a String as HTML).
    - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
      to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
-     Typically, this will be an [sjs:observable::ObservableVar] or a Stream derived from one.
+     Typically, this will be an [sjs:observable::ObservableVar] or a Stream derived from one. To append all the
+     elements of a stream, use [sjs:sequence::toArray], [::CollectStream], or [::ScrollStream].
+   - A [::ContentGenerator]
 
   Any other types will be coerced to a String wherever a HtmlFragment
   is required.
 
-  Note: Streams are only allowed for content that will be used in
+  Note: Streams and ContentGenerators are only allowed for content that will be used in
   the 'dynamic world' (i.e. client-side). Attempting to add
   a stream to a [::Document] will raise an error.
 
@@ -584,6 +585,40 @@ module.exports = require(modules);
          @OnClick(ev -> @mainContent .. 
                           @appendContent(ev))
      ));
+
+@function ContentGenerator
+@summary A [::HtmlFragment] consisting of content generated dynamically after inserting in the DOM
+@return {::HtmlFragment}
+@param {Function} [generator] Function that will generate content
+@desc
+  `generator` is a function of signature `f(append, node)`. It will be called when the ContentGenerator
+  is inserted into the DOM (directly or indirectly via a parent of the ContentGenerator 
+  being inserted into the DOM).
+
+  The `append` parameter is a function that `generator` can use to insert content into the DOM. 
+  `node` is the (comment) node that anchors the ContentGenerator in the DOM and next to which the 
+  generated content will be inserted.
+
+@function CollectStream
+@summary A [::HtmlFragment] for inserting all elements of a stream into the DOM
+@param {sjs:sequence::Stream} [stream]
+@return {::HtmlFragment}
+@desc
+  `stream` will be iterated when the CollectStream is inserted into the DOM (directly or indirectly via a 
+  parent of the CollectStream being inserted into the DOM).
+
+  Elements of `stream` will be appended to the DOM as they are produced.
+
+@function ScrollStream
+@summary A [::HtmlFragment] for inserting elements of a stream into the DOM as the user scrolls vertically
+@param {sjs:sequence::Stream} [stream]
+@return {::HtmlFragment}
+@desc
+  `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
+  parent of the CollectStream being inserted into the DOM).
+
+  Elements of `stream` will be appended to the DOM as they are produced and only up the point where they overflow
+  the window. When the user scrolls to the bottom, more elements will be inserted.
 
 @function Document
 @hostenv nodejs

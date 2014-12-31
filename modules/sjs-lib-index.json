@@ -114,17 +114,27 @@
               "children": {
                 "LevelDB": {
                   "type": "ctor"
+                },
+                "close": {
+                  "type": "function"
                 }
               }
+            },
+            "RANGE_ALL": {
+              "type": "variable"
+            },
+            "Range": {
+              "type": "class",
+              "children": {}
             },
             "Value": {
               "type": "class",
               "children": {}
             },
-            "children": {
+            "clear": {
               "type": "function"
             },
-            "clear": {
+            "clearRange": {
               "type": "function"
             },
             "get": {
@@ -133,13 +143,10 @@
             "observe": {
               "type": "function"
             },
-            "observeChildren": {
+            "observeQuery": {
               "type": "function"
             },
-            "observeRange": {
-              "type": "function"
-            },
-            "range": {
+            "query": {
               "type": "function"
             },
             "set": {
@@ -806,7 +813,13 @@
         "Class": {
           "type": "function"
         },
+        "CollectStream": {
+          "type": "function"
+        },
         "Content": {
+          "type": "function"
+        },
+        "ContentGenerator": {
           "type": "function"
         },
         "Document": {
@@ -852,6 +865,9 @@
           "type": "function"
         },
         "RequireExternalScript": {
+          "type": "function"
+        },
+        "ScrollStream": {
           "type": "function"
         },
         "Style": {
