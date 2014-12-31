@@ -65,12 +65,14 @@ exports._getDynOniSurfaceInit = ->
        inserting a String as HTML).
      - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
        to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
-       Typically, this will be an [sjs:observable::ObservableVar] or a Stream derived from one.
+       Typically, this will be an [sjs:observable::ObservableVar] or a Stream derived from one. To append all the
+       elements of a stream, use [sjs:sequence::toArray], [::CollectStream], or [::ScrollStream].
+     - A [::ContentGenerator]
 
     Any other types will be coerced to a String wherever a HtmlFragment
     is required.
 
-    Note: Streams are only allowed for content that will be used in
+    Note: Streams and ContentGenerators are only allowed for content that will be used in
     the 'dynamic world' (i.e. client-side). Attempting to add
     a stream to a [::Document] will raise an error.
 */
@@ -185,6 +187,41 @@ function StreamingContent(stream) {
   return ft;
 }
 
+//----------------------------------------------------------------------
+// generated content
+
+function GeneratedContent(generator) {
+  var dyn = require('./dynamic');
+  
+  function mechanism(node) {
+    var appendFunc;
+    var anchor = node.nextSibling;
+    if (anchor) 
+      appendFunc = (content,block) -> anchor .. dyn.insertBefore(content,block);
+    else
+      appendFunc = (content,block) -> node.parentNode .. dyn.appendContent(content,block);
+
+    generator(appendFunc, node);
+  }
+
+  var ft = CollapsedFragment(), id = ++gMechanismCounter;
+  ft.content = "<!-- surface_stream |#{id}| -->";
+  ft.mechanisms[id] = mechanism;
+  return ft;
+}
+
+__js function isContentGenerator(f) {
+  return f && f.__oni_isContentGenerator === true;
+}
+
+// documented as part of dynamic.sjs
+__js exports.ContentGenerator = function(f) { 
+  f.__oni_isContentGenerator = true;
+  return f;
+}
+
+//----------------------------------------------------------------------
+
 // internal function used by collapseHtmlFragment()
 function appendFragmentTo(target, ft, tag) { 
   if (isQuasi(ft)) {
@@ -206,6 +243,13 @@ function appendFragmentTo(target, ft, tag) {
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
     ft = StreamingContent(ft);
+    ft.appendTo(target, tag);
+  }
+  else if (isContentGenerator(ft)) {
+    // content generators are only allowed in the dynamic world; if the user
+    // tries to use the generated content with e.g. static::Document,
+    // an error will be thrown.
+    ft = GeneratedContent(ft);
     ft.appendTo(target, tag);
   }
   else if (Array.isArray(ft)) {

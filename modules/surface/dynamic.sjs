@@ -19,7 +19,7 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
-var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib } = require('./base');
+var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator } = require('./base');
 var { propertyPairs, keys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
@@ -653,3 +653,86 @@ exports.On = On;
 */
 var OnClick = (html, opts, f) -> html .. On('click', opts, f);
 exports.OnClick = OnClick;
+
+/**
+   @function ContentGenerator
+   @summary A [::HtmlFragment] consisting of content generated dynamically after inserting in the DOM
+   @return {::HtmlFragment}
+   @param {Function} [generator] Function that will generate content
+   @desc
+     `generator` is a function of signature `f(append, node)`. It will be called when the ContentGenerator
+     is inserted into the DOM (directly or indirectly via a parent of the ContentGenerator 
+     being inserted into the DOM).
+
+     The `append` parameter is a function that `generator` can use to insert content into the DOM. 
+     `node` is the (comment) node that anchors the ContentGenerator in the DOM and next to which the 
+     generated content will be inserted.
+*/
+exports.ContentGenerator = ContentGenerator; // from ./base.sjs
+
+/**
+   @function CollectStream
+   @summary A [::HtmlFragment] for inserting all elements of a stream into the DOM
+   @param {sjs:sequence::Stream} [stream]
+   @return {::HtmlFragment}
+   @desc
+     `stream` will be iterated when the CollectStream is inserted into the DOM (directly or indirectly via a 
+     parent of the CollectStream being inserted into the DOM).
+
+     Elements of `stream` will be appended to the DOM as they are produced.
+*/
+var CollectStream = stream -> ContentGenerator ::
+                          function(append) {
+                            var appended = [];
+                            try {
+                              stream .. each {
+                                |item|
+                                appended = appended.concat(append(item));
+                              }
+                              hold();
+                            }
+                            finally {
+                              if (appended.length)
+                                appended .. each(removeNode);
+                            } 
+                          };
+exports.CollectStream = CollectStream;
+
+/**
+   @function ScrollStream
+   @summary A [::HtmlFragment] for inserting elements of a stream into the DOM as the user scrolls vertically
+   @param {sjs:sequence::Stream} [stream]
+   @return {::HtmlFragment}
+   @desc
+     `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
+     parent of the CollectStream being inserted into the DOM).
+
+     Elements of `stream` will be appended to the DOM as they are produced and only up the point where they overflow
+     the window. When the user scrolls to the bottom, more elements will be inserted.
+*/
+
+function elemWithinWindow(elem) {
+  // XXX this needs a better implementation. We need to check if the
+  // actual element is off window.
+  return (document.body.clientHeight - pageYOffset -50 <= window.innerHeight);
+}
+
+var ScrollStream = stream -> ContentGenerator ::
+                          function(append) {
+                            var appended = [];
+                            try {
+                              stream .. each {
+                                |item|
+                                appended = appended.concat(append(item));
+                                // check if the last piece we appended is within window:
+                                while (!elemWithinWindow(appended[appended.length -1]))
+                                  window .. events('scroll') .. wait;
+                              }
+                              hold();
+                            }
+                            finally {
+                              if (appended.length)
+                                appended .. each(removeNode);
+                            } 
+                          };
+exports.ScrollStream = ScrollStream;
