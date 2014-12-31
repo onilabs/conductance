@@ -200,15 +200,14 @@ function LevelDB(location, options, block) {
       var rv = itf.batch([{ type: value === undefined ? 'del' : 'put', key: key, value: value}]);
       return rv;
     },
-    range: function(begin, end, options) {      
+    query: function(range, options) {      
       var query_opts = {
         limit: -1,
-        reverse: false
+        reverse: false,
+        values: true
       } .. @override(options);
-
-      query_opts.gte = begin;
-      if (end !== undefined)
-        query_opts.lt = end;
+      query_opts.gte = range.begin;
+      query_opts.lt = range.end;
 
       return itf.query(query_opts);
     },
@@ -221,12 +220,12 @@ function LevelDB(location, options, block) {
         -> itf.get(key));
 
     },
-    observeRange: function(begin, end, options) {
+    observeQuery: function(range, options) {
       return @eventStreamToObservable(
         MutationEmitter ..
           @filter(kvs -> kvs .. @any(kv -> kv.key .. @encoding.encodedKeyInRange(begin, end))) ..
           @transform(-> kvstore_interface.range(begin, end, options)),
-        -> kvstore_interface.range(begin, end, options)
+        -> kvstore_interface.query(range, options)
       );
     },
     withTransaction: function(options, block) {
@@ -243,10 +242,11 @@ function LevelDB(location, options, block) {
       // level-down doesn't have support for snapshots yet, so we
       // need to make sure that we get consistent reads:
       var reads = {};
+      var queries = [];
 
       var conflict = false;
 
-      var T = {}
+      var T = {};
       T[@kv.ITF_KVSTORE] = {
         get: function(key) {
           var hex_key = key.toString('hex');
@@ -267,17 +267,58 @@ function LevelDB(location, options, block) {
         put: function(key, value) {
           pendingPuts[key.toString('hex')] = [key, value];
         },
-        range: function(begin, end, options) {
-          throw new Error('write me');
+        query: function(range, options) {
+
+          // query and patches are streams of [k, v] pairs
+          function patchQuery(query, patches, reverse) {
+            if (reverse) throw new Error('reverse queries in transactions not implemented yet');
+            return @Stream(function(r) {
+              @consume(patches) {
+                |next_patch|
+                var patch = next_patch();
+                // find first patch, where patch[0] >= range.begin
+                while (patch && @encoding.encodedKeyLess(patch[0], range.begin))
+                  patch = next_patch();
+
+                query .. @each {
+                  |q|
+                  
+                  // apply patches preceding q:
+                  while (patch && @encoding.encodedKeyLess(patch[0], q[0])) {
+                    if (patch[1] !== undefined) r(patch);
+                    patch = next_patch();
+                  }
+                  if (patch && @encoding.encodedKeyEquals(patch[0], q[0])) {
+                    if (patch[1] !== undefined) r(patch);
+                    patch = next_patch();
+                    continue; // patch overrides current value
+                  }
+                  // emit q:
+                  r(q);
+                }
+                
+                // emit remaining patches
+                while (patch && @encoding.encodedKeyLess(patch[0], range.end)) {
+                  r(patch);
+                  patch = next_patch();
+                }
+              }
+            });
+          }
+
+
+          queries.push([range.begin,range.end]);
+          var patches = pendingPuts .. @values .. @sort((a,b) -> @encoding.encodedKeyCompare(a[0],b[0]) );
+          return kvstore_interface.query(range, options) .. patchQuery(patches, options.reverse);
         },
         observe: function(key) {
           throw new Error('write me');
         },
-        observeRange: function(begin, end, options) {
+        observeQuery: function(range, options) {
           throw new Error('write me');
         },
         withTransaction: function(options, block) {
-          block(this);
+          block(T);
         }
       };
 
@@ -294,7 +335,9 @@ function LevelDB(location, options, block) {
           MutationEmitter .. @unpack .. @each {
             |{key}|
             var hex_key = key.toString('hex');
-            if (pendingPuts[hex_key] || reads[hex_key])
+            if (pendingPuts[hex_key] || 
+                reads[hex_key] || 
+                queries .. @any([b,e] -> key .. @encoding.encodedKeyInRange(b,e)))
               break;
           }
           conflict = true;

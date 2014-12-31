@@ -24,8 +24,8 @@ module.setCanonicalId('mho:flux/kv');
    @desc
      Objects of class KVStore implement the [::ITF_KVSTORE] interface. You
      can use them with the [./kv::] module API functions, in particular [::get], 
-     [::set], [::range], [::observe], 
-     [::observeRange], [::children], [::observeChildren] and [::withTransaction].
+     [::set], [::query], [::observe], 
+     [::observeQuery] and [::withTransaction].
      
      For a concrete implementation of KVStore, see [::LevelDB].
 */
@@ -35,8 +35,8 @@ module.setCanonicalId('mho:flux/kv');
    @summary Internal interface for [::KVStore] objects
    @desc
     The interface is not intended to be used by client code directly, but through
-    one of the [./kv::] API functions, in particular [::get], [::set], [::range], [::observe], 
-    [::observeRange], [::children], [::observeChildren] and [::withTransaction].
+    one of the [./kv::] API functions, in particular [::get], [::set], [::query], [::observe], 
+    [::observeQuery] and [::withTransaction].
 
      Objects implementing this interface must implement the following functions:
      
@@ -44,11 +44,11 @@ module.setCanonicalId('mho:flux/kv');
      
          obj[ITF_KVSTORE].put(key, encoded_value) // set or delete (if value===undefined) entries in the store
 
-         obj[ITF_KVSTORE].range(begin, [end], [options]) // return range of [key,value] pairs in interval [begin, end[
+         obj[ITF_KVSTORE].query(range, [options]) // return stream of [key,value] pairs in range
 
          obj[ITF_KVSTORE].observe(key) // return observable tracking key
 
-         obj[ITF_KVSTORE].observeRange(begin, [end], [options]) // return observable tracking range
+         obj[ITF_KVSTORE].observeQuery(range, [options]) // return observable tracking range
          
          obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
 
@@ -76,9 +76,34 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
 
       Keys are sorted in a way that preserves the ordering of the
       individual elements of a tuple key from left to right. This makes it possible to 
-      efficiently query [::KVStore]s for all children with a common prefix ([::children]).
+      efficiently query [::KVStore]s for all children with a common prefix.
       
 */
+
+/**
+   @class Range
+   @summary Structure serving as a range of keys into a [::KVStore].
+   @desc
+      A `Range` is either a [::Key], or an object `{ begin: Key, end: Key }`.
+
+      In the first case, the range denotes all children with the given key as
+      prefix. 
+
+      In the second case, the range begins with the first key in the
+      datastore greater than or equal to `begin` and ends with the last key 
+      less than `end`. 
+
+      The `end` property can be omitted, in which case the range consists of all keys greater
+      than or equal to `begin`.
+      
+*/
+
+/**
+   @variable RANGE_ALL
+   @summary A [::Range] denoting all keys in the data store.
+*/
+var RANGE_ALL = [];
+exports.RANGE_ALL = RANGE_ALL;
 
 /**
    @class Value
@@ -128,15 +153,14 @@ function clear(store, key) {
 exports.clear = clear;
 
 /**
-   @function range
+   @function query
    @param {::KVStore} [kvstore]
-   @param {::Key} [start] 
-   @param {optional ::Key} [end]
+   @param {::Range} [range] 
    @param {optional Object} [settings]
    @return {sjs:sequence::Stream}
    @setting {Boolean} [reverse=false] Reverse direction of range
    @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
-   @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs in the range [start, end[.
+   @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs in the given [::Range].
 */
 
 // helper to decode a key,val tuple:
@@ -145,33 +169,27 @@ __js function decodeKV([k,v]) {
            v .. @encoding.decodeValue];
 }
 
-function range(store, start, end, options) {
-  if (arguments.length === 3 && !Array.isArray(end) && typeof end == 'object') {
-    options = end;
-    end = undefined;
-  }
-  start = @encoding.encodeKey(start);
-  if (end !== undefined)
-    end = @encoding.encodeKey(end);
-  return store[ITF_KVSTORE].range(start, end, options) .. @transform(decodeKV);
+function query(store, range, options) {
+  range = @encoding.encodeKeyRange(range);
+  return store[ITF_KVSTORE].query(range, options || {}) .. @transform(decodeKV);
 }
-exports.range = range;
+exports.query = query;
 
 /**
-   @function children
+   @function clearRange
    @param {::KVStore} [kvstore]
-   @param {::Key} [parent]
-   @param {optional Object} [settings]
-   @return {sjs:sequence::Stream}
-   @setting {Boolean} [reverse=false] Reverse direction of range
-   @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
-   @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs that have `parent` as a prefix.
+   @param {::Range} [range] 
+   @summary Clears any values associated with keys in given range.
 */
-function children(store, parent, options) {
-  var { start, end } = @encoding.encodeKeyRange(parent);
-  return store[ITF_KVSTORE].range(start, end, options) .. @transform(decodeKV);
+function clearRange(store, range) {
+  range = @encoding.encodeKeyRange(range);
+  store[ITF_KVSTORE].query(range, {values:false}) .. @each {
+    |[key]|
+    store[ITF_KVSTORE].put(key, undefined);
+  }
 }
-exports.children = children;
+exports.clearRange = clearRange;
+
 
 /**
    @function observe
@@ -188,44 +206,21 @@ exports.observe = observe;
 
 
 /**
-   @function observeRange
+   @function observeQuery
    @param {::KVStore} [kvstore]
-   @param {::Key} [start]
-   @param {optional ::Key} [end]
+   @param {::Range} [range]
    @param {optional Object} [settings]
    @return {sjs:observable::Observable}
    @setting {Boolean} [reverse=false] Reverse direction of range
    @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
-   @summary Return an [sjs:observable::Observable] of the [sjs:sequence::Stream] of `[key, value]` pairs in the range [start, end[.
+   @summary Return an [sjs:observable::Observable] of the [sjs:sequence::Stream] of `[key, value]` pairs in the given range.
 
 */
-function observeRange(store, start, end, options) {
-  if (arguments.length === 3 && !Array.isArray(end) && typeof end == 'object') {
-    options = end;
-    end = undefined;
-  }
-  start = @encoding.encodeKey(start);
-  if (end !== undefined)
-    end = @encoding.encodeKey(end);
-  return store[ITF_KVSTORE].observeRange(start, end, options) .. @transform(range -> range .. @transform(decodeKV));
+function observeQuery(store, range, options) {
+  range = @encoding.encodeKeyRange(range);
+  return store[ITF_KVSTORE].observeQuery(range, options) .. @transform(kvs -> kvs .. @transform(decodeKV));
 }
-exports.observeRange = observeRange;
-
-/**
-   @function observeChildren
-   @param {::KVStore} [kvstore]
-   @param {::Key} [parent]
-   @param {optional Object} [settings]
-   @return {sjs:observable::Observable}
-   @setting {Boolean} [reverse=false] Reverse direction of range
-   @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
-   @summary Return an [sjs:observable::Observable] of the [sjs:sequence::Stream] of `[key, value]` pairs that have `parent` as a prefix.
-*/
-function observeChildren(store, parent, options) {
-  var { start, end } = @encoding.encodeKeyRange(parent);
-  return store[ITF_KVSTORE].observeRange(start, end, options) .. @transform(range -> range .. @transform(decodeKV));
-}
-exports.observeChildren = observeChildren;
+exports.observeQuery = observeQuery;
 
 /**
    @function withTransaction
@@ -254,11 +249,11 @@ exports.observeChildren = observeChildren;
      Transactions can be nested. The transaction will be committed
      when the outermost transaction block exits.
 
-     [::get], [::range] and [::children] calls performed in the
+     [::get] and [::query] calls performed in the
      transactional context will reflect any prior mutations applied in
      the same transaction (before they are committed to the database).
 
-     [::observe], [::observeRange] and [::observeChildren] calls
+     [::observe], [::observeQuery] calls
      performed in the transactional context will reflect any prior and
      future mutations applied in the same transaction (before they are
      committed to the database).
@@ -285,5 +280,8 @@ exports.withTransaction = withTransaction;
   @param {String} [location] Location of DB on disk
   @param {optional Object} [options] See https://github.com/rvagg/node-leveldown#leveldownopenoptions-callback
   @param {optional Function} [block] Lexical block to scope the LevelDB object to
+
+  @function LevelDB.close
+  @summary  Close the DB.
 */
 exports.LevelDB = -> require('./kv/leveldb').LevelDB.apply(null, arguments);

@@ -66,6 +66,7 @@ __js {
   var minInt = -9007199254740992; // = -Math.pow(2,53)
 
   var nullByte = new Buffer('00', 'hex');
+  var ffByte = new Buffer('ff', 'hex');
 
   function findNullBytes(buf, pos, searchForTerminators) {
 	  var nullBytes = [];
@@ -93,7 +94,7 @@ __js {
   function encode(item, buf, pos) {
 	  var encodedString;
 	  if(typeof item === 'undefined')
-		  throw new TypeError('Packed element cannot be undefined');
+		  throw new TypeError('Key component cannot be undefined');
     
 	  else if(item === null)
 		  return nullByte;
@@ -162,7 +163,7 @@ __js {
 	  }
     
 	  else
-		  throw new TypeError('Packed element must either be a string, a buffer, an integer, or null');
+		  throw new TypeError('Key components must either be a string, a buffer, an integer, or null');
   }
   
   /**
@@ -287,8 +288,16 @@ __js {
      @summary XXX write me
    */
   function encodeKeyRange(arr) {
-	  var packed = encodeKey(arr);
-	  return { start: Buffer.concat([packed, nullByte]), end: Buffer.concat([packed, new Buffer('ff', 'hex')]) };
+    if (typeof arr === 'object' && !Array.isArray(arr)) {
+      return {
+        begin: encodeKey(arr.begin),
+        end: arr.end !== undefined ? encodeKey(arr.end) : ffByte        
+      };
+    }
+    else {
+	    var packed = encodeKey(arr); 
+	    return { begin: Buffer.concat([packed, nullByte]), end: Buffer.concat([packed, ffByte]) };
+    }
   }
   exports.encodeKeyRange = encodeKeyRange;
 
@@ -322,6 +331,15 @@ __js {
     return 0;
   }
   exports.encodedKeyCompare = encodedKeyCompare;
+
+  /**
+     @function encodedKeyLess
+     @summary XXX write me
+   */
+  function encodedKeyLess(k1,k2) {
+    return encodedKeyCompare(k1,k2) < 0;
+  }
+  exports.encodedKeyLess = encodedKeyLess;
   
   /**
      @function encodedKeyInRange
