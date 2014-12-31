@@ -114,4 +114,4 @@ function test_query(db) {
     @test("query") {|s| s.db .. test_query() }
   }
 
-}
+}.serverOnly();
