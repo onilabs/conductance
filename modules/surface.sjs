@@ -21,6 +21,12 @@ if (require('sjs:sys').hostenv === 'xbrowser') {
 }
 module.exports = require(modules);
 
+// XXX make our documentation tests happy:
+if (require('sjs:sys').hostenv !== 'xbrowser') {
+  module.exports.CollectStream = function() { throw new Error("CollectStream only works in the xbrowser hostenv"); };
+  module.exports.ScrollStream = function() { throw new Error("ScrollStream only works in the xbrowser hostenv"); };
+}
+
 // GENERATED DOCS FOLLOW:
 
 /**
