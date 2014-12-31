@@ -108,6 +108,7 @@ context("serving files") {||
 
 			@assert.eq(rv.statusCode, 416);
 			@assert.eq(rv.headers['content-range'], "bytes */#{length}");
+			@assert.eq(rv ..contents ..@join(), "");
 		}
 
 		test(0, 2, "wor");
@@ -128,7 +129,7 @@ context("serving files") {||
 		test_failure(1, 0);
 		test_failure(6, 7);
 		test_failure("", 0);
-	}.skip("BROKEN");
+	};
 
 	test("HEAD") {||
 		var rv = http.request(rel("hello.txt"), {
