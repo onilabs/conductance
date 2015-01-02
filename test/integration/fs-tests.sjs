@@ -3,10 +3,10 @@ var { context, test, assert, isBrowser } = require('sjs:test/suite');
 var http = require('sjs:http');
 var url = require('sjs:url');
 var helper = require('../helper');
-var { contents } = require("sjs:nodejs/stream");
+
+var rel = p -> helper.url('test/integration/fixtures/' + p);
 
 context("serving files") {||
-	var rel = p -> helper.url('test/integration/fixtures/' + p);
 	test("Listing a directory with special characters") {||
 		var contents = http.get(rel(''));
 		contents .. assert.contains('<a href="%2520special%20characters/">%20special characters/</a>');
@@ -59,6 +59,11 @@ context("serving files") {||
 		http.get(url) .. assert.eq('world!');
 		assert.raises({filter: e -> e.status === 404}, -> http.get(url + '.gen'));
 	}
+}
+
+// TODO
+context("Server only") {||
+	var { contents } = require("sjs:nodejs/stream");
 
 	test("gzipping a large file") {||
 		var size = 1024 * 50;
@@ -140,5 +145,4 @@ context("serving files") {||
 		@assert.eq(rv.statusCode, 200);
 		@assert.eq(rv ..contents ..@join(), '');
 	};
-}
-
+}.serverOnly();
