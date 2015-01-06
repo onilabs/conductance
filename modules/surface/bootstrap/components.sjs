@@ -56,12 +56,12 @@ var callWithClasses = callWithClass;
 
 /**
   @function TextRight
-  @altsyntax element .. TextRight 
+  @altsyntax element .. TextRight
   @summary Decorator that causes text in the given block element to be right aligned
   @param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
   @return {surface::Element}
   @desc
-    Returns a copy of `element` with bootstrap's "text-right" class added to the 
+    Returns a copy of `element` with bootstrap's "text-right" class added to the
     element's class list (see http://getbootstrap.com/css/#type-alignment).
 
     If `TextRight` is applied to a [surface::HtmlFragment] that is not of class [surface::Element],
@@ -78,18 +78,18 @@ var callWithClasses = callWithClass;
         "@Div('This is right aligned') .. @TextRight",
         @Div('This is right aligned') .. @TextRight)
         ]);
-    
+
 */
 exports.TextRight = element -> element .. @Class('text-right');
 
 /**
   @function TextCenter
-  @altsyntax element .. TextCenter 
+  @altsyntax element .. TextCenter
   @summary Decorator that causes text in the given block element to be horizontally centered
   @param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
   @return {surface::Element}
   @desc
-    Returns a copy of `element` with bootstrap's "text-center" class added to the 
+    Returns a copy of `element` with bootstrap's "text-center" class added to the
     element's class list (see http://getbootstrap.com/css/#type-alignment).
 
     If `TextCenter` is applied to a [surface::HtmlFragment] that is not of class [surface::Element],
@@ -106,18 +106,18 @@ exports.TextRight = element -> element .. @Class('text-right');
         "@Div('This is center aligned') .. @TextCenter",
         @Div('This is center aligned') .. @TextCenter)
         ]);
-    
+
 */
 exports.TextCenter = element -> element .. @Class('text-center');
 
 /**
   @function TextJustify
-  @altsyntax element .. TextJustify 
+  @altsyntax element .. TextJustify
   @summary Decorator that causes text in the given block element to be justified
   @param {surface::HtmlFragment} [element] block element (e.g. `Div`, `P`, `H1`)
   @return {surface::Element}
   @desc
-    Returns a copy of `element` with bootstrap's "text-justify" class added to the 
+    Returns a copy of `element` with bootstrap's "text-justify" class added to the
     element's class list (see http://getbootstrap.com/css/#type-alignment).
 
     If `TextJustify` is applied to a [surface::HtmlFragment] that is not of class [surface::Element],
@@ -137,7 +137,7 @@ exports.TextCenter = element -> element .. @Class('text-center');
         "@Div('The quick brown fox ...') .. @TextJustify",
         @Div(content) .. @TextJustify)
         ]);
-    
+
 */
 exports.TextJustify = element -> element .. @Class('text-justify');
 
@@ -150,9 +150,9 @@ exports.TextJustify = element -> element .. @Class('text-justify');
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    `btn_classes` is a space-separated list of `btn-*` classes that should be applied to the 
+    `btn_classes` is a space-separated list of `btn-*` classes that should be applied to the
     button:
-    
+
     * **style**: `default`, `primary`, `success`, `info`, `warning`, `danger`, or `link`
     * **sizing**: `lg`, `sm`, or `xs` (or none)
     * **block-level**: `block` (or none)
@@ -165,14 +165,14 @@ exports.TextJustify = element -> element .. @Class('text-justify');
     var btn_styles = ['default', 'primary', 'success', 'info', 'warning', 'danger', 'link'];
     var btn_sizes  = ['lg', '', 'sm', 'xs' ];
     @mainContent .. @appendContent([
-      btn_styles .. 
+      btn_styles ..
         @unpack(cls -> btn_sizes .. @transform(size -> "#{cls} #{size}")) ..
         @transform(cls -> @Btn(cls, "@Btn('#{cls}',CONTENT)") .. @Style("margin:10px;")) ..
         @toArray,
       @Hr(),
       @Btn('block primary', "@Btn('block primary', CONTENT)"),
       @Hr(),
-      
+
       @demo.CodeResult(
         "@Btn('primary',\n      `$@Icon('cloud-download') Download`)",
         @Btn('primary',`$@Icon('cloud-download') Download`))
@@ -188,9 +188,9 @@ exports.Btn = (btn_classes, content, attribs) ->
   @summary Array of names accepted by [::Icon]
 */
 var AvailableIcons = exports.AvailableIcons = [
-'asterisk', 'plus', 'euro', 'minus', 'cloud', 'envelope', 'pencil', 'glass', 'music', 'search', 'heart', 'star', 'star-empty', 'user', 'film', 'th-large', 'th', 'th-list', 'ok', 'remove', 'zoom-in', 'zoom-out', 'off', 'signal', 'cog', 'trash', 'home', 'file', 'time', 'road', 'download-alt', 'download', 'upload', 'inbox', 'play-circle', 'repeat', 'refresh', 'list-alt', 'lock', 'flag', 'headphones', 'volume-off', 'volume-down', 'volume-up', 'qrcode', 'barcode', 'tag', 'tags', 'book', 'bookmark', 'print', 'camera', 'font', 'bold', 'italic', 'text-height', 'text-width', 'align-left', 'align-center', 'align-right', 'align-justify', 
-'list', 'indent-left', 'indent-right', 'facetime-video', 'picture', 'map-marker', 'adjust', 'tint', 'edit', 'share', 'check', 'move', 'step-backward', 'fast-backward', 'backward', 'play', 'pause', 'stop', 'forward', 'fast-forward', 'step-forward', 'eject', 'chevron-left', 'chevron-right', 'plus-sign', 'minus-sign', 'remove-sign', 'ok-sign', 'question-sign', 'info-sign', 'screenshot', 'remove-circle', 'ok-circle', 'ban-circle', 'arrow-left', 'arrow-right', 'arrow-up', 'arrow-down', 'share-alt', 'resize-full', 'resize-small', 'exclamation-sign', 'gift', 'leaf', 'fire', 'eye-open', 'eye-close', 'warning-sign', 'plane', 'calendar', 'random', 'comment', 'magnet', 'chevron-up', 'chevron-down', 'retweet', 'shopping-cart', 'folder-close', 'folder-open', 'resize-vertical', 'resize-horizontal', 'hdd', 'bullhorn', 'bell', 
-'certificate', 'thumbs-up', 'thumbs-down', 'hand-right', 'hand-left', 'hand-up', 'hand-down', 'circle-arrow-right', 'circle-arrow-left', 'circle-arrow-up', 'circle-arrow-down', 'globe', 'wrench', 'tasks', 'filter', 'briefcase', 'fullscreen', 'dashboard', 'paperclip', 'heart-empty', 'link', 'phone', 'pushpin', 'usd', 'gbp', 'sort', 'sort-by-alphabet', 'sort-by-alphabet-alt', 'sort-by-order', 'sort-by-order-alt', 'sort-by-attributes', 'sort-by-attributes-alt', 'unchecked', 'expand', 'collapse-down', 'collapse-up', 'log-in', 'flash', 'log-out', 'new-window', 'record', 'save', 'open', 'saved', 'import', 'export', 'send', 'floppy-disk', 'floppy-saved', 'floppy-remove', 'floppy-save', 'floppy-open', 'credit-card', 'transfer', 
+'asterisk', 'plus', 'euro', 'minus', 'cloud', 'envelope', 'pencil', 'glass', 'music', 'search', 'heart', 'star', 'star-empty', 'user', 'film', 'th-large', 'th', 'th-list', 'ok', 'remove', 'zoom-in', 'zoom-out', 'off', 'signal', 'cog', 'trash', 'home', 'file', 'time', 'road', 'download-alt', 'download', 'upload', 'inbox', 'play-circle', 'repeat', 'refresh', 'list-alt', 'lock', 'flag', 'headphones', 'volume-off', 'volume-down', 'volume-up', 'qrcode', 'barcode', 'tag', 'tags', 'book', 'bookmark', 'print', 'camera', 'font', 'bold', 'italic', 'text-height', 'text-width', 'align-left', 'align-center', 'align-right', 'align-justify',
+'list', 'indent-left', 'indent-right', 'facetime-video', 'picture', 'map-marker', 'adjust', 'tint', 'edit', 'share', 'check', 'move', 'step-backward', 'fast-backward', 'backward', 'play', 'pause', 'stop', 'forward', 'fast-forward', 'step-forward', 'eject', 'chevron-left', 'chevron-right', 'plus-sign', 'minus-sign', 'remove-sign', 'ok-sign', 'question-sign', 'info-sign', 'screenshot', 'remove-circle', 'ok-circle', 'ban-circle', 'arrow-left', 'arrow-right', 'arrow-up', 'arrow-down', 'share-alt', 'resize-full', 'resize-small', 'exclamation-sign', 'gift', 'leaf', 'fire', 'eye-open', 'eye-close', 'warning-sign', 'plane', 'calendar', 'random', 'comment', 'magnet', 'chevron-up', 'chevron-down', 'retweet', 'shopping-cart', 'folder-close', 'folder-open', 'resize-vertical', 'resize-horizontal', 'hdd', 'bullhorn', 'bell',
+'certificate', 'thumbs-up', 'thumbs-down', 'hand-right', 'hand-left', 'hand-up', 'hand-down', 'circle-arrow-right', 'circle-arrow-left', 'circle-arrow-up', 'circle-arrow-down', 'globe', 'wrench', 'tasks', 'filter', 'briefcase', 'fullscreen', 'dashboard', 'paperclip', 'heart-empty', 'link', 'phone', 'pushpin', 'usd', 'gbp', 'sort', 'sort-by-alphabet', 'sort-by-alphabet-alt', 'sort-by-order', 'sort-by-order-alt', 'sort-by-attributes', 'sort-by-attributes-alt', 'unchecked', 'expand', 'collapse-down', 'collapse-up', 'log-in', 'flash', 'log-out', 'new-window', 'record', 'save', 'open', 'saved', 'import', 'export', 'send', 'floppy-disk', 'floppy-saved', 'floppy-remove', 'floppy-save', 'floppy-open', 'credit-card', 'transfer',
 'cutlery', 'header', 'compressed', 'earphone', 'phone-alt', 'tower', 'stats', 'sd-video', 'hd-video', 'subtitles', 'sound-stereo', 'sound-dolby', 'sound-5-1', 'sound-6-1', 'sound-7-1', 'copyright-mark', 'registration-mark', 'cloud-download', 'cloud-upload', 'tree-conifer', 'tree-deciduous'
 ];
 
@@ -203,10 +203,10 @@ var AvailableIcons = exports.AvailableIcons = [
 
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
-    var ColStyle = @CSS(`{padding-bottom:8px;}`); 
+    var ColStyle = @CSS(`{padding-bottom:8px;}`);
     @mainContent .. @appendContent([@Row(
       @AvailableIcons .. @map(name ->
-        @Col('md-3 sm-4 xs-6', [@Icon(name), `&nbsp;&nbsp;@Icon('${@Strong(name)}')`]) .. 
+        @Col('md-3 sm-4 xs-6', [@Icon(name), `&nbsp;&nbsp;@Icon('${@Strong(name)}')`]) ..
         ColStyle
       )
     ),
@@ -235,7 +235,7 @@ exports.Row = wrapWithClass(base_html.Div, 'row');
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    `col_classes` is a space-separated list of `col-*` classes that 
+    `col_classes` is a space-separated list of `col-*` classes that
     should be applied to the col (`N` designates an integer between 1-12, `M` an integer between 0-11):
 
     * **width**: one or more of `xs-N`, `sm-N`, `md-N`, `lg-N`.
@@ -253,27 +253,27 @@ exports.Col = (col_classes, content, attribs) ->
   @summary A bootstrap container (`<div class="container">`)
   @return {surface::Element}
   @desc
-    [::Container] centers its content and scales it in discrete steps 
+    [::Container] centers its content and scales it in discrete steps
     according to screen width.
 
     ### Notes
-  
+
     * See also http://getbootstrap.com/css/#overview-container.
-    
+
     * Bootstrap requires a containing element to wrap site contents
     and house the grid system. You can choose between [::Container]
     or [::FluidContainer].
 
     * Containers are not nestable.
 
-    * *.app file ([mho:#features/app-file::]) with Bootstrap-enabled doc-templates 
-    ([mho:surface/doc-template/::]) will typically already have a Container element. 
-    E.g. the [mho:surface/doc-template/app-default::] template's 
+    * *.app file ([mho:#features/app-file::]) with Bootstrap-enabled doc-templates
+    ([mho:surface/doc-template/::]) will typically already have a Container element.
+    E.g. the [mho:surface/doc-template/app-default::] template's
     [mho:surface/doc-template/app-default::mainContent] element will be a [::Container]
-    by default, or a [::FluidContainer] if the 
+    by default, or a [::FluidContainer] if the
     [mho:surface/doc-template/app-default::@template-fluid] directive is set to `true`.
-    
-    
+
+
 */
 exports.Container = wrapWithClass(base_html.Div, 'container');
 
@@ -316,7 +316,7 @@ exports.Lead = wrapWithClass(base_html.P, 'lead');
 
 /**
   @function Lbl
-  @summary Bootstrap label (`<span class='label'>`) 
+  @summary Bootstrap label (`<span class='label'>`)
   @param {optional String} [variant='default'] `label-*` class to apply to the label
   @param {surface::HtmlFragment} [content]
   @return {surface::Element}
@@ -324,7 +324,7 @@ exports.Lead = wrapWithClass(base_html.P, 'lead');
     See also http://getbootstrap.com/components/#labels.
 
     `variant` is an optional `label-*` class to apply to the label:
-    
+
     * **style**: `default`, `primary`, `success`, `info`, `warning`, or `danger`
 
   @demo
@@ -366,7 +366,7 @@ exports.Lbl = function(/*lbl_classes, content */) {
   @function Badge
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-  @summary 'Badge' typically used for highlighting new or unread items (`<span class='badge'>`) 
+  @summary 'Badge' typically used for highlighting new or unread items (`<span class='badge'>`)
   @return {surface::Element}
   @desc
     * See http://getbootstrap.com/components/#badges
@@ -376,7 +376,7 @@ exports.Lbl = function(/*lbl_classes, content */) {
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
-    var Items = @generate(Math.random) .. 
+    var Items = @generate(Math.random) ..
       @transform(x -> (hold(1000), Math.round(x*100)));
 
     @mainContent .. @appendContent([
@@ -386,7 +386,7 @@ exports.Lbl = function(/*lbl_classes, content */) {
       ),
       @demo.CodeResult("\
     var Items = @ObservableVar(0);
-    ...  
+    ...
     @A(`Inbox $@Badge(Items)`)",
         @A(`Inbox $@Badge(Items)`)
       )
@@ -451,7 +451,7 @@ exports.ListGroupItem = function(/*cls, content*/) {
     cls = '';
     content = arguments[0];
   }
-    
+
   return @Element('div', content, {'class': 'list-group-item '+prefixClasses(cls, 'list-group-item-') });
 }
 
@@ -473,9 +473,9 @@ exports.PageHeader = (content, attribs) -> callWithClass(base_html.Div, 'page-he
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    `panel_classes` is a space-separated list of `panel-*` classes that should be applied to the 
+    `panel_classes` is a space-separated list of `panel-*` classes that should be applied to the
     panel:
-    
+
     * **context**: `default`, `primary`, `success`, `info`, `warning`, or `danger`
 */
 exports.Panel = (panel_classes, content, attribs) ->
@@ -517,7 +517,7 @@ exports.PanelTitle = wrapWithClass(base_html.H3, 'panel-title');
   @function doModal
   @altsyntax doModal(body, [settings], block)
   @altsyntax doModal([settings]) { |dialog| ... }
-  @param {Object} [settings] 
+  @param {Object} [settings]
   @param {Function} [block] Function bounding lifetime of dialog; will be called with DOM node of dialog as first argument.
   @return {Object} `undefined` if the dialog is dismissed with the close button, by clicking on the backdrop or typing 'Escape', otherwise equal to the return value of `block`
   @setting {surface::HtmlFragment} [body]
@@ -542,7 +542,7 @@ exports.PanelTitle = wrapWithClass(base_html.H3, 'panel-title');
         body: Status .. @H2() .. @TextCenter,
         footer: @Btn('primary', 'Abort') .. @Enabled(Countdown) .. @OnClick({|| return})
       }) {
-        || 
+        ||
         for (var i=9; i>=0; --i) {
           hold(1000);
           Countdown.set(i);
@@ -566,11 +566,11 @@ exports.PanelTitle = wrapWithClass(base_html.H3, 'panel-title');
         @doModal({
           title: `Rocket Launch`,
           body: Status .. @H2() .. @TextCenter,
-          footer: @Btn('primary', 'Abort') .. 
-                    @Enabled(Countdown) .. 
+          footer: @Btn('primary', 'Abort') ..
+                    @Enabled(Countdown) ..
                     @OnClick({|| return})
         }) {
-          || 
+          ||
           for (var i=9; i>=0; --i) {
             hold(1000);
             Countdown.set(i);
@@ -581,7 +581,7 @@ exports.PanelTitle = wrapWithClass(base_html.H3, 'panel-title');
           hold();
         }
       }
-      
+
       @mainContent .. @appendContent(
         @Btn('primary', 'Launch Rocket') .. @OnClick(launch)
       );\
@@ -640,7 +640,7 @@ function doModal() {
       </div>
      </div>`) {
     |dialog|
-    
+
     $(dialog).modal(bs_options);
     try {
       waitfor {

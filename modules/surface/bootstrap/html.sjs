@@ -60,7 +60,7 @@ var callWithClasses = callWithClass;
         @Button('Click me')
       )]);
 
-    
+
 */
 exports.Button = wrapWithClasses(base_html.Button, ['btn', 'btn-default']);
 
@@ -77,11 +77,11 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
   @function Input
   @summary Bootstrap-styled input (`<input class="form-control">`)
   @param  {String} [type]
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value 
+    When the element is inserted into the document, its value
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If (in addition)
     `value` is an [sjs:observable::ObservableVar], then `value` will
