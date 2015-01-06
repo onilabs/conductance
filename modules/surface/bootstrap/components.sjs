@@ -462,6 +462,29 @@ exports.ListGroupItem = function(/*cls, content*/) {
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary <div class="page-header"><h1>{content}</h1></div>
   @return {surface::Element}
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    [
+      @PageHeader('This is a page header.'),
+      @P('This is a normal paragraph.')
+    ]",
+    [
+      @PageHeader('This is a page header.'),
+      @P('This is a normal paragraph.')
+    ]),
+
+      @demo.CodeResult("\
+    [
+      @PageHeader(`This is a page header with ${@Small('small text')}.`),
+      @P('This is a normal paragraph.')
+    ]",
+    [
+      @PageHeader(`This is a page header with ${@Small('small text')}.`),
+      @P('This is a normal paragraph.')
+    ])
+    ]);
 */
 exports.PageHeader = (content, attribs) -> callWithClass(base_html.Div, 'page-header', `<h1>$content</h1>`, attribs);
 
@@ -477,6 +500,152 @@ exports.PageHeader = (content, attribs) -> callWithClass(base_html.Div, 'page-he
     panel:
 
     * **context**: `default`, `primary`, `success`, `info`, `warning`, or `danger`
+
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @Panel('default', [
+      'No heading, no body'
+    ])",
+    @Panel('default', [
+      'No heading, no body'
+    ])),
+
+      @demo.CodeResult("\
+    @Panel('default', [
+      @PanelBody('No heading')
+    ])",
+    @Panel('default', [
+      @PanelBody('No heading')
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('default', [
+      @PanelHeading('No body')
+    ])",
+    @Panel('default', [
+      @PanelHeading('No body')
+    ])),
+
+      @demo.CodeResult("\
+    @Panel('default', [
+      @PanelHeading(@PanelTitle('Heading')),
+      @PanelBody('Body')
+    ])",
+    @Panel('default', [
+      @PanelHeading(@PanelTitle('Heading')),
+      @PanelBody('Body')
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('primary', [
+      @PanelHeading(@PanelTitle('Primary heading')),
+      @PanelBody('Primary body')
+    ])",
+    @Panel('primary', [
+      @PanelHeading(@PanelTitle('Primary heading')),
+      @PanelBody('Primary body')
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('success', [
+      @PanelHeading(@PanelTitle('Success heading')),
+      @PanelBody('Success body')
+    ])",
+    @Panel('success', [
+      @PanelHeading(@PanelTitle('Success heading')),
+      @PanelBody('Success body')
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('info', [
+      @PanelHeading(@PanelTitle('Info heading')),
+      @PanelBody('Info body')
+    ])",
+    @Panel('info', [
+      @PanelHeading(@PanelTitle('Info heading')),
+      @PanelBody('Info body')
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('warning', [
+      @PanelHeading(@PanelTitle('Warning heading')),
+      @PanelBody('Warning body')
+    ])",
+    @Panel('warning', [
+      @PanelHeading(@PanelTitle('Warning heading')),
+      @PanelBody('Warning body')
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('danger', [
+      @PanelHeading(@PanelTitle('Danger heading')),
+      @PanelBody('Danger body')
+    ])",
+    @Panel('danger', [
+      @PanelHeading(@PanelTitle('Danger heading')),
+      @PanelBody('Danger body')
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('default', [
+      @PanelHeading(@PanelTitle('Table example')),
+      @PanelBody([
+        'This is a table contained inside a panel:'
+      ]),
+      @Table([
+        @Tr([
+          @Td('foo'),
+          @Td('1')
+        ]),
+        @Tr([
+          @Td('bar'),
+          @Td('2')
+        ])
+      ])
+    ])",
+    @Panel('default', [
+      @PanelHeading(@PanelTitle('Table example')),
+      @PanelBody([
+        'This is a table contained inside a panel:'
+      ]),
+      @Table([
+        @Tr([
+          @Td('foo'),
+          @Td('1')
+        ]),
+        @Tr([
+          @Td('bar'),
+          @Td('2')
+        ])
+      ])
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('default', [
+      @PanelHeading(@PanelTitle('List Group example')),
+      @PanelBody([
+        'This is a list group contained inside a panel:'
+      ]),
+      @ListGroup([
+        @ListGroupItem('foo'),
+        @ListGroupItem('bar'),
+        @ListGroupItem('qux'),
+      ])
+    ])",
+    @Panel('default', [
+      @PanelHeading(@PanelTitle('List Group example')),
+      @PanelBody([
+        'This is a list group contained inside a panel:'
+      ]),
+      @ListGroup([
+        @ListGroupItem('foo'),
+        @ListGroupItem('bar'),
+        @ListGroupItem('qux'),
+      ])
+    ]))
+    ]);
 */
 exports.Panel = (panel_classes, content, attribs) ->
   callWithClasses(base_html.Div, ['panel'].concat(prefixClasses(panel_classes, 'panel-')),
@@ -488,6 +657,8 @@ exports.Panel = (panel_classes, content, attribs) ->
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary <div class="panel-body">
   @return {surface::Element}
+  @desc
+    See [::Panel] for examples
 */
 exports.PanelBody = wrapWithClass(base_html.Div, 'panel-body');
 
@@ -497,6 +668,8 @@ exports.PanelBody = wrapWithClass(base_html.Div, 'panel-body');
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary <div class="panel-heading">
   @return {surface::Element}
+  @desc
+    See [::Panel] for examples
 */
 exports.PanelHeading = wrapWithClass(base_html.Div, 'panel-heading');
 
@@ -506,6 +679,8 @@ exports.PanelHeading = wrapWithClass(base_html.Div, 'panel-heading');
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary <h3 class='panel-title'>
   @return {surface::Element}
+  @desc
+    See [::Panel] for examples
 */
 exports.PanelTitle = wrapWithClass(base_html.H3, 'panel-title');
 
