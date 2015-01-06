@@ -21,8 +21,8 @@ var path   = require('path');
 var url    = require('sjs:url');
 var logging = require('sjs:logging');
 var { isString } = require('sjs:string');
-var { override } = require('sjs:object');
-var { each, any, join, Stream, isStream, toStream, toArray } = require('sjs:sequence');
+var { override, hasOwn } = require('sjs:object');
+var { each, any, join, Stream, isSequence, toStream, toArray, concat, slice } = require('sjs:sequence');
 var { debug, info, verbose } = require('sjs:logging');
 var { StaticFormatMap } = require('./formats');
 var { setStatus, setHeader, setDefaultHeader, writeRedirectResponse, HttpError, NotFound } = require('./response');
@@ -82,14 +82,6 @@ function compress(req, format, input) {
   } else {
     return input;
   }
-}
-
-function isFiniteResponse(x) {
-  return Array.isArray(x);
-}
-
-function isInfiniteResponse(x) {
-  return isStream(x);
 }
 
 function range_output(req, buffer, from, to) {
@@ -194,8 +186,7 @@ function formatResponse(req, item, settings) {
 
         // write to response stream:
         verbose("stream from cache #{req.url}");
-        // TODO a little bit ugly
-        output = [cache_entry.data];
+        output = cache_entry.data;
 
       // no cache or no etag -> filter straight to response
       } else {
@@ -214,10 +205,10 @@ function formatResponse(req, item, settings) {
     req.response.end();
 
   } else {
-    if (isFiniteResponse(output) || isInfiniteResponse(output)) {
+    if (isSequence(output)) {
       output = compress(req, formatdesc, output);
     } else {
-      throw new Error("expected Array or Stream but got #{output}");
+      throw new Error("expected Sequence but got #{output}");
     }
 
     /*if (isFiniteResponse(output)) {
@@ -378,9 +369,7 @@ function serveFile(req, filePath, format, settings) {
     req,
     { input: opts ->
                // XXX hmm, might need to destroy this somewhere
-               // TODO this is a temporary hack
-               // TODO I would like to use toStream here, but I can't because of some bug
-               nodefs.createReadStream(filePath, opts) .. toArray,
+               nodefs.createReadStream(filePath, opts) .. stream.contents,
       filePath: filePath,
       apiinfo: apiinfo,
       filetype: extension,
@@ -447,8 +436,7 @@ function generateFile(req, filePath, format, settings) {
         } else {
           data = getContents();
         }
-        // TODO this is a temporary hack
-        return data .. toStream;
+        return data;
       },
 
       filetype: generator.filetype ? generator.filetype : path.extname(filePath).slice(1),

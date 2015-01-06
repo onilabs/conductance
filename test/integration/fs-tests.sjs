@@ -76,7 +76,7 @@ context("Server only") {||
 		var expected = require('./fixtures/bigfile.txt.gen').build(size);
 		contents.length .. @assert.eq(expected.length);
 		contents .. @assert.eq(expected);
-	}.skip("BROKEN");
+	}
 
 	test("Range requests") {||
 		var length = 6;
