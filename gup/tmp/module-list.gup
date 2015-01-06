@@ -1,9 +1,10 @@
 #!../../node_modules/stratifiedjs/sjs
 // vim: syntax=sjs:
-// find ../modules/ -name '.*' -prune -o -type f | grep -E '\.(sjs|mho|api)' > "$1"
-// gup --contents "$1"
 
 @ = require(['sjs:sequence', 'sjs:nodejs/stream', 'sjs:sys','sjs:nodejs/fs']);
+@childProcess = require('sjs:nodejs/child-process');
+@childProcess.run('gup', ['--always']);
+
 var [dest,_] = @argv();
 @withWriteStream(dest) {|output|
 	@Stream(function(emit) {
@@ -14,4 +15,4 @@ var [dest,_] = @argv();
 		};
 	}) .. @pump(output);
 }
-require('sjs:nodejs/child-process').run('gup', ['--contents',dest]);
+@childProcess.run('gup', ['--contents',dest]);
