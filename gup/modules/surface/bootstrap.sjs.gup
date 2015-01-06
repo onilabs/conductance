@@ -32,9 +32,9 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @require ./bootstrap/html
 @require ./bootstrap/components
 
-@summary Bootstrap UI building blocks  
+@summary Bootstrap UI building blocks
 @desc
-  This modue defines building blocks for documents that make use of the 
+  This modue defines building blocks for documents that make use of the
   [Twitter Bootstrap](http://getbootstrap.com) CSS library built into Conductance.
 
   It exposes all of the symbols that are defined in the [surface/html::]
