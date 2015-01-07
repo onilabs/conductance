@@ -4,7 +4,8 @@
   var { @TemporaryFile} = require('sjs:nodejs/tempfile');
   @env = require('mho:env');
   @test("bundle") {||
-    @TemporaryFile {|{path}|
+    @TemporaryFile {|{path, file}|
+      @fs.close(file);
       @fs.unlink(path);
       @childProcess.run(process.execPath, [
         @env.executable,
