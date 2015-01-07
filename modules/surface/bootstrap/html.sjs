@@ -70,6 +70,32 @@ exports.Button = wrapWithClasses(base_html.Button, ['btn', 'btn-default']);
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap-styled table (`<table class="table">`)
   @return {surface::Element}
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @Table([
+      @Tr([
+        @Td('foo'),
+        @Td('bar')
+      ]),
+      @Tr([
+        @Td('qux'),
+        @Td('corge')
+      ])
+    ])",
+    @Table([
+      @Tr([
+        @Td('foo'),
+        @Td('bar')
+      ]),
+      @Tr([
+        @Td('qux'),
+        @Td('corge')
+      ])
+    ]))
+    ]);
 */
 exports.Table = wrapWithClass(base_html.Table, 'table');
 
@@ -86,6 +112,23 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
     element's value will be updated every time `value` changes. If (in addition)
     `value` is an [sjs:observable::ObservableVar], then `value` will
     be updated to reflect any manual changes to the element's value.
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    var Items = @generate(Math.random) ..
+      @transform(x -> (hold(1000), Math.round(x*100)));
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @Input('text', 'foo')",
+    @Input('text', 'foo')),
+
+      @demo.CodeResult("\
+    var Items = @ObservableVar(0);
+    ...
+    @Input('text', Items)",
+    @Input('text', Items))
+    ]);
 */
 exports.Input = wrapWithClass(base_html.Input, 'form-control');
 
@@ -101,24 +144,87 @@ exports.Input = wrapWithClass(base_html.Input, 'form-control');
     element's value will be updated every time `value` changes. If (in addition)
     `value` is an [sjs:observable::ObservableVar], then `value` will
     be updated to reflect any manual changes to the element's value.
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    var Items = @generate(Math.random) ..
+      @transform(x -> (hold(1000), Math.round(x*100)));
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @TextInput('foo')",
+    @TextInput('foo')),
+
+      @demo.CodeResult("\
+    var Items = @ObservableVar(0);
+    ...
+    @TextInput(Items)",
+    @TextInput(Items))
+    ]);
 */
 exports.TextInput = wrapWithClass(base_html.TextInput, 'form-control');
 
 /**
   @function TextArea
-  @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
+  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap-styled textarea (`<textarea class="form-control">`)
   @return {surface::Element}
+  @desc
+    When the element is inserted into the document, its value
+    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
+    element's value will be updated every time `value` changes. If (in addition)
+    `value` is an [sjs:observable::ObservableVar],
+    then `value` will be updated to reflect any manual changes to the element's value.
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    var Items = @generate(Math.random) ..
+      @transform(x -> (hold(1000), Math.round(x*100)));
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @TextArea('foo')",
+    @TextArea('foo')),
+
+      @demo.CodeResult("\
+    var Items = @ObservableVar(0);
+    ...
+    @TextArea(Items)",
+    @TextArea(Items))
+    ]);
 */
 exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
 
 /**
   @function Select
-  @param {Object} [settings]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-  @summary Bootstrap-styled [surface/html::Select] (with class "form-control")
+  @param  {Object} [settings] Widget settings
+  @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
+  @setting {Array|sjs:sequence::Stream} [items] Selectable items
+  @setting {sjs:observable::ObservableVar} [selected] Optional ObservableVar that will be synchronized to selected item(s).
   @return {surface::Element}
+  @summary Bootstrap-styled [surface/html::Select] (with class "form-control")
+  @demo
+    @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
+
+    var options = ["Bad", "Ok", "Pretty Good", "Perfect"];
+    var Rating  = @ObservableVar('Pretty Good');
+
+
+    @mainContent .. @appendContent(
+       @demo.CodeResult("\
+    @ = require(['mho:std','mho:app']);
+
+    var options = ['Bad', 'Ok', 'Pretty Good', 'Perfect'];
+    var Rating  = @ObservableVar('Perfect');
+
+    @mainBody .. @appendContent(`
+      Rate Conductance:
+      $@Select({items:options, selected: Rating})
+      Your Rating: $Rating`);",
+          `Rate Conductance:  $@Select({items:options, selected: Rating})
+           Your Rating: $Rating`
+    ));
 */
 exports.Select = wrapWithClass(base_html.Select, 'form-control');
 

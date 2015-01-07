@@ -224,6 +224,167 @@ exports.Icon = (name, attribs) -> callWithClasses(base_html.Span, ["glyphicon", 
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary A row container in a Bootstrap grid (`<div class="row">`)
   @return {surface::Element}
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    var css = @GlobalCSS("
+      .demo [class^=col-] {
+        background-color: rgba(86,61,124,.15);
+        border: 1px solid rgba(86,61,124,.2);
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+    ");
+
+    @mainContent .. @appendContent([
+      css,
+
+      @demo.CodeResult("\
+    @Row([
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1'),
+      @Col('md-1', 'md-1')
+    ])",
+    @Div([
+      @Row([
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1'),
+        @Col('md-1', 'md-1')
+      ])
+    ], { 'class': 'demo' })),
+
+    @demo.CodeResult("\
+    @Row([
+      @Col('md-8', 'md-8'),
+      @Col('md-4', 'md-4')
+    ])",
+    @Div([
+      @Row([
+        @Col('md-8', 'md-8'),
+        @Col('md-4', 'md-4')
+      ])
+    ], { 'class': 'demo' })),
+
+    @demo.CodeResult("\
+    @Row([
+      @Col('md-4', 'md-4'),
+      @Col('md-4', 'md-4'),
+      @Col('md-4', 'md-4')
+    ])",
+    @Div([
+      @Row([
+        @Col('md-4', 'md-4'),
+        @Col('md-4', 'md-4'),
+        @Col('md-4', 'md-4')
+      ])
+    ], { 'class': 'demo' })),
+
+    @demo.CodeResult("\
+    @Row([
+      @Col('md-6', 'md-6'),
+      @Col('md-6', 'md-6')
+    ])",
+    @Div([
+      @Row([
+        @Col('md-6', 'md-6'),
+        @Col('md-6', 'md-6')
+      ])
+    ], { 'class': 'demo' })),
+
+    @demo.CodeResult("\
+    @Row([
+      @Col('md-9', 'md-9'),
+      @Col('md-4', `md-4 $@P('Columns wrap if they are greater than 12')`),
+      @Col('md-6', 'md-6')
+    ])",
+    @Div([
+      @Row([
+        @Col('md-9', 'md-9'),
+        @Col('md-4', `md-4 $@P('Columns wrap if they are greater than 12')`),
+        @Col('md-6', 'md-6')
+      ])
+    ], { 'class': 'demo' })),
+
+    @demo.CodeResult("\
+    [
+      @Row([
+        @Col('md-4', 'md-4'),
+        @Col('md-4 md-offset-4', 'md-4 md-offset-4')
+      ]),
+      @Row([
+        @Col('md-3 md-offset-3', 'md-3 md-offset-3'),
+        @Col('md-3 md-offset-3', 'md-3 md-offset-3')
+      ]),
+      @Row([
+        @Col('md-6 md-offset-3', 'md-6 md-offset-3')
+      ])
+    ]",
+    @Div([
+      @Row([
+        @Col('md-4', 'md-4'),
+        @Col('md-4 md-offset-4', 'md-4 md-offset-4')
+      ]),
+      @Row([
+        @Col('md-3 md-offset-3', 'md-3 md-offset-3'),
+        @Col('md-3 md-offset-3', 'md-3 md-offset-3')
+      ]),
+      @Row([
+        @Col('md-6 md-offset-3', 'md-6 md-offset-3')
+      ])
+    ], { 'class': 'demo' })),
+
+    @demo.CodeResult("\
+    @Row([
+      @Col('sm-9', [
+        'Level 1: sm-9',
+        @Row([
+          @Col('sm-6', 'Level 2: sm-6'),
+          @Col('sm-6', 'Level 2: sm-6')
+        ])
+      ])
+    ])",
+    @Div([
+      @Row([
+        @Col('sm-9', [
+          'Level 1: sm-9',
+          @Row([
+            @Col('sm-6', 'Level 2: sm-6'),
+            @Col('sm-6', 'Level 2: sm-6')
+          ])
+        ])
+      ])
+    ], { 'class': 'demo' })),
+
+    @demo.CodeResult("\
+    @Row([
+      @Col('md-9 md-push-3', 'md-9 md-push-3'),
+      @Col('md-3 md-pull-9', 'md-3 md-pull-9')
+    ])",
+    @Div([
+      @Row([
+        @Col('md-9 md-push-3', 'md-9 md-push-3'),
+        @Col('md-3 md-pull-9', 'md-3 md-pull-9')
+      ])
+    ], { 'class': 'demo' }))
+    ]);
 */
 exports.Row = wrapWithClass(base_html.Div, 'row');
 
@@ -235,6 +396,10 @@ exports.Row = wrapWithClass(base_html.Div, 'row');
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
+    See [::Row] for examples.
+
+    ----
+
     `col_classes` is a space-separated list of `col-*` classes that
     should be applied to the col (`N` designates an integer between 1-12, `M` an integer between 0-11):
 
@@ -272,8 +437,6 @@ exports.Col = (col_classes, content, attribs) ->
     [mho:surface/doc-template/app-default::mainContent] element will be a [::Container]
     by default, or a [::FluidContainer] if the
     [mho:surface/doc-template/app-default::@template-fluid] directive is set to `true`.
-
-
 */
 exports.Container = wrapWithClass(base_html.Div, 'container');
 
@@ -431,6 +594,33 @@ exports.Jumbotron = wrapWithClass(base_html.Div, 'jumbotron');
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap list group (`<div class='list-group'><div class='list-group-item'>...</div>...</div>`)
   @return {surface::Element}
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @ListGroup([
+      @ListGroupItem('foo'),
+      @ListGroupItem('bar'),
+      @ListGroupItem('qux')
+    ])",
+    @ListGroup([
+      @ListGroupItem('foo'),
+      @ListGroupItem('bar'),
+      @ListGroupItem('qux')
+    ])),
+
+      @demo.CodeResult("\
+    @ListGroup([
+      @ListGroupItem(`foo ${@Badge(10)}`),
+      @ListGroupItem(`bar ${@Badge(20)}`),
+      @ListGroupItem(`qux ${@Badge(30)}`)
+    ])",
+    @ListGroup([
+      @ListGroupItem(`foo ${@Badge(10)}`),
+      @ListGroupItem(`bar ${@Badge(20)}`),
+      @ListGroupItem(`qux ${@Badge(30)}`)
+    ]))
+    ]);
 */
 exports.ListGroup = (items, attribs) -> callWithClass(base_html.Div, 'list-group',
   items .. _map(item -> item .. hasClass('list-group-item') ? item : base_html.Div(item, {'class':'list-group-item'})),
@@ -443,6 +633,8 @@ exports.ListGroup = (items, attribs) -> callWithClass(base_html.Div, 'list-group
   @param {surface::HtmlFragment} [content]
   @summary Bootstrap list group item (`<div class='list-group-item'>...</div>`)
   @return {surface::Element}
+  @desc
+    See [::ListGroup] for examples
 */
 exports.ListGroupItem = function(/*cls, content*/) {
   if (arguments.length > 1)
