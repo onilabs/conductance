@@ -155,7 +155,9 @@ if (require.main === module) {
 		var args = @argv();
 		if(args.length == 0) {
 			console.log("services ready, waiting for shutdown ...");
-			hold();
+			// NOTE: hold() will not keep the process open -
+			// we actually do want to wait until ctrl+c (or EOF)
+			process.stdin .. @each(-> null);
 		} else {
 			var cmd = args.shift();
 			var proc = @childProcess.run(cmd, args, {stdio:'inherit', throwing: false});
