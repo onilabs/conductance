@@ -327,7 +327,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @variable AvailableIcons
 @summary Array of names accepted by [::Icon]
 
-@variable Special Classes
+@feature Special Classes
 @summary Special classes that can be applied to elements
 @demo
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);

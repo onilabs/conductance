@@ -195,7 +195,7 @@ var AvailableIcons = exports.AvailableIcons = [
 ];
 
 /**
-  @variable Special Classes
+  @feature Special Classes
   @summary Special classes that can be applied to elements
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
