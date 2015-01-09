@@ -588,6 +588,9 @@
             "Container": {
               "type": "function"
             },
+            "EmbedResponsive": {
+              "type": "function"
+            },
             "FluidContainer": {
               "type": "function"
             },
@@ -621,6 +624,9 @@
             "PanelBody": {
               "type": "function"
             },
+            "PanelFooter": {
+              "type": "function"
+            },
             "PanelHeading": {
               "type": "function"
             },
@@ -632,6 +638,9 @@
             },
             "Select": {
               "type": "function"
+            },
+            "Special Classes": {
+              "type": "variable"
             },
             "Table": {
               "type": "function"

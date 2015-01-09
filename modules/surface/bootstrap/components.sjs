@@ -195,6 +195,27 @@ var AvailableIcons = exports.AvailableIcons = [
 ];
 
 /**
+  @variable Special Classes
+  @summary Special classes that can be applied to elements
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @Div('well well-sm', { 'class': 'well well-sm' })",
+    @Div('well well-sm', { 'class': 'well well-sm' })),
+
+      @demo.CodeResult("\
+    @Div('well', { 'class': 'well' })",
+    @Div('well', { 'class': 'well' })),
+
+      @demo.CodeResult("\
+    @Div('well well-lg', { 'class': 'well well-lg' })",
+    @Div('well well-lg', { 'class': 'well well-lg' }))
+    ]);
+*/
+
+/**
   @function Icon
   @param {String} [name] Name of icon, see [::AvailableIcons]
   @summary Scalable Bootstrap Glyphicon  (`<span class="glyphicon glyphicon-{name}">`)
@@ -594,31 +615,50 @@ exports.Jumbotron = wrapWithClass(base_html.Div, 'jumbotron');
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap list group (`<div class='list-group'><div class='list-group-item'>...</div>...</div>`)
   @return {surface::Element}
+  @desc
+    This function will automatically wrap children with `list-group-item`, so
+    you only need to use [::ListGroupItem] when inserting children dynamically
+    (e.g. using [surface::appendContent]), or if you want special styling.
+
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
     @mainContent .. @appendContent([
       @demo.CodeResult("\
     @ListGroup([
-      @ListGroupItem('foo'),
-      @ListGroupItem('bar'),
-      @ListGroupItem('qux')
+      'foo',
+      'bar',
+      'qux'
     ])",
     @ListGroup([
-      @ListGroupItem('foo'),
-      @ListGroupItem('bar'),
-      @ListGroupItem('qux')
+      'foo',
+      'bar',
+      'qux'
     ])),
 
       @demo.CodeResult("\
     @ListGroup([
-      @ListGroupItem(`foo ${@Badge(10)}`),
-      @ListGroupItem(`bar ${@Badge(20)}`),
-      @ListGroupItem(`qux ${@Badge(30)}`)
+      `foo ${@Badge(10)}`,
+      `bar ${@Badge(20)}`,
+      `qux ${@Badge(30)}`
     ])",
     @ListGroup([
-      @ListGroupItem(`foo ${@Badge(10)}`),
-      @ListGroupItem(`bar ${@Badge(20)}`),
-      @ListGroupItem(`qux ${@Badge(30)}`)
+      `foo ${@Badge(10)}`,
+      `bar ${@Badge(20)}`,
+      `qux ${@Badge(30)}`
+    ])),
+
+      @demo.CodeResult("\
+    @ListGroup([
+      @ListGroupItem('success', 'success'),
+      @ListGroupItem('info', 'info'),
+      @ListGroupItem('warning', 'warning'),
+      @ListGroupItem('danger', 'danger')
+    ])",
+    @ListGroup([
+      @ListGroupItem('success', 'success'),
+      @ListGroupItem('info', 'info'),
+      @ListGroupItem('warning', 'warning'),
+      @ListGroupItem('danger', 'danger')
     ]))
     ]);
 */
@@ -634,7 +674,15 @@ exports.ListGroup = (items, attribs) -> callWithClass(base_html.Div, 'list-group
   @summary Bootstrap list group item (`<div class='list-group-item'>...</div>`)
   @return {surface::Element}
   @desc
-    See [::ListGroup] for examples
+    `cls` can be `success`, `info`, `warning`, or `danger`.
+
+    See [::ListGroup] for examples.
+
+    ----
+
+    [::ListGroup] will automatically wrap children with `list-group-item`, so
+    this function is only needed when inserting elements dynamically (e.g. using
+    [surface::appendContent]), or if you want special styling.
 */
 exports.ListGroupItem = function(/*cls, content*/) {
   if (arguments.length > 1)
@@ -647,6 +695,62 @@ exports.ListGroupItem = function(/*cls, content*/) {
   return @Element('div', content, {'class': 'list-group-item '+prefixClasses(cls, 'list-group-item-') });
 }
 
+
+/**
+  @function EmbedResponsive
+  @summary Bootstrap (`<div class="embed-responsive">`)
+  @param {Object} [settings]
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @setting {String} [ratio] Must be either `"16by9"` or `"4by3"`
+  @return {surface::Element}
+  @desc
+    See also http://getbootstrap.com/components/#responsive-embed.
+
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @EmbedResponsive({ ratio: '16by9' }, [
+      @Iframe(null, {
+        src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
+      })
+    ])",
+    @EmbedResponsive({ ratio: '16by9' }, [
+      @Iframe(null, {
+        src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
+      })
+    ])),
+
+      @demo.CodeResult("\
+    @EmbedResponsive({ ratio: '4by3' }, [
+      @Iframe(null, {
+        src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
+      })
+    ])",
+    @EmbedResponsive({ ratio: '4by3' }, [
+      @Iframe(null, {
+        src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
+      })
+    ]))
+    ]);
+*/
+exports.EmbedResponsive = function (settings, content, attribs) {
+  var classes = ['embed-responsive'];
+
+  if (settings.ratio == null) {
+    throw new Error("Must include ratio");
+  } else {
+    if (settings.ratio === '16by9' || settings.ratio === '4by3') {
+      classes.push('embed-responsive-' + settings.ratio);
+    } else {
+      throw new Error("Expected ratio to be \"16by9\" or \"4by3\" but got: #{settings.ratio}");
+    }
+  }
+
+  // TODO what about "embed-responsive-item" ?
+  return callWithClasses(base_html.Div, classes, content, attribs);
+}
 
 /**
   @function PageHeader
@@ -698,86 +802,106 @@ exports.PageHeader = (content, attribs) -> callWithClass(base_html.Div, 'page-he
     @mainContent .. @appendContent([
       @demo.CodeResult("\
     @Panel('default', [
-      'No heading, no body'
+      'Nothing'
     ])",
     @Panel('default', [
-      'No heading, no body'
+      'Nothing'
     ])),
 
       @demo.CodeResult("\
     @Panel('default', [
-      @PanelBody('No heading')
+      @PanelBody('Body')
     ])",
     @Panel('default', [
-      @PanelBody('No heading')
+      @PanelBody('Body')
     ])),
 
     @demo.CodeResult("\
     @Panel('default', [
-      @PanelHeading('No body')
+      @PanelHeading('Heading')
     ])",
     @Panel('default', [
-      @PanelHeading('No body')
+      @PanelHeading('Heading')
+    ])),
+
+    @demo.CodeResult("\
+    @Panel('default', [
+      @PanelFooter('Footer')
+    ])",
+    @Panel('default', [
+      @PanelFooter('Footer')
     ])),
 
       @demo.CodeResult("\
     @Panel('default', [
       @PanelHeading(@PanelTitle('Heading')),
-      @PanelBody('Body')
+      @PanelBody('Body'),
+      @PanelFooter('Footer')
     ])",
     @Panel('default', [
       @PanelHeading(@PanelTitle('Heading')),
-      @PanelBody('Body')
+      @PanelBody('Body'),
+      @PanelFooter('Footer')
     ])),
 
     @demo.CodeResult("\
     @Panel('primary', [
       @PanelHeading(@PanelTitle('Primary heading')),
-      @PanelBody('Primary body')
+      @PanelBody('Primary body'),
+      @PanelFooter('Primary footer')
     ])",
     @Panel('primary', [
       @PanelHeading(@PanelTitle('Primary heading')),
-      @PanelBody('Primary body')
+      @PanelBody('Primary body'),
+      @PanelFooter('Primary footer')
     ])),
 
     @demo.CodeResult("\
     @Panel('success', [
       @PanelHeading(@PanelTitle('Success heading')),
-      @PanelBody('Success body')
+      @PanelBody('Success body'),
+      @PanelFooter('Success footer')
     ])",
     @Panel('success', [
       @PanelHeading(@PanelTitle('Success heading')),
-      @PanelBody('Success body')
+      @PanelBody('Success body'),
+      @PanelFooter('Success footer')
     ])),
 
     @demo.CodeResult("\
     @Panel('info', [
       @PanelHeading(@PanelTitle('Info heading')),
-      @PanelBody('Info body')
+      @PanelBody('Info body'),
+      @PanelFooter('Info footer')
     ])",
     @Panel('info', [
       @PanelHeading(@PanelTitle('Info heading')),
-      @PanelBody('Info body')
+      @PanelBody('Info body'),
+      @PanelFooter('Info footer')
     ])),
 
     @demo.CodeResult("\
     @Panel('warning', [
       @PanelHeading(@PanelTitle('Warning heading')),
-      @PanelBody('Warning body')
+      @PanelBody('Warning body'),
+      @PanelFooter('Warning footer')
     ])",
     @Panel('warning', [
       @PanelHeading(@PanelTitle('Warning heading')),
-      @PanelBody('Warning body')
+      @PanelBody('Warning body'),
+      @PanelFooter('Warning footer')
     ])),
 
     @demo.CodeResult("\
     @Panel('danger', [
       @PanelHeading(@PanelTitle('Danger heading')),
-      @PanelBody('Danger body')
+      @PanelBody('Danger body'),
+      @PanelFooter('Danger footer')
     ])",
     @Panel('danger', [
       @PanelHeading(@PanelTitle('Danger heading')),
-      @PanelBody('Danger body')
+      @PanelBody('Danger body'),
+      @PanelFooter('Danger footer')
     ])),
 
     @demo.CodeResult("\
@@ -853,6 +977,17 @@ exports.Panel = (panel_classes, content, attribs) ->
     See [::Panel] for examples
 */
 exports.PanelBody = wrapWithClass(base_html.Div, 'panel-body');
+
+/**
+  @function PanelFooter
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @summary <div class="panel-footer">
+  @return {surface::Element}
+  @desc
+    See [::Panel] for examples
+*/
+exports.PanelFooter = wrapWithClass(base_html.Div, 'panel-footer');
 
 /**
   @function PanelHeading
