@@ -699,9 +699,8 @@ exports.ListGroupItem = function(/*cls, content*/) {
 /**
   @function EmbedResponsive
   @summary Bootstrap (`<div class="embed-responsive">`)
-  @param {Object} [settings]
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @param {Object} [settings]
   @setting {String} [ratio] Must be either `"16by9"` or `"4by3"`
   @return {surface::Element}
   @desc
@@ -711,31 +710,31 @@ exports.ListGroupItem = function(/*cls, content*/) {
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
     @mainContent .. @appendContent([
       @demo.CodeResult("\
-    @EmbedResponsive({ ratio: '16by9' }, [
+    @EmbedResponsive([
       @Iframe(null, {
         src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
       })
-    ])",
-    @EmbedResponsive({ ratio: '16by9' }, [
+    ], { ratio: '16by9' })",
+    @EmbedResponsive([
       @Iframe(null, {
         src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
       })
-    ])),
+    ], { ratio: '16by9' })),
 
       @demo.CodeResult("\
-    @EmbedResponsive({ ratio: '4by3' }, [
+    @EmbedResponsive([
       @Iframe(null, {
         src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
       })
-    ])",
-    @EmbedResponsive({ ratio: '4by3' }, [
+    ], { ratio: '4by3' })",
+    @EmbedResponsive([
       @Iframe(null, {
         src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
       })
-    ]))
+    ], { ratio: '4by3' }))
     ]);
 */
-exports.EmbedResponsive = function (settings, content, attribs) {
+exports.EmbedResponsive = function (content, settings) {
   var classes = ['embed-responsive'];
 
   if (settings.ratio == null) {
@@ -749,8 +748,8 @@ exports.EmbedResponsive = function (settings, content, attribs) {
   }
 
   // TODO what about "embed-responsive-item" ?
-  return callWithClasses(base_html.Div, classes, content, attribs);
-}
+  return base_html.Div(content) ..@Class(classes);
+};
 
 /**
   @function PageHeader

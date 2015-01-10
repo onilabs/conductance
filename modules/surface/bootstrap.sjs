@@ -772,9 +772,8 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function EmbedResponsive
 @summary Bootstrap (`<div class="embed-responsive">`)
-@param {Object} [settings]
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@param {Object} [settings]
 @setting {String} [ratio] Must be either `"16by9"` or `"4by3"`
 @return {surface::Element}
 @desc
@@ -784,28 +783,28 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
   @mainContent .. @appendContent([
     @demo.CodeResult("\
-  @EmbedResponsive({ ratio: '16by9' }, [
+  @EmbedResponsive([
     @Iframe(null, {
       src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
     })
-  ])",
-  @EmbedResponsive({ ratio: '16by9' }, [
+  ], { ratio: '16by9' })",
+  @EmbedResponsive([
     @Iframe(null, {
       src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
     })
-  ])),
+  ], { ratio: '16by9' })),
 
     @demo.CodeResult("\
-  @EmbedResponsive({ ratio: '4by3' }, [
+  @EmbedResponsive([
     @Iframe(null, {
       src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
     })
-  ])",
-  @EmbedResponsive({ ratio: '4by3' }, [
+  ], { ratio: '4by3' })",
+  @EmbedResponsive([
     @Iframe(null, {
       src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
     })
-  ]))
+  ], { ratio: '4by3' }))
   ]);
 
 @function PageHeader
