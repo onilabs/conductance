@@ -211,6 +211,115 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
          Your Rating: $Rating`
   ));
 
+@function Progress
+@summary Bootstrap (`<div class="progress"><div class="progress-bar"></div>`)
+@param {Number|sjs:sequence::Stream} [value]
+@param {optional Object} [settings]
+@setting {optional Boolean} [showPercentage=false] Whether to show the % number or not
+@setting {optional Number} [min=0] Lowest value of `value`
+@setting {optional Number} [max=100] Highest value of `value`
+@setting {optional Boolean} [stripes=true] Whether to show stripes or not
+@setting {optional Boolean|sjs:sequence::Stream} [stripesAnimate=true] Whether to animate the stripes or not
+@setting {optional String|sjs:sequence::Stream} [style="default"] Can be `"default"`, `"success"`, `"info"`, `"warning"`, or `"danger"`
+@return {surface::Element}
+@desc
+  See also http://getbootstrap.com/components/#progress.
+
+  ----
+
+  If `value` is a [sjs:sequence::Stream], then the % completed will
+  change over time to match the stream.
+
+  If `settings.style` is a [sjs:sequence::Stream], then the style
+  will change over time to match the stream.
+
+  If `settings.stripesAnimate` is a [sjs:sequence::Stream], then it will
+  turn on/off stripe animation depending on the value of the stream.
+
+
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+  var percent = @ObservableVar(0);
+  var animate = @ObservableVar(true);
+
+  var style = percent ..@transform(function (x) {
+    if (x < 20) {
+      return 'danger';
+    } else if (x < 40) {
+      return 'warning';
+    } else if (x < 60) {
+      return 'info';
+    } else if (x < 80) {
+      return 'default';
+    } else {
+      return 'success';
+    }
+  });
+
+  spawn @generate(Math.random) ..@each(function (x) {
+    percent.set(x * 100);
+    hold(2000);
+  });
+
+  spawn (function () {
+    while (true) {
+      hold(4000);
+      if (animate.get()) {
+        animate.set(false);
+      } else {
+        animate.set(true);
+      }
+    }
+  })();
+
+  @mainContent .. @appendContent([
+    @demo.CodeResult("\
+  var percent = @ObservableVar(0);
+  var animate = @ObservableVar(true);
+
+  var style = percent ..@transform(function (x) {
+    if (x < 20) {
+      return 'danger';
+    } else if (x < 40) {
+      return 'warning';
+    } else if (x < 60) {
+      return 'info';
+    } else if (x < 80) {
+      return 'default';
+    } else {
+      return 'success';
+    }
+  });
+
+  ...
+
+  @Progress(percent, { stripesAnimate: animate, style: style })",
+  @Progress(percent, { stripesAnimate: animate, style: style })),
+
+    @demo.CodeResult("\
+  [
+    @Progress(10),
+    @Progress(20, { showPercentage: true }),
+    @Progress(30, { stripesAnimate: false }),
+    @Progress(40, { stripes: false }),
+    @Progress(50, { style: 'success' }),
+    @Progress(60, { style: 'info' }),
+    @Progress(70, { style: 'warning' }),
+    @Progress(80, { style: 'danger' })
+  ]",
+  [
+    @Progress(10),
+    @Progress(20, { showPercentage: true }),
+    @Progress(30, { stripesAnimate: false }),
+    @Progress(40, { stripes: false }),
+    @Progress(50, { style: 'success' }),
+    @Progress(60, { style: 'info' }),
+    @Progress(70, { style: 'warning' }),
+    @Progress(80, { style: 'danger' })
+  ])
+  ]);
+
 @function TextRight
 @altsyntax element .. TextRight
 @summary Decorator that causes text in the given block element to be right aligned

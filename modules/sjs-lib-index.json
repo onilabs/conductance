@@ -633,6 +633,9 @@
             "PanelTitle": {
               "type": "function"
             },
+            "Progress": {
+              "type": "function"
+            },
             "Row": {
               "type": "function"
             },
