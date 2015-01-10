@@ -197,22 +197,6 @@ var AvailableIcons = exports.AvailableIcons = [
 /**
   @feature Special Classes
   @summary Special classes that can be applied to elements
-  @demo
-    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
-
-    @mainContent .. @appendContent([
-      @demo.CodeResult("\
-    @Div('well well-sm', { 'class': 'well well-sm' })",
-    @Div('well well-sm', { 'class': 'well well-sm' })),
-
-      @demo.CodeResult("\
-    @Div('well', { 'class': 'well' })",
-    @Div('well', { 'class': 'well' })),
-
-      @demo.CodeResult("\
-    @Div('well well-lg', { 'class': 'well well-lg' })",
-    @Div('well well-lg', { 'class': 'well well-lg' }))
-    ]);
 */
 
 /**
@@ -748,6 +732,48 @@ exports.EmbedResponsive = function (content, settings) {
   }
 
   // TODO what about "embed-responsive-item" ?
+  return base_html.Div(content) ..@Class(classes);
+};
+
+/**
+  @function Well
+  @summary Bootstrap (`<div class="well">`)
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [settings]
+  @setting {String} [size] Must be either `"lg"` or `"sm"`
+  @return {surface::Element}
+  @desc
+    See also http://getbootstrap.com/components/#wells.
+
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @Well('well sm', { size: 'sm' })",
+    @Well('well sm', { size: 'sm' })),
+
+      @demo.CodeResult("\
+    @Well('well')",
+    @Well('well')),
+
+      @demo.CodeResult("\
+    @Well('well lg', { size: 'lg' })",
+    @Well('well lg', { size: 'lg' }))
+    ]);
+*/
+exports.Well = function (content, settings) {
+  var classes = ['well'];
+
+  if (settings != null) {
+    if (settings.size != null) {
+      if (settings.size === 'lg' || settings.size === 'sm') {
+        classes.push('well-' + settings.size);
+      } else {
+        throw new Error("Expected size to be \"lg\" or \"sm\" but got: #{settings.size}");
+      }
+    }
+  }
+
   return base_html.Div(content) ..@Class(classes);
 };
 

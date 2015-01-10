@@ -329,22 +329,6 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @feature Special Classes
 @summary Special classes that can be applied to elements
-@demo
-  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
-
-  @mainContent .. @appendContent([
-    @demo.CodeResult("\
-  @Div('well well-sm', { 'class': 'well well-sm' })",
-  @Div('well well-sm', { 'class': 'well well-sm' })),
-
-    @demo.CodeResult("\
-  @Div('well', { 'class': 'well' })",
-  @Div('well', { 'class': 'well' })),
-
-    @demo.CodeResult("\
-  @Div('well well-lg', { 'class': 'well well-lg' })",
-  @Div('well well-lg', { 'class': 'well well-lg' }))
-  ]);
 
 @function Icon
 @param {String} [name] Name of icon, see [::AvailableIcons]
@@ -805,6 +789,31 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
       src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
     })
   ], { ratio: '4by3' }))
+  ]);
+
+@function Well
+@summary Bootstrap (`<div class="well">`)
+@param {surface::HtmlFragment} [content]
+@param {optional Object} [settings]
+@setting {String} [size] Must be either `"lg"` or `"sm"`
+@return {surface::Element}
+@desc
+  See also http://getbootstrap.com/components/#wells.
+
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+  @mainContent .. @appendContent([
+    @demo.CodeResult("\
+  @Well('well sm', { size: 'sm' })",
+  @Well('well sm', { size: 'sm' })),
+
+    @demo.CodeResult("\
+  @Well('well')",
+  @Well('well')),
+
+    @demo.CodeResult("\
+  @Well('well lg', { size: 'lg' })",
+  @Well('well lg', { size: 'lg' }))
   ]);
 
 @function PageHeader
