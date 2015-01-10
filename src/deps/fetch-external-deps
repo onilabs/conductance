@@ -3,7 +3,7 @@
 var dirname = require('path').dirname;
 var fs      = require('sjs:nodejs/fs');
 var exec    = require('sjs:nodejs/child-process').exec;
-var read    = require('sjs:nodejs/stream').read;
+var prompt  = require('sjs:debug').prompt;
 var argv    = require('sjs:sys').argv;
 
 // make sure we're in the right directory
@@ -21,9 +21,7 @@ for (var i=0; i<sources.length; ++i) {
     continue;
   }
   console.log('Replacing directory '+fs.realpath(src.dir)+' with github repository at '+src.repo);
-  console.log('Sure you want to proceed? [y/N]');
-  var inp = read(process.stdin).toString();
-  if (!/^(y|Y)\s*$/.test(inp)) {
+  if (prompt('Sure you want to proceed? [y|N] ').toLowerCase() !== 'y') {
     console.log('Skipping '+fs.realpath(src.dir));
     continue;
   }
