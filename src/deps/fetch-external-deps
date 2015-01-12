@@ -1,4 +1,5 @@
 #!/usr/bin/env sjs
+// vim: syntax=sjs:
 
 var dirname = require('path').dirname;
 var fs      = require('sjs:nodejs/fs');
