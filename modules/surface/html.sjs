@@ -121,16 +121,16 @@ var { observe, isObservableVar } = require('sjs:observable');
 //----------------------------------------------------------------------
 /**
   @function Input
-  @summary A plain HTML 'input' element 
+  @summary A plain HTML 'input' element
   @param  {String} [type]
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value 
+    When the element is inserted into the document, its value
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If (in addition)
-    `value` is an [sjs:observable::ObservableVar], 
+    `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var Input = (type, value, attrs) ->
@@ -163,14 +163,14 @@ exports.Input = Input;
 /**
   @function TextInput
   @summary A plain HTML 'input' element with type='text'
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value 
+    When the element is inserted into the document, its value
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If (in addition)
-    `value` is an [sjs:observable::ObservableVar], 
+    `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var TextInput = (value, attrs) -> Input('text', value, attrs);
@@ -184,10 +184,10 @@ exports.TextInput = TextInput;
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value 
+    When the element is inserted into the document, its value
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If (in addition)
-    `value` is an [sjs:observable::ObservableVar], 
+    `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
 */
 var TextArea = (value, attrs) ->
@@ -220,26 +220,26 @@ exports.TextArea = TextArea;
 /**
   @function Checkbox
   @summary A HTML 'checkbox' widget
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value] 
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value 
+    When the element is inserted into the document, its value
     will be set to `value`. If `value` is a [sjs:sequence::Stream], the
     element's value will be updated every time `value` changes. If (in addition)
-    `value` is an [sjs:observable::ObservableVar], 
+    `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
     var Value = @ObservableVar(true);
     @mainContent .. @appendContent([
       @demo.CodeResult("\
-    @ = require(['mho:std', 'mho:app']);    
+    @ = require(['mho:std', 'mho:app']);
 
     var Value = @ObservableVar(true);
 
     @mainContent .. @appendContent(
       `$@Checkbox(Value) I like Conductance <br>
-       You ${Value .. @transform(x -> x ? \"do\" : \"don't\")} 
+       You ${Value .. @transform(x -> x ? \"do\" : \"don't\")}
        like Conductance`
     )",
         `$@Checkbox(Value) I like Conductance <br>
@@ -286,7 +286,7 @@ exports.Checkbox = Checkbox;
     var options = ["Bad", "Ok", "Pretty Good", "Perfect"];
     var Rating  = @ObservableVar('Pretty Good');
 
-    
+
     @mainContent .. @appendContent(
        @demo.CodeResult("\
     @ = require(['mho:std','mho:app']);
@@ -295,7 +295,7 @@ exports.Checkbox = Checkbox;
     var Rating  = @ObservableVar('Perfect');
 
     @mainBody .. @appendContent(`
-      Rate Conductance: 
+      Rate Conductance:
       $@Select({items:options, selected: Rating})
       Your Rating: $Rating`);",
           `Rate Conductance:  $@Select({items:options, selected: Rating})
@@ -324,7 +324,7 @@ function SelectObserverMechanism(ft, state, updateSelected) {
         indexed ..
         filter(([idx,elem]) -> elem.selected) ..
         map([idx,] -> items[idx]);
-      
+
       updateSelected(new_selection);
     }
 
@@ -438,21 +438,21 @@ var _map = function(items, fn) {
   @param {Array|sjs:sequence::Stream|undefined} [items]
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
-  @summary Create a `<ul>` element, wrapping each element of `items` in a `<li>` 
+  @summary Create a `<ul>` element, wrapping each element of `items` in a `<li>`
            as required.
   @desc
-    If `items` is a [sjs:sequence::Stream], then that stream is expected 
-    to have [sjs:observable::Observable] semantics and consist of 
-    elements of Array type. The list content will be updated every time the 
+    If `items` is a [sjs:sequence::Stream], then that stream is expected
+    to have [sjs:observable::Observable] semantics and consist of
+    elements of Array type. The list content will be updated every time the
     observable changes.
 
-    Any elements in `item` that isn't a `<li>` [surface::Element] will be wrapped 
+    Any elements in `item` that isn't a `<li>` [surface::Element] will be wrapped
     with a `<li>` [surface::Element].
 
     See [::Ol] for a demonstration.
 */
 
-__js function wrapLi(item) { 
+__js function wrapLi(item) {
   if (isElementOfType(item, 'li')) return item;
   return exports.Li(item);
 }
@@ -466,12 +466,12 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
   @return {surface::Element}
   @summary Create a `<ol>` element, wrapping each element of `items` in a `<li>`
   @desc
-    If `items` is a [sjs:sequence::Stream], then that stream is expected 
-    to have [sjs:observable::Observable] semantics and consist of 
-    elements of Array type. The list content will be updated every time the 
+    If `items` is a [sjs:sequence::Stream], then that stream is expected
+    to have [sjs:observable::Observable] semantics and consist of
+    elements of Array type. The list content will be updated every time the
     observable changes.
 
-    Any element in `item` that isn't a `<li>` [surface::Element] will be wrapped 
+    Any element in `item` that isn't a `<li>` [surface::Element] will be wrapped
     with a `<li>` [surface::Element].
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
@@ -483,7 +483,7 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
 
     @mainContent .. @appendContent([
       @demo.CodeResult("\
-    @ = require(['mho:app', 'mho:std']);    
+    @ = require(['mho:app', 'mho:std']);
 
     @mainContent .. @appendContent(
       @Ol(['Apples', 'Pears', 'Oranges'])
@@ -495,7 +495,7 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
       hold(1000);
       return [Math.random(), Math.random(), Math.random()];
     });
-    
+
     @mainContent .. @appendContent(
       @Ol(Numbers)
     );
@@ -506,11 +506,11 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
     @mainContent .. @appendContent(
       @Ol(['A string',
            @Strong('HTML'),
-           `Dynamic: 
+           `Dynamic:
             ${Numbers .. @transform(arr->arr .. @first)}`
           ])
     )",
-        @Ol(['A string', @Strong('HTML'), 
+        @Ol(['A string', @Strong('HTML'),
         `Dynamic: ${Numbers .. @transform(arr->arr .. @first)}`]))
     ]);
 
