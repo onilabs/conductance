@@ -792,6 +792,9 @@
             "Ol": {
               "type": "function"
             },
+            "Progress": {
+              "type": "function"
+            },
             "Select": {
               "type": "function"
             },
