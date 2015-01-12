@@ -230,6 +230,7 @@ exports.TextArea = TextArea;
     then `value` will be updated to reflect any manual changes to the element's value.
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+    var surface = require('mho:surface/html');
     var Value = @ObservableVar(true);
     @mainContent .. @appendContent([
       @demo.CodeResult("\
@@ -242,7 +243,7 @@ exports.TextArea = TextArea;
        You ${Value .. @transform(x -> x ? \"do\" : \"don't\")}
        like Conductance`
     )",
-        `$@Checkbox(Value) I like Conductance <br>
+        `${surface.Checkbox(Value)} I like Conductance <br>
          You ${Value .. @transform(x -> x ? "do" : "don't")} like Conductance`
       )
     ]);
@@ -368,6 +369,8 @@ exports.Progress = Progress;
   @demo
     @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
 
+    var surface = require('mho:surface/html');
+
     var options = ["Bad", "Ok", "Pretty Good", "Perfect"];
     var Rating  = @ObservableVar('Pretty Good');
 
@@ -383,7 +386,7 @@ exports.Progress = Progress;
       Rate Conductance:
       $@Select({items:options, selected: Rating})
       Your Rating: $Rating`);",
-          `Rate Conductance:  $@Select({items:options, selected: Rating})
+          `Rate Conductance:  ${surface.Select({items:options, selected: Rating})}
            Your Rating: $Rating`
     ));
 */
@@ -561,6 +564,8 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
+    var surface = require('mho:surface/html');
+
     var Numbers = @generate(function() {
       hold(1000);
       return [Math.random(), Math.random(), Math.random()];
@@ -573,7 +578,7 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
     @mainContent .. @appendContent(
       @Ol(['Apples', 'Pears', 'Oranges'])
     );",
-        @Ol(['Apples', 'Pears', 'Oranges'])
+        surface.Ol(['Apples', 'Pears', 'Oranges'])
       ),
       @demo.CodeResult("\
     var Numbers = @generate(function() {
@@ -585,7 +590,7 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
       @Ol(Numbers)
     );
       ",
-        @Ol(Numbers)
+        surface.Ol(Numbers)
       ),
       @demo.CodeResult("\
     @mainContent .. @appendContent(
@@ -595,7 +600,7 @@ exports.Ul = (items, attrs) -> Element('ul', items ? items .. _map(wrapLi), attr
             ${Numbers .. @transform(arr->arr .. @first)}`
           ])
     )",
-        @Ol(['A string', @Strong('HTML'),
+        surface.Ol(['A string', @Strong('HTML'),
         `Dynamic: ${Numbers .. @transform(arr->arr .. @first)}`]))
     ]);
 
