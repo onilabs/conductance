@@ -339,20 +339,7 @@ exports.Select = wrapWithClass(base_html.Select, 'form-control');
     ])
     ]);
 */
-
-/*
-@demo.CodeResult("\
-    @Progress1([
-      @ProgressBar(35, { style: 'success', stripes: false }),
-      @ProgressBar(20, { style: 'warning' }),
-      @ProgressBar(10, { style: 'danger', stripes: false })
-    ])",
-    @Progress1([
-      @ProgressBar(35, { style: 'success', stripes: false }),
-      @ProgressBar(20, { style: 'warning' }),
-      @ProgressBar(10, { style: 'danger', stripes: false })
-    ]))
-    */
+// TODO code duplication with HTML5 Progress
 function computePercentage(value, min, max) {
   return ((value - min) / (max - min)) * 100;
 }
@@ -414,15 +401,12 @@ exports.Progress = function (value, settings) {
     ..@Attrib('role', 'progressbar')
     ..@Attrib('aria-valuemin', '' + settings.min)
     ..@Attrib('aria-valuemax', '' + settings.max)
-    //..@Attrib('max', '100')
     ..@Mechanism(function (node) {
       waitfor {
         value ..@each(function (value) {
           var percent = computePercentage(value, settings.min, settings.max);
-          var rounded = Math.round(percent);
           node.setAttribute('aria-valuenow', '' + value);
-          //node.setAttribute('value', '' + percent);
-          node.style.width = "#{rounded}%";
+          node.style.width = "#{percent}%";
         });
       } and {
         if (settings.stripes) {
