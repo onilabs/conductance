@@ -4,6 +4,7 @@ require('./modules/hub');
 @etcd = require('seed:job/etcd');
 @stream = require('sjs:nodejs/stream');
 @response = require('mho:server/response');
+@os = require('nodejs:os');
 var root = @url.normalize('./', module.id) .. @url.toPath;
 
 var staticRoute = @route.StaticDirectory(/static/, @path.join(root, 'static'));
@@ -106,16 +107,33 @@ var runAll = function(servers, opts) {
     }));
   }
 
-  waitfor {
-    if(jobs.length > 0) @waitforFirst(jobs);
-    else hold();
-  } or {
-    external .. @propertyPairs
-      .. @sortBy([port, def] -> port)
-      .. @concat(internal .. @propertyPairs .. @sortBy([port, def] -> port))
-      .. @map([port, def] -> def)
-      .. @server.run();
-  }
+  var run = function() {
+    waitfor {
+      if(jobs.length > 0) @waitforFirst(jobs);
+      else hold();
+    } or {
+      external .. @propertyPairs
+        .. @sortBy([port, def] -> port)
+        .. @concat(internal .. @propertyPairs .. @sortBy([port, def] -> port))
+        .. @map([port, def] -> def)
+        .. @server.run();
+    }
+  };
+
+  var monitoring = require('seed:monitoring');
+  var metrics = {
+    'user.cpu': monitoring.sample(function() {
+      var loadAvg = @os.loadavg();
+      var freemem = @os.freemem();
+      var totalmem = @os.totalmem();
+      return {
+        'load_avg': loadAvg[1], // use 5 min avg
+        'mem.free': freemem,
+        'mem.used_percent': Math.round((freemem / Math.max(totalmem, 1)) * 100),
+      }
+    }),
+  };
+  monitoring.withMetrics(metrics, run);
 };
 
 var COMPONENTS = {};
@@ -476,9 +494,8 @@ COMPONENTS.slave = function(opts) {
   var run_slave = function(id, singleton) {
     slave.main(@env.get('etcd'), id, singleton);
   };
-  var os = require('nodejs:os');
 
-  var jobs = [ -> run_slave(opts.slave_name || os.hostname(), true) ];
+  var jobs = [ -> run_slave(opts.slave_name || @os.hostname(), true) ];
   if (opts.num_slaves) {
     jobs = @integers(1, opts.num_slaves)
       .. @map(i -> function() {

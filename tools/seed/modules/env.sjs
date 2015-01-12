@@ -15,9 +15,22 @@ function initLogLevel() {
 }
 initLogLevel();
 
+function resetMonitoringVars() {
+	env.clearCached([
+		'datadog-sample-period',
+		'datadog-batch-period',
+		'datadog-backend',
+	]);
+	if(env.hasCached('datadog')) {
+		// if datadog hasn't been created yet, we don't need to
+		// mutate the backend
+		env.get('datadog').setBackend(env.get('datadog-backend'));
+	}
+};
+
 var seedLocal = require('mho:server/seed/local');
 
-var portFromEnv = function(name, def, xform) {
+var numberFromEnv = function(name, def, xform) {
 	var e = process.env[name];
 	if (e) {
 		if (xform) e = xform(e);
@@ -28,12 +41,12 @@ var portFromEnv = function(name, def, xform) {
 
 
 var defaultPorts = exports.defaultPorts = {
-	http: portFromEnv('SEED_HTTP_PORT', PROD ? 80 : 8080),
-	https: portFromEnv('SEED_HTTPS_PORT', PROD ? 443 : 4043),
+	http: numberFromEnv('SEED_HTTP_PORT', PROD ? 80 : 8080),
+	https: numberFromEnv('SEED_HTTPS_PORT', PROD ? 443 : 4043),
 
 	local: seedLocal.defaultPort,
-	master: portFromEnv('SEED_MASTER_PORT', 7071),
-	slave: portFromEnv('SEED_SLAVE_PORT', 7072),
+	master: numberFromEnv('SEED_MASTER_PORT', 7071),
+	slave: numberFromEnv('SEED_SLAVE_PORT', 7072),
 };
 var standardPorts = {
 	http:80,
@@ -60,7 +73,7 @@ exports.installSignalHandlers = function() {
 	var MODIFIED = {};
 	process.on(env.get('ctl-signal'), function() {
 		// NOTE: currently we hard-code the things we want to respond to at runtime.
-		// This is just SEED_LOG_LEVEL at the moment.
+		// This is just SEED_LOG_LEVEL and some DATADOG_* vars at the moment.
 
 		function setenv(k, v, op) {
 			console.log("[#{process.pid}] #{op ? op : 'Setting'} #{k}=#{v}");
@@ -97,6 +110,7 @@ exports.installSignalHandlers = function() {
 				}
 			};
 			initLogLevel();
+			resetMonitoringVars();
 		} catch(e) {
 			@logging.print("Error adopting new environ: #{e}");
 		}
@@ -288,6 +302,30 @@ exports.defaults = function() {
 			creds.key = creds.key .. @join("\n");
 		}
 		return creds;
+	}, true);
+
+	def('datadog-sample-period', -> numberFromEnv('DATADOG_SAMPLE_PERDIOD') || 30, true);
+	def('datadog-batch-period', -> numberFromEnv('DATADOG_BATCH_PERIOD') || 120, true);
+	def('datadog-backend', function() {
+		var backend = devDefault(process.env.DATADOG_BACKEND, 'log', '$DATADOG_BACKEND');
+		@info("Datadog backend: #{backend || 'real'}");
+		return backend;
+	}, true);
+
+	def('datadog', function() {
+		var dd = require('./datadog');
+		var backend = this.get('datadog-backend');
+		var hostname = require('nodejs:os').hostname();
+		return dd.Datadog({
+			backend: backend,
+			logLevel: @logging.INFO,
+			apikey: this.get('api-keys') .. @get('datadog'),
+			host: hostname +'.seed.onihub.com',
+			defaultTags: [
+				"env:#{devDefault(process.env['DATADOG_ENV'], 'dev', '$DATADOG_ENV')}",
+				"hostname:#{hostname}",
+			],
+		});
 	}, true);
 
 	def('email-transport', @email.mandrillTransport, true);

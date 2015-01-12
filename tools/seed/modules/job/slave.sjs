@@ -7,12 +7,16 @@ var { @User } = require('../auth/user');
 exports.main = function(client, serverId, singleton) {
 	var info = -> @info.apply(null, ["[client##{serverId}]"].concat(arguments .. @toArray()));
 	var load = 0;
+	var loadChanged = @Emitter();
+	loadChanged.emit(load);
 	var withLoad = function(block) {
 		load += 1;
+		loadChanged.emit(load);
 		try {
 			return block();
 		} finally {
 			load -= 1;
+			loadChanged.emit(load);
 		}
 	};
 	withLoad.currentValue = -> load;
@@ -24,8 +28,7 @@ exports.main = function(client, serverId, singleton) {
 
 	info("connecting...");
 	var endpoint_url = @env.get('publicAddress')('slave') + "app.api";
-	client .. @etcd.advertiseEndpoint(serverId, endpoint_url) {||
-
+	function runServer() {
 		var endpointKey = @etcd.app_endpoint(null);
 		var owned = @etcd.tryOp(-> client.get(endpointKey, {recursive:true}));
 		if (owned) {
@@ -66,6 +69,12 @@ exports.main = function(client, serverId, singleton) {
 		} and {
 			@etcd.heartbeat(heartbeat);
 		}
+	};
+
+	client .. @etcd.advertiseEndpoint(serverId, endpoint_url) {||
+		var suffix = singleton ? "" : ".#{serverId}";
+		var monitoring = require('seed:monitoring');
+		monitoring.withMetric("user.slave.load#{suffix}", loadChanged, runServer);
 	}
 };
 

@@ -79,7 +79,7 @@ create(env('ETCD_DATA_DIR'), 0750, 'etcd', 'wheel');
 			chown('conductance.root', path);
 		} else if (file .. @startsWith('key-conductance-') || file .. @startsWith('key-all-')) {
 			var owner = 'conductance.conductance';
-			if (file .. @startsWith('key-conductance--etcd-')) {
+			if (file .. @startsWith('key-conductance-etcd-')) {
 				owner = 'etcd.conductance';
 			}
 			chown(owner, path);
