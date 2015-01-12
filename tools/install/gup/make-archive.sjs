@@ -66,11 +66,10 @@ switch(ext) {
     run.apply(null, ["gup", "-u", payload, prelude].concat(confPaths));
 
     var out = @nodeFs.createWriteStream(dest, 'w');
-    ;[root+"/" + prelude, root+"/conf/7zip.conf", root+"/" + payload] .. @each {|input|
-      var inf = @nodeFs.createReadStream(input);
-      inf .. @stream.pump(out);
-    }
-    out.close();
+    ;[root+"/" + prelude, root+"/conf/7zip.conf", root+"/" + payload]
+      .. @transform(@fs.fileContents)
+      .. @concat
+      .. @stream.pump(out);
     break;
   
   default:
