@@ -12,7 +12,7 @@
 var { Element, Mechanism, Attrib, isElementOfType } = require('./base');
 var { replaceContent, appendContent, prependContent, Prop, removeNode, insertBefore } = require('./dynamic');
 var { events } = require('sjs:event');
-var { Stream, isStream, integers, each, map, transform, indexed, filter, sort, slice, any, toArray } = require('sjs:sequence');
+var { Stream, isStream, mirror, integers, each, map, transform, indexed, filter, sort, slice, any, toArray } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { shallowEq } = require('sjs:compare');
 var { override, merge } = require('sjs:object');
@@ -111,7 +111,7 @@ var { observe, isObservableVar } = require('sjs:observable');
   'Canvas', 'Map', 'Area', 'Svg', 'Math',
   'Table', 'Caption', 'ColGroup', /* 'Col' ,*/ 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
   'Form', 'FieldSet', 'Legend', 'Label', /* 'Input', */ 'Button', /* 'Select', */
-  'DataList', 'OptGroup', 'Option', /*'TextArea', */ 'KeyGen', 'Output', 'Progress', 'Meter',
+  'DataList', 'OptGroup', 'Option', /*'TextArea', */ 'KeyGen', 'Output', /* 'Progress', */ 'Meter',
   'Details', 'Summary', 'MenuItem', 'Menu',
 ] .. each {|name|
   var tag = name.toLowerCase();
@@ -270,6 +270,91 @@ var Checkbox = value ->
     }
   });
 exports.Checkbox = Checkbox;
+
+
+
+/**
+  @function Progress
+  @summary A HTML `<progress>` widget
+  @param {Number|sjs:sequence::Stream} [value]
+  @param {optional Object} [settings]
+  @setting {optional Number} [min=0] Lowest value of `value`
+  @setting {optional Number} [max=100] Highest value of `value`
+  @return {surface::Element}
+  @desc
+    If `value` is a [sjs:sequence::Stream], then the % completed will
+    change over time to match the stream.
+
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    var surface = require('mho:surface/html');
+
+    var percent = @ObservableVar(0);
+
+    spawn @generate(Math.random) ..@each(function (x) {
+      percent.set(x * 100);
+      hold(2000);
+    });
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    var percent = @ObservableVar(0);
+
+    @Progress(percent)",
+    surface.Progress(percent))
+    ]);
+*/
+// TODO code duplication with Bootstrap Progress
+function computePercentage(value, min, max) {
+  return ((value - min) / (max - min)) * 100;
+}
+
+// TODO code duplication with Bootstrap Progress
+// TODO I don't think `isStream` is the right predicate to use
+function Progress(value, settings) {
+  // TODO is there a utility to handle this ?
+  if (settings == null) {
+    settings = {};
+  }
+  if (settings.min == null) {
+    settings.min = 0;
+  }
+  if (settings.max == null) {
+    settings.max = 100;
+  }
+
+  // TODO is there a better way to do this ?
+  if (isStream(value)) {
+    value = mirror(value);
+  } else {
+    value = [value];
+  }
+
+  var percentage = Element('span') ..Mechanism(function (node) {
+    value ..each(function (value) {
+      var percent = computePercentage(value, settings.min, settings.max);
+      var rounded = Math.round(percent);
+      node.textContent = "#{rounded}%";
+    });
+  });
+
+  var top = Element('progress', percentage)
+    ..Attrib('aria-valuemin', '' + settings.min)
+    ..Attrib('aria-valuemax', '' + settings.max)
+    ..Attrib('max', '100')
+    ..Mechanism(function (node) {
+      value ..each(function (value) {
+        var percent = computePercentage(value, settings.min, settings.max);
+        node.setAttribute('aria-valuenow', '' + value);
+        node.setAttribute('value', '' + percent);
+      });
+    });
+
+  return top;
+}
+exports.Progress = Progress;
+
 
 //----------------------------------------------------------------------
 /**
