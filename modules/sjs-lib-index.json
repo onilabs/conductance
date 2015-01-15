@@ -622,13 +622,25 @@
             "Container": {
               "type": "function"
             },
+            "ControlLabel": {
+              "type": "function"
+            },
             "EmbedResponsive": {
               "type": "function"
             },
             "FluidContainer": {
               "type": "function"
             },
+            "FormGroup": {
+              "type": "function"
+            },
+            "HorizontalForm": {
+              "type": "function"
+            },
             "Icon": {
+              "type": "function"
+            },
+            "InlineForm": {
               "type": "function"
             },
             "Input": {
@@ -674,6 +686,9 @@
               "type": "function"
             },
             "Select": {
+              "type": "function"
+            },
+            "SelectInput": {
               "type": "function"
             },
             "Special Classes": {
@@ -817,6 +832,45 @@
           },
           "summary": "Templates for [mho:#features/app-file::]s (or for manual use with [surface::Document])"
         },
+        "field": {
+          "type": "module",
+          "children": {
+            "CTX_FIELD": {
+              "type": "variable"
+            },
+            "CTX_FIELDCONTAINER": {
+              "type": "variable"
+            },
+            "Field": {
+              "type": "function"
+            },
+            "FieldArray": {
+              "type": "function"
+            },
+            "FieldMap": {
+              "type": "function"
+            },
+            "Validate": {
+              "type": "function"
+            },
+            "fieldValue": {
+              "type": "function"
+            },
+            "findContext": {
+              "type": "function"
+            },
+            "getField": {
+              "type": "function"
+            },
+            "validate": {
+              "type": "function"
+            },
+            "validationState": {
+              "type": "function"
+            }
+          },
+          "summary": "HTML 'Field' abstraction"
+        },
         "html": {
           "type": "module",
           "children": {
@@ -824,6 +878,9 @@
               "type": "function"
             },
             "Input": {
+              "type": "function"
+            },
+            "Label": {
               "type": "function"
             },
             "Ol": {

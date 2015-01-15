@@ -13,7 +13,7 @@ var { hostenv } = require('builtin:apollo-sys');
 
 var imports = [
   'sjs:std',
-  {id:'./base', include: ['Element', 'Mechanism', 'isElementOfType']}
+  {id:'./base', include: ['Element', 'Attrib', 'Mechanism', 'isElementOfType']}
 ];
 
 if (hostenv === 'xbrowser') {
@@ -676,7 +676,7 @@ exports.Progress = Progress;
   @demo
     @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
 
-    var surface = require('mho:surface/html');
+    var plain_html = require('mho:surface/html');
 
     var options = ["Bad", "Ok", "Pretty Good", "Perfect"];
     var Rating  = @ObservableVar('Pretty Good');
@@ -693,7 +693,7 @@ exports.Progress = Progress;
       Rate Conductance:
       $@Select({items:options, selected: Rating})
       Your Rating: $Rating`);",
-          `Rate Conductance:  ${surface.Select({items:options, selected: Rating})}
+          `Rate Conductance:  ${plain_html.Select({items:options, selected: Rating})}
            Your Rating: $Rating`
     ));
 */
