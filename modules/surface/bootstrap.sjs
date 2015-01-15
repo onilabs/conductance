@@ -1047,9 +1047,8 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @function Panel
 @summary Bootstrap-style panel ("<div class='panel'>") with additional `panel-*` classes applied.
-@param {String} [panel_classes] String of `panel-*` classes to apply to the button
 @param {surface::HtmlFragment} [content]
-@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@param {optional String} [panel_classes='default'] String of `panel-*` classes to apply to the button
 @return {surface::Element}
 @desc
   `panel_classes` is a space-separated list of `panel-*` classes that should be applied to the
@@ -1342,6 +1341,27 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @return {surface::Element}
 @desc
   See [::Panel] for examples
+
+@function InlineForm
+@summary XXX write me
+
+@function HorizontalForm
+@summary XXX write me
+
+@function FormGroup
+@summary XXX write me
+
+@function ControlLabel
+@summary XXX write me
+
+@function SelectInput
+@summary XXX write me
+@param {Object} [settings]
+@setting {Function} [suggestions] function search_term_stream -> suggestions_stream
+@setting {HTML} [extra_buttons] 
+@desc
+  suggestions can be a stream of arrays of strings or objects:
+   { text:String, highlight:Boolean }
 
 @function doModal
 @altsyntax doModal(body, [settings], block)

@@ -741,7 +741,7 @@ exports.EmbedResponsive = function (content, settings) {
   }
 
   // TODO what about "embed-responsive-item" ?
-  return base_html.Div(content) ..@Class(classes);
+  return @html.Div(content) ..@Class(classes);
 };
 
 /**
@@ -783,7 +783,7 @@ exports.Well = function (content, settings) {
     }
   }
 
-  return base_html.Div(content) ..@Class(classes);
+  return @html.Div(content) ..@Class(classes);
 };
 
 
@@ -1268,7 +1268,7 @@ exports.PanelBody = wrapWithClass(@html.Div, 'panel-body');
   @desc
     See [::Panel] for examples
 */
-exports.PanelFooter = wrapWithClass(base_html.Div, 'panel-footer');
+exports.PanelFooter = wrapWithClass(@html.Div, 'panel-footer');
 
 /**
   @function PanelHeading
