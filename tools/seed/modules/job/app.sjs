@@ -366,6 +366,24 @@ exports.localAppState = (function() {
           var runUser = "app";
           var readOnly = (path) -> "#{path}:#{path}:ro";
 
+          var nixosProfileMount = (function() {
+            var path = '/run/current-system';
+            var profile;
+            try {
+              @fs.stat('/etc/NIXOS');
+              profile = @fs.readlink(path);
+            } catch(e) {
+              if(e.code === 'ENOENT') return []; // not a nixos box
+              throw e;
+            }
+            @info("Launching docker container with profile path: #{profile}");
+            // NOTE: this isn't used in the container, it's just a convenient
+            // way to associate a path with the container (retrieved with
+            // `docker inspect`). We use it to mark all running docker roots
+            // as live when running `nixos-collect-garbage`
+            return ['--volume', "#{profile}:/nix-root:ro"];
+          })();
+
           args = [
             "docker",
             "run",
@@ -390,7 +408,7 @@ exports.localAppState = (function() {
             "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
             "--volume", readOnly(conductanceRoot),
             "--volume", readOnly(sjsRoot),
-          ]).concat([
+          ]).concat(nixosProfileMount).concat([
             "local/conductance-base", // image name
           ]).concat(args);
           @info("Running", args);

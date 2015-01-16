@@ -1,0 +1,62 @@
+#!/usr/bin/env conductance
+// vim: syntax=sjs:
+
+@ = require(['mho:std', 'sjs:nodejs/mkdirp']);
+var { @rimraf } = require('sjs:nodejs/rimraf');
+var fsExt = require('nodejs:fs-ext');
+require('../modules/hub');
+require('seed:env').defaults();
+@logging.setLevel(@logging.INFO);
+
+var basedir = @path.join(@env.get('data-root'), 'nix-gc-root');
+var has_docker = process.env.HAS_DOCKER !== 'false';
+
+@mkdirp(basedir);
+var lockName = 'lock';
+var lockPath = @path.join(basedir, lockName);
+var lockfile = @fs.open(lockPath, 'w');
+try {
+	fsExt.flockSync(lockfile, 'exnb');
+} catch(e) {
+	if (e.code == 'EAGAIN') {
+		throw new Error("Cannot acquire lockfile");
+	}
+	throw e;
+}
+
+var cleanup = function() {
+	@fs.readdir(basedir) .. @each {|item|
+		if(item === lockName) continue; // don't delete that, you fool
+		@rimraf(@path.join(basedir, item));
+	}
+}
+
+cleanup();
+
+var STDOUT_PIPE = {stdio:['ignore','pipe',2]};
+
+if(has_docker) {
+	var images = @childProcess.run('docker', ['ps','-q'], STDOUT_PIPE).stdout .. @split("\n") .. @filter .. @toArray;
+	@info(`Running containers: $images`);
+	var profilePath = "/nix-root";
+	if(images.length > 0) {
+		var args = [
+			'inspect',
+			'--format={{range $key, $value := .Volumes}}{{if eq $key "'+profilePath+'"}}{{$value}}\n{{end}}{{end}}'
+			].concat(images);
+		@info("Running docker #{args .. @join(" ")}");
+		var roots = @childProcess.run('docker', args, STDOUT_PIPE).stdout .. @split("\n") .. @filter .. @unique();
+		roots .. @indexed .. @each {|[idx, dest]|
+			if(!dest.length) continue;
+			@info("Adding root/#{idx}: #{dest}");
+			var root_name = @path.join(basedir, String(idx));
+			@fs.symlink(dest, root_name);
+			@fs.exists(root_name) .. @assert.ok("Broken symlink!");
+			@childProcess.run('nix-store', ['--realise', '--indirect', '--add-root', root_name], {stdio:'inherit'});
+		}
+	}
+}
+
+@info("Running GC with args:", @sys.argv());
+@childProcess.run('nix-collect-garbage', @sys.argv(), {stdio:'inherit'});
+cleanup();

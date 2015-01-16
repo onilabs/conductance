@@ -49,6 +49,7 @@ function unlink(path) {
 create(env('SEED_VAR'), 0755);
 create(env('SEED_DATA'), 0750, 'conductance', 'conductance');
 create(env('SEED_DATA')+'/run', 0750, 'conductance', 'conductance');
+create(env('SEED_DATA')+'/nix-gc-root', 0750, 'root', 'wheel');
 unlink(env('SEED_DATA')+'/environ');
 create(env('ETCD_DATA_DIR'), 0750, 'etcd', 'wheel');
 
