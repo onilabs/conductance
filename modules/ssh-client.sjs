@@ -263,7 +263,7 @@ exports.sftp = sftp;
 function getSFTSession(conn) {
   var session;
   if (isSFTSession(conn))
-    session = cont;
+    session = conn;
   else if (!(session = conn.__oni_sftpsession))
     session = conn.__oni_sftpsession = conn .. sftp();
 
@@ -403,3 +403,52 @@ function fileStream(conn, path, options) {
 }
 exports.fileStream = fileStream;
 
+function writeFile(conn, path, contents, options){
+  var session = conn..getSFTSession();
+  var ws = session.createWriteStream(path, options);
+  waitfor {
+    var err  = ws .. @wait('error');
+    throw err;
+  } or {
+    waitfor {
+      ws .. @wait('close');
+    } and {
+      ws.write(contents);
+      ws.end();
+    }
+  }
+}
+exports.writeFile = writeFile;
+
+function readFile(conn, path, options){
+  var session = conn..getSFTSession();
+  var rs = session.createReadStream(path, options);
+  var contents;
+  waitfor {
+    var err = rs .. @wait('error');
+    throw err;
+  } or {
+    waitfor {
+      rs .. @wait('close');
+    } and {
+      contents = rs .. @stream.readAll;
+      rs.destroy();
+    }
+  }
+  return contents.toString();
+}
+exports.readFile = readFile;
+
+function mkdir(conn, dir){
+  var session = conn .. getSFTSession();
+  waitfor (err) {session.mkdir(dir, resume);}
+  if (err) throw err;
+}
+exports.mkdir = mkdir
+
+function unlink(conn, path){
+  var session = conn .. getSFTSession();
+  waitfor (err) {session.unlink(path, resume);}
+  if (err) throw err;
+}
+exports.unlink = unlink
