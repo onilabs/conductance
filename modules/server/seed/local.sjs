@@ -64,6 +64,7 @@ exports.serve = function(args) {
   }
 
   if (!opts.master .. @endsWith('/')) opts.master += '/';
+  opts.master .. @assert.contains('://', "--master");
 
   @env.set('seed-api-version', exports.apiVersion);
   @env.set('seed-master', opts.master);

@@ -99,7 +99,8 @@ var runAll = function(servers, opts) {
     var canonicalPort = @env.get('port-https');
     external['http'].routes.push(@Route(null, {
       '*': function(req) {
-        var host = req.request.headers .. @get('host');
+        var host = req.request.headers.host;
+        if(!host) throw @response.HttpError(400, "Bad request", "HOST required");
         var source = host.replace(/:.*/, '');
         var url = "https://#{source}:#{canonicalPort}#{req.url.relative ? req.url.relative : ''}";
         req .. @response.writeRedirectResponse(url, 302);
@@ -122,16 +123,9 @@ var runAll = function(servers, opts) {
 
   var monitoring = require('seed:monitoring');
   var metrics = {
-    'user.cpu': monitoring.sample(function() {
-      var loadAvg = @os.loadavg();
-      var freemem = @os.freemem();
-      var totalmem = @os.totalmem();
-      return {
-        'load_avg': loadAvg[1], // use 5 min avg
-        'mem.free': freemem,
-        'mem.used_percent': Math.round((freemem / Math.max(totalmem, 1)) * 100),
-      }
-    }),
+    'user.cpu.load_avg': monitoring.sample(-> @os.loadavg()[1]), // use 5min average
+    'user.mem': monitoring.sample(monitoring.memoryMetrics),
+    'user.disk': monitoring.sample(30 * 30, monitoring.diskMetrics),
   };
   monitoring.withMetrics(metrics, run);
 };

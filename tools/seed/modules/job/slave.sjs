@@ -34,7 +34,7 @@ exports.main = function(client, serverId, singleton) {
 		if (owned) {
 			owned = owned
 				.. @getPath('node.nodes')
-				.. @map(n -> n.nodes || [])
+				.. @transform(n -> n.nodes || [])
 				.. @concat
 				.. @filter(node -> node.value === serverId)
 				.. @map(node -> node.key .. @removeLeading(endpointKey))
@@ -74,7 +74,7 @@ exports.main = function(client, serverId, singleton) {
 	client .. @etcd.advertiseEndpoint(serverId, endpoint_url) {||
 		var suffix = singleton ? "" : ".#{serverId}";
 		var monitoring = require('seed:monitoring');
-		monitoring.withMetric("user.slave.load#{suffix}", loadChanged, runServer);
+		monitoring.withMetric("user.slave.load#{suffix}", @combine(loadChanged, monitoring.sample(-> load)), runServer);
 	}
 };
 

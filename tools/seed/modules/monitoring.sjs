@@ -1,5 +1,12 @@
 @ = require('mho:std');
+@os = require('nodejs:os');
 @type = require('sjs:type');
+
+if (require.main === module) {
+	require('./hub');
+	require('seed:env').defaults();
+}
+
 @datadog = @env.get('datadog').nonblocking({capacity: 100});
 
 var SAMPLE_INTERVAL = -> @env.get('datadog-batch-period') * 1000; 120 * 1000; // 2 mins
@@ -137,3 +144,50 @@ exports.withMetrics = function(metrics, block) {
 exports.event = function() {
 	@datadog.event.apply(@datadog, arguments);
 };
+
+exports.memoryMetrics = function() {
+	var freemem = @os.freemem();
+	var totalmem = @os.totalmem();
+	return {
+		//'free_mb': Math.round(freemem / 1000 / 1000),
+		'used_percent': 100 - Math.round((freemem / Math.max(totalmem, 1)) * 100),
+	}
+}
+
+exports.diskMetrics = function() { // only sample every 30m
+	return @fs.readFile('/proc/mounts', 'utf-8')
+		.. @split('\n')
+		.. @transform(line -> line.split(/\s+/g, 2))
+		.. @filter([dev] -> dev .. @startsWith('/dev/') && !dev .. @startsWith('/dev/mapper/'))
+		.. @sortBy([dev, path] -> path.length) // always use the shortest path if a device is mounted in multiple places
+		.. @uniqueBy("0")
+		.. @transform(function([device, path]) {
+			//console.log("getting dev #{device}, #{path}");
+			var id = path == '/' ? 'root' : path.slice(1).replace(/\//g,'_');
+			var [pcent, avail, ipcent] = (@childProcess.run('df', [ '--local', '--block-size=M', '--output=pcent', '--output=avail', '--output=ipcent',  path]).stdout
+				.split('\n')[1]
+				.trim()
+				.replace(/[%M]/g,'')
+				.split(/\s+/)
+				//.. @tap(console.log)
+				)
+				.. @map(num -> parseInt(num, 10))
+			;
+			//console.log("ID=#{id}");
+			return [
+				[id + ".used_percent", pcent],
+				[id + ".avail_mb", avail],
+				[id + ".iused_percent", ipcent],
+			];
+		})
+		.. @concat()
+		.. @toArray
+		//.. @tap(console.log)
+		.. @pairsToObject()
+	;
+}
+
+if (require.main === module) {
+	console.log("memory metrics: ", exports.memoryMetrics());
+	console.log("disk metrics: ", exports.diskMetrics());
+}

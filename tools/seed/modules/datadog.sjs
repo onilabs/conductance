@@ -165,6 +165,7 @@ exports.Datadog = function(opts) {
           blocking[fn].apply(null, args);
         } catch(e) {
           @logging.error("Failed to send datadog #{fn}:\n#{e}");
+          @logging.info("Args:", JSON.stringify(args));
         }
       }
     }());
@@ -187,7 +188,7 @@ exports.backends = {
     var level = opts.logLevel || @logging.INFO;
     return {
       makeCall: function(path, data) {
-        @logging.log(level, [" - generated datadog call: #{JSON.stringify(data, null, '  ')}"]);
+        @logging.log(level, [" - generated datadog call: #{JSON.stringify(data)}"]);
       },
     };
   },
