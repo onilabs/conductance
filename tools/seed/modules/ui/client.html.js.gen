@@ -31,8 +31,10 @@ var access = (function() {
 })();
 
 
-exports.urls = function(root) {
-  return allHubs .. @map(hub -> @url.normalize("client.html.js?hub=#{hub}&#{DIGEST_KEY}=#{access(hub).digest}", root));
+exports.urls = function(root, exclude) {
+  var hubs = allHubs;
+  if(exclude) hubs = hubs .. @filter(hub -> !exclude .. @hasElem(hub));
+  return hubs .. @map(hub -> @url.normalize("client.html.js?hub=#{hub}&#{DIGEST_KEY}=#{access(hub).digest}", root));
 };
 
 var daysInSeconds = 60 * 60 * 24;

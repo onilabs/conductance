@@ -2,16 +2,20 @@
 @layout = require('./layout');
 @generator = require('./client.html.js.gen');
 
-exports.content = function() {
+exports.content = function(params) {
   //var localAddress = @env.get('publicAddress')('local', 'http');
   var localAddress = @env.get('local-api-endpoint');
+
+  var exclude = params['nobundle'];
+  if(exclude) exclude = exclude.split(',');
+  var externalScripts = @generator.urls(this.url.source, exclude);
 
   // We want to pre-resolve script URLs to the absolute master URL, because
   // otherwise chrome never caches them - see https://code.google.com/p/chromium/issues/detail?id=433702
   return @layout.defaultDocument(null, {
     title: "Conductance Seed",
     init: "require('seed:ui/main').run('#{localAddress}')",
-    externalScripts: @generator.urls(this.url.source),
+    externalScripts: externalScripts,
     templateData: {
       showBusyIndicator: true,
     }

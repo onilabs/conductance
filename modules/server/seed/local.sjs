@@ -33,6 +33,11 @@ exports.serve = function(args) {
       type: 'arrayOfString',
       'default': null,
     },
+    {
+      name: 'local-ui',
+      type: 'bool',
+      'default': false,
+    },
   ];
 
   var options = [
@@ -78,7 +83,7 @@ exports.serve = function(args) {
       ca: opts.add_ca,
     }));
 
-    // inject agent into endpoint module
+    // inject HTTPS agent into endpoint module
     var endpoint = require('mho:server/seed/endpoint');
     endpoint._EndpointProto._connect = (function(orig) {
       return function(opts, block) {
@@ -102,13 +107,19 @@ exports.serve = function(args) {
     @Route('',
       { '*': function(req)
         {
-          var response = @http.request(@url.normalize('client.html', opts.master), {
+          var indexUrl = @url.normalize('client.html', opts.master);
+          var agent = seedAgent;
+          if(opts.local_ui) {
+            indexUrl = @url.normalize("/modules/ui/client.html?nobundle=seed", req.url.source);
+            agent = null;
+          }
+          var response = @http.request(indexUrl, {
             method: req.request.method,
             response: 'raw',
             body: req.body,
             headers: req.request.headers,
             throwing: false,
-            agent: seedAgent,
+            agent: agent,
           });
           if(!response.statusCode) {
             if(response.error) @error(response.error);
@@ -124,13 +135,23 @@ exports.serve = function(args) {
         },
       }
     ),
-
     // redirect all other requests to master server
     @Route(/^/, {'*': function(req) {
       var relative = req.url.relative.slice(1);
       req .. @response.writeRedirectResponse(@url.normalize(relative, opts.master));
     }}),
   ];
+
+  if(opts.local_ui) {
+    require('../../../tools/seed/modules/hub');
+    require('seed:env').defaults();
+    routes.splice(routes.length-1, 0, @route.ExecutableDirectory(
+      'modules/ui',
+      @url.normalize('../../../tools/seed/modules/ui', module.id) .. @url.toPath()
+    ));
+    routes.splice(0, 0, @route.SystemCodeRoutes());
+  }
+
   
   var port = opts.port;
 
