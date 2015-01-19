@@ -67,6 +67,8 @@ exports.changes = function(client, key, opts) {
 
 		var emit = function(change) {
 			if (change.node) updateIndex(change.node);
+			// use null for blank / deleted node, not undefined
+			if (change.node === undefined) change.node = null;
 			_emit(change);
 		};
 
