@@ -622,7 +622,7 @@ function displayServer(elem, header, api, server) {
 				@H2(`Server unavailable.`),
 				@P(`The server may be experiencing temporary downtime. <b>TODO: link to status page</b>`),
 			]);
-			connectionError .. @each {|err|
+			connectionError .. @each.track {|err|
 				if (err) {
 					elem .. @appendContent(errorMessage, staticContentBlock);
 				}
