@@ -31,6 +31,7 @@ var appRoot = @path.join(dataRoot, 'app');
 exports.getAppRoot = -> appRoot;
 var conductanceRoot = @path.dirname(require.resolve('mho:').path .. @url.toPath);
 var sjsRoot =         @path.dirname(require.resolve('sjs:').path .. @url.toPath);
+var DOCKER_IMAGE = 'local/conductance-base';
 
 var expected_exe_name = /docker/;
 var appSizeLimit = 1024 * 10; // 10mb
@@ -197,6 +198,38 @@ function limitStreamSize(stream, maxkb) {
     }
   });
 }
+
+var cleanupDeadContainers = exports.cleanupDeadContainers = function() {
+  var nonEmptyLines = s -> s .. @split("\n") .. @filter() .. @toArray();
+  var run_output = function(args, containers) {
+    @info("Running `docker #{args .. @join(" ")}`#{containers ? " on #{containers.length} containers" : ""}");
+    return @childProcess.run('docker', args.concat(containers || []),
+      {stdio: ['ignore','pipe',2]}).stdout;
+  }
+  var containers = run_output(['ps', '-aq']) .. nonEmptyLines;
+
+  if(containers.length > 0) {
+    var image = run_output(['images', '-q', '--no-trunc', DOCKER_IMAGE]).trim();
+    @assert.ok(/^[0-9a-fA-F]+$/.test(image), "bad image id: #{image}");
+    
+    // NOTE: old docker (e.g 1.3.2) uses .Id, newer uses .ID
+    var filterArg = '--format={{if (and (eq .State.Running false) (eq .Image "'+image+'"))}}{{or .ID .Id}}{{end}}';
+
+    @info("running `docker inspect '#{filterArg}'`");
+    containers = tryRunDocker(['inspect', filterArg].concat(containers), 'pipe');
+    if(containers === false) {
+      @warn("`docker inspect` failed");
+    } else {
+      containers = containers.stdout .. nonEmptyLines;
+      if(containers.length > 0) {
+        @info("Cleaning up #{containers.length} dead containers");
+        if(!tryRunDocker(["rm"].concat(containers), 'ignore')) {
+          @warn("docker `rm` failed");
+        }
+      }
+    }
+  }
+};
 
 
 // local app state (exposed by slaves). Provides information
@@ -387,7 +420,7 @@ exports.localAppState = (function() {
           args = [
             "docker",
             "run",
-            "--rm=true",
+            "--detach",
             "--publish", "7075",
             //"--publish", "4043",
             "--name", machineName,
@@ -412,31 +445,29 @@ exports.localAppState = (function() {
             "local/conductance-base", // image name
           ]).concat(args);
           @info("Running", args);
-          var child = @childProcess.launch(args[0],
-            args.slice(1).concat([
-              'serve', '--port', '7075', '--host', 'any'
-            ]),
-            {
-              stdio: stdio,
-              detached: true,
-            }
-          );
+          try {
+            waitfor {
+              @childProcess.run(args[0],
+                args.slice(1).concat([
+                  'serve', '--port', '7075', '--host', 'any'
+                ]),
+                { stdio: ['ignore', 'ignore', 2] }
+              );
+              collapse;
+              @info("Attaching output streams");
+              @childProcess.launch('docker', ['attach', '--sig-proxy=false', machineName], {stdio:stdio});
 
-          @info("launched child process: #{child.pid}");
-          var tries = 100;
-          // wait until docker reports this container as running
-          while(true) {
-            if (isRunning.unsafe()) break;
-            if (!@childProcess.isRunning(child.pid)) {
-              if(!@childProcess.isRunning(child.pid)) throw new Error("process died");
+              if (!isRunning.unsafe()) {
+                throw new Error("app failed to start");
+              }
+            } or {
+              hold(50 * 1000);
+              throw new Error("timed out waiting for app to start");
             }
-            if(tries <= 0) {
-              throw new Error("timed out waiting for app start");
-            }
-            hold(500);
-            tries--;
           }
-          recheckPid.emit();
+          finally {
+            recheckPid.emit();
+          }
           return true;
         } catch(e) {
           log(e.message);
@@ -451,7 +482,7 @@ exports.localAppState = (function() {
 
     var stopApp = function() {
       @info("Stopping app #{machineName}");
-      tryRunDocker(["stop", machineName]);
+      tryRunDocker(["stop", machineName], 'ignore');
       recheckPid.emit();
     } .. safe();
 

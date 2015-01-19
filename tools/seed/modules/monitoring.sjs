@@ -35,7 +35,7 @@ var metricLoop = (function() {
 			} retract {
 				var remaining = count();
 				// XXX should we send these off instead of just dropping them?
-				if (remaining > 0) logging.warn("Dropping #{remaining} unsent metrics");
+				if (remaining > 0) @logging.warn("Dropping #{remaining} unsent metrics");
 			}
 		}
 	};
@@ -72,8 +72,10 @@ var metricLoop = (function() {
 				metric .. @each {|val|
 					// metrics can be streams of either `value` (a number)
 					// or `object` (an object with metric names for keys)
+					// or `array` (an array of key-value pairs)
 					if(@type.isObject(val)) {
-						val .. @ownPropertyPairs .. @each {|[subkey,v]|
+						if(!@type.isArray(val)) val = val .. @ownPropertyPairs;
+						val .. @each {|[subkey,v]|
 							record(key + '.' + subkey,v);
 						}
 					} else {

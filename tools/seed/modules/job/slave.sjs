@@ -68,13 +68,32 @@ exports.main = function(client, serverId, singleton) {
 			discoverNewRequests(client, serverId, info, withLoad);
 		} and {
 			@etcd.heartbeat(heartbeat);
+		} and {
+			while(true) {
+				// each time the load changes, clean up old docker containers.
+				// We add a short delay to not bother running this every
+				// single time something changes
+				@app.cleanupDeadContainers();
+				loadChanged .. @each {||
+					hold(1000 * 60 * 5);
+					//hold(1000 * 5);
+					@app.cleanupDeadContainers();
+				}
+			}
 		}
 	};
 
 	client .. @etcd.advertiseEndpoint(serverId, endpoint_url) {||
 		var suffix = singleton ? "" : ".#{serverId}";
 		var monitoring = require('seed:monitoring');
-		monitoring.withMetric("user.slave.load#{suffix}", @combine(loadChanged, monitoring.sample(-> load)), runServer);
+		var loadKey = "load#{suffix}";
+		monitoring.withMetric("user.slave", @combine(
+			loadChanged .. @transform(val -> [[loadKey, val]]),
+			monitoring.sample(function() {
+				var containers = @childProcess.run('docker', ['ps','-qa'],{stdio:['ignore','pipe',2]}).stdout.split("\n") .. @filter() .. @count();
+				return [ [loadKey, load], ['docker_containers', containers ]];
+			})
+		), runServer);
 	}
 };
 
