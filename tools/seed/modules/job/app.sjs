@@ -680,14 +680,14 @@ exports.masterAppState = (function() {
       var key = @etcd.app_endpoint(appId);
       @etcd.tryOp(-> etcd.set(key, "", {prevExist: false})); // explicitly `null` the key if it's not yet set
 
-      etcd .. @etcd.values(key, {initial:true}) .. @each {|node|
+      etcd .. @etcd.values(key, {initial:true}) .. @each.track {|node|
         var serverId = node.value;
         @verbose("got etcd endpoint:", serverId);
-        if (serverId === '') {
+        if (!serverId) {
           emit(false);
         } else {
           @verbose("polling slave endpoint:", serverId);
-          etcd .. @etcd.values(@etcd.slave_endpoint(serverId), {initial:true}) .. @each {|url|
+          etcd .. @etcd.values(@etcd.slave_endpoint(serverId), {initial:true}) .. @each.track {|url|
             if (url === null) {
               emit(null);
             } else {

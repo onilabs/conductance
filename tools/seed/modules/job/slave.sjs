@@ -76,7 +76,6 @@ exports.main = function(client, serverId, singleton) {
 				@app.cleanupDeadContainers();
 				loadChanged .. @each {||
 					hold(1000 * 60 * 5);
-					//hold(1000 * 5);
 					@app.cleanupDeadContainers();
 				}
 			}
@@ -217,6 +216,7 @@ function discoverNewRequests(client, serverId, info, withLoad) {
 		.. @etcd.values(prefix, {'recursive':true})
 		.. @each
 	{|node|
+		if(!node.value) continue;
 		@info("saw new op:", node.value);
 		hold(withLoad.currentValue() * 200); // 0.2s per load
 		@debug("accepting op:", node.value);

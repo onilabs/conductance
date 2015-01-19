@@ -139,11 +139,10 @@ exports.changes = function(client, key, opts) {
 
 exports.values = function(client, key, opts) {
 	return exports.changes.apply(null, arguments)
-		//.. @filter(function(change) {
-		//	if (change.action === 'set' || change.action === 'get' || change.action === 'create') return true;
-		//	@debug("Skipping non-value change type: #{change.action}");
+		//.. @monitor(function(change) {
+		//	@warn("saw change type #{change.action} on etcd key #{key}");
 		//})
-		.. @filter(change -> change.action === 'set' || change.action === 'get' || change.action === 'create')
+		.. @filter(change -> !['watch'] .. @hasElem(change.action))
 		.. @transform(change -> change.node);
 }
 
