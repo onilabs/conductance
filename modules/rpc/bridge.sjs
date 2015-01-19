@@ -329,7 +329,9 @@ function marshall(value, connection) {
         k = keys(value) .. filter(name ->
           root[name] !== value[name] && (
             name === '__oni_apiid' || (
-              name != 'toString' && !name.. startsWith('_')
+              name !== 'toString' && 
+              !name.. startsWith('__oni') &&
+              name !== ITF_SIGNAL  
             )
           )
         );
