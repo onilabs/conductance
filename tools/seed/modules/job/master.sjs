@@ -92,7 +92,7 @@ exports.main = function(client, opts) {
 		appRepository = "#{user}@#{appRepository}";
 	}
 	client.set(@etcd.master_app_repository(), appRepository);
-	client .. @etcd.advertiseEndpoint('master', @env.get('publicAddress')('master')) {||
+	client .. @etcd.advertiseEndpoint(@etcd.master_endpoint, @env.get('publicAddress')('master')) {||
 		try {
 			hold();
 			//var balanceTime = (opts .. @get('balanceTime')) * 1000;

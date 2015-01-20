@@ -82,7 +82,7 @@ exports.main = function(client, serverId, singleton) {
 		}
 	};
 
-	client .. @etcd.advertiseEndpoint(serverId, endpoint_url) {||
+	client .. @etcd.advertiseEndpoint(@etcd.slave_endpoint(serverId), endpoint_url) {||
 		var suffix = singleton ? "" : ".#{serverId}";
 		var monitoring = require('seed:monitoring');
 		var loadKey = "load#{suffix}";

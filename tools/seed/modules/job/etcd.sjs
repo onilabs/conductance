@@ -186,7 +186,9 @@ var keyFn = function(prefix) {
 	}
 }
 
-exports.slave_endpoint = keyFn("/slave/endpoint/");
+var endpoint_root = "/endpoint/";
+exports.slave_endpoint = keyFn("/endpoint/slave/");
+exports.master_endpoint = "/endpoint/master";
 exports.slave_load = keyFn("/slave/load/");
 exports.app_job = keyFn("/app/job/");
 exports.app_op = keyFn("/app/op/");
@@ -194,8 +196,8 @@ exports.app_endpoint = keyFn("/app/endpoint/");
 exports.app_port_mappings = keyFn("/app/portmap/");
 exports.master_app_repository = () -> "/master/app_repository";
 
-exports.advertiseEndpoint = function(client, serverId, endpoint, block) {
-	var key = exports.slave_endpoint(serverId);
+exports.advertiseEndpoint = function(client, key, endpoint, block) {
+	@assert.ok(key .. @startsWith(endpoint_root), "invalid endpoint: key #{key}");
 	var refresh = -> client.set(key, endpoint, {ttl:Math.round(HEARTBEAT_INTERVAL * 2.5 / 1000)})
 	client.set(key, ''); // set a blank endpoint on start, so that anyone waiting for a change will definitely reconnect
 	refresh();

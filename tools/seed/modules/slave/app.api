@@ -14,7 +14,7 @@ var validateToken = function() {
   } else {
     // proxy to master's API
     return function(token) {
-      var master_endpoint = etcd.get(@etcd.slave_endpoint('master')) .. @getPath('node.value');
+      var master_endpoint = etcd.get(@etcd.master_endpoint) .. @getPath('node.value');
       @bridge.connect(@url.normalize('/master/user.api', master_endpoint), {}) {|conn|
         return conn.api.validateToken(token);
       }
