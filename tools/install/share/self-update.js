@@ -172,14 +172,19 @@ function install(link, manifest, cb) {
 
 exports.prompt = function(cb) {
 	if (process.stdin.destroyed) return cb(null);
+	process.stdin.on('data', onData);
+	process.stdin.on('end', onEnd);
 	process.stdin.setEncoding('utf8');
-	var util = require('util');
-
-	process.stdin.on('data', function (text) {
-		process.stdin.pause();
-		cb(text);
-	});
 	process.stdin.resume();
+
+	function onData(text) { done(text); }
+	function onEnd() { done(null); }
+	function done(data) {
+		process.stdin.pause();
+		process.stdin.removeListener('data', onData);
+		process.stdin.removeListener('end', onEnd);
+		cb(data);
+	};
 };
 
 exports.installGlobally = function(cb) {
@@ -199,9 +204,8 @@ exports.installGlobally = function(cb) {
 	process.stderr.write(promptMsg);
 	exports.prompt(function(response) {
 		console.warn("");
-		response = response.trim();
+		response = response === null ? null : response.trim();
 		if (response == 'y' || response == '') {
-
 			if (IS_WINDOWS) {
 				var pathed = path.join(conductance_root, 'share', 'pathed.exe');
 				var bindir = path.join(conductance_root, 'bin');
@@ -233,7 +237,7 @@ exports.installGlobally = function(cb) {
 				exports.runCmd('bash', ['-c', cmd], function(err) {
 					if (err) {
 						// assume it's a permission error, and try with sudo:
-						console.warn("You may be prompted for your user password.");
+						console.warn("Trying `sudo` - you may be prompted for your user password.");
 						exports.runCmd('sudo', ['bash', '-c', cmd], function(err) {
 							if (err) {
 								console.warn(err.message);
@@ -248,6 +252,9 @@ exports.installGlobally = function(cb) {
 				});
 			}
 		} else {
+			if(response === null) {
+				console.warn("(EOF)");
+			}
 			return cb(null);
 		}
 	});
