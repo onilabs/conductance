@@ -740,7 +740,7 @@ exports.EmbedResponsive = function (content, settings) {
   @summary Bootstrap (`<div class="well">`)
   @param {surface::HtmlFragment} [content]
   @param {optional Object} [settings]
-  @setting {String} [size] Must be either `"lg"` or `"sm"`
+  @setting {optional String} [size] Must be either `"lg"` or `"sm"`
   @return {surface::Element}
   @desc
     See also http://getbootstrap.com/components/#wells.
@@ -775,6 +775,122 @@ exports.Well = function (content, settings) {
   }
 
   return base_html.Div(content) ..@Class(classes);
+};
+
+
+/**
+  @function Thumbnail
+  @summary Bootstrap (`<div class="thumbnail">`)
+  @param {Object} [settings]
+  @setting {surface::HTMLFragment} [image] Image to display
+  @setting {optional String} [url] URL to link to when clicking on the image
+  @setting {optional surface::HTMLFragment} [caption] Content to display below the image
+  @return {surface::Element}
+  @desc
+    See also http://getbootstrap.com/components/#thumbnails.
+
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+    var img1 = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMTcxIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE3MSAxODAiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiPjxkZWZzLz48cmVjdCB3aWR0aD0iMTcxIiBoZWlnaHQ9IjE4MCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjYwLjUiIHk9IjkwIiBzdHlsZT0iZmlsbDojQUFBQUFBO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1mYW1pbHk6QXJpYWwsIEhlbHZldGljYSwgT3BlbiBTYW5zLCBzYW5zLXNlcmlmLCBtb25vc3BhY2U7Zm9udC1zaXplOjEwcHQ7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+MTcxeDE4MDwvdGV4dD48L2c+PC9zdmc+';
+    var img2 = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMjQyIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDI0MiAyMDAiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiPjxkZWZzLz48cmVjdCB3aWR0aD0iMjQyIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjkzIiB5PSIxMDAiIHN0eWxlPSJmaWxsOiNBQUFBQUE7Zm9udC13ZWlnaHQ6Ym9sZDtmb250LWZhbWlseTpBcmlhbCwgSGVsdmV0aWNhLCBPcGVuIFNhbnMsIHNhbnMtc2VyaWYsIG1vbm9zcGFjZTtmb250LXNpemU6MTFwdDtkb21pbmFudC1iYXNlbGluZTpjZW50cmFsIj4yNDJ4MjAwPC90ZXh0PjwvZz48L3N2Zz4=';
+    var text = 'Cras justo odio, dapibus ac facilisis in, egestas eget quam. Donec id elit non mi porta gravida at eget metus. Nullam id dolor id nibh ultricies vehicula ut id elit.';
+
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @Thumbnail({
+      image: @Img({ src: '...' })
+    })",
+    @Thumbnail({
+      image: @Img({ src: img1 })
+    })),
+
+      @demo.CodeResult("\
+    @Thumbnail({
+      image: @Img({ src: '...' }),
+      url: '...'
+    })",
+    @Thumbnail({
+      image: @Img({ src: img1 }),
+      url: '#'
+    })),
+
+      @demo.CodeResult("\
+    @Thumbnail({
+      image: @Img({ src: '...' }),
+      caption: [
+        @H3('Caption'),
+        @P('...'),
+        @P([
+          @Button('Yes'),
+          ' ',
+          @Button('No')
+        ])
+      ]
+    })",
+    @Thumbnail({
+      image: @Img({ src: img2 }),
+      caption: [
+        @H3('Caption'),
+        @P('...'),
+        @P([
+          @Button('Yes'),
+          ' ',
+          @Button('No')
+        ])
+      ]
+    })),
+
+      @demo.CodeResult("\
+    @Thumbnail({
+      image: @Img({ src: '...' }),
+      url: '...'
+      caption: [
+        @H3('Caption'),
+        @P('...'),
+        @P([
+          @Button('Yes'),
+          ' ',
+          @Button('No')
+        ])
+      ]
+    })",
+    @Thumbnail({
+      image: @Img({ src: img2 }),
+      url: '#',
+      caption: [
+        @H3('Caption'),
+        @P('...'),
+        @P([
+          @Button('Yes'),
+          ' ',
+          @Button('No')
+        ])
+      ]
+    }))
+    ]);
+*/
+exports.Thumbnail = function (settings) {
+  var image   = null;
+  var caption = null;
+  var classes = [];
+
+  image = settings.image;
+
+  if (settings.url != null) {
+    image = base_html.A(image, { 'href': settings.url });
+  }
+
+  if (settings.caption == null) {
+    image = image ..@Class('thumbnail');
+
+  } else {
+    classes.push('thumbnail');
+
+    caption = base_html.Div(settings.caption, { 'class': 'caption' });
+  }
+
+  return base_html.Div([image, caption]) ..@Style('display: inline-block') ..@Class(classes);
 };
 
 
@@ -992,6 +1108,135 @@ exports.PageHeader = (content, attribs) -> callWithClass(base_html.Div, 'page-he
 exports.Panel = (panel_classes, content, attribs) ->
   callWithClasses(base_html.Div, ['panel'].concat(prefixClasses(panel_classes, 'panel-')),
     content, attribs);
+
+
+/**
+  @function ButtonGroup
+  @summary Bootstrap (`<div class="btn-group">`)
+  @param {Array} [buttons]
+  @param {Object} [settings]
+  @setting {String} [label] The label to use for assistive technologies
+  @setting {optional String} [size] Must be either `"lg"`, `"sm"`, or `"xs"`
+  @setting {optional String} [direction="horizontal"] Must be either `"horizontal"` or `"vertical"`
+  @setting {optional Boolean} [justified=false] Whether the button group should stretch to fill its container
+  @return {surface::Element}
+  @desc
+    See also http://getbootstrap.com/components/#btn-groups.
+
+  @demo
+    @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+    @mainContent .. @appendContent([
+      @demo.CodeResult("\
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', size: 'xs' })",
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', size: 'xs' })),
+
+      @demo.CodeResult("\
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', size: 'sm' })",
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', size: 'sm' })),
+
+      @demo.CodeResult("\
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo' })",
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo' })),
+
+      @demo.CodeResult("\
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', size: 'lg' })",
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', size: 'lg' })),
+
+      @demo.CodeResult("\
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', direction: 'vertical' })",
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', direction: 'vertical' })),
+
+      @demo.CodeResult("\
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', justified: true })",
+    @ButtonGroup([
+      @Button('Foo'),
+      @Button('Bar'),
+      @Button('Qux')
+    ], { label: 'foo', justified: true }))
+    ]);
+*/
+function wrapButtonGroup(buttons, classes) {
+  // TODO handle Streams and other stuff
+  return buttons ..@map(x -> base_html.Div(x) ..@Attrib('role', 'group') ..@Class(classes));
+}
+
+exports.ButtonGroup = function (buttons, settings) {
+  var outer_classes = [];
+  var inner_classes = ['btn-group'];
+
+  if (settings.direction == null) {
+    settings.direction = 'horizontal';
+  }
+  if (settings.justified == null) {
+    settings.justified = false;
+  }
+
+  if (settings.size != null) {
+    var size = 'btn-group-' + settings.size;
+    outer_classes.push(size);
+    inner_classes.push(size);
+  }
+
+  if (settings.direction === 'vertical') {
+    outer_classes.push('btn-group-vertical');
+  } else {
+    outer_classes.push('btn-group');
+  }
+
+  if (settings.justified) {
+    outer_classes.push('btn-group-justified');
+  }
+
+  return base_html.Div(wrapButtonGroup(buttons, inner_classes))
+    ..@Class(outer_classes)
+    ..@Attrib('role', 'group')
+    ..@Attrib('aria-label', settings.label);
+};
+
 
 /**
   @function PanelBody

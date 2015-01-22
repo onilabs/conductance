@@ -582,6 +582,9 @@
             "Button": {
               "type": "function"
             },
+            "ButtonGroup": {
+              "type": "function"
+            },
             "Col": {
               "type": "function"
             },
@@ -661,6 +664,9 @@
               "type": "function"
             },
             "TextRight": {
+              "type": "function"
+            },
+            "Thumbnail": {
               "type": "function"
             },
             "Well": {

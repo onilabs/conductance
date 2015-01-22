@@ -904,7 +904,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @summary Bootstrap (`<div class="well">`)
 @param {surface::HtmlFragment} [content]
 @param {optional Object} [settings]
-@setting {String} [size] Must be either `"lg"` or `"sm"`
+@setting {optional String} [size] Must be either `"lg"` or `"sm"`
 @return {surface::Element}
 @desc
   See also http://getbootstrap.com/components/#wells.
@@ -923,6 +923,97 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
     @demo.CodeResult("\
   @Well('well lg', { size: 'lg' })",
   @Well('well lg', { size: 'lg' }))
+  ]);
+
+@function Thumbnail
+@summary Bootstrap (`<div class="thumbnail">`)
+@param {Object} [settings]
+@setting {surface::HTMLFragment} [image] Image to display
+@setting {optional String} [url] URL to link to when clicking on the image
+@setting {optional surface::HTMLFragment} [caption] Content to display below the image
+@return {surface::Element}
+@desc
+  See also http://getbootstrap.com/components/#thumbnails.
+
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+  var img1 = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMTcxIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE3MSAxODAiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiPjxkZWZzLz48cmVjdCB3aWR0aD0iMTcxIiBoZWlnaHQ9IjE4MCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjYwLjUiIHk9IjkwIiBzdHlsZT0iZmlsbDojQUFBQUFBO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1mYW1pbHk6QXJpYWwsIEhlbHZldGljYSwgT3BlbiBTYW5zLCBzYW5zLXNlcmlmLCBtb25vc3BhY2U7Zm9udC1zaXplOjEwcHQ7ZG9taW5hbnQtYmFzZWxpbmU6Y2VudHJhbCI+MTcxeDE4MDwvdGV4dD48L2c+PC9zdmc+';
+  var img2 = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/PjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMjQyIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDI0MiAyMDAiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiPjxkZWZzLz48cmVjdCB3aWR0aD0iMjQyIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI0VFRUVFRSIvPjxnPjx0ZXh0IHg9IjkzIiB5PSIxMDAiIHN0eWxlPSJmaWxsOiNBQUFBQUE7Zm9udC13ZWlnaHQ6Ym9sZDtmb250LWZhbWlseTpBcmlhbCwgSGVsdmV0aWNhLCBPcGVuIFNhbnMsIHNhbnMtc2VyaWYsIG1vbm9zcGFjZTtmb250LXNpemU6MTFwdDtkb21pbmFudC1iYXNlbGluZTpjZW50cmFsIj4yNDJ4MjAwPC90ZXh0PjwvZz48L3N2Zz4=';
+  var text = 'Cras justo odio, dapibus ac facilisis in, egestas eget quam. Donec id elit non mi porta gravida at eget metus. Nullam id dolor id nibh ultricies vehicula ut id elit.';
+
+  @mainContent .. @appendContent([
+    @demo.CodeResult("\
+  @Thumbnail({
+    image: @Img({ src: '...' })
+  })",
+  @Thumbnail({
+    image: @Img({ src: img1 })
+  })),
+
+    @demo.CodeResult("\
+  @Thumbnail({
+    image: @Img({ src: '...' }),
+    url: '...'
+  })",
+  @Thumbnail({
+    image: @Img({ src: img1 }),
+    url: '#'
+  })),
+
+    @demo.CodeResult("\
+  @Thumbnail({
+    image: @Img({ src: '...' }),
+    caption: [
+      @H3('Caption'),
+      @P('...'),
+      @P([
+        @Button('Yes'),
+        ' ',
+        @Button('No')
+      ])
+    ]
+  })",
+  @Thumbnail({
+    image: @Img({ src: img2 }),
+    caption: [
+      @H3('Caption'),
+      @P('...'),
+      @P([
+        @Button('Yes'),
+        ' ',
+        @Button('No')
+      ])
+    ]
+  })),
+
+    @demo.CodeResult("\
+  @Thumbnail({
+    image: @Img({ src: '...' }),
+    url: '...'
+    caption: [
+      @H3('Caption'),
+      @P('...'),
+      @P([
+        @Button('Yes'),
+        ' ',
+        @Button('No')
+      ])
+    ]
+  })",
+  @Thumbnail({
+    image: @Img({ src: img2 }),
+    url: '#',
+    caption: [
+      @H3('Caption'),
+      @P('...'),
+      @P([
+        @Button('Yes'),
+        ' ',
+        @Button('No')
+      ])
+    ]
+  }))
   ]);
 
 @function PageHeader
@@ -1130,6 +1221,94 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
       @ListGroupItem('qux'),
     ])
   ]))
+  ]);
+
+@function ButtonGroup
+@summary Bootstrap (`<div class="btn-group">`)
+@param {Array} [buttons]
+@param {Object} [settings]
+@setting {String} [label] The label to use for assistive technologies
+@setting {optional String} [size] Must be either `"lg"`, `"sm"`, or `"xs"`
+@setting {optional String} [direction="horizontal"] Must be either `"horizontal"` or `"vertical"`
+@setting {optional Boolean} [justified=false] Whether the button group should stretch to fill its container
+@return {surface::Element}
+@desc
+  See also http://getbootstrap.com/components/#btn-groups.
+
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+  @mainContent .. @appendContent([
+    @demo.CodeResult("\
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', size: 'xs' })",
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', size: 'xs' })),
+
+    @demo.CodeResult("\
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', size: 'sm' })",
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', size: 'sm' })),
+
+    @demo.CodeResult("\
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo' })",
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo' })),
+
+    @demo.CodeResult("\
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', size: 'lg' })",
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', size: 'lg' })),
+
+    @demo.CodeResult("\
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', direction: 'vertical' })",
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', direction: 'vertical' })),
+
+    @demo.CodeResult("\
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', justified: true })",
+  @ButtonGroup([
+    @Button('Foo'),
+    @Button('Bar'),
+    @Button('Qux')
+  ], { label: 'foo', justified: true }))
   ]);
 
 @function PanelBody
