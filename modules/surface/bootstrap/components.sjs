@@ -782,9 +782,9 @@ exports.Well = function (content, settings) {
   @function Thumbnail
   @summary Bootstrap (`<div class="thumbnail">`)
   @param {Object} [settings]
-  @setting {surface::HTMLFragment} [image] Image to display
+  @setting {surface::HtmlFragment} [image] Image to display
   @setting {optional String} [url] URL to link to when clicking on the image
-  @setting {optional surface::HTMLFragment} [caption] Content to display below the image
+  @setting {optional surface::HtmlFragment} [caption] Content to display below the image
   @return {surface::Element}
   @desc
     See also http://getbootstrap.com/components/#thumbnails.
