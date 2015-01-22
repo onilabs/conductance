@@ -107,13 +107,15 @@ exports.serve = function(args) {
     @Route('',
       { '*': function(req)
         {
+          var params = req.url.params();
           var indexUrl = @url.normalize('client.html', opts.master);
           var agent = seedAgent;
           if(opts.local_ui) {
-            indexUrl = @url.normalize("/modules/ui/client.html?nobundle=seed", req.url.source);
+            indexUrl = @url.normalize("/modules/ui/client.html", req.url.source);
             agent = null;
+            params = params .. @merge({nobundle:'seed'});
           }
-          var response = @http.request(indexUrl, {
+          var response = @http.request([indexUrl, params], {
             method: req.request.method,
             response: 'raw',
             body: req.body,
