@@ -210,45 +210,47 @@ var appDisplayMessageStyle = @CSS("
 }
 ");
 
-var relativeDate = function(ts) {
+var relativeDate = (function() {
 	var plural = n -> n === 1 ? '' : 's';
+	var scales = [
+		{
+			unit: 1, wait: 60, max: 60,
+			display: -> "seconds ago",
+		},
+		{
+			unit: 60, max: 60,
+			display: n -> "#{n} minute#{plural(n)} ago",
+		},
+		{
+			unit: 60 * 60, max: 24,
+			display: n -> "#{n} hour#{plural(n)} ago",
+		},
 
-	return @Stream(function(emit) {
-		while(true) {
-			var now = Date.now();
-			var diffSec = (now - ts) / 1000;
+		{
+			unit: 60 * 60 * 24,
+			display: n -> "#{n} day#{plural(n)} ago",
+		},
+	];
 
-			;[
-				{
-					unit: 1, wait: 60, max: 60,
-					display: -> "seconds ago",
-				},
-				{
-					unit: 60, max: 60,
-					display: n -> "#{n} minute#{plural(n)} ago",
-				},
-				{
-					unit: 60 * 60, max: 24,
-					display: n -> "#{n} hour#{plural(n)} ago",
-				},
-
-				{
-					unit: 60 * 60 * 24,
-					display: n -> "#{n} day#{plural(n)} ago",
-				},
-			] .. @each {|spec|
-				var diff = diffSec / spec.unit;
-				if (!spec.max || diff < spec.max) {
-					var n = Math.max(1, diff) .. Math.floor();
-					emit(spec.display(n));
-					@info("Holding for #{spec.wait || spec.unit} seconds");
-					hold((spec.wait || spec.unit) * 1000);
-					break;
+	return function(ts) {
+		return @Stream(function(emit) {
+			while(true) {
+				var now = Date.now();
+				var diffSec = (now - ts) / 1000;
+				scales .. @each {|scale|
+					var diff = diffSec / scale.unit;
+					if (!scale.max || diff < scale.max) {
+						var n = Math.max(1, diff) .. Math.floor();
+						emit(scale.display(n));
+						//@info("Holding for #{scale.wait || scale.unit} seconds");
+						hold((scale.wait || scale.unit) * 1000);
+						break;
+					}
 				}
 			}
-		}
-	});
-};
+		});
+	}
+})();
 
 var displayApp = function(elem, token, localApi, localServer, remoteServer, app) {
 	@info("app: ", app);

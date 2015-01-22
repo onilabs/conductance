@@ -98,7 +98,7 @@ var withOverlay = exports.withOverlay = (function() {
 					<div class="panel panel-default ${opts['class']}">
 						<div class="panel-heading">
 							<h3 class="panel-title"><span>${opts.title}</span>
-								${canClose ? `<a class="close">x</a>`}
+								${canClose ? `<a class="close">$@Icon("remove")</a>`}
 							</h3>
 						</div>
 						<div class="panel-body">

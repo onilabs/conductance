@@ -4,7 +4,15 @@
 @form = require('./generic-form');
 @auth = require('seed:auth');
 
-var formStyle = @CSS('{ }');
+var formStyle = @CSS('{
+	.btn.pull-right {
+		margin-left:5px;
+	}
+	.well hr {
+		margin: 10px 0;
+		border-color: #e7e7e7;
+	}
+}');
 var saveButton = `<button type="submit" class="btn btn-primary">Save</button>`;
 var loginButton = `<button type="submit" class="btn btn-primary">Log in</button>`;
 var signupButton = `<button type="submit" class="btn btn-success signup">Sign up</button>`;
@@ -156,14 +164,123 @@ var fileBrowseCss = @CSS('
 		}
 	}
 ');
+
+var showServiceUI = false;
+var availableServices = [
+	{
+		id: 'mandrill',
+		name: "Mandrill",
+		info: `<a href="https://mandrill.com/">Mandrill</a> email service`,
+		form: function(form) {
+			var TextInput = form .. formControl(@TextInput);
+			return [
+				formGroup('API Key', TextInput, form.field('apikey'))
+			];
+		},
+		config: function(values) {
+			return {
+				MANDRILL_API_KEY: values.apikey,
+			};
+		},
+	},
+
+	{
+		id: 'seed-db',
+		name: "Seed DB",
+		info: `Conductance Seed database`,
+		form: function(form) {
+			return [
+				formGroup('Enable', form .. formControl(@Checkbox), form.field('enable'))
+			];
+		},
+		config: function(values) {
+			var rv = {};
+			if(values.enable) {
+				rv.SEED_DB = 'TODO';
+			}
+			return rv;
+		},
+	},
+];
+
+var ServiceOption = function(s, n) {
+	return {
+		service: s,
+		toString: -> n || s.name,
+	};
+}
+
+var browserUI = function(showBrowser, pathField, entireForm) {
+	return showBrowser .. @transform(function(show) {
+		if (show) {
+			@warn("starting file browser at #{pathField.value.get()}");
+			var fileBrowser = api.fileBrowser(pathField.value.get());
+			var currentLocation = fileBrowser.location .. @mirror();
+			//var isConductanceDirectory = currentLocation .. @transform(
+			//	loc -> loc.contents .. @find(entry -> entry.name === 'config.mho', null) !== null
+			//);
+			function select() {
+				pathField.value.set((currentLocation .. @first()).path);
+				showBrowser.set(false);
+			};
+			return @Div(@Form([
+					@P(@Strong("Local path:")),
+					@Div([
+						@Div([
+								Button(@Icon("chevron-up"), -> fileBrowser.goUp()),
+								//Button(@Icon("home"), -> fileBrowser.goHome()),
+								currentLocation .. @transform(l -> `&lrm;${l.path}&lrm;`) .. @Class('location'),
+							],
+							{'class':'top-bar'}),
+						@Ul(
+							currentLocation .. @transform(function(loc) {
+								return loc.contents .. @sort(fileSortOrder) .. @map(function(entry) {
+									var isDirectory = entry.directory;
+									var rv = @Li([
+											@Icon(isDirectory ? 'folder-open' : 'file'),
+											entry.name
+										], {'class':isDirectory ? "directory":"file"});
+									if (isDirectory) {
+										rv = rv .. @OnClick({handle:@stopEvent}, -> fileBrowser.goInto(entry.name));
+									}
+									return rv;
+								});
+							}),
+							{'class':'file-list'}
+						),
+					], {'class':'browse-display'}),
+					Button("Select", select, {'class':'pull-right btn-primary'}) /* .. @Enabled(isConductanceDirectory) */,
+					Button('Cancel', -> showBrowser.set(false)) .. @Class('pull-right btn'),
+					@P(' ',{'class':'clearfix'}),
+				], {'role':'form'}),
+				{'class':'file-browser'}) .. fileBrowseCss;
+		} else {
+			return [
+				formGroup(
+					'Local path',
+					entireForm .. formControlGroup(@TextInput,
+						{after: @Span(
+							@A('...', {'class':'btn btn-default'}) .. @OnClick({handle:@stopEvent}, -> showBrowser.modify(c -> !c)),
+							{'class':'input-group-btn'})
+						}
+					),
+					pathField
+				)
+			];
+		}
+	});
+};
+
 var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extraActions) {
 	var { central, local } = conf;
 	waitfor {
-		var centralForm = @form.Form(central .. @first());
+		var currentCentral = central .. @first();
 	} and {
 		var currentLocal = local .. @first();
 	}
 
+	var centralForm = @form.Form(central .. @first());
+	var currentServiceSettings = currentCentral.service || {};
 	var localForm = @form.Form(currentLocal, {validate: function(vals) {
 		if(!vals.path) throw new Error("Local path is required");
 	}});
@@ -180,7 +297,9 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 	};
 
 	var entireForm = {
-		validate: -> [centralForm, localForm] .. @all(f -> f.validate()),
+		validate: -> [centralForm, localForm]
+			.. @concat(enabledServices .. @first() .. @map(s -> s.form))
+			.. @all(f -> f.validate()),
 	};
 
 	var TextInput = entireForm .. formControl(@TextInput);
@@ -188,70 +307,87 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 	var showBrowser = @ObservableVar(false);
 	var pathField = localForm.field('path');
 
+	var enabledServiceKeys = centralForm.field('services', {'default':[]});
+	var serviceCache = { };
+	var service = function(service) {
+		if(!serviceCache .. @hasOwn(service.id)) {
+			var form = @form.Form(currentServiceSettings[service.id] || {});
+			serviceCache[service.id] = {
+				id: service.id,
+				info: service.info,
+				form: form,
+				env: () -> service.config(form.values()),
+				ui: service.form(form),
+			};
+		}
+		console.log("service(#{service.id}) -> ", serviceCache[service.id]);
+		return serviceCache[service.id];
+	};
+	var enabledServices = enabledServiceKeys.value .. @transform(enabled ->
+		availableServices .. @filter(s -> enabled .. @hasElem(s.id)) .. @map(service)
+	);
+
+	var disabledServices = enabledServiceKeys.value .. @transform(enabled ->
+		availableServices .. @filter(s -> !enabled .. @hasElem(s.id)) .. @toArray);
+	var showServiceDropdown = disabledServices .. @transform(s -> s.length > 0) .. @dedupe();
+
+	var serviceDropdown = showServiceDropdown .. @transform(function(show) {
+		if(!show) return null;
+		var selected = @ObservableVar();
+		var select = @Select({
+			items: disabledServices .. @transform(function(services) {
+				return [ServiceOption(null, 'Add a new service')].concat(services .. @map(ServiceOption));
+			}),
+			selected: selected,
+		}) .. @Class(['form-control', 'pull-right']);
+
+		var btn = Button("Add", function(e) {
+			e .. @stopEvent();
+			var service = selected.get().service;
+			if(service === null) return;
+			enabledServiceKeys.value.set(enabledServiceKeys.value.get() .. @union([service.id]));
+		}, {'class':'btn btn-success pull-right' }
+		) .. @Attrib('disabled', selected .. @transform(sel -> !(sel && sel.service)));
+
+		return @Div([ btn, select, ]) .. @CSS('select {
+			width:auto;
+			display:inline-block;
+			margin-right:10px;
+		}');
+	});
+
 	parent .. @appendContent(
 		@Form([
 			localForm.error .. @form.formatErrorAlert,
 			formGroup('Name', TextInput, centralForm.field('name', {validate: [@validate.required, @validate.appName]})) .. initialFocus('input'),
+			browserUI(showBrowser, pathField, entireForm),
 
-			showBrowser .. @transform(function(show) {
-				if (show) {
-					@warn("starting file browser at #{pathField.value.get()}");
-					var fileBrowser = api.fileBrowser(pathField.value.get());
-					var currentLocation = fileBrowser.location .. @mirror();
-					//var isConductanceDirectory = currentLocation .. @transform(
-					//	loc -> loc.contents .. @find(entry -> entry.name === 'config.mho', null) !== null
-					//);
-					function select() {
-						pathField.value.set((currentLocation .. @first()).path);
-						showBrowser.set(false);
-					};
-					return @Div(@Form([
-							Button("x", -> showBrowser.set(false)) .. @Class('pull-right btn btn-xs'),
-							@P(@Strong("Local path:")),
-							@Div([
-								@Div([
-										Button(@Icon("chevron-up"), -> fileBrowser.goUp()),
-										//Button(@Icon("home"), -> fileBrowser.goHome()),
-										currentLocation .. @transform(l -> `&lrm;${l.path}&lrm;`) .. @Class('location'),
-									],
-									{'class':'top-bar'}),
-								@Ul(
-									currentLocation .. @transform(function(loc) {
-										return loc.contents .. @sort(fileSortOrder) .. @map(function(entry) {
-											var isDirectory = entry.directory;
-											var rv = @Li([
-													@Icon(isDirectory ? 'folder-open' : 'file'),
-													entry.name
-												], {'class':isDirectory ? "directory":"file"});
-											if (isDirectory) {
-												rv = rv .. @OnClick({handle:@stopEvent}, -> fileBrowser.goInto(entry.name));
-											}
-											return rv;
-										});
-									}),
-									{'class':'file-list'}
-								),
-							], {'class':'browse-display'}),
-							Button("Select", select, {'class':'pull-right btn-primary'}) /* .. @Enabled(isConductanceDirectory) */,
-						], {'role':'form'}),
-						{'class':'file-browser'}) .. fileBrowseCss;
-				} else {
-					return [
-						formGroup(
-							'Local path',
-							entireForm .. formControlGroup(@TextInput,
-								{after: @Span(
-									@A('...', {'class':'btn btn-default'}) .. @OnClick({handle:@stopEvent}, -> showBrowser.modify(c -> !c)),
-									{'class':'input-group-btn'})
-								}
+			showServiceUI ? [
+				@Hr(),
+				serviceDropdown,
+				@H4("Services", {'class':'services', 'style':'padding-top:10px;'}),
+				@P("", {'class':'clearfix'}),
+				//@Pre(enabledServiceKeys.value .. @transform(JSON.stringify)),
+				enabledServices .. @transform(services -> services.length > 0 ? @Div(
+					services .. @map(i -> [
+						@P([
+							@A(@Icon("remove"), {'class':'pull-right'})
+								.. @OnClick({handle:@stopEvent}, -> enabledServiceKeys.value.set(
+									enabledServiceKeys.value.get() .. @difference([i.id])
+								)
 							),
-							pathField
-						),
-						@Div(saveButton, {'class':'pull-right'}),
-						extraActions,
-					];
-				}
-			}),
+							i.info,
+						]),
+						service(i).ui .. @Class('clearfix'),
+					]) .. @intersperse(@Hr()) .. @toArray,
+				{'class':'well well-sm'})
+				: @Hr()),
+			],
+
+			showBrowser .. @transform(show -> show ? [] : [
+				@Div(saveButton, {'class':'pull-right'}),
+				extraActions,
+			]),
 		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
 	) {
 		|elem|
@@ -259,8 +395,19 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 			if(!entireForm.validate()) continue;
 			@withBusyIndicator {||
 				waitfor {
-					@warn("modifying central config: ", centralForm.values());
-					central.modify(v -> v .. @merge(centralForm.values()));
+					var newConfig = @merge(
+						centralForm.values(),
+						{
+							'service': enabledServices .. @first()
+								.. @map(service -> [service.id, service.form.values()])
+								.. @pairsToObject(),
+							'environment': enabledServices .. @first()
+								.. @map(service -> service.env())
+								.. @merge(),
+						}
+					);
+					@info("modifying central config: ", newConfig);
+					central.modify(v -> v .. @merge(newConfig));
 				} and {
 					@warn("modifying local config: ", localForm.values());
 					local.modify(v -> v .. @merge(localForm.values()));
