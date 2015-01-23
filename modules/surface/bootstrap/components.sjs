@@ -1416,7 +1416,10 @@ var SelectInput = function(settings) {
 
   var dropdown = [exports.Btn('default', 
                               Caret(), 
-                              {'class':'dropdown-toggle', type:'button','data-toggle': 'dropdown'}),
+                              {'class': 'dropdown-toggle', 
+                                type:   'button',
+                                'data-toggle': 'dropdown',
+                                style: 'width:34px;'}),
                   DropdownMenuRight() .. 
                     @Mechanism(function(node) {
                       // get our associated text input:
