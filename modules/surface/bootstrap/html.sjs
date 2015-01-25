@@ -150,8 +150,17 @@ exports.Input = wrapWithClass(base_html.Input, 'form-control');
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
-    var Items = @generate(Math.random) ..
-      @transform(x -> (hold(1000), Math.round(x*100)));
+    function MarkdownEditor() {
+      var convert = require('sjs:marked').convert;
+      var Text = @ObservableVar('Type some *markdown* here!');
+      return `
+      <h3>Input</h3>
+      $@TextArea(Text)
+      <h3>Output</h3>
+      $@Div(Text ..
+      @transform(txt -> txt .. convert() .. @RawHTML()))
+      `;
+    }
 
     @mainContent .. @appendContent([
       @demo.CodeResult("\
@@ -159,10 +168,20 @@ exports.Input = wrapWithClass(base_html.Input, 'form-control');
     @TextArea('foo')),
 
       @demo.CodeResult("\
-    var Items = @ObservableVar(0);
-    ...
-    @TextArea(Items)",
-    @TextArea(Items))
+    function MarkdownEditor() {
+      var convert = require('sjs:marked').convert;
+      var Text = @ObservableVar('Type some *markdown* here!');
+      return `
+        <h3>Input</h3>
+        $@TextArea(Text)
+        <h3>Output</h3>
+        $@Div(Text ..
+              @transform(txt -> txt .. convert() .. @RawHTML()))
+      `;
+    }
+    
+    @mainContent .. @appendContent(MarkdownEditor());",
+    MarkdownEditor())
     ]);
 */
 exports.TextArea = wrapWithClass(base_html.TextArea, 'form-control');
