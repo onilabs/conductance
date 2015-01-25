@@ -245,9 +245,28 @@ exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @mer
   @function Label
   @summary XXX write me
   @desc
-    ** Binding to fields **
-    `Label` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+    ----
 
+    #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+    When the element is inserted into the document, its value 
+    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
+    element's value will be updated every time `value` changes. If (in addition)
+    `value` is an [sjs:observable::ObservableVar],
+    then `value` will be updated to reflect any manual changes to the element's value.
+
+    ##### Binding to fields
+
+    If `value` is undefined, `TextArea` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+
+    ----
+
+    #### On server-side ([sjs:sys::hostenv] === 'nodejs')
+
+    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
+    An element with a 'value' attribute set to `value` will be inserted into the document.
+
+    ----
 */
 var Label;
 if (hostenv === 'xbrowser') {
@@ -270,16 +289,18 @@ exports.Label = Label;
 //----------------------------------------------------------------------
 /**
   @function Input
-  @altsyntax Input(type, value, [attrs])
+  @altsyntax Input(value)
   @summary A plain HTML 'input' element 
-  @param  {String} [type]
   @param  {optional Object} [settings]
-  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-  @setting {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
-  @setting {Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
-  @setting {Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
+  @setting {optional String} [type='text'] 
+  @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+  @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
+  @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
+  @setting  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
+    ----
+
     #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
 
     When the element is inserted into the document, its value 
@@ -288,15 +309,37 @@ exports.Label = Label;
     `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
 
-    ** Binding to fields **
-    If `value` is undefined, `Input` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+    ##### Binding to fields
+
+    If `value` is undefined, `TextArea` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+
+    ----
 
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
     `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
     An element with a 'value' attribute set to `value` will be inserted into the document.
-    
+
+    ----
 */
+
+__js function untangeInputSettings(settings) {
+  if (typeof settings === 'string' ||
+      settings .. @isStream) {
+    settings = {type: 'text', value: settings, attrs:{}};
+  }
+  else {
+    settings = {
+      type: 'text',
+      value: undefined,
+      valToTxt: undefined,
+      txtToVal: undefined,
+      attrs:{}
+    } .. @override(settings);
+  }
+  return settings;
+}
+
 var Input;
 if (hostenv === 'xbrowser') {
 
@@ -355,20 +398,10 @@ if (hostenv === 'xbrowser') {
     });
 
 
-  Input = function(type, settings, attrs) {
-    // untangle settings
-    if (typeof settings === 'string' ||
-        settings .. @isStream) {
-      settings = {value: settings};
-    }
-    else {
-      settings = {
-        value: undefined,
-        valToTxt: undefined,
-        txtToVal: undefined
-      } .. @override(settings);
-    }
-    var rv = @Element('input', {'type':type} .. @merge(attrs||{}));
+  Input = function(settings) {
+    settings = untangeInputSettings(settings);
+
+    var rv = @Element('input', {'type':settings.type} .. @merge(settings.attrs));
     if (settings.value === undefined) {
       // a field input element
       rv = rv .. FieldInputMechanism(settings);
@@ -382,35 +415,14 @@ if (hostenv === 'xbrowser') {
   }
 }
 else { // hostenv === 'nodejs'
-  Input = (type, value, attrs) -> 
-    @Element('input', {'type':type, 'value':value||''} .. @merge(attrs||{}));
+  Input = function(type, value, attrs) { 
+    settings = untangeInputSettings(settings);
+
+    @Element('input', {'type':settings.type, 'value':settings.value||''} .. @merge(settings.attrs));
+  }
 }
 exports.Input = Input;
   
-
-//----------------------------------------------------------------------
-/**
-  @function TextInput
-  @summary A plain HTML 'input' element with type='text'
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
-  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-  @return {surface::Element}
-  @desc
-    #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
-
-    When the element is inserted into the document, its value 
-    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If (in addition)
-    `value` is an [sjs:observable::ObservableVar],
-    then `value` will be updated to reflect any manual changes to the element's value.
-
-    #### On server-side ([sjs:sys::hostenv] === 'nodejs')
-
-    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
-    An element with a 'value' attribute set to `value` will be inserted into the document.
-*/
-var TextInput = (value, attrs) -> Input('text', value, attrs);
-exports.TextInput = TextInput;
 
 //----------------------------------------------------------------------
 /**
@@ -420,6 +432,8 @@ exports.TextInput = TextInput;
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
+    ----
+
     #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
 
     When the element is inserted into the document, its value 
@@ -428,14 +442,18 @@ exports.TextInput = TextInput;
     `value` is an [sjs:observable::ObservableVar],
     then `value` will be updated to reflect any manual changes to the element's value.
 
-    ** Binding to fields **
+    ##### Binding to fields
+
     If `value` is undefined, `TextArea` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
 
+    ----
 
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
     `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
     An element with a 'value' attribute set to `value` will be inserted into the document.
+
+    ----
 */
 var TextArea;
 if (hostenv === 'xbrowser') {
@@ -467,6 +485,8 @@ exports.TextArea = TextArea;
   @param  {optional Boolean|sjs:sequence::Stream|sjs:observable::ObservableVar} [checked=undefined] 
   @return {surface::Element}
   @desc
+    ----
+
     #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
 
     When the element is inserted into the document, its checked state will be set to 
@@ -475,14 +495,18 @@ exports.TextArea = TextArea;
     `checked` is an [sjs:observable::ObservableVar], 
     then `checked` will be updated to reflect any manual changes to the element's state.
 
-    ** Binding to fields **
+    ##### Binding to fields
+
     If `checked` is undefined, `Checkbox` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
 
+    ----
 
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
     `checked` must be a Boolean and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
     An element with a 'checked' attribute set to `checked` will be inserted into the document.
+
+    ----
 
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);

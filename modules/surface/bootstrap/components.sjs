@@ -1339,10 +1339,13 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
 
 /**
    @function SelectInput
+   @altsyntax SelectInput(suggestions)
    @summary XXX write me
    @param {Object} [settings]
+   @setting {optional Function} [txtToVal]
+   @setting {optional Function} [valToTxt]
    @setting {Function} [suggestions] function search_term_stream -> suggestions_stream
-   @setting {HTML} [extra_buttons] 
+   @setting {optional surface::HtmlFragment} [extra_buttons] 
    @desc
      suggestions can be a stream of arrays of strings or objects:
       { text:String, highlight:Boolean }
@@ -1356,7 +1359,8 @@ function ElemClass(elem,cls) {
 var InputGroup      = ElemClass('div','input-group');
 var InputGroupBtn   = ElemClass('span', 'input-group-btn');
 var Caret           = ElemClass('span', 'caret');
-var DropdownMenuRight = content -> @html.Ul(content,{'class':'dropdown-menu pull-right'});
+
+var DropdownMenuRight = content -> @html.Ul(content,{'class':'dropdown-menu dropdown-menu-right'});
 
 // helper to format suggestions:
 __js function format_suggestion(s, filter_term) {
@@ -1395,7 +1399,7 @@ __js function format_suggestion(s, filter_term) {
   return  markup .. @html.A({href:'#'}) .. @Prop('txt', s.text) .. @html.Li();
 }
 
-var SelectInput = function(settings) {
+function SelectInput(settings) {
   // untangle arguments:
   if (settings .. @isSequence) {
     settings = {suggestions: settings};
@@ -1478,14 +1482,16 @@ var SelectInput = function(settings) {
                       }
                      )
                  ];
-  
+ 
+  // bootstrap doesn't correctly style segmented buttons that have
+  // buttons right of a dropdown:
   if (settings.extra_buttons)
     dropdown[0] = dropdown[0] .. @Style('border-radius:0px');
 
   var rv = 
     InputGroup(
       [
-        @html.TextInput(settings) ..
+        @html.Input(settings) ..
           @On('input', 
               ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
         InputGroupBtn([

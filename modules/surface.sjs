@@ -540,7 +540,7 @@ if (require('sjs:sys').hostenv !== 'xbrowser') {
 
      @mainBody .. @appendContent([
        @Button('Test') .. @Enabled(Flag),
-       @TextInput('Test') .. @Enabled(Flag)
+       @Input('Test') .. @Enabled(Flag)
      ]);
 
      while (true) {
@@ -548,7 +548,7 @@ if (require('sjs:sys').hostenv !== 'xbrowser') {
        Flag.modify(val -> !val);
      }",
      [@Button('Test') .. @Enabled(Flag),
-      @TextInput('Test') .. @Enabled(Flag) .. @Style('margin-top:5px')]));
+      @Input('Test') .. @Enabled(Flag) .. @Style('margin-top:5px')]));
     
      resize();
      while (1) {

@@ -672,9 +672,6 @@
             "TextCenter": {
               "type": "function"
             },
-            "TextInput": {
-              "type": "function"
-            },
             "TextJustify": {
               "type": "function"
             },
@@ -865,9 +862,6 @@
               "type": "function"
             },
             "TextArea": {
-              "type": "function"
-            },
-            "TextInput": {
               "type": "function"
             },
             "Ul": {

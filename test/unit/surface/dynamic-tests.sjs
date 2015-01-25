@@ -258,7 +258,7 @@ context("select widget") {||
   t("Button", [], "button", "btn btn-default");
   t("Table", [], "table", "table");
   t("Row", [], "div", "row");
-  t("TextInput", [], "input", "form-control", {'type':'text'});
+  t("Input", [], "input", "form-control", {'type':'text'});
   t("TextArea", [], "textarea", "form-control");
   t("Btn", ['sm xs'], "button", "btn btn-sm btn-xs");
   t("Btn", [''], "button", "btn");
@@ -284,7 +284,7 @@ context("select widget") {||
     }
   }
   @test("Input") {||
-    document.body .. @appendContent(@bootstrap.Input("checkbox", "initialVal", {name:"myIcon", "class":"cls1 cls2"})) {|elem|
+    document.body .. @appendContent(@bootstrap.Input({type:"checkbox", value:"initialVal", attribs:{name:"myIcon", "class":"cls1 cls2"}})) {|elem|
       elem.tagName.toLowerCase() .. @assert.eq('input');
       elem.value .. @assert.eq("initialVal");
       elem.getAttribute("name") .. @assert.eq("myIcon");
