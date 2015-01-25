@@ -102,7 +102,11 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
 @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
 @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
-@setting  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@setting {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@setting {optional surface::HtmlFragment} [addOnLeft]
+@setting {optional surface::HtmlFragment} [addOnRight]
+@setting {optional surface::HtmlFragment} [buttonsLeft]
+@setting {optional surface::HtmlFragment} [buttonsRight]
 @return {surface::Element}
 @desc
 
@@ -112,8 +116,13 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @demo
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
-  var Items = @generate(Math.random) ..
-    @transform(x -> (hold(1000), Math.round(x*100)));
+  var Name = @ObservableVar('anonymous');
+
+  var greet = 
+    `<p>$@Input({value:Name, addOnLeft: `<b>Your name:</b>`})</p>
+     <p>Hello, <b>$Name</b>, your name is
+        ${ Name .. @project(x -> x.length) }
+        characters long!</p>`;
 
   @mainContent .. @appendContent([
     @demo.CodeResult("\
@@ -121,10 +130,29 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   @Input('foo')),
 
     @demo.CodeResult("\
-  var Items = @ObservableVar(0);
-  ...
-  @Input(Items)",
-  @Input(Items))
+  var Name = @ObservableVar('anonymous');
+
+  var greet = 
+    `<p>
+        $@Input({ value: Name, 
+                  addOnLeft: `<b>Your name:</b>`
+                })
+     </p>
+     <p>
+        Hello, <b>$Name</b>, your name is
+          ${ Name .. @project(x -> x.length) }
+        characters long!
+     </p>`;
+
+  @mainContent .. @appendContent(greet);
+  ",
+  greet),
+
+    @demo.CodeResult("\
+  @Input({buttonsRight: @Button('Go!')})
+    ",
+    @Input({buttonsRight: @Button('Go!')})
+    )
   ]);
 
 @function TextArea
@@ -141,8 +169,17 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @demo
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
-  var Items = @generate(Math.random) ..
-    @transform(x -> (hold(1000), Math.round(x*100)));
+  function MarkdownEditor() {
+    var convert = require('sjs:marked').convert;
+    var Text = @ObservableVar('Type some *markdown* here!');
+    return `
+    <h3>Input</h3>
+    $@TextArea(Text)
+    <h3>Output</h3>
+    $@Div(Text ..
+    @project(txt -> txt .. convert() .. @RawHTML()))
+    `;
+  }
 
   @mainContent .. @appendContent([
     @demo.CodeResult("\
@@ -150,10 +187,20 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   @TextArea('foo')),
 
     @demo.CodeResult("\
-  var Items = @ObservableVar(0);
-  ...
-  @TextArea(Items)",
-  @TextArea(Items))
+  function MarkdownEditor() {
+    var convert = require('sjs:marked').convert;
+    var Text = @ObservableVar('Type some *markdown* here!');
+    return `
+      <h3>Input</h3>
+      $@TextArea(Text)
+      <h3>Output</h3>
+      $@Div(Text ..
+              @project(txt -> txt .. convert() .. @RawHTML()))
+    `;
+  }
+  
+  @mainContent .. @appendContent(MarkdownEditor());",
+  MarkdownEditor())
   ]);
 
 @function Select
@@ -217,7 +264,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   var percent = @ObservableVar(0);
   var animate = @ObservableVar(true);
 
-  var style = percent ..@transform(function (x) {
+  var style = percent ..@project(function (x) {
     if (x < 20) {
       return 'danger';
     } else if (x < 40) {
@@ -252,7 +299,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   var percent = @ObservableVar(0);
   var animate = @ObservableVar(true);
 
-  var style = percent ..@transform(function (x) {
+  var style = percent ..@project(function (x) {
     if (x < 20) {
       return 'danger';
     } else if (x < 40) {

@@ -528,6 +528,7 @@ exports.TextArea = TextArea;
       )
     ]);
 */
+
 var Checkbox;
 if (hostenv === 'xbrowser') {
 
