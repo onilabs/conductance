@@ -95,17 +95,20 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   ]);
 
 @function Input
-@summary Bootstrap-styled input (`<input class="form-control">`)
-@param  {String} [type]
-@param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
-@param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@altsyntax Input(value)
+@summary Bootstrap 'form-control' styled [./html::Input] element with extra options
+@param  {optional Object} [settings]
+@setting {optional String} [type='text'] 
+@setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+@setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
+@setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
+@setting  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @return {surface::Element}
 @desc
-  When the element is inserted into the document, its value
-  will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-  element's value will be updated every time `value` changes. If (in addition)
-  `value` is an [sjs:observable::ObservableVar], then `value` will
-  be updated to reflect any manual changes to the element's value.
+
+   * The description of the base [./html::Input] element also applies for 
+   bootstrap-styled inputs.
+
 @demo
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
@@ -114,43 +117,14 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
   @mainContent .. @appendContent([
     @demo.CodeResult("\
-  @Input('text', 'foo')",
-  @Input('text', 'foo')),
+  @Input('foo')",
+  @Input('foo')),
 
     @demo.CodeResult("\
   var Items = @ObservableVar(0);
   ...
-  @Input('text', Items)",
-  @Input('text', Items))
-  ]);
-
-@function TextInput
-@summary Bootstrap-styled [surface/html::TextInput] (with class "form-control")
-@param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
-@param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-@return {surface::Element}
-@desc
-  When the element is inserted into the document, its value
-  will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-  element's value will be updated every time `value` changes. If (in addition)
-  `value` is an [sjs:observable::ObservableVar], then `value` will
-  be updated to reflect any manual changes to the element's value.
-@demo
-  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
-
-  var Items = @generate(Math.random) ..
-    @transform(x -> (hold(1000), Math.round(x*100)));
-
-  @mainContent .. @appendContent([
-    @demo.CodeResult("\
-  @TextInput('foo')",
-  @TextInput('foo')),
-
-    @demo.CodeResult("\
-  var Items = @ObservableVar(0);
-  ...
-  @TextInput(Items)",
-  @TextInput(Items))
+  @Input(Items)",
+  @Input(Items))
   ]);
 
 @function TextArea
@@ -1355,10 +1329,13 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @summary XXX write me
 
 @function SelectInput
+@altsyntax SelectInput(suggestions)
 @summary XXX write me
 @param {Object} [settings]
+@setting {optional Function} [txtToVal]
+@setting {optional Function} [valToTxt]
 @setting {Function} [suggestions] function search_term_stream -> suggestions_stream
-@setting {HTML} [extra_buttons] 
+@setting {optional surface::HtmlFragment} [extra_buttons] 
 @desc
   suggestions can be a stream of arrays of strings or objects:
    { text:String, highlight:Boolean }

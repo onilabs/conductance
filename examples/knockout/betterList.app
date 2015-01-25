@@ -3,7 +3,7 @@
 var { ObservableVar, observe } = require('sjs:observable');
 var { appendContent, Attrib, Prop, CSS, OnClick } = require('mho:surface');
 var { difference } = require('sjs:array');
-var { Button, Form, TextInput, Select } = require('mho:surface/html');
+var { Button, Form, Input, Select } = require('mho:surface/html');
 
 
 //----------------------------------------------------------------------
@@ -39,7 +39,7 @@ document.body .. appendContent(
    ${ 
      Form(`
            Add item:
-           $TextInput(itemToAdd)
+           $Input(itemToAdd)
            ${ 
              Button('Add ') .. 
                Attrib('type', 'submit') .. 

@@ -13,8 +13,7 @@
 @summary HTML 'Field' abstraction 
 @hostenv xbrowser
 @desc
-  Fields are an abstraction that helps in the construction of UIs 
-  that manipulate structured JS values. XXX Expand
+  Fields are an abstraction that helps in the construction of form-like UIs.
 */
 
 module.setCanonicalId('mho:surface/field');

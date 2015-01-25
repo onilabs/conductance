@@ -74,7 +74,7 @@ var serverConfigEditor = exports.serverConfigEditor = function(container, conf) 
 	var current = conf .. @first();
 	@info("Got server config:", current);
 	var form = @form.Form(current);
-	var Input = form .. formControl(@TextInput);
+	var Input = form .. formControl(@Input);
 	var Checkbox = form .. formControl(@Checkbox);
 
 	var useSsh = form.field('ssh', {validate: @assert.bool, transform: x -> x === undefined ? false : x });
@@ -471,7 +471,7 @@ var browserUI = function(showBrowser, api, Button, pathField, entireForm) {
 			return [
 				formGroup(
 					'Local path',
-					entireForm .. formControlGroup(@TextInput,
+					entireForm .. formControlGroup(@Input,
 						{after: @Span(
 							@A('...', {'class':'btn btn-default'}) .. @OnClick({handle:@stopEvent}, -> showBrowser.modify(c -> !c)),
 							{'class':'input-group-btn'})
@@ -504,7 +504,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 			.. @all(f -> f.validate()),
 	};
 
-	var TextInput = entireForm .. formControl(@TextInput);
+	var TextInput = entireForm .. formControl(@Input);
 	var Checkbox = entireForm .. formControl(@Checkbox);
 	var showBrowser = @ObservableVar(false);
 	var pathField = localForm.field('path');
@@ -632,8 +632,8 @@ exports.loginDialog = function(parent, conf, actions) {
 	@info("Got server config:", current);
 	var form = @form.Form(current);
 
-	var TextInput = form .. formControl(@TextInput);
-	var PasswordInput = form .. formControl(-> @TextInput.apply(null, arguments) .. @Attrib('type', 'password'));
+	var TextInput = form .. formControl(@Input);
+	var PasswordInput = form .. formControl(-> @Input.apply(null, arguments) .. @Attrib('type', 'password'));
 
 	var userField = form.field('username', {validate:[@validate.required, @validate.username]});
 	var passwordField = form.field('password', { validate: @validate.required });
