@@ -408,7 +408,6 @@ function marshall(value, connection) {
     }
 
     var rv = value .. prepare;
-    rv = { seq: ++connection.msg_seq_counter, msg:rv } .. JSON.stringify;
     return rv;
   } catch(e) {
     e.message = "Error marshalling value: #{e.message || ""}";
@@ -618,6 +617,16 @@ function BridgeConnection(transport, opts) {
   if (opts.publish)
     published_apis[0] = opts.publish;
 
+  function send(data) {
+    var args = marshall(data, connection);
+
+    // it is important that once a message has a sequence number, it
+    // does get sent. Therefore we don't wait for transport.send to return (the 
+    // return value is not needed anyway).
+    __js if (transport) 
+      transport.send({ seq: ++connection.msg_seq_counter, msg:args } .. JSON.stringify);
+  }
+
   var connection = {
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
     msg_seq_counter: 0, // sequence counter to facilitate ordering of (non-data) messages; aat doesn't guarantee order
@@ -631,8 +640,7 @@ function BridgeConnection(transport, opts) {
       return id;
     },
     makeSignalledCall: function(api, method, args) {
-      var args = marshall(['signal', api, method, toArray(args)], connection);
-      if (transport) transport.send(args);
+      send(['signal', api, method, toArray(args)])
     },
     makeCall: function(api, method, args) {
       var call_no = ++call_counter;
@@ -647,7 +655,7 @@ function BridgeConnection(transport, opts) {
             //logging.debug("call #{call_no} (#{method}) retracted");
             if(transport) spawn (function() { 
               try {
-                transport.send(marshall(['abort', call_no], connection));
+                send(['abort', call_no]);
               }
               catch(e) { /* ignore; transport is dead */ }
             })();
@@ -660,8 +668,7 @@ function BridgeConnection(transport, opts) {
         }
         and {
           // make the call.
-          var args = marshall(['call', call_no, api, method, toArray(args)], connection);
-          if (transport) transport.send(args);
+          send(['call', call_no, api, method, toArray(args)]);
         }
       } or {
         var err = sessionLost .. wait();
@@ -811,13 +818,13 @@ function BridgeConnection(transport, opts) {
               rv = published_funcs[method].apply(null, args);
             else
               rv = published_apis[api_id][method].apply(published_apis[api_id], args);
-            response = marshall(["return", call_no, rv], connection);
+            response = ["return", call_no, rv];
           }
           catch (e) {
-            response = marshall(["return_exception", call_no, e], connection);
+            response = ["return_exception", call_no, e];
           }
           try {
-            transport.send(response);
+            send(response);
           }
           catch (e) {
             // ignore exception; transport will be closed
@@ -842,7 +849,7 @@ function BridgeConnection(transport, opts) {
       var id = message[1];
       switch(message[0]) {
         case 'call':
-          transport.send(marshall(["return_exception", id, e], connection));
+          send(["return_exception", id, e]);
           break;
         case 'return':
           // turn it into return_exception
