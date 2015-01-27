@@ -262,7 +262,7 @@ function Field(elem, settings /* || name, startval */) {
 
   settings = {
     name:     undefined,
-    startval: '',
+    startval: undefined,
     Value:    undefined
   } .. @override(settings);
 
