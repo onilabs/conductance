@@ -367,9 +367,12 @@ if (hostenv === 'xbrowser') {
               val = settings.txtToVal(val);
 
             internal_set = true;
-            value.set(val);
-            internal_set = false;
-
+            try {
+              value.set(val);
+            }
+            finally {
+              internal_set = false;
+            }
             if (edited)
               edited.set(true);
           }
