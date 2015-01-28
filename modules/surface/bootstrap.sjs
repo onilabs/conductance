@@ -1382,10 +1382,26 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @setting {optional Function} [txtToVal]
 @setting {optional Function} [valToTxt]
 @setting {Function} [suggestions] function search_term_stream -> suggestions_stream
-@setting {optional surface::HtmlFragment} [extra_buttons] 
+@setting {optional surface::HtmlFragment} [extra_buttons]
 @desc
   suggestions can be a stream of arrays of strings or objects:
    { text:String, highlight:Boolean }
+
+@function DateInput
+@summary XXX write me
+@param {optional Object} [settings]
+@setting {optional Function} [dateToVal]
+@setting {optional Function} [valToDate]
+@setting {optional HTML} [extra_buttons] 
+@desc
+  Developed out of Stefan Petre's Datapicker for Bootstrap,
+  http://www.eyecon.ro/bootstrap-datepicker/ :
+
+      * Datepicker for Bootstrap
+      *
+      * Copyright 2012 Stefan Petre
+      * Licensed under the Apache License v2.0
+      * http://www.apache.org/licenses/LICENSE-2.0
 
 @function doModal
 @altsyntax doModal(body, [settings], block)
