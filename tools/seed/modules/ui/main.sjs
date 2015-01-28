@@ -310,14 +310,22 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 	}) .. @mirror;
 
 	var tailLogs = function(limit, block) {
-		appState .. @each.track(function(state) {
-			if (!state) {
-				block(false);
-				hold();
+		waitfor {
+			// In general, we only reset logs when `appState` is
+			// truthy (i.e there is a slave assigned to this app).
+			appState .. @filter() .. @each.track {|state|
+				collapse;
+				@info("tailing logs...");
+				state.tailLogs(limit, block);
 			}
-			@info("tailing logs...");
-			state.tailLogs(limit, block);
-		});
+		} or {
+			// But on initial load, we'll show "no logs" if there
+			// is no slave
+			if (!appState .. @first()) {
+				block(false);
+			}
+			hold();
+		}
 	};
 
 	var appName = app.config .. @transform(a -> a.name);
