@@ -348,10 +348,21 @@ if (hostenv === 'xbrowser') {
   function syncValue(node, value, edited, settings) {
     settings = settings || {};
     if (@isStream(value)) {
-      var internal_set = false;
+      var internal_set = false, first = true;
       waitfor {
         value .. @each.track {|val|
           if (internal_set) continue;
+          // make sure an undefined field value gets initialized with '':
+          if (first) {
+            first = false;
+            if (val === undefined && @isObservableVar(value)) {
+              val = '';
+              if (settings.txtToVal)
+                val = settings.txtToVal(val);
+              value.set(val);
+              continue;
+            }
+          }
           if (settings.valToTxt)
             val = settings.valToTxt(val);
           val = val || "";
@@ -541,7 +552,19 @@ if (hostenv === 'xbrowser') {
   function syncCheckboxValue(node, value, edited) {
     if (@isStream(value)) {
       waitfor {
-        value .. @each {|val|
+        var first = true;
+
+        value .. @each.track {|val|
+          // make sure an undefined field gets initialized with 'false':
+          if (first) {
+            first = false;
+            if (val === undefined && @isObservableVar(value)) {
+              val = false;
+              value.set(val);
+              continue;
+            }
+          }
+
           val = Boolean(val);
           if (node.checked !== val)
             node.checked = val;
