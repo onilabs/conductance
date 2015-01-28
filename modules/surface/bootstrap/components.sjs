@@ -1345,7 +1345,7 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
    @setting {optional Function} [txtToVal]
    @setting {optional Function} [valToTxt]
    @setting {Function} [suggestions] function search_term_stream -> suggestions_stream
-   @setting {optional surface::HtmlFragment} [extra_buttons] 
+   @setting {optional surface::HtmlFragment} [extra_buttons]
    @desc
      suggestions can be a stream of arrays of strings or objects:
       { text:String, highlight:Boolean }
@@ -1360,7 +1360,13 @@ var InputGroup      = ElemClass('div','input-group');
 var InputGroupBtn   = ElemClass('span', 'input-group-btn');
 var Caret           = ElemClass('span', 'caret');
 
-var DropdownMenuRight = content -> @html.Ul(content,{'class':'dropdown-menu dropdown-menu-right'});
+var InputDropdown = menu -> [exports.Btn('default',
+                                              Caret(),
+                                              {'class': 'dropdown-toggle',
+                                               'type':  'button',
+                                               'data-toggle': 'dropdown',
+                                               'style': 'width:34px;'}),
+                             menu .. @Class('dropdown-menu dropdown-menu-right')];
 
 // helper to format suggestions:
 __js function format_suggestion(s, filter_term) {
@@ -1410,6 +1416,7 @@ function SelectInput(settings) {
   else {
     settings = 
       { 
+        value: undefined,
         suggestions : [],
         txtToVal: null,
         valToTxt: null,
@@ -1418,13 +1425,8 @@ function SelectInput(settings) {
   }
 
 
-  var dropdown = [exports.Btn('default', 
-                              Caret(), 
-                              {'class': 'dropdown-toggle', 
-                                type:   'button',
-                                'data-toggle': 'dropdown',
-                                style: 'width:34px;'}),
-                  DropdownMenuRight() .. 
+  var dropdown = InputDropdown(
+                  @html.Ul() .. 
                     @Mechanism(function(node) {
                       // get our associated text input:
                       var textinput = node.parentNode.parentNode.firstChild;
@@ -1473,7 +1475,7 @@ function SelectInput(settings) {
                       function({node}) {
                         // XXX distinguish between contextual and non-contextual SelectInputs
                         var field = (node .. @field.getField())[@field.CTX_FIELD];
-                        @dom.findNode('.input-group', node).firstChild.value = node.txt;
+                        //@dom.findNode('.input-group', node).firstChild.value = node.txt;
                         var val = node.txt;
                         if (settings.txtToVal)
                           val = val .. settings.txtToVal;
@@ -1481,12 +1483,34 @@ function SelectInput(settings) {
                         field.value.set(val);
                       }
                      )
-                 ];
+                 );
  
   // bootstrap doesn't correctly style segmented buttons that have
   // buttons right of a dropdown:
   if (settings.extra_buttons)
     dropdown[0] = dropdown[0] .. @Style('border-radius:0px');
+
+/*
+  XXX this works, but is possibly fragile because we really want to attach the event listener
+  to the inner input element, so that it doesn't catch events from inside the dropdown 
+  (or elsewhere). Can we find a better way of attaching events for these nested components?
+  Options:
+
+    - an 'inputWrapper' option, where the user can pass content -> wrappedContent
+    - an 'inputEmitter' option, that allows to set an emitter... but do we need
+      emitters for mouseover, etc too?
+
+
+  var rv = @html.Input(
+    {
+      value    : settings.value,
+      txtToVal : settings.txtToVal,
+      valToTxt : settings.valToTxt,
+      buttonsRight: [dropdown, settings.extra_buttons]
+    }) ..
+    @On('input',
+        ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open'));
+*/
 
   var rv = 
     InputGroup(
@@ -1504,6 +1528,309 @@ function SelectInput(settings) {
   return rv;
 };
 exports.SelectInput = SelectInput;
+
+//----------------------------------------------------------------------
+
+/**
+   @function DateInput
+   @summary XXX write me
+   @param {optional Object} [settings]
+   @setting {optional Function} [dateToVal]
+   @setting {optional Function} [valToDate]
+   @setting {optional HTML} [extra_buttons] 
+   @desc
+     Developed out of Stefan Petre's Datapicker for Bootstrap,
+     http://www.eyecon.ro/bootstrap-datepicker/ :
+
+         * Datepicker for Bootstrap
+         *
+         * Copyright 2012 Stefan Petre
+         * Licensed under the Apache License v2.0
+         * http://www.apache.org/licenses/LICENSE-2.0
+*/
+
+//XXX this command mechanism needs to change to accomodate nesting, similar to Fields
+var Command = (element, command) -> element .. @Attrib('data-command', command);
+
+var commands = (target) -> 
+  target .. 
+  @events('click', 
+          { filter: ev -> !!(ev.commandNode = 
+                             @dom.findNode('[data-command]',
+                                           ev.target, target)),
+            handle: @dom.stopPropagation
+          } 
+         ) .. 
+  @transform(ev -> ev.commandNode.getAttribute('data-command'));
+
+
+var DateInputStyle = @CSS("
+    {
+      user-select: none;
+      margin: 0px 4px;
+    }
+
+    td,
+    th {
+      text-align: center;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 4px;
+    }
+
+    td.day:hover {
+      background: #eee;
+      cursor: pointer;
+    }
+    td.old,
+    td.new {
+      color: #999;
+    }
+    td.active,
+    td.active:hover {
+      color: #fff;
+      background-color: #08c;
+      text-shadow: 0 -1px 0 rgba(0,0,0,.25);
+    }
+    td span {
+      display: block;
+      width: 47px;
+      height: 54px;
+      line-height: 54px;
+      float: left;
+      margin: 2px;
+      cursor: pointer; background-color:red; /* XXXXX */
+      border-radius: 4px;
+    }
+    td span:hover {
+      background: #eee;
+    }
+    td span.active {
+      color: #fff;
+      text-shadow: 0 -1px 0 rgba(0,0,0,.25);
+    }
+    /*{mixins.buttonBackground('td span.active', #08c, vars.btnPrimaryBackgroundHighlight()) }*/
+
+    td span.old {
+      color: #999;
+    }
+
+    thead tr:first-child th {
+      cursor: pointer;
+    }
+    thead tr:first-child th:hover{
+      background: #eee;
+    }
+");
+
+// XXX helpers from original datepicker code that should go into a lib:
+__js {
+  function isLeapYear(year) {
+    return (((year % 4 === 0) && (year % 100 !== 0)) || (year % 400 === 0))
+  }
+  function getDaysInMonth(year, month) {
+    return [31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month]
+  }
+  var days = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
+  var daysShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var daysMin = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ];
+  var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var monthsShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  function getLastDay(year, month, dow) {
+    var date = new Date(year, month, 1, 0, 0, 0, 0);
+    var lastDay = getDaysInMonth(year, date.getMonth());
+    date.setDate(lastDay); // setting so that we can query day-of-week
+    date.setDate(lastDay - (date.getDay()-dow+7)%7);
+    return date;
+  }
+
+  function isSameDay(d1, d2) {
+    return d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+  }
+
+  function isSameMonth(d1, d2) {
+    return d1.getMonth() === d2.getMonth();
+  }
+
+  function pad2(x) {
+    x = x.toString();
+    if (x.length == 1)
+      return "0"+x;
+    return x;
+  }
+
+  function formatDate(date, include_time) {
+    if (!date) return "";
+    var rv = "#{date.getFullYear()}-#{pad2(date.getMonth()+1)}-#{pad2(date.getDate())}";
+    if (include_time) {
+      rv += " #{pad2(date.getHours())}:#{pad2(date.getMinutes())}";
+    }
+    return rv;
+  }
+
+}
+
+// stream of date objects, starting with 'start'. The generated Date objects
+// should be treated as immutable
+var daysStream = start -> @Stream(function(r) {
+  while (1) {
+    r(start);
+    start.setDate(start.getDate()+1);
+  }
+});
+
+function DateInput(settings) {
+  // untangle arguments:
+  settings = 
+    {
+      dateToVal: @fn.identity,
+      valToDate: @fn.identity,
+      extra_buttons: undefined,
+      weekStart: 1 // 0 = Sunday, 1 = Monday
+    } .. @override(settings);
+
+  var is_valid = true;
+
+  function txtToVal(txt) {
+    var rv;
+    if (txt.length && isNaN(Date.parse(txt))) {
+      is_valid = false;
+      rv = "Not a date: '#{txt}'";
+    }
+    else {
+      is_valid = true;
+      if (!txt.length) 
+        rv = null;
+      else
+        rv = new Date(txt);
+    }
+    rv = settings.dateToVal(rv);
+
+    return rv;
+  }
+
+  function valToTxt(val) {
+    val = settings.valToDate(val);
+
+    if (typeof val === 'string') return '';
+
+    return formatDate(val, false);
+  }
+
+  function doDropdown(container) {
+
+    var field_itf = (container .. @field.getField())[@field.CTX_FIELD];
+    var Value = container .. @field.fieldValue();
+
+    // initialize date to today; will update from Value, below
+    var date = new Date();
+
+    // day view ----------------
+    var day_view = ->
+       `<thead>
+           <tr>
+             ${@html.Th(`<i class='glyphicon glyphicon-arrow-left'>`) ..
+               Command('prevMonth')}
+             ${@html.Th(`${months[date.getMonth()]} ${date.getFullYear()}`, {colspan:5}) }
+             ${@html.Th(`<i class='glyphicon glyphicon-arrow-right'>`) ..
+               Command('nextMonth')}
+           </tr>
+           <tr>
+             ${ @integers(settings.weekStart) .. @take(7) .. 
+                @map(i-> `<th class='dow'>${daysMin[i%7]}</th>`) }
+           </tr>
+         </thead>
+         <tbody>
+           ${ daysStream(getLastDay(date.getFullYear(),
+                                    date.getMonth()-1,
+                                    settings.weekStart)) .. 
+              @transform(d ->
+                         `<td class='day ${
+                                isSameMonth(d,date) ? '':'old'
+                              } ${
+                                !isNaN(Date.parse(Value .. @current .. settings.valToDate())) && 
+                                  isSameDay(d, Value .. @current .. settings.valToDate()) ?
+                                  'active':''}'
+                              data-command='${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()} 00:00'
+                         >${d.getDate()}</td>`) ..
+              @pack(7) .. 
+              @transform(row -> `<tr>${ row }</tr>`) .. 
+              @take(6) .. @toArray
+           }
+         </tbody>`;
+
+    // month view ------------
+    var month_view = ->
+      `
+      `;
+
+    // start in day view:
+    var view = day_view;
+
+    while (true) {
+      container .. @appendContent(
+        @Element('table',view(), {'class':'table-condensed'}) ..
+        DateInputStyle
+      ) {
+        |node|
+        waitfor {
+          var command = commands(node) .. @first(); 
+          switch (command) {
+          case 'prevMonth':
+            date.setDate(1);
+            date.setMonth(date.getMonth()-1);
+            break;
+          case 'nextMonth':
+            date.setDate(1);
+            date.setMonth(date.getMonth()+1);
+            break;
+          default: // a date value:
+            // close the dropdown:
+            $(node.parentNode.parentNode.
+              querySelector('.dropdown-toggle')).dropdown('toggle');
+            // XXX distinguish between contextual and non-contextual DateInputs
+            field_itf.auto_validate.set(true);
+            Value.set(txtToVal(command));
+          }
+        }
+        or {
+          // go round the loop when there's a change in 'Value' and it is a valid date
+          date = new Date(Value .. @changes .. @filter(r -> Date.parse(r .. settings.valToDate())) .. @first .. settings.valToDate());
+        }
+      }
+    } /* while(true) */
+  }
+
+
+  var dropdown = InputDropdown(@html.Ul() .. @Mechanism(doDropdown));
+  
+  if (settings.extra_buttons)
+    dropdown[0] = dropdown[0] .. @Style('border-radius:0px');
+
+  var rv = 
+    InputGroup(
+      [
+        @html.Input({txtToVal:txtToVal, valToTxt:valToTxt}) ..
+          @On('input', 
+              ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
+        InputGroupBtn([
+          dropdown,
+          settings.extra_buttons
+        ])
+      ]
+    ) ..
+    @field.Validate(-> is_valid);
+
+  return rv;
+};
+exports.DateInput = DateInput;
+
+
+
+//----------------------------------------------------------------------
 
 /**
   @function doModal
