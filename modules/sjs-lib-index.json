@@ -594,6 +594,9 @@
             "ControlLabel": {
               "type": "function"
             },
+            "DateInput": {
+              "type": "function"
+            },
             "EmbedResponsive": {
               "type": "function"
             },
