@@ -445,11 +445,17 @@ function FieldArray(elem, settings) {
         if (name) throw new Error("A FieldArray template must not contain a named Field");
       },
       removeField: function(name, field_node) {
-        var idx = fieldarray.indexOf(field_node);
-        if (idx == -1) return; // already removed (from value.set) or we don't know about it
-        fieldarray.splice(idx,1);
-        FieldArrayLength.modify(x -> --x);
-        array_mutation_emitter.emit();
+        for (var i=0; i<fieldarray.length; ++i) {
+          if (fieldarray[i].node === field_node) {
+            fieldarray.splice(i,1);
+            FieldArrayLength.modify(x -> --x);
+
+            array_mutation_emitter.emit();
+            return;
+          }
+        }
+        // if we're here, the element has already been removed (from value.set) or we don't know about it
+        console.log('warning: array field already removed');
       }
     };
     
@@ -457,14 +463,29 @@ function FieldArray(elem, settings) {
     waitfor {
       // Propagate changes from our associated observable to our
       // children:
-      field.value .. @each {
+      var first = true;
+      field.value .. @each.track {
         |x|
+        
+        // make sure an undefined field value gets initialized with []:
+        if (first) {
+          first = false;
+          if (x === undefined) {
+            x = [];
+            if (settings.arrToVal)
+              x = settings.arrToVal(x);
+            field.value.set(x);
+            continue;
+          }
+        }
+
         if (x === current_value) continue;
 
         if (settings.valToArr)
           x = settings.valToArr(x);
 
         var array_mutation = false;
+
         FieldArrayLength.modify(l -> x.length);
         x .. @indexed .. @each { |[i,val]|
           if (!fieldarray[i]) { 
@@ -502,8 +523,12 @@ function FieldArray(elem, settings) {
       while (1) {
         waitfor {
           if (!fieldarray.length) { 
-            current_value = []; 
-            field.value.set(current_value); 
+            if (current_value !== undefined) {
+              var x = [];
+              if (settings.arrToVal)
+                x = settings.arrToVal(x);
+              field.value.set(x);
+            }
             hold(); 
           }
           var args = fieldarray .. @map(field -> field.node[CTX_FIELD].value);
@@ -551,7 +576,43 @@ exports.FieldArray = FieldArray;
 
 /**
    @function Validate
-   @summary XXX write me
+   @summary Add a validator to the enclosing [::Field]
+   @param {mho:surface::HtmlElement} [element] Element to attach validator to
+   @param {Function} [validator] Validator function; see description
+   @desc
+     `validator` is a function that will be called whenever the enclosing [::Field] 
+     is being validated (either explicitly, through a call to [::validate] or 
+     implicitly when a form element - such as an [mho:surface/html::Input]) - bound to
+     the field receives user input).
+
+     `validator` will be passed the [::Field]'s current value and is expected to return
+     either `true` (signifying that the value is valid), `false` (signifying that the value
+     is invalid for an unspecified reason), or a "validation object".
+
+     A "validation object" has one of the following structures:
+
+
+     * simple form
+
+         {
+           error:    description of error (object or string) ,
+           warning:  description of warning (object or string) 
+         }
+
+     Both `error` and `warning` are optional. Omission of `error`
+     and/or `warning` signifies that the validator yieled no error
+     and/or warning.
+
+
+     * aggregate form
+
+         {
+           errors:   [ array of error objects/strings  ],
+           warnings: [ array of warning objects/strings ]
+         }
+
+     Empty `errors` and/or `warnings` arrays signify that the validator yielded
+     no errors and/or warnings.
 */
 
 var Validate = (elem, validator) ->
