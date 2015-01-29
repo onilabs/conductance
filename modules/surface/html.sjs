@@ -248,8 +248,8 @@ exports.TextArea = TextArea;
       )
     ]);
 */
-var Checkbox = value ->
-  Element('input') ..
+var Checkbox = (value, attribs) ->
+  Element('input', attribs) ..
   Attrib("type", "checkbox") ..
   Mechanism(function(node) {
     if (isStream(value)) {
