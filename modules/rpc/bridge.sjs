@@ -376,6 +376,13 @@ function marshall(value, connection) {
         }
         else if (value instanceof Error || value._oniE) {
           rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack } .. withExplicitProperties(value);
+          // many error APIs provide errno / code to distinguish error types, so include
+          // those if present
+          ['errno','code'] .. each {|k|
+            if(value[k] === undefined) continue;
+            if(!rv.props) rv.props = {};
+            rv.props[k] = value[k];
+          };
         }
         else if (value.__oni_type == 'api') {
           // publish on the connection:
