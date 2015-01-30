@@ -187,8 +187,9 @@ var keyFn = function(prefix) {
 }
 
 var endpoint_root = "/endpoint/";
+exports.endpoint = keyFn("/endpoint/");
 exports.slave_endpoint = keyFn("/endpoint/slave/");
-exports.master_endpoint = "/endpoint/master";
+exports.master_endpoint = exports.endpoint('master');
 exports.slave_load = keyFn("/slave/load/");
 exports.app_job = keyFn("/app/job/");
 exports.app_op = keyFn("/app/op/");

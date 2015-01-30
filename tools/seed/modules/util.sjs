@@ -8,7 +8,7 @@ exports.removeLeading = function(subj, leading) {
 };
 
 exports.removeTrailing = function(subj, trailing) {
-	@assert.ok(subj .. @endsWith(trailing), `$subj does not start with $trailing`);
+	@assert.ok(subj .. @endsWith(trailing), `$subj does not end with $trailing`);
 	return subj.slice(0, - trailing.length);
 };
 

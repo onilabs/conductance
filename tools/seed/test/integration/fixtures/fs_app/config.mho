@@ -1,0 +1,47 @@
+@ = require('mho:std');
+var fs = require('lib:seed/fs');
+@logging.setLevel(@logging.INFO);
+exports.serve = function() {
+  @server.run({
+    address: @Port(7075),
+    routes: [
+      @Route('ping', {GET: function(req) {
+        req .. @response.setStatus(200);
+        req.response.end("pong!");
+      }}),
+
+      @Route('hosts', {GET: function(req) {
+        req .. @response.setStatus(200);
+        @fs.fileContents('/etc/hosts') .. @stream.pump(req.response);
+      }}),
+
+      @Route(/^read\/(.*)$/, {POST: function(req, [_, path]) {
+        @info("reading #{path}");
+        var contents = fs.readFile(path);
+        req .. @response.setStatus(200);
+        req.response.end(contents);
+      }}),
+
+      @Route(/^write\/(.*)$/, {POST: function(req, [_, path]) {
+        @info("writing #{path}");
+        fs.writeFile(path, req.contents);
+        req .. @response.setStatus(200);
+        req.response.end(path);
+      }}),
+
+      @Route(/^ls\/(.*)$/, {POST: function(req, [_, path]) {
+        @info("listing #{path}");
+        var contents = fs.readdir(path);
+        req .. @response.setStatus(200);
+        req.response.end(contents .. JSON.stringify());
+      }}),
+
+      @Route(/^rm$/, {POST: function(req) {
+        @info("turfing #{path}");
+        // TODO
+        //req .. @response.setStatus(200);
+        //req.response.end(contents);
+      }}),
+    ],
+  });
+};

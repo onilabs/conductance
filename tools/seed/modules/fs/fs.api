@@ -1,0 +1,50 @@
+@ = require(['mho:std', {id:'sjs:type',name:'type'}]);
+var { @mkdirp } = require('sjs:nodejs/mkdirp');
+var root = @path.join(@env.get('data-root'), 'app-fs');
+var { @keySafe } = require('seed:validate');
+
+var apiProto = require('./prototype');
+exports.apiKeys = apiProto .. @ownKeys .. @filter(k -> !k .. @startsWith('_')) .. @toArray;
+var jwt = @env.get('jwt');
+
+exports.authenticate = function(token) {
+	var {claims} = jwt.verify(token);
+	claims.iss .. @assert.eq('seed');
+	claims.aud .. @assert.eq('fs');
+	var [userId, appId] = claims.sub.split('/') .. @map(part -> part .. @assert.ok .. @keySafe);
+	var apiRoot = @path.join(root, userId, appId);
+	// apiRoot must include the trailing dir prefix
+	if(!apiRoot .. @endsWith("/")) apiRoot += "/";
+	@info("client connected with valid claims:", claims, "partition", apiRoot);
+	@mkdirp(apiRoot);
+
+	var getPath = function(p) {
+		// we normalize all path arguments against the api-specific
+		// root, and never allow traversing above the root
+		if (!@isString(p)) throw new Error("invalid path (not a string)");
+		p = @path.normalize(@path.join(apiRoot, p));
+		if (p .. @split('/') .. @any(d -> d == '..')) {
+			throw new Error("invalid path: #{p}");
+		}
+
+		if(!p .. @startsWith(apiRoot)) {
+			throw new Error("invalid path: #{p}");
+		}
+		return p;
+	}
+
+	// for bridge simplicity, we only expose a single function which
+	// takes its key as the first arg.
+	var api = Object.create(apiProto);
+	api._init(getPath);
+	console.log("CONNECTED");
+	return function(op, args) {
+		console.log("OP ", op, "with", args, apiProto);
+		console.log(apiProto .. @hasOwn(op));
+		if(
+			op .. @startsWith('_') ||
+			!apiProto .. @hasOwn(op)
+		) throw new Error("Unsupported `fs` method: #{op}");
+		return api[op].apply(api, args);
+	};
+}

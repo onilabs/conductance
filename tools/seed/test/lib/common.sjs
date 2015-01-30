@@ -49,10 +49,23 @@ if (isBrowser) {
 		return elem .. @elems(sel) .. @filter(@isVisible);
 	};
 
+	lib.arrayLike = function(a) {
+		// cross-iframe results don't count as array-like, since their prototype
+		// differs from the host frame's NodeList etc.
+		var rv = [];
+		for (var i=0;i<a.length;i++) rv[i] = a[i];
+		return rv;
+	};
+
 	lib.formInputs = function(elem) {
 		var rv = {};
 		elem .. @visibleElements('input') .. @each {|elem|
-			rv[elem.getAttribute('name') .. @assert.ok(elem)] = elem;
+			var name = elem.getAttribute('name');
+			if(!name) {
+				@info("skipping nameless HTML input: #{elem.outerHTML}");
+				continue;
+			}
+			rv[name] = elem;
 		}
 		return rv;
 	};
@@ -66,7 +79,6 @@ if (isBrowser) {
 		if(@isString(str)) return el -> str === el.textContent;
 		return el -> str.test(el.textContent);
 	};
-
 
 }
 
@@ -84,7 +96,11 @@ lib.addTestHooks = function(opts) {
 				return s.modal('.panel-body');
 			}
 			s.clickLink = (elem, text) -> elem .. @elems('a') .. @find(@contentPredicate(text)) .. s.driver.click();
-			s.clickButton = (elem, text) -> elem .. @elems('button') .. @find(@contentPredicate(text)) .. s.driver.click();
+			s.clickButton = function(elem, text) {
+				var btn = elem .. @elems('button') .. @find(@contentPredicate(text));
+				@waitforSuccess( -> btn.classList.contains('disabled') .. @assert.eq(false));
+				btn .. s.driver.click();
+			}
 			s.waitforNoModal = -> @waitforCondition(-> s.hasModal() === false, "modal dialog still present");
 			s.creds = {
 				username: "test1",
@@ -118,6 +134,9 @@ lib.addTestHooks = function(opts) {
 			};
 			s.createAppButton = function() {
 				return s.driver.elem('.app-list .new-app-button a');
+			};
+			s.appSettingsButton = function() {
+				return s.mainElem .. s.driver.elem('.app-display button[title="settings"]')
 			};
 		}
 	}

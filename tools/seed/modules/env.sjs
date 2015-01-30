@@ -39,6 +39,15 @@ var numberFromEnv = function(name, def, xform) {
 	return def;
 };
 
+function tryReadFile(p) {
+	try {
+		return @fs.readFile(p);
+	} catch(e) {
+		if(e.code === 'ENOENT' || e.code === 'EACCES') return null;
+		throw e;
+	}
+}
+
 
 var defaultPorts = exports.defaultPorts = {
 	http: numberFromEnv('SEED_HTTP_PORT', PROD ? 80 : 8080),
@@ -47,6 +56,7 @@ var defaultPorts = exports.defaultPorts = {
 	local: seedLocal.defaultPort,
 	master: numberFromEnv('SEED_MASTER_PORT', 7071),
 	slave: numberFromEnv('SEED_SLAVE_PORT', 7072),
+	fs: numberFromEnv('SEED_FS_PORT', 7073),
 };
 var standardPorts = {
 	http:80,
@@ -173,6 +183,7 @@ exports.defaults = function() {
 		}, true);
 	}
 	def('host-local', 'localhost');
+	def('host-fs', 'fs');
 
 	if(!PROD) def('default-proto', 'http');
 
@@ -189,8 +200,9 @@ exports.defaults = function() {
 					port = env.get("port-#{proto}");
 					break;
 				case 'local':
-					// always use explicit port
-					port = env.get('port-local');
+				case 'fs':
+					// always use explicit (internal) port
+					port = env.get("port-#{service}");
 					break;
 				default:
 					if(useVhost) {
@@ -215,8 +227,8 @@ exports.defaults = function() {
 	def('etcd-host', etcdAddr[0]);
 	def('etcd-port', etcdAddr[1]);
 	def('etcd-ssl', function() {
+		if(!PROD) return null;
 		var store = this.get('key-store');
-		if(!store) return null;
 		return {
 			agent: false,
 
@@ -238,8 +250,8 @@ exports.defaults = function() {
 	}, true);
 
 	def('seed-ssl', function() {
-		var store = this.get('key-store');
-		if (store) {
+		if (PROD) {
+			var store = this.get('key-store');
 			return {
 				cert: @path.join(store, 'key-conductance-https.crt') .. @fs.readFile(),
 				key:  @path.join(store, 'key-conductance-https.key') .. @fs.readFile(),
@@ -253,12 +265,21 @@ exports.defaults = function() {
 		}
 	}, true);
 
+	def('fs-ssl', function() {
+		var store = this.get('key-store');
+		return {
+			cert: @path.join(store, 'key-all-fs-server.crt') .. @fs.readFile(),
+			key:  @path.join(store, 'key-conductance-fs-server.key') .. @fs.readFile(),
+		};
+	}, true);
+
 	// exposed ports
 	def('port-http', defaultPorts.http);
 	def('port-https', defaultPorts.https);
 	def('port-master', defaultPorts.master);
 	def('port-slave', defaultPorts.slave);
 	def('port-local', defaultPorts.local);
+	def('port-fs', defaultPorts.fs);
 
 	def('gcd-namespace', -> devDefaultEnvvar('DATASTORE_NAMESPACE', 'seed-dev'), true);
 	def('gcd-host', process.env['DATASTORE_HOST'] || (PROD ? null : 'http://localhost:8089'));
@@ -284,13 +305,29 @@ exports.defaults = function() {
 	@assert.ok(@fs.exists(dataDir), "data dir does not exist: #{dataDir}");
 	def('data-root', dataDir);
 
-	def('key-store', -> devDefaultEnvvar('SEED_KEYS', null), true);
+	def('key-store', -> devDefaultEnvvar('SEED_KEYS', @path.join(codeRoot, 'keys')), true);
+
 	def('rsync-user', process.env['SEED_RSYNC_USER'] || null);
 
 	def('api-keys', function() {
-		var contents = @fs.readFile(@path.join(this.get('key-store') || codeRoot, 'key-conductance-apis.json'), 'utf-8');
+		var contents = @fs.readFile(@path.join(this.get('key-store'), 'key-conductance-apis.json'), 'utf-8');
 		contents = contents.replace(/^\S*\/\/.*\n/gm, ''); // allow comments
 		return contents .. JSON.parse;
+	}, true);
+
+	def('jwt', function() {
+		var keys = this.get('key-store');
+		var privateKey = tryReadFile(@path.join(keys, 'key-conductance-jwt-private.pem'));
+		var publicKey = @fs.readFile(@path.join(keys, 'key-all-jwt-public.pem'));
+		var {JWT} = require('./jwt');
+		var opts = {
+			crypto: {
+				algorithm:'ES256',
+				privateKey: privateKey,
+				publicKey: publicKey,
+			},
+		};
+		return new JWT(opts);
 	}, true);
 
 	def('mandrill-api-keys', -> this.get('api-keys') .. @get('mandrill'), true);
@@ -318,7 +355,7 @@ exports.defaults = function() {
 		var hostname = require('nodejs:os').hostname();
 		return dd.Datadog({
 			backend: backend,
-			logLevel: @logging.INFO,
+			logLevel: @logging.VERBOSE,
 			apikey: this.get('api-keys') .. @get('datadog'),
 			host: hostname +'.seed.onihub.com',
 			defaultTags: [

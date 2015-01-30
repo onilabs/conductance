@@ -3,17 +3,27 @@
 @addTestHooks({clearAround:'all'});
 
 @test.beforeAll {|s|
-	s.appName = 'app-one';
+	s.appName = 'fs-test';
 	s.screenshotOnFailure {||
 		s .. @actions.signup(true);
 		s .. @createApp(s.appName);
 	}
 }
 
-@context("deploy a simple app") {||
+@context("fs service") {||
 	@test.beforeAll {|s|
 		s.screenshotOnFailure {||
-			s .. @setUploadPath(@stub.testPath('integration/fixtures/hello_app'));
+			s.appSettingsButton() .. s.driver.click();
+			s .. @enableService('Seed FS');
+			var form = s.modal('form');
+			// each service's form is a sub-form, to prevent name collisions
+			form .. @elem('.svc-form-fs') .. s.fillForm({
+				enable: true,
+			});
+			form .. @trigger('submit');
+			s.waitforNoModal();
+
+			s .. @setUploadPath(@stub.testPath('integration/fixtures/fs_app'));
 			s.mainElem .. s.clickButton(/deploy/);
 
 			var appLink = s.appHeader.getAttribute('href') + 'ping';
@@ -44,32 +54,31 @@
 		@waitforSuccess(-> s.appRequest('/ping') .. @assert.eq('pong!'));
 	}
 
-	@test("request headers are proxied") {|s|
-		var headers = @waitforSuccess(-> s.appRequest('/headers', {headers:{'if-none-match':'1234'}}) .. JSON.parse);
-		headers['x-forwarded-proto'] .. @assert.eq('http');
-		headers['x-forwarded-host'] .. @assert.eq("localhost:#{@stub.getEnv('port-proxy')}");
-		headers['x-forwarded-host'] .. @assert.eq("localhost:#{@stub.getEnv('port-proxy')}");
-		headers['if-none-match'] .. @assert.eq("1234");
+	@test("fs API can read/write files") {|s|
+		s.appRequest('/write/foo', {method:'POST', body: "contents of `foo`"});
+		s.appRequest('/read/foo', {method:'POST'}) .. @assert.eq('contents of `foo`');
 	}
 
-	@test("console output is shown") {|s|
-		var headers = @waitforSuccess(-> s.appRequest('/log', {body:'Hello!', method:'POST'}));
-		var outputContent = s.mainElem .. @elem('.output-content');
-		@waitforSuccess(-> outputContent.textContent .. @assert.contains('message from client: Hello!'));
+	@test("fs ENOENT") {|s|
+		var response = s.appRequest('/read/nothere', {method:'POST', throwing:false, response:'full'});
+		@info("Got response: #{response.body}");
+		response.code .. @assert.eq(500);
+		response = response.body .. JSON.parse();
+		response.errno .. @assert.eq('ENOENT');
 	}
-}
 
-var maxmb = 10;
-@test("upload size is limited to #{maxmb}mb") {|s|
-	@stub.deployOfSize((maxmb * 1024) + 1) {|dir|
-		s .. @setUploadPath(dir);
-		s.mainElem .. s.clickButton(/deploy/);
-		var errorDialog = @waitforSuccess( -> s.modal());
+	@test("fs attempting to access a relative path") {|s|
+		['../', '/'] .. @each {|path|
+			var response = s.appRequest('/read/' + encodeURIComponent(path), {method:'POST', throwing:false, response:'full'});
+			@info("Got response (for #{path}): #{response.body}");
+			response.code .. @assert.eq(500);
+			response = response.body .. JSON.parse();
+			response.errno .. @assert.eq('EACCES');
+		}
+	}
 
-		var panel = s.waitforPanel('Application too large');
-		(panel .. @elem('p')).textContent .. @assert.eq("Sorry, this application is a bit big. Applications are currently limited to #{maxmb}mb.");
-		(panel .. @elem('button')) .. s.driver.click();
-		s.waitforNoModal();
+	@test("fs contents are persisted across restarts") {||
+		@assert.fail("TODO");
 	}
 }
 }.skipIf(!(@isBrowser && @stub.getEnv('docker-enabled')));

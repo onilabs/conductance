@@ -39,7 +39,7 @@ var runAll = function(servers, opts) {
   var internal = {};
   var jobs = [];
   var listenHost = opts.host;
-  var Port = (p) -> @Port(p, listenHost);
+  var Port = (p, host) -> @Port(p, host === undefined ? listenHost : host);
 
   var defaultProto = @env.get('default-proto');
   @logging.print("default proto is #{defaultProto}");
@@ -65,19 +65,21 @@ var runAll = function(servers, opts) {
     // also add an internal port which is used internally, and for development
     var addInternal = function(proto, def) {
       if (!def) return;
-      var {internalPort, routes} = def;
+      var {internalPort, bindAddress, routes, ssl} = def;
       if(!internalPort) return;
-      @logging.print("Serving internal port #{internalPort} (#{proto})");
+      @logging.print("Serving internal port #{bindAddress === undefined ? listenHost : bindAddress}:#{internalPort} (#{proto})");
       internal[internalPort] .. @assert.eq(undefined, "port #{internalPort} used twice");
+      var address = Port(internalPort, bindAddress);
+      if (ssl) address = address.ssl(ssl);
       internal[internalPort] = {
-        address: Port(internalPort),
+        address: address,
         routes: routes,
       };
     };
 
     ;['http','https'].. @each {|proto|
       addExternal(proto, server[proto]);
-      addInternal(defaultProto, server[proto]);
+      addInternal(proto, server[proto]);
     }
     addExternal(defaultProto, server['default']);
     addInternal(defaultProto, server['default']);
@@ -367,6 +369,7 @@ COMPONENTS.proxy = function() {
               'x-forwarded-host': req.request.headers.host,
             }),
             agent: proxyAgent,
+            max_redirects: 0,
             throwing: false,
           };
           @debug("proxy dest: #{dest}");
@@ -506,6 +509,22 @@ COMPONENTS.slave = function(opts) {
       ] .. commonRouteOptions(),
     },
     jobs: jobs,
+  };
+};
+
+COMPONENTS.fs = function(opts) {
+  // add host-fs-ip accessor, to use the local docker0 interface
+  @env.lazy('host-fs-ip', -> require('seed:os').ipAddress('docker'));
+  return {
+    'https': {
+      internalPort: @env.get('port-fs'),
+      bindAddress: null,
+      ssl: @env.get('fs-ssl'),
+      routes: [
+        @route.SystemRoutes(),
+        @route.ExecutableDirectory('', @url.normalize('./modules/fs', module.id) .. @url.toPath),
+      ] .. commonRouteOptions(),
+    },
   };
 };
 

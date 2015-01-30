@@ -36,6 +36,21 @@ var DOCKER_IMAGE = 'local/conductance-base';
 var expected_exe_name = /docker/;
 var appSizeLimit = 1024 * 10; // 10mb
 
+var app_PATH = (function() {
+  var systemPaths = [
+    '/usr/local/bin',
+    '/usr/bin',
+    '/bin',
+  ];
+  var seedPaths = [
+    process.execPath,
+    @sys.executable,
+    @env.executable,
+  ] .. @transform(@fs.realpath) .. @transform(@path.dirname);
+
+  return @concat(seedPaths, systemPaths) .. @unique() .. @join(":");
+})();
+
 var getUserAppRoot = exports.getUserAppRoot = function(user) {
   @assert.ok(user instanceof @User);
   return @path.join(appRoot, String(user.id) .. @keySafe);
@@ -231,6 +246,37 @@ var cleanupDeadContainers = exports.cleanupDeadContainers = function() {
   }
 };
 
+var writeServiceInit = function(appRunBase, globalId) {
+  var appConfig = @fs.readFile(@path.join(appRunBase, "state.json")) .. JSON.parse .. @get('config');
+  var enabledServices = appConfig .. @get('services', []);
+  var serviceEnv = appConfig .. @get('environment', {});
+  serviceEnv = serviceEnv .. @merge(enabledServices .. @map(function(key) {
+    var conf = appConfig .. @getPath(['service',key], null);
+    // hardcoded for internal services
+    if(['fs'] .. @hasElem(key)) {
+      conf = require("seed:service/init/#{key}").init(conf, globalId) || null;
+    }
+    if(!conf) return null;
+    return [key, conf];
+  }) .. @filter .. @pairsToObject);
+  @debug(`service config = $serviceEnv`);
+  var serviceConfigFile = @path.join(appRunBase, "services.json");
+  serviceConfigFile .. @fs.writeFile(JSON.stringify(serviceEnv));
+
+  // write a `service` module which will be injected into $SJS_INIT
+  var serviceInitFile = @path.join(appRunBase, "services.sjs");
+
+  // NOTE: we can't use mho:env here, as $SJS_INIT runs before the hub is set up.
+  // So just use its full path
+  var clientServiceHub = require.resolve('seed:service/client').path;
+  serviceInitFile .. @fs.writeFile("
+    require.hubs.unshift(['lib:seed', '#{clientServiceHub}']);
+    require('#{require.resolve('mho:env').path}').lazy('seed-service-config', ->
+      require('sjs:nodejs/fs').readFile('#{serviceConfigFile}') .. JSON.parse);
+  ");
+  return serviceInitFile;
+};
+
 
 // local app state (exposed by slaves). Provides information
 // on a directly running app
@@ -239,7 +285,7 @@ exports.localAppState = (function() {
 
   var App = function(user, id) {
     @assert.string(id, 'appId');
-    //var globalId = getGlobalId(user, id);
+    var globalId = getGlobalId(user, id);
     var machineName = getMachineName(user, id);
     var appRunBase = getAppRunPath(user, id);
     @mkdirp(appRunBase);
@@ -379,6 +425,11 @@ exports.localAppState = (function() {
           throw e;
         }
 
+        log("Building environment...");
+
+        var sjsInit = [];
+        var dockerFlags = [];
+        sjsInit.push(writeServiceInit(appRunBase, globalId));
         var codeDest = @path.join(appRunBase, "code");
 
         // node does a terrible job of closing open file descriptors (may be
@@ -394,12 +445,12 @@ exports.localAppState = (function() {
           // XXX an idempotent `rm` would be much better...
           tryRunDocker(["rm", machineName]);
 
-          log("Building environment...");
           var args = ConductanceArgs;
           var runUser = "app";
           var readOnly = (path) -> "#{path}:#{path}:ro";
 
-          var nixosProfileMount = (function() {
+          (function() {
+            // add nixos mount if present
             var path = '/run/current-system';
             var profile;
             try {
@@ -414,8 +465,13 @@ exports.localAppState = (function() {
             // way to associate a path with the container (retrieved with
             // `docker inspect`). We use it to mark all running docker roots
             // as live when running `nixos-collect-garbage`
-            return ['--volume', "#{profile}:/nix-root:ro"];
+            dockerFlags.push('--volume', "#{profile}:/nix-root:ro");
           })();
+
+          var fs_ip = @env.get('host-fs-ip', null);
+          if(fs_ip) {
+            dockerFlags.push('--add-host=fs:'+fs_ip);
+          }
 
           args = [
             "docker",
@@ -428,7 +484,10 @@ exports.localAppState = (function() {
             "--user", runUser,
             "--memory", '250m', // XXX tune / configure
             "--workdir", codeDest,
-            "--volume", readOnly(codeDest),
+            "--volume", readOnly(appRunBase),
+            "--env", "SJS_INIT=#{sjsInit .. @join(":")}",
+            "--env", "CONDUCTANCE_SEED=1",
+            "--env", "PATH="+app_PATH,
           ].concat(production ? [
             "--volume", readOnly('/nix/store'),
           ] : [
@@ -441,7 +500,7 @@ exports.localAppState = (function() {
             "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
             "--volume", readOnly(conductanceRoot),
             "--volume", readOnly(sjsRoot),
-          ]).concat(nixosProfileMount).concat([
+          ]).concat(dockerFlags).concat([
             "local/conductance-base", // image name
           ]).concat(args);
           @info("Running", args);

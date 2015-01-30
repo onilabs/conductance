@@ -55,15 +55,20 @@ exports.serve = function() {
 
     console.warn("Serving test suite at http://localhost:#{uiPort}/test/");
     // modify default ports so as not to conflict with existing hosts
-    var stubbedPorts = ['local', 'master','slave', 'http', 'https', 'proxy'];
+    var stubbedHosts = ['master', 'proxy', 'slave', 'fs'];
+    stubbedHosts .. @each {|service|
+      var host = 'localhost';
+      if(service === 'fs') {
+        // fs hostname is injected into docker hosts
+        host = 'fs';
+      }
+      @env.set("host-#{service}", host);
+    }
+
+    var stubbedPorts = ['local', 'http', 'https'].concat(stubbedHosts);
     stubbedPorts .. @indexed .. @each {|[i, service]|
       @env.set("port-#{service}", uiPort+i);
     };
-
-    var stubbedHosts = ['master', 'proxy', 'slave'];
-    stubbedHosts .. @each {|service|
-      @env.set("host-#{service}", 'localhost');
-    }
 
     @env.set('publicAddress', function(orig) {
       // make sure all addresses we request are using test ports
@@ -78,7 +83,7 @@ exports.serve = function() {
       waitfor {
         require('mho:server/seed/local').serve(['--port', String(@env.get('port-local')), '--master', "http://localhost:#{@env.get('port-master')}"]);
       } or {
-        require('../config.mho').serve(['master','slave','proxy']);
+        require('../config.mho').serve(['master','slave','proxy', 'fs']);
       }
     }
   }

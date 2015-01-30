@@ -45,10 +45,10 @@ function formControlGroup(form, cons, extras) {
 	};
 };
 
-function formControl(form, cons) {
+function formControl(form, cons, cls) {
 	return function(field) {
 		return [
-			cons(field.value, {'class':'form-control', 'name':field.name}),
+			cons(field.value, {'class':cls === false ? '' : 'form-control', 'name':field.name}),
 			field.error .. @form.formatError,
 		];
 	};
@@ -177,28 +177,22 @@ var availableServices = [
 				formGroup('API Key', TextInput, form.field('apikey'))
 			];
 		},
-		config: function(values) {
-			return {
-				MANDRILL_API_KEY: values.apikey,
-			};
+		values: function(values) {
+			return values;
 		},
 	},
 
 	{
-		id: 'seed-db',
-		name: "Seed DB",
-		info: `Conductance Seed database`,
+		id: 'fs',
+		name: "Seed FS",
+		info: `Persistent filesystem access`,
 		form: function(form) {
 			return [
-				formGroup('Enable', form .. formControl(@Checkbox), form.field('enable'))
+				formGroup('Enable', form .. formControl(@Checkbox, false), form.field('enable'))
 			];
 		},
-		config: function(values) {
-			var rv = {};
-			if(values.enable) {
-				rv.SEED_DB = 'TODO';
-			}
-			return rv;
+		values: function(values) {
+			return values;
 		},
 	},
 ];
@@ -210,7 +204,14 @@ var ServiceOption = function(s, n) {
 	};
 }
 
-var browserUI = function(showBrowser, pathField, entireForm) {
+var browserUI = function(showBrowser, api, Button, pathField, entireForm) {
+	var fileSortOrder = function(a,b) {
+		return @cmp(
+			[a.directory ? 0 : 1, a.name],
+			[b.directory ? 0 : 1, b.name]
+		);
+	};
+
 	return showBrowser .. @transform(function(show) {
 		if (show) {
 			@warn("starting file browser at #{pathField.value.get()}");
@@ -289,13 +290,6 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 		return @Button(contents, attrs) .. @OnClick({handle:@stopEvent}, action);
 	};
 
-	var fileSortOrder = function(a,b) {
-		return @cmp(
-			[a.directory ? 0 : 1, a.name],
-			[b.directory ? 0 : 1, b.name]
-		);
-	};
-
 	var entireForm = {
 		validate: -> [centralForm, localForm]
 			.. @concat(enabledServices .. @first() .. @map(s -> s.form))
@@ -316,7 +310,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 				id: service.id,
 				info: service.info,
 				form: form,
-				env: () -> service.config(form.values()),
+				values: () -> service.values(form.values()),
 				ui: service.form(form),
 			};
 		}
@@ -346,7 +340,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 			var service = selected.get().service;
 			if(service === null) return;
 			enabledServiceKeys.value.set(enabledServiceKeys.value.get() .. @union([service.id]));
-		}, {'class':'btn btn-success pull-right' }
+		}, {'class':'btn btn-success pull-right add-service' }
 		) .. @Attrib('disabled', selected .. @transform(sel -> !(sel && sel.service)));
 
 		return @Div([ btn, select, ]) .. @CSS('select {
@@ -360,7 +354,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 		@Form([
 			localForm.error .. @form.formatErrorAlert,
 			formGroup('Name', TextInput, centralForm.field('name', {validate: [@validate.required, @validate.appName]})) .. initialFocus('input'),
-			browserUI(showBrowser, pathField, entireForm),
+			browserUI(showBrowser, api, Button, pathField, entireForm),
 
 			showServiceUI ? [
 				@Hr(),
@@ -378,7 +372,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 							),
 							i.info,
 						]),
-						service(i).ui .. @Class('clearfix'),
+						@Div(service(i).ui, {'class':"clearfix svc-form-#{i.id}"}),
 					]) .. @intersperse(@Hr()) .. @toArray,
 				{'class':'well well-sm'})
 				: @Hr()),
@@ -395,15 +389,14 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 			if(!entireForm.validate()) continue;
 			@withBusyIndicator {||
 				waitfor {
+					var serviceConfig = enabledServices .. @first()
+						.. @map(service -> [service, service.form.values()]);
+
 					var newConfig = @merge(
 						centralForm.values(),
 						{
-							'service': enabledServices .. @first()
-								.. @map(service -> [service.id, service.form.values()])
-								.. @pairsToObject(),
-							'environment': enabledServices .. @first()
-								.. @map(service -> service.env())
-								.. @merge(),
+							'service': serviceConfig .. @map(([s,conf]) -> [s.id, conf]) .. @pairsToObject,
+							'environment': serviceConfig .. @map([s, conf] -> s.values(conf)) .. @pairsToObject,
 						}
 					);
 					@info("modifying central config: ", newConfig);

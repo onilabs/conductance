@@ -4,6 +4,7 @@
     { "fs-ext": "git://github.com/gfxmonk/node-fs-ext.git#2b7c33a006c0fc3c5b97da91ec541ffa729036d7"
     , "node-etcd": "^3.0.0"
     , "conductance": "git://github.com/onilabs/conductance.git#35ee11c78b56e5a5621863336eca8108cbbc8771"
+    , "jwt-async": "^1.0.1",
     , "nodemailer": "^1.2.0"
     , "nodemailer-smtp-transport": "^0.1.11"
   }
