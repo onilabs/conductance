@@ -1,4 +1,4 @@
-var { context, test, assert, isPhantom } = require('sjs:test/suite');
+var { context, test, assert } = require('sjs:test/suite');
 var http = require('sjs:http');
 var Url = require('sjs:url');
 var {clone} = require('sjs:object');

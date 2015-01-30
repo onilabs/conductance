@@ -112,9 +112,9 @@ __js function parseResponse(content) {
     var header_length = view.getUint16(1);
     var header = content .. @arrayBufferToOctets(3, header_length) .. @utf8ToUtf16 .. JSON.parse;
     var payload = new Uint8Array(content, 3 + header_length);
-    var rv = ['ok', 
+    var rv = ['ok',
               [{
-                type:'data', 
+                type:'data',
                 header: header,
                 data: payload
               }]
@@ -244,7 +244,7 @@ function openTransport(server, requestOpts) {
           cmd: "send#{transport_id_suffix}"
         }
         ],
-        { method: 'POST', 
+        { method: 'POST',
           headers: {'Content-Type': 'text/plain; charset=utf-8'},
           body: JSON.stringify(messages)
         });

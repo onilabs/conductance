@@ -116,7 +116,7 @@ function createTransport(finish) {
             hold(EXCHANGE_ACCU_INTERVAL);
           }
           
-          // construct out out_messages queue. this will either be
+          // construct our out_messages queue. this will either be
           // a single binary message, or an arbitrary number of textual 
           // messages (which will be encoded as JSON):
           while (send_q.length) {
@@ -189,18 +189,16 @@ function createTransport(finish) {
     },
 
     sendData: function(header, data) {
-      if (!this.active) 
+      if (!this.active)
         throw new Error("inactive transport");
-      // XXX implement support for ArrayBuffers (easy)
-      if (!isNodeJSBuffer(data)) 
-        throw new Error("aat-server can currently only send nodejs buffers, not other binary content, such as ArrayBuffers");
+      if (!isNodeJSBuffer(data))
+        data = new Buffer(data);
       
-      header = JSON.stringify(header);
-      var buf = new Buffer(3+header.length);
-      buf.writeUInt8(100, 0); // 100 = 'd'
-      buf.writeUInt16BE(header.length, 1);
-      buf.write(header, 3);
-      send_q.unshift(Buffer.concat([buf, data]));
+      header = new Buffer(JSON.stringify(header));
+      var pre = new Buffer(3);
+      pre.writeUInt8(100, 0); // 100 = 'd'
+      pre.writeUInt16BE(header.length, 1);
+      send_q.unshift(Buffer.concat([pre, header, data]));
       if (resume_poll && !exchange_in_progress) resume_poll();
     },
 

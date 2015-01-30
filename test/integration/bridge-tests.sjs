@@ -1,3 +1,4 @@
+@ = require('sjs:test/std');
 var {test, context, assert, isBrowser} = require('sjs:test/suite');
 var helper = require('../helper');
 var bridge = require('mho:rpc/bridge');
@@ -333,10 +334,33 @@ context() {||
       }
     }
 
+    context("binary data") {||
+      var api;
+      test.beforeAll {|s|
+        s.ctx = @breaking {|brk|
+          bridge.connect(apiUrl(), {server: helper.getRoot()}, brk)
+        }
+        api = s.ctx.value.api;
+      }
+      test.afterAll {|s| s.ctx.resume(); }
+      var payload = 'ßɩnɑʀʏ';
 
+      test('Buffer') {||
+        var buf = new Buffer(payload);
+        var rv = api.identity(buf);
+        rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
+        rv .. @assert.eq(buf);
+      }.serverOnly()
+
+      test('Uint8Array') {||
+        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
+        var rv = api.identity(buf);
+        (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+        rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
+        rv .. @assert.eq(buf);
+      }.skipIf(@isBrowser && /PhantomJS/.test(window.navigator.userAgent))
+    }
   }
-
-
 
   context('api modules') {||
 

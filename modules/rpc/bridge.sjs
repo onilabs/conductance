@@ -151,11 +151,11 @@ var MAX_MSG_REORDER_BUFFER = 10000;
 
 
 // helper to identify binary data:
-var BinaryCtors = ['Blob', 'ArrayBuffer', 'DataView', 
-                   'Uint8Array', 'Uint16Array', 'Uint32Array', 
+var BinaryCtors = ['Blob', 'ArrayBuffer', 'DataView',
+                   'Uint8Array', 'Uint16Array', 'Uint32Array',
                    'Int8Array', 'Int16Array', 'Int32Array',
                    'Float32Array', 'Float64Array'] ..
-  filter(x -> typeof global[x] == 'function') .. 
+  filter(x -> typeof global[x] == 'function') ..
   map(x -> global[x]);
 function isBinaryData(obj) {
   return BinaryCtors .. any(ctor -> obj instanceof ctor);
@@ -298,11 +298,28 @@ function Blob(obj) {
 exports.Blob = Blob;
 
 
-var isNodeJSBuffer;
-if (hostenv === 'nodejs')
+var coerceBinary, isNodeJSBuffer, nodejs = hostenv === 'nodejs';
+if (nodejs) {
   isNodeJSBuffer = value -> Buffer.isBuffer(value);
-else
+  coerceBinary = function(b, t) {
+    switch(t) {
+      case 'b':
+        if(!Buffer.isBuffer(b)) b = new Buffer(b);
+        break;
+      case 'a':
+        if(Buffer.isBuffer(b)) b = new Uint8Array(b);
+        break;
+      default:
+        throw new Error("Unknown binary type #{t}");
+    }
+    return b;
+  };
+} else {
   isNodeJSBuffer = -> false;
+  // browser can only represent binary data as TypedArray
+  coerceBinary = b -> b;
+}
+
 
 function marshall(value, connection) {
   try {
@@ -632,7 +649,8 @@ function BridgeConnection(transport, opts) {
     localWrappers: opts.localWrappers,
 
     sendBlob: function(id, obj) {
-      transport.sendData(id, obj);
+      var t = isNodeJSBuffer(obj) ? 'b' : 'a'; // buffer | array
+      transport.sendData({id: id, t:t}, obj);
       return id;
     },
     makeSignalledCall: function(api, method, args) {
@@ -774,8 +792,8 @@ function BridgeConnection(transport, opts) {
     }
   }
 
-  function receiveData(packet) { 
-    connection.received_blobs[packet.header] = packet.data;
+  function receiveData(packet) {
+    connection.received_blobs[packet.header.id] = coerceBinary(packet.data, packet.header.t);
     dataReceived.emit();
   }
 
@@ -794,7 +812,6 @@ function BridgeConnection(transport, opts) {
         cb(message[2], true);
       break;
     case 'signal':
-      console.log(message);
       if (message[1] /*api_id*/ == -1) {
         published_funcs[message[2] /*method*/] .. signal(null, message[3] /*args*/);
       }
