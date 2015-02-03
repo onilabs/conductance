@@ -9,7 +9,7 @@ exports.init = function(serviceConfig, appId) {
 			var token = jwt.sign({
 				iss:"seed",
 				sub: appId,
-				aud: "fs",
+				aud: "seed",
 			});
 		} and {
 			var ca = @path.join(@env.get('key-store'), 'key-all-internal-ca.crt') .. @fs.readFile();

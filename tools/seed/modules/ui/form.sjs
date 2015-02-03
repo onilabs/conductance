@@ -183,16 +183,15 @@ var availableServices = [
 	},
 
 	{
+		// there are no `fs` options - if it's present, it's enabled
 		id: 'fs',
 		name: "Seed FS",
-		info: `Persistent filesystem access`,
+		info: `Persistent filesystem access: <strong>enabled</strong>`,
 		form: function(form) {
-			return [
-				formGroup('Enable', form .. formControl(@Checkbox, false), form.field('enable'))
-			];
+			return [];
 		},
 		values: function(values) {
-			return values;
+			return {enabled: true};
 		},
 	},
 ];

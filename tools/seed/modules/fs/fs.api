@@ -16,7 +16,7 @@ var invalidPath = function(p) {
 exports.authenticate = function(token) {
 	var {claims} = jwt.verify(token);
 	claims.iss .. @assert.eq('seed');
-	claims.aud .. @assert.eq('fs');
+	claims.aud .. @assert.eq('seed');
 	var [userId, appId] = claims.sub.split('/') .. @map(part -> part .. @assert.ok .. @keySafe);
 	var apiRoot = @path.join(root, userId, appId);
 	// apiRoot must include the trailing dir prefix
