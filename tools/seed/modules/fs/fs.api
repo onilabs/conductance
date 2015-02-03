@@ -7,6 +7,12 @@ var apiProto = require('./prototype');
 exports.apiKeys = apiProto .. @ownKeys .. @filter(k -> !k .. @startsWith('_')) .. @toArray;
 var jwt = @env.get('jwt');
 
+var invalidPath = function(p) {
+	var e = new Error("Invalid path: #{p}");
+	e.code = 'EACCES';
+	throw e;
+};
+
 exports.authenticate = function(token) {
 	var {claims} = jwt.verify(token);
 	claims.iss .. @assert.eq('seed');
@@ -24,11 +30,11 @@ exports.authenticate = function(token) {
 		if (!@isString(p)) throw new Error("invalid path (not a string)");
 		p = @path.normalize(@path.join(apiRoot, p));
 		if (p .. @split('/') .. @any(d -> d == '..')) {
-			throw new Error("invalid path: #{p}");
+			invalidPath(p);
 		}
 
 		if(!p .. @startsWith(apiRoot)) {
-			throw new Error("invalid path: #{p}");
+			invalidPath(p);
 		}
 		return p;
 	}

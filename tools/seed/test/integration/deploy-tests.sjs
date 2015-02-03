@@ -16,7 +16,7 @@
 			s .. @setUploadPath(@stub.testPath('integration/fixtures/hello_app'));
 			s.mainElem .. s.clickButton(/deploy/);
 
-			var appLink = s.appHeader.getAttribute('href') + 'ping';
+			var appLink = s.appLink() + 'ping';
 			var origUrl = @url.parse(appLink);
 			var appId = origUrl.host.replace(/\.localhost.*$/, '');
 			appId .. @assert.eq("#{s.appName}-#{s.creds .. @get('username')}");

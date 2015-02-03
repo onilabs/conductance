@@ -77,7 +77,12 @@ if (isBrowser) {
 			return false;
 		};
 		if(@isString(str)) return el -> str === el.textContent;
-		return el -> str.test(el.textContent);
+		if(@fn.isFunction(str)) return str;
+		if(str.test) return el -> str.test(el.textContent);
+		// otherwise, compare objects property-wise
+		var numProps = str .. @ownKeys .. @count();
+		@assert.ok(numProps > 0, `empty content predicate: ${str}`);
+		if(!str.test) return el -> str .. @ownPropertyPairs .. @all(([k,expected]) -> el.getAttribute(k) === expected);
 	};
 
 }
@@ -107,6 +112,7 @@ lib.addTestHooks = function(opts) {
 				email: "test@example.com",
 				password: "secret",
 			};
+
 			s.activationLink = function(email) {
 				var contents = email.response;
 				var match = email.response.match(/activation code:\s+(https?:\/\/[^\r\n]+)/m);
@@ -138,6 +144,9 @@ lib.addTestHooks = function(opts) {
 			s.appSettingsButton = function() {
 				return s.mainElem .. s.driver.elem('.app-display button[title="settings"]')
 			};
+			s.appHeader = -> s.mainElem .. lib.elem('.app-display .header h3');
+			s.appLink = -> (s.mainElem .. lib.elem('.app-display .header h3 a')).getAttribute('href');
+			s.appRunning = -> s.appHeader().classList.contains('text-success');
 		}
 	}
 

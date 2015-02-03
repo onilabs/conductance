@@ -28,7 +28,7 @@ exports.createApp = function(s, appName) {
 	appList[0] .. @elem('a') .. s.driver.click();
 
 	s.mainElem = s.driver.elem('.app-display');
-	s.appHeader = @waitforSuccess(-> s.mainElem .. @elem('h3 a', el -> el.textContent === appName));
+	@waitforSuccess(-> s.appHeader() .. @elem('a', el -> el.textContent === appName));
 	// show the console output, for debugging
 	var outputToggle = @waitforSuccess( -> s.mainElem .. @elem('.output-toggle'));
 	outputToggle .. s.driver.click();

@@ -16,15 +16,21 @@ exports.serve = function() {
       }}),
 
       @Route(/^read\/(.*)$/, {POST: function(req, [_, path]) {
+        path = decodeURIComponent(path);
         @info("reading #{path}");
-        var contents = fs.readFile(path);
-        req .. @response.setStatus(200);
-        req.response.end(contents);
+        try {
+          var contents = fs.readFile(path);
+          req .. @response.setStatus(200);
+          req.response.end(contents);
+        } catch(e) {
+          req .. @response.setStatus(500);
+          req.response.end(JSON.stringify(e));
+        }
       }}),
 
       @Route(/^write\/(.*)$/, {POST: function(req, [_, path]) {
         @info("writing #{path}");
-        fs.writeFile(path, req.contents);
+        fs.writeFile(path, req.body);
         req .. @response.setStatus(200);
         req.response.end(path);
       }}),

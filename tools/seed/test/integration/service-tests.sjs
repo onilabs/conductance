@@ -12,6 +12,7 @@
 
 @context("fs service") {||
 	@test.beforeAll {|s|
+		// XXX remove duplication with ./deploy-tests
 		s.screenshotOnFailure {||
 			s.appSettingsButton() .. s.driver.click();
 			s .. @enableService('Seed FS');
@@ -26,7 +27,7 @@
 			s .. @setUploadPath(@stub.testPath('integration/fixtures/fs_app'));
 			s.mainElem .. s.clickButton(/deploy/);
 
-			var appLink = s.appHeader.getAttribute('href') + 'ping';
+			var appLink = s.appLink() + 'ping';
 			var origUrl = @url.parse(appLink);
 			var appId = origUrl.host.replace(/\.localhost.*$/, '');
 			appId .. @assert.eq("#{s.appName}-#{s.creds .. @get('username')}");
@@ -57,28 +58,34 @@
 	@test("fs API can read/write files") {|s|
 		s.appRequest('/write/foo', {method:'POST', body: "contents of `foo`"});
 		s.appRequest('/read/foo', {method:'POST'}) .. @assert.eq('contents of `foo`');
+		s.appRequest('/ls//', {method:'POST'}) .. JSON.parse() .. @assert.eq(['foo']);
 	}
 
 	@test("fs ENOENT") {|s|
 		var response = s.appRequest('/read/nothere', {method:'POST', throwing:false, response:'full'});
-		@info("Got response: #{response.body}");
-		response.code .. @assert.eq(500);
-		response = response.body .. JSON.parse();
-		response.errno .. @assert.eq('ENOENT');
+		@info("Got response:",  response);
+		response.status .. @assert.eq(500);
+		response = response.content .. JSON.parse();
+		response.code .. @assert.eq('ENOENT');
 	}
 
-	@test("fs attempting to access a relative path") {|s|
-		['../', '/'] .. @each {|path|
+	@test("fs attempting to access a disallowed path") {|s|
+		['../'] .. @each {|path|
 			var response = s.appRequest('/read/' + encodeURIComponent(path), {method:'POST', throwing:false, response:'full'});
-			@info("Got response (for #{path}): #{response.body}");
-			response.code .. @assert.eq(500);
-			response = response.body .. JSON.parse();
-			response.errno .. @assert.eq('EACCES');
+			response.status .. @assert.eq(500);
+			response = response.content .. JSON.parse();
+			response.code .. @assert.eq('EACCES');
 		}
 	}
 
-	@test("fs contents are persisted across restarts") {||
-		@assert.fail("TODO");
+	@test("fs contents are persisted across restarts") {|s|
+		s.appRequest('/write/foo', {method:'POST', body: "contents of `foo`"});
+		s.mainElem .. s.clickButton({title:'stop'});
+		@waitforSuccess(-> s.appRunning() .. @assert.eq(false), 10);
+
+		s.mainElem .. s.clickButton({title:'start'});
+		@waitforSuccess(-> s.appRunning() .. @assert.eq(true), 10);
+		@waitforSuccess(-> s.appRequest('/read/foo', {method:'POST'}) .. @assert.eq('contents of `foo`'));
 	}
 }
 }.skipIf(!(@isBrowser && @stub.getEnv('docker-enabled')));
