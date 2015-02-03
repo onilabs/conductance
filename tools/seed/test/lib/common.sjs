@@ -147,6 +147,7 @@ lib.addTestHooks = function(opts) {
 			s.appHeader = -> s.mainElem .. lib.elem('.app-display .header h3');
 			s.appLink = -> (s.mainElem .. lib.elem('.app-display .header h3 a')).getAttribute('href');
 			s.appRunning = -> s.appHeader().classList.contains('text-success');
+			s.outputContent = -> s.mainElem .. lib.elem('.output-content');
 		}
 	}
 

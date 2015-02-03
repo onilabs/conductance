@@ -12,7 +12,6 @@
 
 @context("fs service") {||
 	@test.beforeAll {|s|
-		// XXX remove duplication with ./deploy-tests
 		s.screenshotOnFailure {||
 			s.appSettingsButton() .. s.driver.click();
 			s .. @enableService('Seed FS');
@@ -27,27 +26,10 @@
 			s .. @setUploadPath(@stub.testPath('integration/fixtures/fs_app'));
 			s.mainElem .. s.clickButton(/deploy/);
 
-			var appLink = s.appLink() + 'ping';
-			var origUrl = @url.parse(appLink);
-			var appId = origUrl.host.replace(/\.localhost.*$/, '');
-			appId .. @assert.eq("#{s.appName}-#{s.creds .. @get('username')}");
-
 			var baseUrl = "http://localhost:#{@stub.getEnv('port-proxy')}/";
-			s.appRequest = function(rel, opts) {
-				var url = @url.normalize(rel, baseUrl);
-				opts = opts ? opts .. @clone : {};
-				opts.method = opts.method || 'GET';
-				// XXX this doesn't really reflect reality (because we can't rely on vhosts in test).
-				// But it tests the basic proxy setup.
-				opts.headers = (opts.headers ||{}) .. @merge({'x-test-host': origUrl.host});
-				@info("Fetching: #{url} with opts", opts);
-				var rv = @stub.request(url, opts);
-				@info("request to #{url} returned:", rv);
-				return rv;
-			}
+			s.appRequest = @appRequester(s, baseUrl);
 
-			var outputContent = s.mainElem .. @elem('.output-content');
-			@waitforSuccess(-> String(outputContent.textContent) .. @assert.contains('Conductance serving address:'), null, 20);
+			@waitforSuccess(-> String(s.outputContent().textContent) .. @assert.contains('Conductance serving address:'), null, 20);
 		}
 	}
 

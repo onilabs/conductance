@@ -11,6 +11,22 @@ exports.setUploadPath = function(s, path) {
 	s.waitforNoModal();
 }
 
+exports.appRequester = function(s, baseUrl) {
+	origUrl = @url.parse(s.appLink());
+	return function(rel, opts) {
+		var url = @url.normalize(rel, baseUrl);
+		opts = opts ? opts .. @clone : {};
+		opts.method = opts.method || 'GET';
+		// XXX this doesn't really reflect reality (because we can't rely on vhosts in test).
+		// But it tests the basic proxy setup.
+		opts.headers = (opts.headers ||{}) .. @merge({'x-test-host': origUrl.host});
+		@info("Fetching: #{url} with opts", opts);
+		var rv = @stub.request(url, opts);
+		@info("request to #{url} returned:", rv);
+		return rv;
+	}
+}
+
 exports.createApp = function(s, appName) {
 	var appList = @waitforSuccess(s.appList);
 	appList .. @map(el -> el.textContent) .. @assert.eq([]);
