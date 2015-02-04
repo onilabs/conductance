@@ -44,6 +44,22 @@
 	}
 }
 
+@context("broken app") {||
+	@test.beforeAll {|s|
+		s.screenshotOnFailure {||
+			s .. @setUploadPath(@stub.testPath('integration/fixtures/fail_app'));
+			s.mainElem .. s.clickButton(/deploy/);
+
+			var baseUrl = "http://localhost:#{@stub.getEnv('port-proxy')}/";
+			s.appRequest = @appRequester(s, baseUrl);
+		}
+	}
+	
+	@test("failure output is shown") {|s|
+		@waitforSuccess(-> String(s.outputContent().textContent) .. @assert.contains('Error: SJS syntax error in '), null, 20);
+	}
+}
+
 var maxmb = 10;
 @test("upload size is limited to #{maxmb}mb") {|s|
 	@stub.deployOfSize((maxmb * 1024) + 1) {|dir|

@@ -430,6 +430,7 @@ exports.localAppState = (function() {
         var sjsInit = [];
         var dockerFlags = [];
         sjsInit.push(writeServiceInit(appRunBase, globalId));
+        sjsInit.push(@url.normalize('./await-stdio.sjs', module.id) .. @url.toPath);
         var codeDest = @path.join(appRunBase, "code");
 
         // node does a terrible job of closing open file descriptors (may be
@@ -473,6 +474,8 @@ exports.localAppState = (function() {
             dockerFlags.push('--add-host=fs:'+fs_ip);
           }
 
+          var stdio_marker_path = '/tmp/stdio-ready';
+
           args = [
             "docker",
             "run",
@@ -487,6 +490,7 @@ exports.localAppState = (function() {
             "--volume", readOnly(appRunBase),
             "--env", "SJS_INIT=#{sjsInit .. @join(":")}",
             "--env", "CONDUCTANCE_SEED=1",
+            "--env", "STDIO_READY=#{stdio_marker_path}",
             "--env", "PATH="+app_PATH,
           ].concat(production ? [
             "--volume", readOnly('/nix/store'),
@@ -515,6 +519,9 @@ exports.localAppState = (function() {
               collapse;
               @info("Attaching output streams");
               @childProcess.launch('docker', ['attach', '--sig-proxy=false', machineName], {stdio:stdio});
+
+              @info("Resuming execution");
+              @childProcess.run('docker', ['exec', machineName, 'touch', stdio_marker_path], {stdio:'inherit'});
 
               if (!isRunning.unsafe()) {
                 throw new Error("app failed to start");
