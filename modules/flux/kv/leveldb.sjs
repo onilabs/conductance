@@ -351,7 +351,6 @@ function LevelDB(location, options, block) {
           // we can commit our pending reads:
           return itf.batch(pendingPuts .. @propertyPairs .. @map([,[key,value]] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
         }
-console.log("RETRY transaction");
         // go round loop and retry:
         pendingPuts = {};
         reads = {};

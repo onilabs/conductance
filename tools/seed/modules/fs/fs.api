@@ -43,9 +43,7 @@ exports.authenticate = function(token) {
 	// takes its key as the first arg.
 	var api = Object.create(apiProto);
 	api._init(getPath);
-	console.log("CONNECTED");
 	return function(op, args) {
-		console.log("OP ", op, "with", args, apiProto);
 		console.log(apiProto .. @hasOwn(op));
 		if(
 			op .. @startsWith('_') ||
