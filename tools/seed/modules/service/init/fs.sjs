@@ -16,7 +16,7 @@ exports.init = function(serviceConfig, appId) {
 		}
 		return {
 			token: token,
-			server: @env.get('publicAddress')('fs','https') + 'fs.api',
+			server: @env.get('publicAddress')('fs','https'),
 			ca: ca,
 		};
 	}

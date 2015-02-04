@@ -249,9 +249,9 @@ var cleanupDeadContainers = exports.cleanupDeadContainers = function() {
 var writeServiceInit = function(appRunBase, globalId) {
   var appConfig = @fs.readFile(@path.join(appRunBase, "state.json")) .. JSON.parse .. @get('config');
   var enabledServices = appConfig .. @get('services', []);
-  var serviceEnv = appConfig .. @get('environment', {});
+  var serviceEnv = appConfig .. @get('serviceData', {});
   serviceEnv = serviceEnv .. @merge(enabledServices .. @map(function(key) {
-    var conf = appConfig .. @getPath(['service',key], null);
+    var conf = appConfig .. @getPath(['serviceData',key], null);
     // hardcoded for internal services
     if(['fs'] .. @hasElem(key)) {
       conf = require("seed:service/init/#{key}").init(conf, globalId) || null;

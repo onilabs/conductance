@@ -1,11 +1,10 @@
 @ = require(['mho:std', {id:'sjs:type',name:'type'}]);
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var root = @path.join(@env.get('data-root'), 'app-fs');
-var { @keySafe } = require('seed:validate');
+@common = require('seed:service/server/common');
 
 var apiProto = require('./prototype');
 exports.apiKeys = apiProto .. @ownKeys .. @filter(k -> !k .. @startsWith('_')) .. @toArray;
-var jwt = @env.get('jwt');
 
 var invalidPath = function(p) {
 	var e = new Error("Invalid path: #{p}");
@@ -14,10 +13,7 @@ var invalidPath = function(p) {
 };
 
 exports.authenticate = function(token) {
-	var {claims} = jwt.verify(token);
-	claims.iss .. @assert.eq('seed');
-	claims.aud .. @assert.eq('seed');
-	var [userId, appId] = claims.sub.split('/') .. @map(part -> part .. @assert.ok .. @keySafe);
+	var [userId, appId] = @common.verify(token);
 	var apiRoot = @path.join(root, userId, appId);
 	// apiRoot must include the trailing dir prefix
 	if(!apiRoot .. @endsWith("/")) apiRoot += "/";

@@ -22,7 +22,7 @@
 			var baseUrl = "http://localhost:#{@stub.getEnv('port-proxy')}/";
 			s.appRequest = @appRequester(s, baseUrl);
 
-			@waitforSuccess(-> String(s.outputContent().textContent) .. @assert.contains('Conductance serving address:'), null, 20);
+			@waitforSuccess(-> s.outputContent() .. @assert.contains('Conductance serving address:'), null, 20);
 		}
 	}
 
@@ -40,7 +40,7 @@
 
 	@test("console output is shown") {|s|
 		var headers = @waitforSuccess(-> s.appRequest('/log', {body:'Hello!', method:'POST'}));
-		@waitforSuccess(-> s.outputContent().textContent .. @assert.contains('message from client: Hello!'));
+		@waitforSuccess(-> s.outputContent() .. @assert.contains('message from client: Hello!'));
 	}
 }
 
@@ -56,7 +56,7 @@
 	}
 	
 	@test("failure output is shown") {|s|
-		@waitforSuccess(-> String(s.outputContent().textContent) .. @assert.contains('Error: SJS syntax error in '), null, 20);
+		@waitforSuccess(-> s.outputContent() .. @assert.contains('Error: SJS syntax error in '), null, 20);
 	}
 }
 

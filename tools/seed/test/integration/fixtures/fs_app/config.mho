@@ -1,6 +1,9 @@
 @ = require('mho:std');
+@kv = require('mho:flux/kv');
 var fs = require('lib:seed/fs');
-@logging.setLevel(@logging.INFO);
+var db = require('lib:seed/db');
+
+@logging.setLevel(@logging.VERBOSE);
 exports.serve = function() {
   @server.run({
     address: @Port(7075),
@@ -40,6 +43,31 @@ exports.serve = function() {
         var contents = fs.readdir(path);
         req .. @response.setStatus(200);
         req.response.end(contents .. JSON.stringify());
+      }}),
+
+      @Route(/^kv\/get\/(.*)$/, {POST: function(req, [_,key]) {
+        db.withDB {|db|
+          var contents = db .. @kv.get(key);
+          req .. @response.setStatus(200);
+          // XXX this sucks
+          if(contents === undefined) contents = null;
+          req.response.end(contents .. JSON.stringify());
+        }
+      }}),
+
+      @Route(/^kv\/set\/(.*)$/, {POST: function(req, [_,key]) {
+        var payload = req.body.toString('utf-8');
+        try {
+          payload = payload .. JSON.parse();
+        } catch(e) {
+          req .. @response.setStatus(500);
+          req.response.end("bad JSON: #{payload}");
+        }
+        db.withDB {|db|
+          db .. @kv.set(key, payload);
+          req .. @response.setStatus(200);
+          req.response.end('ok');
+        }
       }}),
 
       @Route(/^rm$/, {POST: function(req) {

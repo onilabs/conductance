@@ -185,13 +185,13 @@ var availableServices = [
 	{
 		// there are no `fs` options - if it's present, it's enabled
 		id: 'fs',
-		name: "Seed FS",
-		info: `Persistent filesystem access: <strong>enabled</strong>`,
+		name: "Seed persistence",
+		info: `Persistent filesystem & DB access: <strong>enabled</strong>`,
 		form: function(form) {
 			return [];
 		},
 		values: function(values) {
-			return {enabled: true};
+			return {enable: true};
 		},
 	},
 ];
@@ -395,7 +395,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 						centralForm.values(),
 						{
 							'service': serviceConfig .. @map(([s,conf]) -> [s.id, conf]) .. @pairsToObject,
-							'environment': serviceConfig .. @map([s, conf] -> s.values(conf)) .. @pairsToObject,
+							'serviceData': serviceConfig .. @map([s, conf] -> [s.id, s.values(conf)]) .. @pairsToObject,
 						}
 					);
 					@info("modifying central config: ", newConfig);

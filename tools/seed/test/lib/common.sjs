@@ -147,7 +147,7 @@ lib.addTestHooks = function(opts) {
 			s.appHeader = -> s.mainElem .. lib.elem('.app-display .header h3');
 			s.appLink = -> (s.mainElem .. lib.elem('.app-display .header h3 a')).getAttribute('href');
 			s.appRunning = -> s.appHeader().classList.contains('text-success');
-			s.outputContent = -> s.mainElem .. lib.elem('.output-content');
+			s.outputContent = -> (s.mainElem .. lib.elem('.output-content')).textContent;
 		}
 	}
 
@@ -167,6 +167,13 @@ lib.addTestHooks = function(opts) {
 
 	lib.test.beforeAll {|s|
 		s.captureScreenshot = function() {
+			if (isBrowser) {
+				// as well as a screenshot, we dump the app log (if present)
+				try {
+					@logging.info("App output:\n" + s.outputContent());
+				} catch(e) { /* ignore */ }
+			}
+
 			if (isBrowser && HtmlOutput && HtmlOutput.instance) {
 				// if we're running in a browser (manually; not under karma), we can inject
 				// screenshots directly in log output
@@ -182,6 +189,8 @@ lib.addTestHooks = function(opts) {
 			try { return block(); } catch(e) {
 				s.captureScreenshot();
 				throw e;
+			} retract {
+				s.captureScreenshot();
 			}
 		}
 	}
