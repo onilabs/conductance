@@ -115,6 +115,7 @@ exports.serve = function(args) {
             agent = null;
             params = params .. @merge({nobundle:'seed'});
           }
+          @verbose("Proxying -> #{indexUrl}");
           var response = @http.request([indexUrl, params], {
             method: req.request.method,
             response: 'raw',
@@ -140,6 +141,7 @@ exports.serve = function(args) {
     // redirect all other requests to master server
     @Route(/^/, {'*': function(req) {
       var relative = req.url.relative.slice(1);
+      @verbose("Redirecting -> /#{relative}");
       req .. @response.writeRedirectResponse(@url.normalize(relative, opts.master));
     }}),
   ];

@@ -163,15 +163,6 @@ exports.tryOp = function(fn, allowed_errors) {
 	}
 }
 
-exports.hasValue = function(client, key) {
-	// returns false on no such key, or if key exists with a blank value
-	var value;
-	if (!exports.tryOp(function() {
-		value = client.get(key).node.value;
-	}, [exports.err.KEY_NOT_FOUND])) return false;
-	return value.length > 0;
-}
-
 exports.err = {
 	KEY_NOT_FOUND: 100,
 	TEST_FAILED: 101,
@@ -182,7 +173,12 @@ exports.err = {
 var keyFn = function(prefix) {
 	return function(id) {
 		@assert.ok(id !== undefined, "no ID given (key prefix #{prefix})");
-		return id === null ? prefix : "#{prefix}#{id}";
+		if(id == null) {
+			return prefix;
+		}
+		var args = arguments .. @toArray;
+		@assert.arrayOfString(args);
+		return "#{prefix}#{args .. @join('/')}";
 	}
 }
 

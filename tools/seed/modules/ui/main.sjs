@@ -254,10 +254,10 @@ var relativeDate = (function() {
 
 var displayApp = function(elem, token, localApi, localServer, remoteServer, app) {
 	@info("app: ", app);
-	var endpoint = app.endpoint .. @mirror();
+	var appEndpoint = app.endpoint .. @mirror();
 
 	var appState = @Stream(function(emit) {
-		app.endpoint .. @each.track {|endpoint|
+		appEndpoint .. @each.track {|endpoint|
 			if (!endpoint) {
 				@info("appState: #{endpoint}");
 				emit(endpoint);
@@ -345,7 +345,7 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 
 	var disableStop = [true] .. @concat(runState .. @transform(st -> st !== RUNNING));
 	var disableStart = [true] .. @concat(@observe(runState, deployState, (st, state) -> st !== STOPPED || !state.deployed));
-	var endpointUnreachable = endpoint .. @transform(ep -> ep === null) .. @dedupe();
+	var endpointUnreachable = appEndpoint .. @transform(ep -> ep === null) .. @dedupe();
 	var disableDeploy = [true] .. @concat(endpointUnreachable);
 
 	var disabled = (elem, cond) -> elem .. @Class('disabled', cond);

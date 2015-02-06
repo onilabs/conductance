@@ -16,16 +16,17 @@ var op = function(client, op, id, timeout) {
 	@info("performing action [#{op}] on [#{id}]");
 	timeout = timeout || 30;
 	var created;
+	var endpoint;
 	if (op === 'start') {
 		created = client.set(@etcd.app_job(id), op).node;
 	} else {
-		var hasEndpoint = client .. @etcd.hasValue(@etcd.app_endpoint(id));
-		if (!hasEndpoint) {
+		@etcd.tryOp(function() { endpoint = client.get(@etcd.app_endpoint(id)).node.value }, [@etcd.err.KEY_NOT_FOUND]);
+		if(!endpoint) {
 			@info("skipping `#{op}` request - there is no endpoint");
 			return false;
 		}
-		@info("sending #{op} op to endpoint", client.get(@etcd.app_endpoint(id)));
-		created = client.create(@etcd.app_op(id), op).node;
+		@info("sending #{op} op to endpoint", endpoint);
+		created = client.create(@etcd.app_op(endpoint, id), op).node;
 	}
 	@info("submitted op #{op}", created);
 	var key = created .. @get('key');
