@@ -1369,10 +1369,13 @@ var InputDropdown = menu -> [exports.Btn('default',
                              menu .. @Class('dropdown-menu dropdown-menu-right')];
 
 // helper to format suggestions:
+// returns a structure { matching: true|false, html: ... }
 __js function format_suggestion(s, filter_term) {
   if (typeof s === 'string' || typeof s === 'number') {
     s = { text: s }
   }
+
+  var matching = false;
 
   if (typeof s.text !== 'string')
     s.text = String(s.text);
@@ -1380,30 +1383,52 @@ __js function format_suggestion(s, filter_term) {
   var markup = s.text;
 
   if (filter_term.length) {
-    var index = markup.indexOf(filter_term);
+    var index = markup.toLowerCase().indexOf(filter_term.toLowerCase());
     if (index == -1) {
       // suggestion is not really applicable; grey out
-      markup = @html.Span(markup, {style:'color:grey'});
+      markup = @html.Span(markup, {style:'color:#aaaaaa'});
     }
-    else
+    else {
+      matching = true;
+      // using awkward Quasi syntax here, because we are in a __js block, where `` doesn't work
       markup = @Quasi(['',
                        markup.substr(0,index),
                        '',
-                       @html.Em(filter_term),
+                       @html.Em(markup.substr(index, filter_term.length)),
                        '',
                        markup.substr(index+filter_term.length)
                       ]);
+    }
   }
-  else
+  else {
+    // using awkward Quasi syntax here, because we are in a __js block, where `` doesn't work
     markup = @Quasi(['',markup]);
+  }
 
   if (s.highlight)
     markup = @html.Strong(markup);
 
   // XXX @Prop introduces a mechanism on *each and every* <li>
   // here. There is probably a way to make this more efficient.
-  return  markup .. @html.A({href:'#'}) .. @Prop('txt', s.text) .. @html.Li();
+  return  { 
+    html: markup .. @html.A({href:'#'}) .. @Prop('txt', s.text) .. @html.Li(),
+    matching: matching
+  };
 }
+
+// helper to put matching suggestions (as returned by format_suggestion) up front
+var sort_suggestions = upstream -> @Stream(function(receiver) {
+  var non_matching = [];
+  upstream .. @each {
+    |{html, matching}|
+    if (!matching)
+      non_matching.push(html);
+    else
+      receiver(html);
+  }
+  non_matching .. @each(receiver);
+});
+
 
 function SelectInput(settings) {
   // untangle arguments:
@@ -1450,7 +1475,8 @@ function SelectInput(settings) {
                                      if (!@isSequence(suggestions))
                                        suggestions = [suggestions];
                                      return suggestions .. 
-                                       @map(s -> format_suggestion(s,text));
+                                       @transform(s -> format_suggestion(s,text)) .. 
+                                       sort_suggestions .. @toArray;
                                    })) { 
                           || hold() }
                       }
@@ -1460,7 +1486,8 @@ function SelectInput(settings) {
                                    function(text) {
                                      hold(50);
                                      return suggestions .. 
-                                       @map(s -> format_suggestion(s,text));
+                                       @transform(s -> format_suggestion(s,text)) ..
+                                       sort_suggestions .. @toArray;
                                    })) {
                           || hold() }
                       }
