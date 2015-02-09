@@ -510,7 +510,9 @@ var showServer = function(token, localApi, localServer, remoteServer, container,
 			if (elem .. @form.appConfigEditor(localApi, newConfig)) {
 				elem .. @modal.spinner {||
 					var appInfo = localServer.addApp(newConfig.local.get());
-					remoteServer.createApp(appInfo .. @get('id'), newConfig.central.get());
+					var appId = appInfo .. @get('id');
+					remoteServer.createApp(appId, newConfig.central.get());
+					@route.modify(c -> c .. @merge({app:appId}));
 				}
 			}
 		}
