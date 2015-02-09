@@ -13,6 +13,11 @@ exports.serve = function() {
         req.response.end(req.request.headers .. JSON.stringify(null, '  '));
       }}),
 
+      @Route('path', {GET: function(req) {
+        req .. @response.setStatus(200);
+        req.response.end(module.id);
+      }}),
+
       @Route('log', {POST: function(req) {
         req .. @response.setStatus(200);
         console.log("message from client: #{req.body.toString('utf-8')}");

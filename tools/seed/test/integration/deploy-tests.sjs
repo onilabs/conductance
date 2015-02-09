@@ -10,6 +10,12 @@
 	}
 }
 
+var assertHex = function(s) {
+	s .. @assert.string();
+	/^[a-fA-F0-9]+$/.test(s) .. @assert.ok("Not a hex string: #{s}");
+	return s;
+}
+
 @context("deploy a simple app") {||
 	@test.beforeAll {|s|
 		s.screenshotOnFailure {||
@@ -28,6 +34,15 @@
 
 	@test("app is reachable") {|s|
 		@waitforSuccess(-> s.appRequest('/ping') .. @assert.eq('pong!'));
+	}
+
+	@test("app path is scoped to user & appid") {|s|
+		var route = s.driver.window().require('seed:ui/my-route').route.get();
+		var username = s.creds .. @get('username');
+		var appId = route.app .. assertHex();
+
+		var path = @waitforSuccess(-> s.appRequest('/path'));
+		path.split('/').slice(-4) .. @assert.eq([username, appId, 'code', 'config.mho']);
 	}
 
 	@test("request headers are proxied") {|s|

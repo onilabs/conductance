@@ -114,7 +114,7 @@ exports.create = function(username, password, props) {
 		tokens: [],
 	});
 	db.createUser(props);
-	return new @User(username, props);
+	return exports.getUser(username);
 };
 
 var EXPIRY_DAYS = 14;
