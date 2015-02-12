@@ -138,14 +138,14 @@ var closeAllFileDescriptorsOnExec = function() {
   }
 };
 
-function tryRunDocker(cmd, stdout) {
+function tryRunDocker(cmd, stdout, block) {
   // runs a docker command
   // returns the standard result (truthy) if it completed successfully,
   // and `false` if the container doesn't exist.
   // Throws the original error if the command failed for
   // any other reason.
   try {
-    var rv = @childProcess.run('docker', cmd, {stdio:['ignore',stdout === undefined ? 1 : stdout,'pipe']});
+    var rv = @childProcess.run('docker', cmd, {stdio:['ignore',stdout === undefined ? 1 : stdout,'pipe']}, block);
     return rv;
   } catch(e) {
     if (!/Error( response from daemon)?: No such (image or )?container: /.test(e.stderr)) {
@@ -231,17 +231,20 @@ var cleanupDeadContainers = exports.cleanupDeadContainers = function() {
     var filterArg = '--format={{if (and (eq .State.Running false) (eq .Image "'+image+'"))}}{{or .ID .Id}}{{end}}';
 
     @info("running `docker inspect '#{filterArg}'`");
-    containers = tryRunDocker(['inspect', filterArg].concat(containers), 'pipe');
-    if(containers === false) {
-      @warn("`docker inspect` failed");
-    } else {
-      containers = containers.stdout .. nonEmptyLines;
-      if(containers.length > 0) {
-        @info("Cleaning up #{containers.length} dead containers");
-        if(!tryRunDocker(["rm"].concat(containers), 'ignore')) {
-          @warn("docker `rm` failed");
+    var ok = tryRunDocker(['inspect', filterArg].concat(containers), 'pipe') {|p|
+      var count = 0;
+      p.stdout .. @stream.lines('ascii') .. @transform(@strip) .. @filter() .. @each {|container|
+        @info("running `docker rm '#{container}'`");
+        if(tryRunDocker(["rm", container], 'ignore')) {
+          count++;
+        } else {
+          @warn("docker `rm` #{container} failed");
         }
       }
+      @info("Cleaned up #{count} dead containers");
+    }
+    if(!ok) {
+      @warn("`docker inspect` failed");
     }
   }
 };
@@ -469,11 +472,10 @@ exports.localAppState = (function() {
             dockerFlags.push('--volume', "#{profile}:/nix-root:ro");
           })();
 
-          var fs_ip = @env.get('host-fs-ip', null);
-          if(fs_ip) {
-            dockerFlags.push('--add-host=fs:'+fs_ip);
+          @env.get('app-host-mappings') .. @ownPropertyPairs .. @each {|[k,v]|
+            dockerFlags.push("--add-host=#{k}:#{v}");
           }
-
+            
           var stdio_marker_path = '/tmp/stdio-ready';
 
           args = [
@@ -491,7 +493,7 @@ exports.localAppState = (function() {
             "--env", "SJS_INIT=#{sjsInit .. @join(":")}",
             "--env", "CONDUCTANCE_SEED=1",
             "--env", "STDIO_READY=#{stdio_marker_path}",
-            "--env", "PATH="+app_PATH,
+            "--env", "PATH="+@env.get('app-PATH'),
           ].concat(production ? [
             "--volume", readOnly('/nix/store'),
           ] : [

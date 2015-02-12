@@ -173,6 +173,28 @@ exports.defaults = function() {
 		@debug("SEED_HOST_ALIASES parsed: ", rv);
 		return rv;
 	}, true);
+	def('host-ips', {});
+
+	def('app-hosts', ['fs']);
+	def('app-host-mappings', function() {
+		var rv = {};
+		var dns = require('nodejs:dns');
+		// if we are lacking any host, assume it's resolvable via /etc/hosts
+		var resolve = function(host) {
+			waitfor(var err, address, family) {
+				dns.lookup(host, resume)
+			}
+			if(err) throw err;
+			family .. @assert.eq(4, 'expected ipv4 resolution');
+			return address;
+		}
+		this.get('app-hosts') .. @each {|host|
+			var ip = this.get("host-ip-#{host}", null);
+			if(!ip) ip = resolve(host);
+			rv[host] = ip;
+		}
+		return rv;
+	}, true);
 	
 	// if any host aliases are defined, use vhost
 	def('use-vhost', -> !this.get('host-aliases') .. @eq({}), true);
@@ -368,5 +390,20 @@ exports.defaults = function() {
 	def('email-transport', @email.mandrillTransport, true);
 	def('runtime-environ', -> @path.join(this.get('data-root'), 'environ'), true);
 	def('ctl-signal', 'SIGUSR2');
+	def('app-PATH', function() {
+		var systemPaths = [
+			'/usr/local/bin',
+			'/usr/bin',
+			'/bin',
+		];
+		var seedPaths = [
+			process.execPath,
+			@sys.executable,
+			@env.executable,
+		] .. @transform(@fs.realpath) .. @transform(@path.dirname);
+		var appPaths = process.env .. @get('SEED_APP_PATH', '') .. @split(':');
+		return @concat(seedPaths, appPaths, systemPaths) .. @filter() .. @unique() .. @join(':');
+	}, true);
+
 };
 

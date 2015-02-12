@@ -8,9 +8,8 @@
 //    i.e. you can't do fs.read(fd), because FDs are trivially
 //    spoofed. Instead, we rely on bridge encapsulation to ensure
 //    that the client can only invoke functions we supply them with.
-//  - to prevent leaks, we only expose full operations - i.e there is no
-//    `crteateWriteStream`, only `withWriteStream`.
-
+//  - to prevent leaks, we only expose full operations - i.e no
+//    calls that keep a file open upon completion.
 
 module.exports = {
 	_init: function(getPath) {
@@ -30,7 +29,5 @@ module.exports = {
 	exists: (a) -> @fs.exists(this._path(a)),
 	isFile: (a) -> @fs.isFile(this._path(a)),
 	isDirectory: (a) -> @fs.isDirectory(this._path(a)),
-	withReadStream: (a, opts, block) -> @fs.withReadStream(this._path(a), opts, block),
-	withWriteStream: (a, opts, block) -> @fs.isDirectory(this._path(a), opts, block),
 };
 

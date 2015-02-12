@@ -514,7 +514,7 @@ COMPONENTS.slave = function(opts) {
 
 COMPONENTS.fs = function(opts) {
   // add host-fs-ip accessor, to use the local docker0 interface
-  @env.lazy('host-fs-ip', -> require('seed:os').ipAddress('docker'));
+  @env.lazy('host-ip-fs', -> require('seed:os').ipAddress('docker'));
   return {
     'https': {
       internalPort: @env.get('port-fs'),

@@ -17,7 +17,7 @@ exports.authenticate = function(token) {
 	var apiRoot = @path.join(root, userId, appId);
 	// apiRoot must include the trailing dir prefix
 	if(!apiRoot .. @endsWith("/")) apiRoot += "/";
-	@info("client connected with valid claims:", claims, "partition", apiRoot);
+	@info("client connected to partition", apiRoot);
 	@mkdirp(apiRoot);
 
 	var getPath = function(p) {

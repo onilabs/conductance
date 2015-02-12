@@ -91,8 +91,10 @@ exports.main = function(client, serverId, singleton) {
 		monitoring.withMetric("user.slave", @combine(
 			loadChanged .. @transform(val -> [[loadKey, val]]),
 			monitoring.sample(function() {
-				var containers = @childProcess.run('docker', ['ps','-qa'],{stdio:['ignore','pipe',2]}).stdout.split("\n") .. @filter() .. @count();
-				return [ [loadKey, load], ['docker_containers', containers ]];
+				@childProcess.run('docker', ['ps','-qa'],{stdio:['ignore','pipe',2]}) {|p|
+					var containers = p.stdout .. @stream.lines('ascii') .. @filter() .. @count();
+					return [ [loadKey, load], ['docker_containers', containers ]];
+				}
 			})
 		), runServer);
 	}

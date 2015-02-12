@@ -13,7 +13,7 @@ exports.ipAddress = function(prefix) {
 	
 	var IPv4 = 'inet';
 	var IPv6 = 'inet6';
-	var ifaces = @childProcess.run('ip', ['-o', 'addr'], {stdio:['ignore','pipe',2]}).stdout.split('\n')
+	var ifaces = @childProcess.run('ip', ['-o', 'addr'], {stdio:['ignore','string',2]}).stdout.split('\n')
 		.. @filter()
 		.. @transform(function(line) {
 			var [_idx, iface, ipv, ip] = line.split(/\s+/);
