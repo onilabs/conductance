@@ -27,6 +27,7 @@ var { startsWith } = require('sjs:string');
 var { createID } = require('../server/random');
 var { TransportError } = require('./error');
 var { hostenv } = require('sjs:sys');
+var { toBuffer } = require('sjs:bytes');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
 var PING_INTERVAL = 1000*40; // 40 seconds
@@ -191,8 +192,7 @@ function createTransport(finish) {
     sendData: function(header, data) {
       if (!this.active)
         throw new Error("inactive transport");
-      if (!isNodeJSBuffer(data))
-        data = new Buffer(data);
+      data = data .. toBuffer();
       
       header = new Buffer(JSON.stringify(header));
       var pre = new Buffer(3);

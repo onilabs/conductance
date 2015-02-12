@@ -335,6 +335,7 @@ context() {||
     }
 
     context("binary data") {||
+      var noTypedArraySupport = @isBrowser && /PhantomJS/.test(window.navigator.userAgent);
       var api;
       test.beforeAll {|s|
         s.ctx = @breaking {|brk|
@@ -358,7 +359,15 @@ context() {||
         (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
         rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
         rv .. @assert.eq(buf);
-      }.skipIf(@isBrowser && /PhantomJS/.test(window.navigator.userAgent))
+      }.skipIf(noTypedArraySupport)
+
+      test('ArrayBuffer ends up as Uint8Array') {||
+        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8)).buffer;
+        (buf instanceof ArrayBuffer) .. @assert.ok();
+        var rv = api.identity(buf);
+        (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+        rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
+      }.skipIf(noTypedArraySupport)
     }
   }
 

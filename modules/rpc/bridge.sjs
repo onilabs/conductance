@@ -128,11 +128,12 @@ var { hostenv } = require('sjs:sys');
 var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
 var { isString, startsWith } = require('sjs:string');
-var { isFunction, ITF_SIGNAL, signal } = require('sjs:function');
+var { identity, isFunction, ITF_SIGNAL, signal } = require('sjs:function');
 var { Emitter, wait } = require('sjs:event');
 var { Quasi, isQuasi } = require('sjs:quasi');
 var { ownKeys, keys, propertyPairs, get } = require('sjs:object');
 var { eq } = require('sjs:compare');
+var bytes = require('sjs:bytes');
 var http = require('sjs:http');
 var Url = require('sjs:url');
 var global = require('sjs:sys').getGlobal();
@@ -148,18 +149,6 @@ var MAX_MSG_REORDER_BUFFER = 10000;
 
 
 //----------------------------------------------------------------------
-
-
-// helper to identify binary data:
-var BinaryCtors = ['Blob', 'ArrayBuffer', 'DataView',
-                   'Uint8Array', 'Uint16Array', 'Uint32Array',
-                   'Int8Array', 'Int16Array', 'Int32Array',
-                   'Float32Array', 'Float64Array'] ..
-  filter(x -> typeof global[x] == 'function') ..
-  map(x -> global[x]);
-function isBinaryData(obj) {
-  return BinaryCtors .. any(ctor -> obj instanceof ctor);
-}
 
 /**
   @function isTransportError
@@ -298,26 +287,25 @@ function Blob(obj) {
 exports.Blob = Blob;
 
 
-var coerceBinary, isNodeJSBuffer, nodejs = hostenv === 'nodejs';
-if (nodejs) {
-  isNodeJSBuffer = value -> Buffer.isBuffer(value);
-  coerceBinary = function(b, t) {
-    switch(t) {
-      case 'b':
-        if(!Buffer.isBuffer(b)) b = new Buffer(b);
-        break;
-      case 'a':
-        if(Buffer.isBuffer(b)) b = new Uint8Array(b);
-        break;
-      default:
-        throw new Error("Unknown binary type #{t}");
-    }
-    return b;
-  };
-} else {
-  isNodeJSBuffer = -> false;
-  // browser can only represent binary data as TypedArray
-  coerceBinary = b -> b;
+__js {
+  var coerceBinary, isNodeJSBuffer, nodejs = hostenv === 'nodejs';
+  var toIterableBytes = identity;
+  if (nodejs) {
+    isNodeJSBuffer = value -> Buffer.isBuffer(value);
+    coerceBinary = function(b, t) {
+      switch(t) {
+        case 'b': return b .. bytes.toBuffer();
+        case 'a': return b .. bytes.toUint8Array();
+        default: throw new Error("Unknown binary type #{t}");
+      }
+    };
+    // nodejs can't send an ArrayBuffer as a request body
+    toIterableBytes = b -> b instanceof ArrayBuffer ? b .. bytes.toUint8Array : b;
+  } else {
+    isNodeJSBuffer = -> false;
+    // browser can only represent binary data as TypedArray
+    coerceBinary = identity;
+  }
 }
 
 
@@ -379,6 +367,12 @@ function marshall(value, connection) {
       else if (value instanceof Date) {
         rv = { __oni_type: 'date', val: value.getTime() };
       }
+      else if (bytes.isBytes(value)) {
+        // NOTE: this must go before `isArrayLike`, since a Uint8Array is both
+        var id = ++connection.sent_blob_counter;
+        connection.sendBlob(id, value);
+        rv = { __oni_type: 'blob', id:id };
+      }
       else if (isArrayLike(value)) {
         rv = value .. map(prepare);
       }
@@ -414,11 +408,6 @@ function marshall(value, connection) {
           // send the blob as 'data'
           var id = ++connection.sent_blob_counter;
           connection.sendBlob(id, value.obj);
-          rv = { __oni_type: 'blob', id:id };
-        }
-        else if (isBinaryData(value) || isNodeJSBuffer(value)) {
-          var id = ++connection.sent_blob_counter;
-          connection.sendBlob(id, value);
           rv = { __oni_type: 'blob', id:id };
         }
         else {
@@ -650,7 +639,7 @@ function BridgeConnection(transport, opts) {
 
     sendBlob: function(id, obj) {
       var t = isNodeJSBuffer(obj) ? 'b' : 'a'; // buffer | array
-      transport.sendData({id: id, t:t}, obj);
+      transport.sendData({id: id, t:t}, obj .. toIterableBytes);
       return id;
     },
     makeSignalledCall: function(api, method, args) {
