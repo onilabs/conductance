@@ -39,5 +39,5 @@ if (require.main === module) {
     @stream.lines(f) .. @each(path -> addHeader(path.trim()));
   }
 
-  @fs.writeFile(stamp);
+  @fs.writeFile(stamp, '');
 }
