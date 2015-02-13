@@ -20,13 +20,13 @@ module.setCanonicalId('mho:flux/kv');
 
 /**
    @class KVStore
-   @summary Key-value store abstraction 
+   @summary Key-value store abstraction
    @desc
      Objects of class KVStore implement the [::ITF_KVSTORE] interface. You
-     can use them with the [./kv::] module API functions, in particular [::get], 
-     [::set], [::query], [::observe], 
+     can use them with the [./kv::] module API functions, in particular [::get],
+     [::set], [::query], [::observe],
      [::observeQuery] and [::withTransaction].
-     
+
      For a concrete implementation of KVStore, see [::LevelDB].
 */
 
@@ -35,13 +35,13 @@ module.setCanonicalId('mho:flux/kv');
    @summary Internal interface for [::KVStore] objects
    @desc
     The interface is not intended to be used by client code directly, but through
-    one of the [./kv::] API functions, in particular [::get], [::set], [::query], [::observe], 
+    one of the [./kv::] API functions, in particular [::get], [::set], [::query], [::observe],
     [::observeQuery] and [::withTransaction].
 
      Objects implementing this interface must implement the following functions:
-     
+
          obj[ITF_KVSTORE].get(key) // return value associated with key ('undefined' if not existant)
-     
+
          obj[ITF_KVSTORE].put(key, encoded_value) // set or delete (if value===undefined) entries in the store
 
          obj[ITF_KVSTORE].query(range, [options]) // return stream of [key,value] pairs in range
@@ -49,11 +49,11 @@ module.setCanonicalId('mho:flux/kv');
          obj[ITF_KVSTORE].observe(key) // return observable tracking key
 
          obj[ITF_KVSTORE].observeQuery(range, [options]) // return observable tracking range
-         
+
          obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
 
     ITF_KVSTORE functions operate on 'encoded' key and value buffers. The [./kv::] API function
-    ([::get], etc) mediate between the user-facing key and value representations ([::Key]s and 
+    ([::get], etc) mediate between the user-facing key and value representations ([::Key]s and
     serializable JS objects, respectively) and the encoded binary representations.
 
 
@@ -65,19 +65,19 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
    @class Key
    @summary Structure serving as a key into a [::KVStore].
    @desc
-      A `Key` is either a String or Integer, or a tuple of Strings and Integers 
+      A `Key` is either a String or Integer, or a tuple of Strings and Integers
       represented by an (abitrarily nested) Array.
 
       Nested Array keys such as `['employee', ['name', 'alex']]` are equivalent
-      to their flattened representations: `['employee', 'name', 'alex']`. Similarly the 
+      to their flattened representations: `['employee', 'name', 'alex']`. Similarly the
       key `1` is equivalent to `[1]` and `'alex'` is equivalent to `['alex']`.
-      API functions that return keys will always return the canonical flattened 
+      API functions that return keys will always return the canonical flattened
       array representation.
 
       Keys are sorted in a way that preserves the ordering of the
-      individual elements of a tuple key from left to right. This makes it possible to 
+      individual elements of a tuple key from left to right. This makes it possible to
       efficiently query [::KVStore]s for all children with a common prefix.
-      
+
 */
 
 /**
@@ -87,15 +87,15 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
       A `Range` is either a [::Key], or an object `{ begin: Key, end: Key }`.
 
       In the first case, the range denotes all children with the given key as
-      prefix. 
+      prefix.
 
       In the second case, the range begins with the first key in the
-      datastore greater than or equal to `begin` and ends with the last key 
-      less than `end`. 
+      datastore greater than or equal to `begin` and ends with the last key
+      less than `end`.
 
       The `end` property can be omitted, in which case the range consists of all keys greater
       than or equal to `begin`.
-      
+
 */
 
 /**
@@ -136,7 +136,7 @@ exports.get = get;
 */
 function set(store, key, value) {
   // assert value !== undefined; that would be a 'clear' operation
-  return store[ITF_KVSTORE].put(@encoding.encodeKey(key), 
+  return store[ITF_KVSTORE].put(@encoding.encodeKey(key),
                                 @encoding.encodeValue(value));
 }
 exports.set = set;
@@ -155,7 +155,7 @@ exports.clear = clear;
 /**
    @function query
    @param {::KVStore} [kvstore]
-   @param {::Range} [range] 
+   @param {::Range} [range]
    @param {optional Object} [settings]
    @return {sjs:sequence::Stream}
    @setting {Boolean} [reverse=false] Reverse direction of range
@@ -178,7 +178,7 @@ exports.query = query;
 /**
    @function clearRange
    @param {::KVStore} [kvstore]
-   @param {::Range} [range] 
+   @param {::Range} [range]
    @summary Clears any values associated with keys in given range.
 */
 function clearRange(store, range) {
@@ -197,7 +197,7 @@ exports.clearRange = clearRange;
    @param {::Key} [key]
    @return {sjs:observable::Observable}
    @summary Return an [sjs:observable::Observable] of the value associated with key.
-     
+
 */
 function observe(store, key) {
   return store[ITF_KVSTORE].observe(@encoding.encodeKey(key)) .. @transform(val -> val .. @encoding.decodeValue);

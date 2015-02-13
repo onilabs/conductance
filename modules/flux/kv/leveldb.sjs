@@ -17,8 +17,8 @@
     Uses [node-leveldown](https://github.com/rvagg/node-leveldown) under the hood
 */
 
-@ = require(['sjs:std', 
-             {id: '../kv', name: 'kv'}, 
+@ = require(['sjs:std',
+             {id: '../kv', name: 'kv'},
              {id: './encoding', name: 'encoding'}
             ]);
 
@@ -52,10 +52,10 @@ function LevelDB(location, options, block) {
   }
 
   var db = require('leveldown')(location);
-  
+
   // slightly round-about way of opening to gracefully handle closing
   // of the db if we are being retracted while opening
-  var open = spawn (function() { 
+  var open = spawn (function() {
     waitfor (var error) {
       db.open(options, resume);
     }
@@ -153,7 +153,7 @@ function LevelDB(location, options, block) {
        @summary  Low-level LevelDB function reading a contiguous range of keys.
     */
     query: function(options) {
-      return @Stream(function(receiver) { 
+      return @Stream(function(receiver) {
         var iterator = db.iterator(options || {});
         try {
           while (true) {
@@ -177,18 +177,18 @@ function LevelDB(location, options, block) {
        @function LevelDB.close
        @summary  Close the DB.
     */
-    close: function() { 
+    close: function() {
       waitfor (var err) {
         db.close(resume);
       }
       if (err) throw new Error("Error closing database at #{location}") .. annotateError(err);
-      db = undefined; 
+      db = undefined;
     }
   }
-  
+
 
   //----------------------------------------------------------------------
-  // high-level ITF_KVSTORE interface implementation 
+  // high-level ITF_KVSTORE interface implementation
   var kvstore_interface = {
     get: function(key) {
       // XXX better error handling
@@ -200,7 +200,7 @@ function LevelDB(location, options, block) {
       var rv = itf.batch([{ type: value === undefined ? 'del' : 'put', key: key, value: value}]);
       return rv;
     },
-    query: function(range, options) {      
+    query: function(range, options) {
       var query_opts = {
         limit: -1,
         reverse: false,
@@ -213,7 +213,7 @@ function LevelDB(location, options, block) {
     },
     observe: function(key) {
       return @eventStreamToObservable(
-        MutationEmitter .. 
+        MutationEmitter ..
           @unpack ..
           @filter(kv -> kv.key .. @encoding.encodedKeyEquals(key)) ..
           @transform({value} -> value),
@@ -235,7 +235,7 @@ function LevelDB(location, options, block) {
         operation. We need to take care of consistency & isolation
         ourselves:
        */
-      
+
       // pending puts indexed by key in hex representation:
       var pendingPuts = {};
 
@@ -282,7 +282,7 @@ function LevelDB(location, options, block) {
 
                 query .. @each {
                   |q|
-                  
+
                   // apply patches preceding q:
                   while (patch && @encoding.encodedKeyLess(patch[0], q[0])) {
                     if (patch[1] !== undefined) r(patch);
@@ -296,7 +296,7 @@ function LevelDB(location, options, block) {
                   // emit q:
                   r(q);
                 }
-                
+
                 // emit remaining patches
                 while (patch && @encoding.encodedKeyLess(patch[0], range.end)) {
                   r(patch);
@@ -335,15 +335,15 @@ function LevelDB(location, options, block) {
           MutationEmitter .. @unpack .. @each {
             |{key}|
             var hex_key = key.toString('hex');
-            if (pendingPuts[hex_key] || 
-                reads[hex_key] || 
+            if (pendingPuts[hex_key] ||
+                reads[hex_key] ||
                 queries .. @any([b,e] -> key .. @encoding.encodedKeyInRange(b,e)))
               break;
           }
           conflict = true;
           hold();
         }
-        
+
         // XXX we could maybe check conflicts earlier in ITF_KVSTORE
         // calls and throw a transaction exception. That might make
         // implementation of client code more complicated though.
