@@ -302,3 +302,24 @@ function LevelDB(location, options, block) {
   }
 }
 exports.LevelDB = LevelDB;
+
+
+function Local(options, block) {
+  // untangle args
+  if (arguments.length == 0) {
+    options = {};
+  } else if (arguments.length < 2 && typeof options === 'function') {
+    block = options;
+    options = {};
+  }
+
+  var db = require('./kv/local').Local(options);
+  var itf = @util.wrapDB(db);
+
+  if (block) {
+    block(itf);
+  } else {
+    return itf;
+  }
+}
+exports.Local = Local;
