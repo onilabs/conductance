@@ -18,9 +18,7 @@
 */
 
 @ = require(['sjs:std',
-             {id: '../kv', name: 'kv'},
-             {id: './encoding', name: 'encoding'}
-            ]);
+             { id: './util', name: 'util' }]);
 
 __js function annotateError(err, orig) {
   // XXX leveldown should really have better types
@@ -38,19 +36,9 @@ __js function annotateError(err, orig) {
    @function LevelDB
    @altsyntax LevelDB(location, [options]) { |itf| ... }
    @param {String} [location] Location of DB on disk
-   @param {optional Object} [options] See https://github.com/rvagg/node-leveldown#leveldownopenoptions-callback
-   @param {optional Function} [block] Lexical block to scope the LevelDB object to
+   @param {Object} [options] See https://github.com/rvagg/node-leveldown#leveldownopenoptions-callback
 */
-function LevelDB(location, options, block) {
-  // untangle args
-  if (arguments.length == 1) {
-    options = {};
-  }
-  else if (arguments.length < 3 && typeof options === 'function') {
-    block = options;
-    options = {};
-  }
-
+function LevelDB(location, options) {
   var db = require('leveldown')(location);
 
   // slightly round-about way of opening to gracefully handle closing
@@ -86,7 +74,19 @@ function LevelDB(location, options, block) {
     of a low-level API, and of the ITF_KVSTORE interface
 
    */
-  var itf = {
+  return {
+    changes: MutationEmitter,
+
+    constructor: Buffer,
+
+    encodeString: function (str) {
+      return new Buffer(str, 'utf8');
+    },
+
+    decodeString: function (buf, start, end) {
+      return buf.toString('utf8', start, end);
+    },
+
     /**
        @function LevelDB.put
        @param {String|Buffer} [key]
@@ -178,200 +178,14 @@ function LevelDB(location, options, block) {
        @summary  Close the DB.
     */
     close: function() {
-      waitfor (var err) {
-        db.close(resume);
-      }
-      if (err) throw new Error("Error closing database at #{location}") .. annotateError(err);
-      db = undefined;
-    }
-  }
-
-
-  //----------------------------------------------------------------------
-  // high-level ITF_KVSTORE interface implementation
-  var kvstore_interface = {
-    get: function(key) {
-      // XXX better error handling
-      return itf.get(key);
-    },
-    put: function(key, value) {
-      // XXX collect multiple temporally adjacent calls
-      // XXX better error handling
-      var rv = itf.batch([{ type: value === undefined ? 'del' : 'put', key: key, value: value}]);
-      return rv;
-    },
-    query: function(range, options) {
-      var query_opts = {
-        limit: -1,
-        reverse: false,
-        values: true
-      } .. @override(options);
-      query_opts.gte = range.begin;
-      query_opts.lt = range.end;
-
-      return itf.query(query_opts);
-    },
-    observe: function(key) {
-      return @eventStreamToObservable(
-        MutationEmitter ..
-          @unpack ..
-          @filter(kv -> kv.key .. @encoding.encodedKeyEquals(key)) ..
-          @transform({value} -> value),
-        -> itf.get(key));
-
-    },
-    observeQuery: function(range, options) {
-      return @eventStreamToObservable(
-        MutationEmitter ..
-          @filter(kvs -> kvs .. @any(kv -> kv.key .. @encoding.encodedKeyInRange(begin, end))) ..
-          @transform(-> kvstore_interface.range(begin, end, options)),
-        -> kvstore_interface.query(range, options)
-      );
-    },
-    withTransaction: function(options, block) {
-
-      /*
-        LevelDB provides durability & atomicity via the 'batch'
-        operation. We need to take care of consistency & isolation
-        ourselves:
-       */
-
-      // pending puts indexed by key in hex representation:
-      var pendingPuts = {};
-
-      // level-down doesn't have support for snapshots yet, so we
-      // need to make sure that we get consistent reads:
-      var reads = {};
-      var queries = [];
-
-      var conflict = false;
-
-      var T = {};
-      T[@kv.ITF_KVSTORE] = {
-        get: function(key) {
-          var hex_key = key.toString('hex');
-
-          // check if we've written this key:
-          var kv = pendingPuts[hex_key];
-          if (kv) return kv[1];
-
-          // else, check if we've already read it:
-          var v = reads[hex_key];
-          if (v) return v;
-
-          // else read from db:
-          var val = itf.get(key);
-          reads[hex_key] = val;
-          return val;
-        },
-        put: function(key, value) {
-          pendingPuts[key.toString('hex')] = [key, value];
-        },
-        query: function(range, options) {
-
-          // query and patches are streams of [k, v] pairs
-          function patchQuery(query, patches, reverse) {
-            if (reverse) throw new Error('reverse queries in transactions not implemented yet');
-            return @Stream(function(r) {
-              @consume(patches) {
-                |next_patch|
-                var patch = next_patch();
-                // find first patch, where patch[0] >= range.begin
-                while (patch && @encoding.encodedKeyLess(patch[0], range.begin))
-                  patch = next_patch();
-
-                query .. @each {
-                  |q|
-
-                  // apply patches preceding q:
-                  while (patch && @encoding.encodedKeyLess(patch[0], q[0])) {
-                    if (patch[1] !== undefined) r(patch);
-                    patch = next_patch();
-                  }
-                  if (patch && @encoding.encodedKeyEquals(patch[0], q[0])) {
-                    if (patch[1] !== undefined) r(patch);
-                    patch = next_patch();
-                    continue; // patch overrides current value
-                  }
-                  // emit q:
-                  r(q);
-                }
-
-                // emit remaining patches
-                while (patch && @encoding.encodedKeyLess(patch[0], range.end)) {
-                  r(patch);
-                  patch = next_patch();
-                }
-              }
-            });
-          }
-
-
-          queries.push([range.begin,range.end]);
-          var patches = pendingPuts .. @values .. @sort((a,b) -> @encoding.encodedKeyCompare(a[0],b[0]) );
-          return kvstore_interface.query(range, options) .. patchQuery(patches, options.reverse);
-        },
-        observe: function(key) {
-          throw new Error('write me');
-        },
-        observeQuery: function(range, options) {
-          throw new Error('write me');
-        },
-        withTransaction: function(options, block) {
-          block(T);
+      if (db) {
+        waitfor (var err) {
+          db.close(resume);
         }
-      };
-
-      // retry transactions until they succeed:
-      while (true) {
-        waitfor {
-          block(T);
-        }
-        or {
-          // We are stricter than required here. All we need to
-          // guarantee is that *multiple* reads/writes are consistent
-          // with each other. But commonly a transaction would be used
-          // for multiple reads/writes, so not much is gained by finer granularity.
-          MutationEmitter .. @unpack .. @each {
-            |{key}|
-            var hex_key = key.toString('hex');
-            if (pendingPuts[hex_key] ||
-                reads[hex_key] ||
-                queries .. @any([b,e] -> key .. @encoding.encodedKeyInRange(b,e)))
-              break;
-          }
-          conflict = true;
-          hold();
-        }
-
-        // XXX we could maybe check conflicts earlier in ITF_KVSTORE
-        // calls and throw a transaction exception. That might make
-        // implementation of client code more complicated though.
-        if (!conflict) {
-          // we can commit our pending reads:
-          return itf.batch(pendingPuts .. @propertyPairs .. @map([,[key,value]] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
-        }
-        // go round loop and retry:
-        pendingPuts = {};
-        reads = {};
-        conflict = false;
+        if (err) throw new Error("Error closing database at #{location}") .. annotateError(err);
+        db = undefined;
       }
     }
   };
-
-  itf[@kv.ITF_KVSTORE] = kvstore_interface;
-
-  //----------------------------------------------------------------------
-
-  if (block) {
-    try {
-      block(itf);
-    }
-    finally {
-      if (db) itf.close();
-    }
-  }
-  else
-    return itf;
 }
 exports.LevelDB = LevelDB;

@@ -16,7 +16,7 @@
 
 module.setCanonicalId('mho:flux/kv');
 
-@ = require(['sjs:std', {id:'sjs:type', include:['Interface']}, {id:'./kv/encoding', name:'encoding'}]);
+@ = require(['sjs:std', {id:'sjs:type', include:['Interface']}, {id:'./kv/util', name:'util'}]);
 
 /**
    @class KVStore
@@ -123,7 +123,7 @@ exports.RANGE_ALL = RANGE_ALL;
    @summary Retrieve value stored under key.
 */
 function get(store, key) {
-  return store[ITF_KVSTORE].get(@encoding.encodeKey(key)) .. @encoding.decodeValue;
+  return store[ITF_KVSTORE].get(key);
 }
 exports.get = get;
 
@@ -136,8 +136,7 @@ exports.get = get;
 */
 function set(store, key, value) {
   // assert value !== undefined; that would be a 'clear' operation
-  return store[ITF_KVSTORE].put(@encoding.encodeKey(key),
-                                @encoding.encodeValue(value));
+  return store[ITF_KVSTORE].put(key, value);
 }
 exports.set = set;
 
@@ -148,7 +147,7 @@ exports.set = set;
    @summary Clears any value currently associated with key.
 */
 function clear(store, key) {
-  return store[ITF_KVSTORE].put(@encoding.encodeKey(key), undefined);
+  return store[ITF_KVSTORE].put(key, undefined);
 }
 exports.clear = clear;
 
@@ -163,15 +162,8 @@ exports.clear = clear;
    @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs in the given [::Range].
 */
 
-// helper to decode a key,val tuple:
-__js function decodeKV([k,v]) {
-  return [ k .. @encoding.decodeKey,
-           v .. @encoding.decodeValue];
-}
-
 function query(store, range, options) {
-  range = @encoding.encodeKeyRange(range);
-  return store[ITF_KVSTORE].query(range, options || {}) .. @transform(decodeKV);
+  return store[ITF_KVSTORE].query(range, options || {});
 }
 exports.query = query;
 
@@ -182,11 +174,11 @@ exports.query = query;
    @summary Clears any values associated with keys in given range.
 */
 function clearRange(store, range) {
-  range = @encoding.encodeKeyRange(range);
-  store[ITF_KVSTORE].query(range, {values:false}) .. @each {
-    |[key]|
-    store[ITF_KVSTORE].put(key, undefined);
-  }
+  // TODO should this use a transaction ?
+  // TODO this currently has to encode/decode the keys twice
+  //      this can be made more efficient by only encoding/decoding them once
+  // TODO this should use `{ values: false }` since we're only interested in the values
+  query(store, range) .. @each { |[key]| clear(store, key); };
 }
 exports.clearRange = clearRange;
 
@@ -200,7 +192,7 @@ exports.clearRange = clearRange;
 
 */
 function observe(store, key) {
-  return store[ITF_KVSTORE].observe(@encoding.encodeKey(key)) .. @transform(val -> val .. @encoding.decodeValue);
+  return store[ITF_KVSTORE].observe(key);
 }
 exports.observe = observe;
 
@@ -284,4 +276,29 @@ exports.withTransaction = withTransaction;
   @function LevelDB.close
   @summary  Close the DB.
 */
-exports.LevelDB = -> require('./kv/leveldb').LevelDB.apply(null, arguments);
+function LevelDB(location, options, block) {
+  // untangle args
+  if (arguments.length == 1) {
+    options = {};
+  } else if (arguments.length < 3 && typeof options === 'function') {
+    block = options;
+    options = {};
+  }
+
+  var db = require('./kv/leveldb').LevelDB(location, options);
+  var itf = @util.wrapDB(db);
+
+  // It's necessary to manually close the db if you don't provide a block
+  itf.close = db.close;
+
+  if (block) {
+    try {
+      block(itf);
+    } finally {
+      itf.close();
+    }
+  } else {
+    return itf;
+  }
+}
+exports.LevelDB = LevelDB;
