@@ -1500,14 +1500,12 @@ function SelectInput(settings) {
                         handle: {ev} -> @dom.preventDefault(ev)
                       },
                       function({node}) {
-                        // XXX distinguish between contextual and non-contextual SelectInputs
-                        var field = (node .. @field.getField())[@field.CTX_FIELD];
-                        //@dom.findNode('.input-group', node).firstChild.value = node.txt;
-                        var val = node.txt;
-                        if (settings.txtToVal)
-                          val = val .. settings.txtToVal;
-                        field.auto_validate.set(true);
-                        field.value.set(val);
+                        var textInput = @dom.findNode('.input-group', node).firstChild;
+                        textInput.value = node.txt;
+                        // manually trigger an event to trigger validation, etc:
+                        var evt = document.createEvent('HTMLEvents');
+                        evt.initEvent("input", false, true);
+                        textInput.dispatchEvent(evt);
                       }
                      )
                  );
