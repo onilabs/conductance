@@ -365,6 +365,38 @@ function Local(options) {
       return @utf8ToString(buf.join(""));
     },
 
+    // TODO not safe if `from` and `to` are the same
+    // TODO error checking (e.g. for out of bounds)
+    copy: function (from, to, to_start, from_start, from_end) {
+      while (from_start < from_end) {
+        to[to_start] = from[from_start];
+        ++to_start;
+        ++from_start;
+      }
+    },
+
+    concat: function (outer, len) {
+      if (outer.length === 1) {
+        return outer[0];
+
+      } else {
+        // TODO use info.constructor
+        var output = new Array(len);
+        var output_i = 0;
+
+        for (var outer_i = 0; outer_i < outer.length; ++outer_i) {
+          var inner = outer[outer_i];
+
+          for (var inner_i = 0; inner_i < inner.length; ++inner_i) {
+            output[output_i] = inner[inner_i];
+            ++output_i;
+          }
+        }
+
+        return output;
+      }
+    },
+
     get: function (key) {
       return dict.get(key, undefined);
     },

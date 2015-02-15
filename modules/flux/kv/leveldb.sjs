@@ -87,6 +87,12 @@ function LevelDB(location, options) {
       return buf.toString('utf8', start, end);
     },
 
+    copy: function (from, to, to_start, from_start, from_end) {
+      return from.copy(to, to_start, from_start, from_end);
+    },
+
+    concat: Buffer.concat,
+
     /**
        @function LevelDB.put
        @param {String|Buffer} [key]

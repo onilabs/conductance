@@ -94,32 +94,6 @@ __js {
     return out;
   }
 
-  // TODO not safe if `from` and `to` are the same
-  // TODO error checking (e.g. for out of bounds)
-  function copy(from, to, to_start, from_start, from_end) {
-    while (from_start < from_end) {
-      to[to_start] = from[from_start];
-      ++to_start;
-      ++from_start;
-    }
-  }
-
-  function concat(info, outer, len) {
-    var output = new info.constructor(len);
-    var output_i = 0;
-
-    for (var outer_i = 0; outer_i < outer.length; ++outer_i) {
-      var inner = outer[outer_i];
-
-      for (var inner_i = 0; inner_i < inner.length; ++inner_i) {
-        output[output_i] = inner[inner_i];
-        ++output_i;
-      }
-    }
-
-    return output;
-  }
-
   function encode(info, item) {
     var encodedString;
     if(typeof item === 'undefined')
@@ -145,13 +119,13 @@ __js {
       var srcPos = 0;
       var targetPos = 1;
       for(var i = 0; i < nullBytes.length; ++i) {
-        copy(item, encodedString, targetPos, srcPos, nullBytes[i] + 1);
+        info.copy(item, encodedString, targetPos, srcPos, nullBytes[i] + 1);
         targetPos += nullBytes[i] + 1 - srcPos;
         srcPos = nullBytes[i] + 1;
         encodedString[targetPos++] = 0xff;
       }
 
-      copy(item, encodedString, targetPos, srcPos, item.length);
+      info.copy(item, encodedString, targetPos, srcPos, item.length);
       encodedString[encodedString.length - 1] = 0x00;
 
       return encodedString;
@@ -211,7 +185,7 @@ __js {
       totalLength += outArr[i].length;
     }
 
-    return concat(info, outArr, totalLength);
+    return info.concat(outArr, totalLength);
   }
   exports.encodeKey = encodeKey;
 
@@ -262,7 +236,7 @@ __js {
         var valuePos = 0;
 
         for(var i=0; i < nullBytes.length && start < end; ++i) {
-          copy(buf, value, valuePos, start, nullBytes[i]);
+          info.copy(buf, value, valuePos, start, nullBytes[i]);
           valuePos += nullBytes[i] - start;
           start = nullBytes[i] + 2;
           if(start <= end) {
@@ -326,8 +300,8 @@ __js {
       var packed = encodeKey(info, arr);
       return {
         // TODO a specialized push function can be faster than this
-        begin: concat(info, [packed, single(info, 0x00)], packed.length + 1),
-        end: concat(info, [packed, single(info, 0xff)], packed.length + 1)
+        begin: info.concat([packed, single(info, 0x00)], packed.length + 1),
+        end: info.concat([packed, single(info, 0xff)], packed.length + 1)
       };
     }
   }
@@ -406,7 +380,7 @@ __js {
 
     var json = info.encodeString(JSON.stringify(unencoded));
 
-    return concat(info, [single(info, VALUE_TYPE_JSON), json], json.length + 1);
+    return info.concat([single(info, VALUE_TYPE_JSON), json], json.length + 1);
   }
   exports.encodeValue = encodeValue;
 
