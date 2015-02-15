@@ -89,7 +89,7 @@ __js {
   }
 
   function single(info, x) {
-    var out = new info.constructor(1);
+    var out = info.constructor(1);
     out[0] = x;
     return out;
   }
@@ -113,7 +113,7 @@ __js {
 
       var nullBytes = findNullBytes(item, 0);
 
-      encodedString = new info.constructor(2 + item.length + nullBytes.length);
+      encodedString = info.constructor(2 + item.length + nullBytes.length);
       encodedString[0] = unicode ? 2 : 1;
 
       var srcPos = 0;
@@ -147,7 +147,7 @@ __js {
 
       var prefix = negative ? 20 - length : 20 + length;
 
-      var outBuf = new info.constructor(length+1);
+      var outBuf = info.constructor(length+1);
       outBuf[0] = prefix;
       for(var byteIdx = length-1; byteIdx >= 0; --byteIdx) {
         var b = posItem & 0xff;
@@ -232,7 +232,7 @@ __js {
         value = info.decodeString(buf, start, end);
       }
       else {
-        value = new info.constructor(end-start-(nullBytes.length-1));
+        value = info.constructor(end-start-(nullBytes.length-1));
         var valuePos = 0;
 
         for(var i=0; i < nullBytes.length && start < end; ++i) {
