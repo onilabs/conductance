@@ -294,6 +294,9 @@ exports.localAppState = (function() {
     @mkdirp(appRunBase);
     //var pidPath = getPidPath(appRunBase);
     var logPath = @path.join(appRunBase, 'log');
+    var appendAppLogs = block ->
+      @fs.withWriteStream(logPath, {flags: 'a', encoding:'utf-8'}, block);
+
     var statePath = @path.join(appRunBase, 'state.json');
     var recheckPid = @Emitter();
     var clearLogs = -> @fs.open(logPath, 'w') .. @fs.close();
@@ -396,12 +399,9 @@ exports.localAppState = (function() {
         } and {
           stdio[2] = @fs.open(logPath, 'a');
         }
-
-        function log() {
-          var formatted = @logging.formatMessage(@logging.INFO, arguments)[1] + "\n";
-          formatted = new Buffer(formatted);
-          stdio[1] .. @fs.write(formatted,0, formatted.length,null);
-        }
+        // wrap fs into a stream
+        var logStream = @fs.createWriteStream(logPath, {fd: stdio[1], encoding:'utf-8'});
+        var log = msg -> logStream .. @stream._write(msg+"\n");
 
         log("Syncing code...");
         @info("syncing current code for app #{id}");
@@ -550,8 +550,11 @@ exports.localAppState = (function() {
 
     var stopApp = function() {
       @info("Stopping app #{machineName}");
-      tryRunDocker(["stop", machineName], 'ignore');
-      recheckPid.emit();
+      appendAppLogs {|log|
+        log.write("Stopping application...\n");
+        tryRunDocker(["stop", machineName], 'ignore');
+        recheckPid.emit();
+      }
     } .. safe();
 
     var getPortBindings = function() {
