@@ -273,23 +273,11 @@ function API(obj, isBaseAPI) {
 }  
 exports.API = API;
 
-/**
-   @function Blob
-   @summary Mark an object as binary data
-   @param {Object} [obj] Binary object (e.g. Blob or Buffer)
-   @return {Object}
-*/
-function Blob(obj) {
-  return { __oni_type: 'blob',
-           obj: obj
-         };
-}
-exports.Blob = Blob;
-
 
 __js {
   var coerceBinary, isNodeJSBuffer, nodejs = hostenv === 'nodejs';
   var toIterableBytes = identity;
+  var isBytes = bytes.isBytes;
   if (nodejs) {
     isNodeJSBuffer = value -> Buffer.isBuffer(value);
     coerceBinary = function(b, t) {
@@ -305,6 +293,10 @@ __js {
     isNodeJSBuffer = -> false;
     // browser can only represent binary data as TypedArray
     coerceBinary = identity;
+    if(typeof(Blob) !== 'undefined') {
+      // treat browser `Blob` as bytes
+      isBytes = (b) -> bytes.isBytes(b) || b instanceof Blob;
+    }
   }
 }
 
@@ -403,12 +395,6 @@ function marshall(value, connection) {
             filter(name -> typeof value.obj[name] === 'function') ..
             toArray;
           rv = { __oni_type:'api', id: value.id, methods: methods};
-        }
-        else if (value.__oni_type === 'blob') {
-          // send the blob as 'data'
-          var id = ++connection.sent_blob_counter;
-          connection.sendBlob(id, value.obj);
-          rv = { __oni_type: 'blob', id:id };
         }
         else {
           // a normal object -> traverse it
@@ -638,7 +624,7 @@ function BridgeConnection(transport, opts) {
     localWrappers: opts.localWrappers,
 
     sendBlob: function(id, obj) {
-      var t = isNodeJSBuffer(obj) ? 'b' : 'a'; // buffer | array
+      var t = isArrayLike(obj) ? 'a' : 'b'; // array | buffer
       transport.sendData({id: id, t:t}, obj .. toIterableBytes);
       return id;
     },
