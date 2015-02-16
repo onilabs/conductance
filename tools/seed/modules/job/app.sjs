@@ -252,9 +252,12 @@ var cleanupDeadContainers = exports.cleanupDeadContainers = function() {
 var writeServiceInit = function(appRunBase, globalId) {
   var appConfig = @fs.readFile(@path.join(appRunBase, "state.json")) .. JSON.parse .. @get('config');
   var enabledServices = appConfig .. @get('services', []);
-  var serviceEnv = appConfig .. @get('serviceData', {});
-  serviceEnv = serviceEnv .. @merge(enabledServices .. @map(function(key) {
-    var conf = appConfig .. @getPath(['serviceData',key], null);
+  var service = appConfig .. @get('service');
+  var serviceConfig = service .. @get('data', {});
+  var serviceEnv = service .. @get('env', {});
+
+  serviceConfig = serviceConfig .. @merge(enabledServices .. @map(function(key) {
+    var conf = appConfig .. @getPath(['data',key], null);
     // hardcoded for internal services
     if(['fs'] .. @hasElem(key)) {
       conf = require("seed:service/init/#{key}").init(conf, globalId) || null;
@@ -262,9 +265,10 @@ var writeServiceInit = function(appRunBase, globalId) {
     if(!conf) return null;
     return [key, conf];
   }) .. @filter .. @pairsToObject);
-  @debug(`service config = $serviceEnv`);
+  serviceConfig._env = serviceEnv;
+  @debug(`service config = $serviceConfig`);
   var serviceConfigFile = @path.join(appRunBase, "services.json");
-  serviceConfigFile .. @fs.writeFile(JSON.stringify(serviceEnv));
+  serviceConfigFile .. @fs.writeFile(JSON.stringify(serviceConfig));
 
   // write a `service` module which will be injected into $SJS_INIT
   var serviceInitFile = @path.join(appRunBase, "services.sjs");
@@ -274,12 +278,16 @@ var writeServiceInit = function(appRunBase, globalId) {
   var clientServiceHub = require.resolve('seed:service/client').path;
   serviceInitFile .. @fs.writeFile("
     require.hubs.unshift(['lib:seed', '#{clientServiceHub}']);
-    require('#{require.resolve('mho:env').path}').lazy('seed-service-config', ->
-      require('sjs:nodejs/fs').readFile('#{serviceConfigFile}') .. JSON.parse);
+    @ = require(['sjs:object', 'sjs:sequence']);
+    @env = require('#{require.resolve('mho:env').path}');
+    var config = require('sjs:nodejs/fs').readFile('#{serviceConfigFile}') .. JSON.parse;
+    config._env .. @ownPropertyPairs .. @each { |[k,v]|
+      @env.set(k, v);
+    }
+    @env.set('seed-service-config', config);
   ");
   return serviceInitFile;
 };
-
 
 // local app state (exposed by slaves). Provides information
 // on a directly running app

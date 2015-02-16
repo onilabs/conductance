@@ -168,21 +168,6 @@ var fileBrowseCss = @CSS('
 var showServiceUI = false;
 var availableServices = [
 	{
-		id: 'mandrill',
-		name: "Mandrill",
-		info: `<a href="https://mandrill.com/">Mandrill</a> email service`,
-		form: function(form) {
-			var TextInput = form .. formControl(@TextInput);
-			return [
-				formGroup('API Key', TextInput, form.field('apikey'))
-			];
-		},
-		values: function(values) {
-			return values;
-		},
-	},
-
-	{
 		// there are no `fs` options - if it's present, it's enabled
 		id: 'fs',
 		name: "Seed persistence",
@@ -190,10 +175,26 @@ var availableServices = [
 		form: function(form) {
 			return [];
 		},
-		values: function(values) {
+		config: function(values) {
 			return {enable: true};
 		},
 	},
+
+	{
+		id: 'mandrill',
+		name: "Mandrill email API",
+		info: `Store mandrill API key`,
+		form: function(form) {
+			var TextInput = form .. formControl(@TextInput);
+			return [
+				formGroup('API Key', TextInput, form.field('apikey'))
+			];
+		},
+		env: function(vals) {
+			return {'mandrill-api-key': vals.apikey};
+		},
+	},
+
 ];
 
 var ServiceOption = function(s, n) {
@@ -280,7 +281,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 	}
 
 	var centralForm = @form.Form(central .. @first());
-	var currentServiceSettings = currentCentral.service || {};
+	var currentServiceSettings = currentCentral.service.form || {};
 	var localForm = @form.Form(currentLocal, {validate: function(vals) {
 		if(!vals.path) throw new Error("Local path is required");
 	}});
@@ -309,11 +310,12 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 				id: service.id,
 				info: service.info,
 				form: form,
-				values: () -> service.values(form.values()),
+				serviceData: service.serviceData || -> null,
+				env: service.env || -> null,
 				ui: service.form(form),
 			};
 		}
-		console.log("service(#{service.id}) -> ", serviceCache[service.id]);
+		//console.log("service(#{service.id}) -> ", serviceCache[service.id]);
 		return serviceCache[service.id];
 	};
 	var enabledServices = enabledServiceKeys.value .. @transform(enabled ->
@@ -388,14 +390,17 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 			if(!entireForm.validate()) continue;
 			@withBusyIndicator {||
 				waitfor {
-					var serviceConfig = enabledServices .. @first()
+					var serviceValues = enabledServices .. @first()
 						.. @map(service -> [service, service.form.values()]);
 
 					var newConfig = @merge(
 						centralForm.values(),
 						{
-							'service': serviceConfig .. @map(([s,conf]) -> [s.id, conf]) .. @pairsToObject,
-							'serviceData': serviceConfig .. @map([s, conf] -> [s.id, s.values(conf)]) .. @pairsToObject,
+							service: {
+								form: serviceValues .. @map([s, vals] -> [s.id, vals]) .. @pairsToObject,
+								data: serviceValues .. @map([s, vals] -> [s.id, s.serviceData(vals)]) .. @filter(pair -> pair[1] !== null) .. @pairsToObject,
+								env: serviceValues .. @map([s, vals] -> s.env(vals)) .. @merge,
+							}
 						}
 					);
 					@info("modifying central config: ", newConfig);
