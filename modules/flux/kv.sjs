@@ -18,6 +18,30 @@ module.setCanonicalId('mho:flux/kv');
 
 @ = require(['sjs:std', {id:'sjs:type', include:['Interface']}, {id:'./kv/util', name:'util'}]);
 
+var NOT_FOUND = 'NotFound';
+
+/**
+   @class NotFound
+   @inherit Error
+   @summary Error thrown when accessing a nonexistent key.
+   @desc
+      See also [::isNotFound].
+
+   @function isNotFound
+   @param {Error} [error]
+   @summary whether `error` is a [::NotFound] error.
+   @return {Boolean}
+*/
+var throwError = function(key) {
+   var e = new Error(key);
+   e.code = key;
+   throw e;
+}
+
+exports.isNotFound = function(e) {
+   return e.code === NOT_FOUND;
+}
+
 /**
    @class KVStore
    @summary Key-value store abstraction
@@ -119,11 +143,20 @@ exports.RANGE_ALL = RANGE_ALL;
    @function get
    @param {::KVStore} [kvstore]
    @param {::Key} [key]
-   @return {::Value|undefined} Value stored under key or `undefined` if there is no value stored for the given key.
+   @param {optional Object} [default]
+   @return {::Value|Object} Value stored under key.
    @summary Retrieve value stored under key.
+   @desc
+      If the value is not present, `default` will be returned if provided.
+      Otherwise, a [::NotFound] error will be thrown.
 */
-function get(store, key) {
-  return store[ITF_KVSTORE].get(key);
+function get(store, key, dfl) {
+  var rv = store[ITF_KVSTORE].get(key);
+  if(rv === undefined) {
+    if(arguments.length > 2) return dfl;
+    throwError(NOT_FOUND);
+  }
+  return rv;
 }
 exports.get = get;
 

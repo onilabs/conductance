@@ -56,7 +56,12 @@ function test_clear(db) {
   db .. @kv.set('foo', 'bar');
   db .. @kv.get('foo') .. @assert.eq('bar');
   db .. @kv.clear('foo');
-  db .. @kv.get('foo') .. @assert.eq(undefined);
+  db .. @kv.get('foo', undefined) .. @assert.eq(undefined);
+}
+
+function test_get(db) {
+  var err = @assert.raises(-> db .. @kv.get('foo'));
+  err .. @kv.isNotFound .. @assert.ok();
 }
 
 function test_query(db) {
@@ -110,6 +115,7 @@ function test_query(db) {
     @test("large value") {|s| s.db .. test_large_value() }
     @test("large key") {|s| s.db .. test_large_key() }
     @test("clear") {|s| s.db .. test_clear() }
+    @test("get") {|s| s.db .. test_get() }
 
     @test("query") {|s| s.db .. test_query() }
   }
