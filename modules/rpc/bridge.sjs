@@ -359,7 +359,7 @@ function marshall(value, connection) {
       else if (value instanceof Date) {
         rv = { __oni_type: 'date', val: value.getTime() };
       }
-      else if (bytes.isBytes(value)) {
+      else if (isBytes(value)) {
         // NOTE: this must go before `isArrayLike`, since a Uint8Array is both
         var id = ++connection.sent_blob_counter;
         connection.sendBlob(id, value);
@@ -624,7 +624,7 @@ function BridgeConnection(transport, opts) {
     localWrappers: opts.localWrappers,
 
     sendBlob: function(id, obj) {
-      var t = isArrayLike(obj) ? 'a' : 'b'; // array | buffer
+      var t = bytes.isArrayBuffer(obj) || bytes.isUint8Array(obj) ? 'a' : 'b'; // array | buffer
       transport.sendData({id: id, t:t}, obj .. toIterableBytes);
       return id;
     },

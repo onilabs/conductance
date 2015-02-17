@@ -1,4 +1,5 @@
 @ = require('sjs:test/std');
+@bytes = require('sjs:bytes');
 var {test, context, assert, isBrowser} = require('sjs:test/suite');
 var helper = require('../helper');
 var bridge = require('mho:rpc/bridge');
@@ -336,6 +337,7 @@ context() {||
 
     context("binary data") {||
       var noTypedArraySupport = @isBrowser && /PhantomJS/.test(window.navigator.userAgent);
+      var noBlobSupport = typeof(Blob) === 'undefined';
       var api;
       test.beforeAll {|s|
         s.ctx = @breaking {|brk|
@@ -368,6 +370,20 @@ context() {||
         (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
         rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
       }.skipIf(noTypedArraySupport)
+
+      test('Blob ends up in the platform\'s preferred format') {||
+        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
+        buf = new Blob([buf]);
+        (buf instanceof Blob) .. @assert.ok();
+        var rv = api.identity(buf);
+        if(@isBrowser) {
+          (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+          rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
+        } else {
+          rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
+          rv .. @assert.eq(new Buffer(payload));
+        }
+      }.skipIf(noBlobSupport)
     }
   }
 
