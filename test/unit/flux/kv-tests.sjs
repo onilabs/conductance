@@ -64,6 +64,22 @@ function test_get(db) {
   err .. @kv.isNotFound .. @assert.ok();
 }
 
+function test_transaction(db) {
+  var key = "foo";
+  var v1 = "firstVal";
+  var v2 = "secondVal";
+  db .. @kv.set(key, v1);
+  db .. @kv.get(key) .. @assert.eq(v1);
+  function set(v){
+    db .. @kv.withTransaction {|db|
+      db .. @kv.set(key, v);
+      return;
+    }
+  }
+  set(v2);
+  db .. @kv.get(key) .. @assert.eq(v2);
+}
+
 function test_query(db) {
   db .. @kv.clearRange(@kv.RANGE_ALL);
 
@@ -116,7 +132,7 @@ function test_query(db) {
     @test("large key") {|s| s.db .. test_large_key() }
     @test("clear") {|s| s.db .. test_clear() }
     @test("get") {|s| s.db .. test_get() }
-
+    @test("withTransaction") {|s| s.db .. test_transaction() }.skip("TODO");
     @test("query") {|s| s.db .. test_query() }
   }
 
