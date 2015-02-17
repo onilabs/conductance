@@ -3,11 +3,11 @@
 //----------------------------------------------------------------------
 // common test implementations to be tested on every db backend:
 
-function test_value_types(db) { 
-  var objs = [1, 100, 3.14, 'test string', 
-              {a: 1, b: { c: 'foo' }}, 
-              null, 
-              [1,2,3], 
+function test_value_types(db) {
+  var objs = [1, 100, 3.14, 'test string',
+              {a: 1, b: { c: 'foo' }},
+              null,
+              [1,2,3],
               [1,2, {a: [4,5], b: 'foo'}]
              ];
 
@@ -18,9 +18,9 @@ function test_value_types(db) {
   }
 }
 
-function test_key_types(db) { 
-  var objs = [1, 100, 'test string', 
-              [1,2,3], 
+function test_key_types(db) {
+  var objs = [1, 100, 'test string',
+              [1,2,3],
               [1,2, 'foo'],
               [1, [2, ['foo', 3]]]
              ];
@@ -73,7 +73,7 @@ function test_transaction(db) {
   function set(v){
     db .. @kv.withTransaction {|db|
       db .. @kv.set(key, v);
-      return;
+      //return;
     }
   }
   set(v2);
@@ -101,7 +101,7 @@ function test_query(db) {
 
 @context {||
   @kv = require('mho:flux/kv');
-    
+
   @test.beforeAll {|s|
     s.root = @path.join(process.env['TEMPDIR'] || process.env['TEMP'] || '/tmp', 'sjs-fs-tests');
     if (!@fs.isDirectory(s.root)) {
@@ -132,7 +132,7 @@ function test_query(db) {
     @test("large key") {|s| s.db .. test_large_key() }
     @test("clear") {|s| s.db .. test_clear() }
     @test("get") {|s| s.db .. test_get() }
-    @test("withTransaction") {|s| s.db .. test_transaction() }.skip("TODO");
+    @test("withTransaction") {|s| s.db .. test_transaction() };
     @test("query") {|s| s.db .. test_query() }
   }
 

@@ -130,6 +130,10 @@ function wrapDB(itf) {
           return @encoding.decodeValue(itf, val);
         },
         put: function(key, value) {
+          key = @encoding.encodeKey(itf, key);
+          if (value !== undefined) {
+            value = @encoding.encodeValue(itf, value);
+          }
           pendingPuts[bytesToHexString(key)] = [key, value];
         },
         query: function(range, options) {
