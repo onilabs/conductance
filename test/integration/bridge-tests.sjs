@@ -336,7 +336,8 @@ context() {||
     }
 
     context("binary data") {||
-      var noTypedArraySupport = @isBrowser && /PhantomJS/.test(window.navigator.userAgent);
+      var isPhantomJS = @isBrowser && /PhantomJS/.test(window.navigator.userAgent);
+      var noTypedArraySupport = isPhantomJS;
       var noBlobSupport = typeof(Blob) === 'undefined';
       var api;
       test.beforeAll {|s|
@@ -383,7 +384,7 @@ context() {||
           rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
           rv .. @assert.eq(new Buffer(payload));
         }
-      }.skipIf(noBlobSupport)
+      }.skipIf(noBlobSupport || isPhantomJS /* PhantomJS Blob implementation is busted */)
     }
   }
 
