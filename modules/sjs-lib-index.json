@@ -120,6 +120,10 @@
                 }
               }
             },
+            "NotFound": {
+              "type": "class",
+              "children": {}
+            },
             "RANGE_ALL": {
               "type": "variable"
             },
@@ -138,6 +142,9 @@
               "type": "function"
             },
             "get": {
+              "type": "function"
+            },
+            "isNotFound": {
               "type": "function"
             },
             "observe": {
