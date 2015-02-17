@@ -122,7 +122,7 @@ exports.getToken = function(username, password) {
 	var now = new Date().getTime();
 	var expires = new Date(now + (1000 * 60 * 60 * 24 * EXPIRY_DAYS));
 	var secretToken;
-	withUser(username) {|user, save|
+	this.withUser(username) {|user, save|
 		if (user.verified() !== true) {
 			@info("User is not yet verified");
 			throw @AuthenticationError();

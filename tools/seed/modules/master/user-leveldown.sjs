@@ -1,6 +1,6 @@
 @ = require('mho:std');
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
-@storage = require('mho:server/storage');
+@kv = require('mho:flux/kv');
 
 var config_root = @path.join(@env.get('data-root'), 'user');
 @debug("CONFIG_ROOT:", config_root);
@@ -8,24 +8,35 @@ var config_root = @path.join(@env.get('data-root'), 'user');
 @mkdirp(config_root);
 var dbLock = @Semaphore();
 
-var store = exports._store = @storage.Storage(@path.join(config_root, 'auth.db'));
+var _store = exports._store = @kv.LevelDB(@path.join(config_root, 'auth.db'));
 
-exports.isNotFound = e -> e.type === 'NotFound';
+var userKey = id -> ['user', id];
 
-var userKey = id -> new Buffer("user:#{id}", 'ascii');
+exports.isNotFound = @kv.isNotFound;
 
-var EXPORTS_WITH_LOCK = Object.create(exports);
-
-exports.synchronize = function(reason, block) {
-	if(this === EXPORTS_WITH_LOCK) {
-		return block(EXPORTS_WITH_LOCK);
+exports.synchronize = function(store, reason, block) {
+	if(arguments.length == 2) {
+		block = reason;
+		reason = store;
+		store = _store;
 	}
-	dbLock.synchronize(->block(EXPORTS_WITH_LOCK));
+	var ctx;
+	var call = -> block(ctx, ctx._tx);
+	if(this._tx) {
+		ctx = this;
+		call();
+	} else {
+		store .. @kv.withTransaction {|store|
+			ctx = Object.create(exports);
+			ctx._tx = store;
+			call();
+		}
+	}
 };
 
 var prefixed = function(prefix) {
 	return @Stream(function(emit) {
-		store.query({
+		_store .. @kv.query({
 			start: prefix,
 		}) .. @each {|pair|
 			pair[0] = pair[0].toString('ascii');
@@ -42,108 +53,108 @@ var keysWithPrefix = function(prefix) {
 };
 
 exports.getUser = function(uid) {
-	this.synchronize('getUser') {||
+	this.synchronize('getUser') {|_, store|
 		var key = userKey(uid);
 		return {
-			id: key.toString('ascii'),
-			props: store.get(key) .. JSON.parse(),
+			id: key,
+			props: store .. @kv.get(key),
 		};
 	}
 };
 
 exports.updateUser = function(id, props) {
-	this.synchronize('updateUser') {||
-		store.put(id, props .. JSON.stringify());
+	this.synchronize('updateUser') {|_, store|
+		store .. @kv.set(id, props);
 	}
 };
 
 exports.createUser = function(props) {
-	this.synchronize('createUser') {||
+	this.synchronize('createUser') {|_, store|
 		var uid = props.name;
 		var key = userKey(uid);
 
 		try {
-			store.get(key);
+			store .. @kv.get(key);
 			throw new Error("Username already exists");
 		} catch(e) {
-			if (!e .. exports.isNotFound) throw e;
+			if (!e .. @kv.isNotFound) throw e;
 		}
-		store.put(key, props .. JSON.stringify());
+		store .. @kv.set(key, props);
 	}
 };
 
 exports._deleteAllData = function() {
-	this.synchronize('_deleteAllData') {||
-		store.query() .. @each {|[k,_v]|
-			store.del(k);
+	this.synchronize('_deleteAllData') {|_, store|
+		store .. @kv.query(@kv.RANGE_ALL) .. @each {|[k,_v]|
+			store .. @kv.clear(k);
 		};
 	}
 };
 
 
 
-if (require.main === module) {
-	@stream = require('sjs:nodejs/stream');
-	var load = function() {
-		var o = {};
-		store.query() .. @each {|[k,v]|
-			//k = k.toString("utf-8");
-			v = v.toString("utf-8");
-			var isJson = v.charAt(0) === '{' && v .. @at(-1, '') === '}';
-			if(isJson) {
-				v = JSON.parse(v);
+exports._main = function(args) {
+	args = args || @argv();
+	exports.synchronize('main') {|_, store|
+		@stream = require('sjs:nodejs/stream');
+		var load = function() {
+			var o = {};
+			store .. @kv.query(@kv.RANGE_ALL) .. @each {|[k,v]|
+				//k = k.toString("utf-8");
+				k = k .. @join('/');
+				o[k] = v;
 			}
-			o[k] = {json: isJson, value: v};
+			return o;
+		};
+
+		var dump = function(o, stream) {
+			JSON.stringify(o, null, '  ') .. @stream.pump(stream, {end:false});
+		};
+
+		var arg = args[0];
+		switch(arg) {
+			case undefined:
+			case '--help':
+				console.warn("Usage: user.sjs [--edit|--dump]");
+				process.exit(1);
+				break;
+			case '--edit':
+				var old = load();
+				require('sjs:nodejs/tempfile').TemporaryFile() {|f|
+					var path = f.path;
+					old .. dump(f.writeStream());
+					f.close();
+
+					var editor = process.env .. @get('EDITOR', 'vi');
+					console.warn("Running: #{editor}");
+					editor = editor.split();
+					@childProcess.run(editor[0], editor.slice(1).concat([path]), {'stdio':'inherit'});
+					console.warn("Saving results...");
+					var result = @fs.readFile(path, 'utf-8') .. JSON.parse();
+					result .. @ownPropertyPairs .. @each {|[k, v]|
+						delete old[k];
+						@assert.ok(v);
+						store .. @kv.set(k .. @split('/'), v);
+					}
+					// old contains only keys not found in result, so delete them:
+					old .. @ownKeys .. @each {|k|
+						store .. @kv.clear(k .. @split('/'));
+					}
+				}
+				break;
+			case '--dump':
+				load() .. dump(process.stdout);
+				break;
+			default:
+				console.warn("Unknown flag #{arg}, try --help");
+				process.exit(1);
+				break;
 		}
-		return o;
-	};
-
-	var dump = function(o, stream) {
-		stream .. @stream.write(JSON.stringify(o, null, '  '));
-	};
-
-	var arg = @argv()[0];
-	switch(arg) {
-		case undefined:
-		case '--help':
-			console.warn("Usage: user.sjs [--edit|--dump]");
-			process.exit(1);
-			break;
-		case '--edit':
-			var old = load();
-			require('sjs:nodejs/tempfile').TemporaryFile() {|f|
-				var path = f.path;
-				old .. dump(f.writeStream());
-				f.close();
-
-				var editor = process.env .. @get('EDITOR', 'vi');
-				console.warn("Running: #{editor}");
-				editor = editor.split();
-				@childProcess.run(editor[0], editor.slice(1).concat([path]), {'stdio':'inherit'});
-				console.warn("Saving results...");
-				var result = @fs.readFile(path, 'utf-8') .. JSON.parse();
-				result .. @ownPropertyPairs .. @each {|[k, v]|
-					delete old[k];
-					var isJson = v.json;
-					v = v.value;
-					@assert.ok(v);
-					if(isJson) v = JSON.stringify(v);
-					store.put(k, v);
-				}
-				// old contains only keys not found in result, so delete them:
-				old .. @ownKeys .. @each {|k|
-					store.del(k);
-				}
-			}
-			break;
-		case '--dump':
-			load() .. dump(process.stdout);
-			break;
-		default:
-			console.warn("Unknown flag #{arg}, try --help");
-			process.exit(1);
-			break;
 	}
+}
+
+if (require.main === module) {
+	exports._main();
 }
 
 

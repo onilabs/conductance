@@ -4,7 +4,7 @@
 @env = require('mho:env');
 @assert = require('sjs:assert');
 
-exports.getToken = @user.getToken;
+exports.getToken = -> @user.getToken.apply(@user, arguments);
 
 exports.version = @env.get('seed-api-version');
 
