@@ -35,10 +35,11 @@ var Form = function(source, opts) {
 			return Field(source, opts .. @merge({form:this, name:name}));
 		},
 		validate: function() {
-			// eagerly validate all fields
-			var fieldsValid = rv.fields .. @map(field -> field.validate()) .. @all(Boolean);
-			var globalValid = validate ? rv.values() .. tryValidate(validate, error) : true;
-			return fieldsValid && globalValid;
+			if(!this.fields .. @map(field -> field.validate()) .. @all(Boolean)) {
+				return false;
+			}
+			var globalValid = validate ? this.values() .. tryValidate(validate, error) : true;
+			return globalValid;
 		},
 
 		wait: function(elem, block) {
@@ -79,17 +80,17 @@ function Field(source, opts) {
 	};
 	var error = @ObservableVar(null);
 
-	var value = source .. @transform(get);
-	value.set = function(v) {
-		//console.log("Setting field #{name} to #{v}");
-		if (transform) v = transform(v);
-		source.modify(function(current, unchanged) {
-			if (!name) return v;
-			if (current[name] === v) return unchanged;
-			//console.log("updated: ", current .. @merge(pairObject(name, v)));
-			return current .. @merge(pairObject(name, v));
+	var value = source .. @transform(get) .. @dedupe();
+	value.modify = function(fn) {
+		return source.modify(function(current, unchanged) {
+			var currentV = get(current);
+			var v = fn(currentV, unchanged);
+			if(v === unchanged) return unchanged;
+			if(transform) v = transform(v);
+			return name ? current .. @merge(pairObject(name, v)) : v;
 		});
 	};
+	value.set = v -> value.modify(->v);
 	value.get = -> get(source.get());
 	value.__oni_is_ObservableVar = true; // XXX hacky...
 
@@ -97,7 +98,7 @@ function Field(source, opts) {
 		name: name,
 		value: value,
 		error: error,
-		validate: -> value .. @first .. tryValidate(validate, error),
+		validate: -> this.value .. @first .. tryValidate(validate, error),
 	};
 
 	if (form) {
@@ -114,7 +115,7 @@ function tryValidate(v, validators, error) {
 			validators .. @each(f -> f(v));
 		} catch(e) {
 			error.set(e.message);
-			//@info("Validation error on #{v}: #{e.message}");
+			@info(`Validation error on ${v}: ${String(e)}`);
 			return false;
 		}
 		error.set(null);

@@ -62,6 +62,10 @@ var formGroup = function(desc, cons, val) {
 		{'class':"form-group"});
 };
 
+var Button = function(contents, action, attrs) {
+	return @Button(contents, attrs) .. @OnClick({handle:@stopEvent}, action);
+};
+
 var serverConfigEditor = exports.serverConfigEditor = function(container, conf) {
 	var current = conf .. @first();
 	@info("Got server config:", current);
@@ -195,6 +199,199 @@ var availableServices = [
 		},
 	},
 
+	(function() {
+		var types = {
+			string: x -> x,
+			'boolean': Boolean,
+			'JSON': JSON.parse,
+		};
+		// used for both validation and storing
+		var processField = function(field) {
+			var t = field .. @get('type');
+			var v = field .. @get('value');
+			var conversion = types[t];
+			if(!conversion) throw new Error("Unknown type: #{t}");
+			try {
+				return conversion(v);
+			} catch(e) {
+				throw new Error("Invalid #{t}");
+			}
+		};
+
+		return {
+			id: 'env',
+			name: "Custom settings",
+			info: `Add custom values to <code>mho:env</code>:`,
+			form: function(form) {
+
+				var fieldsField = form.field('fields', {
+					'default': [],
+				});
+				var fields = fieldsField.value;
+
+				// note: we store an in-memory cache of observables
+				// corresponding to each element in `fields`, generated
+				// on-demand. We never mutate `fields` aside from appending
+				// more, and the current value of `fields` is only used to
+				// seed the initial observable. Upon form submission, the
+				// values are retrieved from this cache, instead of `fields`.
+				//
+				// This is all so that we have a stable form while filling it
+				// out, since the entire form is regenerated each time
+				// `fields` is modified.
+				var editedValues = [];
+				var editableField = function([i, initial]) {
+					@assert.number(i);
+					@assert.ok(initial);
+					var rv = editedValues[i];
+					if(!rv) {
+						initial = { type: 'string', value: null} .. @merge(initial);
+						var obs = @ObservableVar(initial);
+						var form = @form.Form(obs,
+							{ validate: [processField, uniqueField] }
+						);
+						var TextInput = form .. formControl(@TextInput);
+
+						var key = form.field('key');
+						var value = form.field('value');
+						var type = form.field('type');
+						var valueWidget = type.value .. @transform(function(type) {
+							var cons;
+							switch(type) {
+								case 'string':
+									cons = @TextInput;
+									break;
+								case 'boolean':
+									cons = @Checkbox;
+									break;
+								case 'JSON':
+									cons = @TextArea;
+									break;
+								default: throw new Error("Unknown type #{type}");
+							}
+							return cons(value.value, {'class':'form-control', 'name':'value'});
+						});
+
+						var widget = @Form(`
+									${form.error .. @form.formatError()}
+									${@A(@Icon("remove"), {'class':'remove'}) .. @OnClick({handle:@stopEvent}, -> obs.modify(c -> c .. @merge({deleted:true})))}
+									${@Select({items: ['string','boolean','JSON'], selected:type.value}, {name: 'type'})}
+									${TextInput(key, {validate: @validate.required})}&nbsp;=&nbsp;${valueWidget}
+								`,
+								{'class':"form-group editable-field"})
+						.. @Class('hidden', obs .. @transform(o -> o.deleted))
+						.. @OnSubmit({handle:@stopEvent}, -> form.validate());
+
+						rv = editedValues[i] = {
+							value: obs,
+							form: form,
+							widget: widget,
+						};
+					}
+					return rv;
+				}
+
+				var editableFields = function(fields) {
+					fields .. Array.isArray() .. @assert.ok(`Not an array: $fields`);
+					return fields .. @indexed .. @transform(editableField);
+				}
+
+				var activeEditableFields = fields .. @transform(fields -> fields
+					.. editableFields
+					.. @filter(editable -> !editable.value.get().deleted)
+				);
+
+				var uniqueKey = function(key) {
+					// NOTE: we validate against the current editableField
+					// values, not whatever's stored in the DB. Otherwise
+					// you would have to save the form and reopen it before
+					// recreating a deleted key (and other weirdness)
+					@validate.required(key);
+					if (activeEditableFields
+						.. @first()
+						.. @transform(field -> field.value.get() .. @get('key'))
+						.. @hasElem(key)
+					) {
+						throw new Error("Duplicate key `#{key}`");
+					}
+				}
+
+				var uniqueField = function(vals) {
+					var key = vals .. @get('key');
+					var count = activeEditableFields .. @first
+						.. @filter(form -> form.value.get() .. @get('key') === key)
+						.. @count();
+					if(count > 1) throw new Error("Duplicate key");
+				};
+
+				var creationForm = @form.Form({});
+
+				var rv = (function(form) {
+					var TextInput = form .. formControl(@TextInput);
+					var add = function(e) {
+						if(!form.validate()) return;
+						var newField = form.values();
+						if(fields.modify(function(current, unchanged) {
+							@info("Adding field:", newField);
+							return current.concat([newField]);
+						})) {
+							form.fields .. @each(f -> f.value.set(null));
+						}
+					};
+
+					var addButton = @A([@Icon('plus-sign'), 'add']) .. @OnClick({handle:@stopEvent}, add);
+
+					return [@Form([
+						fieldsField.error .. @form.formatErrorAlert(),
+						form.error .. @form.formatError(),
+
+						@Div([
+							@Div(`<label for="key">Add key:</label>
+									$TextInput(form.field('key', {
+										validate: [@validate.required, uniqueKey]
+									}))
+									$addButton
+								`,
+								{'class':"form-group"}),
+						], {'class':'col-xs-12'}),
+					], {'class':'form-inline add-field'}) .. @OnSubmit({handle:@stopEvent}, add)];
+				})(creationForm);
+
+				rv.push(fields .. @transform(function(fields) {
+					if(fields.length == 0) return null;
+					return @Div(fields .. editableFields .. @map({widget} -> widget),
+						{'class':'form-inline'});
+				}));
+
+				// XXX this is a little hacky. Because our values are split out amongst multiple forms,
+				// we'll override the field's `values` and `validate` methods to collate the
+				// actual values from each active field.
+				fieldsField.validate = function() {
+					// field is valid if all editable fields are valid (ignoring deleted ones)
+					return activeEditableFields
+						.. @first()
+						// NOTE: we eagerly validate, so that all field
+						// error messages are updated
+						.. @map(val -> val.form.validate())
+						.. @all();
+				};
+				fieldsField.value = activeEditableFields .. @transform(fields -> fields
+					.. @transform(editable -> editable.value.get())
+					.. @sortBy(field -> field.key)
+					.. @toArray()
+				);
+
+				return rv;
+			},
+			env: function(values) {
+				return values .. @get('fields', []) .. @map(function(field) {
+					return [field.key, processField(field)];
+				}) .. @pairsToObject();
+			},
+		}
+	})(),
+
+
 ];
 
 var ServiceOption = function(s, n) {
@@ -281,14 +478,10 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 	}
 
 	var centralForm = @form.Form(central .. @first());
-	var currentServiceSettings = currentCentral.service.form || {};
+	var currentServiceSettings = currentCentral .. @getPath(['service', 'form'], {});
 	var localForm = @form.Form(currentLocal, {validate: function(vals) {
 		if(!vals.path) throw new Error("Local path is required");
 	}});
-
-	var Button = function(contents, action, attrs) {
-		return @Button(contents, attrs) .. @OnClick({handle:@stopEvent}, action);
-	};
 
 	var entireForm = {
 		validate: -> [centralForm, localForm]
@@ -337,7 +530,6 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 		}) .. @Class(['form-control', 'pull-right']);
 
 		var btn = Button("Add", function(e) {
-			e .. @stopEvent();
 			var service = selected.get().service;
 			if(service === null) return;
 			enabledServiceKeys.value.set(enabledServiceKeys.value.get() .. @union([service.id]));
@@ -351,11 +543,14 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 		}');
 	});
 
+	var submit = @Emitter();
 	parent .. @appendContent(
-		@Form([
+		@Div([
 			localForm.error .. @form.formatErrorAlert,
-			formGroup('Name', TextInput, centralForm.field('name', {validate: [@validate.required, @validate.appName]})) .. initialFocus('input'),
-			browserUI(showBrowser, api, Button, pathField, entireForm),
+			@Form([
+				formGroup('Name', TextInput, centralForm.field('name', {validate: [@validate.required, @validate.appName]})) .. initialFocus('input'),
+				browserUI(showBrowser, api, Button, pathField, entireForm),
+			], {'class':'mainSettings'}),
 
 			showServiceUI ? [
 				@Hr(),
@@ -380,13 +575,15 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 			],
 
 			showBrowser .. @transform(show -> show ? [] : [
-				@Div(saveButton, {'class':'pull-right'}),
+				@Div(Button('Save', -> submit.emit(), {'class':'btn btn-primary'}), {'class':'pull-right'}),
 				extraActions,
 			]),
-		] , {'class':'form-horizontal', 'role':'form'}) .. formStyle()
+		] , {'class':'form form-horizontal', 'role':'form'}) .. formStyle()
 	) {
 		|elem|
-		elem .. @events('submit', {handle:@stopEvent}) .. @each {||
+		var mainFormSubmissions = elem.querySelector('form.mainSettings')
+			.. @events('submit', {handle:@stopEvent});
+		@combine(submit, mainFormSubmissions) .. @each {||
 			if(!entireForm.validate()) continue;
 			@withBusyIndicator {||
 				waitfor {

@@ -49,6 +49,8 @@ if (isBrowser) {
 		return elem .. @elems(sel) .. @filter(@isVisible);
 	};
 
+	lib.formErrors = el -> el .. @elems('.errorDescription') .. @map(el -> el.textContent);
+
 	lib.arrayLike = function(a) {
 		// cross-iframe results don't count as array-like, since their prototype
 		// differs from the host frame's NodeList etc.
@@ -59,7 +61,7 @@ if (isBrowser) {
 
 	lib.formInputs = function(elem) {
 		var rv = {};
-		elem .. @visibleElements('input') .. @each {|elem|
+		elem .. @visibleElements('input, select, textarea') .. @each {|elem|
 			var name = elem.getAttribute('name');
 			if(!name) {
 				@info("skipping nameless HTML input: #{elem.outerHTML}");
@@ -90,7 +92,7 @@ if (isBrowser) {
 lib.addTestHooks = function(opts) {
 	if(isBrowser) {
 		lib.test.beforeAll {|s|
-			s.modal = (sel, pred) -> s.driver.elem(".overlay #{sel ? sel : ""}", pred);
+			s.modal = (sel, pred) -> @waitforSuccess(-> s.driver.elem(".overlay #{sel ? sel : ""}", pred));
 			s.hasModal = (sel, pred) -> s.driver.elems(".overlay #{sel ? sel : ""}", pred).length > 0;
 			s.waitforPanel = function(title) {
 				var matches = @isString(title) ? t -> t === title : t -> title.test(t);
@@ -101,8 +103,9 @@ lib.addTestHooks = function(opts) {
 				return s.modal('.panel-body');
 			}
 			s.clickLink = (elem, text) -> elem .. @elems('a') .. @find(@contentPredicate(text)) .. s.driver.click();
+			s.button = (elem, text) -> elem .. @elems('button') .. @find(@contentPredicate(text));
 			s.clickButton = function(elem, text) {
-				var btn = elem .. @elems('button') .. @find(@contentPredicate(text));
+				var btn = s.button(elem, text);
 				@waitforSuccess( -> btn.classList.contains('disabled') .. @assert.eq(false));
 				btn .. s.driver.click();
 			}
@@ -130,9 +133,11 @@ lib.addTestHooks = function(opts) {
 				expectedFields .. @each {|key|
 					var val = props .. @get(key);
 					var elem = inputs[key];
+					if(!elem) throw new Error("elem #{key} not found in #{inputs .. @ownKeys .. @toArray .. JSON.stringify()}");
 					@info("Entering #{val} into elem #{elem}");
 					elem .. @enter(val);
 				}
+				return form;
 			}
 
 			s.appList = function() {
@@ -198,7 +203,7 @@ lib.addTestHooks = function(opts) {
 
 	if (isBrowser) {
 		lib.test.beforeAll {|s|
-			s.driver = lib.Driver(@url.normalize('../../', module.id), {width:400, height:600});
+			s.driver = lib.Driver(@url.normalize('../../', module.id) + '?nobundle=seed', {width:600, height:800});
 		};
 
 		lib.test.afterEach {|s, err|

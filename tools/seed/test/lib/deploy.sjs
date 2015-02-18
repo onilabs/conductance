@@ -4,11 +4,16 @@ exports.setUploadPath = function(s, path) {
 	s.appSettingsButton() .. s.driver.click();
 
 	var form = @waitforSuccess( -> s.modal('form'));
+	exports.fillUploadPath(s, form, path);
+	form .. @trigger('submit');
+	s.waitforNoModal();
+}
+
+exports.fillUploadPath = function(s, form, path) {
+	path .. @assert.ok();
 	form .. s.fillForm({
 		path: path,
 	}, false);
-	form .. @trigger('submit');
-	s.waitforNoModal();
 }
 
 exports.appRequester = function(s, baseUrl) {
@@ -25,6 +30,26 @@ exports.appRequester = function(s, baseUrl) {
 		@info("request to #{url} returned:", rv);
 		return rv;
 	}
+}
+
+exports.ensureStopped = function(s) {
+	if(s .. exports.isRunning()) {
+		s.mainElem .. s.clickButton(/stop/);
+	}
+	@waitforCondition( -> !s .. exports.isRunning());
+};
+
+exports.isRunning = function(s) {
+	return s.appHeader().classList.contains('text-success');
+}
+
+exports.isServing = function(s) {
+	return s .. exports.isRunning()
+		&& s.outputContent() .. @contains('Conductance serving address:');
+}
+
+exports.awaitRunningApp = function(s) {
+	@waitforCondition(-> s .. exports.isServing(), null, 20);
 }
 
 exports.createApp = function(s, appName) {
@@ -52,7 +77,7 @@ exports.createApp = function(s, appName) {
 
 exports.enableService = function(s, name) {
 	// assumes the settings form has already been called up
-	var form = @waitforSuccess( -> s.modal('form'));
+	var form = @waitforSuccess( -> s.modal('.form'));
 	var select = form .. @elem('select') .. @assert.ok();
 	var options = select.options .. @arrayLike .. @map(ch -> ch.textContent);
 	options .. @assert.contains(name);

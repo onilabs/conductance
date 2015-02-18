@@ -26,4 +26,4 @@
 
 		@assert.raises({message:/JWT signature does not match/}, -> jwt.verify(token));
 	}
-}
+}.serverOnly();

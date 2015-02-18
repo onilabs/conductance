@@ -18,6 +18,17 @@ exports.serve = function() {
         @fs.fileContents('/etc/hosts') .. @stream.pump(req.response);
       }}),
 
+      @Route('dump-env', {GET: function(req) {
+        req .. @response.setStatus(200);
+        var instance = [key, v] -> v.instance != null ? [key, v.instance];
+        @env._db .. @ownPropertyPairs
+          .. @filter(instance)
+          .. @map(instance)
+          .. @pairsToObject()
+          .. JSON.stringify()
+          .. @stream.pump(req.response);
+      }}),
+
       @Route(/^read\/(.*)$/, {POST: function(req, [_, path]) {
         path = decodeURIComponent(path);
         @info("reading #{path}");
