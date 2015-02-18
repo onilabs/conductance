@@ -213,6 +213,9 @@ function test_all() {
     }
 
     test_all();
+
+    // This can't be tested by Local db because it takes too long
+    @test("large value") {|s| s.db .. test_large_value() }
   }
 
 }.serverOnly();
