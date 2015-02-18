@@ -16,7 +16,7 @@
 
 module.setCanonicalId('mho:flux/kv');
 
-@ = require(['sjs:std', {id:'sjs:type', include:['Interface']}, {id:'./kv/util', name:'util'}]);
+@ = require(['sjs:std', {id:'sjs:type', include:['Interface']}]);
 
 var NOT_FOUND = 'NotFound';
 
@@ -319,11 +319,7 @@ function LevelDB(location, options, block) {
     options = {};
   }
 
-  var db = require('./kv/leveldb').LevelDB(location, options);
-  var itf = @util.wrapDB(db);
-
-  // It's necessary to manually close the db if you don't provide a block
-  itf.close = db.close;
+  var itf = require('./kv/leveldb').WrappedLevelDB(location, options);
 
   if (block) {
     try {
@@ -347,8 +343,7 @@ function Local(options, block) {
     options = {};
   }
 
-  var db = require('./kv/local').Local(options);
-  var itf = @util.wrapDB(db);
+  var itf = require('./kv/local').Local(options);
 
   if (block) {
     block(itf);

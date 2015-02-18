@@ -12,7 +12,9 @@
 /**
    @nodoc
  */
-@ = require(['sjs:std', { id: './encoding', name: 'encoding' }]);
+@ = require(['sjs:std',
+             { id: './encoding', name: 'encoding' },
+             { id: './util', name: 'util' }]);
 
 var SortedDict = (function () {
   __js {
@@ -296,54 +298,31 @@ var SortedDict = (function () {
 })();
 
 
-function Local(options) {
+var cache_localStorage = {};
+var cache_file = {};
+
+function get_cache(o, s, f) {
+  if (o[s] == null) {
+    o[s] = f();
+  }
+  return o[s];
+}
+
+function save_db(dict, options) {
+  if (options.localStorage != null) {
+    localStorage[options.localStorage] = dict.serialize();
+
+  } else if (options.file != null) {
+    @fs.writeFile(options.file, dict.serialize(), 'utf8');
+  }
+}
+
+function wrap_dict(dict, options) {
   /*
     MutationEmitter receives all mutations in the form
     [{type:'put'|'del', key:encoded_key, value:encoded_value}, ...]
    */
   var MutationEmitter = @Emitter();
-
-  var dict = SortedDict();
-
-  if (options.localStorage != null && options.file != null) {
-    throw new Error("Cannot specify both localStorage and file at the same time");
-  }
-
-  function load_db1(db) {
-    JSON.parse(db) ..@each(function ([key, value]) {
-      dict.set(key, value);
-    });
-  }
-
-  function load_db() {
-    if (options.localStorage != null) {
-      var db = localStorage[options.localStorage];
-      if (db) {
-        load_db1(db);
-      }
-
-    } else if (options.file != null) {
-      // TODO is there a better way of dealing with the file not existing ?
-      try {
-        load_db1(@fs.readFile(options.file, 'utf8'));
-      } catch (e) {
-        if (e.code !== 'ENOENT') {
-          throw e;
-        }
-      }
-    }
-  }
-
-  function save_db(dict) {
-    if (options.localStorage != null) {
-      localStorage[options.localStorage] = dict.serialize();
-
-    } else if (options.file != null) {
-      @fs.writeFile(options.file, dict.serialize(), 'utf8');
-    }
-  }
-
-  load_db();
 
   return {
     changes: MutationEmitter,
@@ -422,7 +401,7 @@ function Local(options) {
         }
       });
 
-      save_db(dict);
+      save_db(dict, options);
 
       MutationEmitter.emit(ops);
     },
@@ -431,5 +410,58 @@ function Local(options) {
       return dict.range(info);
     }
   };
+}
+
+function load_db1(dict, input) {
+  JSON.parse(input) ..@each(function ([key, value]) {
+    dict.set(key, value);
+  });
+}
+
+function load_db(options) {
+  if (options.localStorage != null) {
+    return get_cache(cache_localStorage, options.localStorage, function () {
+      var dict = SortedDict();
+
+      var db = localStorage[options.localStorage];
+      if (db) {
+        load_db1(dict, db);
+      }
+
+      return @util.wrapDB(wrap_dict(dict, options));
+    });
+
+  } else if (options.file != null) {
+    return get_cache(cache_file, options.file, function () {
+      var dict = SortedDict();
+
+      // TODO is there a better way of dealing with the file not existing ?
+      try {
+        load_db1(dict, @fs.readFile(options.file, 'utf8'));
+      } catch (e) {
+        if (e.code !== 'ENOENT') {
+          throw e;
+        }
+      }
+
+      return @util.wrapDB(wrap_dict(dict, options));
+    });
+
+  } else {
+    return @util.wrapDB(wrap_dict(SortedDict(), options));
+  }
+}
+
+function Local(options) {
+  if (options.localStorage != null && options.file != null) {
+    throw new Error("Cannot specify both localStorage and file at the same time");
+  }
+
+  if (options.file != null) {
+    // TODO is path.resolve correct ?
+    options.file = @path.resolve(options.file);
+  }
+
+  return load_db(options);
 }
 exports.Local = Local;
