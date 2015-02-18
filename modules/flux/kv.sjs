@@ -193,8 +193,11 @@ exports.clear = clear;
    @setting {Boolean} [reverse=false] Reverse direction of range
    @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
    @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs in the given [::Range].
+   @desc
+     The `limit` setting is applied *after* the `reverse` setting, so that
+     it will first reverse the sequence, and will then limit it starting
+     from the first element of the reversed sequence.
 */
-
 function query(store, range, options) {
   return store[ITF_KVSTORE].query(range, options || {});
 }

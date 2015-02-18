@@ -108,6 +108,12 @@ function test_query(db) {
   db .. @kv.query({begin:'a', end:'d'}) .. @toArray .. @assert.eq(kv_pairs.slice(0,3));
   db .. @kv.query({begin:'b', end:'d'}) .. @toArray .. @assert.eq(kv_pairs.slice(1,3));
 
+  db .. @kv.query({begin:'a', end:'e'}, {limit:1}) .. @toArray .. @assert.eq(kv_pairs.slice(0,1));
+
+  db .. @kv.query({begin:'b', end:'d'}, {reverse:true}) .. @toArray .. @assert.eq(kv_pairs.slice(1,3) ..@reverse);
+
+  db .. @kv.query({begin:'a', end:'e'}, {reverse:true, limit:2}) .. @toArray .. @assert.eq(kv_pairs.slice(2,4) ..@reverse);
+
   db .. @kv.query({begin:-10, end:5}) .. @toArray .. @assert.eq(kv_pairs.slice(4,8));
   db .. @kv.query({begin:1, end:4}) .. @toArray .. @assert.eq(kv_pairs.slice(4,7));
   db .. @kv.query({begin:2, end:4}) .. @toArray .. @assert.eq(kv_pairs.slice(5,7));

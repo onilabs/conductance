@@ -284,7 +284,7 @@ var SortedDict = (function () {
     var sort  = this.sort;
     var start = info.gte;
     var end   = info.lt;
-    return iter_range(this.root, {
+    var range = iter_range(this.root, {
       start: function (x) {
         return sort(x.key, start) >= 0;
       },
@@ -292,6 +292,17 @@ var SortedDict = (function () {
         return sort(x.key, end) < 0;
       }
     });
+
+    // TODO faster implementation of this
+    if (info.reverse) {
+      range = @reverse(range);
+    }
+
+    if (info.limit !== -1) {
+      range = @take(range, info.limit);
+    }
+
+    return range;
   };
 
   return SortedDict;
