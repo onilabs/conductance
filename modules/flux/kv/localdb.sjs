@@ -122,16 +122,19 @@ var SortedDict = (function () {
 
 
     function KeyNode(left, right, key, value) {
+      this.left  = left;
+      this.right = right;
       this.key   = key;
       this.value = value;
-      this.children(left, right);
+      this.depth = Math.max(left.depth, right.depth) + 1;
     }
 
     KeyNode.prototype.children = function (left, right) {
-      this.left  = left;
-      this.right = right;
-      this.depth = Math.max(left.depth, right.depth) + 1;
-      return this;
+      return new KeyNode(left, right, this.key, this.value);
+    };
+
+    KeyNode.prototype.modify = function (key, value) {
+      return new KeyNode(this.left, this.right, key, value);
     };
 
 
@@ -162,9 +165,7 @@ var SortedDict = (function () {
 
         var order = sort(key, node.key);
         if (order === 0) {
-          node.key   = key;
-          node.value = value;
-          return node;
+          return node.modify(key, value);
 
         } else if (order < 0) {
           return balanced_node(node, key_set(left, sort, key, value), right);
@@ -220,11 +221,11 @@ var SortedDict = (function () {
     };
 
     Dict.prototype.remove = function (key) {
-      this.root = key_remove(this.root, this.sort, key);
+      return new Dict(key_remove(this.root, this.sort, key), this.sort);
     };
 
     Dict.prototype.set = function (key, value) {
-      this.root = key_set(this.root, this.sort, key, value);
+      return new Dict(key_set(this.root, this.sort, key, value), this.sort);
     };
 
     function SortedDict() {
@@ -402,10 +403,10 @@ function wrap_dict(dict, options) {
         }
 
         if (type === 'put') {
-          dict.set(key, value);
+          dict = dict.set(key, value);
 
         } else if (type === 'del') {
-          dict.remove(key);
+          dict = dict.remove(key);
 
         } else {
           throw new Error("Unknown type: " + type);
@@ -418,14 +419,16 @@ function wrap_dict(dict, options) {
     },
 
     query: function (info) {
-      return dict.range(info);
+      return @Stream(function (emit) {
+        dict.range(info) ..@each(emit);
+      });
     }
   };
 }
 
 function load_db1(dict, input) {
-  JSON.parse(input) ..@each(function ([key, value]) {
-    dict.set(key, value);
+  return JSON.parse(input) ..@reduce(dict, function (dict, [key, value]) {
+    return dict.set(key, value);
   });
 }
 
@@ -436,7 +439,7 @@ function load_db(options) {
 
       var db = localStorage[options.localStorage];
       if (db) {
-        load_db1(dict, db);
+        dict = load_db1(dict, db);
       }
 
       return @util.wrapDB(wrap_dict(dict, options));
@@ -448,7 +451,7 @@ function load_db(options) {
 
       // TODO is there a better way of dealing with the file not existing ?
       try {
-        load_db1(dict, @fs.readFile(options.file, 'utf8'));
+        dict = load_db1(dict, @fs.readFile(options.file, 'utf8'));
       } catch (e) {
         if (e.code !== 'ENOENT') {
           throw e;

@@ -117,6 +117,53 @@ function test_query(db) {
   db .. @kv.query({begin:-10, end:5}) .. @toArray .. @assert.eq(kv_pairs.slice(4,8));
   db .. @kv.query({begin:1, end:4}) .. @toArray .. @assert.eq(kv_pairs.slice(4,7));
   db .. @kv.query({begin:2, end:4}) .. @toArray .. @assert.eq(kv_pairs.slice(5,7));
+
+
+  var EOF = {};
+
+  db ..@kv.query(@kv.RANGE_ALL) .. @consume(EOF, function (next) {
+    db .. @kv.clearRange(@kv.RANGE_ALL);
+
+    db ..@kv.set(['a'], 1);
+    db ..@kv.set(['b'], 2);
+
+    next() ..@assert.eq([['a'], 1]);
+    next() ..@assert.eq([['b'], 2]);
+  });
+
+  db ..@kv.query(@kv.RANGE_ALL) .. @consume(EOF, function (next) {
+    db .. @kv.clearRange(@kv.RANGE_ALL);
+
+    db ..@kv.set(['a'], 1);
+    db ..@kv.set(['b'], 2);
+
+    db ..@kv.clear(['a']);
+
+    next() ..@assert.eq([['b'], 2]);
+    next() ..@assert.is(EOF);
+  });
+
+   db ..@kv.query(@kv.RANGE_ALL) .. @consume(EOF, function (next) {
+    db .. @kv.clearRange(@kv.RANGE_ALL);
+
+    db ..@kv.set(['a'], 1);
+    next() ..@assert.eq([['a'], 1]);
+
+    db ..@kv.set(['b'], 2);
+    next() ..@assert.is(EOF);
+  });
+
+  db ..@kv.query(@kv.RANGE_ALL) .. @consume(EOF, function (next) {
+    db .. @kv.clearRange(@kv.RANGE_ALL);
+
+    db ..@kv.set(['a'], 1);
+    db ..@kv.set(['b'], 2);
+
+    next() ..@assert.eq([['a'], 1]);
+
+    db ..@kv.clear(['b']);
+    next() ..@assert.eq([['b'], 2]);
+  });
 }
 
 function test_persistence(info) {
@@ -149,8 +196,8 @@ function test_persistence(info) {
 }
 
 function test_all() {
-  @test("withTransaction") {|s| s.db .. test_transaction() }
-  @test("query") { |s| s.db .. test_query() }
+  @test("withTransaction") { |s| s.db .. test_transaction }
+  @test("query") { |s| s.db .. test_query }
 
   // For all these tests, we run them both inside & outside
   // of a transaction block
