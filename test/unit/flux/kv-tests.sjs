@@ -1,4 +1,5 @@
 @ = require('sjs:test/std');
+@kv = require('mho:flux/kv');
 
 //----------------------------------------------------------------------
 // common test implementations to be tested on every db backend:
@@ -84,6 +85,8 @@ function test_transaction(db) {
 function test_query(db) {
   db .. @kv.clearRange(@kv.RANGE_ALL);
 
+  db .. @kv.query(@kv.RANGE_ALL) .. @toArray .. @assert.eq([]);
+
   var kv_pairs = [ 'a', 'b', 'c', 'd', 1, 2, 3, 4 ] .. @indexed .. @map([i,x] -> [[x], i]);
   kv_pairs .. @each {
     |[key, val]|
@@ -98,11 +101,84 @@ function test_query(db) {
   db .. @kv.query({begin:2, end:4}) .. @toArray .. @assert.eq(kv_pairs.slice(5,7));
 }
 
+function test_persistence(info) {
+  function all(db) {
+    return db ..@kv.query(@kv.RANGE_ALL) ..@toArray;
+  }
+
+  @test("persistence") {|s|
+    all(s.db) ..@assert.eq([]);
+
+    s.db ..@kv.set('foo', 1);
+    s.db ..@kv.set('bar', 2);
+
+    all(s.db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
+
+    var encoded = '[[[2,98,97,114,0],[1,50]],[[2,102,111,111,0],[1,49]]]';
+
+    if (info.file != null) {
+      @fs.readFile(s.path(info.file), 'utf8') ..@assert.eq(encoded);
+      var new_db = @kv.Local({ file: s.path(info.file) });
+
+    } else {
+      localStorage[info.localStorage] ..@assert.eq(encoded);
+      var new_db = @kv.Local({ localStorage: info.localStorage });
+    }
+
+    @assert.is(new_db, s.db);
+    all(new_db) ..@assert.eq(all(s.db));
+  }
+}
+
+function test_all() {
+  @test("withTransaction") {|s| s.db .. test_transaction() }
+
+  // For all these tests, we run them both inside & outside
+  // of a transaction block
+  ;[
+    [null, (s, block) -> block(s.db)],
+    ["withTransaction", (s, block) -> s.db .. @kv.withTransaction(block)]
+  ] .. @each {|[desc, wrap]|
+    @context(desc) {||
+      @test("value types") { |s| s .. wrap(test_value_types) }
+      @test("key types")   { |s| s .. wrap(test_key_types)   }
+      @test("large value") { |s| s .. wrap(test_large_value) }
+      @test("large key")   { |s| s .. wrap(test_large_key)   }
+      @test("clear")       { |s| s .. wrap(test_clear)       }
+      @test("get")         { |s| s .. wrap(test_get)         }
+      @test("query")       { |s| s .. wrap(test_query)       }
+    }
+  }
+}
+
 //----------------------------------------------------------------------
 
 @context {||
-  @kv = require('mho:flux/kv');
+  @context("Local (memory)") {||
+    @test.beforeAll {|s|
+      s.db = @kv.Local();
+    }
 
+    test_all();
+  }
+};
+
+@context {||
+  @context("Local (localStorage)") {||
+    @test.beforeAll {|s|
+      s.db = @kv.Local({ localStorage: 'local-test-db' });
+    }
+
+    @test.afterAll {|s|
+      delete localStorage['local-test-db'];
+    }
+
+    test_persistence({ localStorage: 'local-test-db' });
+    test_all();
+  }
+}.browserOnly();
+
+@context {||
   @test.beforeAll {|s|
     s.root = @path.join(process.env['TEMPDIR'] || process.env['TEMP'] || '/tmp', 'sjs-fs-tests');
     if (!@fs.isDirectory(s.root)) {
@@ -113,6 +189,15 @@ function test_query(db) {
 
   @test.afterAll {|s|
     @childProcess.run('rm', ['-rf', s.root], {stdio:'inherit'});
+  }
+
+  @context("Local (file)") {||
+    @test.beforeAll {|s|
+      s.db = @kv.Local({ file: s.path('local-test-db') });
+    }
+
+    test_persistence({ file: 'local-test-db' });
+    test_all();
   }
 
   //----------------------------------------------------------------------
@@ -127,24 +212,7 @@ function test_query(db) {
       s.db.close();
     }
 
-    @test("withTransaction") {|s| s.db .. test_transaction() }
-
-    // For all these tests, we run them both inside & outside
-    // of a transaction block
-    ;[
-      [null, (s, block) -> block(s.db)],
-      ["withTransaction", (s, block) -> s.db .. @kv.withTransaction(block)]
-    ] .. @each {|[desc, wrap]|
-      @context(desc) {||
-        @test("value types") { |s| s .. wrap(test_value_types) }
-        @test("key types")   { |s| s .. wrap(test_key_types)   }
-        @test("large value") { |s| s .. wrap(test_large_value) }
-        @test("large key")   { |s| s .. wrap(test_large_key)   }
-        @test("clear")       { |s| s .. wrap(test_clear)       }
-        @test("get")         { |s| s .. wrap(test_get)         }
-        @test("query")       { |s| s .. wrap(test_query)       }
-      }
-    }
+    test_all();
   }
 
 }.serverOnly();
