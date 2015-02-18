@@ -207,11 +207,12 @@ exports.query = query;
    @summary Clears any values associated with keys in given range.
 */
 function clearRange(store, range) {
-  // TODO should this use a transaction ?
-  // TODO this currently has to encode/decode the keys twice
-  //      this can be made more efficient by only encoding/decoding them once
-  // TODO this should use `{ values: false }` since we're only interested in the values
-  query(store, range) .. @each { |[key]| clear(store, key); };
+  withTransaction(store, function (store) {
+    // TODO this currently has to encode/decode the keys twice
+    //      this can be made more efficient by only encoding/decoding them once
+    // TODO this should use `{ values: false }` since we're only interested in the values
+    query(store, range) .. @each([key] -> clear(store, key));
+  });
 }
 exports.clearRange = clearRange;
 
