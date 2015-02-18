@@ -188,14 +188,16 @@ function wrapDB(itf) {
           throw new Error('write me');
         },
         withTransaction: function(options, block) {
-          block(T);
-        }
+          return block(T);
+        },
       };
 
       // retry transactions until they succeed:
+      var rv;
       while (true) {
+        rv = undefined;
         waitfor {
-          block(T);
+          rv = block(T);
         }
         or {
           // We are stricter than required here. All we need to
@@ -219,7 +221,8 @@ function wrapDB(itf) {
         // implementation of client code more complicated though.
         if (!conflict) {
           // we can commit our pending reads:
-          return itf.batch(pendingPuts .. @values .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
+          itf.batch(pendingPuts .. @values .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
+          return rv;
         }
         // go round loop and retry:
         pendingPuts = {};

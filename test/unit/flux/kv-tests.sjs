@@ -70,13 +70,14 @@ function test_transaction(db) {
   var v2 = "secondVal";
   db .. @kv.set(key, v1);
   db .. @kv.get(key) .. @assert.eq(v1);
+  var returnVal = "returnVal";
   function set(v){
-    db .. @kv.withTransaction {|db|
+    return db .. @kv.withTransaction(function(db) {
       db .. @kv.set(key, v);
-      //return;
-    }
+      return returnVal;
+    });
   }
-  set(v2);
+  set(v2) .. @assert.eq(returnVal);
   db .. @kv.get(key) .. @assert.eq(v2);
 }
 
@@ -126,14 +127,24 @@ function test_query(db) {
       s.db.close();
     }
 
-    @test("value types") {|s| s.db .. test_value_types() }
-    @test("key types") {|s| s.db .. test_key_types() }
-    @test("large value") {|s| s.db .. test_large_value() }
-    @test("large key") {|s| s.db .. test_large_key() }
-    @test("clear") {|s| s.db .. test_clear() }
-    @test("get") {|s| s.db .. test_get() }
-    @test("withTransaction") {|s| s.db .. test_transaction() };
-    @test("query") {|s| s.db .. test_query() }
+    @test("withTransaction") {|s| s.db .. test_transaction() }
+
+    // For all these tests, we run them both inside & outside
+    // of a transaction block
+    ;[
+      [null, (s, block) -> block(s.db)],
+      ["withTransaction", (s, block) -> s.db .. @kv.withTransaction(block)]
+    ] .. @each {|[desc, wrap]|
+      @context(desc) {||
+        @test("value types") { |s| s .. wrap(test_value_types) }
+        @test("key types")   { |s| s .. wrap(test_key_types)   }
+        @test("large value") { |s| s .. wrap(test_large_value) }
+        @test("large key")   { |s| s .. wrap(test_large_key)   }
+        @test("clear")       { |s| s .. wrap(test_clear)       }
+        @test("get")         { |s| s .. wrap(test_get)         }
+        @test("query")       { |s| s .. wrap(test_query)       }
+      }
+    }
   }
 
 }.serverOnly();
