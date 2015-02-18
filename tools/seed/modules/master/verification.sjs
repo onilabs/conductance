@@ -81,19 +81,17 @@ exports.verify = function(uid, code) {
   @validate .. @keySafe(uid);
   @validate .. @keySafe(code);
   try {
-    @user.withUser(uid) {|user, save|
-      if(user.verified()) return true; // refresh maybe; that's fine
+    return @user.withUser(uid, function(user, result) {
+      if(user.verified()) return result(true); // refresh maybe; that's fine
       if(user.verifyCode() === code) {
-        user.merge({
+        result(true);
+        @info("Verified user #{uid}");
+        return user.merge({
           verifyCode: undefined,
           verified: true,
-        }) .. save();
-        @info("Verified user #{uid}");
-        return true;
-      } else {
-        return false;
+        });
       }
-    }
+    });
   } catch(e) {
     if(e .. @user.isNotFound() || e .. @isAuthenticationError()) {
       return false

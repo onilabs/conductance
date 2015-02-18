@@ -896,6 +896,7 @@ function GoogleCloudDatastore(attribs) {
             change_buffer.addChanges(@keys(mutated_ids) .. @map(id -> { id: id, schema: id .. KeyToKind }));
           }
         }
+        return rv;
       }
     },
 

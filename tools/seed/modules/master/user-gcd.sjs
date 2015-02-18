@@ -127,9 +127,9 @@ exports.Create = function(namespace) {
 	};
 
 	rv.synchronize = function(reason, block) {
-		db.withTransaction() {|db|
+		return db.withTransaction(function(db) {
 			return block(dbApi(db));
-		}
+		})
 	}
 	return rv;
 };

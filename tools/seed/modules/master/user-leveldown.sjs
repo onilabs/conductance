@@ -24,13 +24,13 @@ exports.synchronize = function(store, reason, block) {
 	var call = -> block(ctx, ctx._tx);
 	if(this._tx) {
 		ctx = this;
-		call();
+		return call();
 	} else {
-		store .. @kv.withTransaction {|store|
+		return store .. @kv.withTransaction(function(store) {
 			ctx = Object.create(exports);
 			ctx._tx = store;
-			call();
-		}
+			return call();
+		});
 	}
 };
 

@@ -39,14 +39,21 @@ var getUser = exports.getUser = function(uid) {
 }
 
 var withUser = exports.withUser = function(uid, block) {
-	db.synchronize('withUser') {|db|
+	// NOTE: `block` should be a function, not a blocklambda.
+	// We encourage this by making `return user;` the only way
+	// to modify the user. To return an actual value from this
+	// function, use `setReturn`.
+	return db.synchronize('withUser', function(db) {
+		var rv;
+		var setReturn = function(x) { rv = x; }
 		var {id, props} = wrapAuthenticationError( -> db.getUser(uid));
 		var user = new @User(uid, props);
-		var save = function(u) {
-			db.updateUser(id, (u .. @get('props')));
-		};
-		return block(user, save);
-	}
+		user = block(user, setReturn);
+		if(user == undefined) return;
+		@assert.ok(user instanceof @User, `Not a User object: $user`);
+		db.updateUser(id, user .. @get('props'));
+		return rv;
+	});
 }
 
 // password storage based on recommendations in:
