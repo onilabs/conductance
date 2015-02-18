@@ -129,7 +129,7 @@ exports.getToken = function(username, password) {
 	var now = new Date().getTime();
 	var expires = new Date(now + (1000 * 60 * 60 * 24 * EXPIRY_DAYS));
 	var secretToken;
-	this.withUser(username) {|user, save|
+	this.withUser(username, function(user) {
 		if (user.verified() !== true) {
 			@info("User is not yet verified");
 			throw @AuthenticationError();
@@ -152,8 +152,8 @@ exports.getToken = function(username, password) {
 		@verbose("Adding token to user: ", dbToken);
 		if (!props.tokens) props.tokens = [];
 		props.tokens = [serializedToken].concat(props.tokens.slice(0,9));
-		save(user);
-	}
+		return user;
+	});
 	return Token.encode(secretToken);
 };
 
