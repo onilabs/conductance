@@ -71,7 +71,9 @@ function test_transaction(db) {
   var v2 = "secondVal";
   db .. @kv.set(key, v1);
   db .. @kv.get(key) .. @assert.eq(v1);
+
   var returnVal = "returnVal";
+
   function set(v){
     return db .. @kv.withTransaction(function(db) {
       db .. @kv.set(key, v);
@@ -79,6 +81,16 @@ function test_transaction(db) {
     });
   }
   set(v2) .. @assert.eq(returnVal);
+  db .. @kv.get(key) .. @assert.eq(v2);
+
+  function setAbort(v) {
+    db .. @kv.withTransaction {|db|
+      db .. @kv.set(key, v);
+      return returnVal;
+    }
+  }
+
+  setAbort(v1) ..@assert.eq(returnVal);
   db .. @kv.get(key) .. @assert.eq(v2);
 }
 
