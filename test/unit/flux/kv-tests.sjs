@@ -150,6 +150,7 @@ function test_persistence(info) {
 
 function test_all() {
   @test("withTransaction") {|s| s.db .. test_transaction() }
+  @test("query") { |s| s.db .. test_query() }
 
   // For all these tests, we run them both inside & outside
   // of a transaction block
@@ -160,11 +161,9 @@ function test_all() {
     @context(desc) {||
       @test("value types") { |s| s .. wrap(test_value_types) }
       @test("key types")   { |s| s .. wrap(test_key_types)   }
-      @test("large value") { |s| s .. wrap(test_large_value) }
       @test("large key")   { |s| s .. wrap(test_large_key)   }
       @test("clear")       { |s| s .. wrap(test_clear)       }
       @test("get")         { |s| s .. wrap(test_get)         }
-      @test("query")       { |s| s .. wrap(test_query)       }
     }
   }
 }
@@ -199,6 +198,10 @@ function test_all() {
 @context {||
   @test.beforeAll {|s|
     s.root = @path.join(process.env['TEMPDIR'] || process.env['TEMP'] || '/tmp', 'sjs-fs-tests');
+
+    // TODO code duplication with afterAll
+    @childProcess.run('rm', ['-rf', s.root], {stdio:'inherit'});
+
     if (!@fs.isDirectory(s.root)) {
       @fs.mkdir(s.root);
     }
