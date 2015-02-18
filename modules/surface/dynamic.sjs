@@ -643,16 +643,50 @@ exports.On = On;
      @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
      @mainContent .. @appendContent(
        @demo.CodeResult(
-         "@Button('click me') .. 
-       @OnClick(ev -> @mainContent ..
-                        @appendContent(ev))",
-         @Button('click me') .. 
-           @OnClick(ev -> @mainContent .. 
-                            @appendContent(ev))
+         "@Button('click me') ..
+       @OnClick({handle: @stopEvent},
+          ev -> @mainContent .. @appendContent(ev))",
+        @Button('click me') ..
+          @OnClick({handle: @stopEvent},
+          ev -> @mainContent ..
+                          @appendContent(ev))
        ));
 */
 var OnClick = (html, opts, f) -> html .. On('click', opts, f);
 exports.OnClick = OnClick;
+
+/**
+  @function OnSubmit
+  @altsyntax element .. OnSubmit([settings], event_handler)
+  @summary Adds a 'submit' event handler on a form element
+  @param {::HtmlFragment} [form]
+  @param {optional Object} [settings] Settings as described at [sjs:event::events].
+  @param {Function} [event_handler]
+  @return {::Element}
+  @hostenv xbrowser
+  @desc
+    See also [::On].
+  @demo
+     @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
+     var content = @ObservableVar("");
+     @mainContent .. @appendContent(
+       @demo.CodeResult(
+         "@Form([
+        @TextInput(content),
+        @Button('submit')
+      ]) ..
+        @OnSubmit({handle: @stopEvent},
+          ev -> @mainContent .. @appendContent(ev))",
+      @Form([
+        @TextInput(content),
+        @Button('submit')
+      ]) ..
+        @OnSubmit({handle: @stopEvent},
+          function(ev) { @mainContent .. @appendContent(ev); resize(); })
+       ));
+*/
+var OnSubmit = (html, opts, f) -> html .. On('submit', opts, f);
+exports.OnSubmit = OnSubmit;
 
 /**
    @function ContentGenerator

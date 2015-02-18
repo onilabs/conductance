@@ -891,6 +891,9 @@
         "OnClick": {
           "type": "function"
         },
+        "OnSubmit": {
+          "type": "function"
+        },
         "Prop": {
           "type": "function"
         },
