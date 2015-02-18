@@ -120,6 +120,14 @@
                 }
               }
             },
+            "LocalDB": {
+              "type": "class",
+              "children": {
+                "LocalDB": {
+                  "type": "ctor"
+                }
+              }
+            },
             "NotFound": {
               "type": "class",
               "children": {}

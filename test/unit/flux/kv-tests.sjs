@@ -130,11 +130,11 @@ function test_persistence(info) {
 
     if (info.file != null) {
       @fs.readFile(s.path(info.file), 'utf8') ..@assert.eq(encoded);
-      var new_db = @kv.Local({ file: s.path(info.file) });
+      var new_db = @kv.LocalDB({ file: s.path(info.file) });
 
     } else {
       localStorage[info.localStorage] ..@assert.eq(encoded);
-      var new_db = @kv.Local({ localStorage: info.localStorage });
+      var new_db = @kv.LocalDB({ localStorage: info.localStorage });
     }
 
     @assert.is(new_db, s.db);
@@ -166,9 +166,9 @@ function test_all() {
 //----------------------------------------------------------------------
 
 @context {||
-  @context("Local (memory)") {||
+  @context("LocalDB (memory)") {||
     @test.beforeAll {|s|
-      s.db = @kv.Local();
+      s.db = @kv.LocalDB();
     }
 
     test_all();
@@ -176,9 +176,9 @@ function test_all() {
 };
 
 @context {||
-  @context("Local (localStorage)") {||
+  @context("LocalDB (localStorage)") {||
     @test.beforeAll {|s|
-      s.db = @kv.Local({ localStorage: 'local-test-db' });
+      s.db = @kv.LocalDB({ localStorage: 'local-test-db' });
     }
 
     @test.afterAll {|s|
@@ -203,9 +203,9 @@ function test_all() {
     @childProcess.run('rm', ['-rf', s.root], {stdio:'inherit'});
   }
 
-  @context("Local (file)") {||
+  @context("LocalDB (file)") {||
     @test.beforeAll {|s|
-      s.db = @kv.Local({ file: s.path('local-test-db') });
+      s.db = @kv.LocalDB({ file: s.path('local-test-db') });
     }
 
     test_persistence({ file: 'local-test-db' });
@@ -226,7 +226,7 @@ function test_all() {
 
     test_all();
 
-    // This can't be tested by Local db because it takes too long
+    // This can't be tested by LocalDB because it takes too long
     @test("large value") {|s| s.db .. test_large_value() }
   }
 

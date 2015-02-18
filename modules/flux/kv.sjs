@@ -51,7 +51,7 @@ exports.isNotFound = function(e) {
      [::set], [::query], [::observe],
      [::observeQuery] and [::withTransaction].
 
-     For a concrete implementation of KVStore, see [::LevelDB].
+     For a concrete implementation of KVStore, see [::LevelDB] or [::LocalDB].
 */
 
 /**
@@ -334,7 +334,42 @@ function LevelDB(location, options, block) {
 exports.LevelDB = LevelDB;
 
 
-function Local(options, block) {
+/**
+  @class LocalDB
+  @inherit ::KVStore
+  @summary Simple fast and efficient local key-value storage
+  @function LocalDB
+  @altsyntax LocalDB([options]) { |kvstore| ... }
+  @param {optional Object} [settings]
+  @param {optional Function} [block] Lexical block to scope the LocalDB object to
+  @setting {optional String} [localStorage] The name to use in `localStorage` for loading/saving the DB
+  @setting {optional String} [file] The file path to use for loading/saving the DB
+  @desc
+    * If you provide `localStorage`, the DB will be loaded/saved to
+      `localStorage`, using the name provided. This can only be used in
+      the browser.
+
+    * If you provide `file`, the DB will be loaded/saved to a file. This
+      can only be used in Node.js.
+
+    * If you do not provide either, the DB will be stored in memory. That
+      means it is **not** persistent: if you close and restart your program,
+      the data in the DB *will be lost*, with no way to retrieve it.
+
+    If two DBs are loaded with the same `localStorage` or `file`, they will
+    be exactly the same DB:
+
+        // true
+        @LocalDB({ localStorage: 'foo' }) === @LocalDB({ localStorage: 'foo' });
+
+    ----
+
+    LocalDB should **not** be used to store very large keys/values. Partly
+    because the performance is bad, and partly because `localStorage` has
+    a very small size limit. If you go over the limit, you will get an
+    error.
+*/
+function LocalDB(options, block) {
   // untangle args
   if (arguments.length == 0) {
     options = {};
@@ -343,7 +378,7 @@ function Local(options, block) {
     options = {};
   }
 
-  var itf = require('./kv/local').Local(options);
+  var itf = require('./kv/localdb').LocalDB(options);
 
   if (block) {
     block(itf);
@@ -351,4 +386,4 @@ function Local(options, block) {
     return itf;
   }
 }
-exports.Local = Local;
+exports.LocalDB = LocalDB;

@@ -452,7 +452,7 @@ function load_db(options) {
   }
 }
 
-function Local(options) {
+function LocalDB(options) {
   if (options.localStorage != null && options.file != null) {
     throw new Error("Cannot specify both localStorage and file at the same time");
   }
@@ -464,4 +464,4 @@ function Local(options) {
 
   return load_db(options);
 }
-exports.Local = Local;
+exports.LocalDB = LocalDB;
