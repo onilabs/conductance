@@ -15,7 +15,7 @@ var { events } = require('sjs:event');
 var { Stream, isStream, mirror, integers, each, map, transform, indexed, filter, sort, slice, any, toArray } = require('sjs:sequence');
 var { isArrayLike } = require('sjs:array');
 var { shallowEq } = require('sjs:compare');
-var { override, merge } = require('sjs:object');
+var { override, merge, clone } = require('sjs:object');
 var { observe, isObservableVar } = require('sjs:observable');
 
 /**
@@ -362,6 +362,7 @@ exports.Progress = Progress;
   @function Select
   @summary A plain HTML 'select' widget
   @param  {Object} [settings] Widget settings
+  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @setting {Boolean} [multiple=false] Whether or not this is a multi-selection widget
   @setting {Array|sjs:sequence::Stream} [items] Selectable items
   @setting {sjs:observable::ObservableVar} [selected] Optional ObservableVar that will be synchronized to selected item(s).
@@ -467,16 +468,17 @@ function SelectObserverMechanism(ft, state, updateSelected) {
   });
 };
 
-function Select(settings) {
+function Select(settings, attribs) {
   settings = {
     multiple: false,
     items: [],
     selected: undefined
   } .. override(settings);
 
-  var dom_attribs = {};
+  attribs = attribs ? attribs .. clone : {};
+
   if (settings.multiple)
-    dom_attribs.multiple = true;
+    attribs.multiple = true;
 
   var ensureStream = o -> isStream(o) ? o: Stream(function(emit) { emit(o); hold(); });
   var state = [settings.items, settings.selected];
@@ -497,7 +499,7 @@ function Select(settings) {
         updateSelected = (sels) -> settings.selected.set(sels[0]);
       }
     }
-    return Element('select', null, dom_attribs)
+    return Element('select', null, attribs)
     .. SelectObserverMechanism(computedState, updateSelected);
   }
 
@@ -510,7 +512,7 @@ function Select(settings) {
     Element('option', item, {selected: select_map[idx]})
   );
 
-  return Element('select',  options, dom_attribs);
+  return Element('select',  options, attribs);
 }
 exports.Select = Select;
 
