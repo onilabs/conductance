@@ -1,4 +1,4 @@
-@ = require(['mho:std', 'mho:app', './busy-indicator']);
+@ = require(['mho:std', 'mho:app', './busy-indicator', './btn-dropdown']);
 @bridge = require('mho:rpc/bridge');
 @validate = require('seed:validate');
 @form = require('./generic-form');
@@ -64,6 +64,10 @@ var formGroup = function(desc, cons, val) {
 
 var Button = function(contents, action, attrs) {
 	return @Button(contents, attrs) .. @OnClick({handle:@stopEvent}, action);
+};
+
+var A = function(contents, action, attrs) {
+	return @A(contents, attrs) .. @OnClick({handle:@stopEvent}, action);
 };
 
 var serverConfigEditor = exports.serverConfigEditor = function(container, conf) {
@@ -169,7 +173,7 @@ var fileBrowseCss = @CSS('
 	}
 ');
 
-var showServiceUI = false;
+var showServiceUI = true;
 var availableServices = [
 	{
 		// there are no `fs` options - if it's present, it's enabled
@@ -218,6 +222,12 @@ var availableServices = [
 			}
 		};
 
+		var editableFieldStyle = @CSS("
+			.editable-row {
+				margin-bottom: 1em;
+			}
+		");
+
 		return {
 			id: 'env',
 			name: "Custom settings",
@@ -239,55 +249,72 @@ var availableServices = [
 				// This is all so that we have a stable form while filling it
 				// out, since the entire form is regenerated each time
 				// `fields` is modified.
+				var buildEditable = function(initial) {
+					initial = { type: 'string', value: null} .. @merge(initial);
+					var obs = @ObservableVar(initial);
+					var form = @form.Form(obs,
+						{ validate: [processField, uniqueField] }
+					);
+					var TextInput = form .. formControl(@TextInput);
+
+					var key = form.field('key');
+					var value = form.field('value');
+					var type = form.field('type');
+					var valueWidget = type.value .. @transform(function(type) {
+						var cons, attrs=null;
+						switch(type) {
+							case 'string':
+								cons = @TextInput;
+								break;
+							case 'boolean':
+								cons = @Checkbox;
+								attrs= { 'style': 'width: 20px; height: 20px; margin-top:7px;'};
+								break;
+							case 'JSON':
+								cons = @TextArea;
+								attrs= { 'rows': 5};
+								break;
+							default: throw new Error("Unknown type #{type}");
+						}
+						return cons(value.value, {'name':'value'} .. @merge(attrs)) .. @On('blur', -> form.validate());
+					});
+
+					var widget = @Form([
+							@Row([
+								@Col('xs-12', form.error .. @form.formatError()),
+							]),
+							@Row([
+								@Col('xs-6', [
+									@Div([
+										@A(@Icon("remove"), {'class':'remove input-group-addon'}) .. @OnClick({handle:@stopEvent}, -> obs.modify(c -> c .. @merge({deleted:true}))),
+										@TextInput(key.value, {'class':'form-control', name:'key'}),
+										@Dropdown(type.value,
+											['string','boolean','JSON'] .. @map(t -> [@A(t), -> type.value.set(t)]),
+											'input-group-btn type-select'),
+									], {'class':'input-group'}),
+								]),
+
+								@Col('xs-6', [
+									@Span('=', {'style':'position: absolute; left:-4px; top:6px;' }),
+									valueWidget
+								]),
+							], {'class':'editable-row'}),
+						], {'class':"editable-field"})
+					.. @Class('hidden', obs .. @transform(o -> o.deleted))
+					.. @OnSubmit({handle:@stopEvent}, -> form.validate());
+
+					return {
+						value: obs,
+						form: form,
+						widget: widget,
+					};
+				};
 				var editedValues = [];
 				var editableField = function([i, initial]) {
 					@assert.number(i);
 					@assert.ok(initial);
 					var rv = editedValues[i];
-					if(!rv) {
-						initial = { type: 'string', value: null} .. @merge(initial);
-						var obs = @ObservableVar(initial);
-						var form = @form.Form(obs,
-							{ validate: [processField, uniqueField] }
-						);
-						var TextInput = form .. formControl(@TextInput);
-
-						var key = form.field('key');
-						var value = form.field('value');
-						var type = form.field('type');
-						var valueWidget = type.value .. @transform(function(type) {
-							var cons;
-							switch(type) {
-								case 'string':
-									cons = @TextInput;
-									break;
-								case 'boolean':
-									cons = @Checkbox;
-									break;
-								case 'JSON':
-									cons = @TextArea;
-									break;
-								default: throw new Error("Unknown type #{type}");
-							}
-							return cons(value.value, {'class':'form-control', 'name':'value'});
-						});
-
-						var widget = @Form(`
-									${form.error .. @form.formatError()}
-									${@A(@Icon("remove"), {'class':'remove'}) .. @OnClick({handle:@stopEvent}, -> obs.modify(c -> c .. @merge({deleted:true})))}
-									${@Select({items: ['string','boolean','JSON'], selected:type.value}, {name: 'type'})}
-									${TextInput(key, {validate: @validate.required})}&nbsp;=&nbsp;${valueWidget}
-								`,
-								{'class':"form-group editable-field"})
-						.. @Class('hidden', obs .. @transform(o -> o.deleted))
-						.. @OnSubmit({handle:@stopEvent}, -> form.validate());
-
-						rv = editedValues[i] = {
-							value: obs,
-							form: form,
-							widget: widget,
-						};
-					}
+					if(!rv) rv = editedValues[i] = buildEditable(initial);
 					return rv;
 				}
 
@@ -324,10 +351,10 @@ var availableServices = [
 					if(count > 1) throw new Error("Duplicate key");
 				};
 
-				var creationForm = @form.Form({});
+				var creationForm = @form.Form({}, {validate: vals -> uniqueKey(vals.key)});
 
-				var rv = (function(form) {
-					var TextInput = form .. formControl(@TextInput);
+				var creationWidget = (function(form) {
+					var key = form.field('key');
 					var add = function(e) {
 						if(!form.validate()) return;
 						var newField = form.values();
@@ -339,29 +366,31 @@ var availableServices = [
 						}
 					};
 
-					var addButton = @A([@Icon('plus-sign'), 'add']) .. @OnClick({handle:@stopEvent}, add);
-
-					return [@Form([
-						fieldsField.error .. @form.formatErrorAlert(),
-						form.error .. @form.formatError(),
-
-						@Div([
-							@Div(`<label for="key">Add key:</label>
-									$TextInput(form.field('key', {
-										validate: [@validate.required, uniqueKey]
-									}))
-									$addButton
-								`,
-								{'class':"form-group"}),
-						], {'class':'col-xs-12'}),
-					], {'class':'form-inline add-field'}) .. @OnSubmit({handle:@stopEvent}, add)];
+					return @Form([
+						@Row([ @Col('xs-8 xs-offset-2', fieldsField.error .. @form.formatErrorAlert()) ]),
+						@Row([ @Col('xs-8 xs-offset-2', form.error .. @form.formatError()) ]),
+						@Row([
+							@Col('xs-8 xs-offset-2', [
+								@Div([
+									@Span("New key:", {'class':'input-group-addon'}),
+									@TextInput(key.value, {'class':'form-control', name:'key'}),
+									@Span(
+										Button(@Icon("plus"), add),
+										{'class':'input-group-btn'}
+									),
+								], {'class':'input-group'}),
+							]),
+						]),
+					], {'class':'add-field'}) .. @OnSubmit({handle:@stopEvent}, add);
 				})(creationForm);
 
-				rv.push(fields .. @transform(function(fields) {
-					if(fields.length == 0) return null;
-					return @Div(fields .. editableFields .. @map({widget} -> widget),
-						{'class':'form-inline'});
-				}));
+				var rv = [
+					(fields .. @transform(function(fields) {
+						if(fields.length == 0) return null;
+						return @Div(fields .. editableFields .. @map({widget} -> widget));
+					})),
+					creationWidget,
+				];
 
 				// XXX this is a little hacky. Because our values are split out amongst multiple forms,
 				// we'll override the field's `values` and `validate` methods to collate the
@@ -381,7 +410,7 @@ var availableServices = [
 					.. @toArray()
 				);
 
-				return rv;
+				return @Div(rv) .. editableFieldStyle();
 			},
 			env: function(values) {
 				return values .. @get('fields', []) .. @map(function(field) {

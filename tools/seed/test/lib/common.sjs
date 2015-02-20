@@ -61,7 +61,7 @@ if (isBrowser) {
 
 	lib.formInputs = function(elem) {
 		var rv = {};
-		elem .. @visibleElements('input, select, textarea') .. @each {|elem|
+		elem .. @visibleElements('input, select, textarea, .dropdown') .. @each {|elem|
 			var name = elem.getAttribute('name');
 			if(!name) {
 				@info("skipping nameless HTML input: #{elem.outerHTML}");

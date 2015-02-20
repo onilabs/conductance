@@ -120,10 +120,15 @@ var baseUrl = "http://localhost:#{@stub.getEnv('port-proxy')}/";
 		s.populateField = function(form, props) {
 			@assert.ok(form, "no form given");
 			// props.type affects what _kind_ of field `value` is,
-			// so edit that in a separate step
+			// so we need to change it and _then_ fill in the rest of the form.
+			// Also, it's not a real input element.
 			if(props.type) {
 				props = props .. @clone();
-				form .. s.fillForm({type: props.type}, false);
+				var dd = form .. @elem('.type-select');
+				dd .. @elem('.dropdown-toggle') .. s.driver.click();
+				dd.classList.contains('open') .. @assert.ok("dropdown is not open");
+				dd .. @elem('li', el -> el.textContent == props.type) .. s.driver.click();
+				;(dd .. @elem('.dropdown-toggle')).textContent .. @assert.contains(props.type);
 				delete props.type;
 			}
 			form .. s.fillForm(props, false);
