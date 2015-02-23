@@ -33,6 +33,6 @@ function wrap(method) {
 };
 
 // NOTE: relies on this being served from a location with access to seed source code
-require('../../fs/prototype') .. @ownKeys .. @each {|method|
+require('../../fs/prototype').keys .. @each {|method|
 	exports[method] = wrap(method);
 }

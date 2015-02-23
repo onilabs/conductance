@@ -22,7 +22,6 @@ var { @keySafe, hex: @appIdSafe } = @validate;
 var here = @url.normalize('./', module.id) .. @url.toPath;
 var tmpRoot = @path.join(here, '../tmp');
 var credentialsRoot = @path.join(here, '../credentials');
-var ConductanceArgs = require('mho:server/systemd').ConductanceArgs;
 
 var production = @env.get('production');
 var dataRoot = @env.get('data-root');
@@ -249,7 +248,7 @@ var cleanupDeadContainers = exports.cleanupDeadContainers = function() {
   }
 };
 
-var writeServiceInit = function(appRunBase, globalId) {
+var writeServiceConfig = function(appRunBase, globalId) {
   var appConfig = @fs.readFile(@path.join(appRunBase, "state.json")) .. JSON.parse .. @get('config');
   var enabledServices = appConfig .. @get('services', []);
   var service = appConfig .. @get('service');
@@ -269,24 +268,7 @@ var writeServiceInit = function(appRunBase, globalId) {
   @debug(`service config = $serviceConfig`);
   var serviceConfigFile = @path.join(appRunBase, "services.json");
   serviceConfigFile .. @fs.writeFile(JSON.stringify(serviceConfig));
-
-  // write a `service` module which will be injected into $SJS_INIT
-  var serviceInitFile = @path.join(appRunBase, "services.sjs");
-
-  // NOTE: we can't use mho:env here, as $SJS_INIT runs before the hub is set up.
-  // So just use its full path
-  var clientServiceHub = require.resolve('seed:service/client').path;
-  serviceInitFile .. @fs.writeFile("
-    require.hubs.unshift(['lib:seed', '#{clientServiceHub}']);
-    @ = require(['sjs:object', 'sjs:sequence']);
-    @env = require('#{require.resolve('mho:env').path}');
-    var config = require('sjs:nodejs/fs').readFile('#{serviceConfigFile}') .. JSON.parse;
-    config._env .. @ownPropertyPairs .. @each { |[k,v]|
-      @env.set(k, v);
-    }
-    @env.set('seed-service-config', config);
-  ");
-  return serviceInitFile;
+  return serviceConfigFile;
 };
 
 // local app state (exposed by slaves). Provides information
@@ -438,10 +420,14 @@ exports.localAppState = (function() {
 
         log("Building environment...");
 
-        var sjsInit = [];
+        var env = [];
         var dockerFlags = [];
-        sjsInit.push(writeServiceInit(appRunBase, globalId));
-        sjsInit.push(@url.normalize('./await-stdio.sjs', module.id) .. @url.toPath);
+        dockerFlags.push('--env', "SEED_SERVICE_CONFIG=" + writeServiceConfig(appRunBase, globalId));
+        var sjsInit = [
+          @url.normalize('./await-stdio.sjs', module.id) .. @url.toPath,
+          require.resolve('mho:../hub').path .. @url.toPath,
+          @url.normalize('../service/init.sjs', module.id) .. @url.toPath,
+        ];
         var codeDest = @path.join(appRunBase, "code");
 
         // node does a terrible job of closing open file descriptors (may be
@@ -457,7 +443,7 @@ exports.localAppState = (function() {
           // XXX an idempotent `rm` would be much better...
           tryRunDocker(["rm", machineName]);
 
-          var args = ConductanceArgs;
+          var args = [process.execPath, @sys.executable, 'mho:server/main.sjs'];
           var runUser = "app";
           var readOnly = (path) -> "#{path}:#{path}:ro";
 

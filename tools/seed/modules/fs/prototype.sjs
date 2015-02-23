@@ -1,3 +1,4 @@
+@ = require(['sjs:sequence','sjs:object', 'sjs:string']);
 @fs = require('sjs:nodejs/fs');
 
 // NOTE: to simplify security concerns and potential for accessing
@@ -11,12 +12,11 @@
 //  - to prevent leaks, we only expose full operations - i.e no
 //    calls that keep a file open upon completion.
 
-module.exports = {
+exports.proto = {
 	_init: function(getPath) {
 		this._path = getPath;
 	},
 	rename: (a,b) -> @fs.rename(this._path(a), this._path(b)),
-	chmod: (a, mode) -> @fs.chmod(this._path(a), mode),
 	stat: (a) -> @fs.stat(this._path(a)),
 	utimes: (a, atime, mtime) -> @fs.utimes(this._path(a)),
 	unlink: (a) -> @fs.unlink(this._path(a)),
@@ -31,3 +31,5 @@ module.exports = {
 	isDirectory: (a) -> @fs.isDirectory(this._path(a)),
 };
 
+
+exports.keys = exports.proto .. @ownKeys .. @filter(k -> !k .. @startsWith('_')) .. @toArray;

@@ -184,24 +184,10 @@ var availableServices = [
 			return [];
 		},
 		config: function(values) {
-			return {enable: true};
+			return {};
 		},
 	},
 
-	{
-		id: 'mandrill',
-		name: "Mandrill email API",
-		info: `Store mandrill API key`,
-		form: function(form) {
-			var TextInput = form .. formControl(@TextInput);
-			return [
-				formGroup('API Key', TextInput, form.field('apikey'))
-			];
-		},
-		env: function(vals) {
-			return {'mandrill-api-key': vals.apikey};
-		},
-	},
 
 	(function() {
 		var types = {

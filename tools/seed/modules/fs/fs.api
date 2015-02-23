@@ -2,10 +2,9 @@
 var { @mkdirp } = require('sjs:nodejs/mkdirp');
 var root = @path.join(@env.get('data-root'), 'app-fs');
 @common = require('seed:service/server/common');
+var {createAPI} = require('./api');
 
 var apiProto = require('./prototype');
-exports.apiKeys = apiProto .. @ownKeys .. @filter(k -> !k .. @startsWith('_')) .. @toArray;
-
 var invalidPath = function(p) {
 	var e = new Error("Invalid path: #{p}");
 	e.code = 'EACCES';
@@ -18,33 +17,5 @@ exports.authenticate = function(token) {
 	// apiRoot must include the trailing dir prefix
 	if(!apiRoot .. @endsWith("/")) apiRoot += "/";
 	@info("client connected to partition", apiRoot);
-	@mkdirp(apiRoot);
-
-	var getPath = function(p) {
-		// we normalize all path arguments against the api-specific
-		// root, and never allow traversing above the root
-		if (!@isString(p)) throw new Error("invalid path (not a string)");
-		p = @path.normalize(@path.join(apiRoot, p));
-		if (p .. @split('/') .. @any(d -> d == '..')) {
-			invalidPath(p);
-		}
-
-		if(!p .. @startsWith(apiRoot)) {
-			invalidPath(p);
-		}
-		return p;
-	}
-
-	// for bridge simplicity, we only expose a single function which
-	// takes its key as the first arg.
-	var api = Object.create(apiProto);
-	api._init(getPath);
-	return function(op, args) {
-		console.log(apiProto .. @hasOwn(op));
-		if(
-			op .. @startsWith('_') ||
-			!apiProto .. @hasOwn(op)
-		) throw new Error("Unsupported `fs` method: #{op}");
-		return api[op].apply(api, args);
-	};
+	return createAPI(apiRoot);
 }
