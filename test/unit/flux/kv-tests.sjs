@@ -218,7 +218,7 @@ function test_persistence(info) {
 
     all(s.db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
 
-    var encoded = '[[[2,98,97,114,0],2],[[2,102,111,111,0],1]]';
+    var encoded = '[\n  [["bar"], 2],\n  [["foo"], 1]\n]';
 
     if (info.file != null) {
       @fs.readFile(s.path(info.file), 'utf8') ..@assert.eq(encoded);

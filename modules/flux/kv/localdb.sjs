@@ -275,10 +275,11 @@ var SortedDict = (function () {
 
   Dict.prototype.serialize = function () {
     var s = iter_tree(this.root) ..@map(function ([key, value]) {
-      return "[" + JSON.stringify(key) + "," + JSON.stringify(value) + "]";
+      // TODO inefficient that this decodes the key
+      return "  [" + JSON.stringify(@encoding.decodeKey(itf_encoding, key)) + ", " + JSON.stringify(value) + "]";
     });
 
-    return "[" + s.join(",") + "]";
+    return "[\n" + s.join(",\n") + "\n]";
   };
 
   Dict.prototype.range = function (info) {
@@ -329,6 +330,57 @@ function save_db(dict, options) {
   }
 }
 
+var itf_encoding = {
+  constructor: Array,
+
+  // TODO this is inefficient
+  encodeString: function (str) {
+    return @stringToUtf8(str) ..@map(x -> x.charCodeAt(0));
+  },
+
+  // TODO this is inefficient
+  decodeString: function (buf, start, end) {
+    if (!(start === 0 && end === buf.length)) {
+      buf = buf.slice(start, end);
+    }
+
+    buf = buf ..@map(x -> String.fromCharCode(x));
+    return @utf8ToString(buf.join(""));
+  },
+
+  // TODO not safe if `from` and `to` are the same
+  // TODO error checking (e.g. for out of bounds)
+  copy: function (from, to, to_start, from_start, from_end) {
+    while (from_start < from_end) {
+      to[to_start] = from[from_start];
+      ++to_start;
+      ++from_start;
+    }
+  },
+
+  concat: function (outer, len) {
+    if (outer.length === 1) {
+      return outer[0];
+
+    } else {
+      // TODO use info.constructor
+      var output = new Array(len);
+      var output_i = 0;
+
+      for (var outer_i = 0; outer_i < outer.length; ++outer_i) {
+        var inner = outer[outer_i];
+
+        for (var inner_i = 0; inner_i < inner.length; ++inner_i) {
+          output[output_i] = inner[inner_i];
+          ++output_i;
+        }
+      }
+
+      return output;
+    }
+  }
+};
+
 function wrap_dict(dict, options) {
   /*
     MutationEmitter receives all mutations in the form
@@ -337,24 +389,14 @@ function wrap_dict(dict, options) {
   var MutationEmitter = @Emitter();
 
   return {
+    // TODO get rid of this stuff
+    constructor: itf_encoding.constructor,
+    encodeString: itf_encoding.encodeString,
+    decodeString: itf_encoding.decodeString,
+    copy: itf_encoding.copy,
+    concat: itf_encoding.concat,
+
     changes: MutationEmitter,
-
-    constructor: Array,
-
-    // TODO this is inefficient
-    encodeString: function (str) {
-      return @stringToUtf8(str) ..@map(x -> x.charCodeAt(0));
-    },
-
-    // TODO this is inefficient
-    decodeString: function (buf, start, end) {
-      if (!(start === 0 && end === buf.length)) {
-        buf = buf.slice(start, end);
-      }
-
-      buf = buf ..@map(x -> String.fromCharCode(x));
-      return @utf8ToString(buf.join(""));
-    },
 
     encodeValue: function (value) {
       return value;
@@ -362,38 +404,6 @@ function wrap_dict(dict, options) {
 
     decodeValue: function (value) {
       return value;
-    },
-
-    // TODO not safe if `from` and `to` are the same
-    // TODO error checking (e.g. for out of bounds)
-    copy: function (from, to, to_start, from_start, from_end) {
-      while (from_start < from_end) {
-        to[to_start] = from[from_start];
-        ++to_start;
-        ++from_start;
-      }
-    },
-
-    concat: function (outer, len) {
-      if (outer.length === 1) {
-        return outer[0];
-
-      } else {
-        // TODO use info.constructor
-        var output = new Array(len);
-        var output_i = 0;
-
-        for (var outer_i = 0; outer_i < outer.length; ++outer_i) {
-          var inner = outer[outer_i];
-
-          for (var inner_i = 0; inner_i < inner.length; ++inner_i) {
-            output[output_i] = inner[inner_i];
-            ++output_i;
-          }
-        }
-
-        return output;
-      }
     },
 
     get: function (key) {
@@ -436,7 +446,8 @@ function wrap_dict(dict, options) {
 
 function load_db1(dict, input) {
   return JSON.parse(input) ..@reduce(dict, function (dict, [key, value]) {
-    return dict.set(key, value);
+    // TODO inefficient that this encodes the key
+    return dict.set(@encoding.encodeKey(itf_encoding, key), value);
   });
 }
 
