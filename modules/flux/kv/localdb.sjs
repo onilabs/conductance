@@ -356,6 +356,14 @@ function wrap_dict(dict, options) {
       return @utf8ToString(buf.join(""));
     },
 
+    encodeValue: function (value) {
+      return value;
+    },
+
+    decodeValue: function (value) {
+      return value;
+    },
+
     // TODO not safe if `from` and `to` are the same
     // TODO error checking (e.g. for out of bounds)
     copy: function (from, to, to_start, from_start, from_end) {

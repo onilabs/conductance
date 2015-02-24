@@ -18,7 +18,8 @@
 */
 
 @ = require(['sjs:std',
-             { id: './util', name: 'util' }]);
+             { id: './util', name: 'util' },
+             { id: './encoding', name: 'encoding' }]);
 
 __js function annotateError(err, orig) {
   // XXX leveldown should really have better types
@@ -85,6 +86,14 @@ function LevelDB(location, options) {
 
     decodeString: function (buf, start, end) {
       return buf.toString('utf8', start, end);
+    },
+
+    encodeValue: function (value) {
+      return @encoding.encodeValue(this, value);
+    },
+
+    decodeValue: function (value) {
+      return @encoding.decodeValue(this, value);
     },
 
     copy: function (from, to, to_start, from_start, from_end) {

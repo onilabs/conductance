@@ -33,6 +33,7 @@ __js {
 
 //----------------------------------------------------------------------
 // high-level ITF_KVSTORE interface implementation
+// TODO move all the @encoding stuff into itf
 function wrapDB(itf) {
   var out = {};
 
@@ -51,13 +52,13 @@ function wrapDB(itf) {
   // helper to decode a key,val tuple:
   __js function decodeKV([k, v]) {
     return [ @encoding.decodeKey(itf, k),
-             @encoding.decodeValue(itf, v) ];
+             itf.decodeValue(v) ];
   }
 
   var kvstore_interface = {
     get: function(key) {
       key = @encoding.encodeKey(itf, key);
-      return @encoding.decodeValue(itf, itf.get(key));
+      return itf.decodeValue(itf.get(key));
     },
     // XXX collect multiple temporally adjacent calls
     put: function(key, value) {
@@ -65,7 +66,7 @@ function wrapDB(itf) {
       if (value === undefined) {
         return itf.batch([{ type: 'del', key: key }]);
       } else {
-        value = @encoding.encodeValue(itf, value);
+        value = itf.encodeValue(value);
         return itf.batch([{ type: 'put', key: key, value: value }]);
       }
     },
@@ -78,8 +79,8 @@ function wrapDB(itf) {
         (itf.changes) ..
           @unpack ..
           @filter(kv -> kv.key .. @encoding.encodedKeyEquals(key)) ..
-          @transform({value} -> @encoding.decodeValue(itf, value)),
-        -> @encoding.decodeValue(itf, itf.get(key)));
+          @transform({value} -> itf.decodeValue(value)),
+        -> itf.decodeValue(itf.get(key)));
     },
     /*observeQuery: function(range, options) {
       return @eventStreamToObservable(
@@ -117,21 +118,21 @@ function wrapDB(itf) {
 
           // check if we've written this key:
           var kv = pendingPuts[hex_key];
-          if (kv) return @encoding.decodeValue(itf, kv[1]);
+          if (kv) return itf.decodeValue(kv[1]);
 
           // else, check if we've already read it:
           var v = reads[hex_key];
-          if (v) return @encoding.decodeValue(itf, v);
+          if (v) return itf.decodeValue(v);
 
           // else read from db:
           var val = itf.get(key);
           reads[hex_key] = val;
-          return @encoding.decodeValue(itf, val);
+          return itf.decodeValue(val);
         },
         put: function(key, value) {
           key = @encoding.encodeKey(itf, key);
           if (value !== undefined) {
-            value = @encoding.encodeValue(itf, value);
+            value = itf.encodeValue(value);
           }
           pendingPuts[bytesToHexString(key)] = [key, value];
         },
@@ -139,7 +140,7 @@ function wrapDB(itf) {
           range = @encoding.encodeKeyRange(itf, range);
           queries.push([range.begin,range.end]);
 
-          return @transform(decodeKV) :: 
+          return @transform(decodeKV) ::
             @Stream(function(r) {
               var limit = options.limit;
               var reverse = options.reverse;
@@ -150,7 +151,7 @@ function wrapDB(itf) {
                                                             reverse ?
                                                               @encoding.encodedKeyCompare(b[0],a[0]) :
                                                             @encoding.encodedKeyCompare(a[0],b[0]));
-              
+
               var preceding = reverse ? @encoding.encodedKeyGreater : @encoding.encodedKeyLess;
 
               @consume(patches) {

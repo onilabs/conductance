@@ -176,7 +176,7 @@ function test_reverse_range_query(db) {
   db .. @kv.query({begin:'a', end:'d'}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(0,3) .. @reverse);
   db .. @kv.query({begin:'b', end:'d'}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(1,3) .. @reverse);
 
-  
+
   db .. @kv.query({begin:-10, end:5}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(4,8) .. @reverse);
   db .. @kv.query({begin:1, end:4}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(4,7) .. @reverse);
   db .. @kv.query({begin:2, end:4}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(5,7) .. @reverse);
@@ -188,13 +188,13 @@ function test_reverse_range_query(db) {
 
 function test_child_query(db) {
   db .. @kv.clearRange(@kv.RANGE_ALL);
-  
+
   var kv_pairs = [['a','a', 1], ['a','a',2],['a','b',1], [1,1,1], [1,2,1], [1,11,1], [11,1], [11,1,1]] .. @indexed .. @map([i,x] -> [x,i]);
 
   kv_pairs .. @each {
     |[k,v]| db .. @kv.set(k,v);
   }
-  
+
   db .. @kv.query('a') .. @map([k,v] -> k) .. @assert.eq([['a', 'a', 1], ['a', 'a', 2], ['a', 'b', 1]]);
   db .. @kv.query(['a','a']) .. @map([k,v] -> k) .. @assert.eq([['a', 'a', 1], ['a', 'a', 2]]);
   db .. @kv.query(['a','b']) .. @map([k,v] -> k) .. @assert.eq([['a', 'b', 1]]);
@@ -218,7 +218,7 @@ function test_persistence(info) {
 
     all(s.db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
 
-    var encoded = '[[[2,98,97,114,0],[1,50]],[[2,102,111,111,0],[1,49]]]';
+    var encoded = '[[[2,98,97,114,0],2],[[2,102,111,111,0],1]]';
 
     if (info.file != null) {
       @fs.readFile(s.path(info.file), 'utf8') ..@assert.eq(encoded);
@@ -247,7 +247,7 @@ function test_all() {
       @test("value types") { |s| s .. wrap(test_value_types) }
       @test("key types")   { |s| s .. wrap(test_key_types)   }
       @test("large key")   { |s| s .. wrap(test_large_key)   }
-      @test("large value") { |s| s .. wrap(test_large_value) } 
+      @test("large value") { |s| s .. wrap(test_large_value) }
       @test("clear")       { |s| s .. wrap(test_clear)       }
       @test("get")         { |s| s .. wrap(test_get)         }
       @test("range_query") { |s| s .. wrap(test_range_query) }
