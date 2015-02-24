@@ -74,6 +74,7 @@ exports.follow = function(path, encoding, sep) {
             }
 
             @debug("stream picking up from file offset #{startPos}");
+            // NOTE: there's no FD leak here, as we're using an already-open FD
             var stream = @fs.createReadStream(path, {
               fd: fd,
               encoding: encoding,
@@ -81,7 +82,7 @@ exports.follow = function(path, encoding, sep) {
               start: startPos,
             });
 
-            stream .. @each { |chunk|
+            stream .. @stream.contents .. @each { |chunk|
               startPos += Buffer.byteLength(chunk, encoding);
               buf += chunk;
               var chunks = buf.split(sep);

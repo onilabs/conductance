@@ -544,6 +544,7 @@ exports.localAppState = (function() {
 
     var stopApp = function() {
       @info("Stopping app #{machineName}");
+      if(!_isRunning(machineName)) return;
       appendAppLogs {|log|
         log.write("Stopping application...\n");
         tryRunDocker(["stop", machineName], 'ignore');
