@@ -348,6 +348,24 @@ __js {
   exports.encodedKeyLess = encodedKeyLess;
 
   /**
+     @function encodedKeyGtEq
+     @summary XXX write me
+   */
+  function encodedKeyGtEq(k1,k2) {
+    return encodedKeyCompare(k1,k2) >= 0;
+  }
+  exports.encodedKeyGtEq = encodedKeyGtEq;
+
+  /**
+     @function encodedKeyGreater
+     @summary XXX write me
+   */
+  function encodedKeyGreater(k1,k2) {
+    return encodedKeyCompare(k1,k2) > 0;
+  }
+  exports.encodedKeyGreater = encodedKeyGreater;
+  
+  /**
      @function encodedKeyInRange
      @summary XXX write me
   */
