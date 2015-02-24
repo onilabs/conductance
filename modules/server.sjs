@@ -25,6 +25,7 @@ var {Constructor} = require('sjs:object');
 var func = require('sjs:function');
 var assert = require('sjs:assert');
 var string = require('sjs:string');
+var conductanceVersion = require('./env').conductanceVersion().split('.').slice(0, 2).join('.');
 
 /**
   @function run
@@ -171,10 +172,10 @@ exports.run = function(config, block) {
       } or {
         server.eachRequest {
           |req|
-          logging.verbose("#{req.request.method} #{req.url}");
+          logging.verbose("#{req.request.method} #{req.url.path}");
 
           // set standard headers:
-          req.response.setHeader("Server", "Conductance"); // XXX version
+          req.response.setHeader("server", "Conductance/#{conductanceVersion}");
 
           // execute handler function:
           try {
