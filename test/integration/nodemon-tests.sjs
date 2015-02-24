@@ -12,7 +12,7 @@
       throw new Error("child process exited prematurely");
     }
     var drain = function(s) {
-      s .. @each(->null);
+      s .. @stream.contents .. @each(->null);
     }
 
     waitfor {
