@@ -94,7 +94,7 @@ function test_transaction(db) {
   db .. @kv.get(key) .. @assert.eq(v2);
 }
 
-function test_query(db) {
+function test_range_query(db) {
   db .. @kv.clearRange(@kv.RANGE_ALL);
 
   db .. @kv.query(@kv.RANGE_ALL) .. @toArray .. @assert.eq([]);
@@ -110,14 +110,11 @@ function test_query(db) {
 
   db .. @kv.query({begin:'a', end:'e'}, {limit:1}) .. @toArray .. @assert.eq(kv_pairs.slice(0,1));
 
-  db .. @kv.query({begin:'b', end:'d'}, {reverse:true}) .. @toArray .. @assert.eq(kv_pairs.slice(1,3) ..@reverse);
-
-  db .. @kv.query({begin:'a', end:'e'}, {reverse:true, limit:2}) .. @toArray .. @assert.eq(kv_pairs.slice(2,4) ..@reverse);
-
   db .. @kv.query({begin:-10, end:5}) .. @toArray .. @assert.eq(kv_pairs.slice(4,8));
   db .. @kv.query({begin:1, end:4}) .. @toArray .. @assert.eq(kv_pairs.slice(4,7));
   db .. @kv.query({begin:2, end:4}) .. @toArray .. @assert.eq(kv_pairs.slice(5,7));
 
+  db .. @kv.query(@kv.RANGE_ALL) .. @toArray .. @assert.eq(kv_pairs);
 
   var EOF = {};
 
@@ -166,6 +163,48 @@ function test_query(db) {
   });
 }
 
+function test_reverse_range_query(db) {
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+
+  var kv_pairs = [ 'a', 'b', 'c', 'd', 1, 2, 3, 4 ] .. @indexed .. @map([i,x] -> [[x], i]);
+
+  kv_pairs .. @each {
+    |[key, val]|
+    db .. @kv.set(key, val);
+  }
+  db .. @kv.query({begin:'a', end:'e'}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(0,4) .. @reverse);
+  db .. @kv.query({begin:'a', end:'d'}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(0,3) .. @reverse);
+  db .. @kv.query({begin:'b', end:'d'}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(1,3) .. @reverse);
+
+  
+  db .. @kv.query({begin:-10, end:5}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(4,8) .. @reverse);
+  db .. @kv.query({begin:1, end:4}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(4,7) .. @reverse);
+  db .. @kv.query({begin:2, end:4}, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs.slice(5,7) .. @reverse);
+
+  db .. @kv.query({begin:'a', end:'e'}, {reverse:true, limit:2}) .. @toArray .. @assert.eq(kv_pairs.slice(2,4) ..@reverse);
+
+  db .. @kv.query(@kv.RANGE_ALL, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs .. @clone .. @reverse);
+}
+
+function test_child_query(db) {
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+  
+  var kv_pairs = [['a','a', 1], ['a','a',2],['a','b',1], [1,1,1], [1,2,1], [1,11,1], [11,1], [11,1,1]] .. @indexed .. @map([i,x] -> [x,i]);
+
+  kv_pairs .. @each {
+    |[k,v]| db .. @kv.set(k,v);
+  }
+  
+  db .. @kv.query('a') .. @map([k,v] -> k) .. @assert.eq([['a', 'a', 1], ['a', 'a', 2], ['a', 'b', 1]]);
+  db .. @kv.query(['a','a']) .. @map([k,v] -> k) .. @assert.eq([['a', 'a', 1], ['a', 'a', 2]]);
+  db .. @kv.query(['a','b']) .. @map([k,v] -> k) .. @assert.eq([['a', 'b', 1]]);
+  db .. @kv.query(['a','a', 1]) .. @map([k,v] -> k) .. @assert.eq([]);
+  db .. @kv.query(['a','a', 3]) .. @map([k,v] -> k) .. @assert.eq([]);
+  db .. @kv.query(['1']) .. @map([k,v] -> k) .. @assert.eq([]);
+  db .. @kv.query([1]) .. @map([k,v] -> k) .. @assert.eq([[1,1,1], [1,2,1], [1,11,1]]);
+  db .. @kv.query([1,1]) .. @map([k,v] -> k) .. @assert.eq([[1,1,1]]);
+}
+
 function test_persistence(info) {
   function all(db) {
     return db ..@kv.query(@kv.RANGE_ALL) ..@toArray;
@@ -197,7 +236,6 @@ function test_persistence(info) {
 
 function test_all() {
   @test("withTransaction") { |s| s.db .. test_transaction }
-  @test("query") { |s| s.db .. test_query }
 
   // For all these tests, we run them both inside & outside
   // of a transaction block
@@ -209,8 +247,12 @@ function test_all() {
       @test("value types") { |s| s .. wrap(test_value_types) }
       @test("key types")   { |s| s .. wrap(test_key_types)   }
       @test("large key")   { |s| s .. wrap(test_large_key)   }
+      @test("large value") { |s| s .. wrap(test_large_value) } 
       @test("clear")       { |s| s .. wrap(test_clear)       }
       @test("get")         { |s| s .. wrap(test_get)         }
+      @test("range_query") { |s| s .. wrap(test_range_query) }
+      @test("reverse_range_query") { |s| s .. wrap(test_reverse_range_query) }
+      @test("child_query") { |s| s .. wrap(test_range_query) }
     }
   }
 }
@@ -281,9 +323,6 @@ function test_all() {
     }
 
     test_all();
-
-    // This can't be tested by LocalDB because it takes too long
-    @test("large value") {|s| s.db .. test_large_value() }
   }
 
 }.serverOnly();
