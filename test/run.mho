@@ -8,7 +8,7 @@ var { SystemRoutes,
       ETagFilter,
     } = require('mho:server/route');
 var { Port, Route } = require('mho:server');
-var { setStatus } = require('mho:server/response');
+var { setStatus, send } = require('mho:server/response');
 var url = require('sjs:url');
 var childProcess = require('sjs:nodejs/child-process');
 var logging = require('sjs:logging');
@@ -80,6 +80,13 @@ var serverConfig = {
       }
     }) .. ETagFilter(function(params) {
       return "#{importTime}-#{params["etag"]}";
+    }),
+
+    Route('response.send', {'GET':
+      function(req) {
+        var args = req.url.query .. decodeURIComponent .. JSON.parse();
+        send.apply(null, [req].concat(args))
+      }
     }),
 
     ExecutableDirectory(/(?=hello.api$)/, './test'),

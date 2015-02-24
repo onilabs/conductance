@@ -19,6 +19,7 @@ var { each } = require('sjs:sequence');
 var assert = require('sjs:assert');
 var { sanitize } = require('sjs:string');
 var { mapQuasi } = require('sjs:quasi');
+var { pump } = require('sjs:nodejs/stream');
 var { collapseHtmlFragment } = require('../surface/base');
 
 var HttpErrorProto = new Error();
@@ -90,6 +91,33 @@ function setStatus(req, code, reason, headers) {
   req.response.writeHead.apply(req.response, Array.prototype.slice.call(arguments,1));
 }
 exports.setStatus = setStatus;
+
+/**
+  @function send
+  @param {optional Object} [settings]
+  @setting {Number} [status=200]
+  @setting {Object} [headers]
+  @setting {String} [statusText]
+  @param {String|Buffer|sjs::sequence::Sequence} [body]
+  @summary Writes (and ends) an entire response, including headers & body.
+*/
+var send = exports.send = function send(req, options, body) {
+  if(arguments.length === 2) {
+    body = options;
+    options = null;
+  }
+  if(!options) options = {};
+  var status = options.status || 200;
+  var headers = options.headers || null;
+  var statusText = options.statusText;
+  if(statusText) {
+    req.response.writeHead(status, statusText, headers);
+  } else {
+    req.response.writeHead(status, headers);
+  }
+  if(body) pump(body, req.response);
+  else req.response.end();
+}
 
 /**
   @function setHeader
