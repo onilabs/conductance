@@ -247,7 +247,7 @@ function test_all() {
       @test("value types") { |s| s .. wrap(test_value_types) }
       @test("key types")   { |s| s .. wrap(test_key_types)   }
       @test("large key")   { |s| s .. wrap(test_large_key)   }
-      @test("large value") { |s| s .. wrap(test_large_value) }
+      @test("large value") { |s| s .. wrap(test_large_value) }.serverOnly()
       @test("clear")       { |s| s .. wrap(test_clear)       }
       @test("get")         { |s| s .. wrap(test_get)         }
       @test("range_query") { |s| s .. wrap(test_range_query) }
