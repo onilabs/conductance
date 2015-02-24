@@ -138,28 +138,41 @@ function wrapDB(itf) {
         query: function(range, options) {
           range = @encoding.encodeKeyRange(itf, range);
           queries.push([range.begin,range.end]);
-          if (options.reverse) throw new Error('reverse queries in transactions not implemented yet');
 
           return @transform(decodeKV) :: 
             @Stream(function(r) {
               var limit = options.limit;
-              
+              var reverse = options.reverse;
+
               // query and patches are streams of [k, v] pairs:
               var query = kv_query(range, options);
-              var patches = pendingPuts .. @values .. @sort((a,b) -> @encoding.encodedKeyCompare(a[0],b[0]) );
+              var patches = pendingPuts .. @values .. @sort((a,b) ->
+                                                            reverse ?
+                                                              @encoding.encodedKeyCompare(b[0],a[0]) :
+                                                            @encoding.encodedKeyCompare(a[0],b[0]));
+              
+              var preceding = reverse ? @encoding.encodedKeyGreater : @encoding.encodedKeyLess;
 
               @consume(patches) {
                 |next_patch|
                 var patch = next_patch();
                 // find first patch, where patch[0] >= range.begin
-                while (patch && @encoding.encodedKeyLess(patch[0], range.begin))
-                  patch = next_patch();
+                // (reverse case: first patch, where patch[0] < range.end)
+
+                if (reverse) {
+                  while (patch && @encoding.encodedKeyGtEq(patch[0], range.end))
+                    patch = next_patch();
+                }
+                else {
+                  while (patch && @encoding.encodedKeyLess(patch[0], range.begin))
+                    patch = next_patch();
+                }
 
                 query .. @each {
                   |q|
 
                   // apply patches preceding q:
-                  while (patch && @encoding.encodedKeyLess(patch[0], q[0])) {
+                  while (patch && preceding(patch[0], q[0])) {
                     if (patch[1] !== undefined) {
                       r(patch);
                       if (--limit === 0) return;
@@ -180,12 +193,23 @@ function wrapDB(itf) {
                 }
 
                 // emit remaining patches
-                while (patch && @encoding.encodedKeyLess(patch[0], range.end)) {
-                  if (patch[1] !== undefined) {
-                    r(patch);
-                    if (--limit === 0) return;
+                if (reverse) {
+                  while (patch && @encoding.encodedKeyGtEq(patch[0], range.begin)) {
+                    if (patch[1] !== undefined) {
+                      r(patch);
+                      if (--limit === 0) return;
+                    }
+                    patch = next_patch();
                   }
-                  patch = next_patch();
+                }
+                else {
+                  while (patch && @encoding.encodedKeyLess(patch[0], range.end)) {
+                    if (patch[1] !== undefined) {
+                      r(patch);
+                      if (--limit === 0) return;
+                    }
+                    patch = next_patch();
+                  }
                 }
               }
             });
