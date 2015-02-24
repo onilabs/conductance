@@ -85,8 +85,8 @@ exports.ServerError = (msg, desc) -> HttpError(500, msg || "Internal Server Erro
   @param {optional Object} [headers]
   @summary Calls [writeHead](http://nodejs.org/api/http.html#http_response_writehead_statuscode_reasonphrase_headers) on the underlying response.
 */
-function setStatus(req, code /*, ... */) {
-  verbose("#{req.url} #{code}");
+function setStatus(req, code, reason, headers) {
+  if(headers && !reason) throw new Error("blank `reasonPhrase` provided (you should omit this argument)");
   req.response.writeHead.apply(req.response, Array.prototype.slice.call(arguments,1));
 }
 exports.setStatus = setStatus;
