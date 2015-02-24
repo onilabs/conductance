@@ -60,7 +60,6 @@ function wrapDB(itf) {
       return @encoding.decodeValue(itf, itf.get(key));
     },
     // XXX collect multiple temporally adjacent calls
-    // TODO split into two functions: put and clear
     put: function(key, value) {
       key = @encoding.encodeKey(itf, key);
       if (value === undefined) {
@@ -138,11 +137,17 @@ function wrapDB(itf) {
         },
         query: function(range, options) {
           range = @encoding.encodeKeyRange(itf, range);
+          queries.push([range.begin,range.end]);
+          if (options.reverse) throw new Error('reverse queries in transactions not implemented yet');
 
-          // query and patches are streams of [k, v] pairs
-          function patchQuery(query, patches, reverse) {
-            if (reverse) throw new Error('reverse queries in transactions not implemented yet');
-            return @Stream(function(r) {
+          return @transform(decodeKV) :: 
+            @Stream(function(r) {
+              var limit = options.limit;
+              
+              // query and patches are streams of [k, v] pairs:
+              var query = kv_query(range, options);
+              var patches = pendingPuts .. @values .. @sort((a,b) -> @encoding.encodedKeyCompare(a[0],b[0]) );
+
               @consume(patches) {
                 |next_patch|
                 var patch = next_patch();
@@ -155,31 +160,35 @@ function wrapDB(itf) {
 
                   // apply patches preceding q:
                   while (patch && @encoding.encodedKeyLess(patch[0], q[0])) {
-                    if (patch[1] !== undefined) r(patch);
+                    if (patch[1] !== undefined) {
+                      r(patch);
+                      if (--limit === 0) return;
+                    }
                     patch = next_patch();
                   }
                   if (patch && @encoding.encodedKeyEquals(patch[0], q[0])) {
-                    if (patch[1] !== undefined) r(patch);
+                    if (patch[1] !== undefined) {
+                      r(patch);
+                      if (--limit === 0) return;
+                    }
                     patch = next_patch();
                     continue; // patch overrides current value
                   }
                   // emit q:
                   r(q);
+                  if (--limit === 0) return;
                 }
 
                 // emit remaining patches
                 while (patch && @encoding.encodedKeyLess(patch[0], range.end)) {
-                  r(patch);
+                  if (patch[1] !== undefined) {
+                    r(patch);
+                    if (--limit === 0) return;
+                  }
                   patch = next_patch();
                 }
               }
             });
-          }
-
-
-          queries.push([range.begin,range.end]);
-          var patches = pendingPuts .. @values .. @sort((a,b) -> @encoding.encodedKeyCompare(a[0],b[0]) );
-          return kv_query(range, options) .. patchQuery(patches, options.reverse) ..@transform(decodeKV);
         },
         observe: function(key) {
           throw new Error('write me');
