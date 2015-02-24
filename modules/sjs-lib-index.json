@@ -286,6 +286,9 @@
             "isHttpError": {
               "type": "function"
             },
+            "send": {
+              "type": "function"
+            },
             "setDefaultHeader": {
               "type": "function"
             },
