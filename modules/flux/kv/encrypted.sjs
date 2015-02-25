@@ -18,18 +18,12 @@
              { id: 'sjs:sjcl', name: 'sjcl' }]);
 
 function Encrypted(input, settings) {
-  var sjcl_settings = {};
-
-  if (settings.salt != null) {
-    sjcl_settings.salt = settings.salt;
-  }
-
   function encrypt(value) {
-    return @sjcl.json.encrypt(settings.password, JSON.stringify(value), sjcl_settings);
+    return @sjcl.json.encrypt(settings.password, JSON.stringify(value));
   }
 
   function decrypt(value) {
-    return JSON.parse(@sjcl.json.decrypt(settings.password, value, sjcl_settings));
+    return JSON.parse(@sjcl.json.decrypt(settings.password, value));
   }
 
   function decodeKV([key, value]) {
