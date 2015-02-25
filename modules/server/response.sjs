@@ -11,6 +11,7 @@
 
 /**
   @summary Utilities for generating and handling HTTP responses
+  @hostenv nodejs
 */
 
 var { debug, info, verbose } = require('sjs:logging');
