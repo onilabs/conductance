@@ -98,7 +98,7 @@ exports.setStatus = setStatus;
   @setting {Number} [status=200]
   @setting {Object} [headers]
   @setting {String} [statusText]
-  @param {String|Buffer|sjs::sequence::Sequence} [body]
+  @param {String|Buffer|sjs:sequence::Sequence} [body]
   @summary Writes (and ends) an entire response, including headers & body.
 */
 var send = exports.send = function send(req, options, body) {
