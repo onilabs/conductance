@@ -897,26 +897,26 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
   @mainContent .. @appendContent([
     @demo.CodeResult("\
+  @EmbedResponsive(
+    @Iframe(null, {
+      src: 'https://www.youtube.com/embed/8Uee_mcxvrw'
+    }), 
+    { ratio: '16by9' })",
   @EmbedResponsive([
     @Iframe(null, {
-      src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
-    })
-  ], { ratio: '16by9' })",
-  @EmbedResponsive([
-    @Iframe(null, {
-      src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
+      src: 'https://www.youtube.com/embed/8Uee_mcxvrw'
     })
   ], { ratio: '16by9' })),
 
     @demo.CodeResult("\
+  @EmbedResponsive(
+    @Iframe(null, {
+      src: 'https://www.youtube.com/embed/R0IUR4gkPIE'
+    }), 
+    { ratio: '4by3' })",
   @EmbedResponsive([
     @Iframe(null, {
-      src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
-    })
-  ], { ratio: '4by3' })",
-  @EmbedResponsive([
-    @Iframe(null, {
-      src: 'http://www.youtube.com/embed/zpOULjyy-n8?rel=0'
+      src: 'https://www.youtube.com/embed/R0IUR4gkPIE'
     })
   ], { ratio: '4by3' }))
   ]);
