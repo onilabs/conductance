@@ -285,6 +285,32 @@ function test_encryption() {
         message: 'ccm: tag doesn\'t match'
       }, -> new_db ..@kv.get('foo'));
     }
+
+    @test("transactions") {|s|
+      s.db ..@kv.set('foo', 5);
+
+      var foo = s.db ..@kv.withTransaction(function (db) {
+        return db ..@kv.get('foo');
+      });
+
+      foo ..@assert.eq(5);
+
+      s.db ..@kv.withTransaction(function (db) {
+        db ..@kv.get('foo') ..@assert.eq(5);
+        db ..@kv.set('foo', 10);
+      });
+
+      s.db ..@kv.get('foo') ..@assert.eq(10);
+
+      s.db ..@kv.withTransaction(function (db) {
+        db ..@kv.withTransaction(function (db) {
+          db ..@kv.get('foo') ..@assert.eq(10);
+          db ..@kv.set('foo', 15);
+        });
+      });
+
+      s.db ..@kv.get('foo') ..@assert.eq(15);
+    }
   }
 }
 
@@ -296,7 +322,8 @@ function test_all(new_db) {
   // of a transaction block
   ;[
     [null, (s, block) -> block(s.db)],
-    ["withTransaction", (s, block) -> s.db .. @kv.withTransaction(block)]
+    ["withTransaction", (s, block) -> s.db .. @kv.withTransaction(block)],
+    ["withTransaction^2", (s, block) -> s.db ..@kv.withTransaction(db -> db ..@kv.withTransaction(block))]
   ] .. @each {|[desc, wrap]|
     @context(desc) {||
       @test("value types") { |s| s .. wrap(test_value_types) }
