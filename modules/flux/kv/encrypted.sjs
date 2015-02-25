@@ -30,7 +30,7 @@ function Encrypted(input, settings) {
     return [key, decrypt(value)];
   }
 
-  function wrap(input) {
+  function wrap(input, in_transaction) {
     var db = input[@kv.ITF_KVSTORE];
 
     var out = {};
@@ -58,15 +58,20 @@ function Encrypted(input, settings) {
         return db.observe(key) ..@transform(decrypt);
       },
       withTransaction: function (options, block) {
-        return db.withTransaction(options, function (input) {
-          return block(wrap(input));
-        });
+        if (in_transaction) {
+          return block(out);
+
+        } else {
+          return db.withTransaction(options, function (input) {
+            return block(wrap(input, true));
+          });
+        }
       }
     };
 
     return out;
   }
 
-  return wrap(input);
+  return wrap(input, false);
 }
 exports.Encrypted = Encrypted;

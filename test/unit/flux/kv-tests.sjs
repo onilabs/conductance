@@ -97,6 +97,17 @@ function test_transaction(db) {
 
   setAbort(v1) ..@assert.eq(returnVal);
   db .. @kv.get(key) .. @assert.eq(v2);
+
+
+  db ..@kv.withTransaction(function (db2) {
+    db2 ..@assert.isNot(db);
+    db2 ..@kv.withTransaction(function (db3) {
+      db3 ..@assert.is(db2);
+      db3 ..@kv.withTransaction(function (db4) {
+        db4 ..@assert.is(db3);
+      });
+    });
+  });
 }
 
 function test_range_query(db) {
@@ -335,6 +346,7 @@ function test_encryption() {
       });
 
       s.db ..@kv.get('foo') ..@assert.eq(15);
+      s.raw ..@kv.get('foo') ..@assert.notEq(15);
     }
   }
 }
