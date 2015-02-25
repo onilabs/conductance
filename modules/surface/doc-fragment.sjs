@@ -289,7 +289,7 @@ staticExports.configure = function(opts) {
   */
   exports.initializeRuntime = function() {
     return [
-      @Element('script', null, {src: "#{serverRoot()}__sjs/stratified.js", asyc:'true'}),
+      @Element('script', null, {src: "#{serverRoot()}__sjs/stratified.js", async:'true'}),
       @Element('script', `
         require.hubs.push(['mho:','${serverRoot()}__mho/']);
       `, {'type': "text/sjs"}),
