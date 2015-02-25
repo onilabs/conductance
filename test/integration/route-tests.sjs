@@ -46,4 +46,4 @@ var rel = p -> @helper.url('');
     response.headers['x-test'] .. @assert.eq('true');
     response .. @stream.readAll('ascii') .. @assert.eq('');
   }
-}
+}.serverOnly();
