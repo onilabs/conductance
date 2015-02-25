@@ -223,7 +223,7 @@ function test_child_query(db) {
 
 function test_nested_transactions(db) {
   db .. @kv.clearRange(@kv.RANGE_ALL);
- 
+
   // test that mutations from nested transactions only become visible
   // when the *outermost* transaction is done
 
@@ -372,7 +372,7 @@ function test_all(new_db) {
       @test("range_query") { |s| s .. wrap(test_range_query) }
       @test("reverse_range_query") { |s| s .. wrap(test_reverse_range_query) }
       @test("child_query") { |s| s .. wrap(test_child_query) }
-      @test("nested transactions") { |s| s .. wrap(test_nested_transactions) }
+      @test("nested transactions") { |s| s .. wrap(test_nested_transactions) }.skip("TODO")
     }
   }
 }
