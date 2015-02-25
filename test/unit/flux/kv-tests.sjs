@@ -210,6 +210,31 @@ function test_child_query(db) {
   db .. @kv.query([1,1]) .. @map([k,v] -> k) .. @assert.eq([[1,1,1]]);
 }
 
+function test_nested_transactions(db) {
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+ 
+  // test that mutations from nested transactions only become visible
+  // when the *outermost* transaction is done
+
+  var inner_done;
+  waitfor {
+    waitfor () { inner_done = resume }
+    db .. @kv.get('foo', 'undefined') .. @assert.eq('undefined');
+  }
+  and {
+    db .. @kv.withTransaction {
+      |outer|
+      outer .. @kv.withTransaction {
+        |inner|
+        inner .. @kv.set('foo', 42);
+      }
+      inner_done();
+      hold(100);
+    }
+    db .. @kv.get('foo', 'undefined') .. @assert.eq(42);
+  }
+}
+
 function test_persistence(info) {
   @test("persistence") {|s|
     all(s.db) ..@assert.eq([]);
@@ -334,7 +359,8 @@ function test_all(new_db) {
       @test("get")         { |s| s .. wrap(test_get)         }
       @test("range_query") { |s| s .. wrap(test_range_query) }
       @test("reverse_range_query") { |s| s .. wrap(test_reverse_range_query) }
-      @test("child_query") { |s| s .. wrap(test_range_query) }
+      @test("child_query") { |s| s .. wrap(test_child_query) }
+      @test("nested transactions") { |s| s .. wrap(test_nested_transactions) }
     }
   }
 }
