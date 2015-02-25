@@ -390,3 +390,51 @@ function LocalDB(options, block) {
   }
 }
 exports.LocalDB = LocalDB;
+
+/**
+  @class Encrypted
+  @inherit ::KVStore
+  @summary A key-value storage that automatically encrypts its values
+
+  @function Encrypted
+  @altsyntax Encrypted(db, settings) { |kvstore| ... }
+  @param {::KVStore} [db]
+  @param {Object} [settings]
+  @param {optional Function} [block] Lexical block to scope the Encrypted object to
+  @setting {String} [password] The password / key to use for encrypting / decrypting
+  @desc
+    This function will return a wrapper for `db` which automatically
+    encrypts / decrypts the values.
+
+    Keys are *not* encrypted, so you should **not** store security-sensitive
+    information in the keys.
+
+    It will transparently encrypt / decrypt the values, which means that the
+    values in `db` are *always* encrypted, but if you use the [::Encrypted]
+    object it will automatically decrypt the values.
+
+    Because it can wrap any [::KVStore], you get to choose how the database
+    is stored:
+
+        // In memory
+        @Encrypted(@LocalDB(), { password: 'bar' });
+
+        // In localStorage
+        @Encrypted(@LocalDB({ localStorage: 'foo' }), { password: 'bar' });
+
+        // In a file
+        @Encrypted(@LocalDB({ file: 'foo' }), { password: 'bar' });
+
+        // In LevelDB
+        @Encrypted(@LevelDB('foo'), { password: 'bar' });
+*/
+function Encrypted(db, options, block) {
+  var itf = require('./kv/encrypted').Encrypted(db, options);
+
+  if (block) {
+    block(itf);
+  } else {
+    return itf;
+  }
+}
+exports.Encrypted = Encrypted;

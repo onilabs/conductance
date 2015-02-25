@@ -1,6 +1,11 @@
 @ = require('sjs:test/std');
 @kv = require('mho:flux/kv');
 
+// helper function to get all the keys/values from a db
+function all(db) {
+  return db ..@kv.query(@kv.RANGE_ALL) ..@toArray;
+}
+
 //----------------------------------------------------------------------
 // common test implementations to be tested on every db backend:
 
@@ -206,10 +211,6 @@ function test_child_query(db) {
 }
 
 function test_persistence(info) {
-  function all(db) {
-    return db ..@kv.query(@kv.RANGE_ALL) ..@toArray;
-  }
-
   @test("persistence") {|s|
     all(s.db) ..@assert.eq([]);
 
@@ -218,24 +219,78 @@ function test_persistence(info) {
 
     all(s.db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
 
-    var encoded = '[\n  [["bar"], 2],\n  [["foo"], 1]\n]';
+    var expected = '[\n  [["bar"], 2],\n  [["foo"], 1]\n]';
 
     if (info.file != null) {
-      @fs.readFile(s.path(info.file), 'utf8') ..@assert.eq(encoded);
-      var new_db = @kv.LocalDB({ file: s.path(info.file) });
+      @fs.readFile(s.path(info.file), 'utf8') ..@assert.eq(expected);
 
     } else {
-      localStorage[info.localStorage] ..@assert.eq(encoded);
-      var new_db = @kv.LocalDB({ localStorage: info.localStorage });
+      localStorage[info.localStorage] ..@assert.eq(expected);
     }
-
-    @assert.is(new_db, s.db);
-    all(new_db) ..@assert.eq(all(s.db));
   }
 }
 
-function test_all() {
+function test_equal(db, new_db) {
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+
+  var expected1 = [];
+  all(db) ..@assert.eq(expected1);
+  all(new_db) ..@assert.eq(expected1);
+
+  db ..@kv.set('quxcorge', 5);
+
+  var expected2 = [[['quxcorge'], 5]];
+  all(db) ..@assert.eq(expected2);
+  all(new_db) ..@assert.eq(expected2);
+}
+
+function test_encryption() {
+  @context("encryption") {||
+    @test("init") {|s|
+      all(s.db) ..@assert.eq([]);
+      all(s.raw) ..@assert.eq([]);
+
+      s.db ..@kv.set('foo', 1);
+      s.db ..@kv.set('bar', 2);
+
+      var expected = [[['bar'], 2], [['foo'], 1]];
+      all(s.db) ..@assert.eq(expected);
+      all(s.raw) ..@assert.notEq(expected);
+    }
+
+    @test("same value") {|s|
+      var enc_foo = s.db ..@kv.get('foo');
+      var raw_foo = s.raw ..@kv.get('foo');
+
+      enc_foo ..@assert.eq(1);
+      raw_foo ..@assert.notEq(1);
+
+      s.db ..@kv.set('foo', 1);
+
+      s.db ..@kv.get('foo') ..@assert.eq(enc_foo);
+      s.raw ..@kv.get('foo') ..@assert.notEq(enc_foo);
+      s.raw ..@kv.get('foo') ..@assert.notEq(raw_foo);
+    }
+
+    @test("same password") {|s|
+      var new_db = @kv.Encrypted(s.raw, { password: 'foobar' });
+
+      new_db ..@kv.get('foo') ..@assert.eq(1);
+    }
+
+    @test("different password") {|s|
+      var new_db = @kv.Encrypted(s.raw, { password: 'different_password' });
+
+      @assert.raises({
+        message: 'ccm: tag doesn\'t match'
+      }, -> new_db ..@kv.get('foo'));
+    }
+  }
+}
+
+function test_all(new_db) {
   @test("withTransaction") { |s| s.db .. test_transaction }
+  @test("equal")           { |s| s.db .. test_equal(new_db(s)) }
 
   // For all these tests, we run them both inside & outside
   // of a transaction block
@@ -265,7 +320,17 @@ function test_all() {
       s.db = @kv.LocalDB();
     }
 
-    test_all();
+    test_all(s -> s.db);
+  }
+
+  @context("Encrypted (memory)") {||
+    @test.beforeAll {|s|
+      s.raw = @kv.LocalDB();
+      s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
+    }
+
+    test_encryption();
+    test_all(s -> s.db);
   }
 };
 
@@ -280,7 +345,21 @@ function test_all() {
     }
 
     test_persistence({ localStorage: 'local-test-db' });
-    test_all();
+    test_all(s -> @kv.LocalDB({ localStorage: 'local-test-db' }));
+  }
+
+  @context("Encrypted (localStorage)") {||
+    @test.beforeAll {|s|
+      s.raw = @kv.LocalDB({ localStorage: 'encrypted-test-db' });
+      s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
+    }
+
+    @test.afterAll {|s|
+      delete localStorage['encrypted-test-db'];
+    }
+
+    test_encryption();
+    test_all(s -> @kv.Encrypted(s.raw, { password: 'foobar' }));
   }
 }.browserOnly();
 
@@ -307,7 +386,17 @@ function test_all() {
     }
 
     test_persistence({ file: 'local-test-db' });
-    test_all();
+    test_all(s -> @kv.LocalDB({ file: s.path('local-test-db') }));
+  }
+
+  @context("Encrypted (file)") {||
+    @test.beforeAll {|s|
+      s.raw = @kv.LocalDB({ file: s.path('encrypted-test-db') });
+      s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
+    }
+
+    test_encryption();
+    test_all(s -> @kv.Encrypted(s.raw, { password: 'foobar' }));
   }
 
   //----------------------------------------------------------------------
@@ -322,7 +411,8 @@ function test_all() {
       s.db.close();
     }
 
-    test_all();
+    // TODO test that opening the same location twice results in equal dbs
+    test_all(s -> s.db);
   }
 
 }.serverOnly();

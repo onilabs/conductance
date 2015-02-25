@@ -98,6 +98,14 @@
         "kv": {
           "type": "module",
           "children": {
+            "Encrypted": {
+              "type": "class",
+              "children": {
+                "Encrypted": {
+                  "type": "ctor"
+                }
+              }
+            },
             "ITF_KVSTORE": {
               "type": "variable"
             },
