@@ -1081,111 +1081,119 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
   @mainContent .. @appendContent([
     @demo.CodeResult("\
-  @Panel('default', [
-    'Nothing'
-  ])",
-  @Panel('default', [
-    'Nothing'
-  ])),
+  @Panel('Nothing', 'default')",
+  @Panel('Nothing', 'default')),
 
     @demo.CodeResult("\
-  @Panel('default', [
-    @PanelBody('Body')
-  ])",
-  @Panel('default', [
-    @PanelBody('Body')
-  ])),
+  @Panel(@PanelBody('Body'), 'default')",
+  @Panel(@PanelBody('Body'), 'default')),
 
   @demo.CodeResult("\
-  @Panel('default', [
-    @PanelHeading('Heading')
-  ])",
-  @Panel('default', [
-    @PanelHeading('Heading')
-  ])),
+  @Panel(@PanelHeading('Heading'), 'default')",
+  @Panel(@PanelHeading('Heading'), 'default')),
 
   @demo.CodeResult("\
-  @Panel('default', [
-    @PanelFooter('Footer')
-  ])",
-  @Panel('default', [
-    @PanelFooter('Footer')
-  ])),
-
-    @demo.CodeResult("\
-  @Panel('default', [
-    @PanelHeading(@PanelTitle('Heading')),
-    @PanelBody('Body'),
-    @PanelFooter('Footer')
-  ])",
-  @Panel('default', [
-    @PanelHeading(@PanelTitle('Heading')),
-    @PanelBody('Body'),
-    @PanelFooter('Footer')
-  ])),
+  @Panel(@PanelFooter('Footer'), 'default')",
+  @Panel(@PanelFooter('Footer'), 'default')),
 
   @demo.CodeResult("\
-  @Panel('primary', [
+  @Panel([
+           @PanelHeading(@PanelTitle('Heading')),
+           @PanelBody('Body'),
+           @PanelFooter('Footer')
+         ],
+         'default')",
+  @Panel([
+           @PanelHeading(@PanelTitle('Heading')),
+           @PanelBody('Body'),
+           @PanelFooter('Footer')
+         ],
+         'default')),
+
+  @demo.CodeResult("\
+  @Panel([
+           @PanelHeading(@PanelTitle('Primary heading')),
+           @PanelBody('Primary body'),
+           @PanelFooter('Primary footer')
+         ],
+         'primary')",
+  @Panel([
     @PanelHeading(@PanelTitle('Primary heading')),
     @PanelBody('Primary body'),
     @PanelFooter('Primary footer')
-  ])",
-  @Panel('primary', [
-    @PanelHeading(@PanelTitle('Primary heading')),
-    @PanelBody('Primary body'),
-    @PanelFooter('Primary footer')
-  ])),
+  ], 'primary')),
 
   @demo.CodeResult("\
-  @Panel('success', [
+  @Panel([
+           @PanelHeading(@PanelTitle('Success heading')),
+           @PanelBody('Success body'),
+           @PanelFooter('Success footer')
+         ], 
+         'success')",
+  @Panel([
     @PanelHeading(@PanelTitle('Success heading')),
     @PanelBody('Success body'),
     @PanelFooter('Success footer')
-  ])",
-  @Panel('success', [
-    @PanelHeading(@PanelTitle('Success heading')),
-    @PanelBody('Success body'),
-    @PanelFooter('Success footer')
-  ])),
+  ], 'success')),
 
   @demo.CodeResult("\
-  @Panel('info', [
+  @Panel([
+           @PanelHeading(@PanelTitle('Info heading')),
+           @PanelBody('Info body'),
+           @PanelFooter('Info footer')
+         ],
+         'info')",
+  @Panel([
     @PanelHeading(@PanelTitle('Info heading')),
     @PanelBody('Info body'),
     @PanelFooter('Info footer')
-  ])",
-  @Panel('info', [
-    @PanelHeading(@PanelTitle('Info heading')),
-    @PanelBody('Info body'),
-    @PanelFooter('Info footer')
-  ])),
+  ], 'info')),
 
   @demo.CodeResult("\
-  @Panel('warning', [
+  @Panel([
+           @PanelHeading(@PanelTitle('Warning heading')),
+           @PanelBody('Warning body'),
+           @PanelFooter('Warning footer')
+         ],
+         'warning')",
+  @Panel([
     @PanelHeading(@PanelTitle('Warning heading')),
     @PanelBody('Warning body'),
     @PanelFooter('Warning footer')
-  ])",
-  @Panel('warning', [
-    @PanelHeading(@PanelTitle('Warning heading')),
-    @PanelBody('Warning body'),
-    @PanelFooter('Warning footer')
-  ])),
+  ], 'warning')),
 
   @demo.CodeResult("\
-  @Panel('danger', [
+  @Panel([
+           @PanelHeading(@PanelTitle('Danger heading')),
+           @PanelBody('Danger body'),
+           @PanelFooter('Danger footer')
+         ], 
+         'danger')",
+  @Panel([
     @PanelHeading(@PanelTitle('Danger heading')),
     @PanelBody('Danger body'),
     @PanelFooter('Danger footer')
-  ])",
-  @Panel('danger', [
-    @PanelHeading(@PanelTitle('Danger heading')),
-    @PanelBody('Danger body'),
-    @PanelFooter('Danger footer')
-  ])),
+  ], 'danger')),
 
   @demo.CodeResult("\
-  @Panel('default', [
+  @Panel([
+           @PanelHeading(@PanelTitle('Table example')),
+           @PanelBody(
+             'This is a table contained inside a panel:'
+           ),
+           @Table([
+             @Tr([
+               @Td('foo'),
+               @Td('1')
+             ]),
+             @Tr([
+               @Td('bar'),
+               @Td('2')
+             ])
+           ])
+         ],
+         'default')",
+  @Panel([
     @PanelHeading(@PanelTitle('Table example')),
     @PanelBody([
       'This is a table contained inside a panel:'
@@ -1200,47 +1208,28 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
         @Td('2')
       ])
     ])
-  ])",
-  @Panel('default', [
-    @PanelHeading(@PanelTitle('Table example')),
-    @PanelBody([
-      'This is a table contained inside a panel:'
-    ]),
-    @Table([
-      @Tr([
-        @Td('foo'),
-        @Td('1')
-      ]),
-      @Tr([
-        @Td('bar'),
-        @Td('2')
-      ])
-    ])
-  ])),
+  ], 'default')),
 
   @demo.CodeResult("\
-  @Panel('default', [
+  @Panel([
+           @PanelHeading(@PanelTitle('List Group example')),
+           @PanelBody(
+             'This is a list group contained inside a panel:'
+           ),
+           @ListGroup(['foo', 'bar', 'qux'])
+         ],
+         'default')",
+  @Panel([
     @PanelHeading(@PanelTitle('List Group example')),
     @PanelBody([
       'This is a list group contained inside a panel:'
     ]),
     @ListGroup([
-      @ListGroupItem('foo'),
-      @ListGroupItem('bar'),
-      @ListGroupItem('qux'),
+      'foo',
+      'bar',
+      'qux'
     ])
-  ])",
-  @Panel('default', [
-    @PanelHeading(@PanelTitle('List Group example')),
-    @PanelBody([
-      'This is a list group contained inside a panel:'
-    ]),
-    @ListGroup([
-      @ListGroupItem('foo'),
-      @ListGroupItem('bar'),
-      @ListGroupItem('qux'),
-    ])
-  ]))
+  ], 'default'))
   ]);
 
 @function ButtonGroup
