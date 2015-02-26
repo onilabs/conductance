@@ -442,6 +442,28 @@ function Encrypted(db, options, block) {
 }
 exports.Encrypted = Encrypted;
 
+/**
+  @class Subspace
+  @inherit ::KVStore
+  @summary A key-value storage that automatically adds a prefix to all the keys
+
+  @function Subspace
+  @altsyntax Subspace(db, prefix) { |kvstore| ... }
+  @param {::KVStore} [db]
+  @param {::Key} [prefix]
+  @param {optional Function} [block] Lexical block to scope the Subspace object to
+  @desc
+    This function will return a wrapper for `db` which automatically
+    adds / removes `prefix` from all of the keys.
+
+        var sub = @Subspace(db, ['foo', 'bar']);
+
+        // This...
+        @set(sub, ['qux'], 5);
+
+        // ...is equivalent to this:
+        @set(db, ['foo', 'bar', 'qux'], 5);
+*/
 function Subspace(db, prefix, block) {
   var itf = require('./kv/subspace').Subspace(db, prefix);
 

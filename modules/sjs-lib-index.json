@@ -147,6 +147,14 @@
               "type": "class",
               "children": {}
             },
+            "Subspace": {
+              "type": "class",
+              "children": {
+                "Subspace": {
+                  "type": "ctor"
+                }
+              }
+            },
             "Value": {
               "type": "class",
               "children": {}

@@ -280,6 +280,113 @@ function test_equal(db, new_db) {
   all(new_db) ..@assert.eq(expected2);
 }
 
+function test_subspace() {
+  @context("subspace") {||
+    @test("init") {|s|
+      all(s.db) ..@assert.eq([]);
+      all(s.raw) ..@assert.eq([]);
+
+      s.raw ..@kv.set('foo', 20);
+
+      s.db ..@kv.set('foo', 1);
+      s.db ..@kv.set(['foo', 'bar'], 2);
+
+      s.db ..@kv.withTransaction(function (db) {
+        db ..@kv.set('qux', 3);
+      });
+
+      s.db ..@kv.withTransaction(function (db) {
+        db ..@kv.withTransaction(function (db) {
+          db ..@kv.set('corge', 4);
+        });
+      });
+    }
+
+    @test("query") {|s|
+      all(s.db) ..@assert.eq([[['corge'], 4],
+                              [['foo'], 1],
+                              [['foo', 'bar'], 2],
+                              [['qux'], 3]]);
+
+      all(s.raw) ..@assert.eq([[['foo'], 20],
+                               [['foobar', 0, 'corge'], 4],
+                               [['foobar', 0, 'foo'], 1],
+                               [['foobar', 0, 'foo', 'bar'], 2],
+                               [['foobar', 0, 'qux'], 3]]);
+
+      s.db ..@kv.query({
+        begin: 'foo',
+        end: 'qux'
+      }) ..@toArray ..@assert.eq([[['foo'], 1], [['foo', 'bar'], 2]]);
+
+      s.raw ..@kv.query({
+        begin: ['foobar', 0, 'foo'],
+        end: ['foobar', 0, 'qux']
+      }) ..@toArray ..@assert.eq([[['foobar', 0, 'foo'], 1], [['foobar', 0, 'foo', 'bar'], 2]]);
+
+      s.db ..@kv.query('foo') ..@toArray ..@assert.eq([[['foo', 'bar'], 2]]);
+
+      s.raw ..@kv.query('foobar') ..@toArray ..@assert.eq([[['foobar', 0, 'corge'], 4],
+                                                           [['foobar', 0, 'foo'], 1],
+                                                           [['foobar', 0, 'foo', 'bar'], 2],
+                                                           [['foobar', 0, 'qux'], 3]]);
+    }
+
+    @test("get") {|s|
+      s.db ..@kv.get('foo') ..@assert.eq(1);
+      s.db ..@kv.get(['foo', 'bar']) ..@assert.eq(2);
+      s.db ..@kv.get('qux') ..@assert.eq(3);
+      s.db ..@kv.get('corge') ..@assert.eq(4);
+
+      s.raw ..@kv.get(['foobar', 0, 'foo']) ..@assert.eq(1);
+      s.raw ..@kv.get(['foobar', 0, 'foo', 'bar']) ..@assert.eq(2);
+      s.raw ..@kv.get(['foobar', 0, 'qux']) ..@assert.eq(3);
+      s.raw ..@kv.get(['foobar', 0, 'corge']) ..@assert.eq(4);
+    }
+
+    @test("sub-subspace") {|s|
+      var sub = @kv.Subspace(s.db, 'nou');
+
+      sub ..@kv.set('foo', 10);
+
+      sub ..@kv.withTransaction(function (db) {
+        db ..@kv.set('bar', 20);
+      });
+
+      sub ..@kv.withTransaction(function (db) {
+        db ..@kv.withTransaction(function (db) {
+          db ..@kv.set('qux', 30);
+        });
+      });
+
+      sub ..@kv.get('foo') ..@assert.eq(10);
+      sub ..@kv.get('bar') ..@assert.eq(20);
+      sub ..@kv.get('qux') ..@assert.eq(30);
+
+      all(sub) ..@assert.eq([[['bar'], 20],
+                             [['foo'], 10],
+                             [['qux'], 30]]);
+
+      all(s.db) ..@assert.eq([[['corge'], 4],
+                              [['foo'], 1],
+                              [['foo', 'bar'], 2],
+                              [['nou', 'bar'], 20],
+                              [['nou', 'foo'], 10],
+                              [['nou', 'qux'], 30],
+                              [['qux'], 3]]);
+
+      all(s.raw) ..@assert.eq([[['foo'], 20],
+                               [['foobar', 0, 'corge'], 4],
+                               [['foobar', 0, 'foo'], 1],
+                               [['foobar', 0, 'foo', 'bar'], 2],
+                               [['foobar', 0, 'nou', 'bar'], 20],
+                               [['foobar', 0, 'nou', 'foo'], 10],
+                               [['foobar', 0, 'nou', 'qux'], 30],
+                               [['foobar', 0, 'qux'], 3]]);
+    }
+  }
+}
+
 function test_encryption() {
   @context("encryption") {||
     @test("init") {|s|
@@ -396,6 +503,16 @@ function test_all(new_db) {
 
     test_encryption();
     test_all(s -> s.db);
+  }
+
+  @context("Subspace") {||
+    @test.beforeAll {|s|
+      s.raw = @kv.LocalDB();
+      s.db = @kv.Subspace(s.raw, ['foobar', 0]);
+    }
+
+    test_subspace();
+    test_all(s -> @kv.Subspace(s.raw, ['foobar', 0]));
   }
 };
 
