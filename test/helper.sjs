@@ -16,6 +16,9 @@ exports.setHost = h -> host = h;
 
 exports.url = u -> Url.normalize(u, exports.getRoot());
 
+var inProcessServer = false;
+exports.inProcessServer = -> inProcessServer;
+
 exports.serve = function(config, block) {
   var port = config.address.port;
   var base_url = 'http://localhost:' + port + '/';
@@ -40,6 +43,7 @@ exports.serve = function(config, block) {
     return block();
   }
 
+  inProcessServer = true;
   require('mho:server').run(config, block);
 }
 

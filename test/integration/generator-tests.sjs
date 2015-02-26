@@ -74,6 +74,7 @@
   }
 
   @test("slow generator import race condition") {||
+    if(!@helper.inProcessServer()) @skipTest("Can't be run against external server");
     var modulePath = require.resolve('./fixtures/slow_gen.txt.gen').path;
     var url = @helper.url('test/integration/fixtures/slow_gen.txt');
     var msg = "So slow!";
