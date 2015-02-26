@@ -180,7 +180,7 @@ function formatResponse(req, item, settings) {
         if (!cache_entry || cache_entry.etag != etag) {
           output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, filepath: filePath });
           cache_entry = { etag: etag, data: output ..join('') };
-          info("populating cache #{req.url} length: #{cache_entry.data.length}");
+          debug("populating cache #{req.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(req.request.url, cache_entry, cache_entry.data.length);
         }
 
@@ -357,7 +357,7 @@ function serveFile(req, filePath, format, settings) {
 
       try {
         var apiid = require('./api-registry').registerAPI(filePath .. url.fileURL);
-        logging.info("registered API #{filePath} -> #{apiid}");
+        logging.verbose("registered API #{filePath} -> #{apiid}");
         return {id: apiid, root: relativeRoot};
       } catch(e) {
         return {error: String(e) }
