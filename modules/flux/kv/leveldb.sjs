@@ -18,7 +18,7 @@
 */
 
 @ = require(['sjs:std',
-             { id: './util', name: 'util' },
+             { id: './wrap', name: 'wrap' },
              { id: './encoding', name: 'encoding' }]);
 
 __js function annotateError(err, orig) {
@@ -207,7 +207,7 @@ exports.LevelDB = LevelDB;
 
 exports.WrappedLevelDB = function (location, options) {
   var db = LevelDB(location, options);
-  var itf = @util.wrapDB(db);
+  var itf = @wrap.wrapDB(db);
 
   // It's necessary to manually close the db if you don't provide a block
   itf.close = db.close;

@@ -14,7 +14,7 @@
  */
 @ = require(['sjs:std',
              { id: './encoding', name: 'encoding' },
-             { id: './util', name: 'util' }]);
+             { id: './wrap', name: 'wrap' }]);
 
 var SortedDict = (function () {
   __js {
@@ -461,7 +461,7 @@ function load_db(options) {
         dict = load_db1(dict, db);
       }
 
-      return @util.wrapDB(wrap_dict(dict, options));
+      return @wrap.wrapDB(wrap_dict(dict, options));
     });
 
   } else if (options.file != null) {
@@ -477,11 +477,11 @@ function load_db(options) {
         }
       }
 
-      return @util.wrapDB(wrap_dict(dict, options));
+      return @wrap.wrapDB(wrap_dict(dict, options));
     });
 
   } else {
-    return @util.wrapDB(wrap_dict(SortedDict(), options));
+    return @wrap.wrapDB(wrap_dict(SortedDict(), options));
   }
 }
 

@@ -16,7 +16,10 @@
 
 module.setCanonicalId('mho:flux/kv');
 
-@ = require(['sjs:std', {id:'sjs:type', include:['Interface']}]);
+@ = require(['sjs:std',
+             { id: 'sjs:type', include: ['Interface'] },
+             { id: './kv/util', name: 'util' }
+            ]);
 
 var NOT_FOUND = 'NotFound';
 
@@ -151,7 +154,7 @@ exports.RANGE_ALL = RANGE_ALL;
       Otherwise, a [::NotFound] error will be thrown.
 */
 function get(store, key, dfl) {
-  var rv = store[ITF_KVSTORE].get(key);
+  var rv = store[ITF_KVSTORE].get(@util.normalizeKey(key));
   if(rv === undefined) {
     if(arguments.length > 2) return dfl;
     throwError(NOT_FOUND);
@@ -169,7 +172,7 @@ exports.get = get;
 */
 function set(store, key, value) {
   // assert value !== undefined; that would be a 'clear' operation
-  return store[ITF_KVSTORE].put(key, value);
+  return store[ITF_KVSTORE].put(@util.normalizeKey(key), value);
 }
 exports.set = set;
 
@@ -180,7 +183,7 @@ exports.set = set;
    @summary Clears any value currently associated with key.
 */
 function clear(store, key) {
-  return store[ITF_KVSTORE].put(key, undefined);
+  return store[ITF_KVSTORE].put(@util.normalizeKey(key), undefined);
 }
 exports.clear = clear;
 
@@ -199,7 +202,7 @@ exports.clear = clear;
      from the first element of the reversed sequence.
 */
 function query(store, range, options) {
-  return store[ITF_KVSTORE].query(range, options || {});
+  return store[ITF_KVSTORE].query(@util.normalizeKeyRange(range), options || {});
 }
 exports.query = query;
 
@@ -229,7 +232,7 @@ exports.clearRange = clearRange;
 
 */
 function observe(store, key) {
-  return store[ITF_KVSTORE].observe(key);
+  return store[ITF_KVSTORE].observe(@util.normalizeKey(key));
 }
 exports.observe = observe;
 
@@ -438,3 +441,14 @@ function Encrypted(db, options, block) {
   }
 }
 exports.Encrypted = Encrypted;
+
+function Subspace(db, prefix, block) {
+  var itf = require('./kv/subspace').Subspace(db, prefix);
+
+  if (block) {
+    block(itf);
+  } else {
+    return itf;
+  }
+}
+exports.Subspace = Subspace;

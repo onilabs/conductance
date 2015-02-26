@@ -172,11 +172,6 @@ __js {
      @summary XXX write me
    */
   function encodeKey(info, arr) {
-    if(!Array.isArray(arr))
-      arr = [arr];
-
-    arr = arr .. @flatten;
-
     var totalLength = 0;
 
     var outArr = new Array(arr.length);
@@ -290,6 +285,7 @@ __js {
      @summary XXX write me
    */
   function encodeKeyRange(info, arr) {
+    // TODO code duplication with util.transformKeyRange
     if (typeof arr === 'object' && !Array.isArray(arr)) {
       return {
         begin: encodeKey(info, arr.begin),
@@ -364,7 +360,7 @@ __js {
     return encodedKeyCompare(k1,k2) > 0;
   }
   exports.encodedKeyGreater = encodedKeyGreater;
-  
+
   /**
      @function encodedKeyInRange
      @summary XXX write me
