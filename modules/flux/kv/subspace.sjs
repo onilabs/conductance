@@ -26,13 +26,13 @@ function Subspace(input, prefix) {
 
   function unprefixKey(key) {
     if (!Array.isArray(key)) {
-      throw new Error("Expected array but got " + key);
+      throw new Error("Invalid key");
     }
 
     for (var i = 0; i < prefix.length; ++i) {
       // TODO better equality check
       if (key[i] !== prefix[i]) {
-        throw new Error("Expected " + prefix[i] + " but got " + key[i]);
+        throw new Error("Invalid prefix");
       }
     }
 
