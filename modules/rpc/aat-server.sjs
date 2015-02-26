@@ -188,6 +188,10 @@ function createTransport(finish) {
       if (resume_poll && !exchange_in_progress) resume_poll();
     },
 
+    enqueue: function(message) {
+      send_q.push(message);
+    },
+
     sendData: function(header, data) {
       if (!this.active)
         throw new Error("inactive transport");
