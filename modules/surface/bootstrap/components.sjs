@@ -887,7 +887,7 @@ exports.Thumbnail = function (settings) {
   image = settings.image;
 
   if (settings.url != null) {
-    image = base_html.A(image, { 'href': settings.url });
+    image = @html.A(image, { 'href': settings.url });
   }
 
   if (settings.caption == null) {
@@ -896,10 +896,10 @@ exports.Thumbnail = function (settings) {
   } else {
     classes.push('thumbnail');
 
-    caption = base_html.Div(settings.caption, { 'class': 'caption' });
+    caption = @html.Div(settings.caption, { 'class': 'caption' });
   }
 
-  return base_html.Div([image, caption]) ..@Style('display: inline-block') ..@Class(classes);
+  return @html.Div([image, caption]) ..@Style('display: inline-block') ..@Class(classes);
 };
 
 
@@ -1200,7 +1200,7 @@ exports.Panel = function(content, panel_classes) {
 */
 function wrapButtonGroup(buttons, classes) {
   // TODO handle Streams and other stuff
-  return buttons ..@map(x -> base_html.Div(x) ..@Attrib('role', 'group') ..@Class(classes));
+  return buttons ..@map(x -> @html.Div(x) ..@Attrib('role', 'group') ..@Class(classes));
 }
 
 exports.ButtonGroup = function (buttons, settings) {
@@ -1230,7 +1230,7 @@ exports.ButtonGroup = function (buttons, settings) {
     outer_classes.push('btn-group-justified');
   }
 
-  return base_html.Div(wrapButtonGroup(buttons, inner_classes))
+  return @html.Div(wrapButtonGroup(buttons, inner_classes))
     ..@Class(outer_classes)
     ..@Attrib('role', 'group')
     ..@Attrib('aria-label', settings.label);
