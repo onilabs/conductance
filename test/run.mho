@@ -44,7 +44,7 @@ var serverConfig = {
         /^__aat_bridge\/(2)$/,
         require('mho:rpc/aat-server').createTransportHandler(
           function(transport) {
-            require('mho:rpc/bridge').accept(
+            var connection = require('mho:rpc/bridge').accept(
               function(apiid) {
                 var api = apiRegistry.getAPIbyAPIID(apiid);
                 var moduleId = api.id;
@@ -52,6 +52,10 @@ var serverConfig = {
                   currentApiModule = require.modules[moduleId].exports;
                   //logging.warn("got API ", currentApiModule, "for ID ", apiid);
                   currentApiModule._transport = transport;
+                  if(!currentApiModule._connections) {
+                    currentApiModule._connections = [];
+                  }
+                  currentApiModule._connections.push(connection);
                 } else {
                   currentApiModule = null;
                 }

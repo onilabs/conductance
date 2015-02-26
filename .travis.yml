@@ -41,5 +41,5 @@ branches:
     - master
     - /^\d+(\.\d+)+$/
 
-script: "./conductance exec $a --show-failed"
+script: "node --expose-gc ./conductance exec $a --show-failed"
 

@@ -143,6 +143,12 @@ function openTransport(server, requestOpts) {
   var resume_receive;
   var poll_stratum;
   if (!requestOpts) requestOpts = null;
+  var pendingMessages = [];
+  var collectPending = function(messages) {
+    var rv = messages ? messages.concat(pendingMessages) : pendingMessages;
+    pendingMessages = [];
+    return rv;
+  }
 
   function poll_loop() {
     try {
@@ -157,7 +163,8 @@ function openTransport(server, requestOpts) {
             ],
             { method: 'POST',
               headers: {'Content-Type': 'text/plain; charset=utf-8'},
-              response: 'arraybuffer'
+              response: 'arraybuffer',
+              body: collectPending(),
             } .. @extend(requestOpts));
         }
         or {
@@ -246,11 +253,16 @@ function openTransport(server, requestOpts) {
         ],
         { method: 'POST',
           headers: {'Content-Type': 'text/plain; charset=utf-8'},
-          body: JSON.stringify(messages)
+          body: JSON.stringify(collectPending(messages))
         });
       return messages; // XXX no point in mapping the return value
+    }, {batch_period:CALL_BATCH_PERIOD}),
+
+    enqueue: function(message) {
+      // add a non-timely message to be sent out with the next
+      // poll / command (or never, if the connection ends before then)
+      pendingMessages.push(message);
     },
-                        {batch_period:CALL_BATCH_PERIOD}),
 
     sendData: function(header, data) {
       sendCommand.call(this,

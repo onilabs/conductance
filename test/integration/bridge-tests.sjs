@@ -1,8 +1,8 @@
 @ = require('sjs:test/std');
 @bytes = require('sjs:bytes');
 var {test, context, assert, isBrowser} = require('sjs:test/suite');
-var helper = require('../helper');
-var bridge = require('mho:rpc/bridge');
+var helper = @helper = require('../helper');
+var bridge = @bridge = require('mho:rpc/bridge');
 var { isTransportError } = bridge;
 var http = require('sjs:http');
 var { Emitter } = require('sjs:event');
@@ -513,5 +513,46 @@ context("non-root locations") {||
     logging.info("Resolving: #{url}");
     var resolved = bridge.resolve(url);
     resolved.server .. assert.eq("http://example.com/rpc/");
+  }
+}.serverOnly();
+
+context("garbage collection") {||
+  var singleton = function(a) {
+    a.length .. @assert.eq(1, `expected a singleton, got $a`);
+    return a[0];
+  }
+  @test("deletion of published functions") {||
+    require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|
+      function forceRefreshNumFunctions() {
+        global.gc();
+        api.ping();
+        return api.numFunctions() .. singleton;
+      };
+
+      // firstly, test that there's one connection, and generating 100 functions
+      // adds 100 published functions on the server side.
+      api.numConnections() .. @assert.eq(1);
+      var initialFuncs = api.numFunctions() .. singleton;
+      initialFuncs .. @assert.number();
+      var funcs = api.genFunctions(100);
+      @assert.eq(forceRefreshNumFunctions() - initialFuncs, 100);
+
+      // garbage collection should enqueue deletion messages
+      // (which will piggyback on the next available poll or command)
+      funcs = null;
+      @assert.eq(forceRefreshNumFunctions(), initialFuncs);
+    }
+  }.skipIf(!global.gc, "pass --enable-gc to node if you want to run this test");
+
+  @test("connections are dropped on disconnect") {||
+    require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|
+      api.numConnections() .. @assert.eq(1);
+
+      require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|
+        api.numConnections() .. @assert.eq(2);
+      }
+
+      api.numConnections() .. @assert.eq(1);
+    }
   }
 }.serverOnly();

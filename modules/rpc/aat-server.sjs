@@ -155,15 +155,14 @@ function createTransport(finish) {
     },
 
     pollMessages: function(in_messages) {
-//      console.log('polling...');
-      // assert(this.active)
-      if (in_messages.length) {
-        // XXX we don't support messages in poll yet
-        return 'unsupported_poll';
-      } else if (resume_poll) {
+      if (resume_poll) {
         logging.warn('multiple poll');
         // Can only have one active poll
         return 'poll_in_progress';
+      }
+      if (in_messages.length) {
+        in_messages .. each(m -> receive_q.push(m));
+        if(resume_receive) resume_receive();
       }
 
       // give messages a small time to accumulate:

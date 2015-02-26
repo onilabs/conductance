@@ -137,9 +137,19 @@ var bytes = require('sjs:bytes');
 var http = require('sjs:http');
 var Url = require('sjs:url');
 var global = require('sjs:sys').getGlobal();
-var apiRegistry;
+var apiRegistry, weak;
 if (hostenv !== 'xbrowser') {
   apiRegistry = require('../server/api-registry')
+  try {
+    weak = require('nodejs:weak');
+  } catch(e) {
+    // ignore missing `weak` module
+  }
+  function unpublishFunction(id, conn) {
+    return function(obj) {
+      conn.del('function', id);
+    };
+  };
 }
 
 //----------------------------------------------------------------------
@@ -537,6 +547,9 @@ function unmarshallFunction(obj, connection) {
     f[ITF_SIGNAL] = function(this_obj, args) {
       return connection.makeSignalledCall(-1, obj.id, args);
     };
+    if(weak) {
+      weak(f, unpublishFunction(obj.id, connection));
+    }
   }
   return f;
 }
@@ -631,6 +644,10 @@ function BridgeConnection(transport, opts) {
     makeSignalledCall: function(api, method, args) {
       var args = marshall(['signal', api, method, toArray(args)], connection);
       if (transport) transport.send(args);
+    },
+    del: function(type, id) {
+      var args = marshall(['del', type, id], connection);
+      if (transport) transport.enqueue(args);
     },
     makeCall: function(api, method, args) {
       var call_no = ++call_counter;
@@ -795,6 +812,13 @@ function BridgeConnection(transport, opts) {
           signal(published_apis[message[1]], message[3] /*args*/);
       }
       break;
+    case 'del':
+      switch(message[1]) {
+        case 'function':
+          delete published_funcs[message[2]];
+          break;
+      }
+      break;
     case 'call':
       if (executing_calls[message[1]]) break; // duplicate call
       executing_calls[message[1]] = spawn (function(call_no, api_id, method, args) {
@@ -858,6 +882,8 @@ function BridgeConnection(transport, opts) {
   connection.stratum = spawn receiver();
   if (opts.api)
     connection.api = getAPI();
+
+  connection._published_funcs = published_funcs;
   return connection;
 }
 

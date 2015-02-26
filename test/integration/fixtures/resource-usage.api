@@ -1,0 +1,35 @@
+@ = require('mho:std');
+exports.id = module.id;
+
+exports.apiRegistry = -> require('mho:rpc/api-registry')._registry;
+
+var scrubConnections = function() {
+	exports._connections .. @assert.ok('exports._connections');
+	//console.log(exports._connections);
+	exports._connections = exports._connections .. @filter(function(conn) {
+		var running = false;
+		waitfor {
+			// if this returns synchronously, the second branch will not execute
+			conn.stratum.value();
+		} or {
+			running = true;
+		}
+		return running;
+	}) .. @toArray();
+	return exports._connections;
+};
+
+exports.numConnections = function() {
+	return scrubConnections().length;
+}
+
+exports.numFunctions = function() {
+	return scrubConnections() .. @map(c -> c._published_funcs .. @ownKeys .. @count);
+}
+
+exports.genFunctions = function(n) {
+	var f = -> null;
+	return @integers(1, n) .. @map(->f);
+};
+
+exports.ping = -> null;
