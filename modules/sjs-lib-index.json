@@ -856,9 +856,6 @@
             "fieldValue": {
               "type": "function"
             },
-            "findContext": {
-              "type": "function"
-            },
             "getField": {
               "type": "function"
             },

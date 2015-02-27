@@ -46,9 +46,8 @@ function findNodeWithContext(node, ctx) {
   return undefined;
 }
 
-/**
+/* not documented for now
    @function findContext
-   @summary XXX write me
 */
 function findContext(node, ctx, defval) {
   @dom.traverseDOM(node, document) {
@@ -66,48 +65,48 @@ exports.findContext = findContext;
 /**
    @variable CTX_FIELD
    @summary An [sjs:type::Interface] implemented by [::Field] DOM objects.
-   @desc     
-   A DOM object `obj` implementing CTX_FIELD promises to have 
-   the following functions defined:
+   @desc
+     A DOM object `obj` implementing CTX_FIELD promises to have 
+     the following interface defined:
    
-       obj[CTX_FIELD] = {
-         id:               String, // document unique id
-         value:            ObservableVar,
-         validation_state: Observable,
-         auto_validate   : ObservableVar,
-         validators:       Array,
-         validators_deps:  Object,
-         validate:         Function
-       }
+         obj[CTX_FIELD] = {
+           id:               String, // document unique id
+           value:            ObservableVar,
+           validation_state: Observable,
+           auto_validate   : ObservableVar,
+           validators:       Array,
+           validators_deps:  Object,
+           validate:         Function
+         }
 
-      `validation_state` is an object
+     `validation_state` is an object
 
-       {
-         state:  'unknown'|'error'|'warning'|'success',
-         errors: Array of Strings,
-         warnings: Array of Strings
-       }
+         {
+           state:  'unknown'|'error'|'warning'|'success',
+           errors: Array of Strings,
+           warnings: Array of Strings
+         }
 
-       CTX_FIELDCONTAINER is an internal implementation detail that might
-       change in future. Client code should never call the functions listed
-       above directly, but instead use the API function in the [./field::] 
-       module.
+     CTX_FIELD is an internal implementation detail that might
+     change in future. Client code should never call the functions listed
+     above directly, but instead use the API function in the [./field::] 
+     module.
 */
 var CTX_FIELD = exports.CTX_FIELD = @Interface(module, "ctx_field");
 
 
 /**
    @variable CTX_FIELDCONTAINER
-   @summary An [sjs:type::Interface] implemented by [::FieldContainer] DOM objects. 
+   @summary An [sjs:type::Interface] implemented by [::FieldArray] and [::FieldMap] DOM objects. 
    @desc     
        A DOM object `obj` implementing CTX_FIELDCONTAINER promises to have 
-       the following functions defined:
+       the following interface defined:
        
-       obj[CTX_FIELDCONTAINER] = {
-         getField: function(name),
-         addField: function(name, node),
-         removeField: function(name, node)
-       }
+           obj[CTX_FIELDCONTAINER] = {
+             getField: function(name),
+             addField: function(name, node),
+             removeField: function(name, node)
+           }
 
        CTX_FIELDCONTAINER is an internal implementation detail that might
        change in future. Client code should never call the functions listed
@@ -122,7 +121,39 @@ var CTX_FIELDCONTAINER = exports.CTX_FIELDCONTAINER = @Interface(module, "ctx_fi
 
 /**
    @function fieldValue
-   @summary XXX write me
+   @altsyntax node .. fieldValue
+   @summary Return the 'Value' [sjs:observable::ObservableVar] for a field
+   @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
+   @demo
+       @ =  require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'},
+       {id:'mho:surface/field', name:'field'}]);
+
+       var demo = @demo.CodeResult("\
+         @field.Field() ::
+           [
+             @Input(),
+             @ContentGenerator(
+               (append, node) ->
+                 append(`<br>The value is: '${node .. @field.fieldValue}'<br>`)
+             ),
+             @Button('Capitalize') .. 
+               @OnClick({target} -> (target .. @field.fieldValue).modify(x->x.toUpperCase())),
+           ]
+       ",
+         @field.Field({initval:'foo'}) ::
+           [
+             @Input(),
+             @ContentGenerator(
+               (append, node) ->
+                 append(`<br>The value is: '${node .. @field.fieldValue}'<br>`)
+             ),
+             @Button("Capitalize") .. @OnClick({target}-> (target .. @field.fieldValue).modify(x->x.toUpperCase())),
+           ]
+       );
+       
+
+       @mainContent .. @appendContent(demo);
+     
 */
 function fieldValue(node) {
   var ctx = node .. findContext(CTX_FIELD);
@@ -133,7 +164,10 @@ exports.fieldValue = fieldValue;
 
 /**
    @function validate
-   @summary XXX write me
+   @altsyntax node .. validate
+   @summary Run all [::Validate] functions attached to a [::Field]
+   @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
+
 */
 function validate(node) {
   var ctx = node .. findContext(CTX_FIELD);
@@ -144,7 +178,11 @@ exports.validate = validate;
 
 /**
    @function validationState
-   @summary XXX write me
+   @altsyntax node .. validationState
+   @summary Return the validation state [sjs:observable::Observable] for a field
+   @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
+   @desc
+     See [::Field] for an example.
 */
 function validationState(node) {
   var ctx = node .. findContext(CTX_FIELD);
@@ -155,7 +193,23 @@ exports.validationState = validationState;
 
 /**
    @function getField
-   @summary XXX write me
+   @summary Find a DOM node bound to a Field 
+   @param {DOMNode} [node] DOM node at which to start searching
+   @param {optional String} [path] Path for traversing a field container hierarchy
+   @desc
+     If `path` is undefined, `getField` returns the closest parent that has a [::Field] attached.
+
+     If specified, `path` identifies a particular field in a [::FieldMap] hierarchy. It is a string of Field names, '.' and
+     '..' separated by slashes.
+
+     ### Path examples:
+
+     - `'./foo'`, `'/foo'` and `'foo'` all locate the Field named 'foo' located in the nearest enclosing
+     FieldMap to `node`.
+
+     - `'foo/bar'` locates the field named 'bar' in the Field named 'foo' which is also expected to be a FieldMap and which in turn is contained in the same FieldMap as `node`.
+
+     - `'../foo'` locates the field named 'foo' in the FieldMap that contains the FieldMap in which `node` is located.
 */
 function getField(node, path) {
   
@@ -191,7 +245,99 @@ exports.getField = getField;
 
 /**
    @function Field
-   @summary XXX write me
+   @altsyntax Field(element, name, [initval])
+   @altsyntax // Postfix form:
+   @altsyntax element .. Field([settings])
+   @altsyntax element .. Field(name, [initval])
+   @altsyntax // Prefix form:
+   @altsyntax Field([settings]) :: element
+   @altsyntax Field(name, [initval]) :: element
+   @summary Decorate an element as a Field
+   @param {../surface::Element} [element]
+   @param {optional Object} [settings]
+   @setting {optional String} [name] Name that this Field will have when contained in a [::FieldMap]
+   @setting {optional Object} [initval] Initial value of the field
+   @setting {optional Value} [Value] [sjs:observable::ObservableVar] tracking the value of this field
+   @desc
+     A [../surface::Element] that is decorated as a Field creates a DOM node 
+     implementing the [::CTX_FIELD] interface.
+     
+     It keeps track of a value and the validation state for this
+     value. Certain DOM children, such as [./html::Input] or
+     [./html::Label], as well as structural container nodes such as [::FieldMap] and [::FieldArray] 
+     automatically "bind" to their enclosing field:
+
+     A form control, such as [./html::Input], binds to the value
+     of the field. When the field value is changed, the form control
+     updates, and, conversely, when the form control receives user
+     input, the field value updates.
+
+     ### Validation
+
+     The element decorated as a field, or any child thereof, can be
+     annotated with 'validators', using the [::Validate] decorator.
+     A validation of the current field value can be performed **explicitly** by
+     using the [::validate] function. This applies all validators and returns
+     and an object describing any errors and warnings. The validation object is 
+     also accessible as an [sjs:observable::Observable] via the [::validationState] function.  
+
+     Validation is also performed **implicitly** when the form element
+     in a field receives user input. Once user input is received, a
+     Field goes into 'auto-validation' mode, where each further change
+     to the value causes a validation.
+     
+     [./bootstrap::FormGroup]s make use of the validation information to automatically
+     mark up a form control based on the validation state. 
+
+     ### IDs and Labels
+
+     Fields also automatically set a generated 'id' attribute on their
+     enclosed form control. Any enclosed [./html::Label] or [./bootstrap::ControlLabel] elements will
+     automatically set their 'for' attribute to this id, such that
+     clicking on them selects the form control.
+
+   @demo
+       @ =  require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'},
+       {id:'mho:surface/field', name:'field'}]);
+
+       var demo = @demo.CodeResult("\
+         @field.Field() .. 
+           @field.Validate(x-> x.length < 5 ? 'too few chars' : true) ..
+           @field.Validate(x-> x.toLowerCase() == x ? true : 'no upper case') :: 
+             @Div :: 
+               [
+                 @FormGroup() :: 
+                   [
+                     @ControlLabel('Username (min 5 chars, no caps)'),
+                     @Input()
+                   ],
+                   
+                 @ContentGenerator(
+                   (append, node) ->
+                     append(node .. @field.validationState .. @project(@inspect))
+                 )
+               ]
+       ",
+         @field.Field() .. 
+           @field.Validate(x-> x.length < 5 ? 'too few chars' : true) ..
+           @field.Validate(x-> x.toLowerCase() == x ? true : 'no upper case') :: 
+             @Div :: 
+               [
+                 @FormGroup() :: 
+                   [
+                     @ControlLabel('Username (min 5 chars, no caps)'),
+                     @Input()
+                   ],
+                   
+                 @ContentGenerator(
+                   (append, node) ->
+                     append(node .. @field.validationState .. @project(@inspect))
+                 )
+               ]
+       );
+       
+
+       @mainContent .. @appendContent(demo);
 */
 
 var field_id_counter = 0;
@@ -206,7 +352,7 @@ function run_validators(field) {
     if (validation_result === true) continue;
     if (typeof validation_result === 'string')
       errors.push(validation_result);
-    if (typeof validation_result === 'object') {
+    else if (typeof validation_result === 'object') {
       if (validation_result.error)
         errors.push(validation_result.error);
       if (validation_result.warning)
@@ -251,18 +397,18 @@ function validate_field() {
 }
 
 
-function Field(elem, settings /* || name, startval */) {
+function Field(elem, settings /* || name, initval */) {
   // untangle settings
   if (arguments.length === 2 && typeof settings === 'string') {
     settings = { name: settings };
   }
   else if (arguments.length === 3) {
-    settings = { name: settings, startval: arguments[2] }
+    settings = { name: settings, initval: arguments[2] }
   }
 
   settings = {
     name:     undefined,
-    startval: undefined,
+    initval: undefined,
     Value:    undefined
   } .. @override(settings);
 
@@ -272,7 +418,7 @@ function Field(elem, settings /* || name, startval */) {
       var field = node[CTX_FIELD] = {
         id: "__oni_field_#{++field_id_counter}",
         
-        value: settings.Value || @ObservableVar(settings.startval),
+        value: settings.Value || @ObservableVar(settings.initval),
         
         validation_state: @ObservableVar({state:'unknown'}),
         auto_validate: @ObservableVar(false),
@@ -316,7 +462,86 @@ exports.Field = Field;
 
 /**
    @function FieldMap
-   @summary XXX write me
+   @altsyntax element .. FieldMap()
+   @summary Decorate an element as a FieldMap structural container
+   @param {../surface::Element} [element]
+   @desc
+     A [../surface::Element] that is decorated as a FieldMap creates a DOM node 
+     implementing the [::CTX_FIELDMAP] interface. The element must **also** be decorated as a [::Field] or
+     be enclosed in a [::Field].
+
+     FieldMaps construct a `{name:value}` hash from their contained named [::Field]s and track this value on their 
+     attached [::Field]'s Value [sjs:observable::ObservableVar].
+
+     In contrast to [::FieldArray] containers, the mapping from the
+     FieldMap's Value to its child fields is **static**: If the
+     FieldMap's Value is set to an object containing keys that aren't
+     named child fields, then those key-value pairs will be ignored.
+
+   @demo
+       @ =  require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'},
+       {id:'mho:surface/field', name:'field'}]);
+
+       var demo = @demo.CodeResult("\
+       @field.Field() .. 
+         @field.FieldMap() ::
+           @Div ::
+             [
+               @field.Field('foo', 'abc') ::
+                 @FormGroup ::
+                   [
+                     @ControlLabel('foo'),
+                     @Input()
+                   ],
+                   
+               @field.Field('bar', 'xyz') ::
+                 @FormGroup ::
+                   [
+                     @ControlLabel('bar'),
+                     @Input()
+                   ],
+
+               @ContentGenerator(
+                 (append, node) ->
+                   append(node .. @field.fieldValue .. @project(@inspect))
+               ),
+
+               @Button('Set to {foo:\'ABC\', bar:\'XYZ\', baz:\'123\'}') .. 
+                 @OnClick({target} -> (target .. @field.fieldValue).set(
+                                        {foo:'ABC', bar:'XYZ', baz:'123'}))
+             ]
+       ",
+       @field.Field() ..
+         @field.FieldMap() ::
+           @Div ::
+             [
+               @field.Field('foo', 'abc') ::
+                 @FormGroup ::
+                   [
+                     @ControlLabel('foo'),
+                     @Input()
+                   ],
+                   
+               @field.Field('bar', 'xyz') ::
+                 @FormGroup ::
+                   [
+                     @ControlLabel('bar'),
+                     @Input()
+                   ],
+
+               @ContentGenerator(
+                 (append, node) ->
+                   append(node .. @field.fieldValue .. @project(@inspect))
+               ),
+               @Br(),@Br(),
+               @Button('Set to {foo:\'ABC\', bar:\'XYZ\', baz:\'123\'}') .. 
+                 @OnClick({target} -> (target .. @field.fieldValue).set(
+                                        {foo:'ABC', bar:'XYZ', baz:'123'}))
+             ]
+       );
+       
+
+       @mainContent .. @appendContent(demo);
 */
 
 var FieldMap = (elem) ->
@@ -412,11 +637,91 @@ exports.FieldMap = FieldMap;
 
 /**
    @function FieldArray
-   @altsyntax elem .. FieldArray(settings)
-   @altsyntax elem .. FieldArray(template)
-   @setting {Function} [arrToVal]
-   @setting {Function} [valToArr]
-   @summary XXX write me
+   @altsyntax element .. FieldArray(settings)
+   @altsyntax element .. FieldArray(template)
+   @summary Decorate an element as a FieldArray structural container
+   @param {../surface::Element} [element]
+   @param {Object} [settings]
+   @setting {Function} [template]
+   @setting {optional Function} [arrToVal]
+   @setting {optional Function} [valToArr]
+   @desc
+     A [../surface::Element] that is decorated as a FieldMap creates a DOM node 
+     implementing the [::CTX_FIELDMAP] interface. The element must **also** be decorated as a [::Field] or
+     be enclosed in a [::Field].
+
+     FieldArrays expect their attached [::Field]'s Value to be an
+     array. For each element in this array, a FieldArray creates a DOM
+     element using the `template` function and appends it to the
+     `element`. Created DOM elements will be created & deleted as
+     appropriate to synchronize with changes in the [::Field]'s Value.
+
+     `template` is a function of signature `template(arr_elem_info)`
+     that is expected to return a [../surface::Element], which will be
+     wrapped with a [::Field] representing the value of the
+     corresponding array member.
+
+     `arr_elem_info` is an object containing the following:
+
+         {
+           Index:       Observable of the index of this element,
+           ArrayLength: FieldArrayLength,
+           remove:      function to remove this array element
+         }
+
+      `Index` and `ArrayLength` are useful to (dynamically) change the style of the generated
+      element if it is the first (`Index .. @current == 0`) or last 
+      (`Index .. @current == ArrayLength .. @current -1`) member of the array.
+
+      A call to `remove` removes the corresponding element and updates Value accordingly.
+
+   @demo
+       @ =  require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'},
+       {id:'mho:surface/field', name:'field'}]);
+
+
+       var template = {Index, remove} -> 
+         @Div([`$Index: `, @Input() .. @Style('width:100px;display:inline;'), ' ', @Button('Remove') .. @OnClick(remove)]);
+
+       var demo = @demo.CodeResult("\
+       var template = {Index, remove} -> 
+         @Div :: 
+           [
+             `$Index: `, 
+             @Input(),
+             @Button('Remove') .. @OnClick(remove)
+           ];
+
+       @field.Field({initval:['foo', 'bar', 'baz']}) ::
+         @Div() :: 
+           [
+             @field.FieldArray(template) :: @Div(),
+
+             @Button('Add new') .. 
+               @OnClick({target} -> 
+                 (target .. @field.fieldValue()).modify(x->x.concat(['new']))),
+
+             @ContentGenerator(
+               (append, node) ->
+                 append(node .. @field.fieldValue() .. @project(@inspect))
+             )
+           ]
+       ",
+       @field.Field({initval:['foo', 'bar', 'baz']}) ::
+         @Div() :: 
+           [
+             @Div() .. @field.FieldArray(template), @Br(),
+             @Button('Add new') .. @OnClick({target} -> (target .. @field.fieldValue()).modify(x->x.concat(['new']))), @Br(), @Br(),
+             @ContentGenerator(
+               (append, node) ->
+                 append(node .. @field.fieldValue() .. @project(@inspect))
+             )
+           ]
+       );
+       
+
+       @mainContent .. @appendContent(demo);
+      
 */
 
 function FieldArray(elem, settings) {
@@ -577,7 +882,7 @@ exports.FieldArray = FieldArray;
 /**
    @function Validate
    @summary Add a validator to the enclosing [::Field]
-   @param {mho:surface::HtmlElement} [element] Element to attach validator to
+   @param {mho:surface::Element} [element] Element to attach validator to
    @param {Function} [validator] Validator function; see description
    @desc
      `validator` is a function that will be called whenever the enclosing [::Field] 
@@ -613,6 +918,10 @@ exports.FieldArray = FieldArray;
 
      Empty `errors` and/or `warnings` arrays signify that the validator yielded
      no errors and/or warnings.
+
+     ### Example
+
+     See [::Field] for an example.
 */
 
 var Validate = (elem, validator) ->
