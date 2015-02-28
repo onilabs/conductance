@@ -204,11 +204,6 @@ var AvailableIcons = exports.AvailableIcons = [
 ];
 
 /**
-  @feature Special Classes
-  @summary Special classes that can be applied to elements
-*/
-
-/**
   @function Icon
   @param {String} [name] Name of icon, see [::AvailableIcons]
   @summary Scalable Bootstrap Glyphicon  (`<span class="glyphicon glyphicon-{name}">`)
@@ -1286,19 +1281,43 @@ exports.PanelTitle = wrapWithClass(@html.H3, 'panel-title');
 
 /**
   @function InlineForm
-  @summary XXX write me
+  @summary A Bootstrap container for an inline form (`<div class='form-inline'>`)
+  @param {surface::HtmlFragment} [content]
+  @return {surface::Element}
+  @desc 
+    Note that this is a 'div' and not a 'form', as in conductance applications we usually don't want
+    'traditional' submitting forms.
 */
 exports.InlineForm = content -> @html.Div(content, {'class':'form-inline'});
 
 /**
   @function HorizontalForm
-  @summary XXX write me
+  @summary A Bootstrap container for a horizontal form (`<div class='form-horizontal'>`)
+  @param {surface::HtmlFragment} [content]
+  @return {surface::Element}
+  @desc 
+    Note that this is a 'div' and not a 'form', as in conductance applications we usually don't want
+    'traditional' submitting forms.
 */
 exports.HorizontalForm = content -> @html.Div(content, {'class':'form-horizontal'});
 
 /**
   @function FormGroup
-  @summary XXX write me
+  @summary A Bootstrap container for a form control (`<div class='form-group'>`)
+  @param {surface::HtmlFragment} [content]
+  @return {surface::Element}
+  @desc
+    #### Binding to fields on client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+    `FormGroup` will automatically attempt to bind to the nearest
+    enclosing [./field::Field] and track the field's validation state.
+    When the state assumes the values 'warning' or 'error', the CSS class 
+    'has-warning' or 'has-error' will be set on the FormGroup, respectively. 
+    This in turn causes Bootstrap controls such as [::Input] and [::ControlLabel]
+    to be marked up accordingly.
+    
+
+    See [./field::Field] and [./field::FieldMap] for example usage.
 */
 exports.FormGroup = (content) -> 
   @html.Div(content, {'class': 'form-group'}) .. 
@@ -1317,7 +1336,19 @@ exports.FormGroup = (content) ->
 
 /**
   @function ControlLabel
-  @summary XXX write me
+  @summary A HTML 'label' styled for Bootstrap form controls (`<label class='control-label'>`)
+  @param {surface::HtmlFragment} [content]
+  @return {surface::Element}
+  @desc
+    #### Binding to fields on client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+    `ControlLabel` will automatically attempt to bind to the nearest
+    enclosing [./field::Field] and set its 'for' attribute to the id
+    of the Field's form element ([::Input], [::Checkbox],
+    [::TextArea], etc).  In this way, when the label is clicked, the
+    corresponding form element will be selected.
+
+    See [./field::Field] and [./field::FieldMap] for example usage.
 */
 exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label'});
 
@@ -1329,15 +1360,30 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
 /**
    @function SelectInput
    @altsyntax SelectInput(suggestions)
-   @summary XXX write me
+   @summary An [::Input] that provides a dropdown with selectable suggestions
    @param {Object} [settings]
-   @setting {optional Function} [txtToVal]
-   @setting {optional Function} [valToTxt]
-   @setting {Function} [suggestions] function search_term_stream -> suggestions_stream
+   @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+   @setting {sjs:sequence::Sequence|Function} [suggestions] function search_term_stream -> suggestions_stream
+   @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
+   @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
    @setting {optional surface::HtmlFragment} [extra_buttons]
    @desc
-     suggestions can be a stream of arrays of strings or objects:
-      { text:String, highlight:Boolean }
+     suggestions can be an [sjs:sequence::Sequence] (such as a static
+     array) of suggestion items or a function that receives an
+     [sjs:observable::Observable] of the current value and returns an
+     [sjs:observable::Observable] yielding a suggestions sequence.
+
+     A 'suggestion item' is either a string, or an object:
+
+        { 
+          text: String, 
+          highlight: Boolean 
+        }
+
+     ##### Binding to fields
+
+     If `value` is undefined, SelectInput binds to [./field::Field]s in the same way as [./html::Input].
+
 */
 
 
@@ -1547,12 +1593,15 @@ exports.SelectInput = SelectInput;
 
 /**
    @function DateInput
-   @summary XXX write me
+   @summary An [./html::Input] widget for selecting dates
    @param {optional Object} [settings]
    @setting {optional Function} [dateToVal]
    @setting {optional Function} [valToDate]
    @setting {optional HTML} [extra_buttons] 
    @desc
+
+     * Currently only works when bound to a [./field::Field].
+
      Developed out of Stefan Petre's Datapicker for Bootstrap,
      http://www.eyecon.ro/bootstrap-datepicker/ :
 
@@ -1561,6 +1610,21 @@ exports.SelectInput = SelectInput;
          * Copyright 2012 Stefan Petre
          * Licensed under the Apache License v2.0
          * http://www.apache.org/licenses/LICENSE-2.0
+
+   @demo
+      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+      @mainContent .. @appendContent([
+      @GlobalCSS('body {min-height:500px;}'),
+      @demo.CodeResult("\
+      @field.Field({initval: new Date()}) ::
+        @DateInput()",
+      @field.Field({initval: new Date()}) ::
+        @DateInput()
+      )
+      ]);
+
+
 */
 
 //XXX this command mechanism needs to change to accomodate nesting, similar to Fields

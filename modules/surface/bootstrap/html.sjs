@@ -119,6 +119,8 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
      * The description of the base [./html::Input] element also applies for 
      bootstrap-styled inputs.
 
+     * See [./field::Field] or [./field::FieldMap] for [./field::] usage of Input elements.
+
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
@@ -203,16 +205,18 @@ exports.Input = Input;
 
 /**
   @function TextArea
-  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
+  @param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
   @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @summary Bootstrap-styled textarea (`<textarea class="form-control">`)
   @return {surface::Element}
   @desc
-    When the element is inserted into the document, its value
-    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If (in addition)
-    `value` is an [sjs:observable::ObservableVar],
-    then `value` will be updated to reflect any manual changes to the element's value.
+
+     * The description of the base [./html::TextArea] element also applies for 
+     bootstrap-styled TextAreas.
+
+     * See [./field::FieldMap] for [./field::] usage of TextArea elements.
+
+
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 

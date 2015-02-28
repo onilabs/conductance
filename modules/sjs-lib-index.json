@@ -694,9 +694,6 @@
             "SelectInput": {
               "type": "function"
             },
-            "Special Classes": {
-              "type": "feature"
-            },
             "Table": {
               "type": "function"
             },

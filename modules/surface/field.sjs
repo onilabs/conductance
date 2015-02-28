@@ -498,17 +498,25 @@ exports.Field = Field;
                  @FormGroup ::
                    [
                      @ControlLabel('bar'),
-                     @Input()
+                     @TextArea()
                    ],
+
+               @field.Field('check', true) :: 
+                 @FormGroup .. @Class('checkbox') ::
+                   @Label ::
+                     [
+                       @Checkbox(),
+                       ' Check this'
+                     ],
 
                @ContentGenerator(
                  (append, node) ->
                    append(node .. @field.fieldValue .. @project(@inspect))
                ),
 
-               @Button('Set to {foo:\'ABC\', bar:\'XYZ\', baz:\'123\'}') .. 
+               @Button('Set to {foo:\'ABC\', bar:\'XYZ\', check:false, baz:\'123\'}') .. 
                  @OnClick({target} -> (target .. @field.fieldValue).set(
-                                        {foo:'ABC', bar:'XYZ', baz:'123'}))
+                                        {foo:'ABC', bar:'XYZ', check:false, baz:'123'}))
              ]
        ",
        @field.Field() ..
@@ -526,17 +534,26 @@ exports.Field = Field;
                  @FormGroup ::
                    [
                      @ControlLabel('bar'),
-                     @Input()
+                     @TextArea()
                    ],
+
+               @field.Field('check', true) :: 
+                 @FormGroup .. @Class('checkbox') ::
+                   @Label ::
+                     [
+                       @Checkbox(),
+                       ' Check this'
+                     ],
+               @Br(),
 
                @ContentGenerator(
                  (append, node) ->
                    append(node .. @field.fieldValue .. @project(@inspect))
                ),
                @Br(),@Br(),
-               @Button('Set to {foo:\'ABC\', bar:\'XYZ\', baz:\'123\'}') .. 
+               @Button('Set to {foo:\'ABC\', bar:\'XYZ\', check:false, baz:\'123\'}') .. 
                  @OnClick({target} -> (target .. @field.fieldValue).set(
-                                        {foo:'ABC', bar:'XYZ', baz:'123'}))
+                                        {foo:'ABC', bar:'XYZ', check:false, baz:'123'}))
              ]
        );
        

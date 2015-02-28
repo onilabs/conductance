@@ -113,6 +113,8 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
    * The description of the base [./html::Input] element also applies for 
    bootstrap-styled inputs.
 
+   * See [./field::Field] or [./field::FieldMap] for [./field::] usage of Input elements.
+
 @demo
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
@@ -156,16 +158,18 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   ]);
 
 @function TextArea
-@param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value]
+@param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
 @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @summary Bootstrap-styled textarea (`<textarea class="form-control">`)
 @return {surface::Element}
 @desc
-  When the element is inserted into the document, its value
-  will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-  element's value will be updated every time `value` changes. If (in addition)
-  `value` is an [sjs:observable::ObservableVar],
-  then `value` will be updated to reflect any manual changes to the element's value.
+
+   * The description of the base [./html::TextArea] element also applies for 
+   bootstrap-styled TextAreas.
+
+   * See [./field::FieldMap] for [./field::] usage of TextArea elements.
+
+
 @demo
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
 
@@ -456,9 +460,6 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 @variable AvailableIcons
 @summary Array of names accepted by [::Icon]
-
-@feature Special Classes
-@summary Special classes that can be applied to elements
 
 @function Icon
 @param {String} [name] Name of icon, see [::AvailableIcons]
@@ -1353,36 +1354,90 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   See [::Panel] for examples
 
 @function InlineForm
-@summary XXX write me
+@summary A Bootstrap container for an inline form (`<div class='form-inline'>`)
+@param {surface::HtmlFragment} [content]
+@return {surface::Element}
+@desc 
+  Note that this is a 'div' and not a 'form', as in conductance applications we usually don't want
+  'traditional' submitting forms.
 
 @function HorizontalForm
-@summary XXX write me
+@summary A Bootstrap container for a horizontal form (`<div class='form-horizontal'>`)
+@param {surface::HtmlFragment} [content]
+@return {surface::Element}
+@desc 
+  Note that this is a 'div' and not a 'form', as in conductance applications we usually don't want
+  'traditional' submitting forms.
 
 @function FormGroup
-@summary XXX write me
+@summary A Bootstrap container for a form control (`<div class='form-group'>`)
+@param {surface::HtmlFragment} [content]
+@return {surface::Element}
+@desc
+  #### Binding to fields on client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+  `FormGroup` will automatically attempt to bind to the nearest
+  enclosing [./field::Field] and track the field's validation state.
+  When the state assumes the values 'warning' or 'error', the CSS class 
+  'has-warning' or 'has-error' will be set on the FormGroup, respectively. 
+  This in turn causes Bootstrap controls such as [::Input] and [::ControlLabel]
+  to be marked up accordingly.
+  
+
+  See [./field::Field] and [./field::FieldMap] for example usage.
 
 @function ControlLabel
-@summary XXX write me
+@summary A HTML 'label' styled for Bootstrap form controls (`<label class='control-label'>`)
+@param {surface::HtmlFragment} [content]
+@return {surface::Element}
+@desc
+  #### Binding to fields on client-side ([sjs:sys::hostenv] === 'xbrowser')
+
+  `ControlLabel` will automatically attempt to bind to the nearest
+  enclosing [./field::Field] and set its 'for' attribute to the id
+  of the Field's form element ([::Input], [::Checkbox],
+  [::TextArea], etc).  In this way, when the label is clicked, the
+  corresponding form element will be selected.
+
+  See [./field::Field] and [./field::FieldMap] for example usage.
 
 @function SelectInput
 @altsyntax SelectInput(suggestions)
-@summary XXX write me
+@summary An [::Input] that provides a dropdown with selectable suggestions
 @param {Object} [settings]
-@setting {optional Function} [txtToVal]
-@setting {optional Function} [valToTxt]
-@setting {Function} [suggestions] function search_term_stream -> suggestions_stream
+@setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+@setting {sjs:sequence::Sequence|Function} [suggestions] function search_term_stream -> suggestions_stream
+@setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
+@setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
 @setting {optional surface::HtmlFragment} [extra_buttons]
 @desc
-  suggestions can be a stream of arrays of strings or objects:
-   { text:String, highlight:Boolean }
+  suggestions can be an [sjs:sequence::Sequence] (such as a static
+  array) of suggestion items or a function that receives an
+  [sjs:observable::Observable] of the current value and returns an
+  [sjs:observable::Observable] yielding a suggestions sequence.
+
+  A 'suggestion item' is either a string, or an object:
+
+     { 
+       text: String, 
+       highlight: Boolean 
+     }
+
+  ##### Binding to fields
+
+  If `value` is undefined, SelectInput binds to [./field::Field]s in the same way as [./html::Input].
+
 
 @function DateInput
-@summary XXX write me
+@summary An [./html::Input] widget for selecting dates
 @param {optional Object} [settings]
 @setting {optional Function} [dateToVal]
 @setting {optional Function} [valToDate]
 @setting {optional HTML} [extra_buttons] 
 @desc
+
+  * Currently only works when bound to a [./field::Field].
+
   Developed out of Stefan Petre's Datapicker for Bootstrap,
   http://www.eyecon.ro/bootstrap-datepicker/ :
 
@@ -1391,6 +1446,21 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
       * Copyright 2012 Stefan Petre
       * Licensed under the Apache License v2.0
       * http://www.apache.org/licenses/LICENSE-2.0
+
+@demo
+   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+   @mainContent .. @appendContent([
+   @GlobalCSS('body {min-height:500px;}'),
+   @demo.CodeResult("\
+   @field.Field({initval: new Date()}) ::
+     @DateInput()",
+   @field.Field({initval: new Date()}) ::
+     @DateInput()
+   )
+   ]);
+
+
 
 @function doModal
 @altsyntax doModal(body, [settings], block)

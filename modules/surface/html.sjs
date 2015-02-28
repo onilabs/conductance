@@ -243,30 +243,18 @@ exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @mer
 //----------------------------------------------------------------------
 /**
   @function Label
-  @summary XXX write me
+  @summary A plain HTML 'label' widget
+  @param {surface::HtmlFragment} [content]
+  @return {surface::Element}
   @desc
-    ----
+    #### Binding to fields on client-side ([sjs:sys::hostenv] === 'xbrowser')
 
-    #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
+    `Label` will automatically attempt to bind to the nearest enclosing [./field::Field] and set
+    its 'for' attribute to the id of the Field's form element ([::Input], [::Checkbox], [::TextArea], etc).
+    In this way, when the label is clicked, the corresponding form element will be selected.
 
-    When the element is inserted into the document, its value 
-    will be set to `value`. If `value` is a [sjs:sequence::Stream], the
-    element's value will be updated every time `value` changes. If (in addition)
-    `value` is an [sjs:observable::ObservableVar],
-    then `value` will be updated to reflect any manual changes to the element's value.
+    See [./field::Field] and [./field::FieldMap] for example usage.
 
-    ##### Binding to fields
-
-    If `value` is undefined, `TextArea` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
-
-    ----
-
-    #### On server-side ([sjs:sys::hostenv] === 'nodejs')
-
-    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
-    An element with a 'value' attribute set to `value` will be inserted into the document.
-
-    ----
 */
 var Label;
 if (hostenv === 'xbrowser') {
@@ -311,7 +299,17 @@ exports.Label = Label;
 
     ##### Binding to fields
 
-    If `value` is undefined, `TextArea` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+    If `value` is undefined, `Input` will automatically attempt to
+    bind to the nearest enclosing [./field::Field]. This makes the
+    Input's value available as the [./field::fieldValue]
+    [sjs:observable::ObservableVar], and assigns a generated id
+    attribute to the Input. When the Input is edited by the user,
+    validation will be performed on the field. The first user edit
+    also triggers 'automatic validation' mode, where any changes in
+    the field's value (whether by explicitly setting the field value,
+    or via user edits of the Input) will cause another validation.
+
+    See [./field::Field] and [./field::FieldMap] for example usage.
 
     ----
 
@@ -458,7 +456,17 @@ exports.Input = Input;
 
     ##### Binding to fields
 
-    If `value` is undefined, `TextArea` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+    If `value` is undefined, `TextArea` will automatically attempt to
+    bind to the nearest enclosing [./field::Field]. This makes the
+    TextArea's value available as the [./field::fieldValue]
+    [sjs:observable::ObservableVar], and assigns a generated id
+    attribute to the Input. When the TextArea is edited by the user,
+    validation will be performed on the field. The first user edit
+    also triggers 'automatic validation' mode, where any changes in
+    the field's value (whether by explicitly setting the field value,
+    or via user edits of the TextArea) will cause another validation.
+
+    See [./field::FieldMap] for example usage.
 
     ----
 
@@ -511,7 +519,17 @@ exports.TextArea = TextArea;
 
     ##### Binding to fields
 
-    If `checked` is undefined, `Checkbox` will automatically attempt to bind to the nearest enclosing field. XXX elaborate.
+    If `checked` is undefined, `Checkbox` will automatically attempt
+    to bind to the nearest enclosing [./field::Field]. This makes the
+    Checkbox's value available as the [./field::fieldValue]
+    [sjs:observable::ObservableVar], and assigns a generated id
+    attribute to the Input. When the Checkbox is manipulated by the user,
+    validation will be performed on the field. The first user manipulation
+    also triggers 'automatic validation' mode, where any changes in
+    the field's value (whether by explicitly setting the field value,
+    or via user manipulation of the Checkbox) will cause another validation.
+
+    See [./field::FieldMap] for example usage.
 
     ----
 
