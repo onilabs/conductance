@@ -467,7 +467,7 @@ exports.Field = Field;
    @param {../surface::Element} [element]
    @desc
      A [../surface::Element] that is decorated as a FieldMap creates a DOM node 
-     implementing the [::CTX_FIELDMAP] interface. The element must **also** be decorated as a [::Field] or
+     implementing the [::CTX_FIELDCONTAINER] interface. The element must **also** be decorated as a [::Field] or
      be enclosed in a [::Field].
 
      FieldMaps construct a `{name:value}` hash from their contained named [::Field]s and track this value on their 
@@ -664,7 +664,7 @@ exports.FieldMap = FieldMap;
    @setting {optional Function} [valToArr]
    @desc
      A [../surface::Element] that is decorated as a FieldMap creates a DOM node 
-     implementing the [::CTX_FIELDMAP] interface. The element must **also** be decorated as a [::Field] or
+     implementing the [::CTX_FIELDCONTAINER] interface. The element must **also** be decorated as a [::Field] or
      be enclosed in a [::Field].
 
      FieldArrays expect their attached [::Field]'s Value to be an

@@ -1344,7 +1344,7 @@ exports.FormGroup = (content) ->
 
     `ControlLabel` will automatically attempt to bind to the nearest
     enclosing [./field::Field] and set its 'for' attribute to the id
-    of the Field's form element ([::Input], [::Checkbox],
+    of the Field's form element ([::Input], [./html::Checkbox],
     [::TextArea], etc).  In this way, when the label is clicked, the
     corresponding form element will be selected.
 

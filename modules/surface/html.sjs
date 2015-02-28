@@ -315,7 +315,7 @@ exports.Label = Label;
 
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
-    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
+    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::ObservableVar].
     An element with a 'value' attribute set to `value` will be inserted into the document.
 
     ----
@@ -472,7 +472,7 @@ exports.Input = Input;
 
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
-    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
+    `value` must be a String and not a [sjs:sequence::Stream] or [sjs:observable::ObservableVar].
     An element with a 'value' attribute set to `value` will be inserted into the document.
 
     ----
@@ -535,7 +535,7 @@ exports.TextArea = TextArea;
 
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
-    `checked` must be a Boolean and not a [sjs:sequence::Stream] or [sjs:observable::observableVar].
+    `checked` must be a Boolean and not a [sjs:sequence::Stream] or [sjs:observable::ObservableVar].
     An element with a 'checked' attribute set to `checked` will be inserted into the document.
 
     ----
