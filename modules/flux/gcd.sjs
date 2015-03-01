@@ -441,7 +441,10 @@ function GoogleCloudDatastore(attribs) {
         var has_path = (last.id || last.name);
         if (has_path) {
           if (entity.id) {
-            updates.push(gcd_entity);
+            if (entity.forceInsert)
+              inserts.push(gcd_entity);
+            else
+              updates.push(gcd_entity);
             written.push({id:gcd_entity.key.pathElement .. GCDKeyToKey, 
                           schema: GCDKeyToKind(gcd_entity.key.pathElement)});
           }
