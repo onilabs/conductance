@@ -584,8 +584,7 @@ function GoogleCloudDatastore(attribs) {
     var schema = schemas[query_descriptor.schema];
     if (!schema) throw new Error("Unknown schema #{query_descriptor.schema}");
     
-    // XXX all of our queries are currently kind-queries
-    var kind = query_descriptor.schema;
+    var kind = query_descriptor.kindless ? null : query_descriptor.schema;
     
     var filters = [];
     var sorts = {};
