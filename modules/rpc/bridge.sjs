@@ -635,8 +635,8 @@ function BridgeConnection(transport, opts) {
     // it is important that once a message has a sequence number, it
     // does get sent. Therefore we don't wait for transport.send to return (the 
     // return value is not needed anyway).
-    __js if (transport) 
-      transport.send({ seq: ++connection.msg_seq_counter, msg:args } .. JSON.stringify);
+    __js if (transport)
+      transport.send({ seq: ++connection.msg_seq_counter, msg:args });
   }
 
   var connection = {
@@ -657,7 +657,7 @@ function BridgeConnection(transport, opts) {
     },
     del: function(type, id) {
       var args = marshall(['del', type, id], connection);
-      if (transport) transport.enqueue(args);
+      if (transport) transport.enqueue({msg: args});
     },
     makeCall: function(api, method, args) {
       var call_no = ++call_counter;
@@ -738,8 +738,8 @@ function BridgeConnection(transport, opts) {
       //logging.debug("received packet", packet);
       waitfor {
         if (packet.type === 'message') {
-          var data = JSON.parse(packet.data);
-          if (data.seq !== expected_msg_seq) {
+          var data = packet.data;
+          if (data.seq !== undefined && data.seq !== expected_msg_seq) {
             msg_reorder_buffer[data.seq] = data.msg;
             ++queued_msg_count;
             if (queued_msg_count > MAX_MSG_REORDER_BUFFER)
