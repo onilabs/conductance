@@ -30,6 +30,7 @@
 var http = require('sjs:http');
 var url  = require('sjs:url');
 var func = require('sjs:function');
+var logging = require('sjs:logging');
 var { TransportError } = require('./error');
 
 var AAT_VERSION   = '2';
@@ -141,6 +142,10 @@ function openTransport(server, requestOpts) {
 
   var receive_q = [];
   var resume_receive;
+  function fail(e) {
+    receive_q.push({type:'error', data: e});
+    if(resume_receive) resume_receive();
+  }
   var poll_stratum;
   if (!requestOpts) requestOpts = null;
   var pendingMessages = [];
@@ -188,14 +193,12 @@ function openTransport(server, requestOpts) {
     }
     catch (e) {
       transport.closed = true;
-      if(resume_receive) resume_receive(e);
-      // if resume_receive is not set, an error will still be thrown by the next receive()
-      // because the transport is inactive
+      fail(e);
     }
   }
 
   function sendCommand(url, opts, default_id) {
-    if (!this.active) throw TransportError("inactive transport");
+    if (!this.active) return; // receive() will throw, don't need to do anything here
     var response;
     try {
       try {
@@ -231,7 +234,8 @@ function openTransport(server, requestOpts) {
       // prod receiver:
       if (receive_q.length && resume_receive) resume_receive();
     } catch (e) {
-      this.close(e);
+      this.close();
+      fail(e);
     }
   }
 
@@ -283,19 +287,17 @@ function openTransport(server, requestOpts) {
       if (!this.active) throw TransportError("inactive transport");
 
       if (!receive_q.length) {
-        waitfor(var e) {
+        waitfor() {
           resume_receive = resume;
         }
         finally {
           resume_receive = undefined;
         }
       }
-      if (e) throw e; // exception thrown
-
       return receive_q.shift();
     }),
 
-    close: function(e) {
+    close: function() {
       if (!this.closed) {
         this.closed = true;
         if (transport_id_suffix.length) {
@@ -305,17 +307,14 @@ function openTransport(server, requestOpts) {
                 server, SERVER_PATH, AAT_VERSION,
                 { cmd: "close#{transport_id_suffix}" } ],
                 requestOpts);
-            } catch (e) { /* close is a courtesy; ignore errors */ }
+            } catch (e) {
+              logging.debug("Error closing transport: #{e}");
+            }
           })();
         }
       }
       this.active = false;
       if (poll_stratum) poll_stratum.abort();
-      if (resume_receive) {
-        spawn(resume_receive(new Error("transport closed#{e ? ": " + e.message : ""}")));
-      } else {
-        if (e) throw e;
-      }
     }
   };
 

@@ -670,12 +670,7 @@ function BridgeConnection(transport, opts) {
           }
           retract {
             //logging.debug("call #{call_no} (#{method}) retracted");
-            if(transport) spawn (function() { 
-              try {
-                send(['abort', call_no]);
-              }
-              catch(e) { /* ignore; transport is dead */ }
-            })();
+            send(['abort', call_no]);
           }
           finally {
             //logging.debug("deleting call responder #{call_no} (#{method})");
@@ -760,6 +755,8 @@ function BridgeConnection(transport, opts) {
         }
         else if (packet.type === 'data')
           receiveData(packet);
+        else if (packet.type === 'error')
+          throw(packet.data);
         else {
           logging.warn("Unknown packet '#{packet.type}' received");
         }
@@ -784,7 +781,7 @@ function BridgeConnection(transport, opts) {
       catch (e) {
         if (!throwing) {
           sessionLost.emit(e);
-          logging.verbose("Error while receiving; terminating BridgeConnection: #{e}");
+          logging.debug("Error while receiving; terminating BridgeConnection: #{e}");
           break;
         }
         throw e;
@@ -846,12 +843,7 @@ function BridgeConnection(transport, opts) {
           catch (e) {
             response = ["return_exception", call_no, e];
           }
-          try {
-            send(response);
-          }
-          catch (e) {
-            // ignore exception; transport will be closed
-          }
+          send(response);
         } or {
           sessionLost .. wait();
         }
