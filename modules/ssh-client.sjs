@@ -394,7 +394,7 @@ function fileStream(conn, path, options) {
   return @Stream(function(receiver) {
     try {
       var stream = session.createReadStream(path, options);
-      stream .. @each(receiver);
+      stream .. @stream.contents .. @each(receiver);
     }
     finally {
       stream.destroy();
