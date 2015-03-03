@@ -542,7 +542,7 @@ context("garbage collection") {||
       funcs = null;
       @assert.eq(forceRefreshNumFunctions(), initialFuncs);
     }
-  }.skipIf(!global.gc, "pass --enable-gc to node if you want to run this test");
+  }.skipIf(!global.gc, "pass --expose-gc to node if you want to run this test");
 
   @test("connections are dropped on disconnect") {||
     require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|

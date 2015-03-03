@@ -734,7 +734,10 @@ function BridgeConnection(transport, opts) {
       waitfor {
         if (packet.type === 'message') {
           var data = packet.data;
-          if (data.seq !== undefined && data.seq !== expected_msg_seq) {
+          if (data.seq === undefined) {
+            receiveMessage(data.msg);
+          }
+          else if (data.seq !== expected_msg_seq) {
             msg_reorder_buffer[data.seq] = data.msg;
             ++queued_msg_count;
             if (queued_msg_count > MAX_MSG_REORDER_BUFFER)
