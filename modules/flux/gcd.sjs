@@ -807,20 +807,22 @@ function GoogleCloudDatastore(attribs) {
         options = {};
       }
 
-      context.withTransaction(options.isolationLevel) {
-        |transaction_context|
+      // we retry transactions until they succeed. block needs to be idempotent for this!!
+      while (1) {
+        context.withTransaction(options.isolationLevel) {
+          |transaction_context|
 
-        var mutated_ids = {}, deletes = [], updates = [], inserts = [];
-
-        var read_from_db = @fn.unbatched(function(entities) {
-          return readInner(entities, transaction_context);
-        }, {batch_period: READ_T_BATCH_PERIOD});
-
-        var rv;
-        var doCommit = true;
-        var api = {
-          read:  function(entity) {
-            // check if entity is among those mutated:
+          var mutated_ids = {}, deletes = [], updates = [], inserts = [];
+          
+          var read_from_db = @fn.unbatched(function(entities) {
+            return readInner(entities, transaction_context);
+          }, {batch_period: READ_T_BATCH_PERIOD});
+          
+          var rv;
+          var doCommit = true;
+          var api = {
+            read:  function(entity) {
+              // check if entity is among those mutated:
             if (mutated_ids[entity.id]) {
               // XXX the deletes/updates/inserts could be better
               // structured to facilitate this search
@@ -833,72 +835,79 @@ function GoogleCloudDatastore(attribs) {
               }
               return entity;
             }
-            
-            // ... else not found in mutated set; we need to query the db:
-            
-            // XXX maybe cache items read from db
-            return read_from_db(entity);
-          },
-
-          write: @fn.unbatched(function(entities) { 
-            var result = writeInner(entities, transaction_context);
-
-            // handle multiple mutations of the same record in the same transaction:
-            result.written .. @each { 
-              |{id}|
-              if (mutated_ids[id]) {
-                // xxx the deletes/updates/inserts could be structured
-                // in a different way to make this code easier
-                var idx;
-                if (([idx] = @indexed(updates) ..  
-                            @find([,{key:{pathElement}}] -> GCDKeyToKey(pathElement) === id, [-1])) != -1) {
-                  console.log("Warning: repeated mutation of entity #{id} during transaction.");
-                  // remove existing entry in 'updates' array; it will
-                  // be replaced by the value from 'result.updates'
-                  // later below:
-                  updates.splice(idx,1);
-                  
-                }
-                else 
-                  throw new Error("Unsupported type of repeated mutation of  #{id} during transaction");
-              }
-              else
-                mutated_ids[id] = true;
-            }
-
-            deletes = deletes.concat(result.deletes);
-            updates = updates.concat(result.updates);
-            inserts = inserts.concat(result.inserts);
-
-            return result.written;
-          }, {batch_period: WRITE_T_BATCH_PERIOD}),
-
-          query: function(entities) { 
-            return queryInner(entities, transaction_context) 
-          },
-
-          withTransaction: function() { throw new Error("GCD doesn't support nested transactions"); }
-
-        };
-
-        try {
-          rv = block(api);
-        } catch(e) {
-          doCommit = false;
-          throw e;
-        } finally {
-          if (doCommit) {
-            // commit deletes, updates and inserts
-            var mutation = {};
-            if (deletes.length) mutation['delete'] = deletes;
-            if (updates.length) mutation.update = updates;
-            if (inserts.length) mutation.insert = inserts;
               
-            transaction_context.commit({mutation: mutation});
-            change_buffer.addChanges(@keys(mutated_ids) .. @map(id -> { id: id, schema: id .. KeyToKind }));
+              // ... else not found in mutated set; we need to query the db:
+              
+              // XXX maybe cache items read from db
+              return read_from_db(entity);
+            },
+            
+            write: @fn.unbatched(function(entities) { 
+              var result = writeInner(entities, transaction_context);
+              
+              // handle multiple mutations of the same record in the same transaction:
+              result.written .. @each { 
+                |{id}|
+                if (mutated_ids[id]) {
+                  // xxx the deletes/updates/inserts could be structured
+                  // in a different way to make this code easier
+                  var idx;
+                  if (([idx] = @indexed(updates) ..  
+                       @find([,{key:{pathElement}}] -> GCDKeyToKey(pathElement) === id, [-1])) != -1) {
+                    console.log("Warning: repeated mutation of entity #{id} during transaction.");
+                    // remove existing entry in 'updates' array; it will
+                    // be replaced by the value from 'result.updates'
+                    // later below:
+                    updates.splice(idx,1);
+                    
+                  }
+                  else 
+                    throw new Error("Unsupported type of repeated mutation of  #{id} during transaction");
+                }
+                else
+                  mutated_ids[id] = true;
+              }
+              
+              deletes = deletes.concat(result.deletes);
+              updates = updates.concat(result.updates);
+              inserts = inserts.concat(result.inserts);
+              
+              return result.written;
+            }, {batch_period: WRITE_T_BATCH_PERIOD}),
+            
+            query: function(entities) { 
+              return queryInner(entities, transaction_context) 
+            },
+            
+            withTransaction: function() { throw new Error("GCD doesn't support nested transactions"); }
+            
+          };
+          
+          try {
+            rv = block(api);
+          } catch(e) {
+            doCommit = false;
+            throw e;
+          } finally {
+            if (doCommit) {
+              // commit deletes, updates and inserts
+              var mutation = {};
+              if (deletes.length) mutation['delete'] = deletes;
+              if (updates.length) mutation.update = updates;
+              if (inserts.length) mutation.insert = inserts;
+              
+              try {
+                transaction_context.commit({mutation: mutation});
+              }
+              catch (e) {
+//                console.log('transaction failed; retrying');
+                continue;
+              }
+              change_buffer.addChanges(@keys(mutated_ids) .. @map(id -> { id: id, schema: id .. KeyToKind }));
+            }
+            return rv;
           }
         }
-        return rv;
       }
     },
 
