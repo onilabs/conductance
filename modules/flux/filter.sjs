@@ -22,7 +22,7 @@ exports.Filter = {
   query: query_descriptor -> this.upstream.query(query_descriptor),
 
   withTransaction: function(options, block) {
-    console.log("TRANSACTION");
+//    console.log("TRANSACTION");
     this.upstream.withTransaction(options) {
       |transaction|
       var transaction_ctx = Object.create(this);

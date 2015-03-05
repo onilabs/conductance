@@ -221,7 +221,7 @@ var ContextProto = {
             datastore_schema['api.services.datastore.RollbackRequest'].serialize({ transaction: transaction_id}));
         }
         catch (e) {
-          @warn("Silently ignoring rollback error: #{e}");
+          @verbose("Silently ignoring rollback error: #{e}");
         }
       }
     }
@@ -292,7 +292,7 @@ function Context(attribs) {
   // the prototype so that we don't need to expose `attribs` on the
   // object
   rv._request = function(api_func, req_body, response_schema) {  
-    var max_retries = 5; // make configurable
+    var max_retries = 10; // make configurable
     var retries = 0;
     //console.log("#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}");
     while (true) {
@@ -323,7 +323,7 @@ function Context(attribs) {
              response.statusCode == 409 ||
              response.statusCode == 0) && 
             retries < max_retries) {
-          @info("google-cloud-datastore backend #{response.statusCode}; retrying");
+          @verbose("google-cloud-datastore backend #{response.statusCode}; retrying");
           // xxx should we have some backoff?
           ++retries;
           continue;
