@@ -79,7 +79,7 @@ exports.isNotFound = function(e) {
 
          obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
 
-    Keys are automatically normalized before being passed to the ITF_KVSTORE functions.
+    Keys are automatically normalized before being passed to the `ITF_KVSTORE` functions.
     That means that the key `"foo"` is normalized to `["foo"]`, and the key `[["foo"]]`
     is normalized to `["foo"]`.
 
