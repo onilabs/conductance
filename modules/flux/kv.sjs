@@ -79,10 +79,9 @@ exports.isNotFound = function(e) {
 
          obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
 
-    ITF_KVSTORE functions operate on 'encoded' key and value buffers. The [./kv::] API function
-    ([::get], etc) mediate between the user-facing key and value representations ([::Key]s and
-    serializable JS objects, respectively) and the encoded binary representations.
-
+    Keys are automatically normalized before being passed to the ITF_KVSTORE functions.
+    That means that the key `"foo"` is normalized to `["foo"]`, and the key `[["foo"]]`
+    is normalized to `["foo"]`.
 
 */
 __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
