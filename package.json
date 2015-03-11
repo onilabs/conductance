@@ -24,7 +24,7 @@
   , "nodemon": "git://github.com/onilabs/nodemon.git#826928de2771068dbdbc5cc7f75b9b49c1ae73db"
   , "google-oauth-jwt": "~0.0.7"
   , "agentkeepalive": "=0.1.5"
-  , "ssh2": "git://github.com/onilabs/ssh2.git"
+  , "ssh2": "git://github.com/onilabs/ssh2.git#2b4079e7ff26c2af3298b2a21e665a7232d1c62e"
   }
 , "optionalDependencies":
   { "protobuf": "~0.8.6"
