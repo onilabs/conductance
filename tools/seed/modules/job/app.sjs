@@ -251,9 +251,8 @@ var cleanupDeadContainers = exports.cleanupDeadContainers = function() {
 var writeServiceConfig = function(appRunBase, globalId) {
   var appConfig = @fs.readFile(@path.join(appRunBase, "state.json")) .. JSON.parse .. @get('config');
   var enabledServices = appConfig .. @get('services', []);
-  var service = appConfig .. @get('service');
-  var serviceConfig = service .. @get('data', {});
-  var serviceEnv = service .. @get('env', {});
+  var serviceConfig = appConfig .. @getPath(['service', 'data'], {});
+  var serviceEnv = appConfig .. @getPath(['service', 'env'], {});
 
   serviceConfig = serviceConfig .. @merge(enabledServices .. @map(function(key) {
     var conf = appConfig .. @getPath(['data',key], null);
