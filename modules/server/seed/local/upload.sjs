@@ -15,6 +15,9 @@
 @gzip = require('sjs:nodejs/gzip');
 
 exports.upload = function(app, root) {
+	if(!@fs.exists(root)) {
+		throw new Error("No such directory: #{root}");
+	}
 	var contents = @tar.pack(root) .. @gzip.compress;
 	var payload = @Stream(function(emit) {
 		var i=0;
@@ -24,8 +27,9 @@ exports.upload = function(app, root) {
 		var send = function(chunk) {
 			if (chunks.length > 0) {
 				@debug("[> chunk #{i}: #{chunks.length}]");
-				@debug("[= chunk #{i++}: #{chunks.length}]");
-				emit(Buffer.concat(chunks));
+				var buf = Buffer.concat(chunks);
+				@debug("[send #{chunks.length} chunks (#{buf.length}b)");
+				emit(buf);
 				chunks = [];
 			}
 		};

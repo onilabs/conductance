@@ -30,7 +30,7 @@ var appRoot = @path.join(dataRoot, 'app');
 exports.getAppRoot = -> appRoot;
 var conductanceRoot = @path.dirname(require.resolve('mho:').path .. @url.toPath);
 var sjsRoot =         @path.dirname(require.resolve('sjs:').path .. @url.toPath);
-var DOCKER_IMAGE = 'local/conductance-base';
+var CONDUCTANCE_IMAGE = 'local/conductance-base';
 
 var expected_exe_name = /docker/;
 var appSizeLimit = 1024 * 10; // 10mb
@@ -223,7 +223,7 @@ var cleanupDeadContainers = exports.cleanupDeadContainers = function() {
   var containers = run_output(['ps', '-aq']) .. nonEmptyLines;
 
   if(containers.length > 0) {
-    var image = run_output(['images', '-q', '--no-trunc', DOCKER_IMAGE]).trim();
+    var image = run_output(['images', '-q', '--no-trunc', CONDUCTANCE_IMAGE]).trim();
     @assert.ok(/^[0-9a-fA-F]+$/.test(image), "bad image id: #{image}");
     
     // NOTE: old docker (e.g 1.3.2) uses .Id, newer uses .ID
@@ -500,7 +500,7 @@ exports.localAppState = (function() {
             "--volume", readOnly(conductanceRoot),
             "--volume", readOnly(sjsRoot),
           ]).concat(dockerFlags).concat([
-            "local/conductance-base", // image name
+            CONDUCTANCE_IMAGE
           ]).concat(args);
           @info("Running", args);
           try {
@@ -707,25 +707,56 @@ exports.masterAppState = (function() {
       var tmpdest = @path.join(appBase, "_code");
       var finaldest = @path.join(appBase, "code");
       
-      var cleanup = -> @rimraf(tmpdest);
+      var fixPermissions = function() {
+        // - give owner `rwX`
+        // - give group `rX`
+        // - remove `w` from group/other
+        @childProcess.run('chmod', ['-R','u+rwX,g+rX-w', tmpdest], {'stdio':'inherit'});
+      }
+
+      var cleanup = function() {
+        fixPermissions();
+        @rimraf(tmpdest);
+      }
 
       if (@fs.exists(tmpdest)) {
         cleanup();
       }
       @mkdirp(tmpdest);
       try {
-        stream .. @gzip.decompress .. limitStreamSize(appSizeLimit) .. @tar.extract({
-          path: tmpdest,
-          strip: strip,
-        });
+        // Note: it'd be easier and more efficient to untar in-process, but
+        // node's `tar` module is not secure against malicious input,
+        // and we've seen it crash the whole process on valid archives.
+        var input = stream .. @gzip.decompress .. limitStreamSize(appSizeLimit);
 
-        //// sanity check that we have a config.mho
-        //@assert.ok(@fs.exists(@path.join(tmpdest, 'config.mho')), "no config.mho found in code!");
+        var cmd = (production ? [
+          process.env .. @get('EXTRACT_SANDBOX'),
+          process.env .. @get('TAR'),
+        ] : ['tar']).concat(['x', '--strip-components=1', '-C',tmpdest]);
 
-        // stop app so that nothing is trying to run code while we're modifying it
-        stopApp();
+        @info(`Unpack command: ${cmd}`);
+        try {
+          @tempfile.TemporaryDir {|sandboxRoot|
+            @childProcess.run(cmd[0], cmd.slice(1), {
+              stdio: [input, 'inherit','inherit'],
+              env: process.env .. @merge({
+                'SANDBOX_ROOT': sandboxRoot,
+                'SANDBOX_WRITE': tmpdest,
+              }),
+            })
+            
+            // XXX it'd be nice if `tar` allowed us to extract with specified minimum permissions...
+            fixPermissions();
+          }
+        } catch(e) {
+          @info(String(e));
+          throw new Error("Failed to extract archive");
+        }
 
-        // overwrite dir
+        // NOTE: it's OK for the app to still be running here, as
+        // the slave has its own local copy of all running apps
+        
+        // swap current & new dirs
         tryRename(finaldest, finaldest + '.old');
         @fs.rename(tmpdest, finaldest);
         tryRename(finaldest + '.old', tmpdest);
@@ -734,10 +765,10 @@ exports.masterAppState = (function() {
         modifyState.unsafe(st -> st .. @merge({deployed: Date.now()}));
 
         // and restart it
+        stopApp();
         startApp();
-      } catch (e) {
+      } finally {
         cleanup();
-        throw e;
       }
     } .. safe();
 

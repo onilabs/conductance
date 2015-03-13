@@ -3,7 +3,7 @@
   , "dependencies":
     { "fs-ext": "git://github.com/gfxmonk/node-fs-ext.git#2b7c33a006c0fc3c5b97da91ec541ffa729036d7"
     , "node-etcd": "^3.0.0"
-    , "conductance": "git://github.com/onilabs/conductance.git#9034c3209eccf8ccf571b5fc2e0e36bbec788742"
+    , "conductance": "git://github.com/onilabs/conductance.git#ca7a5df2fe9d8875ae1b35e085bb178dde647256"
     , "jwt-async": "^1.0.1"
     , "nodemailer": "^1.2.0"
     , "nodemailer-smtp-transport": "^0.1.11"
