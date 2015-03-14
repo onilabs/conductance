@@ -36,6 +36,24 @@ function Encrypted(input, settings) {
     var out = {};
 
     out[@kv.ITF_KVSTORE] = {
+      changes: db.changes ..@transform(function (info) {
+        return info ..@map(function (info) {
+          if (info.type === 'put') {
+            return {
+              type: info.type,
+              key: info.key,
+              value: decrypt(info.value)
+            };
+
+          } else if (info.type === 'del') {
+            return info;
+
+          } else {
+            throw new Error("Invalid type: #{info.type}");
+          }
+        });
+      }),
+
       get: function (key) {
         var value = db.get(key);
         if (value === undefined) {

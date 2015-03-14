@@ -42,6 +42,27 @@ function wrapDB(itf) {
   }
 
   var kvstore_interface = {
+    changes: itf.changes ..@transform(function (info) {
+      return info ..@map(function (info) {
+        if (info.type === 'put') {
+          return {
+            type: info.type,
+            key: @encoding.decodeKey(itf, info.key),
+            value: itf.decodeValue(info.value),
+          };
+
+        } else if (info.type === 'del') {
+          return {
+            type: info.type,
+            key: @encoding.decodeKey(itf, info.key)
+          };
+
+        } else {
+          throw new Error("Invalid type: #{info.type}");
+        }
+      });
+    }),
+
     get: function(key) {
       key = @encoding.encodeKey(itf, key);
       return itf.decodeValue(itf.get(key));

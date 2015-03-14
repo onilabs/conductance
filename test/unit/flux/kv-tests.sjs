@@ -9,6 +9,47 @@ function all(db) {
 //----------------------------------------------------------------------
 // common test implementations to be tested on every db backend:
 
+function test_changes(db) {
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+
+  all(db) ..@assert.eq([]);
+
+  var itf = db[@kv.ITF_KVSTORE];
+
+  var changes = [];
+
+  waitfor {
+    waitfor {
+      itf.changes ..@each(function (x) {
+        changes.push(x);
+      });
+
+    } and {
+      itf.changes ..@each(function (x) {
+        changes.push(x);
+      });
+    }
+
+  } or {
+    db ..@kv.set('foo', 1);
+    db ..@kv.set('bar', 2);
+
+    db ..@kv.withTransaction(function (db) {
+      db ..@kv.set('foo', 3);
+      db ..@kv.clear('bar');
+    });
+  }
+
+  changes ..@assert.eq([[{ type: 'put', key: ['foo'], value: 1 }],
+                        [{ type: 'put', key: ['foo'], value: 1 }],
+
+                        [{ type: 'put', key: ['bar'], value: 2 }],
+                        [{ type: 'put', key: ['bar'], value: 2 }],
+
+                        [{ type: 'put', key: ['foo'], value: 3 }, { type: 'del', key: ['bar'] }],
+                        [{ type: 'put', key: ['foo'], value: 3 }, { type: 'del', key: ['bar'] }]]);
+}
+
 function test_value_types(db) {
   var objs = [1, 100, 3.14, 'test string',
               {a: 1, b: { c: 'foo' }},
@@ -459,6 +500,7 @@ function test_encryption() {
 }
 
 function test_all(new_db) {
+  @test("changes")         { |s| s.db .. test_changes }
   @test("withTransaction") { |s| s.db .. test_transaction }
   @test("equal")           { |s| s.db .. test_equal(new_db(s)) }
 

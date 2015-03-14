@@ -49,6 +49,27 @@ function Subspace(input, prefix) {
     var out = {};
 
     out[@kv.ITF_KVSTORE] = {
+      changes: db.changes ..@transform(function (info) {
+        return info ..@map(function (info) {
+          if (info.type === 'put') {
+            return {
+              type: info.type,
+              key: unprefixKey(info.key),
+              value: info.value
+            };
+
+          } else if (info.type === 'del') {
+            return {
+              type: info.type,
+              key: unprefixKey(info.key)
+            };
+
+          } else {
+            throw new Error("Invalid type: #{info.type}");
+          }
+        });
+      }),
+
       get: function (key) {
         return db.get(prefixKey(key));
       },
