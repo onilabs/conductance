@@ -475,3 +475,40 @@ function Subspace(db, prefix, block) {
   }
 }
 exports.Subspace = Subspace;
+
+/**
+  @class Cached
+  @inherit ::KVStore
+  @summary A key-value storage that automatically caches frequently-used key/value pairs
+
+  @function Cached
+  @altsyntax Cached(db, [settings]) { |kvstore| ... }
+  @param {::KVStore} [db]
+  @param {optional Object} [settings]
+  @param {optional Function} [block] Lexical block to scope the Cached object to
+  @setting {Number} [maxsize=10000] Maximum number of key/value pairs to cache
+  @desc
+    This function will return a wrapper for `db` which automatically
+    caches frequently-used key/value pairs.
+
+    If more than `maxsize` key/value pairs are cached, it will discard
+    the least-recently-used key/value pair.
+*/
+function Cached(db, settings, block) {
+  // untangle args
+  if (arguments.length == 1) {
+    settings = {};
+  } else if (arguments.length < 3 && typeof settings === 'function') {
+    block = settings;
+    settings = {};
+  }
+
+  var itf = require('./kv/cached').Cached(db, settings);
+
+  if (block) {
+    block(itf);
+  } else {
+    return itf;
+  }
+}
+exports.Cached = Cached;

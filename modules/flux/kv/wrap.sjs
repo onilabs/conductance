@@ -118,6 +118,10 @@ function wrapDB(itf) {
 
       var T = {};
       T[@kv.ITF_KVSTORE] = {
+        // TODO implement this
+        // TODO unit tests for this, after it's implemented
+        //changes:
+
         get: function(key) {
           key = @encoding.encodeKey(itf, key);
 

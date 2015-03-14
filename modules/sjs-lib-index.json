@@ -98,6 +98,14 @@
         "kv": {
           "type": "module",
           "children": {
+            "Cached": {
+              "type": "class",
+              "children": {
+                "Cached": {
+                  "type": "ctor"
+                }
+              }
+            },
             "Encrypted": {
               "type": "class",
               "children": {

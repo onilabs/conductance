@@ -547,7 +547,7 @@ function test_all(new_db) {
     test_all(s -> s.db);
   }
 
-  @context("Subspace") {||
+  @context("Subspace (memory)") {||
     @test.beforeAll {|s|
       s.raw = @kv.LocalDB();
       s.db = @kv.Subspace(s.raw, ['foobar', 0]);
@@ -555,6 +555,15 @@ function test_all(new_db) {
 
     test_subspace();
     test_all(s -> @kv.Subspace(s.raw, ['foobar', 0]));
+  }
+
+  @context("Cached (memory)") {||
+    @test.beforeAll {|s|
+      s.raw = @kv.LocalDB();
+      s.db = @kv.Cached(s.raw);
+    }
+
+    test_all(s -> @kv.Cached(s.raw));
   }
 };
 
