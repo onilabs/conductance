@@ -35,17 +35,29 @@ function Encrypted(input, settings) {
 
     var out = {};
 
-    out[@kv.ITF_KVSTORE] = {
-      changes: db.changes ..@transform(function (info) {
-        return info ..@map(function (info) {
-          if (info.type === 'put' || info.type === 'del') {
-            return info;
+    // TODO move this to the outer level ?
+    var changes = db.changes ..@transform(function (info) {
+      return info ..@map(function (info) {
+        if (info.type === 'put' || info.type === 'del') {
+          return info;
 
-          } else {
-            throw new Error("Invalid type: #{info.type}");
-          }
-        });
-      }),
+        } else {
+          throw new Error("Invalid type: #{info.type}");
+        }
+      });
+    });
+
+    out[@kv.ITF_KVSTORE] = {
+      close: function () {
+        if (in_transaction) {
+          throw new Error('Cannot use close inside of withTransaction');
+        } else {
+          changes = null;
+          db = null;
+        }
+      },
+
+      changes: changes,
 
       get: function (key) {
         var value = db.get(key);

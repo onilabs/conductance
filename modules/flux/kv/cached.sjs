@@ -26,7 +26,7 @@ function Cached(input, settings) {
 
   var items = @makeCache(settings.maxsize);
 
-  spawn db.changes ..@each(function (info) {
+  var listener = spawn db.changes ..@each(function (info) {
     info ..@each(function (info) {
       if (info.type === 'put' || info.type === 'del') {
         items.discard(JSON.stringify(info.key));
@@ -40,6 +40,13 @@ function Cached(input, settings) {
   var out = {};
 
   out[@kv.ITF_KVSTORE] = {
+    close: function () {
+      listener.abort();
+      listener = null;
+      items = null;
+      db = null;
+    },
+
     changes: db.changes,
 
     get: function (key) {

@@ -130,9 +130,6 @@
               "children": {
                 "LevelDB": {
                   "type": "ctor"
-                },
-                "close": {
-                  "type": "function"
                 }
               }
             },
@@ -171,6 +168,9 @@
               "type": "function"
             },
             "clearRange": {
+              "type": "function"
+            },
+            "close": {
               "type": "function"
             },
             "get": {

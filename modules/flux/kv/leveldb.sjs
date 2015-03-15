@@ -198,7 +198,8 @@ function LevelDB(location, options) {
           db.close(resume);
         }
         if (err) throw new Error("Error closing database at #{location}") .. annotateError(err);
-        db = undefined;
+        db = null;
+        MutationEmitter = null;
       }
     }
   };
@@ -206,11 +207,5 @@ function LevelDB(location, options) {
 exports.LevelDB = LevelDB;
 
 exports.WrappedLevelDB = function (location, options) {
-  var db = LevelDB(location, options);
-  var itf = @wrap.wrapDB(db);
-
-  // It's necessary to manually close the db if you don't provide a block
-  itf.close = db.close;
-
-  return itf;
+  return @wrap.wrapDB(LevelDB(location, options));
 };
