@@ -44,14 +44,7 @@ function wrapDB(itf) {
   var kvstore_interface = {
     changes: itf.changes ..@transform(function (info) {
       return info ..@map(function (info) {
-        if (info.type === 'put') {
-          return {
-            type: info.type,
-            key: @encoding.decodeKey(itf, info.key),
-            value: itf.decodeValue(info.value),
-          };
-
-        } else if (info.type === 'del') {
+        if (info.type === 'put' || info.type === 'del') {
           return {
             type: info.type,
             key: @encoding.decodeKey(itf, info.key)

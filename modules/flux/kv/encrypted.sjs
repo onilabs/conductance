@@ -38,14 +38,7 @@ function Encrypted(input, settings) {
     out[@kv.ITF_KVSTORE] = {
       changes: db.changes ..@transform(function (info) {
         return info ..@map(function (info) {
-          if (info.type === 'put') {
-            return {
-              type: info.type,
-              key: info.key,
-              value: decrypt(info.value)
-            };
-
-          } else if (info.type === 'del') {
+          if (info.type === 'put' || info.type === 'del') {
             return info;
 
           } else {

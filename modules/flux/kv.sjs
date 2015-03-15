@@ -67,7 +67,7 @@ exports.isNotFound = function(e) {
 
      Objects implementing this interface must implement the following functions:
 
-         obj[ITF_KVSTORE].changes // Emitter of [{ type: 'put', key: ..., value: ... }, { type: 'del', key: ... }, ...]
+         obj[ITF_KVSTORE].changes // Emitter of [{ type: 'put', key: ... }, { type: 'del', key: ... }, ...]
 
          obj[ITF_KVSTORE].get(key) // return value associated with key ('undefined' if not existant)
 

@@ -40,14 +40,14 @@ function test_changes(db) {
     });
   }
 
-  changes ..@assert.eq([[{ type: 'put', key: ['foo'], value: 1 }],
-                        [{ type: 'put', key: ['foo'], value: 1 }],
+  changes ..@assert.eq([[{ type: 'put', key: ['foo'] }],
+                        [{ type: 'put', key: ['foo'] }],
 
-                        [{ type: 'put', key: ['bar'], value: 2 }],
-                        [{ type: 'put', key: ['bar'], value: 2 }],
+                        [{ type: 'put', key: ['bar'] }],
+                        [{ type: 'put', key: ['bar'] }],
 
-                        [{ type: 'put', key: ['foo'], value: 3 }, { type: 'del', key: ['bar'] }],
-                        [{ type: 'put', key: ['foo'], value: 3 }, { type: 'del', key: ['bar'] }]]);
+                        [{ type: 'put', key: ['foo'] }, { type: 'del', key: ['bar'] }],
+                        [{ type: 'put', key: ['foo'] }, { type: 'del', key: ['bar'] }]]);
 }
 
 function test_value_types(db) {
