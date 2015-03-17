@@ -16,11 +16,11 @@
 @ = require('mho:std');
 
 exports.run = function(config, block) {
-  console.log("Starting Google Web APIs Service with config: ", config);
+  console.log("Starting Google Web APIs service");
   try {
-    block(config .. @clone);
+    block(config);
   }
   finally {
-    console.log("Shutting down Google Web APIs Service");
+    console.log("Shutting down Google Web APIs service");
   }
 };
