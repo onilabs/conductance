@@ -423,9 +423,11 @@ exports.StaticDirectory = createDirectoryMapper({});
     All included routes begin with with `/__` (e.g `/__mho/` and `/__sjs/`), so
     you should avoid defining your own routes beginning with `/__` to
     avoid the possibility of a clash.
+
+    SystemRoutes is composed of [::SystemCodeRoutes], [::SystemBridgeRoutes], and [::SystemAuxRoutes]
 */
 function SystemRoutes() {
-  return exports.SystemCodeRoutes().concat(exports.SystemBridgeRoutes());
+  return exports.SystemCodeRoutes().concat(exports.SystemBridgeRoutes()).concat(exports.SystemAuxRoutes());
 }
 exports.SystemRoutes = SystemRoutes;
 
@@ -460,14 +462,29 @@ function SystemBridgeRoutes() {
             transport);
         }
       )
-    ),
-    Route(
-      /^__keyhole\/([^\/]+)\/(.*)$/,
-      require('./keyhole').createKeyholeHandler()
     )
   ];
 }
 exports.SystemBridgeRoutes = SystemBridgeRoutes;
+
+/**
+   @function SystemAuxRoutes
+   @summary Standard system routes for auxiliary services (keyhole, oauth)
+*/
+function SystemAuxRoutes() {
+  return [
+    Route(
+      /^__keyhole\/([^\/]+)\/(.*)$/,
+      require('./keyhole').createKeyholeHandler()
+    ),
+    Route(
+      '__oauthcallback',
+      require('./oauth').createOAuthCallbackHandler()
+    )
+  ];
+}
+exports.SystemAuxRoutes = SystemAuxRoutes;
+
 
 /**
   @function SetHeaders
