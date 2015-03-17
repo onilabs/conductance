@@ -67,8 +67,6 @@ exports.isNotFound = function(e) {
 
      Objects implementing this interface must implement the following functions:
 
-         obj[ITF_KVSTORE].changes // Emitter of [{ type: 'put', key: ... }, { type: 'del', key: ... }, ...]
-
          obj[ITF_KVSTORE].get(key) // return value associated with key ('undefined' if not existant)
 
          obj[ITF_KVSTORE].put(key, encoded_value) // set or delete (if value===undefined) entries in the store
@@ -80,8 +78,6 @@ exports.isNotFound = function(e) {
          obj[ITF_KVSTORE].observeQuery(range, [options]) // return observable tracking range
 
          obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
-
-         obj[ITF_KVSTORE].close() // Closes the database, cleaning up any internal state
 
     Keys are automatically normalized before being passed to the `ITF_KVSTORE` functions.
     That means that the key `"foo"` is normalized to `["foo"]`, and the key `[["foo"]]`
@@ -145,12 +141,6 @@ exports.RANGE_ALL = RANGE_ALL;
 //----------------------------------------------------------------------
 // KV API
 
-function check_closed(store) {
-  if (store[ITF_KVSTORE].isClosed) {
-    throw new Error('KVStore is closed');
-  }
-}
-
 /**
    @function get
    @param {::KVStore} [kvstore]
@@ -163,8 +153,6 @@ function check_closed(store) {
       Otherwise, a [::NotFound] error will be thrown.
 */
 function get(store, key, dfl) {
-  check_closed(store);
-
   var rv = store[ITF_KVSTORE].get(@util.normalizeKey(key));
   if(rv === undefined) {
     if(arguments.length > 2) return dfl;
@@ -182,8 +170,6 @@ exports.get = get;
    @summary Sets key to the given value.
 */
 function set(store, key, value) {
-  check_closed(store);
-
   // assert value !== undefined; that would be a 'clear' operation
   return store[ITF_KVSTORE].put(@util.normalizeKey(key), value);
 }
@@ -196,8 +182,6 @@ exports.set = set;
    @summary Clears any value currently associated with key.
 */
 function clear(store, key) {
-  check_closed(store);
-
   return store[ITF_KVSTORE].put(@util.normalizeKey(key), undefined);
 }
 exports.clear = clear;
@@ -217,8 +201,6 @@ exports.clear = clear;
      from the first element of the reversed sequence.
 */
 function query(store, range, options) {
-  check_closed(store);
-
   return store[ITF_KVSTORE].query(@util.normalizeKeyRange(range), options || {});
 }
 exports.query = query;
@@ -230,8 +212,6 @@ exports.query = query;
    @summary Clears any values associated with keys in given range.
 */
 function clearRange(store, range) {
-  check_closed(store);
-
   withTransaction(store, function (store) {
     // TODO this currently has to encode/decode the keys twice
     //      this can be made more efficient by only encoding/decoding them once
@@ -251,8 +231,6 @@ exports.clearRange = clearRange;
 
 */
 function observe(store, key) {
-  check_closed(store);
-
   return store[ITF_KVSTORE].observe(@util.normalizeKey(key));
 }
 exports.observe = observe;
@@ -270,8 +248,6 @@ exports.observe = observe;
 
 */
 function observeQuery(store, range, options) {
-  check_closed(store);
-
   range = @encoding.encodeKeyRange(range);
   return store[ITF_KVSTORE].observeQuery(range, options) .. @transform(kvs -> kvs .. @transform(decodeKV));
 }
@@ -314,8 +290,6 @@ exports.observeQuery = observeQuery;
      committed to the database).
 */
 function withTransaction(store, options, block) {
-  check_closed(store);
-
   if (arguments.length === 2) {
     block = options;
     options = undefined;
@@ -323,26 +297,6 @@ function withTransaction(store, options, block) {
   return store[ITF_KVSTORE].withTransaction(options, block);
 }
 exports.withTransaction = withTransaction;
-
-/**
-   @function close
-   @param {::KVStore} [kvstore]
-   @summary Closes `kvstore`, cleaning up any internal state.
-   @desc
-     When you're done using `kvstore`, you should call this function to
-     clean up. After `kvstore` is closed, it cannot be used anymore.
-
-     This function is called automatically if you access `kvstore` with
-     a block.
-*/
-function close(store) {
-  var itf = store[ITF_KVSTORE];
-  if (!itf.isClosed) {
-    itf.close();
-    itf.isClosed = true;
-  }
-}
-exports.close = close;
 
 //----------------------------------------------------------------------
 // KVStore implementations:
@@ -357,8 +311,9 @@ exports.close = close;
   @param {String} [location] Location of DB on disk
   @param {optional Object} [options] See https://github.com/rvagg/node-leveldown#leveldownopenoptions-callback
   @param {optional Function} [block] Lexical block to scope the LevelDB object to
-  @desc
-    If you provide `block`, it will automatically [::close] the LevelDB after `block` returns.
+
+  @function LevelDB.close
+  @summary  Close the DB.
 */
 function LevelDB(location, options, block) {
   // untangle args
@@ -375,7 +330,7 @@ function LevelDB(location, options, block) {
     try {
       block(itf);
     } finally {
-      close(itf);
+      itf.close();
     }
   } else {
     return itf;
@@ -395,10 +350,6 @@ exports.LevelDB = LevelDB;
   @setting {optional String} [localStorage] The name to use in `localStorage` for loading/saving the DB
   @setting {optional String} [file] The file path to use for loading/saving the DB
   @desc
-    If you provide `block`, it will automatically [::close] the LocalDB after `block` returns.
-
-    ----
-
     * If you provide `localStorage`, the DB will be loaded/saved to
       `localStorage`, using the name provided. This can only be used in
       the browser.
@@ -435,11 +386,7 @@ function LocalDB(options, block) {
   var itf = require('./kv/localdb').LocalDB(options);
 
   if (block) {
-    try {
-      block(itf);
-    } finally {
-      close(itf);
-    }
+    block(itf);
   } else {
     return itf;
   }
@@ -458,10 +405,6 @@ exports.LocalDB = LocalDB;
   @param {optional Function} [block] Lexical block to scope the Encrypted object to
   @setting {String} [password] The password / key to use for encrypting / decrypting
   @desc
-    If you provide `block`, it will automatically [::close] the Encrypted after `block` returns.
-
-    ----
-
     This function will return a wrapper for `db` which automatically
     encrypts / decrypts the values.
 
@@ -491,11 +434,7 @@ function Encrypted(db, options, block) {
   var itf = require('./kv/encrypted').Encrypted(db, options);
 
   if (block) {
-    try {
-      block(itf);
-    } finally {
-      close(itf);
-    }
+    block(itf);
   } else {
     return itf;
   }
@@ -513,10 +452,6 @@ exports.Encrypted = Encrypted;
   @param {::Key} [prefix]
   @param {optional Function} [block] Lexical block to scope the Subspace object to
   @desc
-    If you provide `block`, it will automatically [::close] the Subspace after `block` returns.
-
-    ----
-
     This function will return a wrapper for `db` which automatically
     adds / removes `prefix` from all of the keys.
 
@@ -532,58 +467,9 @@ function Subspace(db, prefix, block) {
   var itf = require('./kv/subspace').Subspace(db, prefix);
 
   if (block) {
-    try {
-      block(itf);
-    } finally {
-      close(itf);
-    }
+    block(itf);
   } else {
     return itf;
   }
 }
 exports.Subspace = Subspace;
-
-/**
-  @class Cached
-  @inherit ::KVStore
-  @summary A key-value storage that automatically caches frequently-used key/value pairs
-
-  @function Cached
-  @altsyntax Cached(db, [settings]) { |kvstore| ... }
-  @param {::KVStore} [db]
-  @param {optional Object} [settings]
-  @param {optional Function} [block] Lexical block to scope the Cached object to
-  @setting {Number} [maxsize=10000] Maximum number of key/value pairs to cache
-  @desc
-    If you provide `block`, it will automatically [::close] the Cached after `block` returns.
-
-    ----
-
-    This function will return a wrapper for `db` which automatically
-    caches frequently-used key/value pairs.
-
-    If more than `maxsize` key/value pairs are cached, it will discard
-    the least-recently-used key/value pair.
-*/
-function Cached(db, settings, block) {
-  // untangle args
-  if (arguments.length == 1) {
-    settings = {};
-  } else if (arguments.length < 3 && typeof settings === 'function') {
-    block = settings;
-    settings = {};
-  }
-
-  var itf = require('./kv/cached').Cached(db, settings);
-
-  if (block) {
-    try {
-      block(itf);
-    } finally {
-      close(itf);
-    }
-  } else {
-    return itf;
-  }
-}
-exports.Cached = Cached;

@@ -42,22 +42,6 @@ function wrapDB(itf) {
   }
 
   var kvstore_interface = {
-    close: itf.close,
-
-    changes: itf.changes ..@transform(function (info) {
-      return info ..@map(function (info) {
-        if (info.type === 'put' || info.type === 'del') {
-          return {
-            type: info.type,
-            key: @encoding.decodeKey(itf, info.key)
-          };
-
-        } else {
-          throw new Error("Invalid type: #{info.type}");
-        }
-      });
-    }),
-
     get: function(key) {
       key = @encoding.encodeKey(itf, key);
       return itf.decodeValue(itf.get(key));
@@ -113,14 +97,6 @@ function wrapDB(itf) {
 
       var T = {};
       T[@kv.ITF_KVSTORE] = {
-        // TODO implement this
-        // TODO unit tests for this, after it's implemented
-        //changes:
-
-        close: function () {
-          throw new Error('Cannot use close inside of withTransaction');
-        },
-
         get: function(key) {
           key = @encoding.encodeKey(itf, key);
 

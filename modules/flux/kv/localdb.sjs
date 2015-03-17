@@ -317,8 +317,6 @@ var cache_file = {};
 function get_cache(o, s, f) {
   if (o[s] == null) {
     o[s] = f();
-  } else {
-    throw new Error('DB is already open');
   }
   return o[s];
 }
@@ -397,20 +395,6 @@ function wrap_dict(dict, options) {
     decodeString: itf_encoding.decodeString,
     copy: itf_encoding.copy,
     concat: itf_encoding.concat,
-
-    close: function () {
-      // TODO test this
-      if (options.localStorage != null) {
-        delete cache_localStorage[options.localStorage];
-
-      } else if (options.file != null) {
-        delete cache_file[options.file];
-      }
-
-      dict = null;
-      MutationEmitter = null;
-      options = null;
-    },
 
     changes: MutationEmitter,
 

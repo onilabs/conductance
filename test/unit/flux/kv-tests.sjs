@@ -9,152 +9,6 @@ function all(db) {
 //----------------------------------------------------------------------
 // common test implementations to be tested on every db backend:
 
-function test_close(f) {
-  return @context("close") {||
-    @test("manual") {|s|
-      var db = f(s, null);
-
-      db .. @kv.clearRange(@kv.RANGE_ALL);
-
-      all(db) ..@assert.eq([]);
-
-      db ..@kv.set('foo', 1);
-      db ..@kv.set('bar', 2);
-
-      all(db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
-
-      db ..@kv.close;
-
-      @assert.raises({
-        message: 'KVStore is closed'
-      }, function () {
-        all(db);
-      });
-
-      all(s.db);
-    }
-
-    @test("transaction") {|s|
-      var db = f(s, null);
-
-      db .. @kv.clearRange(@kv.RANGE_ALL);
-
-      all(db) ..@assert.eq([]);
-
-      db ..@kv.withTransaction(function (db) {
-        db ..@kv.set('foo', 1);
-        db ..@kv.set('bar', 2);
-
-        all(db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
-
-        @assert.raises({
-          message: 'Cannot use close inside of withTransaction'
-        }, function () {
-          db ..@kv.close;
-        });
-
-        all(db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
-      });
-
-      all(db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
-
-      all(s.db);
-    }
-
-    @test("function") {|s|
-      var outer = null;
-
-      f(s, function (db) {
-        outer = db;
-
-        db .. @kv.clearRange(@kv.RANGE_ALL);
-
-        all(db) ..@assert.eq([]);
-
-        db ..@kv.set('foo', 1);
-        db ..@kv.set('bar', 2);
-
-        all(db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
-      });
-
-      @assert.raises({
-        message: 'KVStore is closed'
-      }, function () {
-        all(outer);
-      });
-
-      all(s.db);
-    }
-
-    @test("block") {|s|
-      var outer = null;
-
-      f(s, { |db|
-        outer = db;
-
-        db .. @kv.clearRange(@kv.RANGE_ALL);
-
-        all(db) ..@assert.eq([]);
-
-        db ..@kv.set('foo', 1);
-        db ..@kv.set('bar', 2);
-
-        all(db) ..@assert.eq([[['bar'], 2], [['foo'], 1]]);
-        break;
-      });
-
-      @assert.raises({
-        message: 'KVStore is closed'
-      }, function () {
-        all(outer);
-      });
-
-      all(s.db);
-    }
-  }
-}
-
-function test_changes(db) {
-  db .. @kv.clearRange(@kv.RANGE_ALL);
-
-  all(db) ..@assert.eq([]);
-
-  var itf = db[@kv.ITF_KVSTORE];
-
-  var changes = [];
-
-  waitfor {
-    waitfor {
-      itf.changes ..@each(function (x) {
-        changes.push(x);
-      });
-
-    } and {
-      itf.changes ..@each(function (x) {
-        changes.push(x);
-      });
-    }
-
-  } or {
-    db ..@kv.set('foo', 1);
-    db ..@kv.set('bar', 2);
-
-    db ..@kv.withTransaction(function (db) {
-      db ..@kv.set('foo', 3);
-      db ..@kv.clear('bar');
-    });
-  }
-
-  changes ..@assert.eq([[{ type: 'put', key: ['foo'] }],
-                        [{ type: 'put', key: ['foo'] }],
-
-                        [{ type: 'put', key: ['bar'] }],
-                        [{ type: 'put', key: ['bar'] }],
-
-                        [{ type: 'put', key: ['foo'] }, { type: 'del', key: ['bar'] }],
-                        [{ type: 'put', key: ['foo'] }, { type: 'del', key: ['bar'] }]]);
-}
-
 function test_value_types(db) {
   var objs = [1, 100, 3.14, 'test string',
               {a: 1, b: { c: 'foo' }},
@@ -605,7 +459,6 @@ function test_encryption() {
 }
 
 function test_all(new_db) {
-  @test("changes")         { |s| s.db .. test_changes }
   @test("withTransaction") { |s| s.db .. test_transaction }
   @test("equal")           { |s| s.db .. test_equal(new_db(s)) }
 
@@ -633,23 +486,12 @@ function test_all(new_db) {
 
 //----------------------------------------------------------------------
 
-function cleanup() {
-  @test.afterAll {|s|
-    if (s.raw) {
-      s.raw ..@kv.close;
-    }
-    s.db ..@kv.close;
-  }
-}
-
 @context {||
   @context("LocalDB (memory)") {||
     @test.beforeAll {|s|
       s.db = @kv.LocalDB();
     }
-    cleanup();
 
-    test_close((s, block) -> @kv.LocalDB({}, block));
     test_all(s -> s.db);
   }
 
@@ -658,34 +500,19 @@ function cleanup() {
       s.raw = @kv.LocalDB();
       s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
     }
-    cleanup();
 
     test_encryption();
-    test_close((s, block) -> @kv.Encrypted(s.raw, { password: 'foobar' }, block));
-    test_all(s -> @kv.Encrypted(s.raw, { password: 'foobar' }));
+    test_all(s -> s.db);
   }
 
-  @context("Subspace (memory)") {||
+  @context("Subspace") {||
     @test.beforeAll {|s|
       s.raw = @kv.LocalDB();
       s.db = @kv.Subspace(s.raw, ['foobar', 0]);
     }
-    cleanup();
 
     test_subspace();
-    test_close((s, block) -> @kv.Subspace(s.raw, ['foobar', 0], block));
     test_all(s -> @kv.Subspace(s.raw, ['foobar', 0]));
-  }
-
-  @context("Cached (memory)") {||
-    @test.beforeAll {|s|
-      s.raw = @kv.LocalDB();
-      s.db = @kv.Cached(s.raw);
-    }
-    cleanup();
-
-    test_close((s, block) -> @kv.Cached(s.raw, block));
-    test_all(s -> @kv.Cached(s.raw));
   }
 };
 
@@ -694,16 +521,13 @@ function cleanup() {
     @test.beforeAll {|s|
       s.db = @kv.LocalDB({ localStorage: 'local-test-db' });
     }
-    cleanup();
 
     @test.afterAll {|s|
       delete localStorage['local-test-db'];
     }
 
     test_persistence({ localStorage: 'local-test-db' });
-    test_close((s, block) -> @kv.LocalDB({ localStorage: 'local-test-db' }, block)).skip("TODO");
-    // TODO test that it is equal, when opened with the same options
-    test_all(s -> s.db);
+    test_all(s -> @kv.LocalDB({ localStorage: 'local-test-db' }));
   }
 
   @context("Encrypted (localStorage)") {||
@@ -711,14 +535,12 @@ function cleanup() {
       s.raw = @kv.LocalDB({ localStorage: 'encrypted-test-db' });
       s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
     }
-    cleanup();
 
     @test.afterAll {|s|
       delete localStorage['encrypted-test-db'];
     }
 
     test_encryption();
-    test_close((s, block) -> @kv.Encrypted(s.raw, { password: 'foobar' }, block));
     test_all(s -> @kv.Encrypted(s.raw, { password: 'foobar' }));
   }
 }.browserOnly();
@@ -744,12 +566,9 @@ function cleanup() {
     @test.beforeAll {|s|
       s.db = @kv.LocalDB({ file: s.path('local-test-db') });
     }
-    cleanup();
 
     test_persistence({ file: 'local-test-db' });
-    test_close((s, block) -> @kv.LocalDB({ file: s.path('local-test-db') }, block)).skip("TODO");
-    // TODO test that it is equal, when opened with the same options
-    test_all(s -> s.db);
+    test_all(s -> @kv.LocalDB({ file: s.path('local-test-db') }));
   }
 
   @context("Encrypted (file)") {||
@@ -757,10 +576,8 @@ function cleanup() {
       s.raw = @kv.LocalDB({ file: s.path('encrypted-test-db') });
       s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
     }
-    cleanup();
 
     test_encryption();
-    test_close((s, block) -> @kv.Encrypted(s.raw, { password: 'foobar' }, block));
     test_all(s -> @kv.Encrypted(s.raw, { password: 'foobar' }));
   }
 
@@ -771,9 +588,11 @@ function cleanup() {
     @test.beforeAll {|s|
       s.db = @kv.LevelDB(s.path('leveldb-test-db'));
     }
-    cleanup();
 
-    test_close((s, block) -> @kv.LevelDB(s.path('leveldb-test-db'), block)).skip("TODO");
+    @test.afterAll {|s|
+      s.db.close();
+    }
+
     // TODO test that opening the same location twice results in equal dbs
     test_all(s -> s.db);
   }
