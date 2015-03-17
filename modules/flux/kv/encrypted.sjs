@@ -19,11 +19,31 @@
 
 function Encrypted(input, settings) {
   function encrypt(value) {
-    return @sjcl.json.encrypt(settings.password, JSON.stringify(value));
+    try {
+      return @sjcl.json.encrypt(settings.password, JSON.stringify(value));
+    }
+    catch (e) {
+      // sjcl doesn't generate exceptions of type 'Error', so they
+      // don't contain a stacktrace. We'll wrap them here for now:
+      if (!(e instanceof Error))
+        throw new Error("Encryption failed: #{e}");
+      else
+        throw e;
+    }
   }
 
   function decrypt(value) {
-    return JSON.parse(@sjcl.json.decrypt(settings.password, value));
+    try {
+      return JSON.parse(@sjcl.json.decrypt(settings.password, value));
+    }
+    catch (e) {
+      // sjcl doesn't generate exceptions of type 'Error', so they
+      // don't contain a stacktrace. We'll wrap them here for now:
+      if (!(e instanceof Error))
+        throw new Error("Decryption failed: #{e}");
+      else
+        throw e;
+    }
   }
 
   function decodeKV([key, value]) {
