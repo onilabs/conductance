@@ -282,6 +282,18 @@
           },
           "summary": "Utilities for generator (`.gen`) modules"
         },
+        "oauth": {
+          "type": "module",
+          "children": {
+            "createOAuthCallbackHandler": {
+              "type": "function"
+            },
+            "waitForOAuthCallback": {
+              "type": "function"
+            }
+          },
+          "summary": "Server-side OAuth2 infrastructure helpers"
+        },
         "response": {
           "type": "module",
           "children": {
@@ -372,6 +384,9 @@
               "type": "function"
             },
             "StaticDirectory": {
+              "type": "function"
+            },
+            "SystemAuxRoutes": {
               "type": "function"
             },
             "SystemBridgeRoutes": {
@@ -483,6 +498,51 @@
         }
       },
       "summary": "The Conductance webserver"
+    },
+    "services/": {
+      "type": "lib",
+      "children": {
+        "google_oauth/": {
+          "type": "lib",
+          "children": {
+            "admin": {
+              "type": "module",
+              "children": {},
+              "summary": "Configuration helpers for OAuth-based Google Web API access"
+            },
+            "service": {
+              "type": "module",
+              "children": {},
+              "summary": "OAuth-based Google Web API access"
+            }
+          },
+          "summary": "OAuth-based Google Web API access"
+        }
+      },
+      "summary": "Common application services"
+    },
+    "services": {
+      "type": "module",
+      "children": {
+        "ServicesRegistry": {
+          "type": "class",
+          "children": {
+            "ServicesRegistry": {
+              "type": "ctor"
+            }
+          }
+        },
+        "configUI": {
+          "type": "function"
+        },
+        "register": {
+          "type": "function"
+        },
+        "run": {
+          "type": "function"
+        }
+      },
+      "summary": "Services Management"
     },
     "ssh-client": {
       "type": "module",
