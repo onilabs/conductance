@@ -40,8 +40,8 @@ var predefined = {
   sjsRoot            : sjsRoot,
   conductanceVersion : -> conductanceVersion,
   compilerStamp      : -> sjsVersionStamp,
-  configPath         : -> e.get('config', {}).path, // TODO: remove
-  configRoot         : function() { var p = e.configPath(); return p ? url.normalize('./', p); }, // TODO: remove
+  configPath         : -> e.get('config', {}).path, // TODO: remove?
+  configRoot         : function() { var p = e.configPath(); return p ? url.normalize('./', p); }, // TODO: remove?
 };
 
 predefined .. ownPropertyPairs .. each {|[key, val]|
@@ -53,5 +53,5 @@ predefined .. ownPropertyPairs .. each {|[key, val]|
     e.value(key, val);
   }
 }
-
+// 'config' is set from ./_config.sjs
 e.config = -> e.get('config', undefined);

@@ -29,19 +29,32 @@ if (require('builtin:apollo-sys').hostenv === 'xbrowser') {
   /**
     @variable executable
     @hostenv nodejs
-    @summary The full path to the `conductance` executable
+    @summary String containing the full path to the `conductance` executable
 
     @variable conductanceRoot
     @hostenv nodejs
-    @summary The full path to the conductance root directory
+    @summary String containing the full path to the conductance root directory
 
     @function conductanceVersion
     @hostenv nodejs
     @summary Returns the current conductance version string
 
+    @function compilerStamp
+    @hostenv nodejs
+    @summary Returns the current sjs compiler version
+
     @variable sjsRoot
     @hostenv nodejs
-    @summary The full path to the StratifiedJS root directory
+    @summary String containing the full path to the StratifiedJS root directory
+
+    @function configPath
+    @hostenv nodejs
+    @summary Returns the full path to the config file which was used to start conductance (`undefined` if conductance was started without a config file, as in e.g. `conductance shell`)
+
+    @function configRoot
+    @hostenv nodejs
+    @summary Returns the full path to the directory containing the config file which was used to start conductance (`undefined` if conductance was started without a config file, as in e.g. `conductance shell`)
+
   */
   module.exports = require('./server/env');
 }
