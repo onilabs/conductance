@@ -321,12 +321,16 @@ function get_cache(o, s, f) {
   return o[s];
 }
 
+// we need to sequentialize writes to the db file to make `save_db`
+// (and, by extension, `batch`) reentrant:
+var writeFileSequentialized = @fn.sequential(@fs.writeFile);
+
 function save_db(dict, options) {
   if (options.localStorage != null) {
     localStorage[options.localStorage] = dict.serialize();
 
   } else if (options.file != null) {
-    @fs.writeFile(options.file, dict.serialize(), 'utf8');
+    writeFileSequentialized(options.file, dict.serialize(), 'utf8');
   }
 }
 
