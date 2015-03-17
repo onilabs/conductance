@@ -77,10 +77,19 @@
     "env": {
       "type": "module",
       "children": {
+        "compilerStamp": {
+          "type": "function"
+        },
         "conductanceRoot": {
           "type": "variable"
         },
         "conductanceVersion": {
+          "type": "function"
+        },
+        "configPath": {
+          "type": "function"
+        },
+        "configRoot": {
           "type": "function"
         },
         "executable": {
