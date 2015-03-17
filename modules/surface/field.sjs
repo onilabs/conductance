@@ -589,6 +589,9 @@ var FieldMap = (elem) ->
       }
     };
 
+    // give children a chance to register (with addField) before we
+    // run our synchronization loop below:
+    hold(0);
 
     var current_value = undefined;
 
