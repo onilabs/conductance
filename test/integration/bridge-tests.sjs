@@ -77,13 +77,27 @@ context('bridge error handling') {||
 
       test("throws connection error") {|s|
         assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
-        bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
+          bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
             s.push(connection.api.ping());
             s.push(connection.api .. destroy());
           }
         };
         s.log .. assert.eq([ 'pong' ]);
       };
+
+      test("error thrown in cancellation") {|s|
+        assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
+          bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
+            waitfor {
+              connection.api.throwOnCancellation("error intentionally thrown during cancellation");
+            } and {
+              hold(MAX_ROUNDTRIP);
+              connection.api .. destroy();
+            }
+          }
+        };
+        hold(MAX_ROUNDTRIP * 4); // give server a chance to fail
+      }.skip("BROKEN");
 
       test("retracts all running calls") {|s|
         // ideally this would not be necessary, but long-running methods invoked
@@ -174,7 +188,7 @@ context('bridge error handling') {||
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
       assert.truthy(connection.api.wasErrorThrown());
-    } 
+    }
   }.browserOnly();
 
 }

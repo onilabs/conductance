@@ -12,6 +12,14 @@ exports.identity = x -> x;
 
 exports.hold = function() { hold(); }
 exports.id = module.id;
+exports.throwOnCancellation = function(msg, delay) {
+  try {
+    hold();
+  } retract {
+    if(delay) hold(delay);
+    throw new Error(msg);
+  }
+}
 
 var transport = function() {
   if (!exports._transport)

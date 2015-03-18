@@ -183,7 +183,7 @@ function createTransport(finish) {
 
     // external API:
     send: function(message) {
-      if (!this.active) throw new Error("inactive transport");
+      if (!this.active) return; // receive() will throw, don't need to do anything here
       send_q.unshift(message);
       if (resume_poll && !exchange_in_progress) resume_poll();
     },
