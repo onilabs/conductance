@@ -526,6 +526,38 @@
             }
           },
           "summary": "OAuth-based Google Web API access"
+        },
+        "leveldb/": {
+          "type": "lib",
+          "children": {
+            "admin": {
+              "type": "module",
+              "children": {},
+              "summary": "Configuration helpers for LevelDB Service"
+            },
+            "service": {
+              "type": "module",
+              "children": {},
+              "summary": "LevelDB Service"
+            }
+          },
+          "summary": "Local LevelDB database service"
+        },
+        "mandrill/": {
+          "type": "lib",
+          "children": {
+            "admin": {
+              "type": "module",
+              "children": {},
+              "summary": "Configuration helpers for the Mandrill Email Service"
+            },
+            "service": {
+              "type": "module",
+              "children": {},
+              "summary": "Mandrill Email Service"
+            }
+          },
+          "summary": "Mandrill Email Service"
         }
       },
       "summary": "Common application services"
