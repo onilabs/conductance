@@ -39,6 +39,14 @@
     [server/route::ExecutableDirectory], as serving user-generated content in
     this way trivially allows users to execute arbitrary SJS code on your server.
 
+    ### Wildcard _.gen files
+
+    A file `_.gen` is a **wildcard** generator file: It will be
+    invoked whenever a requested file in the directory of the `_.gen`
+    file or any subdirectory thereof is not found. 
+
+    The path of the requested file - with the directory portion up to the `_.gen` file stripped - will be passed to the [::content] & [::etag] functions as part of the `params` parameter under key `path`.
+
     ### Generated static HTML documents
 
     [mho:surface::Document] simplifies the creation of static HTML documents. See the examples there.

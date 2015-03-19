@@ -383,14 +383,39 @@ exports.serveFile = serveFile;
 
 function generateFile(req, filePath, format, settings) {
   var genPath = filePath + ".gen";
+  var wildcardPath = undefined;
   try {
     var stat = fs.stat(genPath);
+    if (!stat.isFile()) return false;
     genPath = fs.realpath(genPath);
   }
   catch (e) {
-    return false;
+
+    // try to find a wildcard generator (_.gen file) in one of our
+    // parent directories.
+
+    genPath = filePath;
+    wildcardPath = '';
+    while (1) {
+      // strip off last component of genPath:
+      var idx = genPath.lastIndexOf('/');
+      if (idx === -1) return false;
+      wildcardPath = genPath.substring(idx) + wildcardPath;
+      genPath = genPath.substring(0, idx);
+
+      // we need to make sure we don't go below 'root':
+      if (genPath.indexOf(settings.root) !== 0) return false;
+      try {
+        var stat = fs.stat(genPath+'/_.gen');
+        if (!stat.isFile()) continue;
+        genPath = fs.realpath(genPath+'/_.gen');
+        break;
+      }
+      catch (e) {
+        // go round loop again
+      }
+    }
   }
-  if (!stat.isFile()) return false;
 
   var generator_file_mtime = stat.mtime.getTime();
 
@@ -410,6 +435,10 @@ function generateFile(req, filePath, format, settings) {
   require.modules[resolved_path].etag = generator_file_mtime;
   var etag = generator.etag;
   var params = req.url.params();
+
+  // for wildcard generator files (_.gen), we pass the truncated path as a parameter 'path':
+  if (wildcardPath) params.path = wildcardPath;
+
   if (etag) etag = checkEtag(etag.call(req, params));
 
   var respond = -> formatResponse(
@@ -482,6 +511,11 @@ exports.MappedDirectoryHandler = function(root, settings) {
              } ..
     override(settings || {});
 
+  if (process.platform == 'win32')
+    settings.root = root.replace(/\\/g, '/');
+  else
+    settings.root = root;
+  
   if (!settings.etag) {
     settings.etag = defaultEtagFormatter(root);
   }
@@ -500,6 +534,9 @@ exports.MappedDirectoryHandler = function(root, settings) {
 
     var file = relativePath ? path.join(root, relativePath) : root;
 
+    // the result of path.join is normalized; make sure that '..'
+    // components in relativePath don't take us below our root
+    // directory:
     if (file.indexOf(root) !== 0) {
       throw Forbidden();
     }
