@@ -5,9 +5,6 @@ devnull = open(os.devnull, 'w')
 ZI = ['0install']
 ZI.append('--refresh')
 
-def dep_url(name):
-	return 'http://gfxmonk.github.io/0downstream/feeds/npm/%s.xml' % (name,)
-
 def run(cmd, **k):
 	print(' + ' + ' '.join(cmd))
 	if 'stdin' not in k:
@@ -31,46 +28,50 @@ class __LINE__(object):
 
 __LINE__ = __LINE__()
 
-def gather(tempdir, builddir, name, version):
-	path = os.path
-	mkdirp(tempdir)
-	mkdirp(builddir)
-
-	tempdir = path.join(tempdir, name + '.tmp')
-	sels_dir = path.join(builddir, 'zeroinstall-selections')
-	mkdirp(sels_dir)
-	sel_path = path.join(sels_dir, name + '.xml')
-	with open(sel_path, 'w') as s:
-		run(ZI + ['select', '--command', '', '--version', version, '--xml', dep_url(name)], stdout=s)
-	run(ZI + ['run', '--not-before=0.4.0', '--command', 'gather',
-		'http://gfxmonk.net/dist/0install/obligate.js.xml',
-		'--verbose',
-		'--force',
-		'--exclude', 'http://gfxmonk.net/dist/0install/npm.xml',
-		'--output', tempdir,
-		sel_path
-	])
-
+def gather(tempdir, builddir, name):
 	# run(['tree',tempdir])
-
-	# We now have:
-	#   <tempdir>/<dep-module>*
+	# We start with:
+	#   <tempdir>/node_modules/<dep-name>
 	# But we want:
-	#   - <dep-name>/
-	#   - <dep-name>/node_modules/<dep-module>*
-	# So we bring the named depedency up to the top level:
-	build_dest = path.join(builddir, name)
-	mkdirp(build_dest)
-	for f in os.listdir(os.path.join(tempdir, name)):
-		os.rename(os.path.join(tempdir, name, f), os.path.join(build_dest, f))
-	os.rmdir(os.path.join(tempdir, name))
+	#   - <builddir>/<dep-name>
+	source = os.path.join(tempdir, 'node_modules', name)
+	dest = os.path.join(builddir, name)
+	assert os.path.exists(source)
+	assert os.path.exists(os.path.dirname(dest))
+	os.rename(source, dest)
 
-	# And move everything else into node_modules:
-	nm_path = os.path.join(build_dest, 'node_modules')
-	if not os.path.exists(nm_path):
-		os.makedirs(nm_path)
+def install(packages, node_version, tempdir, destdir):
+	node_feed = 'http://gfxmonk.net/dist/0install/node.js.xml'
+	node_version_range = node_version + '..!'+node_version+'-post'
+	os.environ['DISPLAY']='' # prevent GUI
+	try:
+		cmd = ZI + ['select', '--version-for', node_feed, node_version_range, node_feed]
+		print("cmd: %r" % (cmd,))
+		subprocess.check_call(cmd)
+	except subprocess.CalledProcessError:
+		print("node.js not yet available - compiling it...")
+		#XXX 0compile doesn't let us specify which node.js version to compile!
+		# It'll do the latest, which is hopefully what we want.
+		cmd = ZI + ['run', 'http://0install.net/2006/interfaces/0compile.xml', 'autocompile', node_feed]
+		print("cmd: %r" % (cmd,))
+		subprocess.check_call(cmd)
 
-	for f in os.listdir(tempdir):
-		os.rename(os.path.join(tempdir, f), os.path.join(nm_path, f))
+	cmd = ZI + ['run',
+		'--version-for', node_feed, node_version_range,
+		'http://gfxmonk.net/dist/0install/npm.xml', 'install']
 
-	os.rmdir(tempdir)
+	for name, ver in packages:
+		spec = '%s@%s' % (name, ver)
+		cmd.append(spec)
+
+	# npm will install wherever it finds a node_modules dir.
+	# Make sure that's right here:
+	mkdirp(os.path.join(tempdir, 'node_modules'))
+
+	print("cmd: %r" % (cmd,))
+	subprocess.check_call(cmd, cwd=tempdir)
+
+	mkdirp(destdir)
+	for name, ver in packages:
+		gather(tempdir=tempdir, builddir=destdir, name=name)
+

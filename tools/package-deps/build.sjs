@@ -1,6 +1,7 @@
 #!/usr/bin/env sjs
 @ = require(['sjs:std', 'sjs:nodejs/mkdirp', 'sjs:nodejs/rimraf']);
 var here = @url.normalize('./', module.id) .. @url.toPath();
+var hosts = require('../install/test/hosts');
 var outputs = [
 	['portable', ['nodemon', 'google-oauth-jwt', 'agentkeepalive']],
 	['bootstrap', ['tar', 'fstream']],
@@ -19,7 +20,6 @@ var outputs = [
 var manifest = @fs.readFile("../install/share/manifest.json") .. JSON.parse();
 // we want to restrict native compilation to the exact version we're distributing:
 var nodeVersion = manifest .. @getPath('data.node.id');
-var selsPath = @path.join(here, 'selections');
 
 var args = @argv();
 var shouldBuild;
@@ -27,6 +27,19 @@ var sysId = sys -> "#{sys.platform}-#{sys.arch}";
 if (args.length == 0) {
 	shouldBuild = -> true;
 } else {
+	if(args .. @any(a -> a .. @startsWith('-'))) {
+		console.warn("Valid filters:");
+		outputs .. @each {|[component,_]|
+			var lines = (component === 'compiled') ?
+				hosts.systems .. @map(s -> [
+					"#{component}-#{s.platform}",
+					"#{component}-#{s .. sysId()}",
+				]) .. @concat .. @unique .. @sort
+			: [component];
+			console.warn(lines .. @map(l -> '  ' + l) .. @join('\n'))
+		}
+		process.exit(1)
+	}
 	shouldBuild = (category, sys) ->
 		args .. @hasElem(category) || (
 		sys ? (
@@ -46,7 +59,6 @@ function versionDeps(packages) {
 
 
 function compileNativeDeps(category, deps) {
-	var hosts = require('../install/test/hosts');
 	hosts.systems .. @each {|sys|
 		var id = sys .. sysId();
 		if (!shouldBuild(category, sys)) {
@@ -56,8 +68,6 @@ function compileNativeDeps(category, deps) {
 		console.log("Building #{category}-#{id}");
 		var versionedDeps = versionDeps(deps);
 		
-		// we check selections into source, for auditing
-		var selection_dest = @path.join(here, 'selections', id);
 		host = sys.host();
 
 		var xdg_data_override = @path.join("xdg", "data_#{sys.platform}");
@@ -81,6 +91,7 @@ function compileNativeDeps(category, deps) {
 		});
 		//console.log(pythonScript);
 
+		console.log("Running on #{host.host}");
 		host.runPython(pythonScript, true /* quiet */);
 
 		var archiveDest = @path.join(here, 'dist', id + '.tgz');
@@ -97,16 +108,19 @@ function compilePortableDeps(category, deps) {
 	var tempdir = @path.join(here, 'build', category + '.tmp');
 	var builddir = @path.join(here, 'build', category);
 	if(@fs.exists(builddir)) @rimraf(builddir);
-	versionedDeps .. @each {|[name, version]|
-		var args = {
-			tempdir:tempdir,
-			builddir:builddir,
-			name:name,
-			version:version,
-		};
-		@childProcess.run('python', ['-c',
-			"import common; common.gather(#{args .. @ownPropertyPairs .. @map(([k,v]) -> "#{k}=#{v .. JSON.stringify()}")})"], {stdio:'inherit'});
+
+	var args = {
+		packages:versionedDeps,
+		node_version:nodeVersion,
+		tempdir:tempdir,
+		destdir:builddir,
 	};
+	var serializedArgs = args .. @ownPropertyPairs .. @map(([k,v]) -> "#{k}=#{v .. JSON.stringify()}");
+	@childProcess.run('python', ['-c',
+		"import common; common.install(#{serializedArgs})"],
+		{stdio:'inherit'}
+	);
+
 	@childProcess.run('tar', ['czf', @path.join(here, 'dist', "#{category}.tgz"),
 		'-C', builddir].concat(@fs.readdir(builddir)), {stdio:'inherit'});
 
