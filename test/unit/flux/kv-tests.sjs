@@ -424,9 +424,7 @@ function test_encryption() {
     @test("different password") {|s|
       var new_db = @kv.Encrypted(s.raw, { password: 'different_password' });
 
-      @assert.raises({
-        message: 'ccm: tag doesn\'t match'
-      }, -> new_db ..@kv.get('foo'));
+      @assert.raises(-> new_db ..@kv.get('foo'));
     }
 
     @test("transactions") {|s|
