@@ -23,10 +23,16 @@ var outputs = [
 // sanity check: make sure all deps in package.json match up with the combination
 // of deps in each category.
 // (we skip `
+var conductanceDeps = @fs.readFile("../../package.json") .. JSON.parse();
+var depCategories = ['dependencies', 'optionalDependencies'];
+var packageSpecs = {};
 (function() {
-	var pkgInfo = @fs.readFile("../../package.json") .. JSON.parse();
-	var actualDeps = ['dependencies', 'optionalDependencies']
-		.. @map(typ -> pkgInfo[typ] .. @ownKeys)
+	depCategories.concat(['devDependencies']) .. @each {|typ|
+		packageSpecs .. @extend(conductanceDeps[typ]);
+	};
+
+	var actualDeps = depCategories
+		.. @map(typ -> conductanceDeps[typ] .. @ownKeys)
 		.. @concat
 		.. @unique
 		.. @filter(x -> x !== 'stratifiedjs') // packaged explicitly from git
@@ -73,11 +79,24 @@ if (args.length == 0) {
 }
 
 function versionDeps(packages) {
-	return packages .. @map(function(name) {
-		var info = @fs.readFile("../../node_modules/#{name}/package.json") .. JSON.parse();
-		console.warn("Using #{name}@#{info.version}");
-		return [name, info.version];
+	console.warn("\nPackage versions:");
+	var rv = packages .. @map(function(name) {
+		var spec = packageSpecs[name];
+		if(!spec) throw new Error("no version spec found in package.json for `#{name}`");
+		if (!spec .. @contains('://')) {
+			// spec is just a version specifier - use the exact version installed
+			var info = @fs.readFile("../../node_modules/#{name}/package.json") .. JSON.parse();
+			spec = info.version;
+
+			// We can't use the exact version installed for :// urls, because they probably
+			// don't come from npmjs.org. We expect all URLs to specify an exact revision, rather
+			// than a changing branch.
+		}
+		console.warn(" - #{name}: #{spec}");
+		return [name, spec];
 	});
+	console.warn();
+	return rv;
 };
 
 
