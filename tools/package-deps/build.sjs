@@ -3,10 +3,12 @@
 var here = @url.normalize('./', module.id) .. @url.toPath();
 var hosts = require('../install/test/hosts');
 var outputs = [
-	['portable', ['nodemon', 'google-oauth-jwt', 'agentkeepalive']],
+	// known not to contain any platform-specific code
+	['portable', ['nodemon', 'google-oauth-jwt', 'agentkeepalive', 'ssh2']],
+	// required for the operation of the self-installer
 	['bootstrap', ['tar', 'fstream']],
-	// do compiled last
-	['compiled', ['leveldown', 'protobuf']],
+	// will be compiled and packaged across every platform + arch that we support
+	['compiled', ['leveldown', 'protobuf', 'weak']],
 ];
 
 // To build only a subset, pass one or more args like:
@@ -16,6 +18,27 @@ var outputs = [
 // ./script compiled-linux-x86
 //
 // ( ... )
+
+
+// sanity check: make sure all deps in package.json match up with the combination
+// of deps in each category.
+// (we skip `
+(function() {
+	var pkgInfo = @fs.readFile("../../package.json") .. JSON.parse();
+	var actualDeps = ['dependencies', 'optionalDependencies']
+		.. @map(typ -> pkgInfo[typ] .. @ownKeys)
+		.. @concat
+		.. @unique
+		.. @filter(x -> x !== 'stratifiedjs') // packaged explicitly from git
+		.. @sort;
+	var packagedDeps = outputs
+		.. @map.filter([category, packages] -> category == 'bootstrap' ? null : packages)
+		.. @concat
+		.. @unique
+		.. @sort;
+	packagedDeps .. @assert.eq(actualDeps, "this script is out of sync with the package.json dependencies");
+})();
+
 
 var manifest = @fs.readFile("../install/share/manifest.json") .. JSON.parse();
 // we want to restrict native compilation to the exact version we're distributing:
