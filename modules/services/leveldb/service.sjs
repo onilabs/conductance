@@ -18,6 +18,14 @@
   {id:'mho:flux/kv', name:'kv'}
 ]);
 
+/**
+   @function run
+   @summary Run the service
+   @param {Object} [config] Configuration object, as e.g. created by [mho:services::configUI]
+   @param {Function} [block] Function bounding lifetime of service; will be passed a service instance.
+   @desc
+      Usually implicitly run by [mho:services::run]
+ */
 exports.run = function(config, block) {
   config.path = config.path.replace('$configRoot/', @env.configRoot());
   

@@ -521,7 +521,11 @@
             },
             "service": {
               "type": "module",
-              "children": {},
+              "children": {
+                "run": {
+                  "type": "function"
+                }
+              },
               "summary": "OAuth-based Google Web API access"
             }
           },
@@ -537,7 +541,11 @@
             },
             "service": {
               "type": "module",
-              "children": {},
+              "children": {
+                "run": {
+                  "type": "function"
+                }
+              },
               "summary": "LevelDB Service"
             }
           },
@@ -553,7 +561,11 @@
             },
             "service": {
               "type": "module",
-              "children": {},
+              "children": {
+                "run": {
+                  "type": "function"
+                }
+              },
               "summary": "Mandrill Email Service"
             }
           },
