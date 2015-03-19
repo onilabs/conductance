@@ -76,11 +76,14 @@ var serverConfig = {
         )
       ) .. Filter(function(req, block) {
         var cmd = req.url.params()['cmd'];
+        logging.info("config.mho filter saw command: #{cmd}");
         if (!currentApiModule || cmd.indexOf("poll_") != 0) return block();
+        logging.info("config.mho filter setting currentApiModule._poll_request");
         currentApiModule._poll_request = req;
         try {
           block();
         } finally {
+          logging.info("config.mho filter clearing currentApiModule._poll_request");
           if(currentApiModule) currentApiModule._poll_request = null;
         }
       });
