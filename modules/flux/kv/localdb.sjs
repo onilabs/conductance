@@ -323,7 +323,10 @@ function get_cache(o, s, f) {
 
 // we need to sequentialize writes to the db file to make `save_db`
 // (and, by extension, `batch`) reentrant:
-var writeFileSequentialized = @fn.sequential(@fs.writeFile);
+var writeFileSequentialized;
+if (@sys.hostenv === 'nodejs') {
+  writeFileSequentialized = @fn.sequential(@fs.writeFile);
+}
 
 function save_db(dict, options) {
   if (options.localStorage != null) {
