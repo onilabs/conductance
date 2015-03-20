@@ -227,7 +227,7 @@ function createTransport(finish) {
         this._reaper = null;
       }
       if (resume_receive)
-        resume_receive(new Error('transport closed'));
+        resume_receive(TransportError('transport closed'));
       logging.info("aat transport #{this.id} closed");
     }
   };

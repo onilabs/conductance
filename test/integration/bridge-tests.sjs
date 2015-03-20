@@ -26,6 +26,11 @@ function logStatusChanges(log, status, initial) {
   }
 }
 
+var CALL_BATCH_PERIOD = 20;   // bridge implementation detail
+
+var MAX_ROUNDTRIP = CALL_BATCH_PERIOD + 100; // roundtrip time between client & server.
+                                             // If a single call takes longer than this, tests may fail.
+
 context('bridge error handling') {||
   var apiid;
 
@@ -149,14 +154,9 @@ context('bridge error handling') {||
     }
   };
 
-  var CALL_BATCH_PERIOD = 20;   // bridge implementation detail
-
-  var MAX_ROUNDTRIP = CALL_BATCH_PERIOD + 100; // roundtrip time between client & server.
-                                               // If a single call takes longer than this, tests may fail.
-
-  test('retract server side execution initiated by client on broken connection'){||
-    try{
-      bridge.connect(apiid, {server: helper.getRoot()}){
+  test('retracts server side execution initiated by client on closed connection'){||
+    assert.raises({filter: isTransportError},
+      -> bridge.connect(apiid, {server: helper.getRoot()}){
         |connection|
         waitfor{
           connection.api.detectRetractionAfterDelay(2*MAX_ROUNDTRIP);
@@ -165,31 +165,31 @@ context('bridge error handling') {||
           connection.__finally__();
         }
       }
-    } catch(e){}
-
+    );
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
       assert.truthy(connection.api.didDetectRetraction());
     }
-  }.browserOnly();
+  }
 
-  test('throw exception when calling client function after broken connection'){||
+  test('throws TransportError when calling client function after closed connection'){||
     var someFuncExecuted = false;
-    try {
-      bridge.connect(apiid, {server: helper.getRoot()}){
+    assert.raises({filter: isTransportError},
+      -> bridge.connect(apiid, {server: helper.getRoot()}){
         |connection|
         var someFunc = function(){someFuncExecuted = true};
-        connection.api.checkErrorThrownOnCallingFuncAfterDelay(someFunc, 2*MAX_ROUNDTRIP);
-        hold(MAX_ROUNDTRIP);
+        connection.api.checkErrorThrownOnCallingFuncAfterDelay(someFunc, 0);
         connection.__finally__();
       }
-    } catch(e){}
+    );
+    hold(MAX_ROUNDTRIP);
+
     assert.falsy(someFuncExecuted);
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
       assert.truthy(connection.api.wasErrorThrown());
     }
-  }.browserOnly();
+  }
 
 }
 
