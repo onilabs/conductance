@@ -321,19 +321,12 @@ function get_cache(o, s, f) {
   return o[s];
 }
 
-// we need to sequentialize writes to the db file to make `save_db`
-// (and, by extension, `batch`) reentrant:
-var writeFileSequentialized;
-if (@sys.hostenv === 'nodejs') {
-  writeFileSequentialized = @fn.sequential(@fs.writeFile);
-}
-
 function save_db(dict, options) {
   if (options.localStorage != null) {
     localStorage[options.localStorage] = dict.serialize();
 
   } else if (options.file != null) {
-    writeFileSequentialized(options.file, dict.serialize(), 'utf8');
+    @fs.writeFile(options.file, dict.serialize(), 'utf8');
   }
 }
 
@@ -417,7 +410,9 @@ function wrap_dict(dict, options) {
       return dict.get(key, undefined);
     },
 
-    batch: function (ops) {
+    // We use `sequential` to guarantee that `batch` is atomic,
+    // even with asynchronous operations like `@fs.writeFile`
+    batch: @fn.sequential(function (ops) {
       ops ..@each(function (op) {
         var type  = op.type;
         var key   = op.key;
@@ -441,7 +436,7 @@ function wrap_dict(dict, options) {
       save_db(dict, options);
 
       MutationEmitter.emit(ops);
-    },
+    }),
 
     query: function (info) {
       return @Stream(function (emit) {
