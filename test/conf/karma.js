@@ -16,6 +16,7 @@ var exports = module.exports = function(config) {
     ,'karma-script-launcher'
     ,'karma-phantomjs-launcher'
     ,'karma-sjs-adapter'
+    ,'karma-quiet-reporter'
   ];
   var browsers = [
     'PhantomJS',
@@ -44,7 +45,7 @@ var exports = module.exports = function(config) {
 
     exclude: [],
 
-    reporters: ['progress'],
+    reporters: ['quiet'],
 
     port: PORT,
 

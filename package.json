@@ -12,6 +12,7 @@
 , "bin": { "conductance": "conductance" }
 , "devDependencies":
   { "karma-sjs-adapter": "~0.2.2"
+  , "karma-quiet-reporter": "*"
   , "karma-chrome-launcher": "*"
   , "karma-firefox-launcher": "*"
   , "karma-phantomjs-launcher": "*"

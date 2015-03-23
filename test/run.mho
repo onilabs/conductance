@@ -153,6 +153,7 @@ if (require.main === module) {
       }
       karmaArgs = karmaArgs.concat(['--browsers',process.env.BROWSERS]);
     }
+    karmaArgs = karmaArgs.concat(['--log-level','debug']);
 
     var runKarma = -> console.log([
         [action],
