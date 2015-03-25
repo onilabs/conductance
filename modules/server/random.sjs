@@ -10,7 +10,7 @@
  */
 
 /**
-  @nodoc
+  @summary Cryptographically strong random number utilities
 */
 
 var sjcl   = require('sjs:sjcl');
@@ -31,6 +31,15 @@ while (!sjcl.random.isReady()) {
   }
 }
 
+/**
+   @function createID
+   @summary Create a cryptographically strong ID
+   @param {optional Integer} [words=4] Number of 32bit random words to use for constructing the id 
+   @return {String}
+   @desc
+     * The returned string is the base64 encoding of `words` 32bit random numbers.
+     * The character set used for the encoding is `A`-`Z`, `a`-`z`, `0`-`9`, `-`, `_`.
+*/
 exports.createID = function(words) {
   words = words || 4;
   return sjcl.codec.base64.fromBits(sjcl.random.randomWords(words), true).replace(/\//g,'_').replace(/\+/g, '-');

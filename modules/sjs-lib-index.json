@@ -303,6 +303,15 @@
           },
           "summary": "Server-side OAuth2 infrastructure helpers"
         },
+        "random": {
+          "type": "module",
+          "children": {
+            "createID": {
+              "type": "function"
+            }
+          },
+          "summary": "Cryptographically strong random number utilities"
+        },
         "response": {
           "type": "module",
           "children": {
