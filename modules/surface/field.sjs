@@ -257,7 +257,8 @@ exports.getField = getField;
    @param {optional Object} [settings]
    @setting {optional String} [name] Name that this Field will have when contained in a [::FieldMap]
    @setting {optional Object} [initval] Initial value of the field
-   @setting {optional Value} [Value] [sjs:observable::ObservableVar] tracking the value of this field
+   @setting {optional sjs:observable::ObservableVar} [Value] [sjs:observable::ObservableVar] tracking the value of this field
+   @setting {optional sjs:observable::ObservableVar} [ValidationState] [sjs:observable::ObservableVar] tracking the validation state of this field
    @desc
      A [../surface::Element] that is decorated as a Field creates a DOM node 
      implementing the [::CTX_FIELD] interface.
@@ -409,8 +410,12 @@ function Field(elem, settings /* || name, initval */) {
   settings = {
     name:     undefined,
     initval: undefined,
-    Value:    undefined
+    Value:    undefined,
+    ValidationState: undefined
   } .. @override(settings);
+
+  if (settings.ValidationState)
+    settings.ValidationState.set({state:'unknown'});
 
   return elem ..
     @Mechanism(function(node) {
@@ -420,7 +425,7 @@ function Field(elem, settings /* || name, initval */) {
         
         value: settings.Value || @ObservableVar(settings.initval),
         
-        validation_state: @ObservableVar({state:'unknown'}),
+        validation_state: settings.ValidationState || @ObservableVar({state:'unknown'}),
         auto_validate: @ObservableVar(false),
         validators: [],
         validators_deps: {},
@@ -649,6 +654,8 @@ var FieldMap = (elem) ->
           }
         return {errors: errors, warnings: warnings};
       });
+      // XXX this doesn't work: field.auto_validate.set(true);
+
       // XXX could remove validator in finally clause
     }
   });
