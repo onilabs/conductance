@@ -12,7 +12,10 @@
 /**
   @summary Configuration helpers for LevelDB Service
   @hostenv xbrowser
+  @nodoc
 */
+
+// TODO: document
 
 @ = require(['mho:std', 'mho:app']);
 

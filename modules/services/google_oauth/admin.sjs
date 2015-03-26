@@ -12,7 +12,10 @@
 /**
   @summary Configuration helpers for OAuth-based Google Web API access
   @hostenv xbrowser
+  @nodoc
 */
+
+// TODO: document
 
 @ = require(['mho:std', 'mho:app']);
 
