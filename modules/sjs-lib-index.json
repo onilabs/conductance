@@ -523,11 +523,6 @@
         "google_oauth/": {
           "type": "lib",
           "children": {
-            "admin": {
-              "type": "module",
-              "children": {},
-              "summary": "Configuration helpers for OAuth-based Google Web API access"
-            },
             "service": {
               "type": "module",
               "children": {
@@ -543,11 +538,6 @@
         "leveldb/": {
           "type": "lib",
           "children": {
-            "admin": {
-              "type": "module",
-              "children": {},
-              "summary": "Configuration helpers for LevelDB Service"
-            },
             "service": {
               "type": "module",
               "children": {
@@ -563,11 +553,6 @@
         "mandrill/": {
           "type": "lib",
           "children": {
-            "admin": {
-              "type": "module",
-              "children": {},
-              "summary": "Configuration helpers for the Mandrill Email Service"
-            },
             "service": {
               "type": "module",
               "children": {
