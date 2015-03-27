@@ -11,6 +11,7 @@
 
 /**
   @summary Cryptographically strong random number utilities
+  @hostenv nodejs
 */
 
 var sjcl   = require('sjs:sjcl');
