@@ -782,8 +782,8 @@ function BridgeConnection(transport, opts) {
         inner();
       }
       catch (e) {
+        sessionLost.emit(e);
         if (!throwing) {
-          sessionLost.emit(e);
           logging.debug("Error while receiving; terminating BridgeConnection: #{e}");
           break;
         }
@@ -970,7 +970,7 @@ exports.connect = function(apiinfo, opts, block) {
     var connection = BridgeConnection(transport, opts .. merge({
       throwing:true,
       api:apiinfo .. get('id'),
-      localWrappers: marshallers,
+      localWrappers: marshallers
     }));
   }
   or {
