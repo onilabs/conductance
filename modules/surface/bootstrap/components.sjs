@@ -14,7 +14,7 @@ var { hostenv } = require('builtin:apollo-sys');
 var imports = [
   'sjs:std',
   '../../surface', 
-  {id:'./html', name: 'html'}
+  {id:'../html', name: 'html'}
 ]; 
 
 if (hostenv === 'xbrowser') {

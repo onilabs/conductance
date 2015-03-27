@@ -887,6 +887,6 @@ function Select(settings, attribs) {
     @Element('option', item, {selected: select_map[idx]})
   );
 
-  return Element('select',  options, attribs);
+  return @Element('select',  options, attribs);
 }
 exports.Select = Select;
