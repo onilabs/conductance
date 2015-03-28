@@ -500,14 +500,7 @@ function unmarshallBlob(obj, connection) {
     // referencing call: aat-server doesn't get a "notification" when
     // the data has arrived at the client, since it is being sent in a
     // http response. Hence the `wait` here:
-    waitfor {
-      connection.dataReceived .. wait();
-    }
-    or {
-      connection.sessionLost .. wait();
-      // XXX is this the right error to throw?
-      throw new Error("session lost");
-    }
+    connection.dataReceived .. wait();
   }
   delete connection.received_blobs[id];
   return blob;
@@ -617,8 +610,6 @@ function BridgeConnection(transport, opts) {
   var published_func_counter = 0;
   var closed = false;
   var throwing = opts.throwing !== false;
-  var _lastTransport = transport;
-  var disconnectHandler = opts.disconnectHandler;
 
   var sessionLost = Emitter(); // session has been lost
   
@@ -630,6 +621,8 @@ function BridgeConnection(transport, opts) {
     published_apis[0] = opts.publish;
 
   function send(data) {
+    if (closed) throw TransportError('session lost');
+
     var args = marshall(data, connection);
 
     // it is important that once a message has a sequence number, it
@@ -662,31 +655,24 @@ function BridgeConnection(transport, opts) {
     makeCall: function(api, method, args) {
       var call_no = ++call_counter;
       waitfor {
-        waitfor {
-          // initiate waiting for return value:
-          waitfor (var rv, isException) {
-            //logging.debug("awaiting result for call #{call_no} (#{method})");
-            pending_calls[call_no] = resume;
-          }
-          retract {
-            //logging.debug("call #{call_no} (#{method}) retracted");
-            send(['abort', call_no]);
-          }
-          finally {
-            //logging.debug("deleting call responder #{call_no} (#{method})");
-            delete pending_calls[call_no];
-          }
-          //logging.debug("got result for call #{call_no} - #{rv}");
+        // initiate waiting for return value:
+        waitfor (var rv, isException) {
+          //logging.debug("awaiting result for call #{call_no} (#{method})");
+          pending_calls[call_no] = resume;
         }
-        and {
-          // make the call.
-          send(['call', call_no, api, method, toArray(args)]);
+        retract {
+          //logging.debug("call #{call_no} (#{method}) retracted");
+          send(['abort', call_no]);
         }
-      } or {
-        var err = sessionLost .. wait();
-        this.__finally__(); // XXX this should be a recoverable error, but we kill the connection
-                            // for now as a workaround for mechanisms that drop unhandled errors
-        throw err || TransportError("session lost");
+        finally {
+          //logging.debug("deleting call responder #{call_no} (#{method})");
+          delete pending_calls[call_no];
+        }
+        //logging.debug("got result for call #{call_no} - #{rv}");
+      }
+      and {
+        // make the call.
+        send(['call', call_no, api, method, toArray(args)]);
       }
       if (isException) throw rv;
       return rv;
@@ -701,8 +687,14 @@ function BridgeConnection(transport, opts) {
       return id;
     },
     __finally__: function() {
+      if (closed) {
+//        console.log('redundant BridgeConnection::__finally__');
+        return;
+      }
       closed = true;
+
       this.stratum.abort();
+
       if (transport) {
         transport.__finally__();
         transport = null;
@@ -718,6 +710,17 @@ function BridgeConnection(transport, opts) {
         }());
       }
       executing_calls = {};
+
+      pending_calls .. ownValues .. each {|r|
+        spawn(function() {
+          try {
+            r(TransportError('session lost'), true);
+          } catch(e) {
+            logging.warn("Error while aborting pending call: #{e}");
+          }
+        }());
+      }
+      executing_calls = {};
     },
   };
 
@@ -728,7 +731,6 @@ function BridgeConnection(transport, opts) {
   function receiver() {
 
     function inner() {
-      var async = false;
       var packet = transport.receive();
       //logging.debug("received packet", packet);
       waitfor {
@@ -763,10 +765,8 @@ function BridgeConnection(transport, opts) {
         else {
           logging.warn("Unknown packet '#{packet.type}' received");
         }
-//        if (!async) return;
       }
       and {
-//        async = true;
         // XXX this asynchronisation is necessary because the
         // `this.stratum.abort()` call in __finally__ above happens
         // reentrantly, but the stratum doesn't abort until blocking
@@ -775,22 +775,21 @@ function BridgeConnection(transport, opts) {
       }
     }
 
-    // The while loop here (and the async flag logic, above) shouldn't
-    // be necessary in theory because SJS is tail-call safe. 
-    while (1) {
-      try {
-        inner();
-      }
-      catch (e) {
-        sessionLost.emit(e);
-        if (!throwing) {
-          logging.debug("Error while receiving; terminating BridgeConnection: #{e}");
-          break;
-        }
-        throw e;
-      }
-
+    try {
+      inner();
     }
+    catch (e) {
+      if (!throwing) {
+        logging.debug("Error while receiving; terminating BridgeConnection: #{e}");
+        connection.__finally__();
+        sessionLost.emit(e);
+        return;
+      }
+      // in the throwing case, we call __finally__ later, after we've given the block
+      // a chance to retract pending calls
+      throw e;
+    }
+    throw new Error('not reached');
   }
 
   function receiveData(packet) {
@@ -833,26 +832,22 @@ function BridgeConnection(transport, opts) {
       executing_calls[message[1]] = spawn (function(call_no, api_id, method, args) {
         // xxx asynchronize, so that executing_calls[call_no] will be filled in:
         hold(0);
-        waitfor {
-          var response;
-          try {
-            var rv;
-            if (api_id == -1)
-              rv = published_funcs[method].apply(null, args);
-            else
-              rv = published_apis[api_id][method].apply(published_apis[api_id], args);
-            response = ["return", call_no, rv];
-          }
-          catch (e) {
-            response = ["return_exception", call_no, e];
-          }
-          send(response);
-        } or {
-          sessionLost .. wait();
+        var response;
+        try {
+          var rv;
+          if (api_id == -1)
+            rv = published_funcs[method].apply(null, args);
+          else
+            rv = published_apis[api_id][method].apply(published_apis[api_id], args);
+          response = ["return", call_no, rv];
+        }
+        catch (e) {
+          response = ["return_exception", call_no, e];
         }
         finally {
           delete executing_calls[call_no];
         }
+        send(response);
       })(message[1], message[2], message[3], message[4]);
       break;
     case 'abort':
@@ -946,12 +941,14 @@ exports.resolve = function(api_name, opts) {
 
     It is recommended to pass a `block` argument, rather than relying on
     `connect` to return the connection, since using a return value means that
-    you will need to monitor the connection's [::BridgeConnection::sessionLost]
-    event yourself and:
+    you will need to:
+    
+    - monitor the connection's [::BridgeConnection::sessionLost]
+      event yourself to see if the connection is still alive
 
-     - close the connection (using [::BridgeConnection::__finally__] or a
-       [sjs:#language/syntax::using] block)
-     - abort any code that relies upon the (now dead) connection.
+    and
+
+    - close the connection manually (using [::BridgeConnection::__finally__])
 */
 exports.connect = function(apiinfo, opts, block) {
   if(typeof(opts) == 'function') throw new Error("opts are required when passing a block to connect()");
@@ -968,7 +965,7 @@ exports.connect = function(apiinfo, opts, block) {
     }
     var marshallers = defaultMarshallers.concat(opts.localWrappers || []);
     var connection = BridgeConnection(transport, opts .. merge({
-      throwing:true,
+      throwing: !!block,
       api:apiinfo .. get('id'),
       localWrappers: marshallers
     }));
@@ -983,17 +980,21 @@ exports.connect = function(apiinfo, opts, block) {
   }
 
   if (block) {
-    using(connection) {
-      waitfor {
-        try {
-          connection.stratum.waitforValue();
-        } catch(e) {
-          logging.verbose("Bridge connection lost: #{e}");
-          throw TransportError("Bridge connection lost");
-        }
-      } or {
-        return block(connection);
+    waitfor {
+      try {
+        connection.stratum.waitforValue();
       }
+      catch (e) {
+        logging.verbose("Bridge connection lost: #{e}");
+      }
+
+      throw TransportError("Bridge connection lost");
+    } or {
+      return block(connection);
+    }
+    finally {
+      connection.__finally__();
+      connection.sessionLost.emit('session lost');
     }
   }
   else return connection;

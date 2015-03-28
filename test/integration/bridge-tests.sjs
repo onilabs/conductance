@@ -84,9 +84,16 @@ context('bridge error handling') {||
         assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
           bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
             s.push(connection.api.ping());
-            s.push(connection.api .. destroy());
+            try {
+              s.push(connection.api .. destroy());
+            }
+            catch(e) {
+              // should be retracted by virtue of block exiting
+              s.push('not reached');
+            }
           }
         };
+
         s.log .. assert.eq([ 'pong' ]);
       };
 
@@ -102,7 +109,7 @@ context('bridge error handling') {||
           }
         };
         hold(MAX_ROUNDTRIP * 4); // give server a chance to fail
-      }.skip("BROKEN");
+      }
 
       test("retracts all running calls") {|s|
         // ideally this would not be necessary, but long-running methods invoked
@@ -114,7 +121,14 @@ context('bridge error handling') {||
               try {
                 spawn(function() {
                   hold(200);
-                  s.push(connection.api .. destroy());
+                  try {
+                    s.push(connection.api .. destroy());
+                    s.push('not reached');
+                  } catch (e) {
+                    assert.truthy(e .. isTransportError);
+                    assert.eq(e.message, 'session lost');
+                    s.push('lingering call exception'); 
+                  }
                 }());
                 s.push("running");
                 hold(1000);
@@ -126,7 +140,8 @@ context('bridge error handling') {||
             }
           }
         }
-        s.log .. assert.eq(['running', 'retracted', 'finally']);
+        hold(1000);
+        s.log .. assert.eq(['running', 'retracted', 'finally', 'lingering call exception']);
       }
 
       test("retracts all pending calls") {|s|
@@ -137,7 +152,14 @@ context('bridge error handling') {||
           bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
             spawn(function() {
               hold(200);
-              s.push(connection.api .. destroy());
+              try {
+                s.push(connection.api .. destroy());
+                s.push('not reached');
+              } catch (e) {
+                assert.truthy(e .. isTransportError);
+                assert.eq(e.message, 'session lost');
+                s.push('lingering call exception'); 
+              }
             }());
             try {
               s.push("running");
@@ -149,7 +171,8 @@ context('bridge error handling') {||
             }
           }
         }
-        s.log .. assert.eq(['running', 'retracted', 'finally']);
+        hold(1000);
+        s.log .. assert.eq(['running', 'retracted', 'finally', 'lingering call exception']);
       }
     }
   };
