@@ -17,67 +17,125 @@
              'sjs:lru-cache',
              { id: '../kv', name: 'kv' }]);
 
-function Cached(input, settings) {
+// TODO this should be someplace else
+function is_empty(o) {
+  for (var s in o) {
+    if ({}.hasOwnProperty.call(o, s)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function Cached(db, settings) {
+  // TODO figure out good defaults for these
   settings = {
-    maxsize: 10000
+    maxsize: 10000,
+    buckets: 10000
   } .. @override(settings);
 
-  var db = input[@kv.ITF_KVSTORE];
+  var lruCache = @makeCache(settings.maxsize);
+  var hashes = {};
+  var spawners = {};
 
-  var items = @makeCache(settings.maxsize);
+  var itf = db[@kv.ITF_KVSTORE];
 
-  var listener = spawn db.changes ..@each(function (info) {
-    info ..@each(function (info) {
-      if (info.type === 'put' || info.type === 'del') {
-        items.discard(JSON.stringify(info.key));
+  function discard_from_cache(s_key) {
+    var h = itf.hashKey(s_key, settings.buckets);
 
-      } else {
-        throw new Error("Invalid type: #{info.type}");
+    if (h in hashes) {
+      delete hashes[h][s_key];
+
+      if (is_empty(hashes[h])) {
+        spawners[h].abort();
+        // TODO are these necessary ?
+        delete hashes[h];
+        delete spawners[h];
       }
-    });
-  });
+    }
+  }
+
+  function add_to_cache(s_key, value) {
+    var info = lruCache.put(s_key, value);
+
+    info.discarded ..@each(discard_from_cache);
+
+    var h = itf.hashKey(s_key, settings.buckets);
+
+    if (!(h in hashes)) {
+      hashes[h] = {};
+
+      spawners[h] = spawn (function () {
+        try {
+          itf.waitForHashChange(h, settings.buckets);
+
+        } finally {
+          // TODO hasOwnProperty
+          for (var key in hashes[h]) {
+            lruCache.discard(key);
+          }
+
+          delete hashes[h];
+          delete spawners[h];
+        }
+      })();
+    }
+
+    hashes[h][s_key] = true;
+  }
+
+  function get(key) {
+    var s_key = JSON.stringify(key);
+
+    var value = lruCache.get(s_key);
+    if (value === null) {
+      value = itf.get(key);
+
+      if (value !== undefined) {
+        add_to_cache(s_key, value);
+      }
+    }
+
+    return value;
+  }
+
+  function close() {
+    // TODO hasOwnProperty
+    for (var s in spawners) {
+      spawners[s].abort();
+    }
+
+    lruCache.clear();
+    lruCache = null;
+    hashes = null;
+    spawners = null;
+  }
 
   var out = {};
 
   out[@kv.ITF_KVSTORE] = {
-    close: function () {
-      listener.abort();
-      listener = null;
-      items = null;
-      db = null;
-    },
+    waitForHashChange: itf.waitForHashChange,
 
-    changes: db.changes,
+    hashKey: itf.hashKey,
 
-    get: function (key) {
-      var json_key = JSON.stringify(key);
-
-      var entry = items.get(json_key);
-      if (entry === null) {
-        var value = db.get(key);
-        if (value !== undefined) {
-          items.put(json_key, value);
-        }
-        return value;
-
-      } else {
-        return entry;
-      }
-    },
+    get: get,
 
     // No need to manually clear out the cache: it will be cleared out by the spawn up above
-    put: db.put,
+    put: itf.put,
 
     // TODO use cache for this too
-    query: db.query,
+    query: itf.query,
 
     // TODO use cache for this too
-    observe: db.observe,
+    observe: itf.observe,
 
-    // TODO use cache for transactions as well
-    withTransaction: db.withTransaction
+    // TODO use cache for this too
+    withTransaction: itf.withTransaction
   };
+
+  out.close = close;
 
   return out;
 }
+
 exports.Cached = Cached;
