@@ -17,6 +17,28 @@
              {id: './util', name: 'util'},
              {id: './encoding', name: 'encoding'}]);
 
+// http://www.eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
+function hash_string(key) {
+  var h = 0;
+
+  for (var i = 0; i < key.length; ++i) {
+    h += key.charCodeAt(i);
+    h += (h << 10);
+    h ^= (h >> 6);
+  }
+
+  h += (h << 3);
+  h ^= (h >> 11);
+  h += (h << 15);
+
+  // http://stackoverflow.com/a/1908655
+  return h >>> 0;
+}
+
+function hash_key(key, buckets) {
+  return hash_string(JSON.stringify(key)) % buckets;
+}
+
 //----------------------------------------------------------------------
 // high-level ITF_KVSTORE interface implementation
 // TODO move all the @encoding stuff into itf
@@ -44,19 +66,21 @@ function wrapDB(itf) {
   var kvstore_interface = {
     close: itf.close,
 
-    changes: itf.changes ..@transform(function (info) {
-      return info ..@map(function (info) {
-        if (info.type === 'put' || info.type === 'del') {
-          return {
-            type: info.type,
-            key: @encoding.decodeKey(itf, info.key)
-          };
+    waitForHashChange: function (h1, buckets) {
+      waitfor () {
+        itf.changes ..@each(function (info) {
+          info ..@each(function (info) {
+            var key = @encoding.decodeKey(itf, info.key);
+            var h2 = hash_key(key, buckets);
+            if (h2 === h1) {
+              resume();
+            }
+          });
+        });
+      }
+    },
 
-        } else {
-          throw new Error("Invalid type: #{info.type}");
-        }
-      });
-    }),
+    hashKey: hash_key,
 
     get: function(key) {
       key = @encoding.encodeKey(itf, key);
@@ -113,9 +137,7 @@ function wrapDB(itf) {
 
       var T = {};
       T[@kv.ITF_KVSTORE] = {
-        // TODO implement this
-        // TODO unit tests for this, after it's implemented
-        //changes:
+        // TODO implement hashKey and waitForHashChange
 
         close: function () {
           throw new Error('Cannot use close inside of withTransaction');

@@ -46,35 +46,23 @@ function Subspace(input, prefix) {
   function wrap(input, in_transaction) {
     var db = input[@kv.ITF_KVSTORE];
 
-    // Move this to the outer level ?
-    var changes = db.changes ..@transform(function (info) {
-      return info ..@map(function (info) {
-        if (info.type === 'put' || info.type === 'del') {
-          return {
-            type: info.type,
-            key: unprefixKey(info.key)
-          };
-
-        } else {
-          throw new Error("Invalid type: #{info.type}");
-        }
-      });
-    });
-
     var out = {};
 
     out[@kv.ITF_KVSTORE] = {
+      waitForHashChange: db.waitForHashChange,
+
+      hashKey: function (key, buckets) {
+        return db.hashKey(prefixKey(key), buckets);
+      },
+
       close: function () {
         if (in_transaction) {
           throw new Error('Cannot use close inside of withTransaction');
         } else {
           prefix = null;
-          changes = null;
           db = null;
         }
       },
-
-      changes: changes,
 
       get: function (key) {
         return db.get(prefixKey(key));

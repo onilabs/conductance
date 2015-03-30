@@ -41,7 +41,7 @@ function Cached(db, settings) {
   var itf = db[@kv.ITF_KVSTORE];
 
   function discard_from_cache(s_key) {
-    var h = itf.hashKey(s_key, settings.buckets);
+    var h = itf.hashKey(JSON.parse(s_key), settings.buckets);
 
     if (h in hashes) {
       delete hashes[h][s_key];
@@ -55,12 +55,12 @@ function Cached(db, settings) {
     }
   }
 
-  function add_to_cache(s_key, value) {
+  function add_to_cache(key, s_key, value) {
     var info = lruCache.put(s_key, value);
 
     info.discarded ..@each(discard_from_cache);
 
-    var h = itf.hashKey(s_key, settings.buckets);
+    var h = itf.hashKey(key, settings.buckets);
 
     if (!(h in hashes)) {
       hashes[h] = {};
@@ -71,8 +71,8 @@ function Cached(db, settings) {
 
         } finally {
           // TODO hasOwnProperty
-          for (var key in hashes[h]) {
-            lruCache.discard(key);
+          for (var s in hashes[h]) {
+            lruCache.discard(s);
           }
 
           delete hashes[h];
@@ -92,7 +92,7 @@ function Cached(db, settings) {
       value = itf.get(key);
 
       if (value !== undefined) {
-        add_to_cache(s_key, value);
+        add_to_cache(key, s_key, value);
       }
     }
 
