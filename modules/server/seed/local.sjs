@@ -26,7 +26,7 @@ exports.serve = function(args) {
     {
       name: 'master',
       type: 'string',
-      'default': 'https://seed.conductance.io',
+      'default': 'https://seed.onihub.com',
     },
     {
       name: 'add-ca',
