@@ -40,7 +40,7 @@ function Cached(db, settings) {
 
   var itf = db[@kv.ITF_KVSTORE];
 
-  function discard_from_cache(s_key) {
+  var discarded = spawn lruCache.discarded ..@each(function (s_key) {
     var h = itf.hashKey(JSON.parse(s_key), settings.buckets);
 
     if (h in hashes) {
@@ -53,12 +53,10 @@ function Cached(db, settings) {
         delete spawners[h];
       }
     }
-  }
+  });
 
   function add_to_cache(key, s_key, value) {
-    var info = lruCache.put(s_key, value);
-
-    info.discarded ..@each(discard_from_cache);
+    lruCache.put(s_key, value);
 
     var h = itf.hashKey(key, settings.buckets);
 
@@ -70,11 +68,11 @@ function Cached(db, settings) {
           itf.waitForHashChange(h, settings.buckets);
 
         } finally {
-          // TODO hasOwnProperty
-          for (var s in hashes[h]) {
-            lruCache.discard(s);
-          }
+          hashes[h] ..@ownKeys ..@each(function (s_key) {
+            lruCache.discard(s_key);
+          });
 
+          // TODO are these necessary ?
           delete hashes[h];
           delete spawners[h];
         }
@@ -100,13 +98,15 @@ function Cached(db, settings) {
   }
 
   function close() {
-    // TODO hasOwnProperty
-    for (var s in spawners) {
-      spawners[s].abort();
-    }
+    spawners ..@ownValues ..@each(function (x) {
+      x.abort();
+    });
 
+    discarded.abort();
     lruCache.clear();
+
     lruCache = null;
+    discarded = null;
     hashes = null;
     spawners = null;
   }
