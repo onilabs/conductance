@@ -137,8 +137,6 @@ function wrapDB(itf) {
 
       var T = {};
       T[@kv.ITF_KVSTORE] = {
-        // TODO implement hashKey and waitForHashChange
-
         close: function () {
           throw new Error('Cannot use close inside of withTransaction');
         },

@@ -375,7 +375,7 @@ function LevelDB(location, options, block) {
     try {
       block(itf);
     } finally {
-      close(itf);
+      itf.close();
     }
   } else {
     return itf;
@@ -580,7 +580,7 @@ function Cached(db, settings, block) {
     try {
       block(itf);
     } finally {
-      close(itf);
+      itf.close();
     }
   } else {
     return itf;

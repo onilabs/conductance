@@ -207,5 +207,11 @@ function LevelDB(location, options) {
 exports.LevelDB = LevelDB;
 
 exports.WrappedLevelDB = function (location, options) {
-  return @wrap.wrapDB(LevelDB(location, options));
+  var db = LevelDB(location, options);
+  var itf = @wrap.wrapDB(db);
+
+  // It's necessary to manually close the db if you don't provide a block
+  itf.close = db.close;
+
+  return itf;
 };
