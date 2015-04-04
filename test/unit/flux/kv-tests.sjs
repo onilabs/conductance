@@ -26,7 +26,7 @@ function test_close(f) {
       db.close();
 
       @assert.raises({
-        message: 'Cannot call method \'get\' of null'
+        message: 'Cannot call method \'has\' of null'
       }, function () {
         db ..@kv.get(['bar']);
       });
@@ -78,7 +78,7 @@ function test_close(f) {
       });
 
       @assert.raises({
-        message: 'Cannot call method \'get\' of null'
+        message: 'Cannot call method \'has\' of null'
       }, function () {
         outer ..@kv.get(['bar']);
       });
@@ -104,7 +104,7 @@ function test_close(f) {
       });
 
       @assert.raises({
-        message: 'Cannot call method \'get\' of null'
+        message: 'Cannot call method \'has\' of null'
       }, function () {
         outer ..@kv.get(['bar']);
       });

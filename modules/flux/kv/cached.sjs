@@ -55,9 +55,7 @@ function Cached(db, settings) {
     }
   });
 
-  function add_to_cache(key, s_key, value) {
-    lruCache.put(s_key, value);
-
+  function wait_for_key(key, s_key) {
     var h = itf.hashKey(key, settings.buckets);
 
     if (!(h in hashes)) {
@@ -85,16 +83,21 @@ function Cached(db, settings) {
   function get(key) {
     var s_key = JSON.stringify(key);
 
-    var value = lruCache.get(s_key);
-    if (value === null) {
-      value = itf.get(key);
+    if (lruCache.has(s_key)) {
+      return lruCache.get(s_key);
 
-      if (value !== undefined) {
-        add_to_cache(key, s_key, value);
+    } else {
+      // TODO what about race conditions ?
+      waitfor {
+        var value = itf.get(key);
+        lruCache.put(s_key, value);
+
+      } and {
+        wait_for_key(key, s_key);
       }
-    }
 
-    return value;
+      return value;
+    }
   }
 
   function close() {
