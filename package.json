@@ -17,7 +17,7 @@
   , "karma-firefox-launcher": "*"
   , "karma-phantomjs-launcher": "*"
   , "karma-script-launcher": "*"
-  , "tar": "~0.1.19"
+  , "tar": "~2.0.0"
   , "fstream": "~0.1.25"
   }
 , "dependencies":
