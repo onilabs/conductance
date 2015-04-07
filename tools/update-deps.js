@@ -110,8 +110,9 @@ var outOfDate = packageNames.map(function(pkg) {
 
 if (outOfDate.length > 0) {
 	var args = outOfDate.map(function(pkg) { return pkg.join('@');});
+  var npm_executable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 	console.log("Calling `npm install --production " + args.join(" ") + "`");
-	var proc = child_process.spawn('npm', ['install', '--production'].concat(args), {stdio:'inherit'});
+	var proc = child_process.spawn(npm_executable, ['install', '--production'].concat(args), {stdio:'inherit'});
 	proc.on('exit', function(code) {
 		process.exit(code);
 	})
