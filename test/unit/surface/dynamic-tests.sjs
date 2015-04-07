@@ -258,8 +258,11 @@ context("select widget") {||
   t("Button", [], "button", "btn btn-default");
   t("Table", [], "table", "table");
   t("Row", [], "div", "row");
-  t("Input", [], "input", "form-control", {'type':'text'});
+
+  // Input uses a different argument format
+  // t("Input", [], "input", "form-control", {'type':'text'});
   t("TextArea", [], "textarea", "form-control");
+
   t("Btn", ['sm xs'], "button", "btn btn-sm btn-xs");
   t("Btn", [''], "button", "btn");
   t("Row", [], "div", "row");
@@ -269,7 +272,10 @@ context("select widget") {||
   t("Lead", [], "p", "lead");
   t("ListGroup", [], "div", "list-group");
   t("PageHeader", [], "div", "page-header");
-  t("Panel", ['success'], "div", "panel panel-success");
+
+  // Panel uses a different argument format
+  //t("Panel", ['success'], "div", "panel panel-success");
+
   t("PanelBody", [], "div", "panel-body");
   t("PanelHeading", [], "div", "panel-heading");
   t("PanelTitle", [], "h3", "panel-title");
@@ -284,7 +290,7 @@ context("select widget") {||
     }
   }
   @test("Input") {||
-    document.body .. @appendContent(@bootstrap.Input({type:"checkbox", value:"initialVal", attribs:{name:"myIcon", "class":"cls1 cls2"}})) {|elem|
+    document.body .. @appendContent(@bootstrap.Input({type:"checkbox", value:"initialVal", attrs:{name:"myIcon", "class":"cls1 cls2"}})) {|elem|
       elem.tagName.toLowerCase() .. @assert.eq('input');
       elem.value .. @assert.eq("initialVal");
       elem.getAttribute("name") .. @assert.eq("myIcon");

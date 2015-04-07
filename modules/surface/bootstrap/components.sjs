@@ -14,7 +14,8 @@ var { hostenv } = require('builtin:apollo-sys');
 var imports = [
   'sjs:std',
   '../../surface', 
-  {id:'./html', name: 'html'}
+  {id:'./html', name: 'html'},
+  {id:'../html', name: 'base_html'}
 ]; 
 
 if (hostenv === 'xbrowser') {
@@ -188,7 +189,7 @@ exports.TextJustify = element -> element .. @Class('text-justify');
     ]);
 */
 exports.Btn = (btn_classes, content, attribs) ->
-  callWithClass(@html.Button,
+  callWithClass(@base_html.Button,
     ['btn'].concat(prefixClasses(btn_classes,'btn-')),
     content, attribs);
 
