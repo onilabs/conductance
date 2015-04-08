@@ -38,6 +38,46 @@ function Cached(db, settings) {
   var hashCache = @makeCache(settings.maxsize);
   var hashes = {};
   var spawners = {};
+  var listeners = {};
+
+  var itf = db[@kv.ITF_KVSTORE];
+
+  function waitForHashChange(hash, buckets) {
+    var s_key = JSON.stringify([hash, buckets]);
+
+    waitfor () {
+      if (s_key in listeners) {
+        listeners[s_key].push(resume);
+
+      } else {
+        listeners[s_key] = [resume];
+
+        itf.waitForHashChange(hash, buckets);
+
+        __js {
+          if (s_key in listeners) {
+            var a = listeners[s_key];
+            for (var i = 0; i < a.length; ++i) {
+              a[i]();
+            }
+            delete listeners[s_key];
+          }
+        }
+      }
+
+    } finally {
+      if (s_key in listeners) {
+        var a = listeners[s_key];
+        var i = a.indexOf(resume);
+        if (i !== -1) {
+          a.splice(i, 1);
+        }
+        if (a.length === 0) {
+          delete listeners[s_key];
+        }
+      }
+    }
+  }
 
   function hashKey(key, buckets) {
     var s_key = JSON.stringify([key, buckets]);
@@ -47,12 +87,10 @@ function Cached(db, settings) {
 
     } else {
       var hash = itf.hashKey(key, buckets);
-      hashCache.set(s_key, hash);
+      hashCache.put(s_key, hash);
       return hash;
     }
   }
-
-  var itf = db[@kv.ITF_KVSTORE];
 
   var discarded = spawn keyCache.discarded ..@each(function (s_key) {
     var h = hashKey(JSON.parse(s_key), settings.buckets);
@@ -77,7 +115,7 @@ function Cached(db, settings) {
 
       spawners[h] = spawn (function () {
         try {
-          itf.waitForHashChange(h, settings.buckets);
+          waitForHashChange(h, settings.buckets);
 
         } finally {
           hashes[h] ..@ownKeys ..@each(function (s_key) {
@@ -119,6 +157,10 @@ function Cached(db, settings) {
       x.abort();
     });
 
+    listeners ..@ownValues ..@each(function (f) {
+      f();
+    });
+
     discarded.abort();
     keyCache.clear();
     hashCache.clear();
@@ -128,12 +170,13 @@ function Cached(db, settings) {
     discarded = null;
     hashes = null;
     spawners = null;
+    listeners = null;
   }
 
   var out = {};
 
   out[@kv.ITF_KVSTORE] = {
-    waitForHashChange: itf.waitForHashChange,
+    waitForHashChange: waitForHashChange,
 
     hashKey: hashKey,
 
