@@ -34,13 +34,13 @@ function Cached(db, settings) {
     buckets: 10000
   } .. @override(settings);
 
-  var lruCache = @makeCache(settings.maxsize);
+  var keyCache = @makeCache(settings.maxsize);
   var hashes = {};
   var spawners = {};
 
   var itf = db[@kv.ITF_KVSTORE];
 
-  var discarded = spawn lruCache.discarded ..@each(function (s_key) {
+  var discarded = spawn keyCache.discarded ..@each(function (s_key) {
     var h = itf.hashKey(JSON.parse(s_key), settings.buckets);
 
     if (h in hashes) {
@@ -67,7 +67,7 @@ function Cached(db, settings) {
 
         } finally {
           hashes[h] ..@ownKeys ..@each(function (s_key) {
-            lruCache.discard(s_key);
+            keyCache.discard(s_key);
           });
 
           // TODO are these necessary ?
@@ -83,14 +83,14 @@ function Cached(db, settings) {
   function get(key) {
     var s_key = JSON.stringify(key);
 
-    if (lruCache.has(s_key)) {
-      return lruCache.get(s_key);
+    if (keyCache.has(s_key)) {
+      return keyCache.get(s_key);
 
     } else {
       // TODO what about race conditions ?
       waitfor {
         var value = itf.get(key);
-        lruCache.put(s_key, value);
+        keyCache.put(s_key, value);
 
       } and {
         wait_for_key(key, s_key);
@@ -106,9 +106,9 @@ function Cached(db, settings) {
     });
 
     discarded.abort();
-    lruCache.clear();
+    keyCache.clear();
 
-    lruCache = null;
+    keyCache = null;
     discarded = null;
     hashes = null;
     spawners = null;
