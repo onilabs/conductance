@@ -35,13 +35,27 @@ function Cached(db, settings) {
   } .. @override(settings);
 
   var keyCache = @makeCache(settings.maxsize);
+  var hashCache = @makeCache(settings.maxsize);
   var hashes = {};
   var spawners = {};
+
+  function hashKey(key, buckets) {
+    var s_key = JSON.stringify([key, buckets]);
+
+    if (hashCache.has(s_key)) {
+      return hashCache.get(s_key);
+
+    } else {
+      var hash = itf.hashKey(key, buckets);
+      hashCache.set(s_key, hash);
+      return hash;
+    }
+  }
 
   var itf = db[@kv.ITF_KVSTORE];
 
   var discarded = spawn keyCache.discarded ..@each(function (s_key) {
-    var h = itf.hashKey(JSON.parse(s_key), settings.buckets);
+    var h = hashKey(JSON.parse(s_key), settings.buckets);
 
     if (h in hashes) {
       delete hashes[h][s_key];
@@ -56,7 +70,7 @@ function Cached(db, settings) {
   });
 
   function wait_for_key(key, s_key) {
-    var h = itf.hashKey(key, settings.buckets);
+    var h = hashKey(key, settings.buckets);
 
     if (!(h in hashes)) {
       hashes[h] = {};
@@ -107,8 +121,10 @@ function Cached(db, settings) {
 
     discarded.abort();
     keyCache.clear();
+    hashCache.clear();
 
     keyCache = null;
+    hashCache = null;
     discarded = null;
     hashes = null;
     spawners = null;
@@ -119,7 +135,7 @@ function Cached(db, settings) {
   out[@kv.ITF_KVSTORE] = {
     waitForHashChange: itf.waitForHashChange,
 
-    hashKey: itf.hashKey,
+    hashKey: hashKey,
 
     get: get,
 
