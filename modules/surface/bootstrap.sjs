@@ -100,8 +100,8 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @param  {optional Object} [settings]
 @setting {optional String} [type='text'] 
 @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
-@setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
-@setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
+@setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below).
+@setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below).
 @setting {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @setting {optional surface::HtmlFragment} [addOnLeft]
 @setting {optional surface::HtmlFragment} [addOnRight]
@@ -158,9 +158,13 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   ]);
 
 @function TextArea
-@param  {String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
-@param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@altsyntax TextArea(value)
 @summary Bootstrap-styled textarea (`<textarea class="form-control">`)
+@param  {optional Object} [settings]
+@setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+@setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound TextAreas; see description below).
+@setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound TextAreas; see description below).
+@setting  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
 @return {surface::Element}
 @desc
 

@@ -62,7 +62,7 @@ var _map = function(items, fn) {
      - Span
      - Li, Dl, Dt, etc
      - H1 ... H6
-     - BlockQuote, THead, TBody, FigCaption, DataLost, OptGroup, TextArea, MenuItem, etc
+     - BlockQuote, THead, TBody, FigCaption, DataLost, OptGroup, MenuItem, etc
 
     Each of these tag methods is a shortcut for calling [surface::Element] with the given tag name - i.e `Element(<tagName>, ... )`.
 
@@ -282,8 +282,8 @@ exports.Label = Label;
   @param  {optional Object} [settings]
   @setting {optional String} [type='text'] 
   @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
-  @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
-  @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
+  @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below).
+  @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below).
   @setting  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
@@ -321,7 +321,7 @@ exports.Label = Label;
     ----
 */
 
-__js function untangeInputSettings(settings) {
+__js function untangleInputSettings(settings) {
   if (typeof settings === 'string' ||
       settings .. @isStream) {
     settings = {type: 'text', value: settings, attrs:{}};
@@ -411,7 +411,7 @@ if (hostenv === 'xbrowser') {
 
 
   Input = function(settings) {
-    settings = untangeInputSettings(settings);
+    settings = untangleInputSettings(settings);
 
     var rv = @Element('input', {'type':settings.type} .. @merge(settings.attrs));
     if (settings.value === undefined) {
@@ -427,11 +427,11 @@ if (hostenv === 'xbrowser') {
   }
 }
 else { // hostenv === 'nodejs'
-  Input = function(type, value, attrs) { 
-    settings = untangeInputSettings(settings);
+  Input = function(settings) { 
+    settings = untangleInputSettings(settings);
 
-    @Element('input', {'type':settings.type, 'value':settings.value||''} .. @merge(settings.attrs));
-  }
+    return @Element('input', {'type':settings.type, 'value':settings.value||''} .. @merge(settings.attrs));
+  };
 }
 exports.Input = Input;
   
@@ -439,9 +439,13 @@ exports.Input = Input;
 //----------------------------------------------------------------------
 /**
   @function TextArea
+  @altsyntax TextArea(value)
   @summary A plain HTML 'textarea' element
-  @param  {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
-  @param  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @param  {optional Object} [settings]
+  @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+  @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound TextAreas; see description below).
+  @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound TextAreas; see description below).
+  @setting  {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @desc
     ----
@@ -477,25 +481,48 @@ exports.Input = Input;
 
     ----
 */
+
+__js function untangleTextAreaSettings(settings) {
+  if (typeof settings === 'string' ||
+      settings .. @isStream) {
+    settings = {value: settings, attrs:{}};
+  }
+  else {
+    settings = {
+      value: undefined,
+      valToTxt: undefined,
+      txtToVal: undefined,
+      attrs:{}
+    } .. @override(settings);
+  }
+  return settings;
+}
+
+
 var TextArea;
 if (hostenv === 'xbrowser') {
-  TextArea = function(value, attrs) {
-    var rv = @Element('textarea', null, attrs||{});
-    if (value === undefined) {
+  TextArea = function(settings) {
+    settings = untangleTextAreaSettings(settings);
+
+    var rv = @Element('textarea', null, settings.attrs);
+    if (settings.value === undefined) {
       // a field textarea element
-      rv = rv .. FieldInputMechanism();
+      rv = rv .. FieldInputMechanism(settings);
     }
     else {
       rv = rv .. @Mechanism(function(node) {
-        syncValue(node, value);
+        syncValue(node, settings.value);
       });
     }
     return rv;
   }
 }
 else { // hostenv === 'nodejs'
-  TextArea = (value, attrs) -> 
-    @Element('textarea', null, {'value':value||''} .. @merge(attrs||{}));
+  TextArea = function(settings) {
+    settings = untangleTextAreaSettings(settings);
+
+    return @Element('textarea', null, {'value':settings.value||''} .. @merge(settings.attrs));
+  };
 }
 exports.TextArea = TextArea;
 
