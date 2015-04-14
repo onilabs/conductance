@@ -2013,7 +2013,11 @@ function doModal() {
   }
 
   // build content:
-  var content = `<div class='modal-body'>${settings.body}</div>`;
+  var content;
+
+  if (settings.body) {
+    content = `<div class='modal-body'>${settings.body}</div>`;
+  }
 
   if (!settings.header && settings.title)
     settings.header = `<h4 class='modal-title'>${settings.title}</h4>`;
