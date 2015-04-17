@@ -22,7 +22,7 @@
         console.warn("Setting up passwordless SSH...");
         @mkdirp(sshDir);
         var idFile = @path.join(sshDir,'id_rsa');
-        @childProcess.run('ssh-keygen', ['-t', 'RSA', '-C', 'nobody@travis-ci.org', '-P', '','-f',idFile], {stdio: 'inherit'});
+        @childProcess.run('ssh-keygen', ['-t', 'rsa', '-C', 'nobody@travis-ci.org', '-P', '','-f',idFile], {stdio: 'inherit'});
         @path.join(sshDir, 'config') .. @fs.writeFile('StrictHostKeyChecking no\n');
         authFile .. @fs.writeFile(@fs.readFile(idFile+'.pub', 'ascii'));
         @childProcess.run('chmod', ['-R', 'g-rw,o-rw', sshDir], {stdio: 'inherit'});
