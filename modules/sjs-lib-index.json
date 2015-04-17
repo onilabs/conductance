@@ -625,6 +625,23 @@
           "type": "class",
           "children": {}
         },
+        "RemoteCommand": {
+          "type": "class",
+          "children": {
+            "code": {
+              "type": "variable"
+            },
+            "stderr": {
+              "type": "variable"
+            },
+            "stdin": {
+              "type": "variable"
+            },
+            "stdout": {
+              "type": "variable"
+            }
+          }
+        },
         "SFTPSession": {
           "type": "class",
           "children": {}
@@ -662,6 +679,9 @@
           "type": "function"
         },
         "readdir": {
+          "type": "function"
+        },
+        "run": {
           "type": "function"
         },
         "sftp": {

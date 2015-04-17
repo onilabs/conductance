@@ -14,7 +14,12 @@
   @hostenv nodejs
 */
 
-@ = require(['sjs:std', {id:'ssh2', name: 'Connection'}]);
+@ = require([
+  'sjs:std',
+  {id:'ssh2', name: 'Connection'}, 'sjs:shell-quote',
+  {id:'sjs:nodejs/stream', name:'stream'},
+  {id:'sjs:nodejs/child-process', name:'childProcess'},
+]);
 
 //----------------------------------------------------------------------
 // helpers
@@ -78,6 +83,11 @@ function delayed_retract(uninterrupted_acquire, delayed_retract) {
 */
 function connect(parameters, block) {
   var connection = new @Connection();
+  
+  // each `exec` call adds a `close` listener, which can cause spurious warnings
+  // if the default max is left at 10
+  connection.setMaxListeners(0);
+
   waitfor {
     var err = connection .. @wait('error');
     throw err;
@@ -123,88 +133,259 @@ exports.connect = connect;
 /**
    @function exec
    @altsyntax connection .. exec(command, [options]) { |stream| ... }
-   @altsyntax var {stdout, stderr } = connection .. exec(command, [options])
-   @summary Execute a command on an SSH server
+   @summary Execute a shell string on an SSH server
    @return {void|Object}
    @param {::Connection} [connection] SSH server connection
    @param {String} [command] Command to execute
    @param {optional Object} [settings]
-   @param {optional Function} [block] Function for interacting with the command execution (see description below). 
+   @param {optional Function} [block]
+   @desc
+     This function is just like [::run], except that it takes a single
+     shell string rather than a command and array of arguments. See [::run]
+     for a description of the available `settings`.
+
+     If your command includes any interpolated data, you must take care to
+     escape it properly. It's usually better to use [::run] instead, which
+     will take care of this for you as long as you're connecting to an
+     `sh`-compatible shell..
+*/
+function exec(conn, command, opts, block) {
+  return run(conn, command, null, opts, block);
+}
+exports.exec = exec;
+
+
+function _processStdio(options, block) {
+  var rv = @childProcess._processStdio(options, block);
+  // Unlike child-process, we can't pass raw FDs or nodejs streams as-is.
+  // So wrap those, too:
+  rv.stdio .. @indexed .. @each {|[i, io]|
+    var stream;
+    if(io && typeof(io) === 'object' && (
+      io .. @hasOwn('fd')
+      || typeof(io.read) === 'function'
+      || typeof(io.write) === 'function'
+    )) {
+      stream = io;
+    } else if(typeof(io) === 'number') {
+      stream = [process.stdin, process.stdout, process.stderr][io];
+      if(!stream) {
+        throw new Error("Non-stdio FD: #{io}");
+      }
+    }
+    if(stream) {
+      var conv = i === 0
+        ? pumpFrom(stream)
+        : pumpTo(stream);
+      rv.conversions.push([i, conv]);
+    }
+  }
+  return rv;
+}
+
+var pumpTo = dest -> stream -> stream .. @stream.pump(dest, {end: false});
+var pumpFrom = contents -> stream -> contents .. @stream.pump(stream);
+
+var CommandFailed = exports._CommandFailed = function(child) {
+  var e = new Error(@childProcess._formatCommandFailed(child.code, null, child._command));
+  e.childProcessFailed = true;
+  e.code = child.code;
+  e.stdio = child.stdio;
+  @childProcess._stdioGetters .. @each {|[k,g]|
+    Object.defineProperty(e, k, {get: g});
+  }
+  return e;
+};
+
+var exposedStdio = function(spec, val) {
+  // for command streams, we only expose `pipe` types.
+  // string, buffer & ignore values are not necessary
+  if(spec === 'pipe') return val;
+  return null;
+}
+
+function kill(stream) {
+  // XXX has no effect on OpenSSH; see
+  // https://bugzilla.mindrot.org/show_bug.cgi?id=1424
+  // XXX also: using it causes "write EPIPE" on connection end,
+  // so it's disabled for now
+  //stream.signal('INT');
+
+  stream.destroy();
+}
+
+/**
+   @class RemoteCommand
+   @summary A remote SSH command
+   @desc
+     The type of this object's `stdin`, `stdout` and `stderr` fields will depend
+     on the `stdio` options passed to the [::run] or [::exec] function which created it,
+
+   @variable RemoteCommand.code
+   @type Number|Null
+   @summary The exit code of the command
+
+   @variable RemoteCommand.stdin
+   @type Stream|String|Buffer|Null
+
+   @variable RemoteCommand.stdout
+   @type Stream|String|Buffer|Null
+
+   @variable RemoteCommand.stderr
+   @type Stream|String|Buffer|Null
+
+
+   @function run
+   @altsyntax connection .. run(command, [options]) { |stream| ... }
+   @summary Run a command on an SSH server
+   @return {void|Object}
+   @param {::Connection} [connection] SSH server connection
+   @param {String} [command] Command to execute
+   @param {optional Object} [settings]
+   @param {optional Function} [block] Function for interacting with the command execution (see description below).
+   @setting {Array|String} [stdio] Child's stdio configuration (see below for more details)
+   @setting {Boolean} [throwing=true] Throw an error when the child process returns a nonzero exit status
+   @setting {String} [encoding="utf-8"] Encoding of stdout / stderr data when using `'string'` output
    @setting {Object} [env] An environment to use for the execution of the command.
-   @setting {Boolean|Object} [pty] Set to true to allocate a pseudo-tty with defaults, or an object containing specific 
+   @setting {Boolean|Object} [pty] Set to true to allocate a pseudo-tty with defaults, or an object containing specific
                                    pseudo-tty settings (see https://github.com/onilabs/ssh2).
    @setting {Boolean|Integer|Object} [x11] Set to true to use defaults, a number to specify a specific screen number,
                                      or an object with custom properties (see https://github.com/onilabs/ssh2).
+   @return {::RemoteCommand}
    @desc
-     #### Non-interactive form
-     
-     If `exec` is called without a `block` argument, then it will run
-     the command to completion, accumulate all stdout and stderr
-     produced by the command, and return an object 
-     `{ stdout: String, stderr: String}`.
 
-     #### Interactive form
+     For consistency, this function acts as much as possible like the [sjs:nodejs/child-process::run] function.
+     Options with the same name have the same effect, but not all [sjs:nodejs/child-process::run] options are
+     accepted by this function (and vice versa).
 
-     If `exec` is called with a `block` function, then `block` will be
-     called with a [::ChannelStream], which allows `block` to read and
-     write to the executing process. When `block` exits (normally, by
-     exception or retraction), the stream will automatically be
-     closed. If block exits normally, then `exec` will not return
-     until the process has finished.
+     Due to differences between SSH execution and native process spawning, there are some minor differences in behaviour:
+
+      - file descriptors are supported as `stdio` values, but only for `0`, `1` and `2` (not arbitrary file decriptors)
+      - arbitrary nodejs streams are supported as `stdio` values (not just those with an `fd` property)
+      - signal codes are not reported. If the command is killed by a signal or other abnormal exit,
+        its `code` property will be `null` (and an error raised, unless `throwing` is false)
+      - Depending on the SSH server, some output may be truncated in the case of a failed command (if the `exit` event
+        fires before all output has been collected).
+      - This function builds a `sh`-compatible string using [sjs:shell-quote::] to escape the `command` and
+        `arguments` passed. If the SSH server does not run a `sh`-compatible shell, you should use [::exec]
+        and perform your own escaping.
 
 */
-function exec(conn, command, opts, block) {
+function run(conn, command, args, opts, block) {
   var err, stream;
-
   // untangle args
-  if (arguments.length === 3 && typeof(opts) == 'function') {
+  if (typeof(opts) == 'function') {
     block = opts;
     opts = undefined;
   }
+  if(!opts) opts = {};
 
+  if (args !== null) {
+    command = @quote(args === null ? command : [command].concat(args));
+  }
+
+  var throwing = opts.throwing !== false;
+  var { stdio, conversions: stdioConversions } = _processStdio(opts, block);
 
   delayed_retract(
-    function() { 
-      waitfor(err,stream) { conn.exec(command, opts, resume) } 
+    function() {
+      waitfor(err,stream) { conn.exec(command, opts, resume) }
     },
-    function() {          
+    function() {
       if (!err) {
-        //            stream.signal('KILL'); XXX doens't seem to work
-        stream.destroy(); 
+        stream .. kill();
       }
     }
   );
 
   if (err) throw err;
-  
-  if (block) {
-    var exitStatus;
+  var child = Object.create(stream);
+  child.code = null;
+  child._command = command; // used in exceptions
+  var rawStdio = [
+    stream.stdin,
+    stream.stdout,
+    stream.stderr,
+  ];
+  child.stdio = [
+    exposedStdio(stdio[0], stream.stdin),
+    exposedStdio(stdio[1], stream.stdout),
+    exposedStdio(stdio[2], stream.stderr),
+  ];
+  @childProcess._stdioGetters .. @each {|[k, get]|
+    Object.defineProperty(child, k, {get: get});
+  }
+
+  var err, ioErr, abort = @Condition();
+  var stdioReplacements = [];
+  try {
     waitfor {
-      stream .. @wait('exit');
+      waitfor {
+        if(block) {
+          waitfor {
+            block(child);
+          } or {
+            // XXX this should not be necessary - the branch should already
+            // be retracted by the outer waitfor/or
+            abort.wait();
+          }
+        }
+      } and {
+        try {
+          child.code = stream .. @wait('exit');
+          collapse;
+          if(throwing && child.code !== 0) {
+            throw CommandFailed(child);
+          }
+        } catch(e) {
+          if(!err) err = e;
+          abort.set();
+          // don't throw immediately; wait for stdio conversions to complete
+        } retract {
+          stream .. kill();
+        }
+      } and {
+        if(stdioConversions.length > 0) {
+          @waitforAll(function([i, conv]) {
+            var dest = [i];
+            try {
+              conv(rawStdio[i], dest);
+            } catch(e) {
+              ioErr = e;
+              if(!abort.isSet) {
+                // if the child hasn't died yet, kill it to prevent deadlocks
+                // (e.g. waiting for a process that is waiting for (failed) input)
+                
+                stream .. kill();
+              }
+              abort.set();
+            } finally {
+              if(dest[1] !== undefined) {
+                stdioReplacements.push(dest);
+              }
+            }
+          }, stdioConversions);
+        }
+      }
+    } or {
+      abort.wait();
     }
-    and {
-      block(stream);
-    }
-    finally {
-      stream.destroy();
+  } finally {
+    stdioReplacements .. @each {|[i, v]|
+      child.stdio[i] = v;
     }
   }
-  else {
-    var stdout, stderr;
-    waitfor {
-      stdout = stream .. @stream.readAll;
+
+  if(err) {
+    if(err.childProcessFailed) {
+      if(typeof(child.stderr) === 'string') err.message += "\n#{child.stderr}"
     }
-    and {
-      stderr = stream.stderr .. @stream.readAll;
-    }
-    retract {
-      //        stream.signal('KILL'); XXX doesn't seem to work
-      stream.destroy();
-    }
-    return {stdout: stdout, stderr: stderr};
+    throw err;
   }
-}  
-exports.exec = exec;
+  if(ioErr) throw ioErr
+  return child;
+}
+exports.run = run;
 
 //----------------------------------------------------------------------
 
@@ -397,7 +578,7 @@ function fileStream(conn, path, options) {
       stream .. @stream.contents .. @each(receiver);
     }
     finally {
-      stream.destroy();
+      stream .. kill();
     }
   });
 }

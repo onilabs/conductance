@@ -17,4 +17,5 @@ integration/generator-tests.sjs
 integration/injection-tests.sjs
 integration/nodemon-tests.sjs
 integration/route-tests.sjs
+integration/ssh-client-tests.sjs
 integration/systemd-tests.sjs
