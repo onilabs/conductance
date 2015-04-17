@@ -1,7 +1,7 @@
 @ = require('sjs:test/std');
 @context {|s|
   @ssh = require('mho:ssh-client');
-  var { @mkdirp } = require('ssh:nodejs/mkdirp');
+  var { @mkdirp } = require('sjs:nodejs/mkdirp');
   var conn;
   @test.beforeAll {|s|
     // NOTE: these tests require passwordless SSH into localhost for the current user.
