@@ -26,6 +26,9 @@
         @path.join(sshDir, 'config') .. @fs.writeFile('StrictHostKeyChecking no\n');
         authFile .. @fs.writeFile(@fs.readFile(idFile+'.pub', 'ascii'));
         @childProcess.run('chmod', ['-R', 'g-rw,o-rw', sshDir], {stdio: 'inherit'});
+
+        // sanity check
+        @childProcess.run('ssh', ['-vvv', 'localhost', 'echo OK'], {stdio: 'inherit'});
       }
     }
     
