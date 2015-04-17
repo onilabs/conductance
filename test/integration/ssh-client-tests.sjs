@@ -6,6 +6,7 @@
   @test.beforeAll {|s|
     // NOTE: these tests require passwordless SSH into localhost for the current user.
     // on travis, we set that up right here.
+    var sshDir = "/home/#{process.env.USER}/.ssh";
 
     // TODO: move this somewhere common if we need it in any other tests
     if (process.env.TRAVIS === 'true') {
@@ -16,14 +17,16 @@
       //- echo "    StrictHostKeyChecking no" >> /home/travis/.ssh/config
       //- chmod g-rw,o-rw /home/travis/.ssh/*
 
-      var sshDir = "/home/#{process.env.USER}/.ssh";
       var authFile = @path.join(sshDir, 'authorized_keys');
       if(!@fs.exists(authFile)) {
         console.warn("Setting up passwordless SSH...");
         @mkdirp(sshDir);
         var idFile = @path.join(sshDir,'id_rsa');
         @childProcess.run('ssh-keygen', ['-t', 'rsa', '-C', 'nobody@travis-ci.org', '-P', '','-f',idFile], {stdio: 'inherit'});
-        @path.join(sshDir, 'config') .. @fs.writeFile('StrictHostKeyChecking no\n');
+        
+        // Needed for openSSH, but not for nodejs SSH library:
+        // @path.join(sshDir, 'config') .. @fs.writeFile('StrictHostKeyChecking no\n');
+        
         authFile .. @fs.writeFile(@fs.readFile(idFile+'.pub', 'ascii'));
         @childProcess.run('chmod', ['-R', 'g-rw,o-rw', sshDir], {stdio: 'inherit'});
       }
@@ -41,8 +44,16 @@
         host: 'localhost',
         username: user,
       };
-      var agent = process.env.SSH_AUTH_SOCK;
-      if(agent) opts.agent = agent;
+      var sshAgent = process.env.SSH_AUTH_SOCK;
+      if(sshAgent) {
+        @info("using SSH agent");
+        opts.agent = sshAgent;
+      } else {
+        var key = [ "id_rsa", "id_dsa" ] .. @transform(f -> @path.join(sshDir, f)) .. @find(@fs.exists, null);
+        if(!key) throw new Error("Couldn't find SSH key (and $SSH_AUTH_SOCK not set)");
+        @info("using SSH private key #{key}");
+        opts.privateKey = key .. @fs.readFile('ascii');
+      }
       //console.log(opts);
       @ssh.connect(opts, brk);
     };
