@@ -6,6 +6,8 @@
   @test.beforeAll {|s|
     // NOTE: these tests require passwordless SSH into localhost for the current user.
     // on travis, we set that up right here.
+    var sshDir = "/home/#{process.env.USER}/.ssh";
+    var sshAgent = process.env.SSH_AUTH_SOCK;
 
     // TODO: move this somewhere common if we need it in any other tests
     if (process.env.TRAVIS === 'true') {
@@ -16,7 +18,6 @@
       //- echo "    StrictHostKeyChecking no" >> /home/travis/.ssh/config
       //- chmod g-rw,o-rw /home/travis/.ssh/*
 
-      var sshDir = "/home/#{process.env.USER}/.ssh";
       var authFile = @path.join(sshDir, 'authorized_keys');
       if(!@fs.exists(authFile)) {
         console.warn("Setting up passwordless SSH...");
@@ -44,8 +45,15 @@
         host: 'localhost',
         username: user,
       };
-      var agent = process.env.SSH_AUTH_SOCK;
-      if(agent) opts.agent = agent;
+      if(sshAgent) {
+        @info("using SSH agent");
+        opts.agent = sshAgent;
+      } else {
+        var key = [ "id_rsa", "id_dsa" ] .. @find(f -> @path.join(sshDir, f) .. @fs.exists(), null);
+        if(!key) throw new Error("Couldn't find SSH key (and $SSH_AUTH_SOCK not set)");
+        @info("using SSH private key #{key}");
+        opts.privateKey = key .. @fs.readFile('ascii');
+      }
       //console.log(opts);
       @ssh.connect(opts, brk);
     };
