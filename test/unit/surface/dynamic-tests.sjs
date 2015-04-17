@@ -259,9 +259,9 @@ context("select widget") {||
   t("Table", [], "table", "table");
   t("Row", [], "div", "row");
 
-  // Input uses a different argument format
+  // Input/TextArea use a different argument format
   // t("Input", [], "input", "form-control", {'type':'text'});
-  t("TextArea", [], "textarea", "form-control");
+  //t("TextArea", [], "textarea", "form-control");
 
   t("Btn", ['sm xs'], "button", "btn btn-sm btn-xs");
   t("Btn", [''], "button", "btn");
