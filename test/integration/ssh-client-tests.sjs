@@ -7,7 +7,6 @@
     // NOTE: these tests require passwordless SSH into localhost for the current user.
     // on travis, we set that up right here.
     var sshDir = "/home/#{process.env.USER}/.ssh";
-    var sshAgent = process.env.SSH_AUTH_SOCK;
 
     // TODO: move this somewhere common if we need it in any other tests
     if (process.env.TRAVIS === 'true') {
@@ -24,12 +23,12 @@
         @mkdirp(sshDir);
         var idFile = @path.join(sshDir,'id_rsa');
         @childProcess.run('ssh-keygen', ['-t', 'rsa', '-C', 'nobody@travis-ci.org', '-P', '','-f',idFile], {stdio: 'inherit'});
-        @path.join(sshDir, 'config') .. @fs.writeFile('StrictHostKeyChecking no\n');
+        
+        // Needed for openSSH, but not for nodejs SSH library:
+        // @path.join(sshDir, 'config') .. @fs.writeFile('StrictHostKeyChecking no\n');
+        
         authFile .. @fs.writeFile(@fs.readFile(idFile+'.pub', 'ascii'));
         @childProcess.run('chmod', ['-R', 'g-rw,o-rw', sshDir], {stdio: 'inherit'});
-
-        // sanity check
-        @childProcess.run('ssh', ['-vvv', 'localhost', 'echo OK'], {stdio: 'inherit'});
       }
     }
     
@@ -44,7 +43,9 @@
       var opts = {
         host: 'localhost',
         username: user,
+        debug: @logging.info,
       };
+      var sshAgent = process.env.SSH_AUTH_SOCK;
       if(sshAgent) {
         @info("using SSH agent");
         opts.agent = sshAgent;
