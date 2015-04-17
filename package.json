@@ -34,6 +34,5 @@
   }
 , "scripts":
   { "test": "./conductance test/run.mho"
-  , "build": "./tools/gup all"
   }
 }
