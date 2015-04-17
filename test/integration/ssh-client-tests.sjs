@@ -49,7 +49,7 @@
         @info("using SSH agent");
         opts.agent = sshAgent;
       } else {
-        var key = [ "id_rsa", "id_dsa" ] .. @find(f -> @path.join(sshDir, f) .. @fs.exists(), null);
+        var key = [ "id_rsa", "id_dsa" ] .. @transform(f -> @path.join(sshDir, f)) .. @find(@fs.exists, null);
         if(!key) throw new Error("Couldn't find SSH key (and $SSH_AUTH_SOCK not set)");
         @info("using SSH private key #{key}");
         opts.privateKey = key .. @fs.readFile('ascii');
