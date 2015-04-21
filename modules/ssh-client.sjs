@@ -184,7 +184,21 @@ function _processStdio(options, block) {
 }
 
 var pumpTo = dest -> stream -> stream .. @stream.pump(dest, {end: false});
-var pumpFrom = contents -> stream -> contents .. @stream.pump(stream);
+var pumpFrom = contents -> function(stream) {
+  // when pumping from `process.stdin`, it's normal for the command to exit
+  // before `contents` is fully consumed, so just retract the pump when
+  // the process exits.
+  waitfor {
+    stream .. @wait('exit');
+  } or {
+    if(contents === process.stdin) {
+      // see https://github.com/joyent/node/issues/17204
+      console.warn("WARN: cannot inherit stdin across SSH streams due to nodejs bug. Ignoring.");
+      hold();
+    }
+    contents .. @stream.pump(stream);
+  }
+};
 
 var CommandFailed = exports._CommandFailed = function(child) {
   var e = new Error(@childProcess._formatCommandFailed(child.code, null, child._command));
