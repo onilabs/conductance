@@ -497,6 +497,7 @@ exports.localAppState = (function() {
             "--volume", readOnly('/lib'),
             "--volume", readOnly('/lib64'),
             "--volume", readOnly(@path.join(process.env.HOME, '.local/share')),
+            "--volume", readOnly(@path.join(process.env.HOME, '.cache')),
             "--volume", readOnly(conductanceRoot),
             "--volume", readOnly(sjsRoot),
           ]).concat(dockerFlags).concat([
@@ -707,21 +708,22 @@ exports.masterAppState = (function() {
       var tmpdest = @path.join(appBase, "_code");
       var finaldest = @path.join(appBase, "code");
       
-      var fixPermissions = function() {
+      var fixPermissions = function(p) {
         // - give owner `rwX`
         // - give group `rX`
         // - remove `w` from group/other
-        @childProcess.run('chmod', ['-R','u+rwX,g+rX-w', tmpdest], {'stdio':'inherit'});
+        @childProcess.run('chmod', ['-R','u+rwX,g+rX-w', p], {'stdio':'inherit'});
       }
 
       var cleanup = function() {
-        fixPermissions();
-        @rimraf(tmpdest);
+        if (@fs.exists(tmpdest)) {
+          fixPermissions(tmpdest); // should only be necessary if `tar` died halfway through
+          @rimraf(tmpdest);
+        }
       }
 
-      if (@fs.exists(tmpdest)) {
-        cleanup();
-      }
+      cleanup();
+
       @mkdirp(tmpdest);
       try {
         // Note: it'd be easier and more efficient to untar in-process, but
@@ -746,7 +748,7 @@ exports.masterAppState = (function() {
             })
             
             // XXX it'd be nice if `tar` allowed us to extract with specified minimum permissions...
-            fixPermissions();
+            fixPermissions(tmpdest);
           }
         } catch(e) {
           @info(String(e));
