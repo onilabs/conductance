@@ -96,11 +96,15 @@ function connect(parameters, block) {
     try {
       connection .. @wait('ready');
       block(connection);
+      connection.end();
     }
     finally {
       if (connection.__oni_sftpsession)
         connection.__oni_sftpsession.end();
-      connection.end();
+      // NOTE: don't use connection.end(), as
+      // that can throw an uncaught error if we're
+      // in the process of throwing an earlier error
+      connection.destroy();
     }
   }
   or {
