@@ -1,6 +1,7 @@
 @ = require('sjs:test/std');
 @context {|s|
   @ssh = require('mho:ssh-client');
+  var { @TemporaryFile } = require('sjs:nodejs/tempfile');
   var { @mkdirp } = require('sjs:nodejs/mkdirp');
   var conn;
   @test.beforeAll {|s|
@@ -35,15 +36,11 @@
     s.ctx = @breaking {|brk|
       var user = process.env.USER;
 
-      if(process.env.SHELL .. @contains('fish')) {
-        // XXX way hacky....
-        user = 'sandbox';
-      }
-
       var opts = {
         host: 'localhost',
         username: user,
       };
+      var port = opts.port = 2222;
       //var sshAgent = process.env.SSH_AUTH_SOCK;
       //if(sshAgent) {
       //  @info("using SSH agent");
@@ -55,7 +52,50 @@
         opts.privateKey = key .. @fs.readFile('ascii');
       //}
       //console.log(opts);
-      @ssh.connect(opts, brk);
+      
+      var sshd = process.env.PATH.split(':')
+        .. @transform(bin -> @path.join(bin, 'sshd'))
+        .. @find(@fs.exists);
+      var confDir = @url.normalize('./fixtures/sshd', module.id) .. @url.toPath;
+
+      @TemporaryFile({mode: 0600}) {|conf|
+        confDir .. @path.join('conf') .. @fs.readFile('ascii') .. @supplant({
+          'CONF_DIR': confDir,
+        }) .. @stream.pump(conf.writeStream());
+
+        @childProcess.run(sshd, [ '-D', '-f', conf.path, '-p', String(port),
+          //'-d', // debug
+        ], {stdio: 'inherit', throwing: false }) {|sshd|
+          var connected;
+          s.sshd = sshd;
+          //console.log("running sshd #{sshd.pid}");
+          waitfor {
+            sshd .. @childProcess.wait({throwing: false});
+            if(!connected) throw new Error("sshd died");
+          } and {
+            try {
+              while(true) {
+                try {
+                  @ssh.connect(opts) {|conn|
+                    connected = true;
+                    brk(conn);
+                  }
+                } catch(e) {
+                  if(!connected && e.code === 'ECONNREFUSED') {
+                    // ssh isn't listening yet, just retry
+                    hold(1000);
+                    continue;
+                  }
+                  throw e;
+                }
+                break;
+              }
+            } finally {
+              sshd .. @childProcess.kill();
+            }
+          }
+        }
+      }
     };
     conn = s.ctx.value;
   }

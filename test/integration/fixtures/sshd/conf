@@ -1,0 +1,12 @@
+UsePrivilegeSeparation no
+
+# ssh-keygen -f ssh_host_rsa_key -N '' -t rsa
+HostKey {CONF_DIR}/host_rsa_key
+
+# ssh-keygen -f host_dsa_key -N '' -t dsa
+HostKey {CONF_DIR}/host_dsa_key
+
+# This'll give you a POSIX shell as long as your non-POSIX login shell
+# can handle single quotes (e.g fish)
+ForceCommand sh -c 'eval "$SSH_ORIGINAL_COMMAND"'
+
