@@ -1415,17 +1415,19 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
 @setting {optional surface::HtmlFragment} [extra_buttons]
 @desc
-  suggestions can be an [sjs:sequence::Sequence] (such as a static
-  array) of suggestion items or a function that receives an
-  [sjs:observable::Observable] of the current value and returns an
-  [sjs:observable::Observable] yielding a suggestions sequence.
+  suggestions can be one of the following:
+  
+  - A concrete [sjs:sequence::Sequence] (such as a static array) of suggestion items
+  - An [sjs:observable::Observable] yielding a [sjs:sequence::Sequence] of suggestion items
+  - A function that receives an [sjs:observable::Observable] of the current value and returns either
+    a concrete sequence of suggestion items or an [sjs:observable::Observable] yielding a suggestions sequence
 
   A 'suggestion item' is either a string, or an object:
 
-     { 
-       text: String, 
-       highlight: Boolean 
-     }
+      { 
+        text: String, 
+        highlight: Boolean 
+      }
 
   ##### Binding to fields
 
