@@ -530,8 +530,12 @@ exports.TextArea = TextArea;
 //----------------------------------------------------------------------
 /**
   @function Checkbox
+  @altsyntax Checkbox(checked)
   @summary A HTML 'checkbox' widget
-  @param  {optional Boolean|sjs:sequence::Stream|sjs:observable::ObservableVar} [checked=undefined] 
+  @param  {optional Object} [settings]
+  @setting {optional Boolean|sjs:sequence::Stream|sjs:observable::ObservableVar} [checked=undefined] 
+  @setting {optional Function} [valToChecked] Transformer yielding control's 'checked' state from value (only used for field-bound TextAreas; see description below).
+  @setting {optional Function} [checkedToVal] Transformer yielding value from control's 'checked' state (only used for field-bound TextAreas; see description below).
   @return {surface::Element}
   @desc
     ----
@@ -588,28 +592,46 @@ exports.TextArea = TextArea;
     ]);
 */
 
+__js function untangleCheckboxSettings(settings) {
+  if (typeof settings === 'boolean' ||
+      settings .. @isStream) {
+    settings = {checked: settings};
+  }
+  else {
+    settings = {
+      checked: undefined,
+      valToChecked: undefined,
+      checkedToVal: undefined
+    } .. @override(settings);
+  }
+  return settings;
+}
+
 var Checkbox;
 if (hostenv === 'xbrowser') {
 
-
   // helper to keep a node's value synchronized with an observable (or
   // just setting it, if the given value is not an observable):
-  function syncCheckboxValue(node, value, edited) {
+  function syncCheckboxValue(node, value, edited, settings) {
+    settings = settings || {};
     if (@isStream(value)) {
+      var internal_set = false, first = true;
       waitfor {
-        var first = true;
-
         value .. @each.track {|val|
+          if (internal_set) continue;
           // make sure an undefined field gets initialized with 'false':
           if (first) {
             first = false;
             if (val === undefined && @isObservableVar(value)) {
               val = false;
+              if (settings.checkedToVal)
+                val = settings.checkedToVal(val);
               value.set(val);
               continue;
             }
           }
-
+          if (settings.valToChecked)
+            val = settings.valToChecked(val);
           val = Boolean(val);
           if (node.checked !== val)
             node.checked = val;
@@ -618,7 +640,17 @@ if (hostenv === 'xbrowser') {
       and {
         if (@isObservableVar(value)) {
           @events(node, 'change') .. @each { |ev|
-            value.set(node.checked);
+            var val = node.checked;
+            if (settings.checkedToVal)
+              val = settings.checkedToVal(val);
+
+            internal_set = true;
+            try {
+              value.set(val);
+            }
+            finally {
+              internal_set = false;
+            }
             if (edited)
               edited.set(true);
           }
@@ -630,38 +662,41 @@ if (hostenv === 'xbrowser') {
   }
 
   // mechanism for checkboxes: 
-  var FieldCheckboxMechanism = @Mechanism(function(node) {
-    // XXX should use more specific api here; not
-    // [CTX_FIELD].id/.value/.auto_validate directly
-    var ctx = node .. @field.findContext(@field.CTX_FIELD);
-    if (ctx) {
-      var value = ctx.value;
-      node.setAttribute('id', ctx.id);
-    }
-    else {
-      value = '';
-    }
-    // keep node's value in sync with observable:
-    syncCheckboxValue(node, value, ctx ? ctx.auto_validate);
-  });
+  var FieldCheckboxMechanism = (content, settings) ->
+    content .. @Mechanism(function(node) {
+      // XXX should use more specific api here; not
+      // [CTX_FIELD].id/.value/.auto_validate directly
+      var ctx = node .. @field.findContext(@field.CTX_FIELD);
+      if (ctx) {
+        var value = ctx.value;
+        node.setAttribute('id', ctx.id);
+      }
+      else {
+        value = '';
+      }
+      // keep node's value in sync with observable:
+      syncCheckboxValue(node, value, ctx ? ctx.auto_validate, settings);
+    });
 
 
-  Checkbox = function(value) {
+  Checkbox = function(settings) {
+    settings = untangleCheckboxSettings(settings);
+
     var rv = @Element('input', {type:'checkbox'});
-    if (value === undefined) {
+    if (settings.checked === undefined) {
       // a field input element
-      rv = rv .. FieldCheckboxMechanism();
+      rv = rv .. FieldCheckboxMechanism(settings);
     }
     else {
       rv = rv .. @Mechanism(function(node) {
-        syncCheckboxValue(node, value);
+        syncCheckboxValue(node, settings.checked);
       });
     }
     return rv;
   };
 }
 else { // hostenv === 'nodejs'
-  Checkbox = value -> @Element('input', { type: 'checkbox', checked: Boolean(value) });
+  Checkbox = value -> @Element('input', { type: 'checkbox', checked: Boolean(settings.value) });
 }
 exports.Checkbox = Checkbox;
 
