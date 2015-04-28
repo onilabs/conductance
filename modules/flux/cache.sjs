@@ -72,16 +72,16 @@ exports.Cache = function(upstream, options) {
     |changes|
     changes .. each { 
       |{id, schema}| 
-      console.log("discard #{id}"); 
+      //console.log("discard #{id}"); 
       items.discard(id);
       
       var queries;
-      console.log("SCHEMA #{schema} has changed");
+      //console.log("SCHEMA #{schema} has changed");
       if ((queries = query_items[schema])) {
-        console.log("#{queries.length} items affected");
+        //console.log("#{queries.length} items affected");
         queries .. each {
           |id|
-          console.log("clearing #{id}");
+          //console.log("clearing #{id}");
           items.discard(id);
         }
         delete query_items[schema];
