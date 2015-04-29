@@ -44,7 +44,7 @@ context('bridge error handling') {||
         connection.api.throwError('Some error');
       }
     };
-  }
+  }.timeout(30);
 
   test('re-throws client-side errors') {||
     assert.raises({filter: e -> !isTransportError(e) && e.message == "Some client error"}) {||
