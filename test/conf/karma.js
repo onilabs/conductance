@@ -60,6 +60,8 @@ var exports = module.exports = function(config) {
     // If browser does not capture in given timeout [ms], kill it
     captureTimeout: 0,
 
+    browserNoActivityTimeout: 60000,
+
     singleRun: false,
 
     plugins: plugins,
