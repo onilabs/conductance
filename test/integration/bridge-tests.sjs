@@ -178,17 +178,11 @@ context('bridge error handling') {||
   };
 
   test('retracts server side execution initiated by client on closed connection'){||
-    assert.raises({filter: isTransportError},
-      -> bridge.connect(apiid, {server: helper.getRoot()}){
-        |connection|
-        waitfor{
-          connection.api.detectRetractionAfterDelay(2*MAX_ROUNDTRIP);
-        } or {
-          hold(MAX_ROUNDTRIP);
-          connection.__finally__();
-        }
-      }
-    );
+    bridge.connect(apiid, {server: helper.getRoot()}){
+      |connection|
+      spawn(connection.api.detectRetractionAfterDelay(2*MAX_ROUNDTRIP));
+      hold(MAX_ROUNDTRIP);
+    }
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
       assert.truthy(connection.api.didDetectRetraction());
@@ -197,15 +191,12 @@ context('bridge error handling') {||
 
   test('throws TransportError when calling client function after closed connection'){||
     var someFuncExecuted = false;
-    assert.raises({filter: isTransportError},
-      -> bridge.connect(apiid, {server: helper.getRoot()}){
-        |connection|
-        var someFunc = function(){someFuncExecuted = true};
-        connection.api.checkErrorThrownOnCallingFuncAfterDelay(someFunc, 0);
-        connection.__finally__();
-      }
-    );
-    hold(MAX_ROUNDTRIP);
+    bridge.connect(apiid, {server: helper.getRoot()}){
+      |connection|
+      var someFunc = function(){someFuncExecuted = true};
+      connection.api.checkErrorThrownOnCallingFuncAfterDelay(someFunc, MAX_ROUNDTRIP);
+    }
+    hold(MAX_ROUNDTRIP*2);
 
     assert.falsy(someFuncExecuted);
     bridge.connect(apiid, {server: helper.getRoot()}){
