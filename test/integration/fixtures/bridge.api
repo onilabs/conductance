@@ -1,4 +1,4 @@
-var { integers } = require('sjs:sequence');
+var { integers, Stream } = require('sjs:sequence');
 var { clone } = require('sjs:object');
 var { setStatus } = require('mho:server/response');
 var logging = require('sjs:logging');
@@ -124,3 +124,14 @@ exports.returnCustomObject = function(orig, wrapRemote) {
   });
   return obj;
 };
+
+exports.slowIntegers = function(waitTime) {
+  return Stream(function(emit) {
+    var i=0;
+    while(true) {
+      emit(i);
+      hold(waitTime);
+      i++;
+    }
+  });
+}

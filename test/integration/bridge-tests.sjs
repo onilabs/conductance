@@ -496,6 +496,36 @@ context() {||
 
     }.browserOnly().timeout(15);
   }
+
+  @test("connection inside retracted iteration") {||
+    var connectedStream = @Stream(function(emit) {
+      @integers() .. @transform(i -> (hold(1000,i))) .. @each.track { ||
+        // using each.track and hold() ensures that
+        // the connection block will be retracted
+        require(url).connect {|api|
+          emit(api.slowIntegers(500));
+          hold();
+        }
+      }
+    });
+
+    var innerValues = @Stream(function(emit) {
+      connectedStream .. @each.track {|st|
+        @info("stream:", st);
+        st.. @each {|inner|
+          @info("emitting inner:", inner);
+          emit(inner);
+        }
+      }
+    });
+
+    var seen = 0;
+    innerValues .. @each {|v|
+      seen += 1;
+      @info("saw inner value: #{v}");
+      if(seen >= 5) break;
+    }
+  }.skip("BROKEN");
 }
 
 context("non-root locations") {||
@@ -593,3 +623,4 @@ context("garbage collection") {||
     }
   }
 }.serverOnly();
+
