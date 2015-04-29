@@ -180,7 +180,14 @@ context('bridge error handling') {||
   test('retracts server side execution initiated by client on closed connection'){||
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
-      spawn(connection.api.detectRetractionAfterDelay(2*MAX_ROUNDTRIP));
+      spawn(function() { 
+        try { 
+          connection.api.detectRetractionAfterDelay(2*MAX_ROUNDTRIP); 
+        } 
+        catch(e) {
+          /* ignore session lost exception */ 
+        }
+      })();
       hold(MAX_ROUNDTRIP);
     }
     bridge.connect(apiid, {server: helper.getRoot()}){
