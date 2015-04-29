@@ -510,10 +510,17 @@ context() {||
     var innerValues = @Stream(function(emit) {
       connectedStream .. @each.track {|st|
         @info("stream:", st);
-        st.. @each {|inner|
-          @info("emitting inner:", inner);
-          emit(inner);
+        try {
+          st.. @each {|inner|
+            @info("emitting inner:", inner);
+            emit(inner);
+          }
         }
+        catch (e) { 
+          /* ignore session lost */
+        }
+        // hold here is optional
+        hold();
       }
     });
 
@@ -523,7 +530,7 @@ context() {||
       @info("saw inner value: #{v}");
       if(seen >= 5) break;
     }
-  }.skip("BROKEN");
+  };
 }
 
 context("non-root locations") {||
