@@ -266,8 +266,15 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 					endpoint.connect {|api|
 						if (api.authenticate) api = api.authenticate(token);
 						@info("appState: new value");
-						emit(api.getApp(app.id));
-						hold();
+						try {
+							emit(api.getApp(app.id));
+							hold();
+						} finally {
+							// if we don't immediately inform consumers that there is no current
+							// endpoint, any outstanding calls (to the API provided by api.getApp())
+							// will throw a "session lost" error.
+							emit(null);
+						}
 					}
 				} catch(e) {
 					if (@bridge.isTransportError(e)) {
@@ -311,12 +318,14 @@ var displayApp = function(elem, token, localApi, localServer, remoteServer, app)
 
 	var tailLogs = function(limit, block) {
 		waitfor {
-			// In general, we only reset logs when `appState` is
-			// truthy (i.e there is a slave assigned to this app).
-			appState .. @filter() .. @each.track {|state|
-				collapse;
-				@info("tailing logs...");
-				state.tailLogs(limit, block);
+			appState .. @each.track {|state|
+				if(state) {
+					collapse;
+					@info("tailing logs...");
+					// In general, we only reset logs when `appState` is
+					// truthy (i.e there is a slave assigned to this app).
+					state.tailLogs(limit, block);
+				}
 			}
 		} or {
 			// But on initial load, we'll show "no logs" if there
