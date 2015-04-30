@@ -147,7 +147,8 @@ function tryRunDocker(cmd, stdout, block) {
     var rv = @childProcess.run('docker', cmd, {stdio:['ignore',stdout === undefined ? 1 : stdout,'pipe']}, block);
     return rv;
   } catch(e) {
-    if (!/Error( response from daemon)?: No such (image or )?container: /.test(e.stderr)) {
+    // XXX Not only does it suck to parse the error message, there have been three different formats of this error already
+    if (!/Error( response from daemon)?: [nN]o such ((image or )?container|id): /.test(e.stderr)) {
       //@error("Docker error output from command #{cmd.join(' ')}:" + e.stderr);
       if(e.stderr && e.message) e.message += "\n" + e.stderr;
       throw e;
