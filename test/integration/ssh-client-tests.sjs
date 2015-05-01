@@ -63,6 +63,13 @@
           'CONF_DIR': confDir,
         }) .. @stream.pump(conf.writeStream());
 
+        // group permissions aren't persisted by git,
+        // so we need to satisfy SSH's paranoia
+        @childProcess.run('chmod', ['-R', 'g-rw,o-rw',
+          confDir .. @path.join('host_dsa_key'),
+          confDir .. @path.join('host_rsa_key'),
+        ], {stdio: 'inherit'});
+
         @childProcess.run(sshd, [ '-D', '-f', conf.path, '-p', String(port),
           //'-d', // debug
         ], {stdio: 'inherit', throwing: false }) {|sshd|
