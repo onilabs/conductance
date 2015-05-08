@@ -1,5 +1,9 @@
 @ = require('sjs:test/std');
 @context {|s|
+  @ssh = require('mho:ssh-client');
+  var { @TemporaryFile } = require('sjs:nodejs/tempfile');
+  var { @mkdirp } = require('sjs:nodejs/mkdirp');
+  var conn;
   var sshDir = "/home/#{process.env.USER}/.ssh";
   // NOTE: these tests require passwordless SSH into localhost for the current user.
   // on travis, we set that up right here.
@@ -26,10 +30,6 @@
     }
   }
 
-  @ssh = require('mho:ssh-client');
-  var { @TemporaryFile } = require('sjs:nodejs/tempfile');
-  var { @mkdirp } = require('sjs:nodejs/mkdirp');
-  var conn;
 
   function addTestHooks(serverSettings, clientSettings) {
     @test.afterAll {|s|
