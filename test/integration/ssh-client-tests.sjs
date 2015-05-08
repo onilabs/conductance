@@ -1,35 +1,41 @@
 @ = require('sjs:test/std');
 @context {|s|
+  var sshDir = "/home/#{process.env.USER}/.ssh";
+  // NOTE: these tests require passwordless SSH into localhost for the current user.
+  // on travis, we set that up right here.
+
+  // TODO: move this somewhere common if we need it in any other tests
+  if (process.env.TRAVIS === 'true') {
+    if (@childProcess.run('which', ['socat'], {stdout: 'ignore', throwing: false}).code !== 0) {
+      @warn("installing socat...");
+      @childProcess.run('sudo', ['apt-get', '-y', 'install', 'socat'], {stdio:'inherit'});
+    }
+
+    var authFile = @path.join(sshDir, 'authorized_keys');
+    if(!@fs.exists(authFile)) {
+      @warn("Setting up passwordless SSH...");
+      @mkdirp(sshDir);
+      var idFile = @path.join(sshDir,'id_rsa');
+      @childProcess.run('ssh-keygen', ['-t', 'rsa', '-C', 'nobody@travis-ci.org', '-P', '','-f',idFile], {stdio: 'inherit'});
+      
+      // Needed for openSSH, but not for nodejs SSH library:
+      // @path.join(sshDir, 'config') .. @fs.writeFile('StrictHostKeyChecking no\n');
+      
+      authFile .. @fs.writeFile(@fs.readFile(idFile+'.pub', 'ascii'));
+      @childProcess.run('chmod', ['-R', 'g-rw,o-rw', sshDir], {stdio: 'inherit'});
+    }
+  }
+
   @ssh = require('mho:ssh-client');
   var { @TemporaryFile } = require('sjs:nodejs/tempfile');
   var { @mkdirp } = require('sjs:nodejs/mkdirp');
   var conn;
-  var sshDir = "/home/#{process.env.USER}/.ssh";
 
   function addTestHooks(serverSettings, clientSettings) {
     @test.afterAll {|s|
       s.ctx.resume();
     }
     @test.beforeAll {|s|
-      // NOTE: these tests require passwordless SSH into localhost for the current user.
-      // on travis, we set that up right here.
-
-      // TODO: move this somewhere common if we need it in any other tests
-      if (process.env.TRAVIS === 'true') {
-        var authFile = @path.join(sshDir, 'authorized_keys');
-        if(!@fs.exists(authFile)) {
-          console.warn("Setting up passwordless SSH...");
-          @mkdirp(sshDir);
-          var idFile = @path.join(sshDir,'id_rsa');
-          @childProcess.run('ssh-keygen', ['-t', 'rsa', '-C', 'nobody@travis-ci.org', '-P', '','-f',idFile], {stdio: 'inherit'});
-          
-          // Needed for openSSH, but not for nodejs SSH library:
-          // @path.join(sshDir, 'config') .. @fs.writeFile('StrictHostKeyChecking no\n');
-          
-          authFile .. @fs.writeFile(@fs.readFile(idFile+'.pub', 'ascii'));
-          @childProcess.run('chmod', ['-R', 'g-rw,o-rw', sshDir], {stdio: 'inherit'});
-        }
-      }
 
       serverSettings = {
         port: 2222,
