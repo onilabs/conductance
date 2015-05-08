@@ -334,7 +334,7 @@ function run(conn, command, args, opts, block) {
     Object.defineProperty(child, k, {get: get});
   }
 
-  var err, ioErr, abort = @Condition();
+  var err, ioErr, abort = @Condition(), ioComplete = @Condition(), awaitingIO = @Condition();
   var stdioReplacements = [];
   try {
     waitfor {
@@ -350,8 +350,18 @@ function run(conn, command, args, opts, block) {
         }
       } and {
         try {
-          child.code = stream .. @wait('exit');
-          collapse;
+          waitfor {
+            child.code = stream .. @wait('exit');
+          } or {
+            stream .. @wait(['finish']);
+            awaitingIO.set();
+            ioComplete.wait();
+            if(throwing) {
+              throw new Error("SSH connection terminated");
+            } else {
+              child.code = -1;
+            }
+          }
           if(throwing && child.code !== 0) {
             throw CommandFailed(child);
           }
@@ -367,7 +377,21 @@ function run(conn, command, args, opts, block) {
           @waitforAll(function([i, conv]) {
             var dest = [i];
             try {
-              conv(rawStdio[i], dest);
+              waitfor {
+                conv(rawStdio[i], dest);
+              } or {
+                abort.wait();
+              } or {
+                if(i === 2) {
+                  // XXX ssh2's `stderr` stream never terminates in some situations,
+                  // e.g dropped connection. So once the main channel has ended, we
+                  // give `stderr` a 2s grace period and then just discard it.
+                  awaitingIO.wait();
+                  hold(2000);
+                } else {
+                  hold();
+                }
+              }
             } catch(e) {
               ioErr = e;
               if(!abort.isSet) {
@@ -384,6 +408,7 @@ function run(conn, command, args, opts, block) {
             }
           }, stdioConversions);
         }
+        ioComplete.set();
       }
     } or {
       abort.wait();
