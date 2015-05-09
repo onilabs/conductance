@@ -90,6 +90,10 @@ function connect(parameters, block) {
 
   waitfor {
     var err = connection .. @wait('error');
+    
+    // silence further errors that occur due to races & unexpected states in ssh2 teardown
+    connection.on('error', -> null);
+
     throw err;
   }
   or {
@@ -101,9 +105,6 @@ function connect(parameters, block) {
     finally {
       if (connection.__oni_sftpsession)
         connection.__oni_sftpsession.end();
-      // NOTE: don't use connection.end(), as
-      // that can throw an uncaught error if we're
-      // in the process of throwing an earlier error
       connection.destroy();
     }
   }
