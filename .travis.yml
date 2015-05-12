@@ -5,7 +5,6 @@ env:
   - a="test/run --karma single-run"
   - a="test/run --karma single-run" BROWSERS=Firefox
   - a="test/run"
-  - a="tools/seed/test/ci"
 
 # workaround https://github.com/npm/npm/issues/6679
 install: "npm install --production && ./tools/gup node_modules/update"
@@ -19,7 +18,7 @@ matrix:
     - node_js: "0.12"
       env: a="test/run"
     - node_js: "0.10"
-      env: a="tools/seed/test/ci"
+      env: a="test/run --karma single-run" BROWSERS=Firefox
   
 notifications:
   email:
