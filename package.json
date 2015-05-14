@@ -26,7 +26,7 @@
   , "google-oauth-jwt": "~0.0.7"
   , "googleapis": "~2.0.3"
   , "agentkeepalive": "=0.1.5"
-  , "ssh2": "git://github.com/onilabs/ssh2.git#aa6d6c7bbaa5f6248794305fef6fd02be9d56828"
+  , "ssh2": "git://github.com/onilabs/ssh2.git#4f60b49a6760ba950c2979b85e58b4857f9e1fd0"
   }
 , "optionalDependencies":
   { "protobuf": "~0.8.6"
