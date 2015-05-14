@@ -81,6 +81,7 @@ function delayed_retract(uninterrupted_acquire, delayed_retract) {
          Password -> Private Key -> Agent -> Keyboard-interactive -> None
    
 */
+var ignore = -> null;
 function connect(parameters, block) {
   var connection = new @Connection();
   
@@ -88,17 +89,18 @@ function connect(parameters, block) {
   // if the default max is left at 10
   connection.setMaxListeners(0);
 
-  waitfor {
-    var err = connection .. @wait('error');
-    
-    // silence further errors that occur due to races & unexpected states in ssh2 teardown
-    connection.on('error', -> null);
 
-    throw err;
+  waitfor {
+    throw connection .. @wait('error');
   }
   or {
     try {
-      connection .. @wait('ready');
+      waitfor {
+        connection .. @wait('end');
+        throw new Error("Socket terminated");
+      } or {
+        connection .. @wait('ready');
+      }
       block(connection);
       connection.end();
     }
@@ -110,7 +112,15 @@ function connect(parameters, block) {
   }
   or {
     connection.connect(parameters);
+    // The ssh2 library can often emit more than one error. We catch the first
+    // error (and throw it), so supporess any unhandled errors which would
+    // otherwise kill the process.
+    connection.on('error', ignore);
+    connection._sock.on('error', ignore);
     hold();
+  } or {
+    connection .. @wait('timeout');
+    throw new Error("Socket timed out");
   }
 }
 exports.connect = connect;
