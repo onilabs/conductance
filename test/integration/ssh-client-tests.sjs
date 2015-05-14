@@ -1,10 +1,40 @@
 @ = require('sjs:test/std');
 @context {|s|
+  @net = require('nodejs:net');
+  var socketServer = function(port) {
+    var server = @net.createServer({
+      pauseOnConnect:true,
+    });
+    server.listen(port);
+    waitfor {
+      server .. @wait('listening');
+    } or {
+      throw (server .. @wait('error'));
+    }
+    return server;
+  }
+  var awaitListeningPort = function(port) {
+    while(true) {
+      waitfor(var err) {
+        var conn = @net.connect(port, 'localhost', resume);
+        conn.on('error', resume);
+      }
+      if(err) {
+        if(err.code === 'ECONNREFUSED') {
+          continue;
+        }
+        throw err;
+      } else {
+        break;
+      }
+    }
+  }
   @ssh = require('mho:ssh-client');
   var { @TemporaryFile } = require('sjs:nodejs/tempfile');
   var { @mkdirp } = require('sjs:nodejs/mkdirp');
   var conn;
-  var sshDir = "/home/#{process.env.USER}/.ssh";
+  var SSH_PORT = 2222;
+  var sshDir = "#{process.env.HOME}/.ssh";
   // NOTE: these tests require passwordless SSH into localhost for the current user.
   // on travis, we set that up right here.
 
@@ -38,7 +68,7 @@
     @test.beforeAll {|s|
 
       serverSettings = {
-        port: 2222,
+        port: SSH_PORT,
         extraConf: '',
       } .. @merge(serverSettings);
       
@@ -177,8 +207,8 @@
 
     @context() {||
       addTestHooks({
-        proxyPort: 2222,
-        port: 2223,
+        proxyPort: SSH_PORT,
+        port: SSH_PORT+1,
       }, { keepAliveInterval: 500});
       @test("network connection error") {|s|
         var active = @Condition();
@@ -198,6 +228,59 @@
         }
         active.isSet .. @assert.eq(true);
       }
+    }
+  }
+
+  @test("socket timeout") {||
+    // make a dummy server which accepts connections but never
+    // makes any response
+    var server = socketServer(SSH_PORT);
+    var connections = [];
+    server.on('connection', function(conn) {
+      connections.push(conn);
+    });
+
+    try {
+      waitfor {
+        @assert.raises({message: 'Socket timed out'}, ->
+          @ssh.connect({port: SSH_PORT, timeout: 1000}) {|conn|
+            throw new Error("ssh connection succeeded");
+          }
+        );
+      } or {
+        hold(2000);
+        throw new Error("Timeout didn't trigger");
+      }
+    } finally {
+      waitfor () {
+        @info("closing server")
+        connections .. @each(c -> c.end());
+        server.close(resume);
+      }
+      @info("server closed");
+    }
+  }
+
+  @test("socket destroyed by server") {||
+    var server = socketServer(SSH_PORT);
+    var connections = [];
+    server.on('connection', function(conn) {
+      conn.destroy();
+    });
+
+    try {
+      @assert.raises({message: 'Socket terminated'}, ->
+        @ssh.connect({port: SSH_PORT, timeout: 1000}) {|conn|
+          throw new Error("ssh connection succeeded");
+        }
+      );
+    } finally {
+      waitfor () {
+        @info("closing server")
+        connections .. @each(c -> c.end());
+        server.close(resume);
+      }
+      @info("server closed");
     }
   }
 
