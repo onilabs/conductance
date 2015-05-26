@@ -54,16 +54,22 @@ function createKeyholeHandler() {
       throw NotFound();
     }
 
-    if (descriptor.file) {
+    var {file, handler} = descriptor;
+    if (file) {
+      logging.debug("serving #{keyhole_path} from #{file}");
       // serve as file from the filesystem
       // XXX this format stuff is a bit of a song and dance
       var formats = { '*': { custom : { mime: descriptor.mime } } };
-      if (!serveFile(req, descriptor.file, {name:'custom'}, {formats:formats})) {
+      if (!serveFile(req, file, {name:'custom'}, {formats:formats})) {
         if (!req.response._header) {
           throw NotFound();
         }
         throw new Error("Cannot serve file");
       }
+    } else {
+      if(!handler) throw new error("Invalid keyhole descriptor");
+      logging.debug("serving #{keyhole_path} with handler");
+      handler(req);
     }
   }
 
