@@ -30,7 +30,7 @@ function createKeyhole() {
 
   return {
     id: id,
-    mappings: mappings, // virtual_path -> { file, mime }
+    mappings: mappings, // virtual_path -> { handler | file, mime }
     close: -> delete keyholes[id]
   }
 }
