@@ -80,7 +80,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 		var toolbar = Element("div", `
 				<div class="trigger">
 					<button class="btn config"><span class="glyphicon glyphicon-cog"></span></button>
-					<button class="btn search" title="Shortcut: /"><span class="glyphicon glyphicon-search"></span></button>
+					<button class="btn search" title="Shortcut: s"><span class="glyphicon glyphicon-search"></span></button>
 				</div>
 			`)
 			.. Class("popupContainer")
@@ -106,7 +106,9 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 				// we ignore keyboard shortcuts while we're performing an action
 				var action;
-				var FORWARD_SLASH = (e) -> !action && e.which == 47;
+				var noModifiers = (e) -> !(e.shiftKey||e.ctrlKey||e.altKey||e.metaKey);
+				var FORWARD_SLASH = (e) -> (console.log(e), !action && e.which == 47 && noModifiers(e));
+				var S_KEY = (e) -> !action && e.which == 115 && noModifiers(e);
 				var PLUS = (e) -> !action && e.which == 43 && e.shiftKey;
 
 				while(true) {
@@ -114,7 +116,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 						waitfor {
 							searchButton .. event.wait('click');
 						} or {
-              document.body .. event.wait('keypress', {filter: FORWARD_SLASH, handle: preventDefault});
+              document.body .. event.wait('keypress', {filter: e -> FORWARD_SLASH(e) || S_KEY(e), handle: preventDefault});
 						}
 						action = doSearch;
 					} or {
@@ -144,7 +146,7 @@ window.withBusyIndicator {|hideBusyIndicator|
 
 		var hint;
 		if (!window.localStorage || !window.localStorage['search-hint-shown']) {
-			hint =  `<div class='alert alert-warning'>Hint: You can press '/' to search the reference<a class='close' href='#'>&times;</a></div>` .. Mechanism(function(node) {
+			hint =  `<div class='alert alert-warning'>Hint: You can press 's' to search the reference<a class='close' href='#'>&times;</a></div>` .. Mechanism(function(node) {
 				node.querySelector('a') .. event.wait('click', {handle: preventDefault});
 				if (window.localStorage)
 					window.localStorage['search-hint-shown'] = true;
