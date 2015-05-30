@@ -1036,14 +1036,22 @@ exports.RawHTML = (str) -> Quasi([str]);
   @return {::Element}
   @desc
     Similar to setting an attribute 'autofocus' on an element, but works in 
-    more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1.
+    more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1. Also, if the element itself is not focusable, the first child element matching the CSS selector `input, a[href], area[href], iframe` will be focussed.
 
     If `Autofocus` is applied to a [::HtmlFragment] that is not of class [::Element], 
     `element` will automatically be wrapped using [::ensureElement].
 */
 // the hold(0) is necessary to make focus work for content that is initially hidden; e.g.
 // in doModal:
-exports.Autofocus = Mechanism("hold(0); this.focus();");
+exports.Autofocus = Mechanism("\
+ hold(0); 
+ this.focus(); 
+ if (document.activeElement !== this) {
+   var focusable = this.querySelector('input, a[href], area[href], iframe');
+   if (focusable)
+     focusable.focus();
+ }
+");
 
 //----------------------------------------------------------------------
 

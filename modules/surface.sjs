@@ -361,7 +361,7 @@ if (require('sjs:sys').hostenv !== 'xbrowser') {
 @return {::Element}
 @desc
   Similar to setting an attribute 'autofocus' on an element, but works in 
-  more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1.
+  more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1. Also, if the element itself is not focusable, the first child element matching the CSS selector `input, a[href], area[href], iframe` will be focussed.
 
   If `Autofocus` is applied to a [::HtmlFragment] that is not of class [::Element], 
   `element` will automatically be wrapped using [::ensureElement].
