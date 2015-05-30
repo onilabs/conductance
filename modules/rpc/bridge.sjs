@@ -413,6 +413,12 @@ function marshall(value, connection) {
           rv = processProperties(value, Object.prototype) .. pairsToObject;
         }
       }
+      else if (typeof value === 'undefined') {
+        // We need to treat 'undefined' specially, because JSON doesn't
+        // allow it, and worse: 
+        // JSON.stringify([undefined]) yields "[null]"!!
+        rv = { __oni_type:'undef' };
+      }
       return rv;
     }
 
@@ -472,6 +478,9 @@ function unmarshallComplexTypes(obj, connection) {
       }
     }
     rv = mod[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
+  }
+  else if (obj.__oni_type === 'undef') {
+    rv = undefined;
   }
   else {
     ownKeys(obj) .. each {
