@@ -69,38 +69,38 @@ function LevelDB(location, options) {
    */
   var MutationEmitter = @Emitter();
 
-  /*
-
-    "itf" - the api object we'll be passing to 'block' - is composed
-    of a low-level API, and of the ITF_KVSTORE interface
-
-   */
-  return {
-    changes: MutationEmitter,
-
-    constructor: Buffer,
-
+  var encoding_backend = {
+    makeEncodingBuffer: Buffer,
+    
     encodeString: function (str) {
       return new Buffer(str, 'utf8');
     },
-
+    
     decodeString: function (buf, start, end) {
       return buf.toString('utf8', start, end);
     },
-
-    encodeValue: function (value) {
-      return @encoding.encodeValue(this, value);
-    },
-
-    decodeValue: function (value) {
-      return @encoding.decodeValue(this, value);
-    },
-
+    
     copy: function (from, to, to_start, from_start, from_end) {
       return from.copy(to, to_start, from_start, from_end);
     },
+    
+    concat: Buffer.concat
+  };
 
-    concat: Buffer.concat,
+  var base = {
+    changes: MutationEmitter,
+
+    encoding_backend : encoding_backend,
+
+
+    encodeValue: function (value) {
+      return @encoding.encodeValue(encoding_backend, value);
+    },
+
+    decodeValue: function (value) {
+      return @encoding.decodeValue(encoding_backend, value);
+    },
+
 
     /**
        @function LevelDB.put
@@ -202,15 +202,10 @@ function LevelDB(location, options) {
       }
     }
   };
+
+  var itf = @wrap.wrapDB(base);
+  itf.close = base.close;
+  return itf;
 }
 exports.LevelDB = LevelDB;
 
-exports.WrappedLevelDB = function (location, options) {
-  var db = LevelDB(location, options);
-  var itf = @wrap.wrapDB(db);
-
-  // It's necessary to manually close the db if you don't provide a block
-  itf.close = db.close;
-
-  return itf;
-};

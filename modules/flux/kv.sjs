@@ -248,8 +248,7 @@ exports.observe = observe;
 
 */
 function observeQuery(store, range, options) {
-  range = @encoding.encodeKeyRange(range);
-  return store[ITF_KVSTORE].observeQuery(range, options) .. @transform(kvs -> kvs .. @transform(decodeKV));
+  return store[ITF_KVSTORE].observeQuery(@util.normalizeKeyRange(range), options || {});
 }
 exports.observeQuery = observeQuery;
 
@@ -324,7 +323,7 @@ function LevelDB(location, options, block) {
     options = {};
   }
 
-  var itf = require('./kv/leveldb').WrappedLevelDB(location, options);
+  var itf = require('./kv/leveldb').LevelDB(location, options);
 
   if (block) {
     try {

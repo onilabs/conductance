@@ -20,8 +20,7 @@
 //----------------------------------------------------------------------
 // high-level ITF_KVSTORE interface implementation
 // TODO move all the @encoding stuff into itf
-function wrapDB(itf) {
-  var out = {};
+function wrapDB(base) {
 
   function kv_query(range, options) {
     var query_opts = {
@@ -32,50 +31,58 @@ function wrapDB(itf) {
     query_opts.gte = range.begin;
     query_opts.lt = range.end;
 
-    return itf.query(query_opts);
+    return base.query(query_opts);
   }
 
   // helper to decode a key,val tuple:
   __js function decodeKV([k, v]) {
-    return [ @encoding.decodeKey(itf, k),
-             itf.decodeValue(v) ];
+    return [ @encoding.decodeKey(base.encoding_backend, k),
+             base.decodeValue(v) ];
   }
 
   var kvstore_interface = {
     get: function(key) {
-      key = @encoding.encodeKey(itf, key);
-      return itf.decodeValue(itf.get(key));
+      key = @encoding.encodeKey(base.encoding_backend, key);
+      return base.decodeValue(base.get(key));
     },
     // XXX collect multiple temporally adjacent calls
     put: function(key, value) {
-      key = @encoding.encodeKey(itf, key);
+      key = @encoding.encodeKey(base.encoding_backend, key);
       if (value === undefined) {
-        return itf.batch([{ type: 'del', key: key }]);
+        return base.batch([{ type: 'del', key: key }]);
       } else {
-        value = itf.encodeValue(value);
-        return itf.batch([{ type: 'put', key: key, value: value }]);
+        value = base.encodeValue(value);
+        return base.batch([{ type: 'put', key: key, value: value }]);
       }
     },
     query: function(range, options) {
-      return kv_query(@encoding.encodeKeyRange(itf, range), options) ..@transform(decodeKV);
+      return kv_query(@encoding.encodeKeyRange(base.encoding_backend, range), options) ..@transform(decodeKV);
     },
     observe: function(key) {
-      key = @encoding.encodeKey(itf, key);
+      key = @encoding.encodeKey(base.encoding_backend, key);
       return @eventStreamToObservable(
-        (itf.changes) ..
+        (base.changes) ..
           @unpack ..
           @filter(kv -> kv.key .. @encoding.encodedKeyEquals(key)) ..
-          @transform({value} -> itf.decodeValue(value)),
-        -> itf.decodeValue(itf.get(key)));
+          @transform({value} -> base.decodeValue(value)),
+        -> base.decodeValue(base.get(key)));
     },
-    /*observeQuery: function(range, options) {
+
+    observeQuery: function(range, options) {
+      // XXX we actually want an ObservableQuery that iterates over the data
+      // lazily and only transmits deltas
+
+      var encoded_range = @encoding.encodeKeyRange(base.encoding_backend, 
+                                                   range);
+
       return @eventStreamToObservable(
-        MutationEmitter ..
-          @filter(kvs -> kvs .. @any(kv -> kv.key .. @encoding.encodedKeyInRange(begin, end))) ..
-          @transform(-> kvstore_interface.range(begin, end, options)),
-        -> kvstore_interface.query(range, options)
+        base.changes ..
+          @filter(kvs -> kvs .. @any(kv -> kv.key .. @encoding.encodedKeyInRange(encoded_range.begin, encoded_range.end))) ..
+          @transform(-> kv_query(encoded_range, options) .. @transform(decodeKV) .. @toArray),
+        -> kv_query(encoded_range, options) .. @transform(decodeKV) .. @toArray
       );
-    },*/
+    },
+
     // TODO use SortedDict rather than converting keys to hex strings
     withTransaction: function(options, block) {
 
@@ -98,32 +105,32 @@ function wrapDB(itf) {
       var T = {};
       T[@kv.ITF_KVSTORE] = {
         get: function(key) {
-          key = @encoding.encodeKey(itf, key);
+          key = @encoding.encodeKey(base.encoding_backend, key);
 
           var hex_key = @util.bytesToHexString(key);
 
           // check if we've written this key:
           var kv = pendingPuts[hex_key];
-          if (kv) return itf.decodeValue(kv[1]);
+          if (kv) return base.decodeValue(kv[1]);
 
           // else, check if we've already read it:
           var v = reads[hex_key];
-          if (v) return itf.decodeValue(v);
+          if (v) return base.decodeValue(v);
 
           // else read from db:
-          var val = itf.get(key);
+          var val = base.get(key);
           reads[hex_key] = val;
-          return itf.decodeValue(val);
+          return base.decodeValue(val);
         },
         put: function(key, value) {
-          key = @encoding.encodeKey(itf, key);
+          key = @encoding.encodeKey(base.encoding_backend, key);
           if (value !== undefined) {
-            value = itf.encodeValue(value);
+            value = base.encodeValue(value);
           }
           pendingPuts[@util.bytesToHexString(key)] = [key, value];
         },
         query: function(range, options) {
-          range = @encoding.encodeKeyRange(itf, range);
+          range = @encoding.encodeKeyRange(base.encoding_backend, range);
           queries.push([range.begin,range.end]);
 
           return @transform(decodeKV) ::
@@ -224,7 +231,7 @@ function wrapDB(itf) {
           // guarantee is that *multiple* reads/writes are consistent
           // with each other. But commonly a transaction would be used
           // for multiple reads/writes, so not much is gained by finer granularity.
-          (itf.changes) .. @unpack .. @each {
+          (base.changes) .. @unpack .. @each {
             |{key}|
             var hex_key = @util.bytesToHexString(key);
             if (pendingPuts[hex_key] ||
@@ -241,7 +248,7 @@ function wrapDB(itf) {
         // implementation of client code more complicated though.
         if (!conflict) {
           // we can commit our pending reads:
-          itf.batch(pendingPuts .. @values .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
+          base.batch(pendingPuts .. @values .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
           return rv;
         }
         // go round loop and retry:
@@ -252,7 +259,8 @@ function wrapDB(itf) {
     }
   };
 
-  out[@kv.ITF_KVSTORE] = kvstore_interface;
-  return out;
+  var rv = {};
+  rv[@kv.ITF_KVSTORE] = kvstore_interface;
+  return rv;
 }
 exports.wrapDB = wrapDB;

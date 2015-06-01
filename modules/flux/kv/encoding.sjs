@@ -88,19 +88,19 @@ __js {
     return nullBytes;
   }
 
-  function single(info, x) {
-    var out = info.constructor(1);
+  function single(backend, x) {
+    var out = backend.makeEncodingBuffer(1);
     out[0] = x;
     return out;
   }
 
-  function encode(info, item) {
+  function encode(backend, item) {
     var encodedString;
     if(typeof item === 'undefined')
       throw new TypeError('Key component cannot be undefined');
 
     else if(item === null)
-      return single(info, 0x00);
+      return single(backend, 0x00);
 
     //byte string or unicode
     // TODO better isArrayLike test
@@ -108,24 +108,24 @@ __js {
       var unicode = typeof item === 'string';
 
       if (unicode) {
-        item = info.encodeString(item);
+        item = backend.encodeString(item);
       }
 
       var nullBytes = findNullBytes(item, 0);
 
-      encodedString = info.constructor(2 + item.length + nullBytes.length);
+      encodedString = backend.makeEncodingBuffer(2 + item.length + nullBytes.length);
       encodedString[0] = unicode ? 2 : 1;
 
       var srcPos = 0;
       var targetPos = 1;
       for(var i = 0; i < nullBytes.length; ++i) {
-        info.copy(item, encodedString, targetPos, srcPos, nullBytes[i] + 1);
+        backend.copy(item, encodedString, targetPos, srcPos, nullBytes[i] + 1);
         targetPos += nullBytes[i] + 1 - srcPos;
         srcPos = nullBytes[i] + 1;
         encodedString[targetPos++] = 0xff;
       }
 
-      info.copy(item, encodedString, targetPos, srcPos, item.length);
+      backend.copy(item, encodedString, targetPos, srcPos, item.length);
       encodedString[encodedString.length - 1] = 0x00;
 
       return encodedString;
@@ -147,7 +147,7 @@ __js {
 
       var prefix = negative ? 20 - length : 20 + length;
 
-      var outBuf = info.constructor(length+1);
+      var outBuf = backend.makeEncodingBuffer(length+1);
       outBuf[0] = prefix;
       for(var byteIdx = length-1; byteIdx >= 0; --byteIdx) {
         var b = posItem & 0xff;
@@ -171,16 +171,16 @@ __js {
      @function encodeKey
      @summary XXX write me
    */
-  function encodeKey(info, arr) {
+  function encodeKey(backend, arr) {
     var totalLength = 0;
 
     var outArr = new Array(arr.length);
     for (var i = 0; i < arr.length; ++i) {
-      outArr[i] = encode(info, arr[i]);
+      outArr[i] = encode(backend, arr[i]);
       totalLength += outArr[i].length;
     }
 
-    return info.concat(outArr, totalLength);
+    return backend.concat(outArr, totalLength);
   }
   exports.encodeKey = encodeKey;
 
@@ -209,7 +209,7 @@ __js {
     return num;
   }
 
-  function decode(info, buf, pos) {
+  function decode(backend, buf, pos) {
     var code = buf[pos];
     var value;
 
@@ -224,14 +224,14 @@ __js {
       var end = nullBytes[nullBytes.length-1];
 
       if(code === 2 && nullBytes.length === 1) {
-        value = info.decodeString(buf, start, end);
+        value = backend.decodeString(buf, start, end);
       }
       else {
-        value = info.constructor(end-start-(nullBytes.length-1));
+        value = backend.makeEncodingBuffer(end-start-(nullBytes.length-1));
         var valuePos = 0;
 
         for(var i=0; i < nullBytes.length && start < end; ++i) {
-          info.copy(buf, value, valuePos, start, nullBytes[i]);
+          backend.copy(buf, value, valuePos, start, nullBytes[i]);
           valuePos += nullBytes[i] - start;
           start = nullBytes[i] + 2;
           if(start <= end) {
@@ -240,7 +240,7 @@ __js {
         }
 
         if(code === 2) {
-          value = info.decodeString(value, 0, value.length);
+          value = backend.decodeString(value, 0, value.length);
         }
       }
 
@@ -266,12 +266,12 @@ __js {
      @function decodeKey
      @summary XXX write me
    */
-  function decodeKey(info, key) {
+  function decodeKey(backend, key) {
     var res = { pos: 0 };
     var arr = [];
 
     while(res.pos < key.length) {
-      res = decode(info, key, res.pos);
+      res = decode(backend, key, res.pos);
       arr.push(res.value);
     }
 
@@ -284,20 +284,20 @@ __js {
      @function encodeKeyRange
      @summary XXX write me
    */
-  function encodeKeyRange(info, arr) {
+  function encodeKeyRange(backend, arr) {
     // TODO code duplication with util.transformKeyRange
     if (typeof arr === 'object' && !Array.isArray(arr)) {
       return {
-        begin: encodeKey(info, arr.begin),
-        end: (arr.end !== undefined ? encodeKey(info, arr.end) : single(info, 0xff))
+        begin: encodeKey(backend, arr.begin),
+        end: (arr.end !== undefined ? encodeKey(backend, arr.end) : single(backend, 0xff))
       };
     }
     else {
-      var packed = encodeKey(info, arr);
+      var packed = encodeKey(backend, arr);
       return {
         // TODO a specialized push function can be faster than this
-        begin: info.concat([packed, single(info, 0x00)], packed.length + 1),
-        end: info.concat([packed, single(info, 0xff)], packed.length + 1)
+        begin: backend.concat([packed, single(backend, 0x00)], packed.length + 1),
+        end: backend.concat([packed, single(backend, 0xff)], packed.length + 1)
       };
     }
   }
@@ -388,13 +388,13 @@ __js {
      @function encodeValue
      @summary XXX write me
    */
-  function encodeValue(info, unencoded) {
+  function encodeValue(backend, unencoded) {
     // XXX at the moment we encode everything as JSON.
     // later we should add in at least binary encoding (from Buffer/ArrayBuffer)
 
-    var json = info.encodeString(JSON.stringify(unencoded));
+    var json = backend.encodeString(JSON.stringify(unencoded));
 
-    return info.concat([single(info, VALUE_TYPE_JSON), json], json.length + 1);
+    return backend.concat([single(backend, VALUE_TYPE_JSON), json], json.length + 1);
   }
   exports.encodeValue = encodeValue;
 
@@ -402,11 +402,11 @@ __js {
      @function decodeValue
      @summary XXX write me
    */
-  function decodeValue(info, encoded) {
+  function decodeValue(backend, encoded) {
     if (encoded == null) return undefined;
     if (encoded[0] !== VALUE_TYPE_JSON)
       throw new Error("Unknown data type '#{encoded[0]}' in DB value");
-    var decoded = info.decodeString(encoded, 1, encoded.length);
+    var decoded = backend.decodeString(encoded, 1, encoded.length);
     return JSON.parse(decoded);
   }
   exports.decodeValue = decodeValue;

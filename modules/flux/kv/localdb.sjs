@@ -276,7 +276,7 @@ var SortedDict = (function () {
   Dict.prototype.serialize = function () {
     var s = iter_tree(this.root) ..@map(function ([key, value]) {
       // TODO inefficient that this decodes the key
-      return "  [" + JSON.stringify(@encoding.decodeKey(itf_encoding, key)) + ", " + JSON.stringify(value) + "]";
+      return "  [" + JSON.stringify(@encoding.decodeKey(encoding_backend, key)) + ", " + JSON.stringify(value) + "]";
     });
 
     return "[\n" + s.join(",\n") + "\n]";
@@ -330,8 +330,8 @@ function save_db(dict, options) {
   }
 }
 
-var itf_encoding = {
-  constructor: Array,
+var encoding_backend = {
+  makeEncodingBuffer: Array,
 
   // TODO this is inefficient
   encodeString: function (str) {
@@ -389,12 +389,7 @@ function wrap_dict(dict, options) {
   var MutationEmitter = @Emitter();
 
   return {
-    // TODO get rid of this stuff
-    constructor: itf_encoding.constructor,
-    encodeString: itf_encoding.encodeString,
-    decodeString: itf_encoding.decodeString,
-    copy: itf_encoding.copy,
-    concat: itf_encoding.concat,
+    encoding_backend : encoding_backend,
 
     changes: MutationEmitter,
 
@@ -449,7 +444,7 @@ function wrap_dict(dict, options) {
 function load_db1(dict, input) {
   return JSON.parse(input) ..@reduce(dict, function (dict, [key, value]) {
     // TODO inefficient that this encodes the key
-    return dict.set(@encoding.encodeKey(itf_encoding, key), value);
+    return dict.set(@encoding.encodeKey(encoding_backend, key), value);
   });
 }
 

@@ -72,10 +72,13 @@ function Encrypted(input, settings) {
         }
       },
       query: function (range, options) {
-        return db.query(range, options) ..@transform(decodeKV);
+        return db.query(range, options) .. @transform(decodeKV);
       },
       observe: function (key) {
-        return db.observe(key) ..@transform(decrypt);
+        return db.observe(key) .. @transform(decrypt);
+      },
+      observeQuery: function (range, options) {
+        return db.observeQuery(range, options) .. @transform(arr -> arr .. @project(decodeKV));
       },
       withTransaction: function (options, block) {
         if (in_transaction) {

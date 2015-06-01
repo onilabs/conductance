@@ -40,6 +40,7 @@ function Subspace(input, prefix) {
   }
 
   function unprefixKV([key, value]) {
+    console.log("unprefixKV([#{key .. @inspect}, #{value .. @inspect}])");
     return [unprefixKey(key), value];
   }
 
@@ -49,19 +50,23 @@ function Subspace(input, prefix) {
     var out = {};
 
     out[@kv.ITF_KVSTORE] = {
-      get: function (key) {
+      get: function(key) {
         return db.get(prefixKey(key));
       },
-      put: function (key, value) {
+      put: function(key, value) {
         return db.put(prefixKey(key), value);
       },
-      query: function (range, options) {
-        return db.query(@util.transformKeyRange(range, prefixKey), options) ..@transform(unprefixKV);
+      query: function(range, options) {
+        return db.query(@util.transformKeyRange(range, prefixKey), options) .. @transform(unprefixKV);
       },
-      observe: function (key) {
+      observe: function(key) {
         return db.observe(prefixKey(key));
       },
-      withTransaction: function (options, block) {
+      observeQuery: function(range, options) {
+        return db.observeQuery(@util.transformKeyRange(range, prefixKey), options) .. @transform(arr -> arr .. @project(unprefixKV));
+      },
+
+      withTransaction: function(options, block) {
         if (in_transaction) {
           return block(out);
 
