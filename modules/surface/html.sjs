@@ -163,7 +163,7 @@ var _map = function(items, fn) {
 */
 
 __js function wrapLi(item) { 
-  if (@isElementOfType(item, 'li')) return item;
+  if (@isElementOfType(item, 'li') || @isStream(item)) return item;
   return exports.Li(item);
 }
 
