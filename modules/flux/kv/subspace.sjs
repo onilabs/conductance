@@ -40,7 +40,6 @@ function Subspace(input, prefix) {
   }
 
   function unprefixKV([key, value]) {
-    console.log("unprefixKV([#{key .. @inspect}, #{value .. @inspect}])");
     return [unprefixKey(key), value];
   }
 
