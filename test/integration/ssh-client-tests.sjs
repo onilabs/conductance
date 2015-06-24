@@ -201,7 +201,7 @@
         var opts = fullOpts .. @clone();
         opts[key] = undefined;
         var expectedMeassage = key === 'username'
-          ? "Cannot read property 'length' of undefined"
+          ? /Cannot read property 'length' of undefined|Argument must be a string/
           : /Authentication failure/;
         @assert.raises(
           {message: expectedMeassage},
