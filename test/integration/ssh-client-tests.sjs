@@ -81,6 +81,7 @@
           port: serverSettings.proxyPort || serverSettings.port,
           debug: @logging.debug,
         } .. @merge(clientSettings);
+        @info("Connect opts:", connectOpts);
         var key = [ "id_rsa", "id_dsa" ] .. @transform(f -> @path.join(sshDir, f)) .. @find(@fs.exists, null);
         if(!key) throw new Error("Couldn't find SSH key (and $SSH_AUTH_SOCK not set)");
         @info("using SSH private key #{key}");
@@ -185,6 +186,29 @@
         }
       );
     };
+  }
+
+  @context("usage errors") {||
+    var fullOpts = {
+      host: 'localhost',
+      username: process.env.USER,
+      port: SSH_PORT,
+    }
+
+    addTestHooks();
+    fullOpts .. @ownKeys .. @each {|key|
+      @test("missing #{key}") {||
+        var opts = fullOpts .. @clone();
+        opts[key] = undefined;
+        var expectedMeassage = key === 'username'
+          ? "Cannot read property 'length' of undefined"
+          : /Authentication failure/;
+        @assert.raises(
+          {message: expectedMeassage},
+          -> @ssh.connect(opts, -> null)
+        );
+      }
+    }
   }
 
 
