@@ -245,9 +245,9 @@ function runRaftServer(settings, clientBlock) {
     }
     or {
       // send requests to all servers; count if we've got a majority
-      var votes_needed = Math.round((@keys(servers) .. @count +1)/2 + .5)-1;
+      var votes_needed = Math.round((@ownKeys(servers) .. @count +1)/2 + .5)-1;
       //LOG("requestVotes (required=#{votes_needed}) in term #{state.currentTerm}");
-      @propertyPairs(servers) .. @each.par {
+      @ownPropertyPairs(servers) .. @each.par {
         |[key, server]|
         var { term, voteGranted } = server.requestVote(state.currentTerm, myId, state.log.length, getLastLogTerm());
         checkTermCurrent(term);
@@ -278,7 +278,7 @@ function runRaftServer(settings, clientBlock) {
         
         waitfor {
           //LOG("sending heartbeat");
-          @propertyPairs(servers) .. @each.par {
+          @ownPropertyPairs(servers) .. @each.par {
             |[key, server]|
             var { term, success } = server.appendEntries(state.currentTerm, myId, state.log.length, getLastLogTerm(),
                                                          [], commitIndex);
@@ -301,7 +301,7 @@ function runRaftServer(settings, clientBlock) {
     and {
 
       // initialize volatile state for leader:
-      @values(servers) .. @each { |server|
+      @ownValues(servers) .. @each { |server|
         server.nextIndex = state.log.length + 1;
         server.matchIndex = 0;
       }

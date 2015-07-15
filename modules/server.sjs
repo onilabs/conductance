@@ -18,7 +18,7 @@ var cutil = require('sjs:cutil');
 var http = require('sjs:nodejs/http');
 var { each, map, filter, find, toArray, join } = require('sjs:sequence');
 var { flatten } = require('sjs:array');
-var { override, propertyPairs, keys, merge, clone, extend } = require('sjs:object');
+var { override, propertyPairs, ownKeys, merge, clone, extend } = require('sjs:object');
 var { isHttpError, HttpError, NotFound } = require('./server/response');
 var logging = require('sjs:logging');
 var {Constructor} = require('sjs:object');
@@ -432,7 +432,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
   // check if there's a handler function for the given method:
   var handler = this.handlers[req.request.method] || this.handlers['*'];
   if (!handler) {
-    req.response.setHeader('Allow', keys(this.handlers) .. join(', '));
+    req.response.setHeader('Allow', ownKeys(this.handlers) .. join(', '));
     throw HttpError(405, 'Method not allowed');
   }
   handler.call(this.handlers, req, pathMatches);

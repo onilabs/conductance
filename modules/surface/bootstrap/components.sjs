@@ -1306,6 +1306,8 @@ exports.HorizontalForm = content -> @html.Div(content, {'class':'form-horizontal
   @function FormGroup
   @summary A Bootstrap container for a form control (`<div class='form-group'>`)
   @param {surface::HtmlFragment} [content]
+  @param {Object} [settings]
+  @setting {Boolean} [showValidationMessage=false] Whether to display validation error / warning messages
   @return {surface::Element}
   @desc
     #### Binding to fields on client-side ([sjs:sys::hostenv] === 'xbrowser')
@@ -1320,7 +1322,7 @@ exports.HorizontalForm = content -> @html.Div(content, {'class':'form-horizontal
 
     See [./field::Field] and [./field::FieldMap] for example usage.
 */
-exports.FormGroup = (content) -> 
+exports.FormGroup = (content, settings) ->
   @html.Div(content, {'class': 'form-group'}) .. 
   @Mechanism(function(node) {
     var field = node .. @field.getField();

@@ -357,7 +357,7 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
 
   // now go through schema and pick up special properties (such as
   // __key), check if required properties are there, (and fill in default properties?)
-  @propertyPairs(schema) .. @each {
+  @ownPropertyPairs(schema) .. @each {
     |[name, descriptor]|
     if (js_data[name]) continue; // already there
     if (!descriptor) continue; // a property that's explicitly set to 'undefined' or 'null'
@@ -604,7 +604,7 @@ function GoogleCloudDatastore(attribs) {
         }
         else if (isSimpleType(descriptor.type) || descriptor.type === 'ref') {
           if (typeof(node.value) === 'object') {
-            @keys(QUERY_OPERATORS) .. @filter(op -> node.value[op] !== undefined) .. @each {
+            @ownKeys(QUERY_OPERATORS) .. @filter(op -> node.value[op] !== undefined) .. @each {
               |op|
               filters.push({
                 propertyFilter: {
@@ -681,7 +681,7 @@ function GoogleCloudDatastore(attribs) {
       // XXX does it make sense to hardcode this default limit (e.g. 500) here?
       request.query.limit = query_descriptor.limit || 500;
 
-      sorts = sorts .. @propertyPairs .. @sortBy('0') .. @map([,prop] -> prop);
+      sorts = sorts .. @ownPropertyPairs .. @sortBy('0') .. @map([,prop] -> prop);
       if (sorts.length) {
         request.query.order = sorts;
       }
@@ -903,7 +903,7 @@ function GoogleCloudDatastore(attribs) {
 //                console.log('transaction failed; retrying');
                 continue;
               }
-              change_buffer.addChanges(@keys(mutated_ids) .. @map(id -> { id: id, schema: id .. KeyToKind }));
+              change_buffer.addChanges(@ownKeys(mutated_ids) .. @map(id -> { id: id, schema: id .. KeyToKind }));
               return rv;
             }
           }

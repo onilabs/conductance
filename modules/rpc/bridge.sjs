@@ -125,13 +125,12 @@ Protocol:
 var logging = require('sjs:logging');
 var { each, toArray, map, filter, find, join, transform, isStream, isBatchedStream, BatchedStream, Stream, at, any } = require('sjs:sequence');
 var { hostenv } = require('sjs:sys');
-var { pairsToObject, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
+var { pairsToObject, allKeys, ownKeys, get, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
 var { isString, startsWith } = require('sjs:string');
 var { identity, isFunction, ITF_SIGNAL, signal } = require('sjs:function');
 var { Emitter, wait } = require('sjs:event');
 var { Quasi, isQuasi } = require('sjs:quasi');
-var { ownKeys, keys, propertyPairs, get } = require('sjs:object');
 var { eq } = require('sjs:compare');
 var bytes = require('sjs:bytes');
 var http = require('sjs:http');
@@ -326,7 +325,7 @@ function marshall(value, connection) {
       if(value.__oni_marshalling_properties)
         k = value.__oni_marshalling_properties.concat('__oni_marshalling_properties');
       else
-        k = keys(value) .. filter(name ->
+        k = allKeys(value) .. filter(name ->
           root[name] !== value[name] && (
             name === '__oni_apiid' || (
               name !== 'toString' && 
@@ -403,7 +402,7 @@ function marshall(value, connection) {
           // publish on the connection:
           connection.publishAPI(value);
           // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
-          var methods = keys(value.obj) .. 
+          var methods = allKeys(value.obj) .. 
             filter(name -> typeof value.obj[name] === 'function') ..
             toArray;
           rv = { __oni_type:'api', id: value.id, methods: methods};

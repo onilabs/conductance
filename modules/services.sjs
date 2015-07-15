@@ -112,7 +112,7 @@ exports.run = function(registry, configuration, block) {
   try {
     var service_ctxs = [];
     var services = {};
-    configuration .. @propertyPairs .. @each.par {
+    configuration .. @ownPropertyPairs .. @each.par {
       |[name, service_id]|
       var descriptor = registry.descriptors[service_id];
       if (!descriptor) {
@@ -168,7 +168,7 @@ exports.configUI = function(registry) {
     // save each service's config under a separate key:
 
     // XXX we only really need to write *changed* services here
-    Config .. @current .. @propertyPairs .. @each.par {
+    Config .. @current .. @ownPropertyPairs .. @each.par {
       |[name,val]|
       registry .. modulesConfigDB .. @kv.set(name, val);
     }

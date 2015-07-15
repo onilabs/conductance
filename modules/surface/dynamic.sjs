@@ -20,7 +20,7 @@
 // if hostenv == xbrowser
 
 var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator } = require('./base');
-var { propertyPairs, keys, merge } = require('sjs:object');
+var { ownPropertyPairs, ownKeys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { events, wait } = require('sjs:event');
@@ -39,7 +39,7 @@ var mechanismsInstalled = {};
 
 var resourceRegistry = {
   useCSSDefs: function(defs) {
-    propertyPairs(defs) .. each {
+    ownPropertyPairs(defs) .. each {
       |[id, [cnt,def]]|
       var desc;
       if (!(desc = cssInstalled[id])) {
@@ -67,7 +67,7 @@ var resourceRegistry = {
     }   
   },
   unuseCSSDefs: function(defs) {
-    keys(defs) .. each { 
+    ownKeys(defs) .. each { 
       |id|
       this.unuseCSS(id);
     }
@@ -88,7 +88,7 @@ var resourceRegistry = {
   // XXX no real need to go through the whole use/unuse machinery for
   // typeof code == function
   useMechanisms: function(mechs) {
-    propertyPairs(mechs) .. each {
+    ownPropertyPairs(mechs) .. each {
       |[id, code]|
       var desc;
       if (!(desc = mechanismsInstalled[id])) {
@@ -247,12 +247,12 @@ function insertHtml(html, block, doInsertHtml) {
   html = collapseHtmlFragment(html);
   
   // load external scripts:
-  keys(html.getExternalScripts()) .. each {
+  ownKeys(html.getExternalScripts()) .. each {
     |url| require('sjs:xbrowser/dom').script(url);
   }
 
   // load external css:
-  keys(html.getExternalCSS()) .. each {
+  ownKeys(html.getExternalCSS()) .. each {
     |url| require('sjs:xbrowser/dom').css(url);
   }
 
@@ -273,7 +273,7 @@ function insertHtml(html, block, doInsertHtml) {
   finally {
     // now they have been run (or not), we can tell the resource registry to
     // remove the mechanisms again
-    resourceRegistry.unuseMechanisms(propertyPairs(mechs) .. map([id, code] -> id) .. toArray);
+    resourceRegistry.unuseMechanisms(ownPropertyPairs(mechs) .. map([id, code] -> id) .. toArray);
   }
 
 

@@ -18,7 +18,7 @@
 var { isQuasi, Quasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
 var { each, indexed, reduce, map, join, isStream, first, toArray } = require('sjs:sequence');
-var { clone, propertyPairs, extend, hasOwn } = require('sjs:object');
+var { clone, ownPropertyPairs, extend, hasOwn } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
 var array = require('sjs:array');
@@ -127,7 +127,7 @@ __js CollapsedFragmentProto .. extend({
 });
 
 __js function extendCSS(target, src) {
-  propertyPairs(src) .. each(function([id,def]) {
+  ownPropertyPairs(src) .. each(function([id,def]) {
     if (target[id])
       target[id] = [target[id][0]+def[0], def[1]];
     else
@@ -348,7 +348,7 @@ __js ElementProto._normalizeClasses = function() {
 __js var flattenAttrib = (val) -> Array.isArray(val) ? val .. join(" ") : val;
 
 ElementProto.appendTo = function(target) {
-  var attribs = propertyPairs(this.attribs)
+  var attribs = ownPropertyPairs(this.attribs)
     .. map(function([key,val]) {
       if (typeof(val) === 'undefined') return "";
       if (typeof(val) === 'boolean') {
@@ -375,7 +375,7 @@ ElementProto._appendInner = func.seq(FragmentBase.appendTo, function(target) {
 ElementProto.createElement = function() { 
   // xbrowser env only
   var elem = document.createElement(this.tag);
-  propertyPairs(this.attribs) .. each(
+  ownPropertyPairs(this.attribs) .. each(
     function([name,val]) {
       elem.setAttribute(name, flattenAttrib(val));
     }

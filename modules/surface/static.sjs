@@ -16,7 +16,7 @@
 */
 
 var html  = require('./base');
-var { values, propertyPairs, keys, merge } = require('sjs:object');
+var { ownValues, ownPropertyPairs, ownKeys, merge } = require('sjs:object');
 var { sanitize, isString } = require('sjs:string');
 var { map, join, each } = require('sjs:sequence');
 var docFragment = require('./doc-fragment');
@@ -103,15 +103,15 @@ exports.Document = function(content, settings) {
   }
 
   var styleLinkTag = url -> `<link rel='stylesheet' href='${url}'>`;
-  headContent = headContent.concat(keys(content.getExternalCSS()) .. map(styleLinkTag));
+  headContent = headContent.concat(ownKeys(content.getExternalCSS()) .. map(styleLinkTag));
 
   var scriptTag = url -> `<script src="${url}"></script>`;
-  headContent = headContent.concat(keys(content.getExternalScripts()) .. map(scriptTag));
+  headContent = headContent.concat(ownKeys(content.getExternalScripts()) .. map(scriptTag));
 
   if(externalScripts)
     headContent = headContent.concat(externalScripts .. map(scriptTag));
 
-  var cssDefs = values(content.getCSSDefs()) ..
+  var cssDefs = ownValues(content.getCSSDefs()) ..
       map([ref_count,def] -> def.getHtml() .. html.RawHTML());
 
   headContent = headContent.concat(cssDefs);
@@ -120,7 +120,7 @@ exports.Document = function(content, settings) {
     runtimeInit = docFragment.initializeRuntime('/');
   headContent.push(runtimeInit);
 
-  var mechanisms = propertyPairs(content.getMechanisms()) ..
+  var mechanisms = ownPropertyPairs(content.getMechanisms()) ..
     map(function([id, code]) {
       if (typeof code !== 'string')
         throw new Error('Static surface code cannot contain mechanisms with function objects');

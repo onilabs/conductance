@@ -581,14 +581,14 @@ var FieldMap = (elem) ->
       getField: function(name) { return fieldmap[name]; },
       addField: function(name, field_node) {
         if (!name) throw new Error("Fields added to FieldMap require a name");
-        if (fieldmap[name]) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
+        if (fieldmap .. @hasOwn(name)) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
         
         fieldmap[name] = field_node;
         field_mutation_emitter.emit();
       },
       removeField: function(name, field_node) {
+        if(!fieldmap .. @hasOwn(name)) throw new Error("Field '#{name}' not found in FieldMap");
         var entry = fieldmap[name];
-        if (!entry) throw new Error("Field '#{name}' not found in FieldMap");
         delete fieldmap[name];
         field_mutation_emitter.emit();
       }
@@ -604,7 +604,7 @@ var FieldMap = (elem) ->
       // Keep our associated observable up to date:
       while (1) {
         waitfor {
-          var args = @propertyPairs(fieldmap) .. @map([,subfield] -> subfield[CTX_FIELD].value);
+          var args = @ownPropertyPairs(fieldmap) .. @map([,subfield] -> subfield[CTX_FIELD].value);
           
           if (args.length === 0) {
             current_value = {};
@@ -614,7 +614,7 @@ var FieldMap = (elem) ->
           
           // the hold(0) is necessary so that we don't get individual notifications when setting several 
           // subfields in a temporally contiguous block
-          args.push(-> (hold(0),@zip(@keys(fieldmap), arguments) .. @pairsToObject));
+          args.push(-> (hold(0),@zip(@ownKeys(fieldmap), arguments) .. @pairsToObject));
           @observe.apply(null, args) .. @each {
             |x| 
             current_value = x;
@@ -632,7 +632,7 @@ var FieldMap = (elem) ->
       field.value .. @each {
         |x|
         if (x === current_value) continue;
-        @propertyPairs(x) .. @each {
+        @ownPropertyPairs(x) .. @each {
           |[key,val]|
           var subfield = fieldmap[key];
           if (!subfield) continue;
@@ -644,7 +644,7 @@ var FieldMap = (elem) ->
       // add validator to the field:
       field.validators.push(function() {
         var errors = [], warnings = [];
-        @propertyPairs(fieldmap) .. 
+        @ownPropertyPairs(fieldmap) .. 
           @transform.par([key,subfield] -> [key, subfield[CTX_FIELD].validate()]) .. @each {
             |[key,state]|
             if (state.errors.length)
