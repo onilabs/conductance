@@ -519,6 +519,9 @@ context("non-root locations") {||
       logging.info("Resolving: #{url}");
       var resolved = bridge.resolve(url);
       resolved.server .. assert.eq("http://localhost:#{port}#{dest}");
+
+      var expected = "http://localhost:#{port}#{dest}";
+      @url.normalize(resolved.root, url) .. @assert.eq(expected);
       resolved.root .. assert.eq(expectedRelative);
     }
   }
@@ -533,7 +536,7 @@ context("non-root locations") {||
     
     // non-canonical URLs are unlikely, but can probably happen:
     testResolve('/proxy/', 'parent/fixtures/../fixtures/', '../../');
-    testResolve('/proxy/', 'parent//fixtures/../fixtures/', '../../../');
+    testResolve('/proxy/', 'parent//fixtures/../fixtures/', '../../');
   }
 
   context("redirected API maintains relative address") {||
