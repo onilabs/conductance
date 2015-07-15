@@ -1376,6 +1376,8 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @function FormGroup
 @summary A Bootstrap container for a form control (`<div class='form-group'>`)
 @param {surface::HtmlFragment} [content]
+@param {Object} [settings]
+@setting {Boolean} [showValidationMessage=false] Whether to display validation error / warning messages
 @return {surface::Element}
 @desc
   #### Binding to fields on client-side ([sjs:sys::hostenv] === 'xbrowser')
