@@ -178,6 +178,7 @@ exports.validate = validate;
 
 /**
   @class ValidationState
+  @summary Validation state
   @desc
     Each element of `errors` and `warnings` is either
     a string, or an object with a `key` and `message` property.
@@ -206,7 +207,7 @@ exports.validate = validate;
    @summary Return the validation state [sjs:observable::Observable] for a field
    @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
    @desc
-     The returned [sjs::observable::ObservableVar] contains a [::ValidationState] object.
+     The returned [sjs:observable::ObservableVar] contains a [::ValidationState] object.
 
      See [::Field] for an example.
 */
