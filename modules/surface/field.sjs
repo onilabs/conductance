@@ -177,11 +177,37 @@ function validate(node) {
 exports.validate = validate;
 
 /**
+  @class ValidationState
+  @desc
+    Each element of `errors` and `warnings` is either
+    a string, or an object with a `key` and `message` property.
+
+    The `key` property allows you to perform validations on
+    [::FieldMap] fields, but to have the returned errors
+    associated with a specific field (rather than the entire
+    [::FieldMap]).
+
+  @variable ValidationState.state
+  @type String
+  @summary `'error'` | `'warning'` | `'success'` | `'unknown'`
+
+  @variable ValidationState.errors
+  @type an Array
+  @summary Array
+
+  @variable ValidationState.warnings
+  @type an Array
+  @summary Array
+*/
+
+/**
    @function validationState
    @altsyntax node .. validationState
    @summary Return the validation state [sjs:observable::Observable] for a field
    @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
    @desc
+     The returned [sjs::observable::ObservableVar] contains a [::ValidationState] object.
+
      See [::Field] for an example.
 */
 function validationState(node) {
@@ -348,26 +374,43 @@ function run_validators(field) {
   var errors = [], warnings = [];
   // execute the validators in parallel, but obtain an ordered
   // results set:
-  field.validators .. @transform.par(v -> v(field.value .. @current)) .. @each {
+  field.validators .. @transform.par(v -> v(field.value .. @current, field)) .. @each {
     |validation_result|
     if (validation_result === true) continue;
     if (typeof validation_result === 'string')
       errors.push(validation_result);
     else if (typeof validation_result === 'object') {
+      var keyed = validation_result.key
+        ? (msg) -> {key:validation_result.key, message: msg}
+        : -> msg;
+
       if (validation_result.error)
-        errors.push(validation_result.error);
+        errors.push(keyed(validation_result.error));
       if (validation_result.warning)
-        warnings.push(validation_result.warning);
+        warnings.push(keyed(validation_result.warning));
       if (validation_result.errors)
         errors = errors.concat(validation_result.errors);
       if (validation_result.warnings)
         warnings = warnings.concat(validation_result.warnings);
     }
     else
-      errors.push("Unspecified validation error");
+      errors.push(null);
   }
   
   return { errors: errors, warnings: warnings };
+}
+
+function ValidationState(state) {
+  // takes a raw object with `errors` / `warnings` and sets its `state` summary field.
+  if(state.errors && state.warnings) {
+    if (state.errors.length)
+      state.state = 'error';
+    else if (state.warnings.length)
+      state.state = 'warning';
+    else
+      state.state = 'success';
+  } else state.state = 'unknown';
+  return state;
 }
 
 function validate_field() {
@@ -381,19 +424,34 @@ function validate_field() {
     hold(100);
     // if the validators don't return immediately, we reset
     // the validation_state to 'unknown':
-    if ((field.validation_state .. @current).state !== 'unknown')
-      field.validation_state.set({state:'unknown'});
+    field.validation_state.modify(function(current) {
+      if(current.state === 'unknown') return current;
+      return {state:'unknown'};
+    });
     hold();
   }
-  var state;
-  if (errors.length)
-    state = 'error';
-  else if (warnings.length)
-    state = 'warning';
-  else
-    state = 'success';
-  var rv = {state: state, errors: errors, warnings: warnings};
+  var rv = ValidationState({errors: errors, warnings: warnings});
   field.validation_state.set(rv);
+  return rv;
+}
+
+function mergeValidationState(a, b) {
+  var rv = {};
+  var sources = [a,b];
+  rv.errors = concatArrayProperty(sources, 'errors');
+  rv.warnings = concatArrayProperty(sources, 'warnings');
+  return ValidationState(rv);
+}
+
+function concatArrayProperty(sources, key) {
+  var rv;
+  sources .. @each {|source|
+    if(!source) continue;
+    var a = source[key];
+    if(a) {
+      rv = rv ? rv.concat(a) : a;
+    }
+  }
   return rv;
 }
 
@@ -419,24 +477,39 @@ function Field(elem, settings /* || name, initval */) {
 
   return elem ..
     @Mechanism(function(node) {
-    
+      var validation_obs = settings.ValidationState || @ObservableVar({state:'unknown'});
+      var validation_state = validation_obs;
+      var parent_container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
+
+      if (parent_container) {
+        parent_container.addField(settings.name, node);
+
+        if(parent_container.upstreamValidationState) {
+          var upstream = parent_container.upstreamValidationState(settings.name);
+          validation_state = @observe(validation_obs, upstream, function(mine, upstream) {
+            return mergeValidationState(mine, upstream);
+          }) .. @dedupe(@eq);
+          // Emulate ObservableVar interface:
+          validation_state.set = validation_obs.set.bind(validation_obs);
+          validation_state.modify = validation_obs.modify.bind(validation_obs);
+          validation_state.get = -> @first(this);
+        }
+      }
+
       var field = node[CTX_FIELD] = {
         id: "__oni_field_#{++field_id_counter}",
         
         value: settings.Value || @ObservableVar(settings.initval),
         
-        validation_state: settings.ValidationState || @ObservableVar({state:'unknown'}),
+        validation_state: validation_state,
         auto_validate: @ObservableVar(false),
         validators: [],
         validators_deps: {},
         validate: validate_field
       };
       
-      var parent_container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
       
       try {
-        if (parent_container) 
-          parent_container.addField(settings.name, node);
         
         // asynchronize so that tree gets built before we start validating:
         hold(0);
@@ -464,6 +537,31 @@ function Field(elem, settings /* || name, initval */) {
 };
 exports.Field = Field;
   
+
+// helper for both FieldMap & FieldArray
+function getUpstreamValidation(field, name) {
+  name .. @assert.ok();
+  var filter = function(item) {
+    // XXX only deals with single keys, not paths
+    if(!item.inherited && item.key === name) {
+      var rv = item .. @clone();
+      delete rv.key;
+      return rv;
+    }
+  }
+
+  field.validation_state.watchers = field.validation_state.watchers === undefined ? 1 : field.validation_state.watchers+1;
+  return field.validation_state .. @transform(function(state) {
+    if(state && typeof(state) === 'object') {
+      var rv = {state: state.state};
+      if(state.errors) rv.errors = state.errors .. @map.filter(filter);
+      if(state.warnings) rv.warnings = state.warnings .. @map.filter(filter);
+      return rv;
+    }
+    return state;
+  });
+}
+
 
 /**
    @function FieldMap
@@ -591,7 +689,10 @@ var FieldMap = (elem) ->
         var entry = fieldmap[name];
         delete fieldmap[name];
         field_mutation_emitter.emit();
-      }
+      },
+      upstreamValidationState: function(name) {
+        return getUpstreamValidation(field, name);
+      },
     };
 
     // give children a chance to register (with addField) before we
@@ -648,9 +749,9 @@ var FieldMap = (elem) ->
           @transform.par([key,subfield] -> [key, subfield[CTX_FIELD].validate()]) .. @each {
             |[key,state]|
             if (state.errors.length)
-              errors.push({key:key, errors: state.errors});
+              errors.push({key:key, errors: state.errors, inherited: true});
             if (state.warnings.length)
-              warnings.push({key:key, warnings: state.warnings});
+              warnings.push({key:key, warnings: state.warnings, inherited: true});
           }
         return {errors: errors, warnings: warnings};
       });
@@ -788,7 +889,7 @@ function FieldArray(elem, settings) {
         }
         // if we're here, the element has already been removed (from value.set) or we don't know about it
         console.log('warning: array field already removed');
-      }
+      },
     };
     
     var current_value = undefined;
@@ -892,9 +993,9 @@ function FieldArray(elem, settings) {
           @each {
             |[key,state]|
             if (state.errors.length)
-              errors.push({key:key, errors: state.errors});
+              errors.push({key:key, errors: state.errors, inherited: true});
             if (state.warnings.length)
-              warnings.push({key:key, warnings: state.warnings});
+              warnings.push({key:key, warnings: state.warnings, inherited: true});
           }
         return {errors: errors, warnings: warnings};
       });
@@ -917,19 +1018,21 @@ exports.FieldArray = FieldArray;
      implicitly when a form element - such as an [mho:surface/html::Input]) - bound to
      the field receives user input).
 
-     `validator` will be passed the [::Field]'s current value and is expected to return
-     either `true` (signifying that the value is valid), `false` (signifying that the value
-     is invalid for an unspecified reason), or a "validation object".
+     `validator` will be passed the [::Field]'s current value, and the [::Field].
+     It is expected to return either `true` (signifying that the value is valid),
+     `false` (signifying that the value is invalid for an unspecified reason),
+     or a "validation object".
 
      A "validation object" has one of the following structures:
 
 
      * simple form
 
-         {
-           error:    description of error (object or string) ,
-           warning:  description of warning (object or string) 
-         }
+           {
+             key:      optional subfield to which this notice applies,
+             error:    description of error (object or string),
+             warning:  description of warning (object or string)
+           }
 
      Both `error` and `warning` are optional. Omission of `error`
      and/or `warning` signifies that the validator yieled no error
@@ -938,10 +1041,10 @@ exports.FieldArray = FieldArray;
 
      * aggregate form
 
-         {
-           errors:   [ array of error objects/strings  ],
-           warnings: [ array of warning objects/strings ]
-         }
+           {
+             errors:   [ array of error objects/strings  ],
+             warnings: [ array of warning objects/strings ]
+           }
 
      Empty `errors` and/or `warnings` arrays signify that the validator yielded
      no errors and/or warnings.

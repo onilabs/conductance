@@ -1306,8 +1306,6 @@ exports.HorizontalForm = content -> @html.Div(content, {'class':'form-horizontal
   @function FormGroup
   @summary A Bootstrap container for a form control (`<div class='form-group'>`)
   @param {surface::HtmlFragment} [content]
-  @param {Object} [settings]
-  @setting {Boolean} [showValidationMessage=false] Whether to display validation error / warning messages
   @return {surface::Element}
   @desc
     #### Binding to fields on client-side ([sjs:sys::hostenv] === 'xbrowser')
@@ -1322,7 +1320,7 @@ exports.HorizontalForm = content -> @html.Div(content, {'class':'form-horizontal
 
     See [./field::Field] and [./field::FieldMap] for example usage.
 */
-exports.FormGroup = (content, settings) ->
+exports.FormGroup = (content) ->
   @html.Div(content, {'class': 'form-group'}) .. 
   @Mechanism(function(node) {
     var field = node .. @field.getField();
@@ -1336,6 +1334,34 @@ exports.FormGroup = (content, settings) ->
       node.classList.add("has-#{state}");
     }
   });
+
+/**
+  @function ValidationMessage
+  @summary An element displaying validation messages for the enclosing field
+  @return {surface::Element}
+*/
+exports.ValidationMessage = function() {
+  var content = @ObservableVar(null);
+  return @html.Span(content, { 'class':'help-block' })
+  .. @Mechanism(function(node) {
+    var field = node .. @field.getField();
+    if (!field) return;
+    field .. @field.validationState() .. @each {
+      |validation|
+      content.modify(function(current) {
+        ['errors', 'warnings'] .. @each {|key|
+          var notices = validation[key];
+          if(notices && notices.length) {
+            return notices
+              .. @map(notice -> @isString(notice) ? notice : notice.message)
+              .. @intersperse(`<br>`);
+          }
+        }
+        return null;
+      });
+    }
+  });
+};
 
 /**
   @function ControlLabel

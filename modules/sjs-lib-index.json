@@ -839,6 +839,9 @@
             "Thumbnail": {
               "type": "function"
             },
+            "ValidationMessage": {
+              "type": "function"
+            },
             "Well": {
               "type": "function"
             },
@@ -976,6 +979,20 @@
             },
             "Validate": {
               "type": "function"
+            },
+            "ValidationState": {
+              "type": "class",
+              "children": {
+                "errors": {
+                  "type": "variable"
+                },
+                "state": {
+                  "type": "variable"
+                },
+                "warnings": {
+                  "type": "variable"
+                }
+              }
             },
             "fieldValue": {
               "type": "function"
