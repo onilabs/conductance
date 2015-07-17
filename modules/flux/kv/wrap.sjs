@@ -140,7 +140,7 @@ function wrapDB(base) {
 
               // query and patches are streams of [k, v] pairs:
               var query = kv_query(range, options);
-              var patches = pendingPuts .. @values .. @sort((a,b) ->
+              var patches = pendingPuts .. @ownValues .. @sort((a,b) ->
                                                             reverse ?
                                                               @encoding.encodedKeyCompare(b[0],a[0]) :
                                                             @encoding.encodedKeyCompare(a[0],b[0]));
@@ -248,7 +248,7 @@ function wrapDB(base) {
         // implementation of client code more complicated though.
         if (!conflict) {
           // we can commit our pending reads:
-          base.batch(pendingPuts .. @values .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
+          base.batch(pendingPuts .. @ownValues .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
           return rv;
         }
         // go round loop and retry:

@@ -218,7 +218,7 @@ exports.configUI = function(registry) {
                      @Enabled(havePendingChanges) ..
                      @Class('pull-right'),
                    @H1('Services'),
-                   registry.descriptors .. @values .. @map.par(makeConfigPanel),
+                   registry.descriptors .. @ownValues .. @map.par(makeConfigPanel),
                    @ContentGenerator((append) ->
                                      append(@Div(Config .. @project(@inspect))))
                  ];
