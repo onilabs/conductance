@@ -186,12 +186,12 @@ function cotraverse(obj, schema, block) {
     
     switch (type) {
     case 'object':
-      if (parent[property_name] instanceof Object) {
+      if (node.value instanceof Object) {
         ownPropertyPairs(schema) .. 
         filter([name] -> name.indexOf('__') !== 0) ..
         each { 
           |[name, subschema]|
-          inner(parent[property_name], 
+          inner(node.value, 
                 path === '' ? name : path + '.' + name,
                 name,
                 node.state,
@@ -201,12 +201,12 @@ function cotraverse(obj, schema, block) {
       }
       break;
     case 'array':
-      if (isArrayLike(parent[property_name])) {
+      if (isArrayLike(node.value)) {
         var arr_elem_schema = isArrayLike(schema) ? schema[0] : schema.__elems;
-        integers(0,parent[property_name].length-1) ..
+        integers(0,node.value.length-1) ..
         each {
           |i|
-          inner(parent[property_name], 
+          inner(node.value, 
                 path + '.' + i, 
                 i,
                 node.state,

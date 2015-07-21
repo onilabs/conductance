@@ -194,6 +194,23 @@ function JSValueToGCDValue(js_val, descriptor) {
   return value;
 }
 
+// utility for JSEntityToGCDEntity
+__js function checkUndefinedArrayMemebers(dest, node) {
+  if (node.value === undefined) {
+    // either ALL values must be undefined:
+    if(dest.length > 0) {
+      throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
+    }
+    dest.has_undefined_members = true;
+  } else {
+    // .. or else ALL values must be defined:
+    if(dest.has_undefined_members) {
+      throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
+    }
+  }
+};
+
+
 function JSEntityToGCDEntity(js_entity, schemas) {
   var schema = schemas[js_entity.schema];
   if (!schema) throw new Error("Unknown schema #{js_entity.schema}");
@@ -203,14 +220,15 @@ function JSEntityToGCDEntity(js_entity, schemas) {
 
   js_entity.data .. cotraverse(schema) {
     |node, descriptor|
-    //console.log("iterating #{node.path} #{node.value}");
     if (descriptor.type === 'object') {
       // feed through parent context (or create new one at the root)
       node.state = node.parent_state || {};
-      // if we're in an array, every field of structured data must
-      // exist (see also comment below):
-      if (node.state.arr_ctx && node.value === undefined)
-        throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
+      // Since array sub-properties are stored independently,
+      // we use an empty object here, and let the property-level
+      // checks enforce non-sparseness (see comment below).
+      if (node.state.arr_ctx && node.value === undefined) {
+        node.value = {};
+      }
     }
     else if (descriptor.type === 'key' && node.value !== undefined) {
       if (key && node.value !== key) 
@@ -241,17 +259,34 @@ function JSEntityToGCDEntity(js_entity, schemas) {
       // field of a structured array value must have a value (possibly
       // 'Null'), otherwise the correspondance between array fields
       // will get out of sync. 
-      if (node.value === undefined) 
-        throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
+      //
+      // The one exception is when _all_ values are `undefined`, we can simply
+      // save an empty array. (TODO: can we skip saving an array entirely?)
+      //
+      // (actually, we _could_ allow arrays where there is some data followed by
+      // one or more `undefined` entries at the end. But the existing behaviour is
+      // bad enough for data-dependent errors, so we won't implement that until
+      // it's needed)
 
-      if (!node.parent_state.arr_ctx[descriptor.path]) {
+      var dest;
+      if (node.parent_state.arr_ctx[descriptor.path]) {
+        dest = node.parent_state.arr_ctx[descriptor.path];
+      } else {
+        dest = [];
+        dest.has_undefined_members = false;
+        node.parent_state.arr_ctx[descriptor.path] = dest;
         gcd_entity.property.push({
           name: descriptor.path.replace(".[]", ""),
           multi: true,
-          value: (node.parent_state.arr_ctx[descriptor.path] = [])
+          value: dest,
         });
       }
-      node.parent_state.arr_ctx[descriptor.path].push(JSValueToGCDValue(node.value, descriptor.value));
+
+      dest .. checkUndefinedArrayMemebers(node);
+
+      if(node.value !== undefined) {
+        dest.push(JSValueToGCDValue(node.value, descriptor.value));
+      }
     }
     else if (node.value !== undefined) {
       // a single-valued property:
@@ -283,6 +318,7 @@ function JSEntityToGCDEntity(js_entity, schemas) {
 
   return gcd_entity;
 }
+exports._JSEntityToGCDEntity = JSEntityToGCDEntity;
 
 
 function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
@@ -400,6 +436,7 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
 
   return js_entity;
 }
+exports._GCDEntityToJSEntity = GCDEntityToJSEntity;
 
 /**
    @class GoogleCloudDatastore

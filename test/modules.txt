@@ -1,3 +1,4 @@
+unit/flux/gcd-tests.sjs
 unit/flux/kv-tests.sjs
 unit/server/formats-tests.sjs
 unit/server/route-tests.sjs
