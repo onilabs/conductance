@@ -640,7 +640,7 @@ function GoogleCloudDatastore(attribs) {
           key = node.value;
         }
         else if (isSimpleType(descriptor.type) || descriptor.type === 'ref') {
-          if (typeof(node.value) === 'object') {
+          if (node.value !== null && typeof(node.value) === 'object') {
             @ownKeys(QUERY_OPERATORS) .. @filter(op -> node.value[op] !== undefined) .. @each {
               |op|
               filters.push({
