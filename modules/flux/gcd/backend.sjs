@@ -318,9 +318,9 @@ function Context(attribs) {
         if (response.statusCode == 0)
           @info("google-cloud-datastore backend: #{response.error}"); 
 
-        // XXX 409 is 'too much contention' -> is it ok to retry?
-        if ((response.statusCode >= 500 || 
-             response.statusCode == 409 ||
+        if (api_func !== 'commit' && // for transaction commits we need to fall through and execute the whole transaction again
+          (response.statusCode >= 500 || // server error
+             response.statusCode == 409 || // too much contention (should only happen for commits)
              response.statusCode == 0) && 
             retries < max_retries) {
           @verbose("google-cloud-datastore backend #{response.statusCode}; retrying");

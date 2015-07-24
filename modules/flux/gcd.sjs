@@ -937,8 +937,15 @@ function GoogleCloudDatastore(attribs) {
                 transaction_context.commit({mutation: mutation});
               }
               catch (e) {
-//                console.log('transaction failed; retrying');
-                continue;
+                // retry the whole transaction for contention or server issues:
+                if (e.statusCode >= 500 ||
+                    e.statusCode == 409 ||
+                    e.statusCode == 0) {
+                  //console.log('transaction failed; retrying');
+                  continue;
+                }
+                // else pass exception to caller
+                throw e;
               }
               change_buffer.addChanges(@ownKeys(mutated_ids) .. @map(id -> { id: id, schema: id .. KeyToKind }));
               return rv;
