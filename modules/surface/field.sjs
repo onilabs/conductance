@@ -472,6 +472,7 @@ function Field(elem, settings /* || name, initval */) {
     Value:    undefined,
     ValidationState: undefined
   } .. @override(settings);
+  var name = settings.name;
 
   if (settings.ValidationState)
     settings.ValidationState.set({state:'unknown'});
@@ -483,10 +484,15 @@ function Field(elem, settings /* || name, initval */) {
       var parent_container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
 
       if (parent_container) {
-        parent_container.addField(settings.name, node);
+        if (!name && settings.Value) {
+          // field has no name but has an explicit value
+          name = false;
+        }
 
-        if(parent_container.upstreamValidationState) {
-          var upstream = parent_container.upstreamValidationState(settings.name);
+        parent_container.addField(name, node);
+
+        if(name && parent_container.upstreamValidationState) {
+          var upstream = parent_container.upstreamValidationState(name);
           validation_state = @observe(validation_obs, upstream, function(mine, upstream) {
             return mergeValidationState(mine, upstream);
           }) .. @dedupe(@eq);
@@ -532,7 +538,7 @@ function Field(elem, settings /* || name, initval */) {
       }
       finally {
         if (parent_container)
-          parent_container.removeField(settings.name, node);
+          parent_container.removeField(name, node);
       }
     }, true /* we PREPEND this mechanism, so that Mechanisms that search for a Field interface (like ContextualInputMechanism) works correctly, even when the Field interface and the Mechanism depending on the Field are on the same element */);
 };
@@ -674,22 +680,33 @@ var FieldMap = (elem) ->
     // XXX maybe instantiate a field on us if there isn't one?
 
     var fieldmap = {};
+    var unnamedChildren = [];
     var field_mutation_emitter = @Emitter();
         
     node[CTX_FIELDCONTAINER] = {
       getField: function(name) { return fieldmap[name]; },
       addField: function(name, field_node) {
-        if (!name) throw new Error("Fields added to FieldMap require a name");
-        if (fieldmap .. @hasOwn(name)) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
-        
-        fieldmap[name] = field_node;
-        field_mutation_emitter.emit();
+        if(name === false) {
+          unnamedChildren.push(field_node);
+        } else {
+          if (!name) throw new Error("Fields added to FieldMap require a name");
+          if (fieldmap .. @hasOwn(name)) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
+          
+          fieldmap[name] = field_node;
+          field_mutation_emitter.emit();
+        }
       },
       removeField: function(name, field_node) {
-        if(!fieldmap .. @hasOwn(name)) throw new Error("Field '#{name}' not found in FieldMap");
-        var entry = fieldmap[name];
-        delete fieldmap[name];
-        field_mutation_emitter.emit();
+        if(name === false) {
+          if(!unnamedChildren .. @remove(field_node)) {
+            throw new Error("Field not found in FieldMap");
+          }
+        } else {
+          if(!fieldmap .. @hasOwn(name)) throw new Error("Field '#{name}' not found in FieldMap");
+          var entry = fieldmap[name];
+          delete fieldmap[name];
+          field_mutation_emitter.emit();
+        }
       },
       upstreamValidationState: function(name) {
         return getUpstreamValidation(field, name);
@@ -745,16 +762,22 @@ var FieldMap = (elem) ->
     and {
       // add validator to the field:
       field.validators.push(function() {
-        var errors = [], warnings = [];
-        @ownPropertyPairs(fieldmap) .. 
-          @transform.par([key,subfield] -> [key, subfield[CTX_FIELD].validate()]) .. @each {
-            |[key,state]|
-            if (state.errors.length)
-              errors.push({key:key, errors: state.errors, inherited: true});
-            if (state.warnings.length)
-              warnings.push({key:key, warnings: state.warnings, inherited: true});
-          }
-        return {errors: errors, warnings: warnings};
+        var rv = { errors: [], warnings: []};
+        fieldmap
+          .. @ownPropertyPairs
+          .. @transform.par([key,subfield] -> [key, subfield[CTX_FIELD].validate()])
+          .. @each {|[key,state]|
+          rv .. extendValidationResult(state, key);
+        }
+
+        unnamedChildren
+          .. @monitor(field -> console.log("VALIDATING UNNAMED", field))
+          .. @transform.par(field -> field[CTX_FIELD].validate())
+          .. @each {|state|
+          rv .. extendValidationResult(state, null);
+        }
+
+        return rv;
       });
       // XXX this doesn't work: field.auto_validate.set(true);
 
@@ -762,6 +785,13 @@ var FieldMap = (elem) ->
     }
   });
 exports.FieldMap = FieldMap;
+
+function extendValidationResult(dest, src, key) {
+  if (src.errors.length)
+    dest.errors.push({key:key, errors: src.errors, inherited: true});
+  if (src.warnings.length)
+    dest.warnings.push({key:key, warnings: src.warnings, inherited: true});
+}
 
 
 /**
@@ -876,7 +906,7 @@ function FieldArray(elem, settings) {
       getField: function(name) { /* XXX */ },
       addField: function(name, field_node) { 
         // sanity check:
-        if (name) throw new Error("A FieldArray template must not contain a named Field");
+        if (name !== undefined) throw new Error("A FieldArray template must not contain a named Field");
       },
       removeField: function(name, field_node) {
         for (var i=0; i<fieldarray.length; ++i) {
@@ -988,17 +1018,14 @@ function FieldArray(elem, settings) {
     and {
       // add validator to the field:
       field.validators.push(function() {
-        var errors = [], warnings = [];
+        var rv = { errors: [], warnings: []};
         fieldarray .. @indexed .. 
           @transform.par([key, subfield] -> [key, subfield.node[CTX_FIELD].validate()]) .. 
           @each {
             |[key,state]|
-            if (state.errors.length)
-              errors.push({key:key, errors: state.errors, inherited: true});
-            if (state.warnings.length)
-              warnings.push({key:key, warnings: state.warnings, inherited: true});
+            rv .. extendValidationResult(state, key);
           }
-        return {errors: errors, warnings: warnings};
+        return rv;
       });
       // XXX could remove validator in finally clause
     }
