@@ -151,7 +151,7 @@ function GCDValueToJSValue(gcd_value, descriptor) {
   return base_val;
 }
 
-function JSValueToGCDValue(js_val, descriptor) {
+function JSValueToGCDValue(js_val, descriptor, path) {
   var value = {};
 
 /*  if (descriptor.toRepository)
@@ -161,7 +161,7 @@ function JSValueToGCDValue(js_val, descriptor) {
     if (descriptor.__allowNull)
       return value;
     else
-      throw new Error("Invalid 'null' value on a #{descriptor.__type} property without '__allowNull'");
+      throw new Error("Invalid 'null' value on a #{descriptor.__type} property without '__allowNull'#{path ? ": "+path : ""}");
   }
   
   switch (descriptor.__type) {
@@ -285,14 +285,14 @@ function JSEntityToGCDEntity(js_entity, schemas) {
       dest .. checkUndefinedArrayMemebers(node);
 
       if(node.value !== undefined) {
-        dest.push(JSValueToGCDValue(node.value, descriptor.value));
+        dest.push(JSValueToGCDValue(node.value, descriptor.value, node.path));
       }
     }
     else if (node.value !== undefined) {
       // a single-valued property:
       gcd_entity.property.push({
         name: node.path,
-        value: [JSValueToGCDValue(node.value, descriptor.value)]
+        value: [JSValueToGCDValue(node.value, descriptor.value, node.path)]
       });
     }
   }
