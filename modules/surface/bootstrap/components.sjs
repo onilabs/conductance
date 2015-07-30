@@ -152,6 +152,7 @@ exports.TextCenter = element -> element .. @Class('text-center');
 exports.TextJustify = element -> element .. @Class('text-justify');
 
 
+
 /**
   @function Btn
   @summary Bootstrap-style button ("class='btn'") with additional `btn-*` classes applied.
@@ -169,6 +170,9 @@ exports.TextJustify = element -> element .. @Class('text-justify');
 
     See also http://getbootstrap.com/css/#buttons
 
+    By default, buttons do not perform any action on click. If you want a simple
+    button which triggers a `submit` event on its containing form, set 
+    `type: 'submit'` in `attrs. For dynamic actions, attach an event with [surface::OnClick].
 
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
@@ -188,10 +192,12 @@ exports.TextJustify = element -> element .. @Class('text-justify');
         @Btn('primary',`$@Icon('cloud-download') Download`))
     ]);
 */
+
 exports.Btn = (btn_classes, content, attribs) ->
   callWithClass(@base_html.Button,
     ['btn'].concat(prefixClasses(btn_classes,'btn-')),
     content, attribs);
+
 
 /**
   @variable AvailableIcons

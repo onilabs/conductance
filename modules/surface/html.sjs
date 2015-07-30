@@ -130,7 +130,7 @@ var _map = function(items, fn) {
   'Img', 'Iframe', 'Embed', 'Object', 'Param', 'Video', 'Audio', 'Source', 'Track',
   'Canvas', 'Map', 'Area', 'Svg', 'Math',
   'Table', 'Caption', 'ColGroup', /* 'Col' ,*/ 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
-  'Form', 'FieldSet', 'Legend', /*'Label', */ /* 'Input', */ 'Button', /* 'Select', */
+  'Form', 'FieldSet', 'Legend', /*'Label', */ /* 'Input', */ /* 'Button', */ /* 'Select', */
   'DataList', 'OptGroup', 'Option', /*'TextArea', */ 'KeyGen', 'Output', /* 'Progress', */ 'Meter',
   'Details', 'Summary', 'MenuItem', 'Menu',
 ] .. @each {|name|
@@ -238,7 +238,18 @@ exports.Ol = (items, attrs) -> @Element('ol', items ? items .. _map(wrapLi), att
   @return {surface::Element}
   @summary Create an `<input type="submit">` element.
 */
-exports.Submit = (content, attr) -> @Element('input', null, (attr || {}) .. @merge({type:'submit', value: content}));
+exports.Submit = (content, attr) -> @Element('input', null, {type:'submit', value: content} .. @merge(attr || {}));
+
+/**
+  @function Button
+  @param {surface::HtmlFragment} [content]
+  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @return {surface::Element}
+  @summary Create an `<button type="button">` element.
+*/
+// without `type="button"`, every button is a submit button by default. see
+// http://stackoverflow.com/a/2825867
+exports.Button = (content, attr) -> @Element('button', content, {type:'button'} .. @merge(attr || {}));
 
 //----------------------------------------------------------------------
 /**

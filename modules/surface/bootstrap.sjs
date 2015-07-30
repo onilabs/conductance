@@ -47,7 +47,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @function Button
 @param {surface::HtmlFragment} [content]
 @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-@summary Bootstrap-styled button (`<button class="btn btn-default">`)
+@summary Bootstrap-styled button (`<button type="button" class="btn btn-default">`)
 @return {surface::Element}
 @desc
   * See also [::Btn] for creating buttons with more style choices.
@@ -58,6 +58,24 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
     @demo.CodeResult("\
   @Button('Click me')",
       @Button('Click me')
+    )]);
+
+
+
+@function Submit
+@param {surface::HtmlFragment} [content]
+@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+@summary Bootstrap-styled submit button (`<input type="submit" class="btn btn-default">`)
+@return {surface::Element}
+@desc
+  * See also [::Btn] for creating buttons with more style choices.
+@demo
+  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
+
+  @mainContent .. @appendContent([
+    @demo.CodeResult("\
+  @Submit('Click me')",
+      @Submit('Click me')
     )]);
 
 
@@ -443,6 +461,9 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
   See also http://getbootstrap.com/css/#buttons
 
+  By default, buttons do not perform any action on click. If you want a simple
+  button which triggers a `submit` event on its containing form, set 
+  `type: 'submit'` in `attrs. For dynamic actions, attach an event with [surface::OnClick].
 
 @demo
   @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);

@@ -821,6 +821,9 @@
             "SelectInput": {
               "type": "function"
             },
+            "Submit": {
+              "type": "function"
+            },
             "Table": {
               "type": "function"
             },
@@ -1012,6 +1015,9 @@
         "html": {
           "type": "module",
           "children": {
+            "Button": {
+              "type": "function"
+            },
             "Checkbox": {
               "type": "function"
             },
