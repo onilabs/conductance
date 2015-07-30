@@ -265,11 +265,12 @@ function kill(stream) {
 
 
    @function run
-   @altsyntax connection .. run(command, [options]) { |stream| ... }
+   @altsyntax connection .. run(command, args, [options]) { |stream| ... }
    @summary Run a command on an SSH server
    @return {void|Object}
    @param {::Connection} [connection] SSH server connection
    @param {String} [command] Command to execute
+   @param {optional Array} [args] Array of arguments
    @param {optional Object} [settings]
    @param {optional Function} [block] Function for interacting with the command execution (see description below).
    @setting {Array|String} [stdio] Child's stdio configuration (see below for more details)
