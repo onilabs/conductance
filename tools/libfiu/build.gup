@@ -1,0 +1,7 @@
+#!bash -eu
+gup -u src
+mkdir -p "$2"
+dest="$PWD/$2"
+cd src
+make PREFIX="$dest"
+make PREFIX="$dest" install

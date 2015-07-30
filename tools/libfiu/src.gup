@@ -1,0 +1,19 @@
+#!bash -eu
+if [ -L "$2" ]; then
+	touch "$2"
+	echo "WARN: using (unversioned) symlink to libfiu source code"
+	exit
+fi
+
+repo="git@github.com:gfxmonk/libfiu.git"
+commit="0afff53e5a39881875aa93c4f56b8b0de0eec87f"
+if [ -d "$2" ]; then
+	# upgrade existing repo
+	touch "$2"
+	cd "$2"
+	git fetch "$repo"
+else
+	git clone "$repo" "$1"
+	cd "$1"
+fi
+git checkout "$commit"

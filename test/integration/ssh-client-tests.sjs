@@ -30,7 +30,7 @@
     }
   }
   @ssh = require('mho:ssh-client');
-  var { @TemporaryFile } = require('sjs:nodejs/tempfile');
+  var { @TemporaryFile, @TemporaryDir } = require('sjs:nodejs/tempfile');
   var { @mkdirp } = require('sjs:nodejs/mkdirp');
   var conn;
   var SSH_PORT = 2222;
@@ -83,7 +83,7 @@
         } .. @merge(clientSettings);
         @info("Connect opts:", connectOpts);
         var key = [ "id_rsa", "id_dsa" ] .. @transform(f -> @path.join(sshDir, f)) .. @find(@fs.exists, null);
-        if(!key) throw new Error("Couldn't find SSH key (and $SSH_AUTH_SOCK not set)");
+        if(!key) throw new Error("Couldn't find SSH key");
         @info("using SSH private key #{key}");
         connectOpts.privateKey = key .. @fs.readFile('ascii');
         
@@ -307,5 +307,148 @@
       @info("server closed");
     }
   }
+
+  var libfiuBase = @url.normalize('../../tools/libfiu/build/', module.id) .. @url.toPath;
+  @context("fallible IO") {||
+    var NUM_ITERATIONS = 100;
+    var NUM_SSH_EXECS = 10;
+    addTestHooks({ });
+
+    @test("should not cause uncaught exceptions") {||
+      var knownErrorMessages = [
+
+        // libuv doesn't know about all error codes, and
+        // aborts the process when it encounters an unknown one.
+        /uv_err_name: Assertion `0' failed/
+
+      ];
+
+      @TemporaryDir() {|ctlBase|
+        for(var iteration=0; iteration<NUM_ITERATIONS; iteration++) {
+          @info("Attempt ##{iteration}");
+
+          // have we reached the connection phase yet? We fail if this doesn't happen within 5s
+          var connected = false;
+
+          // has the process exited yet?
+          var exited = false;
+
+          // was this a known error? (see knownErrorMessages)
+          var knownError = false;
+
+          // did the test harness handle the error successfully?
+          var handled = false;
+
+          // we proceed in lockstep with the child process'
+          // stdout messages, so that we can enable libfiu
+          // once the child is ready (and track whether it
+          // gets to the "connected" stage)
+          var stages = [
+            ['!r', function(proc) {
+              // initial setup complete - enable the gremlins!
+              @childProcess.run(
+                @path.join(libfiuBase, 'bin/fiu-ctrl'),
+                [
+                  '-f', ctlBase,
+                  '-c','enable_random name=posix/io/*,probability=0.05',
+                  String(proc.pid),
+                ],
+                {stdio: 'inherit', env: env});
+              @info("libfiu enabled");
+              proc.stdin .. @stream._write('\n');
+            }],
+
+            // We've (successfully) connected to the SSH server.
+            // If this (or process death) doesn't happen in 5s, something
+            // is weird.
+            ['!c', function() { connected = true; } ],
+          ];
+
+          var env = process.env .. @merge({
+            LD_LIBRARY_PATH: @path.join(libfiuBase, 'lib'),
+          });
+
+          var proc = @childProcess.run( 'bash', [
+              // limit memory so things don't get too crazy
+              '-euxc', 'ulimit -v 3024000 -m 2024000 && exec "$@"', '--',
+              @path.join(libfiuBase, 'bin/fiu-run'),
+              '-x', '-f', ctlBase, 'conductance', 'exec',
+              @url.normalize('./ssh-client-loop.sjs', module.id),
+              String(SSH_PORT), String(NUM_SSH_EXECS),
+            ],
+            {
+              stdio:['pipe','pipe','pipe'],
+              env: env,
+              throwing: false,
+            }
+          ) {|proc|
+            @info("child running...");
+            waitfor {
+              // check stdout for expected messages
+              proc.stdout .. @stream.lines('utf-8') .. @zip(stages) .. @each {|[line,[expected, action]]|
+                line = line.trim();
+                if(!line.length) continue;
+                if(line .. @startsWith("Gracefully handled: ")) {
+                  @info(line);
+                  handled = true;
+                  continue;
+                }
+
+                if(exited) {
+                  // if the process has died,
+                  // just funnel additional stdout to the console
+                  console.log(line);
+                } else {
+                  @info("saw line:", line);
+                  line .. @assert.eq(expected);
+                  action(proc);
+                }
+              }
+            } and {
+              // check stderr for known error messages which aren't the fault of
+              // the SSH library
+              proc.stderr .. @stream.lines('utf-8') .. @each {|line|
+                line = line.trim();
+                if(!line.length) continue;
+
+                if(knownErrorMessages .. @any(re -> re.test(line))) {
+                  @info("Ignoring known error: #{line}");
+                  knownError = true;
+                } else {
+                  console.warn(line);
+                }
+              }
+            } and {
+              waitfor {
+                proc .. @childProcess.wait({throwing: false});
+                exited = true;
+              } or {
+                hold(5000);
+                if(!connected) throw new Error("Child didn't connect after 5s");
+                hold();
+              }
+            }
+          };
+          exited .. @assert.ok();
+          if(knownError) continue; // nothing we can do about these
+          if(handled) continue; // this was a success, regardless of how the child exited
+          @info("Proc died with code #{proc.code}, signal #{proc.signal}");
+          if(proc.signal) {
+            // The process calls exit() in all known cases (both success and fail).
+            // If we get a signal, we don't know whether it failed, or whether the
+            // test harness encountered an error. So just ignore this run.
+            @info("Proc died with signal #{proc.signal}, can't determine failure type");
+            continue;
+          }
+          if(proc.code !== 0) {
+            throw new Error("child process exited with code #{proc.code} (signal #{proc.signal})");
+          }
+        }
+      }
+    }
+  }
+  .timeout(null)
+  .skipIf(!(process.env.FUZZ_TEST && @fs.exists(@path.join(libfiuBase))),
+    "set $FUZZ_TEST=1 and build #{libfiuBase} to enable");
 
 }.serverOnly();
