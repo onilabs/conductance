@@ -195,13 +195,17 @@ function JSValueToGCDValue(js_val, descriptor, path) {
 }
 
 // utility for JSEntityToGCDEntity
-__js function checkUndefinedArrayMemebers(dest, node) {
+__js function checkUndefinedArrayMemebers(dest, node, entity) {
   if (node.value === undefined) {
     // either ALL values must be undefined:
     if(dest.length > 0) {
       throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
     }
     dest.has_undefined_members = true;
+    // if an array has undefined members, we don't want to store the property
+    // at all (storing it as an empty list will cause all values to come back
+    // as `null`, rather than `undefined`).
+    entity.property .. @remove(dest.property);
   } else {
     // .. or else ALL values must be defined:
     if(dest.has_undefined_members) {
@@ -274,15 +278,16 @@ function JSEntityToGCDEntity(js_entity, schemas) {
       } else {
         dest = [];
         dest.has_undefined_members = false;
-        node.parent_state.arr_ctx[descriptor.path] = dest;
-        gcd_entity.property.push({
+        dest.property = {
           name: descriptor.path.replace(".[]", ""),
           multi: true,
           value: dest,
-        });
+        };
+        node.parent_state.arr_ctx[descriptor.path] = dest;
+        gcd_entity.property.push(dest.property);
       }
 
-      dest .. checkUndefinedArrayMemebers(node);
+      dest .. checkUndefinedArrayMemebers(node, gcd_entity);
 
       if(node.value !== undefined) {
         dest.push(JSValueToGCDValue(node.value, descriptor.value, node.path));
