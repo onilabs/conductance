@@ -483,6 +483,7 @@ function generateFile(req, filePath, format, settings) {
 }
 
 //----------------------------------------------------------------------
+var restrictedUrlPathPattern = /%2f/i;
 
 // Maps a directory on disk into the server fs.
 // - The 'pattern' regex under which the handler will be filed needs to
@@ -524,6 +525,9 @@ exports.MappedDirectoryHandler = function(root, settings) {
     req.context = settings.context;
     var relativeURI = req.url.path;
     var [relativePath, format] = matches.input.slice(matches.index + matches[0].length).split('!');
+    if(restrictedUrlPathPattern.test(relativePath)) {
+      throw new HttpError(400, "Bad request");
+    }
     var relativePath = decodeURIComponent(relativePath);
 
     if (format !== undefined)
