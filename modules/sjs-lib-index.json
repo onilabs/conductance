@@ -74,6 +74,14 @@
       "children": {},
       "summary": "Client side app utilities"
     },
+    "commandline-utils": {
+      "type": "module",
+      "children": {
+        "parseArgs": {
+          "type": "function"
+        }
+      }
+    },
     "env": {
       "type": "module",
       "children": {
