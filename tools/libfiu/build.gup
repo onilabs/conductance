@@ -1,6 +1,7 @@
 #!bash -eu
 gup -u src
 mkdir -p "$2"
+touch "$2"
 dest="$PWD/$2"
 cd src
 make PREFIX="$dest"

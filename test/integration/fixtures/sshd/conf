@@ -12,4 +12,6 @@ HostKey {confDir}/host_dsa_key
 # can handle single quotes (e.g fish)
 ForceCommand sh -c 'eval "$SSH_ORIGINAL_COMMAND"'
 
+Subsystem sftp /usr/libexec/openssh/sftp-server
+
 {extraConf}

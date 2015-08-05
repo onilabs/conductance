@@ -20,21 +20,35 @@ connectOpts.privateKey = key .. @fs.readFile('ascii');
 
 // on uncaught exception, exit immediately
 process.on('uncaughtException', function(err) {
-	while(true) {
-		// we had a legitimate failure. Keep trying to write it
-		// until we succeed (or die trying)
-		try {
-			console.error('Uncaught: ' + err);
-			process.exit(1);
-		} catch(e) { }
+	try {
+		console.log('uncaughtException: ' + err);
+	} finally {
+		process.exit(1);
 	}
 });
 
+;[process.stdin, process.stdout, process.stderr] .. @each {|stream|
+	// `libfiu` will also randomly cause console IO operations to fail,
+	// so ignore those...
+	stream.on('error', function() { /* ignore */ });
+};
+
 try {
-	@prompt('!r\n'); // wait until ready signalled
+	try {
+		@prompt('!r\n'); // wait until ready signalled
+		process.stdin.end(); // make sure node exits properly
+	} catch(e) {
+		// if we didn't get this far, the test is useless - just get out of here
+		process.exit(0);
+	}
 	@ssh.connect(connectOpts) {|conn|
 		console.log('!c'); // connected
 		for (var tries=NUM_TRIES; tries>0; tries--) {
+			conn .. @ssh.sftp() {|sftp|
+				sftp .. @ssh.writeFile('sftp-test', 'sftp file contents');
+				sftp .. @ssh.readFile('sftp-test');
+				sftp .. @ssh.readdir('.');
+			}
 			conn .. @ssh.exec("true");
 		}
 	}
@@ -43,6 +57,4 @@ try {
 	try {
 		console.log("Gracefully handled: #{e.message}"); // XXX debugging only
 	} catch(e) { /* libfiu can cause write() to fail, so just ignore this */ }
-	process.exit(0);
 }
-process.exit(0);
