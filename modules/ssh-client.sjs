@@ -38,6 +38,22 @@ function delayed_retract(uninterrupted_acquire, delayed_retract) {
   }
 }
 
+var ignore = -> null;
+function swallowAndThrowErrors(source) {
+  // In plenty of failure cases, an error might be emitted
+  // while attempting to finalize after a previous error
+  // (e.g close() on a socket which already died).
+  //
+  // Rather than hardening the failure code, we'll just rely on the
+  // fact that the associated resources are going to be immediately
+  // disposed anyway (hopefully).
+  //
+  // NOTE: ignoring errors in general is bad - you should only
+  // use this function on a single-shot object which
+  // will be discarded afterwards.
+  source.on('error', ignore);
+  throw source .. @wait('error');
+}
 
 //----------------------------------------------------------------------
 
@@ -81,7 +97,6 @@ function delayed_retract(uninterrupted_acquire, delayed_retract) {
          Password -> Private Key -> Agent -> Keyboard-interactive -> None
    
 */
-var ignore = -> null;
 function connect(parameters, block) {
   var connection = new @Connection();
   
@@ -91,7 +106,7 @@ function connect(parameters, block) {
 
 
   waitfor {
-    throw connection .. @wait('error');
+    connection .. swallowAndThrowErrors();
   }
   or {
     try {
@@ -115,7 +130,6 @@ function connect(parameters, block) {
     // The ssh2 library can often emit more than one error. We catch the first
     // error (and throw it), so supporess any unhandled errors which would
     // otherwise kill the process.
-    connection.on('error', ignore);
     connection._sock.on('error', ignore);
     hold();
   } or {
@@ -483,7 +497,9 @@ function sftp(conn, block) {
   // deliberately undocumented
   if (!block) return session;
 
-  try {
+  waitfor {
+    session .. swallowAndThrowErrors();
+  } or {
     block(session);
   }
   finally {
@@ -630,7 +646,11 @@ function fileStream(conn, path, options) {
   return @Stream(function(receiver) {
     try {
       var stream = session.createReadStream(path, options);
-      stream .. @stream.contents .. @each(receiver);
+      waitfor {
+        stream .. swallowAndThrowErrors();
+      } or {
+        stream .. @stream.contents .. @each(receiver);
+      }
     }
     finally {
       stream .. kill();
@@ -643,8 +663,7 @@ function writeFile(conn, path, contents, options){
   var session = conn..getSFTSession();
   var ws = session.createWriteStream(path, options);
   waitfor {
-    var err  = ws .. @wait('error');
-    throw err;
+    ws .. swallowAndThrowErrors();
   } or {
     waitfor {
       ws .. @wait('close');
@@ -661,8 +680,7 @@ function readFile(conn, path, options){
   var rs = session.createReadStream(path, options);
   var contents;
   waitfor {
-    var err = rs .. @wait('error');
-    throw err;
+    rs .. swallowAndThrowErrors();
   } or {
     waitfor {
       rs .. @wait('close');
