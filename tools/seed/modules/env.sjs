@@ -372,7 +372,7 @@ exports.defaults = function() {
 	}, true);
 
 	def('datadog', function() {
-		var dd = require('./datadog');
+		var dd = require('mho:services/datadog');
 		var backend = this.get('datadog-backend');
 		var hostname = require('nodejs:os').hostname();
 		return dd.Datadog({
