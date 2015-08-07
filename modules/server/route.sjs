@@ -688,7 +688,7 @@ var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
     These hubs will be included in the documentation browser.
 
     You can opt to have conductance serve your hub automatically if you pass `serve:true`
-    as well as a `path` attribute (the _on-disk_ location of your code). Alternatively,
+    as well as a `path` attribute (the _on-disk_ location of your code as a path string or 'file:' url string). Alternatively,
     you can point to existing libraries by passing a (full or relative) `url` property.
 
     ## Accidentally serving secret content
@@ -745,7 +745,7 @@ var DocumentationBrowser = exports.DocumentationBrowser = function(path, hubs, s
 
   hubs .. each {|hub|
     if (hub.serve) {
-      var sourcePath = hub.path;
+      var sourcePath = hub.path .. url.coerceToPath;
       assert.string(sourcePath, "hub.path");
 
       var hubRoute = "hubs/#{encodeURIComponent(hub.name)}"
