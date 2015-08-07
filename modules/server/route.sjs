@@ -321,7 +321,7 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
       if (isString(path)) path = new RegExp("^#{require('sjs:regexp').escape(path)}");
     }
 
-    root = fs.realpath(root);
+    root = fs.realpath(root .. url.coerceToPath);
     var opts = overrides ? merge(settings, overrides) : settings;
     return Route(path, require('./file-server').MappedDirectoryHandler(root, opts));
   }
@@ -330,7 +330,7 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
 /**
    @function ExecutableDirectory
    @param {optional RegExp|String} [path] Path to match
-   @param {String} [root] Directory on local filesystem
+   @param {String} [root] Directory on local filesystem (path or 'file:' url)
    @param {optional Settings} [options]
    @setting {String} [bridgeRoot] Override root location for bridge connections
    @return {../server::Route}
@@ -377,7 +377,7 @@ var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
 /**
    @function CodeDirectory
    @param {optional RegExp|String} [path] Path to match
-   @param {String} [root] Directory on local filesystem
+   @param {String} [root] Directory on local filesystem (path or 'file:' url)
    @return {../server::Route}
    @summary Creates a [../server::Route] that serves code and static files from the local filesystem
    @desc
@@ -396,7 +396,7 @@ var CodeDirectory = exports.CodeDirectory = createDirectoryMapper({
 /**
    @function StaticDirectory
    @param {optional RegExp|String} [path] Path to match
-   @param {String} [root] Directory on local filesystem
+   @param {String} [root] Directory on local filesystem (path or 'file:' url)
    @return {../server::Route}
    @summary Creates a [../server::Route] that serves static files from the local filesystem
    @desc
