@@ -495,11 +495,7 @@ function Field(elem, settings /* || name, initval */) {
           var upstream = parent_container.upstreamValidationState(name);
           validation_state = @observe(validation_obs, upstream, function(mine, upstream) {
             return mergeValidationState(mine, upstream);
-          }) .. @dedupe(@eq);
-          // Emulate ObservableVar interface:
-          validation_state.set = validation_obs.set.bind(validation_obs);
-          validation_state.modify = validation_obs.modify.bind(validation_obs);
-          validation_state.get = -> @first(this);
+          }) .. @dedupe(@eq) .. emulateObservable(validation_obs);
         }
       }
 
@@ -547,7 +543,7 @@ exports.Field = Field;
 
 // helper for both FieldMap & FieldArray
 function getUpstreamValidation(field, name) {
-  name .. @assert.ok();
+  if(name == null) throw new Error("name not provided");
   var filter = function(item) {
     // XXX only deals with single keys, not paths
     if(!item.inherited && item.key === name) {
@@ -557,7 +553,6 @@ function getUpstreamValidation(field, name) {
     }
   }
 
-  field.validation_state.watchers = field.validation_state.watchers === undefined ? 1 : field.validation_state.watchers+1;
   return field.validation_state .. @transform(function(state) {
     if(state && typeof(state) === 'object') {
       var rv = {state: state.state};
@@ -956,7 +951,7 @@ function FieldArray(elem, settings) {
             array_mutation = true;
             var Index = @ObservableVar(i);
             var inserted = (node .. 
-                            @appendContent(settings.template(
+                            @appendContent(Field(settings.template(
                               {
                                 Index:       Index,
                                 ArrayLength: FieldArrayLength,
@@ -969,11 +964,17 @@ function FieldArray(elem, settings) {
                                   FieldArrayLength.modify(l-> --l);
                                   array_mutation_emitter.emit();
                                 }
-                              }) .. 
-                                           Field()));
+                              }))));
             fieldarray[i] = {node: inserted[0], Index: Index};
           }
           fieldarray[i].node[CTX_FIELD].value.set(val);
+
+          var upstream = getUpstreamValidation(field, i);
+          fieldarray[i].node[CTX_FIELD].validation_state = function(orig) {
+            return @observe(orig, upstream, function(mine, upstream) {
+              return mergeValidationState(mine, upstream);
+            }) .. emulateObservable(orig);
+          }(fieldarray[i].node[CTX_FIELD].validation_state);
         }
         while ( fieldarray.length > x.length) {
           array_mutation = true;
@@ -1033,6 +1034,16 @@ function FieldArray(elem, settings) {
 };
 
 exports.FieldArray = FieldArray;
+
+function emulateObservable(stream, obs) {
+  // Emulate ObservableVar interface on a stream
+  // (which is logically derived from `obs`)
+  // XXX should this be somewhere standard?
+  stream.set = obs.set.bind(obs);
+  stream.modify = obs.modify.bind(obs);
+  stream.get = -> @first(this);
+  return stream;
+}
 
 
 /**

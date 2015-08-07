@@ -528,10 +528,6 @@
     "services/": {
       "type": "lib",
       "children": {
-        "datadog": {
-          "type": "module",
-          "children": {}
-        },
         "google_oauth/": {
           "type": "lib",
           "children": {
