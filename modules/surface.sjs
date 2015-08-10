@@ -21,12 +21,6 @@ if (require('sjs:sys').hostenv === 'xbrowser') {
 }
 module.exports = require(modules);
 
-// XXX make our documentation tests happy:
-if (require('sjs:sys').hostenv !== 'xbrowser') {
-  module.exports.CollectStream = function() { throw new Error("CollectStream only works in the xbrowser hostenv"); };
-  module.exports.ScrollStream = function() { throw new Error("ScrollStream only works in the xbrowser hostenv"); };
-}
-
 // GENERATED DOCS FOLLOW:
 
 /**
@@ -648,6 +642,7 @@ if (require('sjs:sys').hostenv !== 'xbrowser') {
   generated content will be inserted.
 
 @function CollectStream
+@hostenv xbrowser
 @summary A [::HtmlFragment] for inserting all elements of a stream into the DOM
 @param {sjs:sequence::Stream} [stream]
 @return {::HtmlFragment}
@@ -658,6 +653,7 @@ if (require('sjs:sys').hostenv !== 'xbrowser') {
   Elements of `stream` will be appended to the DOM as they are produced.
 
 @function ScrollStream
+@hostenv xbrowser
 @summary A [::HtmlFragment] for inserting elements of a stream into the DOM as the user scrolls vertically
 @param {sjs:sequence::Stream} [stream]
 @return {::HtmlFragment}

@@ -705,6 +705,7 @@ exports.ContentGenerator = ContentGenerator; // from ./base.sjs
 
 /**
    @function CollectStream
+   @hostenv xbrowser
    @summary A [::HtmlFragment] for inserting all elements of a stream into the DOM
    @param {sjs:sequence::Stream} [stream]
    @return {::HtmlFragment}
@@ -733,6 +734,7 @@ exports.CollectStream = CollectStream;
 
 /**
    @function ScrollStream
+   @hostenv xbrowser
    @summary A [::HtmlFragment] for inserting elements of a stream into the DOM as the user scrolls vertically
    @param {sjs:sequence::Stream} [stream]
    @return {::HtmlFragment}
