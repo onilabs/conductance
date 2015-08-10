@@ -127,7 +127,7 @@ var { each, toArray, map, filter, find, join, transform, isStream, isBatchedStre
 var { hostenv } = require('sjs:sys');
 var { pairsToObject, allKeys, ownKeys, get, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
 var { isArrayLike } = require('sjs:array');
-var { isString, startsWith } = require('sjs:string');
+var { isString, startsWith, contains } = require('sjs:string');
 var { identity, isFunction, ITF_SIGNAL, signal } = require('sjs:function');
 var { Emitter, wait } = require('sjs:event');
 var { Quasi, isQuasi } = require('sjs:quasi');
@@ -912,6 +912,10 @@ exports.resolve = function(api_name, opts) {
   }
   // catch syntax errors in the api module; don't throw as transport errors:
   if (apiinfo.error) throw new Error(apiinfo.error);
+  if (!nodejs && !api_name .. contains('://')) {
+    // resolve relative paths in browser
+    api_name = Url.normalize(api_name, document.location.href);
+  }
   apiinfo.server = Url.normalize(apiinfo.root || '/', api_name);
   return apiinfo;
 };
