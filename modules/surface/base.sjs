@@ -754,7 +754,7 @@ __js {
       return ft;
     }
     
-    if (arguments.length == 1 || typeof arguments[1] !== 'function') {
+    if (arguments.length == 1 || typeof arguments[1] === 'boolean') {
       code = arguments[0];
       prepend = arguments[1];
       return setMechanism;
