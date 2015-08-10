@@ -1,0 +1,15 @@
+@ = require([
+	'mho:std',
+	'mho:surface',
+	'mho:surface/html',
+]);
+
+exports.content = -> @Document(`
+	${@Div("loading..") .. @Mechanism("
+	var elem = arguments[0];
+	console.log('loaded elem');
+	elem.textContent = 'done';
+	window.mechanismComplete = true;
+	");
+`);
+

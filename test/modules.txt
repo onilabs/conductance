@@ -19,4 +19,5 @@ integration/injection-tests.sjs
 integration/nodemon-tests.sjs
 integration/route-tests.sjs
 integration/ssh-client-tests.sjs
+integration/surface-tests.sjs
 integration/systemd-tests.sjs
