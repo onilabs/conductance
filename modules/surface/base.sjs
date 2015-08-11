@@ -354,7 +354,7 @@ ElementProto.appendTo = function(target) {
       if (typeof(val) === 'boolean') {
         return val ? " #{key}" : "";
       }
-      return " #{key}=\"#{String(flattenAttrib(val)).replace(/\"/g, '&quot;')}\"";
+      return " #{key}=\"#{String(flattenAttrib(val)) .. sanitize}\"";
     })
     .. join('');
 

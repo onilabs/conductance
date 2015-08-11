@@ -5,10 +5,13 @@ var {collapseHtmlFragment} = require('mho:surface/base');
 var {Element, CSS, Document} = require('mho:surface');
 
 var templates = {
-	script: v -> Element("script", "window.injected = #{v};", {"id":"content"}),
+	script:      v -> Element("script", "window.injected = #{v};", {"id":"content"}),
 	scriptQuasi: v -> Element("script", `window.injected = ${v};`, {"id":"content"}),
-	div:    v -> `<div id="content">$v</div>`,
-	pre:    v -> `<pre id="content">$v</pre>`,
+	div:         v -> `<div id="content">$v</div>`,
+	pre:         v -> `<pre id="content">$v</pre>`,
+	attr_obj:    v -> Element("div", null, {"id":"content", "data-payload":v}),
+	attr_double: v -> `<div id="content" data-payload="$v"></div>`,
+	attr_single: v -> `<div id="content" data-payload='$v'></div>`,
 };
 
 exports.content = function(pars) {

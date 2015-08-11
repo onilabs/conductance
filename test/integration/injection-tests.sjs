@@ -3,6 +3,7 @@ var http = require('sjs:http');
 var Url = require('sjs:url');
 var {clone} = require('sjs:object');
 var {each} = require('sjs:sequence');
+var logging = require('sjs:logging');
 
 context() {|| // browserOnly
 var {Driver, waitforSuccess, waitforCondition} = require('sjs:xbrowser/driver');
@@ -15,6 +16,7 @@ var payloadCss = "'#{payloadString.replace(/(')/g, '\\\'')}'";
 
 var expectedPayloadCSS = [
 	payloadCss, // chrome, no interpretation
+	'"' + payloadString.replace(/(["])/g,"\\$1") + '"', // new chrome returns a double-quoted string without
 	'"' + payloadCss.slice(1, -1).replace(/(["])/g,"\\$1") + '"', // firefox returns a double-quoted string
 	"'" + payloadCss.slice(1, -1) + "'", // phantomJS returns a single-quoted string
 ];
@@ -57,10 +59,14 @@ context("static file generation") {||
 		injected.textContent .. assert.eq(payloadString);
 	}
 
-	test("encodes data inside a <pre>") {|s|
-		s.navigate(Url.build([rel('injection'), {template: 'div', value: payloadString}]));
-		var injected = waitforCondition(-> s.document().getElementById("content"));
-		injected.textContent .. assert.eq(payloadString);
+	;['single','double','obj'] .. each {|quote|
+		test("encodes data inside a #{quote}-quoted attribute") {|s|
+			var url = Url.build([rel('injection'), {template: "attr_#{quote}", value: payloadString}]);
+			logging.info('url:', url);
+			s.navigate(url);
+			var injected = waitforCondition(-> s.document().getElementById("content"));
+			injected.getAttribute('data-payload') .. assert.eq(payloadString);
+		}
 	}
 
 	test("encodes data inside a <script>") {|s|
@@ -73,7 +79,9 @@ context("static file generation") {||
 
 	test("encodes data inside a CSS block") {|s|
 		var check = function() {
-			s.navigate(Url.build([rel('injection'), {template: 'style', value: "&:after {content: #{payloadCss} }"}]));
+			var url = Url.build([rel('injection'), {template: 'style', value: "&:after {content: #{payloadCss} }"}]);
+			logging.info("url:", url);
+			s.navigate(url);
 			var injected = waitforCondition(-> s.document().getElementById("content"));
 			var content = s.window().getComputedStyle(injected, ':after').content;
 			//console.log("GOT CONTENT: " + content);
@@ -96,6 +104,24 @@ context("dynamic content generation") {||
 	test("encodes data inside a regular html tag") {||
 		document.body .. appendContent(Element("div", payloadString)) {|elem|
 			elem.textContent .. assert.eq(payloadString);
+		}
+	}
+
+	test("encodes data inside an attribute object") {|s|
+		document.body .. appendContent(Element("div", null, {"data-payload": payloadString})) {|elem|
+			elem.getAttribute('data-payload') .. assert.eq(payloadString);
+		}
+	}
+
+	test("encodes data inside a double-quoted attribute") {|s|
+		document.body .. appendContent(`<div data-payload="$payloadString"></div>`) {|elem|
+			elem.getAttribute('data-payload') .. assert.eq(payloadString);
+		}
+	}
+
+	test("encodes data inside a single-quoted attribute") {|s|
+		document.body .. appendContent(`<div data-payload='$payloadString'></div>`) {|elem|
+			elem.getAttribute('data-payload') .. assert.eq(payloadString);
 		}
 	}
 
