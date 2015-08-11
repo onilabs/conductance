@@ -167,6 +167,9 @@ if (require.main === module) {
         args,
       ] .. concat .. toArray);
 
+    // tell conductance that it should find client-side resources under /app
+    require('mho:env').set('serverRoot', '/app/');
+
     if(action === 'run') {
       runKarma();
     } else if(action === 'start' || action == 'single-run') {
