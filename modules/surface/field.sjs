@@ -766,7 +766,6 @@ var FieldMap = (elem) ->
         }
 
         unnamedChildren
-          .. @monitor(field -> console.log("VALIDATING UNNAMED", field))
           .. @transform.par(field -> field[CTX_FIELD].validate())
           .. @each {|state|
           rv .. extendValidationResult(state, null);
