@@ -19,26 +19,13 @@
      * Uses the [google-oauth-jwt library](https://github.com/extrabacon/google-oauth-jwt) 
        for obtaining access tokens.
 
-     * Uses version [v1beta1](https://developers.google.com/datastore/docs/apis/v1beta1/) of 
+     * Uses version [v1beta2](https://developers.google.com/datastore/docs/apis/v1beta2/) of 
        the Google Cloud Datastore API.
-
-     **Notes on protobuf-json mapping**
-
-     This module uses [protocol buffers](https://code.google.com/p/protobuf/) 
-     to communicate with the Google Cloud Datastore. The mapping between
-     json objects and protocol buffers is performed by the 
-     [protobuf library](https://github.com/chrisdew/protobuf) using the 
-     datastore schema [here](./protobuf/datastore_v1.proto).
-     For more information and examples on how json objects equate to their
-     corresponding entities in the schema, see [protobuf-for-node](https://code.google.com/p/protobuf-for-node/). The basic idea is that that all names 
-     appearing in the schema will be camel-cased in JS, e.g.: 
-     title_string -> titleString. 
-     Furthermore 'repeated' elements map to arrays in JS.
      
 */
 
 @ = require('sjs:logging');
-var { override, get } = require('sjs:object');
+var { override, get, extend } = require('sjs:object');
 var { request } = require('sjs:http');
 var { TokenCache } = require('google-oauth-jwt');
 var { HttpsAgent } = require('agentkeepalive');
@@ -52,15 +39,7 @@ var keepaliveAgent = new HttpsAgent({
 // authentication token cache:
 var tokens = new TokenCache(); 
 
-// initialize protobuf marshalling:
-// we use protobufs instead of json because e.g. 
-// the local development server doesn't have a json option. 
-var { Schema } = require('protobuf');
-var { readFile } = require('sjs:nodejs/fs');
 var { readAll } = require('sjs:nodejs/stream');
-var { normalize, toPath } = require('sjs:url');
-
-var datastore_schema = new Schema(readFile('./protobuf/datastore_v1.desc' .. normalize(module.id) .. toPath));
 
 /**
    @class Context
@@ -76,11 +55,7 @@ var ContextProto = {
        Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
   */
   allocateIds: function(req) {
-    return this._request(
-      'allocateIds', 
-      datastore_schema['api.services.datastore.AllocateIdsRequest'].serialize(req),
-      datastore_schema['api.services.datastore.AllocateIdsResponse']      
-    );
+    return this._request('allocateIds', req .. extend({mode:'TRANSACTIONAL'}));
   },
   
   /**
@@ -91,11 +66,7 @@ var ContextProto = {
        Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
   */
   blindWrite: function(req) { //console.log(require('sjs:debug').inspect(req, false, 10));
-    return this._request(
-      'blindWrite', 
-      datastore_schema['api.services.datastore.BlindWriteRequest'].serialize(req),
-      datastore_schema['api.services.datastore.BlindWriteResponse']
-    );
+    return this._request('commit', req .. extend({mode:'NON_TRANSACTIONAL'}));
   },
 
   /**
@@ -106,11 +77,7 @@ var ContextProto = {
        Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
    */
   lookup: function(req) {
-    return this._request(
-      'lookup', 
-      datastore_schema['api.services.datastore.LookupRequest'].serialize(req),
-      datastore_schema['api.services.datastore.LookupResponse']
-    );
+    return this._request('lookup', req);
   },
 
   /**
@@ -124,11 +91,7 @@ var ContextProto = {
 //    console.log(require('sjs:debug').inspect(datastore_schema['api.services.datastore.RunQueryRequest'].serialize(req) ..
 //                datastore_schema['api.services.datastore.RunQueryRequest'].parse, false, 10));
 
-    return this._request(
-      'runQuery', 
-      datastore_schema['api.services.datastore.RunQueryRequest'].serialize(req),
-      datastore_schema['api.services.datastore.RunQueryResponse']
-    );
+    return this._request('runQuery', req);
   },
 
   
@@ -151,11 +114,7 @@ var ContextProto = {
       isolationLevel = 'SNAPSHOT';
 
     var context = this;
-    var transaction_id = context._request(
-      'beginTransaction', 
-      datastore_schema['api.services.datastore.BeginTransactionRequest'].serialize({ isolationLevel: isolationLevel}),
-      datastore_schema['api.services.datastore.BeginTransactionResponse']
-    ).transaction;
+    var transaction_id = context._request('beginTransaction', {isolationLevel:isolationLevel}).transaction;
 
     var committed = false;
 
@@ -200,10 +159,7 @@ var ContextProto = {
       commit: function(req) {
         if (committed) throw new Error('Transaction already committed');
         req.transaction = transaction_id;
-        var rv = context._request(
-          'commit', 
-          datastore_schema['api.services.datastore.CommitRequest'].serialize(req),
-          datastore_schema['api.services.datastore.CommitResponse']);
+        var rv = context._request('commit', req);
         committed = true;
         return rv;
       }
@@ -216,9 +172,7 @@ var ContextProto = {
       if (!committed) {
         @verbose("rolling back transaction");
         try {
-          context._request(
-            'rollback',
-            datastore_schema['api.services.datastore.RollbackRequest'].serialize({ transaction: transaction_id}));
+          context._request('rollback',{ transaction: transaction_id});
         }
         catch (e) {
           @verbose("Silently ignoring rollback error: #{e}");
@@ -291,19 +245,20 @@ function Context(attribs) {
   // we deliberately define `_request` in the closure here and not on
   // the prototype so that we don't need to expose `attribs` on the
   // object
-  rv._request = function(api_func, req_body, response_schema) {  
+  rv._request = function(api_func, req_body) {  
     var max_retries = 10; // make configurable
     var retries = 0;
-    //console.log("#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}");
+    //console.log("#{req_base}/datastore/v1beta2/datasets/#{dataset}/#{api_func}");
+    // console.log(req_body .. JSON.stringify());//null, '    '));
+    req_body = req_body .. JSON.stringify;
     while (true) {
       var response = req_f(
-        "#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}",
+        "#{req_base}/datastore/v1beta2/datasets/#{dataset}/#{api_func}",
         { 
-          headers: {'Content-Type':'application/x-protobuf',
+          headers: {'Content-Type':'application/json',
                     'Connection':'Keep-Alive'
                    },
           method: 'POST',
-          encoding: null,
           body: req_body,
           response: 'raw',
           throwing: false
@@ -311,8 +266,9 @@ function Context(attribs) {
       );
 
       // extract content into a buffer:
-      var content = readAll(response);
-      
+      var content = readAll(response, 'utf8');
+      console.log(response.req._headers);
+
       if (response.statusCode !== 200) {
 
         if (response.statusCode == 0)
@@ -330,8 +286,7 @@ function Context(attribs) {
         }
         throw new DatastoreError(api_func, response, content, req_body);
       }
-      
-      return response_schema ? response_schema.parse(content);
+      return JSON.parse(content);
     }
   };
 
