@@ -1,0 +1,7 @@
+#!bash -eu
+mkdir "$1"
+src="src/libfiu_helper.c"
+gup -u ../src
+gup -u ../src/libfiu/fiu-control.h
+gup -u "$src"
+gcc -Wall -Werror -o "$1/libfiu_helper.so" -I ../src/libfiu -shared -fPIC "$src"

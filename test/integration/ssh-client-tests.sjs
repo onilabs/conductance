@@ -304,11 +304,20 @@ if (require.main === module) {
       }
     }
 
-    var libfiuBase = @url.normalize('../../tools/libfiu/build/', module.id) .. @url.toPath;
+    var libfiuBase = @url.normalize('../../tools/libfiu/', module.id) .. @url.toPath;
+    var libfiuBuild = @path.join(libfiuBase, 'build');
+    var libfiuBin = @path.join(libfiuBuild, 'bin');
+    var libfiuHelper = @path.join(libfiuBase, 'helper');
     @context("fallible IO") {||
       var NUM_ITERATIONS = 1000;
       var NUM_SSH_EXECS = 10;
       addTestHooks({ });
+
+      @childProcess.run('gup', [
+        '-u',
+          libfiuBuild,
+          @path.join(libfiuHelper, 'lib'),
+      ], {'stdio':'inherit'});
 
       @test("should not cause uncaught exceptions") {||
         var knownErrorMessages = [
@@ -319,199 +328,195 @@ if (require.main === module) {
 
         ];
 
-        @TemporaryDir() {|ctlBase|
-          for(var iteration=0; iteration<NUM_ITERATIONS; iteration++) {
-            @info(" - Attempt ##{iteration}");
+        for(var iteration=0; iteration<NUM_ITERATIONS; iteration++) {
+          @info(" - Attempt ##{iteration}");
 
-            // have we reached the connection phase yet? We fail if this doesn't happen within 5s
-            var connected = false;
+          // have we reached the connection phase yet? We fail if this doesn't happen within 5s
+          var connected = false;
 
-            // has the process exited yet?
-            var exited = false;
+          // has the process exited yet?
+          var exited = false;
 
-            // was this a known error? (see knownErrorMessages)
-            var knownError = false;
+          // was this a known error? (see knownErrorMessages)
+          var knownError = false;
 
-            // did we see unexpected output?
-            var unexpectedOutput = false;
+          // did we see unexpected output?
+          var unexpectedOutput = false;
 
-            // was the output truncated?
-            var truncatedOutput = false;
+          // was the output truncated?
+          var truncatedOutput = false;
 
-            // did the test harness handle the error successfully?
-            var handled = false;
+          // did the test harness handle the error successfully?
+          var handled = false;
 
-            // we proceed in lockstep with the child process'
-            // stdout messages, so that we can enable libfiu
-            // once the child is ready (and track whether it
-            // gets to the "connected" stage)
-            var stages = [
-              ['!r', function(proc) {
-                // initial setup complete - enable the gremlins!
-                var prob = (Math.random() * 0.1).toFixed(3);
-                @childProcess.run(
-                  @path.join(libfiuBase, 'bin/fiu-ctrl'),
-                  [
-                    '-f', ctlBase,
-                    '-c','enable_random name=posix/io/*,probability=' + prob,
-                    String(proc.pid),
-                  ],
-                  {stdio: 'inherit', env: env});
-                @info("libfiu enabled (probability=#{prob})");
-                proc.stdin .. @stream._write('\n');
-              }],
+          // we proceed in lockstep with the child process'
+          // stdout messages, so that we can enable libfiu
+          // once the child is ready (and track whether it
+          // gets to the "connected" stage)
+          var stages = [
+            ['!r' ],
 
-              // We've (successfully) connected to the SSH server.
-              // If this (or process death) doesn't happen in 5s, something
-              // is weird.
-              ['!c', function() { connected = true; } ],
-            ];
+            // We've (successfully) connected to the SSH server.
+            // If this (or process death) doesn't happen in 5s, something
+            // is weird.
+            ['!c', function() { connected = true; } ],
+          ];
 
-            var env = process.env .. @merge({
-              LD_LIBRARY_PATH: @path.join(libfiuBase, 'lib'),
-            });
+          var env = process.env .. @merge({
+            LD_LIBRARY_PATH: [
+              @path.join(libfiuBuild, 'lib'),
+              @path.join(libfiuHelper, 'lib'),
+            ] .. @join(':'),
+          });
 
-            var ignoreError = function(source, event, filter) {
-              var e = source .. @events(event || 'error') .. @each {|e|
-                if(filter && !filter(e)) {
-                  throw e;
-                }
-                @warn("Error in test infrastructure: #{e}");
+          var ignoreError = function(source, event, filter) {
+            var e = source .. @events(event || 'error') .. @each {|e|
+              if(filter && !filter(e)) {
+                throw e;
               }
+              @warn("Error in test infrastructure: #{e}");
             }
+          }
 
-            var proc = @childProcess.run( 'bash', [
-                // limit memory so things don't get too crazy
-                '-euc', 'ulimit -v 3024000 -m 2024000 && exec "$@"', '--',
-                @path.join(libfiuBase, 'bin/fiu-run'),
-                '-x', '-f', ctlBase, 'conductance', 'exec',
-                @url.normalize('./ssh-client-loop.sjs', module.id),
-                String(SSH_PORT), String(NUM_SSH_EXECS),
-              ],
-              {
-                stdio:['pipe','pipe','pipe'],
-                env: env,
-                throwing: false,
-              }
-            ) {|proc|
-              @debug("child running...");
+          var proc = @childProcess.run( 'bash', [
+              // limit memory so things don't get too crazy
+              '-euc', 'ulimit -v 3024000 -m 2024000 && exec "$@"', '--',
+              @path.join(libfiuBin, 'fiu-run'),
+              '-x', 'conductance', 'exec',
+              @url.normalize('./ssh-client-loop.sjs', module.id),
+              String(SSH_PORT), String(NUM_SSH_EXECS),
+              String((Math.random() * 0.1).toFixed(3)), // initial probability
+              String(1.0), // post-failure probability
+            ],
+            {
+              stdio:['pipe','pipe','pipe'],
+              env: env,
+              throwing: false,
+            }
+          ) {|proc|
+            @debug("child running...");
+            waitfor {
+              // These initial branches never terminate; they'll only
+              // be cancelled once all of stcin/stdout is completely
+              // consumed.
               waitfor {
-                // These initial branches never terminate; they'll only
-                // be cancelled once all of stcin/stdout is completely
-                // consumed.
+                proc.stdout .. ignoreError();
+              } or {
+                proc.stderr .. ignoreError();
+              } or {
+                proc .. ignoreError();
+              } or {
+                // when a child is killed by SIGABRT, nodejs throws an
+                // uncaught ECONNRESET in the parent process.
+                process .. ignoreError('uncaughtException', e -> e.code === 'ECONNRESET');
+              } or {
+                //
+                // process stdout/stderr completely (until EOF)
+                //
                 waitfor {
-                  proc.stdout .. ignoreError();
-                } or {
-                  proc.stderr .. ignoreError();
-                } or {
-                  proc .. ignoreError();
-                } or {
-                  // when a child is killed by SIGABRT, nodejs throws an
-                  // uncaught ECONNRESET in the parent process.
-                  process .. ignoreError('uncaughtException', e -> e.code === 'ECONNRESET');
-                } or {
-                  //
-                  // process stdout/stderr completely (until EOF)
-                  //
-                  waitfor {
-                    proc.stdout .. @stream.lines('utf-8') .. @each {|line|
-                      line = line.trim();
-                      if(!line.length) continue;
-                      if(knownError) {
-                        // if the process has died,
-                        // just funnel additional stdout to the console
-                        @info('(output after known error): ' + line);
-                        continue;
-                      }
-
-                      if(truncatedOutput) {
-                        @warn("Additional output seen after truncation: " + line);
-                        handled = false;
-                        unexpectedOutput = true;
-                        continue;
-                      }
-
-                      if(line .. @startsWith("Gracefully handled: ")) {
-                        @info(line);
-                        handled = true;
-                        continue;
-                      }
-
-                      if("Gracefully handled: " .. @startsWith(line)) {
-                        // Sometimes nodejs truncates child process output.
-                        // As long as this is the _last_ line of output, let it slide...
-                        truncatedOutput = true;
-                        handled = true;
-                        continue;
-                      }
-
-                      // otherwise, make sure we're progressing in lockstep with the expected output
-                      var expected = stages.shift();
-                      if(expected && line === expected[0]) {
-                        @info("saw line:", line);
-                        expected[1](proc);
-                      } else {
-                        @warn(line);
-                        unexpectedOutput = true;
-                      }
+                  proc.stdout .. @stream.lines('utf-8') .. @each {|line|
+                    line = line.trim();
+                    if(!line.length) continue;
+                    if(knownError) {
+                      // if the process has died,
+                      // just funnel additional stdout to the console
+                      @info('(output after known error): ' + line);
+                      continue;
                     }
-                  } and {
-                    // check stderr for known error messages which aren't the fault of
-                    // the SSH library
-                    proc.stderr .. @stream.lines('utf-8') .. @each {|line|
-                      line = line.trim();
-                      if(!line.length) continue;
 
-                      if(knownErrorMessages .. @any(re -> re.test(line))) {
-                        @info("Ignoring known error: #{line}");
-                        knownError = true;
-                      } else {
-                        @warn(line);
-                      }
+                    if(truncatedOutput) {
+                      @warn("Additional output seen after truncation: " + line);
+                      handled = false;
+                      unexpectedOutput = true;
+                      continue;
+                    }
+
+                    if(line .. @startsWith("#")) {
+                      // context line
+                      @info(line);
+                      continue;
+                    }
+
+                    if(line .. @startsWith("Gracefully handled: ")) {
+                      @info(line);
+                      handled = true;
+                      continue;
+                    }
+
+                    if("Gracefully handled: " .. @startsWith(line)) {
+                      // Sometimes nodejs truncates child process output.
+                      // As long as this is the _last_ line of output, let it slide...
+                      truncatedOutput = true;
+                      handled = true;
+                      continue;
+                    }
+
+                    // otherwise, make sure we're progressing in lockstep with the expected output
+                    var expected = stages.shift();
+                    if(expected && line === expected[0]) {
+                      @info("saw line:", line);
+                      if(expected[1]) expected[1](proc);
+                    } else {
+                      @warn(line);
+                      unexpectedOutput = true;
                     }
                   }
-                }
-              } and {
+                } and {
+                  // check stderr for known error messages which aren't the fault of
+                  // the SSH library
+                  proc.stderr .. @stream.lines('utf-8') .. @each {|line|
+                    line = line.trim();
+                    if(!line.length) continue;
 
-                // wait for the child to exit
-                waitfor {
-                  proc .. @childProcess.wait({throwing: false});
-                  exited = true;
-                } or {
-                  hold(5000);
-                  if(!connected) {
-                    @warn("Child didn't connect (or exit) after 5s");
-                    proc .. @childProcess.kill();
+                    if(knownErrorMessages .. @any(re -> re.test(line))) {
+                      @info("Ignoring known error: #{line}");
+                      knownError = true;
+                    } else {
+                      @warn(line);
+                    }
                   }
-                  hold(30000);
-                  @warn("Child didn't exit after 30s");
-                  proc .. @childProcess.kill();
-                  hold();
                 }
               }
-            };
-            exited .. @assert.ok();
-            if(knownError) continue; // nothing we can do about these
-            if(unexpectedOutput) throw new Error("Unexpected output");
-            if(handled) continue; // this was a success, regardless of how the child exited
-            @info("Proc died with code #{proc.code}, signal #{proc.signal}");
-            if(proc.signal) {
-              // The process calls exit() in all known cases (both success and fail).
-              // If we get a signal, we don't know whether it failed, or whether the
-              // test harness encountered an error. So just ignore this run.
-              @info("Proc died with signal #{proc.signal}, can't determine failure type");
-              continue;
+            } and {
+
+              // wait for the child to exit
+              waitfor {
+                proc .. @childProcess.wait({throwing: false});
+                exited = true;
+              } or {
+                hold(5000);
+                if(!connected) {
+                  @warn("Child didn't connect (or exit) after 5s");
+                  proc .. @childProcess.kill();
+                }
+                hold(30000);
+                @warn("Child didn't exit after 30s");
+                proc .. @childProcess.kill();
+                hold();
+              }
             }
-            if(proc.code !== 0) {
-              throw new Error("child process exited with code #{proc.code} (signal #{proc.signal})");
-            }
+          };
+          exited .. @assert.ok();
+          if(knownError) continue; // nothing we can do about these
+          if(unexpectedOutput) throw new Error("Unexpected output");
+          if(handled) continue; // this was a success, regardless of how the child exited
+          @info("Proc died with code #{proc.code}, signal #{proc.signal}");
+          if(proc.signal) {
+            // The process calls exit() in all known cases (both success and fail).
+            // If we get a signal, we don't know whether it failed, or whether the
+            // test harness encountered an error. So just ignore this run.
+            @info("Proc died with signal #{proc.signal}, can't determine failure type");
+            continue;
+          }
+          if(proc.code !== 0) {
+            throw new Error("child process exited with code #{proc.code} (signal #{proc.signal})");
           }
         }
       }
     }
     .timeout(null)
-    .skipIf(!(process.env.FUZZ_TEST && @fs.exists(@path.join(libfiuBase))),
-      "set $FUZZ_TEST=1 and build #{libfiuBase} to enable");
+    .skipIf(!(process.env.FUZZ_TEST && @fs.exists(@path.join(libfiuBuild))),
+      "set $FUZZ_TEST=1 and build #{libfiuBase}/all to enable");
 
   }.serverOnly();
 }
