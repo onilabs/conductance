@@ -267,7 +267,7 @@ function Context(attribs) {
 
       // extract content into a buffer:
       var content = readAll(response, 'utf8');
-      console.log(response.req._headers);
+      //console.log(response.req._headers);
 
       if (response.statusCode !== 200) {
 
