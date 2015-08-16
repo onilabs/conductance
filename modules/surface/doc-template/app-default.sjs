@@ -219,6 +219,7 @@
 
 var frag = require('../doc-fragment');
 var { toBool } = require('sjs:docutil');
+var { RawHTML } = require('../base');
 
 exports.Document = function(data, settings) {
   var showErrorDialog = settings.showErrorDialog .. toBool !== false;
@@ -262,7 +263,7 @@ exports.Document = function(data, settings) {
 
         // ui helpers:
         exports.body = document.body;
-        exports.colors = ${JSON.stringify(useMhoStyle ? frag.mhoColors : frag.bootstrapColors)};
+        exports.colors = ${RawHTML(JSON.stringify(useMhoStyle ? frag.mhoColors : frag.bootstrapColors))};
         exports.mainContent = document.body.firstChild;
         exports.withBusyIndicator = withBusyIndicator;
       }
