@@ -31,12 +31,13 @@ exports.run = function(config, block) {
 
   /**
      @class OAuthService
+     @summary Google OAuth Service
   */
   var instance = {
     /**
        @function OAuthService.APISession
        @summary XXX write me
-       @return {GoogleOAuthAPIClient}
+       @return {::GoogleOAuthAPIClient}
     */
     APISession: function(initial_tokens) {
 
@@ -81,6 +82,7 @@ exports.run = function(config, block) {
       //----------------------------------------------------------------------
       /**
          @class GoogleOAuthAPIClient
+         @summary Google OAuth API client
          @inherit GoogleAPIClient
       */
       return {

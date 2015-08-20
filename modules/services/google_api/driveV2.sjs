@@ -30,7 +30,7 @@ exports.files = {
      @setting {optional String}  [projection] This parameter is deprecated and has no function.
      @setting  {optional String} [q] Query string for searching files.
      @setting  {optional String} [spaces] A comma-separated list of spaces to query. Supported values are 'drive' and 'appDataFolder'.
-   */
+  */
   list: function(client, params) {
     var parameters = {
       url: 'https://www.googleapis.com/drive/v2/files',
