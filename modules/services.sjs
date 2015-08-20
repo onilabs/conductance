@@ -34,7 +34,7 @@ if (require('sjs:sys').hostenv === 'xbrowser') {
 exports.ServicesRegistry = function(kvstore) {
   return {
     kvstore:  kvstore,
-    descriptors: {}
+    instances: {}
   };
 };
 
@@ -44,7 +44,7 @@ var modulesConfigDB = registry -> registry.kvstore .. @kv.Subspace('modules');
    @function register
    @summary Register services for management by a ServicesRegistry instance
    @param {::ServicesRegistry} [registry] 
-   @param {Array} [descriptors] Array of service descriptors 
+   @param {Object} [service_instances] Hash of `instance_name: service descriptors`
    @desc
       A service descriptor is an object:
 
@@ -55,7 +55,7 @@ var modulesConfigDB = registry -> registry.kvstore .. @kv.Subspace('modules');
             admin:         Id of an associated admin module (String, optional)
           }
 
-      Registered services get an entry in the registry's associated key-value store, where they
+      Registered services instances get an entry in the registry's associated key-value store, where they
       can be configured and enabled/disabled using e.g. [::configUI].
 
       A 'service' consists of a 'service module' and an 'admin module' - both are just normal 
@@ -74,13 +74,41 @@ var modulesConfigDB = registry -> registry.kvstore .. @kv.Subspace('modules');
       
 
 */
-exports.register = function(registry, descriptors) {
-  descriptors .. @each {
-    |descriptor|
-    if (registry.descriptors[descriptor.name]) 
-      throw new Error("Service #{descriptor.name} already registered");
-    registry.descriptors[descriptor.name] = descriptor;
+exports.register = function(registry, service_instances) {
+  service_instances .. @ownPropertyPairs .. @each {
+    |[instance,descriptor]|
+    if (registry.instances[instance]) 
+      throw new Error("Service Instance #{instance} already registered");
+    registry.instances[instance] = descriptor;
   }
+};
+
+/**
+   @variable builtinServices
+   @summary Hash of `name: {description, service, admin}` descriptors of builtin services
+*/
+exports.builtinServices = {
+  'google_api/oauth':
+      {
+        name:        'google_api/oauth',
+        description: 'OAuth-based Google Web API access',
+        service:     'mho:services/google_api/oauth/service',
+        admin:       'mho:services/google_api/oauth/admin'
+      },
+  'mandrill':    
+      {
+        name:        'mandrill',
+        description: '[Mandrill](http://mandrill.com) Email Service',
+        service:     'mho:services/mandrill/service',
+        admin:       'mho:services/mandrill/admin'
+      },
+  'leveldb':
+      {
+        name:        'leveldb',
+        description: 'Local [LevelDB Instance](http://localhost:6060/doc/#mho:flux/kv::LevelDB)',
+        service:     'mho:services/leveldb/service',
+        admin:       'mho:services/leveldb/admin'
+      }
 };
 
 
@@ -88,10 +116,9 @@ exports.register = function(registry, descriptors) {
    @function run
    @summary Run all enabled registered services
    @param {::ServicesRegistry} [registry]
-   @param {Object} [configuration] `{ instance_name: service_name, ... }` object
    @param {Function} [block] Block bounding services lifetime
    @desc 
-     `run` creates service instances each property pair in `configuration` by calling each
+     `run` creates service instances for each enabled service in the registry by calling each
      service's exported `run` function (see description for [::register]).
 
      `block` will be passed a 'services' object containing the created service instances:
@@ -105,29 +132,25 @@ exports.register = function(registry, descriptors) {
     written to the console and the corresponding `instance_name` in the services
     object will be set to `null`.
 
-    If a service is requested that hasn't been [::register]ed, and exception will be thrown.
+    If a service is requested that hasn't been [::register]ed an exception will be thrown.
 */
-exports.run = function(registry, configuration, block) {
+exports.run = function(registry, block) {
   
   try {
     var service_ctxs = [];
     var services = {};
-    configuration .. @ownPropertyPairs .. @each.par {
-      |[name, service_id]|
-      var descriptor = registry.descriptors[service_id];
-      if (!descriptor) {
-        throw new Error("Unknown service '#{service_id}'");
-      }
-      var config = registry .. modulesConfigDB .. @kv.get("#{service_id}@#{descriptor.service}", undefined);
+    registry.instances .. @ownPropertyPairs .. @each.par {
+      |[instance_name, descriptor]|
+      var config = registry .. modulesConfigDB .. @kv.get("#{instance_name}@#{descriptor.service}", undefined);
       if (!config || !config.enabled) {
-        console.log("WARNING: Service '#{service_id}' is not enabled");
+        console.log("WARNING: Service '#{instance_name}' is not enabled");
         continue;
       }
       var ctx = @breaking {|brk| 
         require(descriptor.service).run(config.config, brk);
       };  
       service_ctxs.push(ctx);
-      services[name] = ctx.value;
+      services[instance_name] = ctx.value;
     }
 
     block(services);
@@ -151,7 +174,7 @@ exports.configUI = function(registry) {
                                        @kv.query(@kv.RANGE_ALL) ..
                                        @filter(function([[key]]) {
                                          var [name, service] = key.split('@');
-                                         return registry.descriptors[name] && registry.descriptors[name].service === service;
+                                         return registry.instances[name] && registry.instances[name].service === service;
                                        }) ..
                                        @pairsToObject);
 
@@ -177,8 +200,8 @@ exports.configUI = function(registry) {
 
   //----------------------------------------------------------------------
   // helper to make a config panel for one service: 
-  var makeConfigPanel = descriptor ->
-    @field.Field("#{descriptor.name}@#{descriptor.service}") ::
+  var makeConfigPanel = [instance_name, descriptor] ->
+    @field.Field("#{instance_name}@#{descriptor.service}") ::
       @field.FieldMap ::
         @Panel :: 
           [
@@ -190,7 +213,7 @@ exports.configUI = function(registry) {
                       @Checkbox(), 
                       ' Enabled'
                     ],
-                @H4 :: descriptor.name,
+                @H4 :: [instance_name, ': ', descriptor.name],
                 @RawHTML :: descriptor.description .. @marked.convert
               ],
 
@@ -218,7 +241,7 @@ exports.configUI = function(registry) {
                      @Enabled(havePendingChanges) ..
                      @Class('pull-right'),
                    @H1('Services'),
-                   registry.descriptors .. @ownValues .. @map.par(makeConfigPanel),
+                   registry.instances .. @ownPropertyPairs .. @map.par(makeConfigPanel),
                    @ContentGenerator((append) ->
                                      append(@Div(Config .. @project(@inspect))))
                  ];
