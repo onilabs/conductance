@@ -17,19 +17,13 @@ require('../../hub'); // install mho: hub
 var sys = require('sjs:sys');
 var Url = require('sjs:url');
 var str = require('sjs:string');
-var nodePath = require('nodejs:path');
-var { withServer } = require('sjs:nodejs/http');
-var { each, map, filter, find, toArray, join } = require('sjs:sequence');
-var { flatten, remove } = require('sjs:array');
-var { override, keys, merge } = require('sjs:object');
-var { seq } = require('sjs:function');
+var { each, find } = require('sjs:sequence');
 var fs = require('sjs:nodejs/fs');
-var dashdash = require('sjs:dashdash');
 var logging = require('sjs:logging');
 var _config = require('./_config');
 var env = require('./env');
 
-var banner = "
+__js var banner = "
 
               O N I   C O N D U C T A N C E
                                              
@@ -45,7 +39,7 @@ var banner = "
 
 ";
 
-var printBanner = function() {
+__js function printBanner() {
   if (process.stderr.isTTY) {
     console.warn(banner);
   }
@@ -198,7 +192,7 @@ exports.printVersion = function() {
   NodeJS path:         #{process.execPath}
 
   SJS version:         #{sys.version}
-  SJS path:            #{nodePath.normalize(sys.executable, '..')}
+  SJS path:            #{require('nodejs:path').normalize(sys.executable, '..')}
 
   Conductance version: #{env.conductanceVersion()}
   Conductance path:    #{env.executable}
@@ -256,6 +250,17 @@ var actions = [
       require('./systemd')._run(args);
     }
   },
+  {
+    name: 'init',
+    args: '<template>',
+    desc: 'Initialize a new Conductance project',
+    fn: function(args) {
+      if (args.length !== 1) {
+        throw new Error("One <template> argument expected");
+      }
+      require('./project-template').initProject(args[0]);
+    }
+  }
 ];
 
 var selfUpdate = require('./self-update');
@@ -273,7 +278,7 @@ if (selfUpdate.available) {
 }
 
 
-var usage = function(exitcode) {
+function usage(exitcode) {
   console.warn("Usage: conductance [-v|--verbose|-q|--quiet] [<file>|<action>] ...");
   console.warn();
   actions .. each {|a|

@@ -9,6 +9,10 @@ exports.walk = function walkdir(path, cb) {
 	var files = @fs.readdir(path);
 	files .. @each {
 		|f|
+
+    // don't add headers to files in our project-template dir:
+    if (f === 'project-template') continue;
+
 		if (@fs.isDirectory(path+"/"+f))
 			walkdir(path+"/"+f, cb);
 		else
