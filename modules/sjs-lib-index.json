@@ -528,20 +528,79 @@
     "services/": {
       "type": "lib",
       "children": {
-        "google_oauth/": {
+        "google_api/": {
           "type": "lib",
           "children": {
-            "service": {
+            "calendarV3": {
               "type": "module",
               "children": {
-                "run": {
+                "calendarList.list": {
                   "type": "function"
+                }
+              },
+              "summary": "Calendar API"
+            },
+            "driveV2": {
+              "type": "module",
+              "children": {
+                "files.list": {
+                  "type": "function"
+                }
+              },
+              "summary": "Drive API"
+            },
+            "gmailV1": {
+              "type": "module",
+              "children": {
+                "users.messages.get": {
+                  "type": "function"
+                },
+                "users.messages.list": {
+                  "type": "function"
+                }
+              },
+              "summary": "GMail API"
+            },
+            "helpers": {
+              "type": "module",
+              "children": {}
+            },
+            "oauth/": {
+              "type": "lib",
+              "children": {
+                "service": {
+                  "type": "module",
+                  "children": {
+                    "GoogleOAuthAPIClient": {
+                      "type": "class",
+                      "children": {
+                        "AccessToken": {
+                          "type": "variable"
+                        },
+                        "promptUserAuthorization": {
+                          "type": "function"
+                        }
+                      }
+                    },
+                    "OAuthService": {
+                      "type": "class",
+                      "children": {
+                        "APISession": {
+                          "type": "function"
+                        }
+                      }
+                    },
+                    "run": {
+                      "type": "function"
+                    }
+                  },
+                  "summary": "OAuth-based Google Web API access"
                 }
               },
               "summary": "OAuth-based Google Web API access"
             }
           },
-          "summary": "OAuth-based Google Web API access"
+          "summary": "Google Web API"
         },
         "leveldb/": {
           "type": "lib",
@@ -586,6 +645,9 @@
               "type": "ctor"
             }
           }
+        },
+        "builtinServices": {
+          "type": "variable"
         },
         "configUI": {
           "type": "function"
