@@ -22,7 +22,7 @@ function toPosixPath(p) {
 
 exports.initProject = function(template_name) {
   // check that the template directory exists
-  var template_dir = require.url("./project-template/#{template_name}/") .. @url.toPath;
+  var template_dir = require.url("../../project-templates/#{template_name}/") .. @url.toPath;
 
   if (!@fs.isDirectory(template_dir))
     throw new Error("Unknown template '#{template_name}'");
