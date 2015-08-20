@@ -1,0 +1,203 @@
+#!/usr/bin/env conductance
+
+@ = require([
+  'mho:std',
+  {id:'mho:commandline-utils', name:'commandline'}
+]);
+
+var args = @commandline.parseArgs(
+  {
+    summary: "Generate an sjs API file for a Google API using the Google Discovery Service",
+    args: [{
+      name: 'API',
+      help: 'Google API name (e.g. gmail)'
+    }]
+  }
+);
+
+var api_list = @http.get(['https://www.googleapis.com/discovery/v1/apis', {preferred:true}]) .. JSON.parse;
+
+var locator = api_list.items .. @find({name} -> name == args.API, null);
+
+if (!locator) {
+  console.error("Could not find #{args.API}");
+  console.error("Must be one of:");
+  api_list.items .. @transform({name} -> name) .. @join(', ') .. console.error;
+  process.exit(1);
+}
+
+var discovery_doc = @http.get(locator.discoveryRestUrl) .. JSON.parse;
+//console.log(discovery_doc.resources); process.exit(0);
+function emit(x) { process.stdout.write(x); }
+
+// header
+emit("\
+// This file was originally generated using conductance/tools/google/generate-google-api #{args.API}
+/**
+  @summary #{discovery_doc.title} #{discovery_doc.version} - #{discovery_doc.description}
+*/
+
+@ = require([
+  'mho:std',
+  {id:'./helpers', name: 'helpers'}
+]);
+
+var API_BASE_URL = '#{discovery_doc.baseUrl}';
+
+");
+
+__js function indent(s, n) {
+  var prefix = '';
+  for (var i=0;i<n;++i) prefix += ' ';
+  return s .. @prefixLines(prefix);
+}
+
+// depth-first traversal
+function walkResources(resources, level) {
+
+  if (!level) level = 0;
+
+  return resources .. @ownPropertyPairs .. 
+    @transform(function([name, resource]) {
+      var rv = '';
+      
+      if (level === 0)
+        rv += "exports.#{name} = {\n\n";
+      else {
+        rv += "#{name}: {\n\n"; 
+      }
+      
+      var contents = [];
+      
+      if (resource.methods) {
+        resource.methods .. @ownPropertyPairs .. 
+          @transform([name, descriptor] -> generateMethod(name, descriptor) .. indent(0)) ..
+          @join(",\n\n") .. contents.push;
+      }
+      
+      if (resource.resources)
+        walkResources(resource.resources, level+1) .. contents.push;
+      
+      rv += contents .. @join(",\n\n") .. indent(2);
+      
+      rv += "\n}";
+      if (level === 0)
+        rv +=";\n";
+      
+      return rv;
+    }) ..
+    @join(",\n\n");
+}
+
+function generateParameterDocs(name, descriptor) {
+  var rv = '   @setting ';
+  // type:
+  rv += '{';
+  if (!descriptor.required)
+    rv += 'optional ';
+  rv += descriptor.type .. @capitalize;
+  rv += '}';
+
+  // name:
+  rv += " [#{name}] ";
+
+  // description:
+  rv += descriptor.description;
+
+  if (descriptor.required)
+    rv += ' **Required**'
+
+  return rv;
+}
+
+function generateParametersDocs(descriptor) {
+  var params = [];
+  if (descriptor.request) {
+    if (!descriptor.request['$ref']) throw new Error('unexpected discovery doc format');
+    params.push("   @setting {::#{descriptor.request['$ref']}} [resource] Resource that this API call acts on. **Required**");
+  }
+  if (descriptor.parameters) {
+    descriptor.parameters .. @ownPropertyPairs .. 
+      @transform([name,descr]->generateParameterDocs(name,descr)) .. @each { |p| params.push(p) }
+  }
+
+  if (!params.length) return '';
+
+  var rv = "   @param {Object} [settings] API call parameters\n";
+  rv += params.join("\n");
+  return rv;
+}
+
+function generateDesc(descriptor) {
+  var rv = '';
+  
+  if (descriptor.scopes) {
+    rv += "\
+#### Scopes
+This API call requires authorization with (at least one of) the following scope(s):
+
+";
+    rv += descriptor.scopes .. @transform(scope -> " * #{scope}") .. @join('\n');
+  }
+  
+  return rv .. indent(5);
+}
+
+__js function stripFirstObjPath(path) {
+  var components = path.split('.');
+  components.shift();
+  return components.join('.');
+}
+
+function requiredParameters(descriptor) {
+  var rv = (descriptor.parameters||{}) .. 
+    @ownPropertyPairs .. 
+    @filter([,p]->p.required) .. 
+    @map([name]->"'#{name}'");
+  if (descriptor.request) {
+    rv.push("'resource'");
+  }
+  return rv .. @join(', ');
+}
+
+function generateRequestParameters(descriptor) {
+  var rv = [];
+
+  if (descriptor.httpMethod !== 'GET')
+    rv.push("method: '#{descriptor.httpMethod}'");
+
+  rv.push("url: API_BASE_URL+'#{descriptor.path}'");
+  rv.push("params: params");
+  rv.push("requiredParams: [#{requiredParameters(descriptor)}]");
+  rv.push("pathParams: [#{ (descriptor.parameters||{}) .. @ownPropertyPairs .. 
+                         @filter([,p]->p.location === 'path') .. 
+                         @transform([name]->"'#{name}'") .. 
+                         @join(', ')
+                      }]");
+
+  return rv .. @join(',\n') .. indent(4);
+}
+
+function generateMethod(name, descriptor) {
+  var rv = '';
+  rv += "\
+/**
+   @function #{descriptor.id .. stripFirstObjPath}
+   @summary  #{descriptor.description}
+   @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+#{descriptor .. generateParametersDocs}
+   @desc
+#{descriptor .. generateDesc}
+*/
+#{name}: function(client, params) {
+  return client .. @helpers.performRequest({
+#{generateRequestParameters(descriptor)}
+  });
+}";
+
+  return rv;
+}
+
+if (discovery_doc.methods) throw new Error("Unexpected api format. Method at top level.");
+discovery_doc.resources .. walkResources .. emit;
+
