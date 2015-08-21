@@ -222,9 +222,10 @@ function requiredParameters(descriptor) {
     @ownPropertyPairs .. 
     @filter([,p]->p.required) .. 
     @map([name]->"'#{name}'");
-  if (descriptor.request) {
-    rv.push("'resource'");
-  }
+// resource is *not* always required, e.g. when only media is uploaded.  
+//  if (descriptor.request) {
+//    rv.push("'resource'");
+//  }
   return rv .. @join(', ');
 }
 
