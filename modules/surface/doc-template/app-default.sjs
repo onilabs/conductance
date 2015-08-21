@@ -219,7 +219,7 @@
 
 var frag = require('../doc-fragment');
 var { toBool } = require('sjs:docutil');
-var { RawHTML } = require('../base');
+var { Script } = require('../html');
 
 exports.Document = function(data, settings) {
   var showErrorDialog = settings.showErrorDialog .. toBool !== false;
@@ -239,7 +239,7 @@ exports.Document = function(data, settings) {
     ${useMhoStyle ? frag.conductanceCss()}
     ${showErrorDialog ? frag.errorHandler()}
     ${frag.busyIndicator(showBusyIndicator)}
-    <script type='text/sjs' module='mho:app'>
+    ${Script(`
       withBusyIndicator {
         ||
 
@@ -263,11 +263,13 @@ exports.Document = function(data, settings) {
 
         // ui helpers:
         exports.body = document.body;
-        exports.colors = ${RawHTML(JSON.stringify(useMhoStyle ? frag.mhoColors : frag.bootstrapColors))};
+        exports.colors = ${JSON.stringify(useMhoStyle ? frag.mhoColors : frag.bootstrapColors)};
         exports.mainContent = document.body.firstChild;
         exports.withBusyIndicator = withBusyIndicator;
       }
-    </script>
+      `,
+      {'type':'text/sjs', 'module': 'mho:app'}
+    )}
     ${ data.head }
     ${ data.script }
   </head>

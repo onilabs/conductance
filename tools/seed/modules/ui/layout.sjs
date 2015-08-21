@@ -114,7 +114,7 @@ var docTemplate = function(data, settings) {
       shadow: 3,
     })}
     ${ data.head }
-    <script type='text/sjs' module='mho:app'>
+    ${@Script(`
       withBusyIndicator {
         ||
 
@@ -130,9 +130,8 @@ var docTemplate = function(data, settings) {
         exports.colors = ${JSON.stringify(useMhoStyle ? frag.mhoColors : frag.bootstrapColors)};
         exports.mainContent = document.body.firstChild;
         exports.withBusyIndicator = withBusyIndicator;
-      }
-    </script>
-
+      }`, {'type':'text/sjs', module:'mho:app'})
+    }
     ${ data.script }
   </head>
   <body>${content}
