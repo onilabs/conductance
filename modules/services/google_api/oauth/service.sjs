@@ -96,10 +96,13 @@ exports.run = function(config, block) {
         /**
            @function GoogleOAuthAPIClient.promptUserAuthorization
            @summary XXX write me
+           @param {Array} [scopes] Array of scope strings to seek authorization for
+           @param {Function} [displayURL] Function that will receive URL of authorization page; must be displayed in browser
+           @param {String} [origin] URL origin for redirecting; should be `window.location.origin` of the browser initiating the authorization
         */
-        promptUserAuthorization: function(scopes, runWindow, origin) {
+        promptUserAuthorization: function(scopes, displayURL, origin) {
           var params = @oauth.waitForOAuthCallback(
-            id -> runWindow(@url.build('https://accounts.google.com/o/oauth2/auth',
+            id -> displayURL(@url.build('https://accounts.google.com/o/oauth2/auth',
                                        {
                                          response_type:'code',
                                          client_id: config.client_id,
@@ -146,7 +149,7 @@ exports.run = function(config, block) {
         /* internal interface */
         _request: function(url, opts) {
           var access_token = ((Tokens .. @current()) || {}).access_token;
-          if (!access_token) return "Authorize Google API first!";
+          if (!access_token) throw new Error("Authorize Google API first!");
 
           var refreshed = false;
           
@@ -154,9 +157,10 @@ exports.run = function(config, block) {
             var rv = @http.request(url, {
               method: opts.method,
               query: opts.query,
+              body: opts.body,
               headers: {
                 'Authorization': 'Bearer '+access_token
-              },
+              } .. @extend(opts.headers),
               throwing: false,
               response: 'full'
             });
