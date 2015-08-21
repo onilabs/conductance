@@ -5,6 +5,20 @@
   {id:'mho:commandline-utils', name:'commandline'}
 ]);
 
+// helpers:
+
+__js function indent(s, n) {
+  var prefix = '';
+  for (var i=0;i<n;++i) prefix += ' ';
+  return s .. @prefixLines(prefix);
+}
+
+function emit(x) { process.stdout.write(x); }
+
+
+//----------------------------------------------------------------------
+// argument parsing
+
 var args = @commandline.parseArgs(
   {
     summary: "Generate an sjs API file for a Google API using the Google Discovery Service",
@@ -28,13 +42,21 @@ if (!locator) {
 
 var discovery_doc = @http.get(locator.discoveryRestUrl) .. JSON.parse;
 //console.log(discovery_doc.resources); process.exit(0);
-function emit(x) { process.stdout.write(x); }
 
-// header
+
+//----------------------------------------------------------------------
+// generate header
+
+if (!discovery_doc.revision || !discovery_doc.documentationLink) throw new Error("Unexpected discovery document format");
+
 emit("\
 // This file was originally generated using conductance/tools/google/generate-google-api #{args.API}
 /**
   @summary #{discovery_doc.title} #{discovery_doc.version} - #{discovery_doc.description}
+  @desc
+    Revision #{discovery_doc.revision}
+
+    See also #{discovery_doc.documentationLink}.
 */
 
 @ = require([
@@ -46,11 +68,40 @@ var API_BASE_URL = '#{discovery_doc.baseUrl}';
 
 ");
 
-__js function indent(s, n) {
-  var prefix = '';
-  for (var i=0;i<n;++i) prefix += ' ';
-  return s .. @prefixLines(prefix);
+//----------------------------------------------------------------------
+// schemas (== return value / argument classes)
+
+function generateSchemasDocs() {
+  var rv = [];
+  @ownPropertyPairs(discovery_doc.schemas || {}) .. @each {
+    |[name, descriptor]|
+    var cls = [];
+    if (descriptor.type !== 'object') throw new Error("Unexpected schema");
+    cls.push("@class #{name}\n@summary Google API JSON structure");
+    
+    @ownPropertyPairs(descriptor.properties || {}) .. @each {
+      |[propname, propdescr]|
+      var type;
+      if (propdescr['$ref'])
+        type = "[::#{propdescr['$ref']}]";
+      else
+        type = propdescr.type .. @capitalize;
+
+      cls.push("@variable #{name}.#{propname}\n@summary #{type} - #{propdescr.description}");
+    }
+
+    rv.push(cls .. @join('\n\n'));
+  }
+  if (!rv.length) return '';
+
+  return "\
+/**
+#{rv .. @join('\n\n') .. indent(3)}
+*/\n\n";
 }
+
+//----------------------------------------------------------------------
+// resources (== api methods) parsing
 
 // depth-first traversal
 function walkResources(resources, level) {
@@ -137,7 +188,7 @@ function generateDesc(descriptor) {
 This API call requires authorization with (at least one of) the following scope(s):
 
 ";
-    rv += descriptor.scopes .. @transform(scope -> " * #{scope}") .. @join('\n');
+    rv += descriptor.scopes .. @transform(scope -> " * #{scope} - #{discovery_doc.auth.oauth2.scopes[scope].description}") .. @join('\n');
   }
   
   return rv .. indent(5);
@@ -186,6 +237,7 @@ function generateMethod(name, descriptor) {
    @summary  #{descriptor.description}
    @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
 #{descriptor .. generateParametersDocs}
+   @return #{descriptor.response ? "{::#{descriptor.response['$ref']}}" : '{void}'}
    @desc
 #{descriptor .. generateDesc}
 */
@@ -198,6 +250,9 @@ function generateMethod(name, descriptor) {
   return rv;
 }
 
+//----------------------------------------------------------------------
+
+generateSchemasDocs() .. emit;
 if (discovery_doc.methods) throw new Error("Unexpected api format. Method at top level.");
 discovery_doc.resources .. walkResources .. emit;
 
