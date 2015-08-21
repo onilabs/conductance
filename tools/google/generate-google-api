@@ -100,7 +100,11 @@ function generateSchemasDocs() {
       else
         type = propdescr.type .. @capitalize;
 
-      cls.push("@variable #{name}.#{propname}\n@summary #{type} - #{propdescr.description}");
+      var prop = "@variable #{name}.#{propname}\n@summary #{type}";
+      if (propdescr.description)
+        prop += " - #{propdescr.description}";
+
+      cls.push(prop);
     }
 
     rv.push(cls .. @join('\n\n'));
@@ -178,7 +182,7 @@ function generateParametersDocs(descriptor) {
   var params = [];
   if (descriptor.request) {
     if (!descriptor.request['$ref']) throw new Error('unexpected discovery doc format');
-    params.push("   @setting {::#{descriptor.request['$ref']}} [resource] Resource that this API call acts on. **Required**");
+    params.push("   @setting {::#{descriptor.request['$ref']}} [resource] Data of [::#{descriptor.request['$ref']}] structure");
   }
   if (descriptor.parameters) {
     descriptor.parameters .. @ownPropertyPairs .. 
