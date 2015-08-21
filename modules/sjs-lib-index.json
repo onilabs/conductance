@@ -534,36 +534,5749 @@
             "calendarV3": {
               "type": "module",
               "children": {
+                "Acl": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "nextSyncToken": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AclRule": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "role": {
+                      "type": "variable"
+                    },
+                    "scope": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Calendar": {
+                  "type": "class",
+                  "children": {
+                    "description": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "location": {
+                      "type": "variable"
+                    },
+                    "summary": {
+                      "type": "variable"
+                    },
+                    "timeZone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "CalendarList": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "nextSyncToken": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "CalendarListEntry": {
+                  "type": "class",
+                  "children": {
+                    "accessRole": {
+                      "type": "variable"
+                    },
+                    "backgroundColor": {
+                      "type": "variable"
+                    },
+                    "colorId": {
+                      "type": "variable"
+                    },
+                    "defaultReminders": {
+                      "type": "variable"
+                    },
+                    "deleted": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "foregroundColor": {
+                      "type": "variable"
+                    },
+                    "hidden": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "location": {
+                      "type": "variable"
+                    },
+                    "notificationSettings": {
+                      "type": "variable"
+                    },
+                    "primary": {
+                      "type": "variable"
+                    },
+                    "selected": {
+                      "type": "variable"
+                    },
+                    "summary": {
+                      "type": "variable"
+                    },
+                    "summaryOverride": {
+                      "type": "variable"
+                    },
+                    "timeZone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "CalendarNotification": {
+                  "type": "class",
+                  "children": {
+                    "method": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Channel": {
+                  "type": "class",
+                  "children": {
+                    "address": {
+                      "type": "variable"
+                    },
+                    "expiration": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "params": {
+                      "type": "variable"
+                    },
+                    "payload": {
+                      "type": "variable"
+                    },
+                    "resourceId": {
+                      "type": "variable"
+                    },
+                    "resourceUri": {
+                      "type": "variable"
+                    },
+                    "token": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ColorDefinition": {
+                  "type": "class",
+                  "children": {
+                    "background": {
+                      "type": "variable"
+                    },
+                    "foreground": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Colors": {
+                  "type": "class",
+                  "children": {
+                    "calendar": {
+                      "type": "variable"
+                    },
+                    "event": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "updated": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Error": {
+                  "type": "class",
+                  "children": {
+                    "domain": {
+                      "type": "variable"
+                    },
+                    "reason": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Event": {
+                  "type": "class",
+                  "children": {
+                    "anyoneCanAddSelf": {
+                      "type": "variable"
+                    },
+                    "attachments": {
+                      "type": "variable"
+                    },
+                    "attendees": {
+                      "type": "variable"
+                    },
+                    "attendeesOmitted": {
+                      "type": "variable"
+                    },
+                    "colorId": {
+                      "type": "variable"
+                    },
+                    "created": {
+                      "type": "variable"
+                    },
+                    "creator": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "end": {
+                      "type": "variable"
+                    },
+                    "endTimeUnspecified": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "extendedProperties": {
+                      "type": "variable"
+                    },
+                    "gadget": {
+                      "type": "variable"
+                    },
+                    "guestsCanInviteOthers": {
+                      "type": "variable"
+                    },
+                    "guestsCanModify": {
+                      "type": "variable"
+                    },
+                    "guestsCanSeeOtherGuests": {
+                      "type": "variable"
+                    },
+                    "hangoutLink": {
+                      "type": "variable"
+                    },
+                    "htmlLink": {
+                      "type": "variable"
+                    },
+                    "iCalUID": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "location": {
+                      "type": "variable"
+                    },
+                    "locked": {
+                      "type": "variable"
+                    },
+                    "organizer": {
+                      "type": "variable"
+                    },
+                    "originalStartTime": {
+                      "type": "variable"
+                    },
+                    "privateCopy": {
+                      "type": "variable"
+                    },
+                    "recurrence": {
+                      "type": "variable"
+                    },
+                    "recurringEventId": {
+                      "type": "variable"
+                    },
+                    "reminders": {
+                      "type": "variable"
+                    },
+                    "sequence": {
+                      "type": "variable"
+                    },
+                    "source": {
+                      "type": "variable"
+                    },
+                    "start": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "summary": {
+                      "type": "variable"
+                    },
+                    "transparency": {
+                      "type": "variable"
+                    },
+                    "updated": {
+                      "type": "variable"
+                    },
+                    "visibility": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "EventAttachment": {
+                  "type": "class",
+                  "children": {
+                    "fileId": {
+                      "type": "variable"
+                    },
+                    "fileUrl": {
+                      "type": "variable"
+                    },
+                    "iconLink": {
+                      "type": "variable"
+                    },
+                    "mimeType": {
+                      "type": "variable"
+                    },
+                    "title": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "EventAttendee": {
+                  "type": "class",
+                  "children": {
+                    "additionalGuests": {
+                      "type": "variable"
+                    },
+                    "comment": {
+                      "type": "variable"
+                    },
+                    "displayName": {
+                      "type": "variable"
+                    },
+                    "email": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "optional": {
+                      "type": "variable"
+                    },
+                    "organizer": {
+                      "type": "variable"
+                    },
+                    "resource": {
+                      "type": "variable"
+                    },
+                    "responseStatus": {
+                      "type": "variable"
+                    },
+                    "self": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "EventDateTime": {
+                  "type": "class",
+                  "children": {
+                    "date": {
+                      "type": "variable"
+                    },
+                    "dateTime": {
+                      "type": "variable"
+                    },
+                    "timeZone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "EventReminder": {
+                  "type": "class",
+                  "children": {
+                    "method": {
+                      "type": "variable"
+                    },
+                    "minutes": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Events": {
+                  "type": "class",
+                  "children": {
+                    "accessRole": {
+                      "type": "variable"
+                    },
+                    "defaultReminders": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "nextSyncToken": {
+                      "type": "variable"
+                    },
+                    "summary": {
+                      "type": "variable"
+                    },
+                    "timeZone": {
+                      "type": "variable"
+                    },
+                    "updated": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "FreeBusyCalendar": {
+                  "type": "class",
+                  "children": {
+                    "busy": {
+                      "type": "variable"
+                    },
+                    "errors": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "FreeBusyGroup": {
+                  "type": "class",
+                  "children": {
+                    "calendars": {
+                      "type": "variable"
+                    },
+                    "errors": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "FreeBusyRequest": {
+                  "type": "class",
+                  "children": {
+                    "calendarExpansionMax": {
+                      "type": "variable"
+                    },
+                    "groupExpansionMax": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "timeMax": {
+                      "type": "variable"
+                    },
+                    "timeMin": {
+                      "type": "variable"
+                    },
+                    "timeZone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "FreeBusyRequestItem": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "FreeBusyResponse": {
+                  "type": "class",
+                  "children": {
+                    "calendars": {
+                      "type": "variable"
+                    },
+                    "groups": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "timeMax": {
+                      "type": "variable"
+                    },
+                    "timeMin": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Setting": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "value": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Settings": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "nextSyncToken": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TimePeriod": {
+                  "type": "class",
+                  "children": {
+                    "end": {
+                      "type": "variable"
+                    },
+                    "start": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "acl.delete": {
+                  "type": "function"
+                },
+                "acl.get": {
+                  "type": "function"
+                },
+                "acl.insert": {
+                  "type": "function"
+                },
+                "acl.list": {
+                  "type": "function"
+                },
+                "acl.patch": {
+                  "type": "function"
+                },
+                "acl.update": {
+                  "type": "function"
+                },
+                "acl.watch": {
+                  "type": "function"
+                },
+                "calendarList.delete": {
+                  "type": "function"
+                },
+                "calendarList.get": {
+                  "type": "function"
+                },
+                "calendarList.insert": {
+                  "type": "function"
+                },
                 "calendarList.list": {
+                  "type": "function"
+                },
+                "calendarList.patch": {
+                  "type": "function"
+                },
+                "calendarList.update": {
+                  "type": "function"
+                },
+                "calendarList.watch": {
+                  "type": "function"
+                },
+                "calendars.clear": {
+                  "type": "function"
+                },
+                "calendars.delete": {
+                  "type": "function"
+                },
+                "calendars.get": {
+                  "type": "function"
+                },
+                "calendars.insert": {
+                  "type": "function"
+                },
+                "calendars.patch": {
+                  "type": "function"
+                },
+                "calendars.update": {
+                  "type": "function"
+                },
+                "channels.stop": {
+                  "type": "function"
+                },
+                "colors.get": {
+                  "type": "function"
+                },
+                "events.delete": {
+                  "type": "function"
+                },
+                "events.get": {
+                  "type": "function"
+                },
+                "events.import": {
+                  "type": "function"
+                },
+                "events.insert": {
+                  "type": "function"
+                },
+                "events.instances": {
+                  "type": "function"
+                },
+                "events.list": {
+                  "type": "function"
+                },
+                "events.move": {
+                  "type": "function"
+                },
+                "events.patch": {
+                  "type": "function"
+                },
+                "events.quickAdd": {
+                  "type": "function"
+                },
+                "events.update": {
+                  "type": "function"
+                },
+                "events.watch": {
+                  "type": "function"
+                },
+                "freebusy.query": {
+                  "type": "function"
+                },
+                "settings.get": {
+                  "type": "function"
+                },
+                "settings.list": {
+                  "type": "function"
+                },
+                "settings.watch": {
                   "type": "function"
                 }
               },
-              "summary": "Calendar API"
+              "summary": "Calendar API v3 - Lets you manipulate events and other calendar data."
+            },
+            "computeV1": {
+              "type": "module",
+              "children": {
+                "AccessConfig": {
+                  "type": "class",
+                  "children": {
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "natIP": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Address": {
+                  "type": "class",
+                  "children": {
+                    "address": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "region": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "users": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AddressAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AddressList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AddressesScopedList": {
+                  "type": "class",
+                  "children": {
+                    "addresses": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AttachedDisk": {
+                  "type": "class",
+                  "children": {
+                    "autoDelete": {
+                      "type": "variable"
+                    },
+                    "boot": {
+                      "type": "variable"
+                    },
+                    "deviceName": {
+                      "type": "variable"
+                    },
+                    "index": {
+                      "type": "variable"
+                    },
+                    "initializeParams": {
+                      "type": "variable"
+                    },
+                    "interface": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "licenses": {
+                      "type": "variable"
+                    },
+                    "mode": {
+                      "type": "variable"
+                    },
+                    "source": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AttachedDiskInitializeParams": {
+                  "type": "class",
+                  "children": {
+                    "diskName": {
+                      "type": "variable"
+                    },
+                    "diskSizeGb": {
+                      "type": "variable"
+                    },
+                    "diskType": {
+                      "type": "variable"
+                    },
+                    "sourceImage": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Autoscaler": {
+                  "type": "class",
+                  "children": {
+                    "autoscalingPolicy": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "target": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AutoscalerAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AutoscalerList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AutoscalersScopedList": {
+                  "type": "class",
+                  "children": {
+                    "autoscalers": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AutoscalingPolicy": {
+                  "type": "class",
+                  "children": {
+                    "coolDownPeriodSec": {
+                      "type": "variable"
+                    },
+                    "cpuUtilization": {
+                      "type": "variable"
+                    },
+                    "customMetricUtilizations": {
+                      "type": "variable"
+                    },
+                    "loadBalancingUtilization": {
+                      "type": "variable"
+                    },
+                    "maxNumReplicas": {
+                      "type": "variable"
+                    },
+                    "minNumReplicas": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AutoscalingPolicyCpuUtilization": {
+                  "type": "class",
+                  "children": {
+                    "utilizationTarget": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AutoscalingPolicyCustomMetricUtilization": {
+                  "type": "class",
+                  "children": {
+                    "metric": {
+                      "type": "variable"
+                    },
+                    "utilizationTarget": {
+                      "type": "variable"
+                    },
+                    "utilizationTargetType": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AutoscalingPolicyLoadBalancingUtilization": {
+                  "type": "class",
+                  "children": {
+                    "utilizationTarget": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Backend": {
+                  "type": "class",
+                  "children": {
+                    "balancingMode": {
+                      "type": "variable"
+                    },
+                    "capacityScaler": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "group": {
+                      "type": "variable"
+                    },
+                    "maxRate": {
+                      "type": "variable"
+                    },
+                    "maxRatePerInstance": {
+                      "type": "variable"
+                    },
+                    "maxUtilization": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "BackendService": {
+                  "type": "class",
+                  "children": {
+                    "backends": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "fingerprint": {
+                      "type": "variable"
+                    },
+                    "healthChecks": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "port": {
+                      "type": "variable"
+                    },
+                    "portName": {
+                      "type": "variable"
+                    },
+                    "protocol": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "timeoutSec": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "BackendServiceGroupHealth": {
+                  "type": "class",
+                  "children": {
+                    "healthStatus": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "BackendServiceList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DeprecationStatus": {
+                  "type": "class",
+                  "children": {
+                    "deleted": {
+                      "type": "variable"
+                    },
+                    "deprecated": {
+                      "type": "variable"
+                    },
+                    "obsolete": {
+                      "type": "variable"
+                    },
+                    "replacement": {
+                      "type": "variable"
+                    },
+                    "state": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Disk": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "lastAttachTimestamp": {
+                      "type": "variable"
+                    },
+                    "lastDetachTimestamp": {
+                      "type": "variable"
+                    },
+                    "licenses": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "options": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "sizeGb": {
+                      "type": "variable"
+                    },
+                    "sourceImage": {
+                      "type": "variable"
+                    },
+                    "sourceImageId": {
+                      "type": "variable"
+                    },
+                    "sourceSnapshot": {
+                      "type": "variable"
+                    },
+                    "sourceSnapshotId": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    },
+                    "users": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DiskAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DiskList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DiskMoveRequest": {
+                  "type": "class",
+                  "children": {
+                    "destinationZone": {
+                      "type": "variable"
+                    },
+                    "targetDisk": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DiskType": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "defaultDiskSizeGb": {
+                      "type": "variable"
+                    },
+                    "deprecated": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "validDiskSize": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DiskTypeAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DiskTypeList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DiskTypesScopedList": {
+                  "type": "class",
+                  "children": {
+                    "diskTypes": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "DisksScopedList": {
+                  "type": "class",
+                  "children": {
+                    "disks": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Firewall": {
+                  "type": "class",
+                  "children": {
+                    "allowed": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "network": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "sourceRanges": {
+                      "type": "variable"
+                    },
+                    "sourceTags": {
+                      "type": "variable"
+                    },
+                    "targetTags": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "FirewallList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ForwardingRule": {
+                  "type": "class",
+                  "children": {
+                    "IPAddress": {
+                      "type": "variable"
+                    },
+                    "IPProtocol": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "portRange": {
+                      "type": "variable"
+                    },
+                    "region": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "target": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ForwardingRuleAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ForwardingRuleList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ForwardingRulesScopedList": {
+                  "type": "class",
+                  "children": {
+                    "forwardingRules": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HealthCheckReference": {
+                  "type": "class",
+                  "children": {
+                    "healthCheck": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HealthStatus": {
+                  "type": "class",
+                  "children": {
+                    "healthState": {
+                      "type": "variable"
+                    },
+                    "instance": {
+                      "type": "variable"
+                    },
+                    "ipAddress": {
+                      "type": "variable"
+                    },
+                    "port": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HostRule": {
+                  "type": "class",
+                  "children": {
+                    "description": {
+                      "type": "variable"
+                    },
+                    "hosts": {
+                      "type": "variable"
+                    },
+                    "pathMatcher": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HttpHealthCheck": {
+                  "type": "class",
+                  "children": {
+                    "checkIntervalSec": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "healthyThreshold": {
+                      "type": "variable"
+                    },
+                    "host": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "port": {
+                      "type": "variable"
+                    },
+                    "requestPath": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "timeoutSec": {
+                      "type": "variable"
+                    },
+                    "unhealthyThreshold": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HttpHealthCheckList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Image": {
+                  "type": "class",
+                  "children": {
+                    "archiveSizeBytes": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "deprecated": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "diskSizeGb": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "licenses": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "rawDisk": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "sourceDisk": {
+                      "type": "variable"
+                    },
+                    "sourceDiskId": {
+                      "type": "variable"
+                    },
+                    "sourceType": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ImageList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Instance": {
+                  "type": "class",
+                  "children": {
+                    "canIpForward": {
+                      "type": "variable"
+                    },
+                    "cpuPlatform": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "disks": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "machineType": {
+                      "type": "variable"
+                    },
+                    "metadata": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "networkInterfaces": {
+                      "type": "variable"
+                    },
+                    "scheduling": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "serviceAccounts": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "statusMessage": {
+                      "type": "variable"
+                    },
+                    "tags": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroup": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "fingerprint": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "namedPorts": {
+                      "type": "variable"
+                    },
+                    "network": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "size": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManager": {
+                  "type": "class",
+                  "children": {
+                    "baseInstanceName": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "currentActions": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "fingerprint": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "instanceGroup": {
+                      "type": "variable"
+                    },
+                    "instanceTemplate": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "targetPools": {
+                      "type": "variable"
+                    },
+                    "targetSize": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagerActionsSummary": {
+                  "type": "class",
+                  "children": {
+                    "abandoning": {
+                      "type": "variable"
+                    },
+                    "creating": {
+                      "type": "variable"
+                    },
+                    "deleting": {
+                      "type": "variable"
+                    },
+                    "none": {
+                      "type": "variable"
+                    },
+                    "recreating": {
+                      "type": "variable"
+                    },
+                    "refreshing": {
+                      "type": "variable"
+                    },
+                    "restarting": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagerAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagerList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagersAbandonInstancesRequest": {
+                  "type": "class",
+                  "children": {
+                    "instances": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagersDeleteInstancesRequest": {
+                  "type": "class",
+                  "children": {
+                    "instances": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagersListManagedInstancesResponse": {
+                  "type": "class",
+                  "children": {
+                    "managedInstances": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagersRecreateInstancesRequest": {
+                  "type": "class",
+                  "children": {
+                    "instances": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagersScopedList": {
+                  "type": "class",
+                  "children": {
+                    "instanceGroupManagers": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagersSetInstanceTemplateRequest": {
+                  "type": "class",
+                  "children": {
+                    "instanceTemplate": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupManagersSetTargetPoolsRequest": {
+                  "type": "class",
+                  "children": {
+                    "fingerprint": {
+                      "type": "variable"
+                    },
+                    "targetPools": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupsAddInstancesRequest": {
+                  "type": "class",
+                  "children": {
+                    "instances": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupsListInstances": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupsListInstancesRequest": {
+                  "type": "class",
+                  "children": {
+                    "instanceState": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupsRemoveInstancesRequest": {
+                  "type": "class",
+                  "children": {
+                    "instances": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupsScopedList": {
+                  "type": "class",
+                  "children": {
+                    "instanceGroups": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceGroupsSetNamedPortsRequest": {
+                  "type": "class",
+                  "children": {
+                    "fingerprint": {
+                      "type": "variable"
+                    },
+                    "namedPorts": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceMoveRequest": {
+                  "type": "class",
+                  "children": {
+                    "destinationZone": {
+                      "type": "variable"
+                    },
+                    "targetInstance": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceProperties": {
+                  "type": "class",
+                  "children": {
+                    "canIpForward": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "disks": {
+                      "type": "variable"
+                    },
+                    "machineType": {
+                      "type": "variable"
+                    },
+                    "metadata": {
+                      "type": "variable"
+                    },
+                    "networkInterfaces": {
+                      "type": "variable"
+                    },
+                    "scheduling": {
+                      "type": "variable"
+                    },
+                    "serviceAccounts": {
+                      "type": "variable"
+                    },
+                    "tags": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceReference": {
+                  "type": "class",
+                  "children": {
+                    "instance": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceTemplate": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "properties": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceTemplateList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstanceWithNamedPorts": {
+                  "type": "class",
+                  "children": {
+                    "instance": {
+                      "type": "variable"
+                    },
+                    "namedPorts": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "InstancesScopedList": {
+                  "type": "class",
+                  "children": {
+                    "instances": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "License": {
+                  "type": "class",
+                  "children": {
+                    "chargesUseFee": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "MachineType": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "deprecated": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "guestCpus": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "imageSpaceGb": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "maximumPersistentDisks": {
+                      "type": "variable"
+                    },
+                    "maximumPersistentDisksSizeGb": {
+                      "type": "variable"
+                    },
+                    "memoryMb": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "scratchDisks": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "MachineTypeAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "MachineTypeList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "MachineTypesScopedList": {
+                  "type": "class",
+                  "children": {
+                    "machineTypes": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ManagedInstance": {
+                  "type": "class",
+                  "children": {
+                    "currentAction": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "instance": {
+                      "type": "variable"
+                    },
+                    "instanceStatus": {
+                      "type": "variable"
+                    },
+                    "lastAttempt": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ManagedInstanceLastAttempt": {
+                  "type": "class",
+                  "children": {
+                    "errors": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Metadata": {
+                  "type": "class",
+                  "children": {
+                    "fingerprint": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "NamedPort": {
+                  "type": "class",
+                  "children": {
+                    "name": {
+                      "type": "variable"
+                    },
+                    "port": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Network": {
+                  "type": "class",
+                  "children": {
+                    "IPv4Range": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "gatewayIPv4": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "NetworkInterface": {
+                  "type": "class",
+                  "children": {
+                    "accessConfigs": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "network": {
+                      "type": "variable"
+                    },
+                    "networkIP": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "NetworkList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Operation": {
+                  "type": "class",
+                  "children": {
+                    "clientOperationId": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "endTime": {
+                      "type": "variable"
+                    },
+                    "error": {
+                      "type": "variable"
+                    },
+                    "httpErrorMessage": {
+                      "type": "variable"
+                    },
+                    "httpErrorStatusCode": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "insertTime": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "operationType": {
+                      "type": "variable"
+                    },
+                    "progress": {
+                      "type": "variable"
+                    },
+                    "region": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "startTime": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "statusMessage": {
+                      "type": "variable"
+                    },
+                    "targetId": {
+                      "type": "variable"
+                    },
+                    "targetLink": {
+                      "type": "variable"
+                    },
+                    "user": {
+                      "type": "variable"
+                    },
+                    "warnings": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "OperationAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "OperationList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "OperationsScopedList": {
+                  "type": "class",
+                  "children": {
+                    "operations": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "PathMatcher": {
+                  "type": "class",
+                  "children": {
+                    "defaultService": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "pathRules": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "PathRule": {
+                  "type": "class",
+                  "children": {
+                    "paths": {
+                      "type": "variable"
+                    },
+                    "service": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Project": {
+                  "type": "class",
+                  "children": {
+                    "commonInstanceMetadata": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "enabledFeatures": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "quotas": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "usageExportLocation": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Quota": {
+                  "type": "class",
+                  "children": {
+                    "limit": {
+                      "type": "variable"
+                    },
+                    "metric": {
+                      "type": "variable"
+                    },
+                    "usage": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Region": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "deprecated": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "quotas": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "zones": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "RegionList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ResourceGroupReference": {
+                  "type": "class",
+                  "children": {
+                    "group": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Route": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "destRange": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "network": {
+                      "type": "variable"
+                    },
+                    "nextHopGateway": {
+                      "type": "variable"
+                    },
+                    "nextHopInstance": {
+                      "type": "variable"
+                    },
+                    "nextHopIp": {
+                      "type": "variable"
+                    },
+                    "nextHopNetwork": {
+                      "type": "variable"
+                    },
+                    "nextHopVpnTunnel": {
+                      "type": "variable"
+                    },
+                    "priority": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "tags": {
+                      "type": "variable"
+                    },
+                    "warnings": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "RouteList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Scheduling": {
+                  "type": "class",
+                  "children": {
+                    "automaticRestart": {
+                      "type": "variable"
+                    },
+                    "onHostMaintenance": {
+                      "type": "variable"
+                    },
+                    "preemptible": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "SerialPortOutput": {
+                  "type": "class",
+                  "children": {
+                    "contents": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ServiceAccount": {
+                  "type": "class",
+                  "children": {
+                    "email": {
+                      "type": "variable"
+                    },
+                    "scopes": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Snapshot": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "diskSizeGb": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "licenses": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "sourceDisk": {
+                      "type": "variable"
+                    },
+                    "sourceDiskId": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "storageBytes": {
+                      "type": "variable"
+                    },
+                    "storageBytesStatus": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "SnapshotList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Tags": {
+                  "type": "class",
+                  "children": {
+                    "fingerprint": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetHttpProxy": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "urlMap": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetHttpProxyList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetInstance": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "instance": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "natPolicy": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "zone": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetInstanceAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetInstanceList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetInstancesScopedList": {
+                  "type": "class",
+                  "children": {
+                    "targetInstances": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPool": {
+                  "type": "class",
+                  "children": {
+                    "backupPool": {
+                      "type": "variable"
+                    },
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "failoverRatio": {
+                      "type": "variable"
+                    },
+                    "healthChecks": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "instances": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "region": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "sessionAffinity": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPoolAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPoolInstanceHealth": {
+                  "type": "class",
+                  "children": {
+                    "healthStatus": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPoolList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPoolsAddHealthCheckRequest": {
+                  "type": "class",
+                  "children": {
+                    "healthChecks": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPoolsAddInstanceRequest": {
+                  "type": "class",
+                  "children": {
+                    "instances": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPoolsRemoveHealthCheckRequest": {
+                  "type": "class",
+                  "children": {
+                    "healthChecks": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPoolsRemoveInstanceRequest": {
+                  "type": "class",
+                  "children": {
+                    "instances": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetPoolsScopedList": {
+                  "type": "class",
+                  "children": {
+                    "targetPools": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetReference": {
+                  "type": "class",
+                  "children": {
+                    "target": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetVpnGateway": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "forwardingRules": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "network": {
+                      "type": "variable"
+                    },
+                    "region": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "tunnels": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetVpnGatewayAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetVpnGatewayList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TargetVpnGatewaysScopedList": {
+                  "type": "class",
+                  "children": {
+                    "targetVpnGateways": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "TestFailure": {
+                  "type": "class",
+                  "children": {
+                    "actualService": {
+                      "type": "variable"
+                    },
+                    "expectedService": {
+                      "type": "variable"
+                    },
+                    "host": {
+                      "type": "variable"
+                    },
+                    "path": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UrlMap": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "defaultService": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "fingerprint": {
+                      "type": "variable"
+                    },
+                    "hostRules": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "pathMatchers": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "tests": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UrlMapList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UrlMapReference": {
+                  "type": "class",
+                  "children": {
+                    "urlMap": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UrlMapTest": {
+                  "type": "class",
+                  "children": {
+                    "description": {
+                      "type": "variable"
+                    },
+                    "host": {
+                      "type": "variable"
+                    },
+                    "path": {
+                      "type": "variable"
+                    },
+                    "service": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UrlMapValidationResult": {
+                  "type": "class",
+                  "children": {
+                    "loadErrors": {
+                      "type": "variable"
+                    },
+                    "loadSucceeded": {
+                      "type": "variable"
+                    },
+                    "testFailures": {
+                      "type": "variable"
+                    },
+                    "testPassed": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UrlMapsValidateRequest": {
+                  "type": "class",
+                  "children": {
+                    "resource": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UrlMapsValidateResponse": {
+                  "type": "class",
+                  "children": {
+                    "result": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UsageExportLocation": {
+                  "type": "class",
+                  "children": {
+                    "bucketName": {
+                      "type": "variable"
+                    },
+                    "reportNamePrefix": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "VpnTunnel": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "detailedStatus": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "ikeVersion": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "peerIp": {
+                      "type": "variable"
+                    },
+                    "region": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "sharedSecret": {
+                      "type": "variable"
+                    },
+                    "sharedSecretHash": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    },
+                    "targetVpnGateway": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "VpnTunnelAggregatedList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "VpnTunnelList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "VpnTunnelsScopedList": {
+                  "type": "class",
+                  "children": {
+                    "vpnTunnels": {
+                      "type": "variable"
+                    },
+                    "warning": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Zone": {
+                  "type": "class",
+                  "children": {
+                    "creationTimestamp": {
+                      "type": "variable"
+                    },
+                    "deprecated": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "maintenanceWindows": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "region": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ZoneList": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "addresses.aggregatedList": {
+                  "type": "function"
+                },
+                "addresses.delete": {
+                  "type": "function"
+                },
+                "addresses.get": {
+                  "type": "function"
+                },
+                "addresses.insert": {
+                  "type": "function"
+                },
+                "addresses.list": {
+                  "type": "function"
+                },
+                "autoscalers.aggregatedList": {
+                  "type": "function"
+                },
+                "autoscalers.delete": {
+                  "type": "function"
+                },
+                "autoscalers.get": {
+                  "type": "function"
+                },
+                "autoscalers.insert": {
+                  "type": "function"
+                },
+                "autoscalers.list": {
+                  "type": "function"
+                },
+                "autoscalers.patch": {
+                  "type": "function"
+                },
+                "autoscalers.update": {
+                  "type": "function"
+                },
+                "backendServices.delete": {
+                  "type": "function"
+                },
+                "backendServices.get": {
+                  "type": "function"
+                },
+                "backendServices.getHealth": {
+                  "type": "function"
+                },
+                "backendServices.insert": {
+                  "type": "function"
+                },
+                "backendServices.list": {
+                  "type": "function"
+                },
+                "backendServices.patch": {
+                  "type": "function"
+                },
+                "backendServices.update": {
+                  "type": "function"
+                },
+                "diskTypes.aggregatedList": {
+                  "type": "function"
+                },
+                "diskTypes.get": {
+                  "type": "function"
+                },
+                "diskTypes.list": {
+                  "type": "function"
+                },
+                "disks.aggregatedList": {
+                  "type": "function"
+                },
+                "disks.createSnapshot": {
+                  "type": "function"
+                },
+                "disks.delete": {
+                  "type": "function"
+                },
+                "disks.get": {
+                  "type": "function"
+                },
+                "disks.insert": {
+                  "type": "function"
+                },
+                "disks.list": {
+                  "type": "function"
+                },
+                "firewalls.delete": {
+                  "type": "function"
+                },
+                "firewalls.get": {
+                  "type": "function"
+                },
+                "firewalls.insert": {
+                  "type": "function"
+                },
+                "firewalls.list": {
+                  "type": "function"
+                },
+                "firewalls.patch": {
+                  "type": "function"
+                },
+                "firewalls.update": {
+                  "type": "function"
+                },
+                "forwardingRules.aggregatedList": {
+                  "type": "function"
+                },
+                "forwardingRules.delete": {
+                  "type": "function"
+                },
+                "forwardingRules.get": {
+                  "type": "function"
+                },
+                "forwardingRules.insert": {
+                  "type": "function"
+                },
+                "forwardingRules.list": {
+                  "type": "function"
+                },
+                "forwardingRules.setTarget": {
+                  "type": "function"
+                },
+                "globalAddresses.delete": {
+                  "type": "function"
+                },
+                "globalAddresses.get": {
+                  "type": "function"
+                },
+                "globalAddresses.insert": {
+                  "type": "function"
+                },
+                "globalAddresses.list": {
+                  "type": "function"
+                },
+                "globalForwardingRules.delete": {
+                  "type": "function"
+                },
+                "globalForwardingRules.get": {
+                  "type": "function"
+                },
+                "globalForwardingRules.insert": {
+                  "type": "function"
+                },
+                "globalForwardingRules.list": {
+                  "type": "function"
+                },
+                "globalForwardingRules.setTarget": {
+                  "type": "function"
+                },
+                "globalOperations.aggregatedList": {
+                  "type": "function"
+                },
+                "globalOperations.delete": {
+                  "type": "function"
+                },
+                "globalOperations.get": {
+                  "type": "function"
+                },
+                "globalOperations.list": {
+                  "type": "function"
+                },
+                "httpHealthChecks.delete": {
+                  "type": "function"
+                },
+                "httpHealthChecks.get": {
+                  "type": "function"
+                },
+                "httpHealthChecks.insert": {
+                  "type": "function"
+                },
+                "httpHealthChecks.list": {
+                  "type": "function"
+                },
+                "httpHealthChecks.patch": {
+                  "type": "function"
+                },
+                "httpHealthChecks.update": {
+                  "type": "function"
+                },
+                "images.delete": {
+                  "type": "function"
+                },
+                "images.deprecate": {
+                  "type": "function"
+                },
+                "images.get": {
+                  "type": "function"
+                },
+                "images.insert": {
+                  "type": "function"
+                },
+                "images.list": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.abandonInstances": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.aggregatedList": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.delete": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.deleteInstances": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.get": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.insert": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.list": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.listManagedInstances": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.recreateInstances": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.resize": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.setInstanceTemplate": {
+                  "type": "function"
+                },
+                "instanceGroupManagers.setTargetPools": {
+                  "type": "function"
+                },
+                "instanceGroups.addInstances": {
+                  "type": "function"
+                },
+                "instanceGroups.aggregatedList": {
+                  "type": "function"
+                },
+                "instanceGroups.delete": {
+                  "type": "function"
+                },
+                "instanceGroups.get": {
+                  "type": "function"
+                },
+                "instanceGroups.insert": {
+                  "type": "function"
+                },
+                "instanceGroups.list": {
+                  "type": "function"
+                },
+                "instanceGroups.listInstances": {
+                  "type": "function"
+                },
+                "instanceGroups.removeInstances": {
+                  "type": "function"
+                },
+                "instanceGroups.setNamedPorts": {
+                  "type": "function"
+                },
+                "instanceTemplates.delete": {
+                  "type": "function"
+                },
+                "instanceTemplates.get": {
+                  "type": "function"
+                },
+                "instanceTemplates.insert": {
+                  "type": "function"
+                },
+                "instanceTemplates.list": {
+                  "type": "function"
+                },
+                "instances.addAccessConfig": {
+                  "type": "function"
+                },
+                "instances.aggregatedList": {
+                  "type": "function"
+                },
+                "instances.attachDisk": {
+                  "type": "function"
+                },
+                "instances.delete": {
+                  "type": "function"
+                },
+                "instances.deleteAccessConfig": {
+                  "type": "function"
+                },
+                "instances.detachDisk": {
+                  "type": "function"
+                },
+                "instances.get": {
+                  "type": "function"
+                },
+                "instances.getSerialPortOutput": {
+                  "type": "function"
+                },
+                "instances.insert": {
+                  "type": "function"
+                },
+                "instances.list": {
+                  "type": "function"
+                },
+                "instances.reset": {
+                  "type": "function"
+                },
+                "instances.setDiskAutoDelete": {
+                  "type": "function"
+                },
+                "instances.setMetadata": {
+                  "type": "function"
+                },
+                "instances.setScheduling": {
+                  "type": "function"
+                },
+                "instances.setTags": {
+                  "type": "function"
+                },
+                "instances.start": {
+                  "type": "function"
+                },
+                "instances.stop": {
+                  "type": "function"
+                },
+                "licenses.get": {
+                  "type": "function"
+                },
+                "machineTypes.aggregatedList": {
+                  "type": "function"
+                },
+                "machineTypes.get": {
+                  "type": "function"
+                },
+                "machineTypes.list": {
+                  "type": "function"
+                },
+                "networks.delete": {
+                  "type": "function"
+                },
+                "networks.get": {
+                  "type": "function"
+                },
+                "networks.insert": {
+                  "type": "function"
+                },
+                "networks.list": {
+                  "type": "function"
+                },
+                "projects.get": {
+                  "type": "function"
+                },
+                "projects.moveDisk": {
+                  "type": "function"
+                },
+                "projects.moveInstance": {
+                  "type": "function"
+                },
+                "projects.setCommonInstanceMetadata": {
+                  "type": "function"
+                },
+                "projects.setUsageExportBucket": {
+                  "type": "function"
+                },
+                "regionOperations.delete": {
+                  "type": "function"
+                },
+                "regionOperations.get": {
+                  "type": "function"
+                },
+                "regionOperations.list": {
+                  "type": "function"
+                },
+                "regions.get": {
+                  "type": "function"
+                },
+                "regions.list": {
+                  "type": "function"
+                },
+                "routes.delete": {
+                  "type": "function"
+                },
+                "routes.get": {
+                  "type": "function"
+                },
+                "routes.insert": {
+                  "type": "function"
+                },
+                "routes.list": {
+                  "type": "function"
+                },
+                "snapshots.delete": {
+                  "type": "function"
+                },
+                "snapshots.get": {
+                  "type": "function"
+                },
+                "snapshots.list": {
+                  "type": "function"
+                },
+                "targetHttpProxies.delete": {
+                  "type": "function"
+                },
+                "targetHttpProxies.get": {
+                  "type": "function"
+                },
+                "targetHttpProxies.insert": {
+                  "type": "function"
+                },
+                "targetHttpProxies.list": {
+                  "type": "function"
+                },
+                "targetHttpProxies.setUrlMap": {
+                  "type": "function"
+                },
+                "targetInstances.aggregatedList": {
+                  "type": "function"
+                },
+                "targetInstances.delete": {
+                  "type": "function"
+                },
+                "targetInstances.get": {
+                  "type": "function"
+                },
+                "targetInstances.insert": {
+                  "type": "function"
+                },
+                "targetInstances.list": {
+                  "type": "function"
+                },
+                "targetPools.addHealthCheck": {
+                  "type": "function"
+                },
+                "targetPools.addInstance": {
+                  "type": "function"
+                },
+                "targetPools.aggregatedList": {
+                  "type": "function"
+                },
+                "targetPools.delete": {
+                  "type": "function"
+                },
+                "targetPools.get": {
+                  "type": "function"
+                },
+                "targetPools.getHealth": {
+                  "type": "function"
+                },
+                "targetPools.insert": {
+                  "type": "function"
+                },
+                "targetPools.list": {
+                  "type": "function"
+                },
+                "targetPools.removeHealthCheck": {
+                  "type": "function"
+                },
+                "targetPools.removeInstance": {
+                  "type": "function"
+                },
+                "targetPools.setBackup": {
+                  "type": "function"
+                },
+                "targetVpnGateways.aggregatedList": {
+                  "type": "function"
+                },
+                "targetVpnGateways.delete": {
+                  "type": "function"
+                },
+                "targetVpnGateways.get": {
+                  "type": "function"
+                },
+                "targetVpnGateways.insert": {
+                  "type": "function"
+                },
+                "targetVpnGateways.list": {
+                  "type": "function"
+                },
+                "urlMaps.delete": {
+                  "type": "function"
+                },
+                "urlMaps.get": {
+                  "type": "function"
+                },
+                "urlMaps.insert": {
+                  "type": "function"
+                },
+                "urlMaps.list": {
+                  "type": "function"
+                },
+                "urlMaps.patch": {
+                  "type": "function"
+                },
+                "urlMaps.update": {
+                  "type": "function"
+                },
+                "urlMaps.validate": {
+                  "type": "function"
+                },
+                "vpnTunnels.aggregatedList": {
+                  "type": "function"
+                },
+                "vpnTunnels.delete": {
+                  "type": "function"
+                },
+                "vpnTunnels.get": {
+                  "type": "function"
+                },
+                "vpnTunnels.insert": {
+                  "type": "function"
+                },
+                "vpnTunnels.list": {
+                  "type": "function"
+                },
+                "zoneOperations.delete": {
+                  "type": "function"
+                },
+                "zoneOperations.get": {
+                  "type": "function"
+                },
+                "zoneOperations.list": {
+                  "type": "function"
+                },
+                "zones.get": {
+                  "type": "function"
+                },
+                "zones.list": {
+                  "type": "function"
+                }
+              },
+              "summary": "Compute Engine API v1 - API for the Google Compute Engine service."
+            },
+            "dnsV1": {
+              "type": "module",
+              "children": {
+                "Change": {
+                  "type": "class",
+                  "children": {
+                    "additions": {
+                      "type": "variable"
+                    },
+                    "deletions": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "startTime": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ChangesListResponse": {
+                  "type": "class",
+                  "children": {
+                    "changes": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ManagedZone": {
+                  "type": "class",
+                  "children": {
+                    "creationTime": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "dnsName": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "nameServerSet": {
+                      "type": "variable"
+                    },
+                    "nameServers": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ManagedZonesListResponse": {
+                  "type": "class",
+                  "children": {
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "managedZones": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Project": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "number": {
+                      "type": "variable"
+                    },
+                    "quota": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Quota": {
+                  "type": "class",
+                  "children": {
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "managedZones": {
+                      "type": "variable"
+                    },
+                    "resourceRecordsPerRrset": {
+                      "type": "variable"
+                    },
+                    "rrsetAdditionsPerChange": {
+                      "type": "variable"
+                    },
+                    "rrsetDeletionsPerChange": {
+                      "type": "variable"
+                    },
+                    "rrsetsPerManagedZone": {
+                      "type": "variable"
+                    },
+                    "totalRrdataSizePerChange": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ResourceRecordSet": {
+                  "type": "class",
+                  "children": {
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "rrdatas": {
+                      "type": "variable"
+                    },
+                    "ttl": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ResourceRecordSetsListResponse": {
+                  "type": "class",
+                  "children": {
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "rrsets": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "changes.create": {
+                  "type": "function"
+                },
+                "changes.get": {
+                  "type": "function"
+                },
+                "changes.list": {
+                  "type": "function"
+                },
+                "managedZones.create": {
+                  "type": "function"
+                },
+                "managedZones.delete": {
+                  "type": "function"
+                },
+                "managedZones.get": {
+                  "type": "function"
+                },
+                "managedZones.list": {
+                  "type": "function"
+                },
+                "projects.get": {
+                  "type": "function"
+                },
+                "resourceRecordSets.list": {
+                  "type": "function"
+                }
+              },
+              "summary": "Google Cloud DNS API v1 - The Google Cloud DNS API provides services for configuring and serving authoritative DNS records."
             },
             "driveV2": {
               "type": "module",
               "children": {
+                "About": {
+                  "type": "class",
+                  "children": {
+                    "additionalRoleInfo": {
+                      "type": "variable"
+                    },
+                    "domainSharingPolicy": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "exportFormats": {
+                      "type": "variable"
+                    },
+                    "features": {
+                      "type": "variable"
+                    },
+                    "folderColorPalette": {
+                      "type": "variable"
+                    },
+                    "importFormats": {
+                      "type": "variable"
+                    },
+                    "isCurrentAppInstalled": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "languageCode": {
+                      "type": "variable"
+                    },
+                    "largestChangeId": {
+                      "type": "variable"
+                    },
+                    "maxUploadSizes": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "permissionId": {
+                      "type": "variable"
+                    },
+                    "quotaBytesByService": {
+                      "type": "variable"
+                    },
+                    "quotaBytesTotal": {
+                      "type": "variable"
+                    },
+                    "quotaBytesUsed": {
+                      "type": "variable"
+                    },
+                    "quotaBytesUsedAggregate": {
+                      "type": "variable"
+                    },
+                    "quotaBytesUsedInTrash": {
+                      "type": "variable"
+                    },
+                    "quotaType": {
+                      "type": "variable"
+                    },
+                    "remainingChangeIds": {
+                      "type": "variable"
+                    },
+                    "rootFolderId": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "user": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "App": {
+                  "type": "class",
+                  "children": {
+                    "authorized": {
+                      "type": "variable"
+                    },
+                    "createInFolderTemplate": {
+                      "type": "variable"
+                    },
+                    "createUrl": {
+                      "type": "variable"
+                    },
+                    "hasDriveWideScope": {
+                      "type": "variable"
+                    },
+                    "icons": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "installed": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "longDescription": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "objectType": {
+                      "type": "variable"
+                    },
+                    "openUrlTemplate": {
+                      "type": "variable"
+                    },
+                    "primaryFileExtensions": {
+                      "type": "variable"
+                    },
+                    "primaryMimeTypes": {
+                      "type": "variable"
+                    },
+                    "productId": {
+                      "type": "variable"
+                    },
+                    "productUrl": {
+                      "type": "variable"
+                    },
+                    "secondaryFileExtensions": {
+                      "type": "variable"
+                    },
+                    "secondaryMimeTypes": {
+                      "type": "variable"
+                    },
+                    "shortDescription": {
+                      "type": "variable"
+                    },
+                    "supportsCreate": {
+                      "type": "variable"
+                    },
+                    "supportsImport": {
+                      "type": "variable"
+                    },
+                    "supportsMultiOpen": {
+                      "type": "variable"
+                    },
+                    "supportsOfflineCreate": {
+                      "type": "variable"
+                    },
+                    "useByDefault": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AppList": {
+                  "type": "class",
+                  "children": {
+                    "defaultAppIds": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Change": {
+                  "type": "class",
+                  "children": {
+                    "deleted": {
+                      "type": "variable"
+                    },
+                    "file": {
+                      "type": "variable"
+                    },
+                    "fileId": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "modificationDate": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ChangeList": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "largestChangeId": {
+                      "type": "variable"
+                    },
+                    "nextLink": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Channel": {
+                  "type": "class",
+                  "children": {
+                    "address": {
+                      "type": "variable"
+                    },
+                    "expiration": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "params": {
+                      "type": "variable"
+                    },
+                    "payload": {
+                      "type": "variable"
+                    },
+                    "resourceId": {
+                      "type": "variable"
+                    },
+                    "resourceUri": {
+                      "type": "variable"
+                    },
+                    "token": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ChildList": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextLink": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ChildReference": {
+                  "type": "class",
+                  "children": {
+                    "childLink": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Comment": {
+                  "type": "class",
+                  "children": {
+                    "anchor": {
+                      "type": "variable"
+                    },
+                    "author": {
+                      "type": "variable"
+                    },
+                    "commentId": {
+                      "type": "variable"
+                    },
+                    "content": {
+                      "type": "variable"
+                    },
+                    "context": {
+                      "type": "variable"
+                    },
+                    "createdDate": {
+                      "type": "variable"
+                    },
+                    "deleted": {
+                      "type": "variable"
+                    },
+                    "fileId": {
+                      "type": "variable"
+                    },
+                    "fileTitle": {
+                      "type": "variable"
+                    },
+                    "htmlContent": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "modifiedDate": {
+                      "type": "variable"
+                    },
+                    "replies": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "CommentList": {
+                  "type": "class",
+                  "children": {
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextLink": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "CommentReply": {
+                  "type": "class",
+                  "children": {
+                    "author": {
+                      "type": "variable"
+                    },
+                    "content": {
+                      "type": "variable"
+                    },
+                    "createdDate": {
+                      "type": "variable"
+                    },
+                    "deleted": {
+                      "type": "variable"
+                    },
+                    "htmlContent": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "modifiedDate": {
+                      "type": "variable"
+                    },
+                    "replyId": {
+                      "type": "variable"
+                    },
+                    "verb": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "CommentReplyList": {
+                  "type": "class",
+                  "children": {
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextLink": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "File": {
+                  "type": "class",
+                  "children": {
+                    "alternateLink": {
+                      "type": "variable"
+                    },
+                    "appDataContents": {
+                      "type": "variable"
+                    },
+                    "canComment": {
+                      "type": "variable"
+                    },
+                    "copyable": {
+                      "type": "variable"
+                    },
+                    "createdDate": {
+                      "type": "variable"
+                    },
+                    "defaultOpenWithLink": {
+                      "type": "variable"
+                    },
+                    "description": {
+                      "type": "variable"
+                    },
+                    "downloadUrl": {
+                      "type": "variable"
+                    },
+                    "editable": {
+                      "type": "variable"
+                    },
+                    "embedLink": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "explicitlyTrashed": {
+                      "type": "variable"
+                    },
+                    "exportLinks": {
+                      "type": "variable"
+                    },
+                    "fileExtension": {
+                      "type": "variable"
+                    },
+                    "fileSize": {
+                      "type": "variable"
+                    },
+                    "folderColorRgb": {
+                      "type": "variable"
+                    },
+                    "fullFileExtension": {
+                      "type": "variable"
+                    },
+                    "headRevisionId": {
+                      "type": "variable"
+                    },
+                    "iconLink": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "imageMediaMetadata": {
+                      "type": "variable"
+                    },
+                    "indexableText": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "labels": {
+                      "type": "variable"
+                    },
+                    "lastModifyingUser": {
+                      "type": "variable"
+                    },
+                    "lastModifyingUserName": {
+                      "type": "variable"
+                    },
+                    "lastViewedByMeDate": {
+                      "type": "variable"
+                    },
+                    "markedViewedByMeDate": {
+                      "type": "variable"
+                    },
+                    "md5Checksum": {
+                      "type": "variable"
+                    },
+                    "mimeType": {
+                      "type": "variable"
+                    },
+                    "modifiedByMeDate": {
+                      "type": "variable"
+                    },
+                    "modifiedDate": {
+                      "type": "variable"
+                    },
+                    "openWithLinks": {
+                      "type": "variable"
+                    },
+                    "originalFilename": {
+                      "type": "variable"
+                    },
+                    "ownedByMe": {
+                      "type": "variable"
+                    },
+                    "ownerNames": {
+                      "type": "variable"
+                    },
+                    "owners": {
+                      "type": "variable"
+                    },
+                    "parents": {
+                      "type": "variable"
+                    },
+                    "permissions": {
+                      "type": "variable"
+                    },
+                    "properties": {
+                      "type": "variable"
+                    },
+                    "quotaBytesUsed": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "shareable": {
+                      "type": "variable"
+                    },
+                    "shared": {
+                      "type": "variable"
+                    },
+                    "sharedWithMeDate": {
+                      "type": "variable"
+                    },
+                    "sharingUser": {
+                      "type": "variable"
+                    },
+                    "spaces": {
+                      "type": "variable"
+                    },
+                    "thumbnail": {
+                      "type": "variable"
+                    },
+                    "thumbnailLink": {
+                      "type": "variable"
+                    },
+                    "title": {
+                      "type": "variable"
+                    },
+                    "userPermission": {
+                      "type": "variable"
+                    },
+                    "version": {
+                      "type": "variable"
+                    },
+                    "videoMediaMetadata": {
+                      "type": "variable"
+                    },
+                    "webContentLink": {
+                      "type": "variable"
+                    },
+                    "webViewLink": {
+                      "type": "variable"
+                    },
+                    "writersCanShare": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "FileList": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextLink": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "GeneratedIds": {
+                  "type": "class",
+                  "children": {
+                    "ids": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "space": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ParentList": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ParentReference": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "isRoot": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "parentLink": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Permission": {
+                  "type": "class",
+                  "children": {
+                    "additionalRoles": {
+                      "type": "variable"
+                    },
+                    "authKey": {
+                      "type": "variable"
+                    },
+                    "domain": {
+                      "type": "variable"
+                    },
+                    "emailAddress": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "photoLink": {
+                      "type": "variable"
+                    },
+                    "role": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    },
+                    "value": {
+                      "type": "variable"
+                    },
+                    "withLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "PermissionId": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "PermissionList": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Property": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "key": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    },
+                    "value": {
+                      "type": "variable"
+                    },
+                    "visibility": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "PropertyList": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Revision": {
+                  "type": "class",
+                  "children": {
+                    "downloadUrl": {
+                      "type": "variable"
+                    },
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "exportLinks": {
+                      "type": "variable"
+                    },
+                    "fileSize": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "lastModifyingUser": {
+                      "type": "variable"
+                    },
+                    "lastModifyingUserName": {
+                      "type": "variable"
+                    },
+                    "md5Checksum": {
+                      "type": "variable"
+                    },
+                    "mimeType": {
+                      "type": "variable"
+                    },
+                    "modifiedDate": {
+                      "type": "variable"
+                    },
+                    "originalFilename": {
+                      "type": "variable"
+                    },
+                    "pinned": {
+                      "type": "variable"
+                    },
+                    "publishAuto": {
+                      "type": "variable"
+                    },
+                    "published": {
+                      "type": "variable"
+                    },
+                    "publishedLink": {
+                      "type": "variable"
+                    },
+                    "publishedOutsideDomain": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "RevisionList": {
+                  "type": "class",
+                  "children": {
+                    "etag": {
+                      "type": "variable"
+                    },
+                    "items": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "selfLink": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "User": {
+                  "type": "class",
+                  "children": {
+                    "displayName": {
+                      "type": "variable"
+                    },
+                    "emailAddress": {
+                      "type": "variable"
+                    },
+                    "isAuthenticatedUser": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "permissionId": {
+                      "type": "variable"
+                    },
+                    "picture": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "about.get": {
+                  "type": "function"
+                },
+                "apps.get": {
+                  "type": "function"
+                },
+                "apps.list": {
+                  "type": "function"
+                },
+                "changes.get": {
+                  "type": "function"
+                },
+                "changes.list": {
+                  "type": "function"
+                },
+                "changes.watch": {
+                  "type": "function"
+                },
+                "channels.stop": {
+                  "type": "function"
+                },
+                "children.delete": {
+                  "type": "function"
+                },
+                "children.get": {
+                  "type": "function"
+                },
+                "children.insert": {
+                  "type": "function"
+                },
+                "children.list": {
+                  "type": "function"
+                },
+                "comments.delete": {
+                  "type": "function"
+                },
+                "comments.get": {
+                  "type": "function"
+                },
+                "comments.insert": {
+                  "type": "function"
+                },
+                "comments.list": {
+                  "type": "function"
+                },
+                "comments.patch": {
+                  "type": "function"
+                },
+                "comments.update": {
+                  "type": "function"
+                },
+                "files.copy": {
+                  "type": "function"
+                },
+                "files.delete": {
+                  "type": "function"
+                },
+                "files.emptyTrash": {
+                  "type": "function"
+                },
+                "files.generateIds": {
+                  "type": "function"
+                },
+                "files.get": {
+                  "type": "function"
+                },
+                "files.insert": {
+                  "type": "function"
+                },
                 "files.list": {
+                  "type": "function"
+                },
+                "files.patch": {
+                  "type": "function"
+                },
+                "files.touch": {
+                  "type": "function"
+                },
+                "files.trash": {
+                  "type": "function"
+                },
+                "files.untrash": {
+                  "type": "function"
+                },
+                "files.update": {
+                  "type": "function"
+                },
+                "files.watch": {
+                  "type": "function"
+                },
+                "parents.delete": {
+                  "type": "function"
+                },
+                "parents.get": {
+                  "type": "function"
+                },
+                "parents.insert": {
+                  "type": "function"
+                },
+                "parents.list": {
+                  "type": "function"
+                },
+                "permissions.delete": {
+                  "type": "function"
+                },
+                "permissions.get": {
+                  "type": "function"
+                },
+                "permissions.getIdForEmail": {
+                  "type": "function"
+                },
+                "permissions.insert": {
+                  "type": "function"
+                },
+                "permissions.list": {
+                  "type": "function"
+                },
+                "permissions.patch": {
+                  "type": "function"
+                },
+                "permissions.update": {
+                  "type": "function"
+                },
+                "properties.delete": {
+                  "type": "function"
+                },
+                "properties.get": {
+                  "type": "function"
+                },
+                "properties.insert": {
+                  "type": "function"
+                },
+                "properties.list": {
+                  "type": "function"
+                },
+                "properties.patch": {
+                  "type": "function"
+                },
+                "properties.update": {
+                  "type": "function"
+                },
+                "realtime.get": {
+                  "type": "function"
+                },
+                "realtime.update": {
+                  "type": "function"
+                },
+                "replies.delete": {
+                  "type": "function"
+                },
+                "replies.get": {
+                  "type": "function"
+                },
+                "replies.insert": {
+                  "type": "function"
+                },
+                "replies.list": {
+                  "type": "function"
+                },
+                "replies.patch": {
+                  "type": "function"
+                },
+                "replies.update": {
+                  "type": "function"
+                },
+                "revisions.delete": {
+                  "type": "function"
+                },
+                "revisions.get": {
+                  "type": "function"
+                },
+                "revisions.list": {
+                  "type": "function"
+                },
+                "revisions.patch": {
+                  "type": "function"
+                },
+                "revisions.update": {
                   "type": "function"
                 }
               },
-              "summary": "Drive API"
+              "summary": "Drive API v2 - The API to interact with Drive."
             },
             "gmailV1": {
               "type": "module",
               "children": {
+                "Draft": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "message": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "History": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "labelsAdded": {
+                      "type": "variable"
+                    },
+                    "labelsRemoved": {
+                      "type": "variable"
+                    },
+                    "messages": {
+                      "type": "variable"
+                    },
+                    "messagesAdded": {
+                      "type": "variable"
+                    },
+                    "messagesDeleted": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HistoryLabelAdded": {
+                  "type": "class",
+                  "children": {
+                    "labelIds": {
+                      "type": "variable"
+                    },
+                    "message": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HistoryLabelRemoved": {
+                  "type": "class",
+                  "children": {
+                    "labelIds": {
+                      "type": "variable"
+                    },
+                    "message": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HistoryMessageAdded": {
+                  "type": "class",
+                  "children": {
+                    "message": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "HistoryMessageDeleted": {
+                  "type": "class",
+                  "children": {
+                    "message": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Label": {
+                  "type": "class",
+                  "children": {
+                    "id": {
+                      "type": "variable"
+                    },
+                    "labelListVisibility": {
+                      "type": "variable"
+                    },
+                    "messageListVisibility": {
+                      "type": "variable"
+                    },
+                    "messagesTotal": {
+                      "type": "variable"
+                    },
+                    "messagesUnread": {
+                      "type": "variable"
+                    },
+                    "name": {
+                      "type": "variable"
+                    },
+                    "threadsTotal": {
+                      "type": "variable"
+                    },
+                    "threadsUnread": {
+                      "type": "variable"
+                    },
+                    "type": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ListDraftsResponse": {
+                  "type": "class",
+                  "children": {
+                    "drafts": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "resultSizeEstimate": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ListHistoryResponse": {
+                  "type": "class",
+                  "children": {
+                    "history": {
+                      "type": "variable"
+                    },
+                    "historyId": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ListLabelsResponse": {
+                  "type": "class",
+                  "children": {
+                    "labels": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ListMessagesResponse": {
+                  "type": "class",
+                  "children": {
+                    "messages": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "resultSizeEstimate": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ListThreadsResponse": {
+                  "type": "class",
+                  "children": {
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "resultSizeEstimate": {
+                      "type": "variable"
+                    },
+                    "threads": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Message": {
+                  "type": "class",
+                  "children": {
+                    "historyId": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "internalDate": {
+                      "type": "variable"
+                    },
+                    "labelIds": {
+                      "type": "variable"
+                    },
+                    "payload": {
+                      "type": "variable"
+                    },
+                    "raw": {
+                      "type": "variable"
+                    },
+                    "sizeEstimate": {
+                      "type": "variable"
+                    },
+                    "snippet": {
+                      "type": "variable"
+                    },
+                    "threadId": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "MessagePart": {
+                  "type": "class",
+                  "children": {
+                    "body": {
+                      "type": "variable"
+                    },
+                    "filename": {
+                      "type": "variable"
+                    },
+                    "headers": {
+                      "type": "variable"
+                    },
+                    "mimeType": {
+                      "type": "variable"
+                    },
+                    "partId": {
+                      "type": "variable"
+                    },
+                    "parts": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "MessagePartBody": {
+                  "type": "class",
+                  "children": {
+                    "attachmentId": {
+                      "type": "variable"
+                    },
+                    "data": {
+                      "type": "variable"
+                    },
+                    "size": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "MessagePartHeader": {
+                  "type": "class",
+                  "children": {
+                    "name": {
+                      "type": "variable"
+                    },
+                    "value": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ModifyMessageRequest": {
+                  "type": "class",
+                  "children": {
+                    "addLabelIds": {
+                      "type": "variable"
+                    },
+                    "removeLabelIds": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "ModifyThreadRequest": {
+                  "type": "class",
+                  "children": {
+                    "addLabelIds": {
+                      "type": "variable"
+                    },
+                    "removeLabelIds": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Profile": {
+                  "type": "class",
+                  "children": {
+                    "emailAddress": {
+                      "type": "variable"
+                    },
+                    "historyId": {
+                      "type": "variable"
+                    },
+                    "messagesTotal": {
+                      "type": "variable"
+                    },
+                    "threadsTotal": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Thread": {
+                  "type": "class",
+                  "children": {
+                    "historyId": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "messages": {
+                      "type": "variable"
+                    },
+                    "snippet": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "WatchRequest": {
+                  "type": "class",
+                  "children": {
+                    "labelFilterAction": {
+                      "type": "variable"
+                    },
+                    "labelIds": {
+                      "type": "variable"
+                    },
+                    "topicName": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "WatchResponse": {
+                  "type": "class",
+                  "children": {
+                    "expiration": {
+                      "type": "variable"
+                    },
+                    "historyId": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "users.drafts.create": {
+                  "type": "function"
+                },
+                "users.drafts.delete": {
+                  "type": "function"
+                },
+                "users.drafts.get": {
+                  "type": "function"
+                },
+                "users.drafts.list": {
+                  "type": "function"
+                },
+                "users.drafts.send": {
+                  "type": "function"
+                },
+                "users.drafts.update": {
+                  "type": "function"
+                },
+                "users.getProfile": {
+                  "type": "function"
+                },
+                "users.history.list": {
+                  "type": "function"
+                },
+                "users.labels.create": {
+                  "type": "function"
+                },
+                "users.labels.delete": {
+                  "type": "function"
+                },
+                "users.labels.get": {
+                  "type": "function"
+                },
+                "users.labels.list": {
+                  "type": "function"
+                },
+                "users.labels.patch": {
+                  "type": "function"
+                },
+                "users.labels.update": {
+                  "type": "function"
+                },
+                "users.messages.attachments.get": {
+                  "type": "function"
+                },
+                "users.messages.delete": {
+                  "type": "function"
+                },
                 "users.messages.get": {
+                  "type": "function"
+                },
+                "users.messages.import": {
+                  "type": "function"
+                },
+                "users.messages.insert": {
                   "type": "function"
                 },
                 "users.messages.list": {
                   "type": "function"
+                },
+                "users.messages.modify": {
+                  "type": "function"
+                },
+                "users.messages.send": {
+                  "type": "function"
+                },
+                "users.messages.trash": {
+                  "type": "function"
+                },
+                "users.messages.untrash": {
+                  "type": "function"
+                },
+                "users.stop": {
+                  "type": "function"
+                },
+                "users.threads.delete": {
+                  "type": "function"
+                },
+                "users.threads.get": {
+                  "type": "function"
+                },
+                "users.threads.list": {
+                  "type": "function"
+                },
+                "users.threads.modify": {
+                  "type": "function"
+                },
+                "users.threads.trash": {
+                  "type": "function"
+                },
+                "users.threads.untrash": {
+                  "type": "function"
+                },
+                "users.watch": {
+                  "type": "function"
                 }
               },
-              "summary": "GMail API"
-            },
-            "helpers": {
-              "type": "module",
-              "children": {}
+              "summary": "Gmail API v1 - The Gmail REST API."
             },
             "oauth/": {
               "type": "lib",
@@ -598,6 +6311,118 @@
                 }
               },
               "summary": "OAuth-based Google Web API access"
+            },
+            "urlshortenerV1": {
+              "type": "module",
+              "children": {
+                "AnalyticsSnapshot": {
+                  "type": "class",
+                  "children": {
+                    "browsers": {
+                      "type": "variable"
+                    },
+                    "countries": {
+                      "type": "variable"
+                    },
+                    "longUrlClicks": {
+                      "type": "variable"
+                    },
+                    "platforms": {
+                      "type": "variable"
+                    },
+                    "referrers": {
+                      "type": "variable"
+                    },
+                    "shortUrlClicks": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "AnalyticsSummary": {
+                  "type": "class",
+                  "children": {
+                    "allTime": {
+                      "type": "variable"
+                    },
+                    "day": {
+                      "type": "variable"
+                    },
+                    "month": {
+                      "type": "variable"
+                    },
+                    "twoHours": {
+                      "type": "variable"
+                    },
+                    "week": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "StringCount": {
+                  "type": "class",
+                  "children": {
+                    "count": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "Url": {
+                  "type": "class",
+                  "children": {
+                    "analytics": {
+                      "type": "variable"
+                    },
+                    "created": {
+                      "type": "variable"
+                    },
+                    "id": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "longUrl": {
+                      "type": "variable"
+                    },
+                    "status": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "UrlHistory": {
+                  "type": "class",
+                  "children": {
+                    "items": {
+                      "type": "variable"
+                    },
+                    "itemsPerPage": {
+                      "type": "variable"
+                    },
+                    "kind": {
+                      "type": "variable"
+                    },
+                    "nextPageToken": {
+                      "type": "variable"
+                    },
+                    "totalItems": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "url.get": {
+                  "type": "function"
+                },
+                "url.insert": {
+                  "type": "function"
+                },
+                "url.list": {
+                  "type": "function"
+                }
+              },
+              "summary": "URL Shortener API v1 - Lets you create, inspect, and manage goo.gl short URLs"
             }
           },
           "summary": "Google Web API"

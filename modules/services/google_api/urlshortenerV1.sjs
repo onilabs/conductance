@@ -1,4 +1,17 @@
 // This file was originally generated using conductance/tools/google/generate-google-api urlshortener
+
+/* (c) 2013-2014 Oni Labs, http://onilabs.com
+ *
+ * This file is part of Conductance, http://conductance.io/
+ *
+ * It is subject to the license terms in the LICENSE file
+ * found in the top-level directory of this distribution.
+ * No part of Conductance, including this file, may be
+ * copied, modified, propagated, or distributed except
+ * according to the terms contained in the LICENSE file.
+ */
+
+
 /**
   @summary URL Shortener API v1 - Lets you create, inspect, and manage goo.gl short URLs
   @desc
