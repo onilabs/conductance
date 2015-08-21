@@ -9,6 +9,10 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+   @nodoc
+*/
+
 @ = require([
   'mho:std'
 ]);
@@ -100,11 +104,16 @@ exports.performRequest = function(client, parameters) {
     }
 */
   } else {
-    if (resource) 
-      throw new Error("XXX request with resource not implemented yet");
-    //request_opts.json = resource || (
-    //  (options.method === 'GET' || options.method === 'DELETE') ? true : {}
-    //);
+    if (resource) {
+      try {
+        request_opts.body = resource .. JSON.stringify;
+      }
+      catch(e) {
+        throw new Error("resource must be JSON-serializable (#{e})");
+      }
+
+      request_opts.headers = {'Content-Type':'application/json'};
+    }
   }
 
   request_opts.query = params;
@@ -115,11 +124,8 @@ exports.performRequest = function(client, parameters) {
     if (typeof rv.error === 'string') {
       throw new Error(rv.error);
     }
-    else if (Array.isArray(rv.error.errors)) {
-      throw new Error(rv.error.errors .. @map(err -> err.message) .. @join('\n'));
-    }
     else {
-      throw new Error(rv.error.message);
+      throw new Error(rv.error .. JSON.stringify);
     } 
   }
   return rv;
