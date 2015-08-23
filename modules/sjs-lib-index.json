@@ -6281,6 +6281,460 @@
                   },
                   "summary": "Gmail API v1 - The Gmail REST API."
                 },
+                "storageV1": {
+                  "type": "module",
+                  "children": {
+                    "Bucket": {
+                      "type": "class",
+                      "children": {
+                        "acl": {
+                          "type": "variable"
+                        },
+                        "cors": {
+                          "type": "variable"
+                        },
+                        "defaultObjectAcl": {
+                          "type": "variable"
+                        },
+                        "etag": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "lifecycle": {
+                          "type": "variable"
+                        },
+                        "location": {
+                          "type": "variable"
+                        },
+                        "logging": {
+                          "type": "variable"
+                        },
+                        "metageneration": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "owner": {
+                          "type": "variable"
+                        },
+                        "projectNumber": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        },
+                        "storageClass": {
+                          "type": "variable"
+                        },
+                        "timeCreated": {
+                          "type": "variable"
+                        },
+                        "versioning": {
+                          "type": "variable"
+                        },
+                        "website": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "BucketAccessControl": {
+                      "type": "class",
+                      "children": {
+                        "bucket": {
+                          "type": "variable"
+                        },
+                        "domain": {
+                          "type": "variable"
+                        },
+                        "email": {
+                          "type": "variable"
+                        },
+                        "entity": {
+                          "type": "variable"
+                        },
+                        "entityId": {
+                          "type": "variable"
+                        },
+                        "etag": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "projectTeam": {
+                          "type": "variable"
+                        },
+                        "role": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "BucketAccessControls": {
+                      "type": "class",
+                      "children": {
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "Buckets": {
+                      "type": "class",
+                      "children": {
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "Channel": {
+                      "type": "class",
+                      "children": {
+                        "address": {
+                          "type": "variable"
+                        },
+                        "expiration": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "params": {
+                          "type": "variable"
+                        },
+                        "payload": {
+                          "type": "variable"
+                        },
+                        "resourceId": {
+                          "type": "variable"
+                        },
+                        "resourceUri": {
+                          "type": "variable"
+                        },
+                        "token": {
+                          "type": "variable"
+                        },
+                        "type": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "ComposeRequest": {
+                      "type": "class",
+                      "children": {
+                        "destination": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "sourceObjects": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "Object": {
+                      "type": "class",
+                      "children": {
+                        "acl": {
+                          "type": "variable"
+                        },
+                        "bucket": {
+                          "type": "variable"
+                        },
+                        "cacheControl": {
+                          "type": "variable"
+                        },
+                        "componentCount": {
+                          "type": "variable"
+                        },
+                        "contentDisposition": {
+                          "type": "variable"
+                        },
+                        "contentEncoding": {
+                          "type": "variable"
+                        },
+                        "contentLanguage": {
+                          "type": "variable"
+                        },
+                        "contentType": {
+                          "type": "variable"
+                        },
+                        "crc32c": {
+                          "type": "variable"
+                        },
+                        "etag": {
+                          "type": "variable"
+                        },
+                        "generation": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "md5Hash": {
+                          "type": "variable"
+                        },
+                        "mediaLink": {
+                          "type": "variable"
+                        },
+                        "metadata": {
+                          "type": "variable"
+                        },
+                        "metageneration": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "owner": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        },
+                        "size": {
+                          "type": "variable"
+                        },
+                        "storageClass": {
+                          "type": "variable"
+                        },
+                        "timeDeleted": {
+                          "type": "variable"
+                        },
+                        "updated": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "ObjectAccessControl": {
+                      "type": "class",
+                      "children": {
+                        "bucket": {
+                          "type": "variable"
+                        },
+                        "domain": {
+                          "type": "variable"
+                        },
+                        "email": {
+                          "type": "variable"
+                        },
+                        "entity": {
+                          "type": "variable"
+                        },
+                        "entityId": {
+                          "type": "variable"
+                        },
+                        "etag": {
+                          "type": "variable"
+                        },
+                        "generation": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "object": {
+                          "type": "variable"
+                        },
+                        "projectTeam": {
+                          "type": "variable"
+                        },
+                        "role": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "ObjectAccessControls": {
+                      "type": "class",
+                      "children": {
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "Objects": {
+                      "type": "class",
+                      "children": {
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "prefixes": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RewriteResponse": {
+                      "type": "class",
+                      "children": {
+                        "done": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "objectSize": {
+                          "type": "variable"
+                        },
+                        "resource": {
+                          "type": "variable"
+                        },
+                        "rewriteToken": {
+                          "type": "variable"
+                        },
+                        "totalBytesRewritten": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "bucketAccessControls.delete": {
+                      "type": "function"
+                    },
+                    "bucketAccessControls.get": {
+                      "type": "function"
+                    },
+                    "bucketAccessControls.insert": {
+                      "type": "function"
+                    },
+                    "bucketAccessControls.list": {
+                      "type": "function"
+                    },
+                    "bucketAccessControls.patch": {
+                      "type": "function"
+                    },
+                    "bucketAccessControls.update": {
+                      "type": "function"
+                    },
+                    "buckets.delete": {
+                      "type": "function"
+                    },
+                    "buckets.get": {
+                      "type": "function"
+                    },
+                    "buckets.insert": {
+                      "type": "function"
+                    },
+                    "buckets.list": {
+                      "type": "function"
+                    },
+                    "buckets.patch": {
+                      "type": "function"
+                    },
+                    "buckets.update": {
+                      "type": "function"
+                    },
+                    "channels.stop": {
+                      "type": "function"
+                    },
+                    "defaultObjectAccessControls.delete": {
+                      "type": "function"
+                    },
+                    "defaultObjectAccessControls.get": {
+                      "type": "function"
+                    },
+                    "defaultObjectAccessControls.insert": {
+                      "type": "function"
+                    },
+                    "defaultObjectAccessControls.list": {
+                      "type": "function"
+                    },
+                    "defaultObjectAccessControls.patch": {
+                      "type": "function"
+                    },
+                    "defaultObjectAccessControls.update": {
+                      "type": "function"
+                    },
+                    "objectAccessControls.delete": {
+                      "type": "function"
+                    },
+                    "objectAccessControls.get": {
+                      "type": "function"
+                    },
+                    "objectAccessControls.insert": {
+                      "type": "function"
+                    },
+                    "objectAccessControls.list": {
+                      "type": "function"
+                    },
+                    "objectAccessControls.patch": {
+                      "type": "function"
+                    },
+                    "objectAccessControls.update": {
+                      "type": "function"
+                    },
+                    "objects.compose": {
+                      "type": "function"
+                    },
+                    "objects.copy": {
+                      "type": "function"
+                    },
+                    "objects.delete": {
+                      "type": "function"
+                    },
+                    "objects.get": {
+                      "type": "function"
+                    },
+                    "objects.insert": {
+                      "type": "function"
+                    },
+                    "objects.list": {
+                      "type": "function"
+                    },
+                    "objects.patch": {
+                      "type": "function"
+                    },
+                    "objects.rewrite": {
+                      "type": "function"
+                    },
+                    "objects.update": {
+                      "type": "function"
+                    },
+                    "objects.watchAll": {
+                      "type": "function"
+                    }
+                  },
+                  "summary": "Cloud Storage API v1 - Lets you store and retrieve potentially-large, immutable data objects."
+                },
                 "urlshortenerV1": {
                   "type": "module",
                   "children": {
