@@ -188,8 +188,10 @@ function generateParametersDocs(descriptor) {
 
   if (descriptor.supportsMediaUpload) {
     params.push("   @setting {String} [media.mimeType] Mime type of media object (accepting #{descriptor.mediaUpload.accept.join(', ')})" .. escapeSlashStar);
-    if (!descriptor.mediaUpload.maxSize) throw new Error('unexpected discovery doc format');
-    params.push("   @setting {String|nodejs Buffer} [media.body] Media contents (max size = #{descriptor.mediaUpload.maxSize})");
+    var mediaBodyDescr = "   @setting {String|nodejs Buffer} [media.body] Media contents";
+    if (descriptor.mediaUpload.maxSize) 
+      mediaBodyDescr += " (max size = #{descriptor.mediaUpload.maxSize})";
+    params.push(mediaBodyDescr);
   }
 
   if (descriptor.parameters) {
