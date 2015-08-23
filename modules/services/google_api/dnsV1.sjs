@@ -21,11 +21,8 @@
 */
 
 @ = require([
-  'mho:std',
-  {id:'./helpers', name: 'helpers'}
+  'mho:std'
 ]);
-
-var API_BASE_URL = 'https://www.googleapis.com/dns/v1/projects/';
 
 /**
    @class Change
@@ -183,7 +180,7 @@ exports.changes = {
      @summary  Atomically update the ResourceRecordSet collection.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Change} [resource] Resource that this API call acts on. **Required**
+     @setting {::Change} [resource] Data of [::Change] structure
      @setting {String} [managedZone] Identifies the managed zone addressed by this request. Can be the managed zone name or id. **Required**
      @setting {String} [project] Identifies the project addressed by this request. **Required**
      @return {::Change}
@@ -195,11 +192,11 @@ exports.changes = {
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
   create: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/managedZones/{managedZone}/changes',
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}/managedZones/{managedZone}/changes',
       params: params,
-      requiredParams: ['managedZone', 'project', 'resource'],
+      requiredParams: ['managedZone', 'project'],
       pathParams: ['managedZone', 'project']
     });
   },
@@ -223,8 +220,8 @@ exports.changes = {
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/managedZones/{managedZone}/changes/{changeId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}/managedZones/{managedZone}/changes/{changeId}',
       params: params,
       requiredParams: ['changeId', 'managedZone', 'project'],
       pathParams: ['changeId', 'managedZone', 'project']
@@ -253,15 +250,15 @@ exports.changes = {
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/managedZones/{managedZone}/changes',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}/managedZones/{managedZone}/changes',
       params: params,
       requiredParams: ['managedZone', 'project'],
       pathParams: ['managedZone', 'project']
     });
   }
 };
-,
+
 
 exports.managedZones = {
 
@@ -270,7 +267,7 @@ exports.managedZones = {
      @summary  Create a new ManagedZone.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::ManagedZone} [resource] Resource that this API call acts on. **Required**
+     @setting {::ManagedZone} [resource] Data of [::ManagedZone] structure
      @setting {String} [project] Identifies the project addressed by this request. **Required**
      @return {::ManagedZone}
      @desc
@@ -281,11 +278,11 @@ exports.managedZones = {
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
   create: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/managedZones',
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}/managedZones',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -305,10 +302,10 @@ exports.managedZones = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/managedZones/{managedZone}',
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}/managedZones/{managedZone}',
       params: params,
       requiredParams: ['managedZone', 'project'],
       pathParams: ['managedZone', 'project']
@@ -333,8 +330,8 @@ exports.managedZones = {
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/managedZones/{managedZone}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}/managedZones/{managedZone}',
       params: params,
       requiredParams: ['managedZone', 'project'],
       pathParams: ['managedZone', 'project']
@@ -361,15 +358,15 @@ exports.managedZones = {
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/managedZones',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}/managedZones',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.projects = {
 
@@ -390,15 +387,15 @@ exports.projects = {
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.resourceRecordSets = {
 
@@ -424,8 +421,8 @@ exports.resourceRecordSets = {
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/managedZones/{managedZone}/rrsets',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/dns/v1/projects/{project}/managedZones/{managedZone}/rrsets',
       params: params,
       requiredParams: ['managedZone', 'project'],
       pathParams: ['managedZone', 'project']

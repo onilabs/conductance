@@ -17,6 +17,7 @@
   'mho:std'
 ]);
 
+
 // These helpers follow the logic in
 // https://github.com/google/google-api-nodejs-client/blob/master/lib/apirequest.js
 // very closely
@@ -40,7 +41,7 @@ __js function buildPath(path, params) {
   return @supplant(path, params, x -> x .. encodeURIComponent);
 }
 
-exports.performRequest = function(client, parameters) {
+exports.performRequest = function(_request, parameters) {
   var params = parameters.params ? parameters.params .. @clone : {};
 
   var request_opts = {
@@ -57,53 +58,59 @@ exports.performRequest = function(client, parameters) {
   var media = params.media || {};
   var resource = params.resource;
 
-  var defaultMime = typeof media.body === 'string' ? 'text/plain' : 'application/octet-stream';
   delete params.media;
   delete params.resource;
 
-  // Parse urls and urlescape path params
   var url;
-  if (parameters.url) {
-    url = buildPath(parameters.url, params);
-  }
-  else {
-    url = buildPath(parameters.mediaUrl, params);
-  }
- 
-  // Delete path parameters from the params object so they do not end up in query
-  parameters.pathParams .. @each {
-    |param|
-    delete params[param];
-  }
-
   if (parameters.mediaUrl && media.body) {
-    throw new Error("XXX multipart not implemented yet");
-/*    if (resource) {
+    // a request with media part
+
+    if (!media.mimeType) throw new Error("Missing media.mimeType parameter");
+    url = buildPath(parameters.mediaUrl, params);
+
+    if (resource) {
        params.uploadType = 'multipart';
-      request_opts.multipart = [
-        {
-          'Content-Type': 'application/json',
-          body: JSON.stringify(resource)
-        },
-        {
-          'Content-Type': media.mimeType || resource && resource.mimeType || defaultMime,
-          body: media.body // can be a readable stream or raw string!
-        }
+      // build multipart payload:
+      var parts = [
+        [
+          'Content-Type: application/json',
+          JSON.stringify(resource)
+        ],
+        [
+          "Content-Type: #{media.mimeType}",
+          media.body 
+        ]
       ];
+
+      var boundary = '024487622349072263461321oni';
+      request_opts.headers = {
+        'Content-Type':'multipart/related; boundary=\"'+boundary+'\"'
+      };
+
+      parts = parts .. @map(function([header, body]) {
+        return Buffer.concat([
+          new Buffer('\r\n--'+boundary+'\r\n'),
+          new Buffer(header+'\r\n\r\n'),
+          body .. Buffer.isBuffer ? body : new Buffer(body)
+        ]);
+                             
+      });
+      parts.push(new Buffer('\r\n--'+boundary+'--'));
+
+      request_opts.body = Buffer.concat(parts);
     } else {
       params.uploadType = 'media';
       request_opts.headers = {
-        'Content-Type': media.mimeType || defaultMime
+        'Content-Type': media.mimeType
       };
-
-      if (isReadableStream(media.body)) {
-        var body = media.body;
-      } else {
-        request_opts.body = media.body;
-      }
+      request_opts.body = media.body;
     }
-*/
-  } else {
+  } 
+  else { 
+    // a request without media part
+
+    url = buildPath(parameters.url, params);
+
     if (resource) {
       try {
         request_opts.body = resource .. JSON.stringify;
@@ -116,9 +123,15 @@ exports.performRequest = function(client, parameters) {
     }
   }
 
+  // Delete path parameters from the params object so they do not end up in query
+  parameters.pathParams .. @each {
+    |param|
+    delete params[param];
+  }
+
   request_opts.query = params;
 
-  var rv = client._request(url, request_opts);
+  var rv = _request(url, request_opts);
 
   if (rv.error) {
     if (typeof rv.error === 'string') {
@@ -129,9 +142,4 @@ exports.performRequest = function(client, parameters) {
     } 
   }
   return rv;
-
-//if (body) {
-//  body.pipe(req);
-//}
- 
 };

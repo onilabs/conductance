@@ -21,11 +21,8 @@
 */
 
 @ = require([
-  'mho:std',
-  {id:'./helpers', name: 'helpers'}
+  'mho:std'
 ]);
-
-var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
 
 /**
    @class AccessConfig
@@ -144,7 +141,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    This property is mutually exclusive with the source property; you can only define one or the other, but not both.
    
    @variable AttachedDisk.interface
-   @summary String - undefined
+   @summary String
    
    @variable AttachedDisk.kind
    @summary String - [Output Only] Type of the resource. Always compute#attachedDisk for attached disks.
@@ -371,7 +368,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary String - Name of backend port. The same name should appear in the resource views referenced by this service. Required.
    
    @variable BackendService.protocol
-   @summary String - undefined
+   @summary String
    
    @variable BackendService.selfLink
    @summary String - [Output Only] Server-defined URL for the resource.
@@ -383,7 +380,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable BackendServiceGroupHealth.healthStatus
-   @summary Array - undefined
+   @summary Array
    
    @variable BackendServiceGroupHealth.kind
    @summary String - [Output Only] Type of resource. Always compute#backendServiceGroupHealth for the health of backend services.
@@ -785,7 +782,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable HealthCheckReference.healthCheck
-   @summary String - undefined
+   @summary String
    
    @class HealthStatus
    @summary Google API JSON structure
@@ -1366,7 +1363,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable InstanceReference.instance
-   @summary String - undefined
+   @summary String
    
    @class InstanceTemplate
    @summary Google API JSON structure
@@ -2248,7 +2245,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable TargetPoolInstanceHealth.healthStatus
-   @summary Array - undefined
+   @summary Array
    
    @variable TargetPoolInstanceHealth.kind
    @summary String - Type of resource.
@@ -2308,7 +2305,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable TargetReference.target
-   @summary String - undefined
+   @summary String
    
    @class TargetVpnGateway
    @summary Google API JSON structure
@@ -2395,16 +2392,16 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable TestFailure.actualService
-   @summary String - undefined
+   @summary String
    
    @variable TestFailure.expectedService
-   @summary String - undefined
+   @summary String
    
    @variable TestFailure.host
-   @summary String - undefined
+   @summary String
    
    @variable TestFailure.path
-   @summary String - undefined
+   @summary String
    
    @class UrlMap
    @summary Google API JSON structure
@@ -2464,7 +2461,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable UrlMapReference.urlMap
-   @summary String - undefined
+   @summary String
    
    @class UrlMapTest
    @summary Google API JSON structure
@@ -2485,13 +2482,13 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable UrlMapValidationResult.loadErrors
-   @summary Array - undefined
+   @summary Array
    
    @variable UrlMapValidationResult.loadSucceeded
    @summary Boolean - Whether the given UrlMap can be successfully loaded. If false, 'loadErrors' indicates the reasons.
    
    @variable UrlMapValidationResult.testFailures
-   @summary Array - undefined
+   @summary Array
    
    @variable UrlMapValidationResult.testPassed
    @summary Boolean - If successfully loaded, this field indicates whether the test passed. If false, 'testFailures's indicate the reason of failure.
@@ -2506,7 +2503,7 @@ var API_BASE_URL = 'https://www.googleapis.com/compute/v1/projects/';
    @summary Google API JSON structure
    
    @variable UrlMapsValidateResponse.result
-   @summary [::UrlMapValidationResult] - undefined
+   @summary [::UrlMapValidationResult]
    
    @class UsageExportLocation
    @summary Google API JSON structure
@@ -2684,8 +2681,8 @@ exports.addresses = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/addresses',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/addresses',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -2708,10 +2705,10 @@ exports.addresses = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/regions/{region}/addresses/{address}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/addresses/{address}',
       params: params,
       requiredParams: ['address', 'project', 'region'],
       pathParams: ['address', 'project', 'region']
@@ -2736,8 +2733,8 @@ exports.addresses = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/addresses/{address}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/addresses/{address}',
       params: params,
       requiredParams: ['address', 'project', 'region'],
       pathParams: ['address', 'project', 'region']
@@ -2749,7 +2746,7 @@ exports.addresses = {
      @summary  Creates an address resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Address} [resource] Resource that this API call acts on. **Required**
+     @setting {::Address} [resource] Data of [::Address] structure
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [region] The name of the region for this request. **Required**
      @return {::Operation}
@@ -2761,11 +2758,11 @@ exports.addresses = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/addresses',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/addresses',
       params: params,
-      requiredParams: ['project', 'region', 'resource'],
+      requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   },
@@ -2794,15 +2791,15 @@ exports.addresses = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/addresses',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/addresses',
       params: params,
       requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   }
 };
-,
+
 
 exports.autoscalers = {
 
@@ -2829,8 +2826,8 @@ exports.autoscalers = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/autoscalers',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/autoscalers',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -2853,10 +2850,10 @@ exports.autoscalers = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/zones/{zone}/autoscalers/{autoscaler}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/autoscalers/{autoscaler}',
       params: params,
       requiredParams: ['autoscaler', 'project', 'zone'],
       pathParams: ['autoscaler', 'project', 'zone']
@@ -2881,8 +2878,8 @@ exports.autoscalers = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/autoscalers/{autoscaler}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/autoscalers/{autoscaler}',
       params: params,
       requiredParams: ['autoscaler', 'project', 'zone'],
       pathParams: ['autoscaler', 'project', 'zone']
@@ -2894,7 +2891,7 @@ exports.autoscalers = {
      @summary  Creates an autoscaler resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Autoscaler} [resource] Resource that this API call acts on. **Required**
+     @setting {::Autoscaler} [resource] Data of [::Autoscaler] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [zone] Name of the zone scoping this request. **Required**
      @return {::Operation}
@@ -2906,11 +2903,11 @@ exports.autoscalers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/autoscalers',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/autoscalers',
       params: params,
-      requiredParams: ['project', 'zone', 'resource'],
+      requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   },
@@ -2939,8 +2936,8 @@ exports.autoscalers = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/autoscalers',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/autoscalers',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
@@ -2952,7 +2949,7 @@ exports.autoscalers = {
      @summary  Updates an autoscaler resource in the specified project using the data included in the request. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Autoscaler} [resource] Resource that this API call acts on. **Required**
+     @setting {::Autoscaler} [resource] Data of [::Autoscaler] structure
      @setting {String} [autoscaler] Name of the autoscaler resource to update. **Required**
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [zone] Name of the zone scoping this request. **Required**
@@ -2965,11 +2962,11 @@ exports.autoscalers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'{project}/zones/{zone}/autoscalers',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/autoscalers',
       params: params,
-      requiredParams: ['autoscaler', 'project', 'zone', 'resource'],
+      requiredParams: ['autoscaler', 'project', 'zone'],
       pathParams: ['project', 'zone']
     });
   },
@@ -2979,7 +2976,7 @@ exports.autoscalers = {
      @summary  Updates an autoscaler resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Autoscaler} [resource] Resource that this API call acts on. **Required**
+     @setting {::Autoscaler} [resource] Data of [::Autoscaler] structure
      @setting {optional String} [autoscaler] Name of the autoscaler resource to update.
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [zone] Name of the zone scoping this request. **Required**
@@ -2992,16 +2989,16 @@ exports.autoscalers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'{project}/zones/{zone}/autoscalers',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/autoscalers',
       params: params,
-      requiredParams: ['project', 'zone', 'resource'],
+      requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   }
 };
-,
+
 
 exports.backendServices = {
 
@@ -3020,10 +3017,10 @@ exports.backendServices = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/backendServices/{backendService}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/backendServices/{backendService}',
       params: params,
       requiredParams: ['backendService', 'project'],
       pathParams: ['backendService', 'project']
@@ -3047,8 +3044,8 @@ exports.backendServices = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/backendServices/{backendService}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/backendServices/{backendService}',
       params: params,
       requiredParams: ['backendService', 'project'],
       pathParams: ['backendService', 'project']
@@ -3060,7 +3057,7 @@ exports.backendServices = {
      @summary  Gets the most recent health check results for this BackendService.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::ResourceGroupReference} [resource] Resource that this API call acts on. **Required**
+     @setting {::ResourceGroupReference} [resource] Data of [::ResourceGroupReference] structure
      @setting {String} [backendService] Name of the BackendService resource to which the queried instance belongs. **Required**
      @setting {String} [project] undefined **Required**
      @return {::BackendServiceGroupHealth}
@@ -3073,11 +3070,11 @@ exports.backendServices = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   getHealth: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/backendServices/{backendService}/getHealth',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/backendServices/{backendService}/getHealth',
       params: params,
-      requiredParams: ['backendService', 'project', 'resource'],
+      requiredParams: ['backendService', 'project'],
       pathParams: ['backendService', 'project']
     });
   },
@@ -3087,7 +3084,7 @@ exports.backendServices = {
      @summary  Creates a BackendService resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::BackendService} [resource] Resource that this API call acts on. **Required**
+     @setting {::BackendService} [resource] Data of [::BackendService] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
      @desc
@@ -3098,11 +3095,11 @@ exports.backendServices = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/backendServices',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/backendServices',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -3130,8 +3127,8 @@ exports.backendServices = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/backendServices',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/backendServices',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -3143,7 +3140,7 @@ exports.backendServices = {
      @summary  Update the entire content of the BackendService resource. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::BackendService} [resource] Resource that this API call acts on. **Required**
+     @setting {::BackendService} [resource] Data of [::BackendService] structure
      @setting {String} [backendService] Name of the BackendService resource to update. **Required**
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
@@ -3155,11 +3152,11 @@ exports.backendServices = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'{project}/global/backendServices/{backendService}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/backendServices/{backendService}',
       params: params,
-      requiredParams: ['backendService', 'project', 'resource'],
+      requiredParams: ['backendService', 'project'],
       pathParams: ['backendService', 'project']
     });
   },
@@ -3169,7 +3166,7 @@ exports.backendServices = {
      @summary  Update the entire content of the BackendService resource.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::BackendService} [resource] Resource that this API call acts on. **Required**
+     @setting {::BackendService} [resource] Data of [::BackendService] structure
      @setting {String} [backendService] Name of the BackendService resource to update. **Required**
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
@@ -3181,16 +3178,16 @@ exports.backendServices = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'{project}/global/backendServices/{backendService}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/backendServices/{backendService}',
       params: params,
-      requiredParams: ['backendService', 'project', 'resource'],
+      requiredParams: ['backendService', 'project'],
       pathParams: ['backendService', 'project']
     });
   }
 };
-,
+
 
 exports.diskTypes = {
 
@@ -3217,8 +3214,8 @@ exports.diskTypes = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/diskTypes',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/diskTypes',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -3243,8 +3240,8 @@ exports.diskTypes = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/diskTypes/{diskType}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/diskTypes/{diskType}',
       params: params,
       requiredParams: ['diskType', 'project', 'zone'],
       pathParams: ['diskType', 'project', 'zone']
@@ -3275,15 +3272,15 @@ exports.diskTypes = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/diskTypes',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/diskTypes',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   }
 };
-,
+
 
 exports.disks = {
 
@@ -3310,8 +3307,8 @@ exports.disks = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/disks',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/disks',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -3323,7 +3320,7 @@ exports.disks = {
      @summary  Creates a snapshot of this disk.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Snapshot} [resource] Resource that this API call acts on. **Required**
+     @setting {::Snapshot} [resource] Data of [::Snapshot] structure
      @setting {String} [disk] Name of the persistent disk to snapshot. **Required**
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [zone] The name of the zone for this request. **Required**
@@ -3336,11 +3333,11 @@ exports.disks = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   createSnapshot: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/disks/{disk}/createSnapshot',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/disks/{disk}/createSnapshot',
       params: params,
-      requiredParams: ['disk', 'project', 'zone', 'resource'],
+      requiredParams: ['disk', 'project', 'zone'],
       pathParams: ['disk', 'project', 'zone']
     });
   },
@@ -3361,10 +3358,10 @@ exports.disks = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/zones/{zone}/disks/{disk}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/disks/{disk}',
       params: params,
       requiredParams: ['disk', 'project', 'zone'],
       pathParams: ['disk', 'project', 'zone']
@@ -3389,8 +3386,8 @@ exports.disks = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/disks/{disk}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/disks/{disk}',
       params: params,
       requiredParams: ['disk', 'project', 'zone'],
       pathParams: ['disk', 'project', 'zone']
@@ -3402,7 +3399,7 @@ exports.disks = {
      @summary  Creates a persistent disk in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Disk} [resource] Resource that this API call acts on. **Required**
+     @setting {::Disk} [resource] Data of [::Disk] structure
      @setting {String} [project] Project ID for this request. **Required**
      @setting {optional String} [sourceImage] Optional. Source image to restore onto a disk.
      @setting {String} [zone] The name of the zone for this request. **Required**
@@ -3415,11 +3412,11 @@ exports.disks = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/disks',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/disks',
       params: params,
-      requiredParams: ['project', 'zone', 'resource'],
+      requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   },
@@ -3448,15 +3445,15 @@ exports.disks = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/disks',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/disks',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   }
 };
-,
+
 
 exports.firewalls = {
 
@@ -3475,10 +3472,10 @@ exports.firewalls = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/firewalls/{firewall}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/firewalls/{firewall}',
       params: params,
       requiredParams: ['firewall', 'project'],
       pathParams: ['firewall', 'project']
@@ -3502,8 +3499,8 @@ exports.firewalls = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/firewalls/{firewall}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/firewalls/{firewall}',
       params: params,
       requiredParams: ['firewall', 'project'],
       pathParams: ['firewall', 'project']
@@ -3515,7 +3512,7 @@ exports.firewalls = {
      @summary  Creates a firewall resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Firewall} [resource] Resource that this API call acts on. **Required**
+     @setting {::Firewall} [resource] Data of [::Firewall] structure
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -3526,11 +3523,11 @@ exports.firewalls = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/firewalls',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/firewalls',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -3558,8 +3555,8 @@ exports.firewalls = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/firewalls',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/firewalls',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -3571,7 +3568,7 @@ exports.firewalls = {
      @summary  Updates the specified firewall resource with the data included in the request. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Firewall} [resource] Resource that this API call acts on. **Required**
+     @setting {::Firewall} [resource] Data of [::Firewall] structure
      @setting {String} [firewall] Name of the firewall resource to update. **Required**
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
@@ -3583,11 +3580,11 @@ exports.firewalls = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'{project}/global/firewalls/{firewall}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/firewalls/{firewall}',
       params: params,
-      requiredParams: ['firewall', 'project', 'resource'],
+      requiredParams: ['firewall', 'project'],
       pathParams: ['firewall', 'project']
     });
   },
@@ -3597,7 +3594,7 @@ exports.firewalls = {
      @summary  Updates the specified firewall resource with the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Firewall} [resource] Resource that this API call acts on. **Required**
+     @setting {::Firewall} [resource] Data of [::Firewall] structure
      @setting {String} [firewall] Name of the firewall resource to update. **Required**
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
@@ -3609,16 +3606,16 @@ exports.firewalls = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'{project}/global/firewalls/{firewall}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/firewalls/{firewall}',
       params: params,
-      requiredParams: ['firewall', 'project', 'resource'],
+      requiredParams: ['firewall', 'project'],
       pathParams: ['firewall', 'project']
     });
   }
 };
-,
+
 
 exports.forwardingRules = {
 
@@ -3645,8 +3642,8 @@ exports.forwardingRules = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/forwardingRules',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/forwardingRules',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -3669,10 +3666,10 @@ exports.forwardingRules = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/regions/{region}/forwardingRules/{forwardingRule}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/forwardingRules/{forwardingRule}',
       params: params,
       requiredParams: ['forwardingRule', 'project', 'region'],
       pathParams: ['forwardingRule', 'project', 'region']
@@ -3697,8 +3694,8 @@ exports.forwardingRules = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/forwardingRules/{forwardingRule}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/forwardingRules/{forwardingRule}',
       params: params,
       requiredParams: ['forwardingRule', 'project', 'region'],
       pathParams: ['forwardingRule', 'project', 'region']
@@ -3710,7 +3707,7 @@ exports.forwardingRules = {
      @summary  Creates a ForwardingRule resource in the specified project and region using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::ForwardingRule} [resource] Resource that this API call acts on. **Required**
+     @setting {::ForwardingRule} [resource] Data of [::ForwardingRule] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
      @return {::Operation}
@@ -3722,11 +3719,11 @@ exports.forwardingRules = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/forwardingRules',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/forwardingRules',
       params: params,
-      requiredParams: ['project', 'region', 'resource'],
+      requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   },
@@ -3755,8 +3752,8 @@ exports.forwardingRules = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/forwardingRules',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/forwardingRules',
       params: params,
       requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
@@ -3768,7 +3765,7 @@ exports.forwardingRules = {
      @summary  Changes target url for forwarding rule.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetReference} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetReference} [resource] Data of [::TargetReference] structure
      @setting {String} [forwardingRule] Name of the ForwardingRule resource in which target is to be set. **Required**
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
@@ -3781,16 +3778,16 @@ exports.forwardingRules = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setTarget: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/forwardingRules/{forwardingRule}/setTarget',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/forwardingRules/{forwardingRule}/setTarget',
       params: params,
-      requiredParams: ['forwardingRule', 'project', 'region', 'resource'],
+      requiredParams: ['forwardingRule', 'project', 'region'],
       pathParams: ['forwardingRule', 'project', 'region']
     });
   }
 };
-,
+
 
 exports.globalAddresses = {
 
@@ -3809,10 +3806,10 @@ exports.globalAddresses = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/addresses/{address}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/addresses/{address}',
       params: params,
       requiredParams: ['address', 'project'],
       pathParams: ['address', 'project']
@@ -3836,8 +3833,8 @@ exports.globalAddresses = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/addresses/{address}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/addresses/{address}',
       params: params,
       requiredParams: ['address', 'project'],
       pathParams: ['address', 'project']
@@ -3849,7 +3846,7 @@ exports.globalAddresses = {
      @summary  Creates an address resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Address} [resource] Resource that this API call acts on. **Required**
+     @setting {::Address} [resource] Data of [::Address] structure
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -3860,11 +3857,11 @@ exports.globalAddresses = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/addresses',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/addresses',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -3892,15 +3889,15 @@ exports.globalAddresses = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/addresses',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/addresses',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.globalForwardingRules = {
 
@@ -3919,10 +3916,10 @@ exports.globalForwardingRules = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/forwardingRules/{forwardingRule}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/forwardingRules/{forwardingRule}',
       params: params,
       requiredParams: ['forwardingRule', 'project'],
       pathParams: ['forwardingRule', 'project']
@@ -3946,8 +3943,8 @@ exports.globalForwardingRules = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/forwardingRules/{forwardingRule}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/forwardingRules/{forwardingRule}',
       params: params,
       requiredParams: ['forwardingRule', 'project'],
       pathParams: ['forwardingRule', 'project']
@@ -3959,7 +3956,7 @@ exports.globalForwardingRules = {
      @summary  Creates a ForwardingRule resource in the specified project and region using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::ForwardingRule} [resource] Resource that this API call acts on. **Required**
+     @setting {::ForwardingRule} [resource] Data of [::ForwardingRule] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
      @desc
@@ -3970,11 +3967,11 @@ exports.globalForwardingRules = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/forwardingRules',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/forwardingRules',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -4002,8 +3999,8 @@ exports.globalForwardingRules = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/forwardingRules',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/forwardingRules',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -4015,7 +4012,7 @@ exports.globalForwardingRules = {
      @summary  Changes target url for forwarding rule.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetReference} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetReference} [resource] Data of [::TargetReference] structure
      @setting {String} [forwardingRule] Name of the ForwardingRule resource in which target is to be set. **Required**
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
@@ -4027,16 +4024,16 @@ exports.globalForwardingRules = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setTarget: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/forwardingRules/{forwardingRule}/setTarget',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/forwardingRules/{forwardingRule}/setTarget',
       params: params,
-      requiredParams: ['forwardingRule', 'project', 'resource'],
+      requiredParams: ['forwardingRule', 'project'],
       pathParams: ['forwardingRule', 'project']
     });
   }
 };
-,
+
 
 exports.globalOperations = {
 
@@ -4063,8 +4060,8 @@ exports.globalOperations = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/operations',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/operations',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -4086,10 +4083,10 @@ exports.globalOperations = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/operations/{operation}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/operations/{operation}',
       params: params,
       requiredParams: ['operation', 'project'],
       pathParams: ['operation', 'project']
@@ -4113,8 +4110,8 @@ exports.globalOperations = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/operations/{operation}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/operations/{operation}',
       params: params,
       requiredParams: ['operation', 'project'],
       pathParams: ['operation', 'project']
@@ -4144,15 +4141,15 @@ exports.globalOperations = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/operations',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/operations',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.httpHealthChecks = {
 
@@ -4171,10 +4168,10 @@ exports.httpHealthChecks = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/httpHealthChecks/{httpHealthCheck}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/httpHealthChecks/{httpHealthCheck}',
       params: params,
       requiredParams: ['httpHealthCheck', 'project'],
       pathParams: ['httpHealthCheck', 'project']
@@ -4198,8 +4195,8 @@ exports.httpHealthChecks = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/httpHealthChecks/{httpHealthCheck}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/httpHealthChecks/{httpHealthCheck}',
       params: params,
       requiredParams: ['httpHealthCheck', 'project'],
       pathParams: ['httpHealthCheck', 'project']
@@ -4211,7 +4208,7 @@ exports.httpHealthChecks = {
      @summary  Creates a HttpHealthCheck resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::HttpHealthCheck} [resource] Resource that this API call acts on. **Required**
+     @setting {::HttpHealthCheck} [resource] Data of [::HttpHealthCheck] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
      @desc
@@ -4222,11 +4219,11 @@ exports.httpHealthChecks = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/httpHealthChecks',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/httpHealthChecks',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -4254,8 +4251,8 @@ exports.httpHealthChecks = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/httpHealthChecks',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/httpHealthChecks',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -4267,7 +4264,7 @@ exports.httpHealthChecks = {
      @summary  Updates a HttpHealthCheck resource in the specified project using the data included in the request. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::HttpHealthCheck} [resource] Resource that this API call acts on. **Required**
+     @setting {::HttpHealthCheck} [resource] Data of [::HttpHealthCheck] structure
      @setting {String} [httpHealthCheck] Name of the HttpHealthCheck resource to update. **Required**
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
@@ -4279,11 +4276,11 @@ exports.httpHealthChecks = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'{project}/global/httpHealthChecks/{httpHealthCheck}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/httpHealthChecks/{httpHealthCheck}',
       params: params,
-      requiredParams: ['httpHealthCheck', 'project', 'resource'],
+      requiredParams: ['httpHealthCheck', 'project'],
       pathParams: ['httpHealthCheck', 'project']
     });
   },
@@ -4293,7 +4290,7 @@ exports.httpHealthChecks = {
      @summary  Updates a HttpHealthCheck resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::HttpHealthCheck} [resource] Resource that this API call acts on. **Required**
+     @setting {::HttpHealthCheck} [resource] Data of [::HttpHealthCheck] structure
      @setting {String} [httpHealthCheck] Name of the HttpHealthCheck resource to update. **Required**
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
@@ -4305,16 +4302,16 @@ exports.httpHealthChecks = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'{project}/global/httpHealthChecks/{httpHealthCheck}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/httpHealthChecks/{httpHealthCheck}',
       params: params,
-      requiredParams: ['httpHealthCheck', 'project', 'resource'],
+      requiredParams: ['httpHealthCheck', 'project'],
       pathParams: ['httpHealthCheck', 'project']
     });
   }
 };
-,
+
 
 exports.images = {
 
@@ -4333,10 +4330,10 @@ exports.images = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/images/{image}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/images/{image}',
       params: params,
       requiredParams: ['image', 'project'],
       pathParams: ['image', 'project']
@@ -4350,7 +4347,7 @@ exports.images = {
   If an empty request body is given, clears the deprecation status instead.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::DeprecationStatus} [resource] Resource that this API call acts on. **Required**
+     @setting {::DeprecationStatus} [resource] Data of [::DeprecationStatus] structure
      @setting {String} [image] Image name. **Required**
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
@@ -4362,11 +4359,11 @@ exports.images = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   deprecate: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/images/{image}/deprecate',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/images/{image}/deprecate',
       params: params,
-      requiredParams: ['image', 'project', 'resource'],
+      requiredParams: ['image', 'project'],
       pathParams: ['image', 'project']
     });
   },
@@ -4388,8 +4385,8 @@ exports.images = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/images/{image}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/images/{image}',
       params: params,
       requiredParams: ['image', 'project'],
       pathParams: ['image', 'project']
@@ -4401,7 +4398,7 @@ exports.images = {
      @summary  Creates an image resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Image} [resource] Resource that this API call acts on. **Required**
+     @setting {::Image} [resource] Data of [::Image] structure
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -4415,11 +4412,11 @@ exports.images = {
         * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/images',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/images',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -4447,15 +4444,15 @@ exports.images = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/images',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/images',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.instanceGroupManagers = {
 
@@ -4464,7 +4461,7 @@ exports.instanceGroupManagers = {
      @summary  Removes the specified instances from the managed instance group, and from any target pools where they are a member. The instances are not deleted. The managed instance group automatically reduces its targetSize value by the number of instances that you abandon from the group.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupManagersAbandonInstancesRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupManagersAbandonInstancesRequest} [resource] Data of [::InstanceGroupManagersAbandonInstancesRequest] structure
      @setting {String} [instanceGroupManager] The name of the instance group manager. **Required**
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the managed instance group is located. **Required**
@@ -4477,11 +4474,11 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   abandonInstances: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/abandonInstances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/abandonInstances',
       params: params,
-      requiredParams: ['instanceGroupManager', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroupManager', 'project', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
     });
   },
@@ -4509,8 +4506,8 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/instanceGroupManagers',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/instanceGroupManagers',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -4533,10 +4530,10 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}',
       params: params,
       requiredParams: ['instanceGroupManager', 'project', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
@@ -4548,7 +4545,7 @@ exports.instanceGroupManagers = {
      @summary  Deletes the specified instances. The instances are deleted and removed from the instance group and any target pools where they are a member. The managed instance group automatically reduces its targetSize value by the number of instances that you delete.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupManagersDeleteInstancesRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupManagersDeleteInstancesRequest} [resource] Data of [::InstanceGroupManagersDeleteInstancesRequest] structure
      @setting {String} [instanceGroupManager] The name of the instance group manager. **Required**
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the managed instance group is located. **Required**
@@ -4561,11 +4558,11 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   deleteInstances: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/deleteInstances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/deleteInstances',
       params: params,
-      requiredParams: ['instanceGroupManager', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroupManager', 'project', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
     });
   },
@@ -4588,8 +4585,8 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}',
       params: params,
       requiredParams: ['instanceGroupManager', 'project', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
@@ -4601,7 +4598,7 @@ exports.instanceGroupManagers = {
      @summary  Creates a managed instance group resource in the specified project using the data that is included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupManager} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupManager} [resource] Data of [::InstanceGroupManager] structure
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the managed instance group is located. **Required**
      @return {::Operation}
@@ -4613,11 +4610,11 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers',
       params: params,
-      requiredParams: ['project', 'zone', 'resource'],
+      requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   },
@@ -4646,8 +4643,8 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
@@ -4672,9 +4669,9 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   listManagedInstances: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/listManagedInstances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/listManagedInstances',
       params: params,
       requiredParams: ['instanceGroupManager', 'project', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
@@ -4686,7 +4683,7 @@ exports.instanceGroupManagers = {
      @summary  Recreates the specified instances. The instances are deleted, then recreated using the managed instance group's current instance template.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupManagersRecreateInstancesRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupManagersRecreateInstancesRequest} [resource] Data of [::InstanceGroupManagersRecreateInstancesRequest] structure
      @setting {String} [instanceGroupManager] The name of the instance group manager. **Required**
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the managed instance group is located. **Required**
@@ -4699,11 +4696,11 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   recreateInstances: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/recreateInstances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/recreateInstances',
       params: params,
-      requiredParams: ['instanceGroupManager', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroupManager', 'project', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
     });
   },
@@ -4726,9 +4723,9 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   resize: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/resize',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/resize',
       params: params,
       requiredParams: ['instanceGroupManager', 'project', 'size', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
@@ -4740,7 +4737,7 @@ exports.instanceGroupManagers = {
      @summary  Specifies the instance template to use when creating new instances in this group. The templates for existing instances in the group do not change unless you recreate them.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupManagersSetInstanceTemplateRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupManagersSetInstanceTemplateRequest} [resource] Data of [::InstanceGroupManagersSetInstanceTemplateRequest] structure
      @setting {String} [instanceGroupManager] The name of the instance group manager. **Required**
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the managed instance group is located. **Required**
@@ -4753,11 +4750,11 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setInstanceTemplate: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setInstanceTemplate',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setInstanceTemplate',
       params: params,
-      requiredParams: ['instanceGroupManager', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroupManager', 'project', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
     });
   },
@@ -4767,7 +4764,7 @@ exports.instanceGroupManagers = {
      @summary  Modifies the target pools to which all new instances in this group are assigned. The target pools for existing instances in the group do not change unless you recreate them.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupManagersSetTargetPoolsRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupManagersSetTargetPoolsRequest} [resource] Data of [::InstanceGroupManagersSetTargetPoolsRequest] structure
      @setting {String} [instanceGroupManager] The name of the instance group manager. **Required**
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the managed instance group is located. **Required**
@@ -4780,16 +4777,16 @@ exports.instanceGroupManagers = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setTargetPools: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setTargetPools',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setTargetPools',
       params: params,
-      requiredParams: ['instanceGroupManager', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroupManager', 'project', 'zone'],
       pathParams: ['instanceGroupManager', 'project', 'zone']
     });
   }
 };
-,
+
 
 exports.instanceGroups = {
 
@@ -4798,7 +4795,7 @@ exports.instanceGroups = {
      @summary  Adds a list of instances to an instance group. All of the instances in the instance group must be in the same network.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupsAddInstancesRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupsAddInstancesRequest} [resource] Data of [::InstanceGroupsAddInstancesRequest] structure
      @setting {String} [instanceGroup] The name of the instance group where you are adding instances. **Required**
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the instance group is located. **Required**
@@ -4811,11 +4808,11 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   addInstances: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroups/{instanceGroup}/addInstances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroups/{instanceGroup}/addInstances',
       params: params,
-      requiredParams: ['instanceGroup', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroup', 'project', 'zone'],
       pathParams: ['instanceGroup', 'project', 'zone']
     });
   },
@@ -4843,8 +4840,8 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/instanceGroups',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/instanceGroups',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -4867,10 +4864,10 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroups/{instanceGroup}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroups/{instanceGroup}',
       params: params,
       requiredParams: ['instanceGroup', 'project', 'zone'],
       pathParams: ['instanceGroup', 'project', 'zone']
@@ -4895,8 +4892,8 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroups/{instanceGroup}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroups/{instanceGroup}',
       params: params,
       requiredParams: ['instanceGroup', 'project', 'zone'],
       pathParams: ['instanceGroup', 'project', 'zone']
@@ -4908,7 +4905,7 @@ exports.instanceGroups = {
      @summary  Creates an instance group in the specified project using the parameters that are included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroup} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroup} [resource] Data of [::InstanceGroup] structure
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the instance group is located. **Required**
      @return {::Operation}
@@ -4920,11 +4917,11 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroups',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroups',
       params: params,
-      requiredParams: ['project', 'zone', 'resource'],
+      requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   },
@@ -4953,8 +4950,8 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroups',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroups',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
@@ -4966,7 +4963,7 @@ exports.instanceGroups = {
      @summary  Lists instances in an instance group. The parameters for this method specify whether the list filters instances by state and named ports information.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupsListInstancesRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupsListInstancesRequest} [resource] Data of [::InstanceGroupsListInstancesRequest] structure
      @setting {optional String} [filter] Sets a filter expression for filtering listed resources, in the form filter={expression}. Your {expression} must be in the format: FIELD_NAME COMPARISON_STRING LITERAL_STRING.
   
   The FIELD_NAME is the name of the field you want to compare. Only atomic field types are supported (string, number, boolean). The COMPARISON_STRING must be either eq (equals) or ne (not equals). The LITERAL_STRING is the string value to filter to. The literal value must be valid for the type of field (string, number, boolean). For string fields, the literal value is interpreted as a regular expression using RE2 syntax. The literal value must match the entire field.
@@ -4987,11 +4984,11 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   listInstances: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroups/{instanceGroup}/listInstances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroups/{instanceGroup}/listInstances',
       params: params,
-      requiredParams: ['instanceGroup', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroup', 'project', 'zone'],
       pathParams: ['instanceGroup', 'project', 'zone']
     });
   },
@@ -5001,7 +4998,7 @@ exports.instanceGroups = {
      @summary  Removes a list of instances from an instance group.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupsRemoveInstancesRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupsRemoveInstancesRequest} [resource] Data of [::InstanceGroupsRemoveInstancesRequest] structure
      @setting {String} [instanceGroup] The name of the instance group where the specified instances will be removed. **Required**
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the instance group is located. **Required**
@@ -5014,11 +5011,11 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   removeInstances: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroups/{instanceGroup}/removeInstances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroups/{instanceGroup}/removeInstances',
       params: params,
-      requiredParams: ['instanceGroup', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroup', 'project', 'zone'],
       pathParams: ['instanceGroup', 'project', 'zone']
     });
   },
@@ -5028,7 +5025,7 @@ exports.instanceGroups = {
      @summary  Sets the named ports in an instance group.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceGroupsSetNamedPortsRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceGroupsSetNamedPortsRequest} [resource] Data of [::InstanceGroupsSetNamedPortsRequest] structure
      @setting {String} [instanceGroup] The name of the instance group where the named ports are updated. **Required**
      @setting {String} [project] The project ID for this request. **Required**
      @setting {String} [zone] The URL of the zone where the instance group is located. **Required**
@@ -5041,16 +5038,16 @@ exports.instanceGroups = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setNamedPorts: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instanceGroups/{instanceGroup}/setNamedPorts',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instanceGroups/{instanceGroup}/setNamedPorts',
       params: params,
-      requiredParams: ['instanceGroup', 'project', 'zone', 'resource'],
+      requiredParams: ['instanceGroup', 'project', 'zone'],
       pathParams: ['instanceGroup', 'project', 'zone']
     });
   }
 };
-,
+
 
 exports.instanceTemplates = {
 
@@ -5069,10 +5066,10 @@ exports.instanceTemplates = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/instanceTemplates/{instanceTemplate}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/instanceTemplates/{instanceTemplate}',
       params: params,
       requiredParams: ['instanceTemplate', 'project'],
       pathParams: ['instanceTemplate', 'project']
@@ -5096,8 +5093,8 @@ exports.instanceTemplates = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/instanceTemplates/{instanceTemplate}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/instanceTemplates/{instanceTemplate}',
       params: params,
       requiredParams: ['instanceTemplate', 'project'],
       pathParams: ['instanceTemplate', 'project']
@@ -5109,7 +5106,7 @@ exports.instanceTemplates = {
      @summary  Creates an instance template in the specified project using the data that is included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceTemplate} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceTemplate} [resource] Data of [::InstanceTemplate] structure
      @setting {String} [project] The project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -5120,11 +5117,11 @@ exports.instanceTemplates = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/instanceTemplates',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/instanceTemplates',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -5152,15 +5149,15 @@ exports.instanceTemplates = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/instanceTemplates',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/instanceTemplates',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.instances = {
 
@@ -5169,7 +5166,7 @@ exports.instances = {
      @summary  Adds an access config to an instance's network interface.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::AccessConfig} [resource] Resource that this API call acts on. **Required**
+     @setting {::AccessConfig} [resource] Data of [::AccessConfig] structure
      @setting {String} [instance] The instance name for this request. **Required**
      @setting {String} [networkInterface] The name of the network interface to add to this instance. **Required**
      @setting {String} [project] Project ID for this request. **Required**
@@ -5183,11 +5180,11 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   addAccessConfig: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/addAccessConfig',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/addAccessConfig',
       params: params,
-      requiredParams: ['instance', 'networkInterface', 'project', 'zone', 'resource'],
+      requiredParams: ['instance', 'networkInterface', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
     });
   },
@@ -5215,8 +5212,8 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/instances',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/instances',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -5228,7 +5225,7 @@ exports.instances = {
      @summary  Attaches a Disk resource to an instance.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::AttachedDisk} [resource] Resource that this API call acts on. **Required**
+     @setting {::AttachedDisk} [resource] Data of [::AttachedDisk] structure
      @setting {String} [instance] Instance name. **Required**
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [zone] The name of the zone for this request. **Required**
@@ -5241,11 +5238,11 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   attachDisk: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/attachDisk',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/attachDisk',
       params: params,
-      requiredParams: ['instance', 'project', 'zone', 'resource'],
+      requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
     });
   },
@@ -5266,10 +5263,10 @@ exports.instances = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}',
       params: params,
       requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
@@ -5295,9 +5292,9 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   deleteAccessConfig: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/deleteAccessConfig',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/deleteAccessConfig',
       params: params,
       requiredParams: ['accessConfig', 'instance', 'networkInterface', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
@@ -5322,9 +5319,9 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   detachDisk: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/detachDisk',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/detachDisk',
       params: params,
       requiredParams: ['deviceName', 'instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
@@ -5349,8 +5346,8 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}',
       params: params,
       requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
@@ -5376,8 +5373,8 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   getSerialPortOutput: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/serialPort',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/serialPort',
       params: params,
       requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
@@ -5389,7 +5386,7 @@ exports.instances = {
      @summary  Creates an instance resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Instance} [resource] Resource that this API call acts on. **Required**
+     @setting {::Instance} [resource] Data of [::Instance] structure
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [zone] The name of the zone for this request. **Required**
      @return {::Operation}
@@ -5401,11 +5398,11 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances',
       params: params,
-      requiredParams: ['project', 'zone', 'resource'],
+      requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   },
@@ -5434,8 +5431,8 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/instances',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
@@ -5459,9 +5456,9 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   reset: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/reset',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/reset',
       params: params,
       requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
@@ -5487,9 +5484,9 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setDiskAutoDelete: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/setDiskAutoDelete',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/setDiskAutoDelete',
       params: params,
       requiredParams: ['autoDelete', 'deviceName', 'instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
@@ -5501,7 +5498,7 @@ exports.instances = {
      @summary  Sets metadata for the specified instance to the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Metadata} [resource] Resource that this API call acts on. **Required**
+     @setting {::Metadata} [resource] Data of [::Metadata] structure
      @setting {String} [instance] Name of the instance scoping this request. **Required**
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [zone] The name of the zone for this request. **Required**
@@ -5514,11 +5511,11 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setMetadata: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/setMetadata',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/setMetadata',
       params: params,
-      requiredParams: ['instance', 'project', 'zone', 'resource'],
+      requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
     });
   },
@@ -5528,7 +5525,7 @@ exports.instances = {
      @summary  Sets an instance's scheduling options.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Scheduling} [resource] Resource that this API call acts on. **Required**
+     @setting {::Scheduling} [resource] Data of [::Scheduling] structure
      @setting {String} [instance] Instance name. **Required**
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [zone] The name of the zone for this request. **Required**
@@ -5541,11 +5538,11 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setScheduling: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/setScheduling',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/setScheduling',
       params: params,
-      requiredParams: ['instance', 'project', 'zone', 'resource'],
+      requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
     });
   },
@@ -5555,7 +5552,7 @@ exports.instances = {
      @summary  Sets tags for the specified instance to the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Tags} [resource] Resource that this API call acts on. **Required**
+     @setting {::Tags} [resource] Data of [::Tags] structure
      @setting {String} [instance] Name of the instance scoping this request. **Required**
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [zone] The name of the zone for this request. **Required**
@@ -5568,11 +5565,11 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setTags: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/setTags',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/setTags',
       params: params,
-      requiredParams: ['instance', 'project', 'zone', 'resource'],
+      requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
     });
   },
@@ -5594,9 +5591,9 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   start: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/start',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/start',
       params: params,
       requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
@@ -5620,16 +5617,16 @@ exports.instances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   stop: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/instances/{instance}/stop',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/instances/{instance}/stop',
       params: params,
       requiredParams: ['instance', 'project', 'zone'],
       pathParams: ['instance', 'project', 'zone']
     });
   }
 };
-,
+
 
 exports.licenses = {
 
@@ -5650,15 +5647,15 @@ exports.licenses = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/licenses/{license}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/licenses/{license}',
       params: params,
       requiredParams: ['license', 'project'],
       pathParams: ['license', 'project']
     });
   }
 };
-,
+
 
 exports.machineTypes = {
 
@@ -5685,8 +5682,8 @@ exports.machineTypes = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/machineTypes',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/machineTypes',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -5711,8 +5708,8 @@ exports.machineTypes = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/machineTypes/{machineType}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/machineTypes/{machineType}',
       params: params,
       requiredParams: ['machineType', 'project', 'zone'],
       pathParams: ['machineType', 'project', 'zone']
@@ -5743,15 +5740,15 @@ exports.machineTypes = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/machineTypes',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/machineTypes',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   }
 };
-,
+
 
 exports.networks = {
 
@@ -5770,10 +5767,10 @@ exports.networks = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/networks/{network}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}',
       params: params,
       requiredParams: ['network', 'project'],
       pathParams: ['network', 'project']
@@ -5797,8 +5794,8 @@ exports.networks = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/networks/{network}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}',
       params: params,
       requiredParams: ['network', 'project'],
       pathParams: ['network', 'project']
@@ -5810,7 +5807,7 @@ exports.networks = {
      @summary  Creates a network resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Network} [resource] Resource that this API call acts on. **Required**
+     @setting {::Network} [resource] Data of [::Network] structure
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -5821,11 +5818,11 @@ exports.networks = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/networks',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/networks',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -5853,15 +5850,15 @@ exports.networks = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/networks',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/networks',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.projects = {
 
@@ -5881,8 +5878,8 @@ exports.projects = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -5894,7 +5891,7 @@ exports.projects = {
      @summary  Moves a persistent disk from one zone to another.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::DiskMoveRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::DiskMoveRequest} [resource] Data of [::DiskMoveRequest] structure
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -5905,11 +5902,11 @@ exports.projects = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   moveDisk: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/moveDisk',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/moveDisk',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -5919,7 +5916,7 @@ exports.projects = {
      @summary  Moves an instance and its attached persistent disks from one zone to another.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceMoveRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceMoveRequest} [resource] Data of [::InstanceMoveRequest] structure
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -5930,11 +5927,11 @@ exports.projects = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   moveInstance: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/moveInstance',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/moveInstance',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -5944,7 +5941,7 @@ exports.projects = {
      @summary  Sets metadata common to all instances within the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Metadata} [resource] Resource that this API call acts on. **Required**
+     @setting {::Metadata} [resource] Data of [::Metadata] structure
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -5955,11 +5952,11 @@ exports.projects = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setCommonInstanceMetadata: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/setCommonInstanceMetadata',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/setCommonInstanceMetadata',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -5969,7 +5966,7 @@ exports.projects = {
      @summary  Enables the usage export feature and sets the usage export bucket where reports are stored. If you provide an empty request body using this method, the usage export feature will be disabled.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::UsageExportLocation} [resource] Resource that this API call acts on. **Required**
+     @setting {::UsageExportLocation} [resource] Data of [::UsageExportLocation] structure
      @setting {String} [project] Project ID for this request. **Required**
      @return {::Operation}
      @desc
@@ -5983,16 +5980,16 @@ exports.projects = {
         * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
   */
   setUsageExportBucket: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/setUsageExportBucket',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/setUsageExportBucket',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.regionOperations = {
 
@@ -6012,10 +6009,10 @@ exports.regionOperations = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/regions/{region}/operations/{operation}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/operations/{operation}',
       params: params,
       requiredParams: ['operation', 'project', 'region'],
       pathParams: ['operation', 'project', 'region']
@@ -6040,8 +6037,8 @@ exports.regionOperations = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/operations/{operation}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/operations/{operation}',
       params: params,
       requiredParams: ['operation', 'project', 'region'],
       pathParams: ['operation', 'project', 'region']
@@ -6072,15 +6069,15 @@ exports.regionOperations = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/operations',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/operations',
       params: params,
       requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   }
 };
-,
+
 
 exports.regions = {
 
@@ -6101,8 +6098,8 @@ exports.regions = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}',
       params: params,
       requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
@@ -6132,15 +6129,15 @@ exports.regions = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.routes = {
 
@@ -6159,10 +6156,10 @@ exports.routes = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/routes/{route}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/routes/{route}',
       params: params,
       requiredParams: ['project', 'route'],
       pathParams: ['project', 'route']
@@ -6186,8 +6183,8 @@ exports.routes = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/routes/{route}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/routes/{route}',
       params: params,
       requiredParams: ['project', 'route'],
       pathParams: ['project', 'route']
@@ -6199,7 +6196,7 @@ exports.routes = {
      @summary  Creates a route resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Route} [resource] Resource that this API call acts on. **Required**
+     @setting {::Route} [resource] Data of [::Route] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
      @desc
@@ -6210,11 +6207,11 @@ exports.routes = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/routes',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/routes',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -6242,15 +6239,15 @@ exports.routes = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/routes',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/routes',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.snapshots = {
 
@@ -6271,10 +6268,10 @@ exports.snapshots = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/snapshots/{snapshot}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/snapshots/{snapshot}',
       params: params,
       requiredParams: ['project', 'snapshot'],
       pathParams: ['project', 'snapshot']
@@ -6298,8 +6295,8 @@ exports.snapshots = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/snapshots/{snapshot}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/snapshots/{snapshot}',
       params: params,
       requiredParams: ['project', 'snapshot'],
       pathParams: ['project', 'snapshot']
@@ -6329,15 +6326,15 @@ exports.snapshots = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/snapshots',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/snapshots',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
     });
   }
 };
-,
+
 
 exports.targetHttpProxies = {
 
@@ -6356,10 +6353,10 @@ exports.targetHttpProxies = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/targetHttpProxies/{targetHttpProxy}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/targetHttpProxies/{targetHttpProxy}',
       params: params,
       requiredParams: ['project', 'targetHttpProxy'],
       pathParams: ['project', 'targetHttpProxy']
@@ -6383,8 +6380,8 @@ exports.targetHttpProxies = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/targetHttpProxies/{targetHttpProxy}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/targetHttpProxies/{targetHttpProxy}',
       params: params,
       requiredParams: ['project', 'targetHttpProxy'],
       pathParams: ['project', 'targetHttpProxy']
@@ -6396,7 +6393,7 @@ exports.targetHttpProxies = {
      @summary  Creates a TargetHttpProxy resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetHttpProxy} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetHttpProxy} [resource] Data of [::TargetHttpProxy] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
      @desc
@@ -6407,11 +6404,11 @@ exports.targetHttpProxies = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/targetHttpProxies',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/targetHttpProxies',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -6439,8 +6436,8 @@ exports.targetHttpProxies = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/targetHttpProxies',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/targetHttpProxies',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -6452,7 +6449,7 @@ exports.targetHttpProxies = {
      @summary  Changes the URL map for TargetHttpProxy.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::UrlMapReference} [resource] Resource that this API call acts on. **Required**
+     @setting {::UrlMapReference} [resource] Data of [::UrlMapReference] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [targetHttpProxy] Name of the TargetHttpProxy resource whose URL map is to be set. **Required**
      @return {::Operation}
@@ -6464,16 +6461,16 @@ exports.targetHttpProxies = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setUrlMap: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/targetHttpProxies/{targetHttpProxy}/setUrlMap',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/targetHttpProxies/{targetHttpProxy}/setUrlMap',
       params: params,
-      requiredParams: ['project', 'targetHttpProxy', 'resource'],
+      requiredParams: ['project', 'targetHttpProxy'],
       pathParams: ['project', 'targetHttpProxy']
     });
   }
 };
-,
+
 
 exports.targetInstances = {
 
@@ -6500,8 +6497,8 @@ exports.targetInstances = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/targetInstances',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/targetInstances',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -6524,10 +6521,10 @@ exports.targetInstances = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/zones/{zone}/targetInstances/{targetInstance}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/targetInstances/{targetInstance}',
       params: params,
       requiredParams: ['project', 'targetInstance', 'zone'],
       pathParams: ['project', 'targetInstance', 'zone']
@@ -6552,8 +6549,8 @@ exports.targetInstances = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/targetInstances/{targetInstance}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/targetInstances/{targetInstance}',
       params: params,
       requiredParams: ['project', 'targetInstance', 'zone'],
       pathParams: ['project', 'targetInstance', 'zone']
@@ -6565,7 +6562,7 @@ exports.targetInstances = {
      @summary  Creates a TargetInstance resource in the specified project and zone using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetInstance} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetInstance} [resource] Data of [::TargetInstance] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [zone] Name of the zone scoping this request. **Required**
      @return {::Operation}
@@ -6577,11 +6574,11 @@ exports.targetInstances = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/zones/{zone}/targetInstances',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/targetInstances',
       params: params,
-      requiredParams: ['project', 'zone', 'resource'],
+      requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   },
@@ -6610,15 +6607,15 @@ exports.targetInstances = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/targetInstances',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/targetInstances',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   }
 };
-,
+
 
 exports.targetPools = {
 
@@ -6627,7 +6624,7 @@ exports.targetPools = {
      @summary  Adds health check URL to targetPool.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetPoolsAddHealthCheckRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetPoolsAddHealthCheckRequest} [resource] Data of [::TargetPoolsAddHealthCheckRequest] structure
      @setting {String} [project] undefined **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
      @setting {String} [targetPool] Name of the TargetPool resource to which health_check_url is to be added. **Required**
@@ -6640,11 +6637,11 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   addHealthCheck: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools/{targetPool}/addHealthCheck',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools/{targetPool}/addHealthCheck',
       params: params,
-      requiredParams: ['project', 'region', 'targetPool', 'resource'],
+      requiredParams: ['project', 'region', 'targetPool'],
       pathParams: ['project', 'region', 'targetPool']
     });
   },
@@ -6654,7 +6651,7 @@ exports.targetPools = {
      @summary  Adds instance url to targetPool.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetPoolsAddInstanceRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetPoolsAddInstanceRequest} [resource] Data of [::TargetPoolsAddInstanceRequest] structure
      @setting {String} [project] undefined **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
      @setting {String} [targetPool] Name of the TargetPool resource to which instance_url is to be added. **Required**
@@ -6667,11 +6664,11 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   addInstance: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools/{targetPool}/addInstance',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools/{targetPool}/addInstance',
       params: params,
-      requiredParams: ['project', 'region', 'targetPool', 'resource'],
+      requiredParams: ['project', 'region', 'targetPool'],
       pathParams: ['project', 'region', 'targetPool']
     });
   },
@@ -6699,8 +6696,8 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/targetPools',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/targetPools',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -6723,10 +6720,10 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools/{targetPool}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools/{targetPool}',
       params: params,
       requiredParams: ['project', 'region', 'targetPool'],
       pathParams: ['project', 'region', 'targetPool']
@@ -6751,8 +6748,8 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools/{targetPool}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools/{targetPool}',
       params: params,
       requiredParams: ['project', 'region', 'targetPool'],
       pathParams: ['project', 'region', 'targetPool']
@@ -6764,7 +6761,7 @@ exports.targetPools = {
      @summary  Gets the most recent health check results for each IP for the given instance that is referenced by given TargetPool.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::InstanceReference} [resource] Resource that this API call acts on. **Required**
+     @setting {::InstanceReference} [resource] Data of [::InstanceReference] structure
      @setting {String} [project] undefined **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
      @setting {String} [targetPool] Name of the TargetPool resource to which the queried instance belongs. **Required**
@@ -6778,11 +6775,11 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   getHealth: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools/{targetPool}/getHealth',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools/{targetPool}/getHealth',
       params: params,
-      requiredParams: ['project', 'region', 'targetPool', 'resource'],
+      requiredParams: ['project', 'region', 'targetPool'],
       pathParams: ['project', 'region', 'targetPool']
     });
   },
@@ -6792,7 +6789,7 @@ exports.targetPools = {
      @summary  Creates a TargetPool resource in the specified project and region using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetPool} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetPool} [resource] Data of [::TargetPool] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
      @return {::Operation}
@@ -6804,11 +6801,11 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools',
       params: params,
-      requiredParams: ['project', 'region', 'resource'],
+      requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   },
@@ -6837,8 +6834,8 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools',
       params: params,
       requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
@@ -6850,7 +6847,7 @@ exports.targetPools = {
      @summary  Removes health check URL from targetPool.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetPoolsRemoveHealthCheckRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetPoolsRemoveHealthCheckRequest} [resource] Data of [::TargetPoolsRemoveHealthCheckRequest] structure
      @setting {String} [project] undefined **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
      @setting {String} [targetPool] Name of the TargetPool resource to which health_check_url is to be removed. **Required**
@@ -6863,11 +6860,11 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   removeHealthCheck: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools/{targetPool}/removeHealthCheck',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools/{targetPool}/removeHealthCheck',
       params: params,
-      requiredParams: ['project', 'region', 'targetPool', 'resource'],
+      requiredParams: ['project', 'region', 'targetPool'],
       pathParams: ['project', 'region', 'targetPool']
     });
   },
@@ -6877,7 +6874,7 @@ exports.targetPools = {
      @summary  Removes instance URL from targetPool.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetPoolsRemoveInstanceRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetPoolsRemoveInstanceRequest} [resource] Data of [::TargetPoolsRemoveInstanceRequest] structure
      @setting {String} [project] undefined **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
      @setting {String} [targetPool] Name of the TargetPool resource to which instance_url is to be removed. **Required**
@@ -6890,11 +6887,11 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   removeInstance: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools/{targetPool}/removeInstance',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools/{targetPool}/removeInstance',
       params: params,
-      requiredParams: ['project', 'region', 'targetPool', 'resource'],
+      requiredParams: ['project', 'region', 'targetPool'],
       pathParams: ['project', 'region', 'targetPool']
     });
   },
@@ -6904,7 +6901,7 @@ exports.targetPools = {
      @summary  Changes backup pool configurations.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetReference} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetReference} [resource] Data of [::TargetReference] structure
      @setting {optional Number} [failoverRatio] New failoverRatio value for the containing target pool.
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [region] Name of the region scoping this request. **Required**
@@ -6918,16 +6915,16 @@ exports.targetPools = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   setBackup: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/targetPools/{targetPool}/setBackup',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetPools/{targetPool}/setBackup',
       params: params,
-      requiredParams: ['project', 'region', 'targetPool', 'resource'],
+      requiredParams: ['project', 'region', 'targetPool'],
       pathParams: ['project', 'region', 'targetPool']
     });
   }
 };
-,
+
 
 exports.targetVpnGateways = {
 
@@ -6954,8 +6951,8 @@ exports.targetVpnGateways = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/targetVpnGateways',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/targetVpnGateways',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -6978,10 +6975,10 @@ exports.targetVpnGateways = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/regions/{region}/targetVpnGateways/{targetVpnGateway}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetVpnGateways/{targetVpnGateway}',
       params: params,
       requiredParams: ['project', 'region', 'targetVpnGateway'],
       pathParams: ['project', 'region', 'targetVpnGateway']
@@ -7006,8 +7003,8 @@ exports.targetVpnGateways = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/targetVpnGateways/{targetVpnGateway}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetVpnGateways/{targetVpnGateway}',
       params: params,
       requiredParams: ['project', 'region', 'targetVpnGateway'],
       pathParams: ['project', 'region', 'targetVpnGateway']
@@ -7019,7 +7016,7 @@ exports.targetVpnGateways = {
      @summary  Creates a TargetVpnGateway resource in the specified project and region using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::TargetVpnGateway} [resource] Resource that this API call acts on. **Required**
+     @setting {::TargetVpnGateway} [resource] Data of [::TargetVpnGateway] structure
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [region] The name of the region for this request. **Required**
      @return {::Operation}
@@ -7031,11 +7028,11 @@ exports.targetVpnGateways = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/targetVpnGateways',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetVpnGateways',
       params: params,
-      requiredParams: ['project', 'region', 'resource'],
+      requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   },
@@ -7064,15 +7061,15 @@ exports.targetVpnGateways = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/targetVpnGateways',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/targetVpnGateways',
       params: params,
       requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   }
 };
-,
+
 
 exports.urlMaps = {
 
@@ -7091,10 +7088,10 @@ exports.urlMaps = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/global/urlMaps/{urlMap}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/urlMaps/{urlMap}',
       params: params,
       requiredParams: ['project', 'urlMap'],
       pathParams: ['project', 'urlMap']
@@ -7118,8 +7115,8 @@ exports.urlMaps = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/urlMaps/{urlMap}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/urlMaps/{urlMap}',
       params: params,
       requiredParams: ['project', 'urlMap'],
       pathParams: ['project', 'urlMap']
@@ -7131,7 +7128,7 @@ exports.urlMaps = {
      @summary  Creates a UrlMap resource in the specified project using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::UrlMap} [resource] Resource that this API call acts on. **Required**
+     @setting {::UrlMap} [resource] Data of [::UrlMap] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @return {::Operation}
      @desc
@@ -7142,11 +7139,11 @@ exports.urlMaps = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/urlMaps',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/urlMaps',
       params: params,
-      requiredParams: ['project', 'resource'],
+      requiredParams: ['project'],
       pathParams: ['project']
     });
   },
@@ -7174,8 +7171,8 @@ exports.urlMaps = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/global/urlMaps',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/urlMaps',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -7187,7 +7184,7 @@ exports.urlMaps = {
      @summary  Update the entire content of the UrlMap resource. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::UrlMap} [resource] Resource that this API call acts on. **Required**
+     @setting {::UrlMap} [resource] Data of [::UrlMap] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [urlMap] Name of the UrlMap resource to update. **Required**
      @return {::Operation}
@@ -7199,11 +7196,11 @@ exports.urlMaps = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'{project}/global/urlMaps/{urlMap}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/urlMaps/{urlMap}',
       params: params,
-      requiredParams: ['project', 'urlMap', 'resource'],
+      requiredParams: ['project', 'urlMap'],
       pathParams: ['project', 'urlMap']
     });
   },
@@ -7213,7 +7210,7 @@ exports.urlMaps = {
      @summary  Update the entire content of the UrlMap resource.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::UrlMap} [resource] Resource that this API call acts on. **Required**
+     @setting {::UrlMap} [resource] Data of [::UrlMap] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [urlMap] Name of the UrlMap resource to update. **Required**
      @return {::Operation}
@@ -7225,11 +7222,11 @@ exports.urlMaps = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'{project}/global/urlMaps/{urlMap}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/urlMaps/{urlMap}',
       params: params,
-      requiredParams: ['project', 'urlMap', 'resource'],
+      requiredParams: ['project', 'urlMap'],
       pathParams: ['project', 'urlMap']
     });
   },
@@ -7239,7 +7236,7 @@ exports.urlMaps = {
      @summary  Run static validation for the UrlMap. In particular, the tests of the provided UrlMap will be run. Calling this method does NOT create the UrlMap.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::UrlMapsValidateRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::UrlMapsValidateRequest} [resource] Data of [::UrlMapsValidateRequest] structure
      @setting {String} [project] Name of the project scoping this request. **Required**
      @setting {String} [urlMap] Name of the UrlMap resource to be validated as. **Required**
      @return {::UrlMapsValidateResponse}
@@ -7251,16 +7248,16 @@ exports.urlMaps = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   validate: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/global/urlMaps/{urlMap}/validate',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/global/urlMaps/{urlMap}/validate',
       params: params,
-      requiredParams: ['project', 'urlMap', 'resource'],
+      requiredParams: ['project', 'urlMap'],
       pathParams: ['project', 'urlMap']
     });
   }
 };
-,
+
 
 exports.vpnTunnels = {
 
@@ -7287,8 +7284,8 @@ exports.vpnTunnels = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   aggregatedList: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/aggregated/vpnTunnels',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/aggregated/vpnTunnels',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']
@@ -7311,10 +7308,10 @@ exports.vpnTunnels = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/regions/{region}/vpnTunnels/{vpnTunnel}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/vpnTunnels/{vpnTunnel}',
       params: params,
       requiredParams: ['project', 'region', 'vpnTunnel'],
       pathParams: ['project', 'region', 'vpnTunnel']
@@ -7339,8 +7336,8 @@ exports.vpnTunnels = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/vpnTunnels/{vpnTunnel}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/vpnTunnels/{vpnTunnel}',
       params: params,
       requiredParams: ['project', 'region', 'vpnTunnel'],
       pathParams: ['project', 'region', 'vpnTunnel']
@@ -7352,7 +7349,7 @@ exports.vpnTunnels = {
      @summary  Creates a VpnTunnel resource in the specified project and region using the data included in the request.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::VpnTunnel} [resource] Resource that this API call acts on. **Required**
+     @setting {::VpnTunnel} [resource] Data of [::VpnTunnel] structure
      @setting {String} [project] Project ID for this request. **Required**
      @setting {String} [region] The name of the region for this request. **Required**
      @return {::Operation}
@@ -7364,11 +7361,11 @@ exports.vpnTunnels = {
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{project}/regions/{region}/vpnTunnels',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/vpnTunnels',
       params: params,
-      requiredParams: ['project', 'region', 'resource'],
+      requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   },
@@ -7397,15 +7394,15 @@ exports.vpnTunnels = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/regions/{region}/vpnTunnels',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/vpnTunnels',
       params: params,
       requiredParams: ['project', 'region'],
       pathParams: ['project', 'region']
     });
   }
 };
-,
+
 
 exports.zoneOperations = {
 
@@ -7425,10 +7422,10 @@ exports.zoneOperations = {
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/compute - View and manage your Google Compute Engine resources
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'{project}/zones/{zone}/operations/{operation}',
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/operations/{operation}',
       params: params,
       requiredParams: ['operation', 'project', 'zone'],
       pathParams: ['operation', 'project', 'zone']
@@ -7453,8 +7450,8 @@ exports.zoneOperations = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/operations/{operation}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/operations/{operation}',
       params: params,
       requiredParams: ['operation', 'project', 'zone'],
       pathParams: ['operation', 'project', 'zone']
@@ -7485,15 +7482,15 @@ exports.zoneOperations = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}/operations',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/operations',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
     });
   }
 };
-,
+
 
 exports.zones = {
 
@@ -7514,8 +7511,8 @@ exports.zones = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones/{zone}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}',
       params: params,
       requiredParams: ['project', 'zone'],
       pathParams: ['project', 'zone']
@@ -7545,8 +7542,8 @@ exports.zones = {
         * https://www.googleapis.com/auth/compute.readonly - View your Google Compute Engine resources
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{project}/zones',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/compute/v1/projects/{project}/zones',
       params: params,
       requiredParams: ['project'],
       pathParams: ['project']

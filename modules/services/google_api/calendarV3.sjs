@@ -21,11 +21,8 @@
 */
 
 @ = require([
-  'mho:std',
-  {id:'./helpers', name: 'helpers'}
+  'mho:std'
 ]);
-
-var API_BASE_URL = 'https://www.googleapis.com/calendar/v3/';
 
 /**
    @class Acl
@@ -633,10 +630,10 @@ exports.acl = {
        
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'calendars/{calendarId}/acl/{ruleId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/acl/{ruleId}',
       params: params,
       requiredParams: ['calendarId', 'ruleId'],
       pathParams: ['calendarId', 'ruleId']
@@ -659,8 +656,8 @@ exports.acl = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'calendars/{calendarId}/acl/{ruleId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/acl/{ruleId}',
       params: params,
       requiredParams: ['calendarId', 'ruleId'],
       pathParams: ['calendarId', 'ruleId']
@@ -672,7 +669,7 @@ exports.acl = {
      @summary  Creates an access control rule.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::AclRule} [resource] Resource that this API call acts on. **Required**
+     @setting {::AclRule} [resource] Data of [::AclRule] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @return {::AclRule}
      @desc
@@ -682,11 +679,11 @@ exports.acl = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars/{calendarId}/acl',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/acl',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   },
@@ -712,8 +709,8 @@ exports.acl = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'calendars/{calendarId}/acl',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/acl',
       params: params,
       requiredParams: ['calendarId'],
       pathParams: ['calendarId']
@@ -725,7 +722,7 @@ exports.acl = {
      @summary  Updates an access control rule. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::AclRule} [resource] Resource that this API call acts on. **Required**
+     @setting {::AclRule} [resource] Data of [::AclRule] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {String} [ruleId] ACL rule identifier. **Required**
      @return {::AclRule}
@@ -736,11 +733,11 @@ exports.acl = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'calendars/{calendarId}/acl/{ruleId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/acl/{ruleId}',
       params: params,
-      requiredParams: ['calendarId', 'ruleId', 'resource'],
+      requiredParams: ['calendarId', 'ruleId'],
       pathParams: ['calendarId', 'ruleId']
     });
   },
@@ -750,7 +747,7 @@ exports.acl = {
      @summary  Updates an access control rule.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::AclRule} [resource] Resource that this API call acts on. **Required**
+     @setting {::AclRule} [resource] Data of [::AclRule] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {String} [ruleId] ACL rule identifier. **Required**
      @return {::AclRule}
@@ -761,11 +758,11 @@ exports.acl = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'calendars/{calendarId}/acl/{ruleId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/acl/{ruleId}',
       params: params,
-      requiredParams: ['calendarId', 'ruleId', 'resource'],
+      requiredParams: ['calendarId', 'ruleId'],
       pathParams: ['calendarId', 'ruleId']
     });
   },
@@ -775,7 +772,7 @@ exports.acl = {
      @summary  Watch for changes to ACL resources.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Channel} [resource] Resource that this API call acts on. **Required**
+     @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {optional Integer} [maxResults] Maximum number of entries returned on one result page. By default the value is 100 entries. The page size can never be larger than 250 entries. Optional.
      @setting {optional String} [pageToken] Token specifying which result page to return. Optional.
@@ -792,16 +789,16 @@ exports.acl = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   watch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars/{calendarId}/acl/watch',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/acl/watch',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   }
 };
-,
+
 
 exports.calendarList = {
 
@@ -818,10 +815,10 @@ exports.calendarList = {
        
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'users/me/calendarList/{calendarId}',
+      url: 'https://www.googleapis.com/calendar/v3/users/me/calendarList/{calendarId}',
       params: params,
       requiredParams: ['calendarId'],
       pathParams: ['calendarId']
@@ -843,8 +840,8 @@ exports.calendarList = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'users/me/calendarList/{calendarId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/users/me/calendarList/{calendarId}',
       params: params,
       requiredParams: ['calendarId'],
       pathParams: ['calendarId']
@@ -856,7 +853,7 @@ exports.calendarList = {
      @summary  Adds an entry to the user's calendar list.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::CalendarListEntry} [resource] Resource that this API call acts on. **Required**
+     @setting {::CalendarListEntry} [resource] Data of [::CalendarListEntry] structure
      @setting {optional Boolean} [colorRgbFormat] Whether to use the foregroundColor and backgroundColor fields to write the calendar colors (RGB). If this feature is used, the index-based colorId field will be set to the best matching option automatically. Optional. The default is False.
      @return {::CalendarListEntry}
      @desc
@@ -866,11 +863,11 @@ exports.calendarList = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'users/me/calendarList',
+      url: 'https://www.googleapis.com/calendar/v3/users/me/calendarList',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   },
@@ -899,8 +896,8 @@ exports.calendarList = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'users/me/calendarList',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/users/me/calendarList',
       params: params,
       requiredParams: [],
       pathParams: []
@@ -912,7 +909,7 @@ exports.calendarList = {
      @summary  Updates an entry on the user's calendar list. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::CalendarListEntry} [resource] Resource that this API call acts on. **Required**
+     @setting {::CalendarListEntry} [resource] Data of [::CalendarListEntry] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {optional Boolean} [colorRgbFormat] Whether to use the foregroundColor and backgroundColor fields to write the calendar colors (RGB). If this feature is used, the index-based colorId field will be set to the best matching option automatically. Optional. The default is False.
      @return {::CalendarListEntry}
@@ -923,11 +920,11 @@ exports.calendarList = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'users/me/calendarList/{calendarId}',
+      url: 'https://www.googleapis.com/calendar/v3/users/me/calendarList/{calendarId}',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   },
@@ -937,7 +934,7 @@ exports.calendarList = {
      @summary  Updates an entry on the user's calendar list.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::CalendarListEntry} [resource] Resource that this API call acts on. **Required**
+     @setting {::CalendarListEntry} [resource] Data of [::CalendarListEntry] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {optional Boolean} [colorRgbFormat] Whether to use the foregroundColor and backgroundColor fields to write the calendar colors (RGB). If this feature is used, the index-based colorId field will be set to the best matching option automatically. Optional. The default is False.
      @return {::CalendarListEntry}
@@ -948,11 +945,11 @@ exports.calendarList = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'users/me/calendarList/{calendarId}',
+      url: 'https://www.googleapis.com/calendar/v3/users/me/calendarList/{calendarId}',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   },
@@ -962,7 +959,7 @@ exports.calendarList = {
      @summary  Watch for changes to CalendarList resources.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Channel} [resource] Resource that this API call acts on. **Required**
+     @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {optional Integer} [maxResults] Maximum number of entries returned on one result page. By default the value is 100 entries. The page size can never be larger than 250 entries. Optional.
      @setting {optional String} [minAccessRole] The minimum access role for the user in the returned entries. Optional. The default is no restriction.
      @setting {optional String} [pageToken] Token specifying which result page to return. Optional.
@@ -982,16 +979,16 @@ exports.calendarList = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   watch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'users/me/calendarList/watch',
+      url: 'https://www.googleapis.com/calendar/v3/users/me/calendarList/watch',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   }
 };
-,
+
 
 exports.calendars = {
 
@@ -1009,9 +1006,9 @@ exports.calendars = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   clear: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars/{calendarId}/clear',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/clear',
       params: params,
       requiredParams: ['calendarId'],
       pathParams: ['calendarId']
@@ -1031,10 +1028,10 @@ exports.calendars = {
        
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'calendars/{calendarId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}',
       params: params,
       requiredParams: ['calendarId'],
       pathParams: ['calendarId']
@@ -1056,8 +1053,8 @@ exports.calendars = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'calendars/{calendarId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}',
       params: params,
       requiredParams: ['calendarId'],
       pathParams: ['calendarId']
@@ -1069,7 +1066,7 @@ exports.calendars = {
      @summary  Creates a secondary calendar.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Calendar} [resource] Resource that this API call acts on. **Required**
+     @setting {::Calendar} [resource] Data of [::Calendar] structure
      @return {::Calendar}
      @desc
        #### Scopes
@@ -1078,11 +1075,11 @@ exports.calendars = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars',
+      url: 'https://www.googleapis.com/calendar/v3/calendars',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   },
@@ -1092,7 +1089,7 @@ exports.calendars = {
      @summary  Updates metadata for a calendar. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Calendar} [resource] Resource that this API call acts on. **Required**
+     @setting {::Calendar} [resource] Data of [::Calendar] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @return {::Calendar}
      @desc
@@ -1102,11 +1099,11 @@ exports.calendars = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'calendars/{calendarId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   },
@@ -1116,7 +1113,7 @@ exports.calendars = {
      @summary  Updates metadata for a calendar.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Calendar} [resource] Resource that this API call acts on. **Required**
+     @setting {::Calendar} [resource] Data of [::Calendar] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @return {::Calendar}
      @desc
@@ -1126,16 +1123,16 @@ exports.calendars = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'calendars/{calendarId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   }
 };
-,
+
 
 exports.channels = {
 
@@ -1144,7 +1141,7 @@ exports.channels = {
      @summary  Stop watching resources through this channel
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Channel} [resource] Resource that this API call acts on. **Required**
+     @setting {::Channel} [resource] Data of [::Channel] structure
      @return {void}
      @desc
        #### Scopes
@@ -1154,16 +1151,16 @@ exports.channels = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   stop: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'channels/stop',
+      url: 'https://www.googleapis.com/calendar/v3/channels/stop',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   }
 };
-,
+
 
 exports.colors = {
 
@@ -1181,15 +1178,15 @@ exports.colors = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'colors',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/colors',
       params: params,
       requiredParams: [],
       pathParams: []
     });
   }
 };
-,
+
 
 exports.events = {
 
@@ -1208,10 +1205,10 @@ exports.events = {
        
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'calendars/{calendarId}/events/{eventId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/{eventId}',
       params: params,
       requiredParams: ['calendarId', 'eventId'],
       pathParams: ['calendarId', 'eventId']
@@ -1237,8 +1234,8 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'calendars/{calendarId}/events/{eventId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/{eventId}',
       params: params,
       requiredParams: ['calendarId', 'eventId'],
       pathParams: ['calendarId', 'eventId']
@@ -1250,7 +1247,7 @@ exports.events = {
      @summary  Imports an event. This operation is used to add a private copy of an existing event to a calendar.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Event} [resource] Resource that this API call acts on. **Required**
+     @setting {::Event} [resource] Data of [::Event] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {optional Boolean} [supportsAttachments] Whether API client performing operation supports event attachments. Optional. The default is False.
      @return {::Event}
@@ -1261,11 +1258,11 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   import: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars/{calendarId}/events/import',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/import',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   },
@@ -1275,7 +1272,7 @@ exports.events = {
      @summary  Creates an event.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Event} [resource] Resource that this API call acts on. **Required**
+     @setting {::Event} [resource] Data of [::Event] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {optional Integer} [maxAttendees] The maximum number of attendees to include in the response. If there are more than the specified number of attendees, only the participant is returned. Optional.
      @setting {optional Boolean} [sendNotifications] Whether to send notifications about the creation of the new event. Optional. The default is False.
@@ -1288,11 +1285,11 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars/{calendarId}/events',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   },
@@ -1322,8 +1319,8 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   instances: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'calendars/{calendarId}/events/{eventId}/instances',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/{eventId}/instances',
       params: params,
       requiredParams: ['calendarId', 'eventId'],
       pathParams: ['calendarId', 'eventId']
@@ -1375,8 +1372,8 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'calendars/{calendarId}/events',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events',
       params: params,
       requiredParams: ['calendarId'],
       pathParams: ['calendarId']
@@ -1400,9 +1397,9 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   move: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars/{calendarId}/events/{eventId}/move',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/{eventId}/move',
       params: params,
       requiredParams: ['calendarId', 'destination', 'eventId'],
       pathParams: ['calendarId', 'eventId']
@@ -1414,7 +1411,7 @@ exports.events = {
      @summary  Updates an event. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Event} [resource] Resource that this API call acts on. **Required**
+     @setting {::Event} [resource] Data of [::Event] structure
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {String} [eventId] Event identifier. **Required**
@@ -1429,11 +1426,11 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'calendars/{calendarId}/events/{eventId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/{eventId}',
       params: params,
-      requiredParams: ['calendarId', 'eventId', 'resource'],
+      requiredParams: ['calendarId', 'eventId'],
       pathParams: ['calendarId', 'eventId']
     });
   },
@@ -1454,9 +1451,9 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   quickAdd: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars/{calendarId}/events/quickAdd',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/quickAdd',
       params: params,
       requiredParams: ['calendarId', 'text'],
       pathParams: ['calendarId']
@@ -1468,7 +1465,7 @@ exports.events = {
      @summary  Updates an event.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Event} [resource] Resource that this API call acts on. **Required**
+     @setting {::Event} [resource] Data of [::Event] structure
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {String} [eventId] Event identifier. **Required**
@@ -1483,11 +1480,11 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'calendars/{calendarId}/events/{eventId}',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/{eventId}',
       params: params,
-      requiredParams: ['calendarId', 'eventId', 'resource'],
+      requiredParams: ['calendarId', 'eventId'],
       pathParams: ['calendarId', 'eventId']
     });
   },
@@ -1497,7 +1494,7 @@ exports.events = {
      @summary  Watch for changes to Events resources.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Channel} [resource] Resource that this API call acts on. **Required**
+     @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {optional String} [iCalUID] Specifies event ID in the iCalendar format to be included in the response. Optional.
@@ -1538,16 +1535,16 @@ exports.events = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   watch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'calendars/{calendarId}/events/watch',
+      url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/watch',
       params: params,
-      requiredParams: ['calendarId', 'resource'],
+      requiredParams: ['calendarId'],
       pathParams: ['calendarId']
     });
   }
 };
-,
+
 
 exports.freebusy = {
 
@@ -1556,7 +1553,7 @@ exports.freebusy = {
      @summary  Returns free/busy information for a set of calendars.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::FreeBusyRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::FreeBusyRequest} [resource] Data of [::FreeBusyRequest] structure
      @return {::FreeBusyResponse}
      @desc
        #### Scopes
@@ -1566,16 +1563,16 @@ exports.freebusy = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   query: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'freeBusy',
+      url: 'https://www.googleapis.com/calendar/v3/freeBusy',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   }
 };
-,
+
 
 exports.settings = {
 
@@ -1594,8 +1591,8 @@ exports.settings = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'users/me/settings/{setting}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/users/me/settings/{setting}',
       params: params,
       requiredParams: ['setting'],
       pathParams: ['setting']
@@ -1622,8 +1619,8 @@ exports.settings = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'users/me/settings',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/calendar/v3/users/me/settings',
       params: params,
       requiredParams: [],
       pathParams: []
@@ -1635,7 +1632,7 @@ exports.settings = {
      @summary  Watch for changes to Settings resources.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Channel} [resource] Resource that this API call acts on. **Required**
+     @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {optional Integer} [maxResults] Maximum number of entries returned on one result page. By default the value is 100 entries. The page size can never be larger than 250 entries. Optional.
      @setting {optional String} [pageToken] Token specifying which result page to return. Optional.
      @setting {optional String} [syncToken] Token obtained from the nextSyncToken field returned on the last page of results from the previous list request. It makes the result of this list request contain only entries that have changed since then.
@@ -1651,11 +1648,11 @@ exports.settings = {
         * https://www.googleapis.com/auth/calendar.readonly - View your calendars
   */
   watch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'users/me/settings/watch',
+      url: 'https://www.googleapis.com/calendar/v3/users/me/settings/watch',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   }

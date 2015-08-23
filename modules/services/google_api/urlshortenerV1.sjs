@@ -21,11 +21,8 @@
 */
 
 @ = require([
-  'mho:std',
-  {id:'./helpers', name: 'helpers'}
+  'mho:std'
 ]);
-
-var API_BASE_URL = 'https://www.googleapis.com/urlshortener/v1/';
 
 /**
    @class AnalyticsSnapshot
@@ -133,8 +130,8 @@ exports.url = {
         * https://www.googleapis.com/auth/urlshortener - Manage your goo.gl short URLs
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'url',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/urlshortener/v1/url',
       params: params,
       requiredParams: ['shortUrl'],
       pathParams: []
@@ -146,7 +143,7 @@ exports.url = {
      @summary  Creates a new short URL.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Url} [resource] Resource that this API call acts on. **Required**
+     @setting {::Url} [resource] Data of [::Url] structure
      @return {::Url}
      @desc
        #### Scopes
@@ -155,11 +152,11 @@ exports.url = {
         * https://www.googleapis.com/auth/urlshortener - Manage your goo.gl short URLs
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'url',
+      url: 'https://www.googleapis.com/urlshortener/v1/url',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   },
@@ -179,8 +176,8 @@ exports.url = {
         * https://www.googleapis.com/auth/urlshortener - Manage your goo.gl short URLs
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'url/history',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/urlshortener/v1/url/history',
       params: params,
       requiredParams: [],
       pathParams: []

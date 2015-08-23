@@ -73,11 +73,8 @@ emit("\
 */
 
 @ = require([
-  'mho:std',
-  {id:'./helpers', name: 'helpers'}
+  'mho:std'
 ]);
-
-var API_BASE_URL = '#{discovery_doc.baseUrl}';
 
 ");
 
@@ -154,7 +151,7 @@ function walkResources(resources, level) {
       
       return rv;
     }) ..
-    @join(",\n\n");
+    @join(level === 0 ? "\n\n" : ",\n\n");
 }
 
 function generateParameterDocs(name, descriptor) {
@@ -178,12 +175,23 @@ function generateParameterDocs(name, descriptor) {
   return rv;
 }
 
+function escapeSlashStar(str) {
+  return str.replace(/\*/g, '\\*').replace(/\//g, '\\/');
+}
+
 function generateParametersDocs(descriptor) {
   var params = [];
   if (descriptor.request) {
     if (!descriptor.request['$ref']) throw new Error('unexpected discovery doc format');
     params.push("   @setting {::#{descriptor.request['$ref']}} [resource] Data of [::#{descriptor.request['$ref']}] structure");
   }
+
+  if (descriptor.supportsMediaUpload) {
+    params.push("   @setting {String} [media.mimeType] Mime type of media object (accepting #{descriptor.mediaUpload.accept.join(', ')})" .. escapeSlashStar);
+    if (!descriptor.mediaUpload.maxSize) throw new Error('unexpected discovery doc format');
+    params.push("   @setting {String|nodejs Buffer} [media.body] Media contents (max size = #{descriptor.mediaUpload.maxSize})");
+  }
+
   if (descriptor.parameters) {
     descriptor.parameters .. @ownPropertyPairs .. 
       @transform([name,descr]->generateParameterDocs(name,descr)) .. @each { |p| params.push(p) }
@@ -229,13 +237,35 @@ function requiredParameters(descriptor) {
   return rv .. @join(', ');
 }
 
+
+if (!discovery_doc.rootUrl || !discovery_doc.servicePath)
+  throw new Error('unexpected discovery doc format');
+
+function makeUrl(path) {
+  if (path.charAt(0) === '/')
+    return discovery_doc.rootUrl + path.substring(1);
+  else
+    return discovery_doc.rootUrl + discovery_doc.servicePath + path;
+}
+
 function generateRequestParameters(descriptor) {
   var rv = [];
 
   if (descriptor.httpMethod !== 'GET')
     rv.push("method: '#{descriptor.httpMethod}'");
 
-  rv.push("url: API_BASE_URL+'#{descriptor.path}'");
+  rv.push("url: '#{descriptor.path .. makeUrl}'");
+
+  if (descriptor.supportsMediaUpload || descriptor.mediaUpload) {
+    // sanity check
+    if (!descriptor.supportsMediaUpload || !descriptor.mediaUpload ||
+        !descriptor.mediaUpload.protocols || !descriptor.mediaUpload.protocols.simple ||
+        !descriptor.mediaUpload.protocols.simple.multipart ||
+        !descriptor.mediaUpload.protocols.simple.path)
+      throw new Error("unexpected discovery doc format");
+    rv.push("mediaUrl: '#{descriptor.mediaUpload.protocols.simple.path .. makeUrl}'");
+  }
+
   rv.push("params: params");
   rv.push("requiredParams: [#{requiredParameters(descriptor)}]");
   rv.push("pathParams: [#{ (descriptor.parameters||{}) .. @ownPropertyPairs .. 
@@ -259,8 +289,8 @@ function generateMethod(name, descriptor) {
    @desc
 #{descriptor .. generateDesc}
 */
-#{name}: function(client, params) {
-  return client .. @helpers.performRequest({
+#{name === 'delete' ? "'delete'" : name}: function(client, params) {
+  return client.performRequest({
 #{generateRequestParameters(descriptor)}
   });
 }";

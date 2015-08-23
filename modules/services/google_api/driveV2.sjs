@@ -21,11 +21,8 @@
 */
 
 @ = require([
-  'mho:std',
-  {id:'./helpers', name: 'helpers'}
+  'mho:std'
 ]);
-
-var API_BASE_URL = 'https://www.googleapis.com/drive/v2/';
 
 /**
    @class About
@@ -462,7 +459,7 @@ var API_BASE_URL = 'https://www.googleapis.com/drive/v2/';
    @summary String - A short description of the file.
    
    @variable File.downloadUrl
-   @summary String - undefined
+   @summary String
    
    @variable File.editable
    @summary Boolean - Whether the file can be edited by the current user.
@@ -905,15 +902,15 @@ exports.about = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'about',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/about',
       params: params,
       requiredParams: [],
       pathParams: []
     });
   }
 };
-,
+
 
 exports.apps = {
 
@@ -937,8 +934,8 @@ exports.apps = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'apps/{appId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/apps/{appId}',
       params: params,
       requiredParams: ['appId'],
       pathParams: ['appId']
@@ -961,15 +958,15 @@ exports.apps = {
         * https://www.googleapis.com/auth/drive.apps.readonly - View your Google Drive apps
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'apps',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/apps',
       params: params,
       requiredParams: [],
       pathParams: []
     });
   }
 };
-,
+
 
 exports.changes = {
 
@@ -994,8 +991,8 @@ exports.changes = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'changes/{changeId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/changes/{changeId}',
       params: params,
       requiredParams: ['changeId'],
       pathParams: ['changeId']
@@ -1028,8 +1025,8 @@ exports.changes = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'changes',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/changes',
       params: params,
       requiredParams: [],
       pathParams: []
@@ -1041,7 +1038,7 @@ exports.changes = {
      @summary  Subscribe to changes for a user.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Channel} [resource] Resource that this API call acts on. **Required**
+     @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {optional Boolean} [includeDeleted] Whether to include deleted items.
      @setting {optional Boolean} [includeSubscribed] Whether to include public files the user has opened and shared files. When set to false, the list only includes owned files plus any shared or public files the user has explicitly added to a folder they own.
      @setting {optional Integer} [maxResults] Maximum number of changes to return.
@@ -1063,16 +1060,16 @@ exports.changes = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   watch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'changes/watch',
+      url: 'https://www.googleapis.com/drive/v2/changes/watch',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   }
 };
-,
+
 
 exports.channels = {
 
@@ -1081,7 +1078,7 @@ exports.channels = {
      @summary  Stop watching resources through this channel
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Channel} [resource] Resource that this API call acts on. **Required**
+     @setting {::Channel} [resource] Data of [::Channel] structure
      @return {void}
      @desc
        #### Scopes
@@ -1097,16 +1094,16 @@ exports.channels = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   stop: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'channels/stop',
+      url: 'https://www.googleapis.com/drive/v2/channels/stop',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   }
 };
-,
+
 
 exports.children = {
 
@@ -1125,10 +1122,10 @@ exports.children = {
         * https://www.googleapis.com/auth/drive - View and manage the files in your Google Drive
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/{folderId}/children/{childId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{folderId}/children/{childId}',
       params: params,
       requiredParams: ['childId', 'folderId'],
       pathParams: ['childId', 'folderId']
@@ -1156,8 +1153,8 @@ exports.children = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{folderId}/children/{childId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{folderId}/children/{childId}',
       params: params,
       requiredParams: ['childId', 'folderId'],
       pathParams: ['childId', 'folderId']
@@ -1169,7 +1166,7 @@ exports.children = {
      @summary  Inserts a file into a folder.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::ChildReference} [resource] Resource that this API call acts on. **Required**
+     @setting {::ChildReference} [resource] Data of [::ChildReference] structure
      @setting {String} [folderId] The ID of the folder. **Required**
      @return {::ChildReference}
      @desc
@@ -1181,11 +1178,11 @@ exports.children = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{folderId}/children',
+      url: 'https://www.googleapis.com/drive/v2/files/{folderId}/children',
       params: params,
-      requiredParams: ['folderId', 'resource'],
+      requiredParams: ['folderId'],
       pathParams: ['folderId']
     });
   },
@@ -1214,15 +1211,15 @@ exports.children = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{folderId}/children',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{folderId}/children',
       params: params,
       requiredParams: ['folderId'],
       pathParams: ['folderId']
     });
   }
 };
-,
+
 
 exports.comments = {
 
@@ -1241,10 +1238,10 @@ exports.comments = {
         * https://www.googleapis.com/auth/drive - View and manage the files in your Google Drive
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}',
       params: params,
       requiredParams: ['commentId', 'fileId'],
       pathParams: ['commentId', 'fileId']
@@ -1269,8 +1266,8 @@ exports.comments = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}',
       params: params,
       requiredParams: ['commentId', 'fileId'],
       pathParams: ['commentId', 'fileId']
@@ -1282,7 +1279,7 @@ exports.comments = {
      @summary  Creates a new comment on the given file.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Comment} [resource] Resource that this API call acts on. **Required**
+     @setting {::Comment} [resource] Data of [::Comment] structure
      @setting {String} [fileId] The ID of the file. **Required**
      @return {::Comment}
      @desc
@@ -1293,11 +1290,11 @@ exports.comments = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/comments',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments',
       params: params,
-      requiredParams: ['fileId', 'resource'],
+      requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   },
@@ -1322,8 +1319,8 @@ exports.comments = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/comments',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -1335,7 +1332,7 @@ exports.comments = {
      @summary  Updates an existing comment. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Comment} [resource] Resource that this API call acts on. **Required**
+     @setting {::Comment} [resource] Data of [::Comment] structure
      @setting {String} [commentId] The ID of the comment. **Required**
      @setting {String} [fileId] The ID of the file. **Required**
      @return {::Comment}
@@ -1347,11 +1344,11 @@ exports.comments = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}',
       params: params,
-      requiredParams: ['commentId', 'fileId', 'resource'],
+      requiredParams: ['commentId', 'fileId'],
       pathParams: ['commentId', 'fileId']
     });
   },
@@ -1361,7 +1358,7 @@ exports.comments = {
      @summary  Updates an existing comment.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Comment} [resource] Resource that this API call acts on. **Required**
+     @setting {::Comment} [resource] Data of [::Comment] structure
      @setting {String} [commentId] The ID of the comment. **Required**
      @setting {String} [fileId] The ID of the file. **Required**
      @return {::Comment}
@@ -1373,16 +1370,16 @@ exports.comments = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}',
       params: params,
-      requiredParams: ['commentId', 'fileId', 'resource'],
+      requiredParams: ['commentId', 'fileId'],
       pathParams: ['commentId', 'fileId']
     });
   }
 };
-,
+
 
 exports.files = {
 
@@ -1391,7 +1388,7 @@ exports.files = {
      @summary  Creates a copy of the specified file.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::File} [resource] Resource that this API call acts on. **Required**
+     @setting {::File} [resource] Data of [::File] structure
      @setting {optional Boolean} [convert] Whether to convert this file to the corresponding Google Docs format.
      @setting {String} [fileId] The ID of the file to copy. **Required**
      @setting {optional Boolean} [ocr] Whether to attempt OCR on .jpg, .png, .gif, or .pdf uploads.
@@ -1412,11 +1409,11 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.photos.readonly - View the photos, videos and albums in your Google Photos
   */
   copy: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/copy',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/copy',
       params: params,
-      requiredParams: ['fileId', 'resource'],
+      requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   },
@@ -1436,10 +1433,10 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.appdata - View and manage its own configuration data in your Google Drive
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/{fileId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -1459,9 +1456,9 @@ exports.files = {
         * https://www.googleapis.com/auth/drive - View and manage the files in your Google Drive
   */
   emptyTrash: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/trash',
+      url: 'https://www.googleapis.com/drive/v2/files/trash',
       params: params,
       requiredParams: [],
       pathParams: []
@@ -1485,8 +1482,8 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   generateIds: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/generateIds',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/generateIds',
       params: params,
       requiredParams: [],
       pathParams: []
@@ -1518,8 +1515,8 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -1531,7 +1528,9 @@ exports.files = {
      @summary  Insert a new file.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::File} [resource] Resource that this API call acts on. **Required**
+     @setting {::File} [resource] Data of [::File] structure
+     @setting {String} [media.mimeType] Mime type of media object (accepting \*\/\*)
+     @setting {String|nodejs Buffer} [media.body] Media contents (max size = 5120GB)
      @setting {optional Boolean} [convert] Whether to convert this file to the corresponding Google Docs format.
      @setting {optional Boolean} [ocr] Whether to attempt OCR on .jpg, .png, .gif, or .pdf uploads.
      @setting {optional String} [ocrLanguage] If ocr is true, hints at the language to use. Valid values are BCP 47 codes.
@@ -1551,11 +1550,12 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files',
+      url: 'https://www.googleapis.com/drive/v2/files',
+      mediaUrl: 'https://www.googleapis.com/upload/drive/v2/files',
       params: params,
-      requiredParams: ['resource'],
+      requiredParams: [],
       pathParams: []
     });
   },
@@ -1587,8 +1587,8 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files',
       params: params,
       requiredParams: [],
       pathParams: []
@@ -1600,7 +1600,7 @@ exports.files = {
      @summary  Updates file metadata and/or content. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::File} [resource] Resource that this API call acts on. **Required**
+     @setting {::File} [resource] Data of [::File] structure
      @setting {optional String} [addParents] Comma-separated list of parent IDs to add.
      @setting {optional Boolean} [convert] Whether to convert this file to the corresponding Google Docs format.
      @setting {String} [fileId] The ID of the file to update. **Required**
@@ -1628,11 +1628,11 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.scripts - Modify your Google Apps Script scripts' behavior
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'files/{fileId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}',
       params: params,
-      requiredParams: ['fileId', 'resource'],
+      requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   },
@@ -1655,9 +1655,9 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.metadata - View and manage metadata of files in your Google Drive
   */
   touch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/touch',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/touch',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -1681,9 +1681,9 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   trash: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/trash',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/trash',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -1707,9 +1707,9 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   untrash: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/untrash',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/untrash',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -1721,7 +1721,9 @@ exports.files = {
      @summary  Updates file metadata and/or content.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::File} [resource] Resource that this API call acts on. **Required**
+     @setting {::File} [resource] Data of [::File] structure
+     @setting {String} [media.mimeType] Mime type of media object (accepting \*\/\*)
+     @setting {String|nodejs Buffer} [media.body] Media contents (max size = 5120GB)
      @setting {optional String} [addParents] Comma-separated list of parent IDs to add.
      @setting {optional Boolean} [convert] Whether to convert this file to the corresponding Google Docs format.
      @setting {String} [fileId] The ID of the file to update. **Required**
@@ -1749,11 +1751,12 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.scripts - Modify your Google Apps Script scripts' behavior
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'files/{fileId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}',
+      mediaUrl: 'https://www.googleapis.com/upload/drive/v2/files/{fileId}',
       params: params,
-      requiredParams: ['fileId', 'resource'],
+      requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   },
@@ -1763,7 +1766,7 @@ exports.files = {
      @summary  Subscribe to changes on a file
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Channel} [resource] Resource that this API call acts on. **Required**
+     @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {optional Boolean} [acknowledgeAbuse] Whether the user is acknowledging the risk of downloading known malware or other abusive files.
      @setting {String} [fileId] The ID for the file in question. **Required**
      @setting {optional String} [projection] This parameter is deprecated and has no function.
@@ -1784,16 +1787,16 @@ exports.files = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   watch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/watch',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/watch',
       params: params,
-      requiredParams: ['fileId', 'resource'],
+      requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   }
 };
-,
+
 
 exports.parents = {
 
@@ -1812,10 +1815,10 @@ exports.parents = {
         * https://www.googleapis.com/auth/drive - View and manage the files in your Google Drive
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/{fileId}/parents/{parentId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/parents/{parentId}',
       params: params,
       requiredParams: ['fileId', 'parentId'],
       pathParams: ['fileId', 'parentId']
@@ -1843,8 +1846,8 @@ exports.parents = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/parents/{parentId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/parents/{parentId}',
       params: params,
       requiredParams: ['fileId', 'parentId'],
       pathParams: ['fileId', 'parentId']
@@ -1856,7 +1859,7 @@ exports.parents = {
      @summary  Adds a parent folder for a file.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::ParentReference} [resource] Resource that this API call acts on. **Required**
+     @setting {::ParentReference} [resource] Data of [::ParentReference] structure
      @setting {String} [fileId] The ID of the file. **Required**
      @return {::ParentReference}
      @desc
@@ -1868,11 +1871,11 @@ exports.parents = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/parents',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/parents',
       params: params,
-      requiredParams: ['fileId', 'resource'],
+      requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   },
@@ -1897,15 +1900,15 @@ exports.parents = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/parents',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/parents',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   }
 };
-,
+
 
 exports.permissions = {
 
@@ -1924,10 +1927,10 @@ exports.permissions = {
         * https://www.googleapis.com/auth/drive - View and manage the files in your Google Drive
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/{fileId}/permissions/{permissionId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/permissions/{permissionId}',
       params: params,
       requiredParams: ['fileId', 'permissionId'],
       pathParams: ['fileId', 'permissionId']
@@ -1954,8 +1957,8 @@ exports.permissions = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/permissions/{permissionId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/permissions/{permissionId}',
       params: params,
       requiredParams: ['fileId', 'permissionId'],
       pathParams: ['fileId', 'permissionId']
@@ -1983,8 +1986,8 @@ exports.permissions = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   getIdForEmail: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'permissionIds/{email}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/permissionIds/{email}',
       params: params,
       requiredParams: ['email'],
       pathParams: ['email']
@@ -1996,7 +1999,7 @@ exports.permissions = {
      @summary  Inserts a permission for a file.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Permission} [resource] Resource that this API call acts on. **Required**
+     @setting {::Permission} [resource] Data of [::Permission] structure
      @setting {optional String} [emailMessage] A custom message to include in notification emails.
      @setting {String} [fileId] The ID for the file. **Required**
      @setting {optional Boolean} [sendNotificationEmails] Whether to send notification emails when sharing to users or groups. This parameter is ignored and an email is sent if the role is owner.
@@ -2009,11 +2012,11 @@ exports.permissions = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/permissions',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/permissions',
       params: params,
-      requiredParams: ['fileId', 'resource'],
+      requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   },
@@ -2037,8 +2040,8 @@ exports.permissions = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/permissions',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/permissions',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -2050,7 +2053,7 @@ exports.permissions = {
      @summary  Updates a permission. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Permission} [resource] Resource that this API call acts on. **Required**
+     @setting {::Permission} [resource] Data of [::Permission] structure
      @setting {String} [fileId] The ID for the file. **Required**
      @setting {String} [permissionId] The ID for the permission. **Required**
      @setting {optional Boolean} [transferOwnership] Whether changing a role to 'owner' downgrades the current owners to writers. Does nothing if the specified role is not 'owner'.
@@ -2063,11 +2066,11 @@ exports.permissions = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'files/{fileId}/permissions/{permissionId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/permissions/{permissionId}',
       params: params,
-      requiredParams: ['fileId', 'permissionId', 'resource'],
+      requiredParams: ['fileId', 'permissionId'],
       pathParams: ['fileId', 'permissionId']
     });
   },
@@ -2077,7 +2080,7 @@ exports.permissions = {
      @summary  Updates a permission.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Permission} [resource] Resource that this API call acts on. **Required**
+     @setting {::Permission} [resource] Data of [::Permission] structure
      @setting {String} [fileId] The ID for the file. **Required**
      @setting {String} [permissionId] The ID for the permission. **Required**
      @setting {optional Boolean} [transferOwnership] Whether changing a role to 'owner' downgrades the current owners to writers. Does nothing if the specified role is not 'owner'.
@@ -2090,16 +2093,16 @@ exports.permissions = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'files/{fileId}/permissions/{permissionId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/permissions/{permissionId}',
       params: params,
-      requiredParams: ['fileId', 'permissionId', 'resource'],
+      requiredParams: ['fileId', 'permissionId'],
       pathParams: ['fileId', 'permissionId']
     });
   }
 };
-,
+
 
 exports.properties = {
 
@@ -2121,10 +2124,10 @@ exports.properties = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
         * https://www.googleapis.com/auth/drive.metadata - View and manage metadata of files in your Google Drive
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/{fileId}/properties/{propertyKey}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/properties/{propertyKey}',
       params: params,
       requiredParams: ['fileId', 'propertyKey'],
       pathParams: ['fileId', 'propertyKey']
@@ -2153,8 +2156,8 @@ exports.properties = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/properties/{propertyKey}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/properties/{propertyKey}',
       params: params,
       requiredParams: ['fileId', 'propertyKey'],
       pathParams: ['fileId', 'propertyKey']
@@ -2166,7 +2169,7 @@ exports.properties = {
      @summary  Adds a property to a file.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Property} [resource] Resource that this API call acts on. **Required**
+     @setting {::Property} [resource] Data of [::Property] structure
      @setting {String} [fileId] The ID of the file. **Required**
      @return {::Property}
      @desc
@@ -2179,11 +2182,11 @@ exports.properties = {
         * https://www.googleapis.com/auth/drive.metadata - View and manage metadata of files in your Google Drive
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/properties',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/properties',
       params: params,
-      requiredParams: ['fileId', 'resource'],
+      requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   },
@@ -2208,8 +2211,8 @@ exports.properties = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/properties',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/properties',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -2221,7 +2224,7 @@ exports.properties = {
      @summary  Updates a property. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Property} [resource] Resource that this API call acts on. **Required**
+     @setting {::Property} [resource] Data of [::Property] structure
      @setting {String} [fileId] The ID of the file. **Required**
      @setting {String} [propertyKey] The key of the property. **Required**
      @setting {optional String} [visibility] The visibility of the property.
@@ -2236,11 +2239,11 @@ exports.properties = {
         * https://www.googleapis.com/auth/drive.metadata - View and manage metadata of files in your Google Drive
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'files/{fileId}/properties/{propertyKey}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/properties/{propertyKey}',
       params: params,
-      requiredParams: ['fileId', 'propertyKey', 'resource'],
+      requiredParams: ['fileId', 'propertyKey'],
       pathParams: ['fileId', 'propertyKey']
     });
   },
@@ -2250,7 +2253,7 @@ exports.properties = {
      @summary  Updates a property.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Property} [resource] Resource that this API call acts on. **Required**
+     @setting {::Property} [resource] Data of [::Property] structure
      @setting {String} [fileId] The ID of the file. **Required**
      @setting {String} [propertyKey] The key of the property. **Required**
      @setting {optional String} [visibility] The visibility of the property.
@@ -2265,16 +2268,16 @@ exports.properties = {
         * https://www.googleapis.com/auth/drive.metadata - View and manage metadata of files in your Google Drive
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'files/{fileId}/properties/{propertyKey}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/properties/{propertyKey}',
       params: params,
-      requiredParams: ['fileId', 'propertyKey', 'resource'],
+      requiredParams: ['fileId', 'propertyKey'],
       pathParams: ['fileId', 'propertyKey']
     });
   }
 };
-,
+
 
 exports.realtime = {
 
@@ -2295,8 +2298,8 @@ exports.realtime = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/realtime',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/realtime',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -2308,6 +2311,8 @@ exports.realtime = {
      @summary  Overwrites the Realtime API data model associated with this file with the provided JSON data model.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
+     @setting {String} [media.mimeType] Mime type of media object (accepting \*\/\*)
+     @setting {String|nodejs Buffer} [media.body] Media contents (max size = 10MB)
      @setting {optional String} [baseRevision] The revision of the model to diff the uploaded model against. If set, the uploaded model is diffed against the provided revision and those differences are merged with any changes made to the model after the provided revision. If not set, the uploaded model replaces the current model on the server.
      @setting {String} [fileId] The ID of the file that the Realtime API data model is associated with. **Required**
      @return {void}
@@ -2319,16 +2324,17 @@ exports.realtime = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'files/{fileId}/realtime',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/realtime',
+      mediaUrl: 'https://www.googleapis.com/upload/drive/v2/files/{fileId}/realtime',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
     });
   }
 };
-,
+
 
 exports.replies = {
 
@@ -2348,10 +2354,10 @@ exports.replies = {
         * https://www.googleapis.com/auth/drive - View and manage the files in your Google Drive
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}/replies/{replyId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}/replies/{replyId}',
       params: params,
       requiredParams: ['commentId', 'fileId', 'replyId'],
       pathParams: ['commentId', 'fileId', 'replyId']
@@ -2377,8 +2383,8 @@ exports.replies = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}/replies/{replyId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}/replies/{replyId}',
       params: params,
       requiredParams: ['commentId', 'fileId', 'replyId'],
       pathParams: ['commentId', 'fileId', 'replyId']
@@ -2390,7 +2396,7 @@ exports.replies = {
      @summary  Creates a new reply to the given comment.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::CommentReply} [resource] Resource that this API call acts on. **Required**
+     @setting {::CommentReply} [resource] Data of [::CommentReply] structure
      @setting {String} [commentId] The ID of the comment. **Required**
      @setting {String} [fileId] The ID of the file. **Required**
      @return {::CommentReply}
@@ -2402,11 +2408,11 @@ exports.replies = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   insert: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}/replies',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}/replies',
       params: params,
-      requiredParams: ['commentId', 'fileId', 'resource'],
+      requiredParams: ['commentId', 'fileId'],
       pathParams: ['commentId', 'fileId']
     });
   },
@@ -2431,8 +2437,8 @@ exports.replies = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}/replies',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}/replies',
       params: params,
       requiredParams: ['commentId', 'fileId'],
       pathParams: ['commentId', 'fileId']
@@ -2444,7 +2450,7 @@ exports.replies = {
      @summary  Updates an existing reply. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::CommentReply} [resource] Resource that this API call acts on. **Required**
+     @setting {::CommentReply} [resource] Data of [::CommentReply] structure
      @setting {String} [commentId] The ID of the comment. **Required**
      @setting {String} [fileId] The ID of the file. **Required**
      @setting {String} [replyId] The ID of the reply. **Required**
@@ -2457,11 +2463,11 @@ exports.replies = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}/replies/{replyId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}/replies/{replyId}',
       params: params,
-      requiredParams: ['commentId', 'fileId', 'replyId', 'resource'],
+      requiredParams: ['commentId', 'fileId', 'replyId'],
       pathParams: ['commentId', 'fileId', 'replyId']
     });
   },
@@ -2471,7 +2477,7 @@ exports.replies = {
      @summary  Updates an existing reply.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::CommentReply} [resource] Resource that this API call acts on. **Required**
+     @setting {::CommentReply} [resource] Data of [::CommentReply] structure
      @setting {String} [commentId] The ID of the comment. **Required**
      @setting {String} [fileId] The ID of the file. **Required**
      @setting {String} [replyId] The ID of the reply. **Required**
@@ -2484,16 +2490,16 @@ exports.replies = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'files/{fileId}/comments/{commentId}/replies/{replyId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/comments/{commentId}/replies/{replyId}',
       params: params,
-      requiredParams: ['commentId', 'fileId', 'replyId', 'resource'],
+      requiredParams: ['commentId', 'fileId', 'replyId'],
       pathParams: ['commentId', 'fileId', 'replyId']
     });
   }
 };
-,
+
 
 exports.revisions = {
 
@@ -2513,10 +2519,10 @@ exports.revisions = {
         * https://www.googleapis.com/auth/drive.appdata - View and manage its own configuration data in your Google Drive
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
-  delete: function(client, params) {
-    return client .. @helpers.performRequest({
+  'delete': function(client, params) {
+    return client.performRequest({
       method: 'DELETE',
-      url: API_BASE_URL+'files/{fileId}/revisions/{revisionId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/revisions/{revisionId}',
       params: params,
       requiredParams: ['fileId', 'revisionId'],
       pathParams: ['fileId', 'revisionId']
@@ -2544,8 +2550,8 @@ exports.revisions = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   get: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/revisions/{revisionId}',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/revisions/{revisionId}',
       params: params,
       requiredParams: ['fileId', 'revisionId'],
       pathParams: ['fileId', 'revisionId']
@@ -2572,8 +2578,8 @@ exports.revisions = {
         * https://www.googleapis.com/auth/drive.readonly - View the files in your Google Drive
   */
   list: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'files/{fileId}/revisions',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/revisions',
       params: params,
       requiredParams: ['fileId'],
       pathParams: ['fileId']
@@ -2585,7 +2591,7 @@ exports.revisions = {
      @summary  Updates a revision. This method supports patch semantics.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Revision} [resource] Resource that this API call acts on. **Required**
+     @setting {::Revision} [resource] Data of [::Revision] structure
      @setting {String} [fileId] The ID for the file. **Required**
      @setting {String} [revisionId] The ID for the revision. **Required**
      @return {::Revision}
@@ -2598,11 +2604,11 @@ exports.revisions = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   patch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PATCH',
-      url: API_BASE_URL+'files/{fileId}/revisions/{revisionId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/revisions/{revisionId}',
       params: params,
-      requiredParams: ['fileId', 'revisionId', 'resource'],
+      requiredParams: ['fileId', 'revisionId'],
       pathParams: ['fileId', 'revisionId']
     });
   },
@@ -2612,7 +2618,7 @@ exports.revisions = {
      @summary  Updates a revision.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::Revision} [resource] Resource that this API call acts on. **Required**
+     @setting {::Revision} [resource] Data of [::Revision] structure
      @setting {String} [fileId] The ID for the file. **Required**
      @setting {String} [revisionId] The ID for the revision. **Required**
      @return {::Revision}
@@ -2625,11 +2631,11 @@ exports.revisions = {
         * https://www.googleapis.com/auth/drive.file - View and manage Google Drive files and folders that you have opened or created with this app
   */
   update: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'PUT',
-      url: API_BASE_URL+'files/{fileId}/revisions/{revisionId}',
+      url: 'https://www.googleapis.com/drive/v2/files/{fileId}/revisions/{revisionId}',
       params: params,
-      requiredParams: ['fileId', 'revisionId', 'resource'],
+      requiredParams: ['fileId', 'revisionId'],
       pathParams: ['fileId', 'revisionId']
     });
   }

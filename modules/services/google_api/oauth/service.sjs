@@ -15,7 +15,8 @@
 
 @ = require([
   'mho:std',
-  {id:'mho:server/oauth', name:'oauth'}
+  {id:'mho:server/oauth', name:'oauth'},
+  {id:'../helpers', name:'helpers'}
 ]);
 
 /**
@@ -43,6 +44,45 @@ exports.run = function(config, block) {
 
       var Tokens = @ObservableVar(initial_tokens);
 
+
+      // the inner request handler:
+      function _request(url, opts) {
+        var access_token = ((Tokens .. @current()) || {}).access_token;
+        if (!access_token) throw new Error("Authorize Google API first!");
+        
+        var refreshed = false;
+        
+        while (1) {
+          var rv = @http.request(url, {
+            method: opts.method,
+            query: opts.query,
+            body: opts.body,
+            headers: {
+              'Authorization': 'Bearer '+access_token
+            } .. @extend(opts.headers),
+            throwing: false,
+            response: 'full'
+          });
+          try {
+            rv = JSON.parse(rv.content);
+            
+            // xxx could make this logic more specific
+            // xxx could preemptively reauth when we know the token is expired
+            if (rv.error && !refreshed) {
+              refreshed = true;
+              var new_tokens = refreshGoogleAuthorization();
+              if (!(access_token = new_tokens.access_token)) throw new Error("access not granted");
+              
+              Tokens.set(new_tokens);
+              continue;
+            }
+          }
+          catch(e) {
+            rv = {error: rv.status}
+          }
+          return rv;
+        }
+      }
 
       // helper for refreshing token:
       function refreshGoogleAuthorization() {
@@ -85,7 +125,7 @@ exports.run = function(config, block) {
          @summary Google OAuth API client
          @inherit GoogleAPIClient
       */
-      return {
+      var client = {
         /**
            @variable GoogleOAuthAPIClient.AccessToken
            @summary XXX write me
@@ -147,45 +187,11 @@ exports.run = function(config, block) {
         },
         
         /* internal interface */
-        _request: function(url, opts) {
-          var access_token = ((Tokens .. @current()) || {}).access_token;
-          if (!access_token) throw new Error("Authorize Google API first!");
-
-          var refreshed = false;
-          
-          while (1) {
-            var rv = @http.request(url, {
-              method: opts.method,
-              query: opts.query,
-              body: opts.body,
-              headers: {
-                'Authorization': 'Bearer '+access_token
-              } .. @extend(opts.headers),
-              throwing: false,
-              response: 'full'
-            });
-            try {
-              rv = JSON.parse(rv.content);
-
-              // xxx could make this logic more specific
-              // xxx could preemptively reauth when we know the token is expired
-              if (rv.error && !refreshed) {
-                refreshed = true;
-                var new_tokens = refreshGoogleAuthorization();
-                if (!(access_token = new_tokens.access_token)) throw new Error("access not granted");
-
-                Tokens.set(new_tokens);
-                continue;
-              }
-            }
-            catch(e) {
-              rv = {error: rv.status}
-            }
-            return rv;
-          }
+        performRequest: function(parameters) {
+          return @helpers.performRequest(_request, parameters);
         }
-
-      }
+      };
+      return client;
     }
   };
 

@@ -21,11 +21,8 @@
 */
 
 @ = require([
-  'mho:std',
-  {id:'./helpers', name: 'helpers'}
+  'mho:std'
 ]);
-
-var API_BASE_URL = 'https://www.googleapis.com/gmail/v1/users/';
 
 /**
    @class Draft
@@ -65,7 +62,7 @@ var API_BASE_URL = 'https://www.googleapis.com/gmail/v1/users/';
    @summary Array - Label IDs added to the message.
    
    @variable HistoryLabelAdded.message
-   @summary [::Message] - undefined
+   @summary [::Message]
    
    @class HistoryLabelRemoved
    @summary Google API JSON structure
@@ -74,19 +71,19 @@ var API_BASE_URL = 'https://www.googleapis.com/gmail/v1/users/';
    @summary Array - Label IDs removed from the message.
    
    @variable HistoryLabelRemoved.message
-   @summary [::Message] - undefined
+   @summary [::Message]
    
    @class HistoryMessageAdded
    @summary Google API JSON structure
    
    @variable HistoryMessageAdded.message
-   @summary [::Message] - undefined
+   @summary [::Message]
    
    @class HistoryMessageDeleted
    @summary Google API JSON structure
    
    @variable HistoryMessageDeleted.message
-   @summary [::Message] - undefined
+   @summary [::Message]
    
    @class Label
    @summary Google API JSON structure
@@ -338,8 +335,8 @@ exports.users = {
         * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
   */
   getProfile: function(client, params) {
-    return client .. @helpers.performRequest({
-      url: API_BASE_URL+'{userId}/profile',
+    return client.performRequest({
+      url: 'https://www.googleapis.com/gmail/v1/users/{userId}/profile',
       params: params,
       requiredParams: ['userId'],
       pathParams: ['userId']
@@ -362,9 +359,9 @@ exports.users = {
         * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
   */
   stop: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{userId}/stop',
+      url: 'https://www.googleapis.com/gmail/v1/users/{userId}/stop',
       params: params,
       requiredParams: ['userId'],
       pathParams: ['userId']
@@ -376,7 +373,7 @@ exports.users = {
      @summary  Set up or update a push notification watch on the given user mailbox.
      @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
      @param {Object} [settings] API call parameters
-     @setting {::WatchRequest} [resource] Resource that this API call acts on. **Required**
+     @setting {::WatchRequest} [resource] Data of [::WatchRequest] structure
      @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
      @return {::WatchResponse}
      @desc
@@ -388,11 +385,11 @@ exports.users = {
         * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
   */
   watch: function(client, params) {
-    return client .. @helpers.performRequest({
+    return client.performRequest({
       method: 'POST',
-      url: API_BASE_URL+'{userId}/watch',
+      url: 'https://www.googleapis.com/gmail/v1/users/{userId}/watch',
       params: params,
-      requiredParams: ['userId', 'resource'],
+      requiredParams: ['userId'],
       pathParams: ['userId']
     });
   },
@@ -404,7 +401,9 @@ exports.users = {
        @summary  Creates a new draft with the DRAFT label.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Draft} [resource] Resource that this API call acts on. **Required**
+       @setting {::Draft} [resource] Data of [::Draft] structure
+       @setting {String} [media.mimeType] Mime type of media object (accepting message\/rfc822)
+       @setting {String|nodejs Buffer} [media.body] Media contents (max size = 35MB)
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Draft}
        @desc
@@ -416,11 +415,12 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     create: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/drafts',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/drafts',
+        mediaUrl: 'https://www.googleapis.com/upload/gmail/v1/users/{userId}/drafts',
         params: params,
-        requiredParams: ['userId', 'resource'],
+        requiredParams: ['userId'],
         pathParams: ['userId']
       });
     },
@@ -441,10 +441,10 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.compose - Manage drafts and send emails
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
-    delete: function(client, params) {
-      return client .. @helpers.performRequest({
+    'delete': function(client, params) {
+      return client.performRequest({
         method: 'DELETE',
-        url: API_BASE_URL+'{userId}/drafts/{id}',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/drafts/{id}',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -470,8 +470,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     get: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/drafts/{id}',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/drafts/{id}',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -497,8 +497,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     list: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/drafts',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/drafts',
         params: params,
         requiredParams: ['userId'],
         pathParams: ['userId']
@@ -510,7 +510,9 @@ exports.users = {
        @summary  Sends the specified, existing draft to the recipients in the To, Cc, and Bcc headers.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Draft} [resource] Resource that this API call acts on. **Required**
+       @setting {::Draft} [resource] Data of [::Draft] structure
+       @setting {String} [media.mimeType] Mime type of media object (accepting message\/rfc822)
+       @setting {String|nodejs Buffer} [media.body] Media contents (max size = 35MB)
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Message}
        @desc
@@ -522,11 +524,12 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     send: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/drafts/send',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/drafts/send',
+        mediaUrl: 'https://www.googleapis.com/upload/gmail/v1/users/{userId}/drafts/send',
         params: params,
-        requiredParams: ['userId', 'resource'],
+        requiredParams: ['userId'],
         pathParams: ['userId']
       });
     },
@@ -536,7 +539,9 @@ exports.users = {
        @summary  Replaces a draft's content.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Draft} [resource] Resource that this API call acts on. **Required**
+       @setting {::Draft} [resource] Data of [::Draft] structure
+       @setting {String} [media.mimeType] Mime type of media object (accepting message\/rfc822)
+       @setting {String|nodejs Buffer} [media.body] Media contents (max size = 35MB)
        @setting {String} [id] The ID of the draft to update. **Required**
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Draft}
@@ -549,11 +554,12 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     update: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'PUT',
-        url: API_BASE_URL+'{userId}/drafts/{id}',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/drafts/{id}',
+        mediaUrl: 'https://www.googleapis.com/upload/gmail/v1/users/{userId}/drafts/{id}',
         params: params,
-        requiredParams: ['id', 'userId', 'resource'],
+        requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
       });
     }
@@ -581,8 +587,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     list: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/history',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/history',
         params: params,
         requiredParams: ['userId'],
         pathParams: ['userId']
@@ -597,7 +603,7 @@ exports.users = {
        @summary  Creates a new label.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Label} [resource] Resource that this API call acts on. **Required**
+       @setting {::Label} [resource] Data of [::Label] structure
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Label}
        @desc
@@ -609,11 +615,11 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     create: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/labels',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/labels',
         params: params,
-        requiredParams: ['userId', 'resource'],
+        requiredParams: ['userId'],
         pathParams: ['userId']
       });
     },
@@ -634,10 +640,10 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.labels - Manage mailbox labels
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
-    delete: function(client, params) {
-      return client .. @helpers.performRequest({
+    'delete': function(client, params) {
+      return client.performRequest({
         method: 'DELETE',
-        url: API_BASE_URL+'{userId}/labels/{id}',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/labels/{id}',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -662,8 +668,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     get: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/labels/{id}',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/labels/{id}',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -687,8 +693,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     list: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/labels',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/labels',
         params: params,
         requiredParams: ['userId'],
         pathParams: ['userId']
@@ -700,7 +706,7 @@ exports.users = {
        @summary  Updates the specified label. This method supports patch semantics.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Label} [resource] Resource that this API call acts on. **Required**
+       @setting {::Label} [resource] Data of [::Label] structure
        @setting {String} [id] The ID of the label to update. **Required**
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Label}
@@ -713,11 +719,11 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     patch: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'PATCH',
-        url: API_BASE_URL+'{userId}/labels/{id}',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/labels/{id}',
         params: params,
-        requiredParams: ['id', 'userId', 'resource'],
+        requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
       });
     },
@@ -727,7 +733,7 @@ exports.users = {
        @summary  Updates the specified label.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Label} [resource] Resource that this API call acts on. **Required**
+       @setting {::Label} [resource] Data of [::Label] structure
        @setting {String} [id] The ID of the label to update. **Required**
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Label}
@@ -740,11 +746,11 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     update: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'PUT',
-        url: API_BASE_URL+'{userId}/labels/{id}',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/labels/{id}',
         params: params,
-        requiredParams: ['id', 'userId', 'resource'],
+        requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
       });
     }
@@ -766,10 +772,10 @@ exports.users = {
          
           * https://mail.google.com/ - View and manage your mail
     */
-    delete: function(client, params) {
-      return client .. @helpers.performRequest({
+    'delete': function(client, params) {
+      return client.performRequest({
         method: 'DELETE',
-        url: API_BASE_URL+'{userId}/messages/{id}',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/{id}',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -795,8 +801,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     get: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/messages/{id}',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/{id}',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -808,7 +814,9 @@ exports.users = {
        @summary  Imports a message into only this user's mailbox, with standard email delivery scanning and classification similar to receiving via SMTP. Does not send a message.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Message} [resource] Resource that this API call acts on. **Required**
+       @setting {::Message} [resource] Data of [::Message] structure
+       @setting {String} [media.mimeType] Mime type of media object (accepting message\/rfc822)
+       @setting {String|nodejs Buffer} [media.body] Media contents (max size = 35MB)
        @setting {optional Boolean} [deleted] Mark the email as permanently deleted (not TRASH) and only visible in Google Apps Vault to a Vault administrator. Only used for Google Apps for Work accounts.
        @setting {optional String} [internalDateSource] Source for Gmail's internal date of the message.
        @setting {optional Boolean} [neverMarkSpam] Ignore the Gmail spam classifier decision and never mark this email as SPAM in the mailbox.
@@ -824,11 +832,12 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     import: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/messages/import',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/import',
+        mediaUrl: 'https://www.googleapis.com/upload/gmail/v1/users/{userId}/messages/import',
         params: params,
-        requiredParams: ['userId', 'resource'],
+        requiredParams: ['userId'],
         pathParams: ['userId']
       });
     },
@@ -838,7 +847,9 @@ exports.users = {
        @summary  Directly inserts a message into only this user's mailbox similar to IMAP APPEND, bypassing most scanning and classification. Does not send a message.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Message} [resource] Resource that this API call acts on. **Required**
+       @setting {::Message} [resource] Data of [::Message] structure
+       @setting {String} [media.mimeType] Mime type of media object (accepting message\/rfc822)
+       @setting {String|nodejs Buffer} [media.body] Media contents (max size = 35MB)
        @setting {optional Boolean} [deleted] Mark the email as permanently deleted (not TRASH) and only visible in Google Apps Vault to a Vault administrator. Only used for Google Apps for Work accounts.
        @setting {optional String} [internalDateSource] Source for Gmail's internal date of the message.
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
@@ -852,11 +863,12 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     insert: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/messages',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages',
+        mediaUrl: 'https://www.googleapis.com/upload/gmail/v1/users/{userId}/messages',
         params: params,
-        requiredParams: ['userId', 'resource'],
+        requiredParams: ['userId'],
         pathParams: ['userId']
       });
     },
@@ -882,8 +894,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     list: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/messages',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages',
         params: params,
         requiredParams: ['userId'],
         pathParams: ['userId']
@@ -895,7 +907,7 @@ exports.users = {
        @summary  Modifies the labels on the specified message.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::ModifyMessageRequest} [resource] Resource that this API call acts on. **Required**
+       @setting {::ModifyMessageRequest} [resource] Data of [::ModifyMessageRequest] structure
        @setting {String} [id] The ID of the message to modify. **Required**
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Message}
@@ -907,11 +919,11 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     modify: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/messages/{id}/modify',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/{id}/modify',
         params: params,
-        requiredParams: ['id', 'userId', 'resource'],
+        requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
       });
     },
@@ -921,7 +933,9 @@ exports.users = {
        @summary  Sends the specified message to the recipients in the To, Cc, and Bcc headers.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::Message} [resource] Resource that this API call acts on. **Required**
+       @setting {::Message} [resource] Data of [::Message] structure
+       @setting {String} [media.mimeType] Mime type of media object (accepting message\/rfc822)
+       @setting {String|nodejs Buffer} [media.body] Media contents (max size = 35MB)
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Message}
        @desc
@@ -934,11 +948,12 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.send - Send email on your behalf
     */
     send: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/messages/send',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/send',
+        mediaUrl: 'https://www.googleapis.com/upload/gmail/v1/users/{userId}/messages/send',
         params: params,
-        requiredParams: ['userId', 'resource'],
+        requiredParams: ['userId'],
         pathParams: ['userId']
       });
     },
@@ -959,9 +974,9 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     trash: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/messages/{id}/trash',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/{id}/trash',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -984,9 +999,9 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     untrash: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/messages/{id}/untrash',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/{id}/untrash',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -1013,8 +1028,8 @@ exports.users = {
             * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
       */
       get: function(client, params) {
-        return client .. @helpers.performRequest({
-          url: API_BASE_URL+'{userId}/messages/{messageId}/attachments/{id}',
+        return client.performRequest({
+          url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/{messageId}/attachments/{id}',
           params: params,
           requiredParams: ['id', 'messageId', 'userId'],
           pathParams: ['id', 'messageId', 'userId']
@@ -1039,10 +1054,10 @@ exports.users = {
          
           * https://mail.google.com/ - View and manage your mail
     */
-    delete: function(client, params) {
-      return client .. @helpers.performRequest({
+    'delete': function(client, params) {
+      return client.performRequest({
         method: 'DELETE',
-        url: API_BASE_URL+'{userId}/threads/{id}',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/threads/{id}',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -1068,8 +1083,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     get: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/threads/{id}',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/threads/{id}',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -1097,8 +1112,8 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.readonly - View your emails messages and settings
     */
     list: function(client, params) {
-      return client .. @helpers.performRequest({
-        url: API_BASE_URL+'{userId}/threads',
+      return client.performRequest({
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/threads',
         params: params,
         requiredParams: ['userId'],
         pathParams: ['userId']
@@ -1110,7 +1125,7 @@ exports.users = {
        @summary  Modifies the labels applied to the thread. This applies to all messages in the thread.
        @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
        @param {Object} [settings] API call parameters
-       @setting {::ModifyThreadRequest} [resource] Resource that this API call acts on. **Required**
+       @setting {::ModifyThreadRequest} [resource] Data of [::ModifyThreadRequest] structure
        @setting {String} [id] The ID of the thread to modify. **Required**
        @setting {String} [userId] The user's email address. The special value me can be used to indicate the authenticated user. **Required**
        @return {::Thread}
@@ -1122,11 +1137,11 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     modify: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/threads/{id}/modify',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/threads/{id}/modify',
         params: params,
-        requiredParams: ['id', 'userId', 'resource'],
+        requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
       });
     },
@@ -1147,9 +1162,9 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     trash: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/threads/{id}/trash',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/threads/{id}/trash',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
@@ -1172,9 +1187,9 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
     untrash: function(client, params) {
-      return client .. @helpers.performRequest({
+      return client.performRequest({
         method: 'POST',
-        url: API_BASE_URL+'{userId}/threads/{id}/untrash',
+        url: 'https://www.googleapis.com/gmail/v1/users/{userId}/threads/{id}/untrash',
         params: params,
         requiredParams: ['id', 'userId'],
         pathParams: ['id', 'userId']
