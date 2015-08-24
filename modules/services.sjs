@@ -95,6 +95,13 @@ exports.builtinServices = {
         service:     'mho:services/google_api/oauth/service',
         admin:       'mho:services/google_api/oauth/admin'
       },
+  'google_api/service_account':
+      {
+        name:        'google_api/service_account',
+        description: 'Service account-based Google Web API access',
+        service:     'mho:services/google_api/service_account/service',
+        admin:       'mho:services/google_api/service_account/admin'
+      },
   'mandrill':    
       {
         name:        'mandrill',
