@@ -107,10 +107,10 @@ function GCDValueToJSValue(gcd_value, descriptor) {
   var base_val;
   switch (descriptor.__type) {
   case 'date':
-    if (gcd_value.dateTimeValue === undefined)
+    if (gcd_value.timestampMicrosecondsValue === undefined)
       base_val = null;
     else
-      base_val = new Date(gcd_value.dateTimeValue);
+      base_val = new Date(parseInt(gcd_value.timestampMicrosecondsValue.substr(0,gcd_value.timestampMicrosecondsValue.length-3)));
     break;
   case 'bool':
     if (gcd_value.integerValue === undefined)
@@ -141,7 +141,7 @@ function GCDValueToJSValue(gcd_value, descriptor) {
     if (gcd_value.keyValue === undefined)
       base_val = null;
     else
-      base_val = GCDKeyToKey(gcd_value.keyValue.path);
+      base_val = GCDKeyToKey(gcd_value.keyValue.pathElement);
     break;
   default:
     throw new Error("Schema error: Unknown type #{descriptor.__type}");
@@ -166,11 +166,10 @@ function JSValueToGCDValue(js_val, descriptor, path) {
   
   switch (descriptor.__type) {
   case 'date':
-    value.dateTimeValue = js_val.toISOString();
+    value.timestampMicrosecondsValue = js_val.getTime()+'000';
     break;
   case 'bool':
-    // XXX this is for legacy support; the protobuf-based backend didn't have a bool type
-    value.integerValue = Boolean(js_val) ? 1 : 0;
+    value.integerValue = Boolean(js_val);
     break;
   case 'integer':
     value.integerValue = Number(js_val);
@@ -187,7 +186,7 @@ function JSValueToGCDValue(js_val, descriptor, path) {
     value.stringValue = String(js_val);
     break;
   case 'ref':
-    value.keyValue = {path:keyToGCDKey(js_val)};
+    value.keyValue = {pathElement:keyToGCDKey(js_val)};
     break;
   default:
     throw new Error("Unknown type #{descriptor.__type}");
@@ -196,17 +195,17 @@ function JSValueToGCDValue(js_val, descriptor, path) {
 }
 
 // utility for JSEntityToGCDEntity
-__js function checkUndefinedArrayMembers(dest, node, gcd_entity) {
+__js function checkUndefinedArrayMemebers(dest, node, entity) {
   if (node.value === undefined) {
     // either ALL values must be undefined:
-    if(dest.property.listValue.length > 0) {
+    if(dest.length > 0) {
       throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
     }
     dest.has_undefined_members = true;
     // if an array has undefined members, we don't want to store the property
     // at all (storing it as an empty list will cause all values to come back
     // as `null`, rather than `undefined`).
-    delete gcd_entity.properties[dest.name];
+    entity.property .. @remove(dest.property);
   } else {
     // .. or else ALL values must be defined:
     if(dest.has_undefined_members) {
@@ -221,7 +220,7 @@ function JSEntityToGCDEntity(js_entity, schemas) {
   if (!schema) throw new Error("Unknown schema #{js_entity.schema}");
   var key = js_entity.id;
   var primary, parent = schema.__parent;
-  var gcd_entity = { properties:{} };
+  var gcd_entity = { property:[] };
 
   js_entity.data .. cotraverse(schema) {
     |node, descriptor|
@@ -277,26 +276,29 @@ function JSEntityToGCDEntity(js_entity, schemas) {
       if (node.parent_state.arr_ctx[descriptor.path]) {
         dest = node.parent_state.arr_ctx[descriptor.path];
       } else {
-        dest = {};
+        dest = [];
         dest.has_undefined_members = false;
-        dest.name = descriptor.path.replace(".[]", "");
         dest.property = {
-          listValue: []
+          name: descriptor.path.replace(".[]", ""),
+          multi: true,
+          value: dest,
         };
         node.parent_state.arr_ctx[descriptor.path] = dest;
-        gcd_entity.properties[dest.name] = dest.property;
+        gcd_entity.property.push(dest.property);
       }
 
-      dest .. checkUndefinedArrayMembers(node, gcd_entity);
+      dest .. checkUndefinedArrayMemebers(node, gcd_entity);
 
       if(node.value !== undefined) {
-        dest.property.listValue.push(JSValueToGCDValue(node.value, descriptor.value, node.path));
+        dest.push(JSValueToGCDValue(node.value, descriptor.value, node.path));
       }
     }
     else if (node.value !== undefined) {
       // a single-valued property:
-      gcd_entity.properties[node.path] = 
-        JSValueToGCDValue(node.value, descriptor.value, node.path);
+      gcd_entity.property.push({
+        name: node.path,
+        value: [JSValueToGCDValue(node.value, descriptor.value, node.path)]
+      });
     }
   }
 
@@ -317,7 +319,7 @@ function JSEntityToGCDEntity(js_entity, schemas) {
       throw new Error("Google Cloud Datastore: 'primary' property inconsistent with key ('#{primary}' != '#{id}')");
   }
 
-  gcd_entity.key = { path: keyToGCDKey(key) };
+  gcd_entity.key = { pathElement: keyToGCDKey(key) };
 
   return gcd_entity;
 }
@@ -332,15 +334,15 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
     js_entity.data = null;
     return js_entity;
   }
-  var kind = GCDKeyToKind(gcd_entity.key.path);
+  var kind = GCDKeyToKind(gcd_entity.key.pathElement);
   var schema = schemas[kind];
   if (!schema) throw new Error("Google Cloud Datastore: Unknown schema #{kind}");
 
   var js_data = instantiate(schema);
 
   // go through properties array of GCD entity:
-  @ownPropertyPairs(gcd_entity.properties || []) .. @each {
-    |[name, value]|
+  (gcd_entity.property || []) .. @each {
+    |{name, value}|
     // find schema descriptor:
     var descriptor=schema, path=[], array_path;
     name.split('.') .. @each {
@@ -371,14 +373,14 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
 
     if (!array_path) {
       // a single value
-      target[path .. @at(-1)] = GCDValueToJSValue(value, descriptor);
+      target[path .. @at(-1)] = GCDValueToJSValue(value[0], descriptor);
     }
     else {
       if (!target[path .. @at(-1)])
         target = target[path .. @at(-1)] = [];
       else
         target = target[path .. @at(-1)];
-      (value.listValue||[]) .. @indexed .. @each { 
+      value .. @indexed .. @each { 
         |[i,v]|
         if (!array_path.length)
           target[i] = GCDValueToJSValue(v, descriptor);
@@ -403,13 +405,13 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
     var base_val;
     switch (descriptor.__type) {
     case 'primary':
-      base_val = GCDKeyToId(gcd_entity.key.path);
+      base_val = GCDKeyToId(gcd_entity.key.pathElement);
       break;
     case 'key':
-      base_val = GCDKeyToKey(gcd_entity.key.path);
+      base_val = GCDKeyToKey(gcd_entity.key.pathElement);
       break;
     case 'parent':
-      base_val = GCDKeyToParent(gcd_entity.key.path);
+      base_val = GCDKeyToParent(gcd_entity.key.pathElement);
       break;
     default:
 //XXX      if (descriptor.__required)
@@ -420,7 +422,7 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
     }
   }
 
-  var id = GCDKeyToKey(gcd_entity.key.path);
+  var id = GCDKeyToKey(gcd_entity.key.pathElement);
   if (js_entity.id) {
     if (js_entity.id !== id) 
       throw new Error("Id mismatch: #{id} != #{js_entity.id}");
@@ -468,7 +470,7 @@ function GoogleCloudDatastore(attribs) {
       |entity|
       if (entity.data === null && entity.id) {
         // DELETE
-        deletes.push({path: keyToGCDKey(entity.id)});
+        deletes.push({pathElement: keyToGCDKey(entity.id)});
         written.push({id: entity.id, schema: KeyToKind(entity.id)});
       }
       else if (entity.data) {
@@ -477,7 +479,7 @@ function GoogleCloudDatastore(attribs) {
         
         // check if the entity has a full key path, or if we need to
         // create an autoid:
-        var last = gcd_entity.key.path[gcd_entity.key.path.length-1];
+        var last = gcd_entity.key.pathElement[gcd_entity.key.pathElement.length-1];
         var has_path = (last.id || last.name);
         if (has_path) {
           if (entity.id) {
@@ -485,8 +487,8 @@ function GoogleCloudDatastore(attribs) {
               inserts.push(gcd_entity);
             else
               updates.push(gcd_entity);
-            written.push({id:gcd_entity.key.path .. GCDKeyToKey, 
-                          schema: GCDKeyToKind(gcd_entity.key.path)});
+            written.push({id:gcd_entity.key.pathElement .. GCDKeyToKey, 
+                          schema: GCDKeyToKind(gcd_entity.key.pathElement)});
           }
           else {
             // the js entity didn't specify an id; one was generated
@@ -495,8 +497,8 @@ function GoogleCloudDatastore(attribs) {
             // unintentionally. To update data with a primary field, we require
             // the caller to provide an id (and the primary field).
             inserts.push(gcd_entity);
-            written.push({id:gcd_entity.key.path .. GCDKeyToKey,
-                          schema: GCDKeyToKind(gcd_entity.key.path)});
+            written.push({id:gcd_entity.key.pathElement .. GCDKeyToKey,
+                          schema: GCDKeyToKind(gcd_entity.key.pathElement)});
           }
         }
         else {
@@ -521,14 +523,14 @@ function GoogleCloudDatastore(attribs) {
       // we're in a transaction. don't actually perform the write. just
       // return data for later comittal.
       if (autoid_inserts.length) {
-        var req = { keys: autoid_inserts .. @map({key} -> key) };
+        var req = { key: autoid_inserts .. @map({key} -> key) };
         var results = context.allocateIds(req);
         // splice results into 'written'
-        results.keys .. @consume {
+        results.key .. @consume {
           |next_id|
           for (var i=0;i<written.length; ++i) {
             if (written[i] === null) {
-              var id = next_id().path;
+              var id = next_id().pathElement;
               written[i] = { id: id .. GCDKeyToKey,
                              schema: id .. GCDKeyToKind }; 
             }
@@ -536,7 +538,7 @@ function GoogleCloudDatastore(attribs) {
         }
         
         // splice results into autoid_inserts
-        @zip(results.keys, autoid_inserts) .. @each { 
+        @zip(results.key, autoid_inserts) .. @each { 
           |[key, entity]|
           entity.key = key;
         }
@@ -560,7 +562,7 @@ function GoogleCloudDatastore(attribs) {
         var auto_id_index = 0;
         for (var i=0; i<written.length; ++i) {
           if (written[i] !== null) continue;
-          var key = result.mutationResult.insertAutoIdKey[auto_id_index++].path;
+          var key = result.mutationResult.insertAutoIdKey[auto_id_index++].pathElement;
           written[i] = {
             id:  key .. GCDKeyToKey,
             schema: key .. GCDKeyToKind
@@ -578,23 +580,23 @@ function GoogleCloudDatastore(attribs) {
     entities .. @indexed .. @each {
       |[i,entity]|
       try {
-        query.push({path: keyToGCDKey(entity.id)})
+        query.push({pathElement: keyToGCDKey(entity.id)})
       }
       catch (e) {
         entities[i] = new Error("Invalid Key '#{entity ? entity.id}'");
       }
     }
     var results = (transaction || context).lookup({
-      keys: query
+      key: query
     });
     
     // XXX we need to handle this
-    if (results.deferred && results.deferred.length) console.log("WARNING: DEFERRED BATCH RESULTS IN GCD.read!!!");
+    if (results.deferred) console.log("WARNING: DEFERRED BATCH RESULTS IN GCD.read!!!");
     // index found results by id
     var found = {};
     (results.found || []) .. @each {
       |result|
-      found[GCDKeyToKey(result.entity.key.path)] = result.entity;
+      found[GCDKeyToKey(result.entity.key.pathElement)] = result.entity;
     }
     entities .. @indexed .. @each {
       |[i,entity]|
@@ -606,9 +608,7 @@ function GoogleCloudDatastore(attribs) {
           entities[i] = e;
         }
       }
-      else if (!entities[i])
-        entities[i] = null;
-      // else entity is an 'Invalid Key' Error (which will be thrown by our unbatched function)
+      // else entity is an Error which will be thrown by our unbatched function
     }
     return entities;
   }
@@ -686,7 +686,7 @@ function GoogleCloudDatastore(attribs) {
         propertyFilter: {
           property: {name: '__key__'},
           operator: 'EQUAL',
-          value: { keyValue: { path: keyToGCDKey(key) } }
+          value: { keyValue: { pathElement: keyToGCDKey(key) } }
         }
       });
     }
@@ -695,7 +695,7 @@ function GoogleCloudDatastore(attribs) {
         propertyFilter: {
           property: {name: '__key__'},
           operator: 'HAS_ANCESTOR',
-          value: { keyValue: { path:keyToGCDKey(schema.__parent) } }
+          value: { keyValue: { pathElement:keyToGCDKey(schema.__parent) } }
         }
       });
     }
@@ -711,13 +711,13 @@ function GoogleCloudDatastore(attribs) {
         request.query.filter = {
           compositeFilter: {
             operator: 'AND',
-            filters: filters
+            filter: filters
           }
         };
       }
       
       if (kind) {
-        request.query.kinds = [{name:kind}];
+        request.query.kind = [{name:kind}];
       }
       
       // XXX does it make sense to hardcode this default limit (e.g. 500) here?
@@ -736,12 +736,12 @@ function GoogleCloudDatastore(attribs) {
       
       while (1) {
         var results = (transaction || context).runQuery(request);
-        if (!results.batch || !results.batch.entityResults) break;
-        //console.log("GCD:query: #{results.batch.entityResults.length} results");
-        r(results.batch.entityResults .. 
+        if (!results.batch || !results.batch.entityResult) break;
+        //console.log("GCD:query: #{results.batch.entityResult.length} results");
+        r(results.batch.entityResult .. 
           @map({entity} -> idsOnly ?
-              { id:GCDKeyToKey(entity.key.path), 
-                schema: GCDKeyToKind(entity.key.path) } :
+              { id:GCDKeyToKey(entity.key.pathElement), 
+                schema: GCDKeyToKind(entity.key.pathElement) } :
               GCDEntityToJSEntity(entity, {}, schemas)                
              ));
         
@@ -751,7 +751,7 @@ function GoogleCloudDatastore(attribs) {
         // results. This means we always do a redundant last query
         // see https://groups.google.com/d/msg/gcd-discuss/iNs6M1jA2Vw/kn7VVgxQeHkJ
         //console.log(results.batch.moreResults);
-        if (results.batch.moreResults === 'NO_MORE_RESULTS' || !results.batch.endCursor || !results.batch.entityResults.length) break;
+        if (results.batch.moreResults === 'NO_MORE_RESULTS' || !results.batch.endCursor) break;
         request.query.startCursor = results.batch.endCursor; 
       }
     });
@@ -868,11 +868,11 @@ function GoogleCloudDatastore(attribs) {
             if (mutated_ids[entity.id]) {
               // XXX the deletes/updates/inserts could be better
               // structured to facilitate this search
-              if (deletes .. @find({path} -> GCDKeyToKey(path) === entity.id, undefined)) {
+              if (deletes .. @find({pathElement} -> GCDKeyToKey(pathElement) === entity.id, undefined)) {
                 entity = {id:entity.id, schema:entity.schema, data: null};
               }
               else {
-                var gcd_entity = @combine(updates, inserts) .. @find({key:{path}} -> GCDKeyToKey(path) === entity.id);
+                var gcd_entity = @combine(updates, inserts) .. @find({key:{pathElement}} -> GCDKeyToKey(pathElement) === entity.id);
                 entity = gcd_entity .. GCDEntityToJSEntity(entity, schemas);
               }
               return entity;
@@ -895,7 +895,7 @@ function GoogleCloudDatastore(attribs) {
                   // in a different way to make this code easier
                   var idx;
                   if (([idx] = @indexed(updates) ..  
-                       @find([,{key:{path}}] -> GCDKeyToKey(path) === id, [-1])) != -1) {
+                       @find([,{key:{pathElement}}] -> GCDKeyToKey(pathElement) === id, [-1])) != -1) {
                     console.log("Warning: repeated mutation of entity #{id} during transaction.");
                     // remove existing entry in 'updates' array; it will
                     // be replaced by the value from 'result.updates'
