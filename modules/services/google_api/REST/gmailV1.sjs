@@ -831,7 +831,7 @@ exports.users = {
           * https://www.googleapis.com/auth/gmail.insert - Insert mail into your mailbox
           * https://www.googleapis.com/auth/gmail.modify - View and modify but not delete your email
     */
-    import: function(client, params) {
+    'import': function(client, params) {
       return client.performRequest({
         method: 'POST',
         url: 'https://www.googleapis.com/gmail/v1/users/{userId}/messages/import',

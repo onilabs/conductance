@@ -1257,7 +1257,7 @@ exports.events = {
        
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
-  import: function(client, params) {
+  'import': function(client, params) {
     return client.performRequest({
       method: 'POST',
       url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/import',
