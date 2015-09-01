@@ -26,37 +26,9 @@ if (hostenv !== 'xbrowser')
 @ = require([
   'sjs:std',
   {id:'./base', include: ['Mechanism']},
-  {id:'./dynamic', include: ['appendContent', 'removeNode']},
+  {id:'./dynamic', include: ['appendContent', 'removeNode', 'findNodeWithContext', 'findContext']},
   {id:'sjs:type', include: ['Interface']}
 ]);
-
-
-//----------------------------------------------------------------------
-// General 'Context' helpers 
-// XXX these should go elsewhere, surface/dynamic maybe? Or possibly not
-// exposed for general consumption at all
-
-
-// helpers
-function findNodeWithContext(node, ctx) {
-  @dom.traverseDOM(node, document) {
-    |node|
-    if (node[ctx] !== undefined) return node;
-  }
-  return undefined;
-}
-
-/* not documented for now
-   @function findContext
-*/
-function findContext(node, ctx, defval) {
-  @dom.traverseDOM(node, document) {
-    |node|
-    if (node[ctx] !== undefined) return node[ctx];
-  }
-  return defval;
-}
-exports.findContext = findContext;
 
 
 //----------------------------------------------------------------------
@@ -156,7 +128,7 @@ var CTX_FIELDCONTAINER = exports.CTX_FIELDCONTAINER = @Interface(module, "ctx_fi
      
 */
 function fieldValue(node) {
-  var ctx = node .. findContext(CTX_FIELD);
+  var ctx = node .. @findContext(CTX_FIELD);
   if (!ctx) throw new Error("fieldValue: node #{node} is not part of a Field");
   return ctx.value;
 }
@@ -170,7 +142,7 @@ exports.fieldValue = fieldValue;
 
 */
 function validate(node) {
-  var ctx = node .. findContext(CTX_FIELD);
+  var ctx = node .. @findContext(CTX_FIELD);
   if (!ctx) throw new Error("validate: node #{node} is not part of a Field");
   return ctx.validate();
 }
@@ -212,7 +184,7 @@ exports.validate = validate;
      See [::Field] for an example.
 */
 function validationState(node) {
-  var ctx = node .. findContext(CTX_FIELD);
+  var ctx = node .. @findContext(CTX_FIELD);
   if (!ctx) throw new Error("validationState: node #{node} is not part of a Field");
   return ctx.validation_state;
 }
@@ -244,10 +216,10 @@ function getField(node, path) {
   // works from ancestor mechanisms:
   hold(0);
   
-  node = node .. findNodeWithContext(CTX_FIELD);
+  node = node .. @findNodeWithContext(CTX_FIELD);
   if (path && path.length) {
     if (!node[CTX_FIELDCONTAINER])
-      node = node .. findNodeWithContext(CTX_FIELDCONTAINER);
+      node = node .. @findNodeWithContext(CTX_FIELDCONTAINER);
     
     path.split('/') .. @each { 
       |component|
@@ -255,7 +227,7 @@ function getField(node, path) {
         // nothing to be done
       }
       else if (component === '..') {
-        node = node.parentNode .. findNodeWithContext(CTX_FIELDCONTAINER);
+        node = node.parentNode .. @findNodeWithContext(CTX_FIELDCONTAINER);
       }
       else
         node = node[CTX_FIELDCONTAINER].getField(component);
@@ -481,7 +453,7 @@ function Field(elem, settings /* || name, initval */) {
     @Mechanism(function(node) {
       var validation_obs = settings.ValidationState || @ObservableVar({state:'unknown'});
       var validation_state = validation_obs;
-      var parent_container = node.parentNode .. findContext(CTX_FIELDCONTAINER);
+      var parent_container = node.parentNode .. @findContext(CTX_FIELDCONTAINER);
 
       if (parent_container) {
         if (!name && settings.Value) {
@@ -670,7 +642,7 @@ var FieldMap = (elem) ->
   elem ..
   @Mechanism(function(node) {
 
-    var field = node .. findContext(CTX_FIELD);
+    var field = node .. @findContext(CTX_FIELD);
     if (!field) throw new Error("FieldMap must be contained in a Field");
     // XXX maybe instantiate a field on us if there isn't one?
 
@@ -887,7 +859,7 @@ function FieldArray(elem, settings) {
   return elem ..
     @Mechanism(function(node) {
 
-    var field = node .. findContext(CTX_FIELD);
+    var field = node .. @findContext(CTX_FIELD);
     if (!field) throw new Error("FieldArray must be contained in a Field");
     // XXX maybe instantiate a field on us if there isn't one?
 
@@ -1095,7 +1067,7 @@ function emulateObservable(stream, obs) {
 var Validate = (elem, validator) ->
   elem ..
   @Mechanism(function(node) {
-    var field = node .. findContext(CTX_FIELD);
+    var field = node .. @findContext(CTX_FIELD);
     if (!field) throw new Error("'Validate' decorator outside of a Field");
     field.validators.push(validator);
     if (validator .. @isArrayLike) {

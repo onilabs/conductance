@@ -18,7 +18,7 @@ var imports = [
 
 if (hostenv === 'xbrowser') {
   imports = imports.concat([
-    {id:'./dynamic', include: ['replaceContent']},
+    {id:'./dynamic', include: ['replaceContent', 'findContext']},
     {id:'./field', name:'field'}
   ]);
 }
@@ -272,7 +272,7 @@ if (hostenv === 'xbrowser') {
 
   var FieldLabelMechanism = @Mechanism(function(node) {
     // XXX should use more specific api here; not [CTX_FIELD].id directly
-    var ctx = node .. @field.findContext(@field.CTX_FIELD);
+    var ctx = node .. @findContext(@field.CTX_FIELD);
     if (ctx) {
       node.setAttribute('for', ctx.id);
     }
@@ -408,7 +408,7 @@ if (hostenv === 'xbrowser') {
     content .. @Mechanism(function(node) {
     // XXX should use more specific api here; not
     // [CTX_FIELD].id/.value/.auto_validate directly
-      var ctx = node .. @field.findContext(@field.CTX_FIELD);
+      var ctx = node .. @findContext(@field.CTX_FIELD);
       if (ctx) {
         var value = ctx.value;
         node.setAttribute('id', ctx.id);
@@ -677,7 +677,7 @@ if (hostenv === 'xbrowser') {
     content .. @Mechanism(function(node) {
       // XXX should use more specific api here; not
       // [CTX_FIELD].id/.value/.auto_validate directly
-      var ctx = node .. @field.findContext(@field.CTX_FIELD);
+      var ctx = node .. @findContext(@field.CTX_FIELD);
       if (ctx) {
         var value = ctx.value;
         node.setAttribute('id', ctx.id);

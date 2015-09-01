@@ -19,6 +19,9 @@
 // dynamic surface:
 // if hostenv == xbrowser
 
+@ = require([
+  'sjs:std'
+]);
 var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator } = require('./base');
 var { ownPropertyPairs, ownKeys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
@@ -771,3 +774,30 @@ var ScrollStream = stream -> ContentGenerator ::
                             } 
                           };
 exports.ScrollStream = ScrollStream;
+
+//----------------------------------------------------------------------
+// General 'Context' helpers for use with fields, cmds, etc.
+
+/* not documented for now
+   @function findNodeWithContext
+*/
+function findNodeWithContext(node, ctx) {
+  @dom.traverseDOM(node, document) {
+    |node|
+    if (node[ctx] !== undefined) return node;
+  }
+  return undefined;
+}
+exports.findNodeWithContext = findNodeWithContext;
+
+/* not documented for now
+   @function findContext
+*/
+function findContext(node, ctx, defval) {
+  @dom.traverseDOM(node, document) {
+    |node|
+    if (node[ctx] !== undefined) return node[ctx];
+  }
+  return defval;
+}
+exports.findContext = findContext;
