@@ -8,8 +8,11 @@
     var url = @helper.url('test/integration/fixtures/static-mechanism.html');
     @info("loading: ", url);
     var d = @Driver(url);
-    using(d) {
+    try {
       d.waitforSuccess(-> d.window().mechanismComplete .. @assert.ok());
+    }
+    finally {
+      d.close();
     }
   }
 }.browserOnly();

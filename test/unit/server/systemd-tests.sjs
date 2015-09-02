@@ -91,11 +91,11 @@
 
     @test("warns on suspicious section names") {||
       var messages = [];
-      using (@logging.logContext({
+      @logging.logContext({
         level: @logging.WARN,
         formatter: (log) -> [log.level].concat(log.args),
         console: { log: messages.push.bind(messages) },
-      })) {
+      }) { ||
         var sections = @sd.Unit('unit', null, {'foo': {}}).sections .. @ownKeys() .. @toArray();
         sections .. @assert.eq(['foo']);
       }
