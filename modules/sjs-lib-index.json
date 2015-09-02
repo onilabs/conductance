@@ -6883,6 +6883,25 @@
                 }
               },
               "summary": "OAuth-based Google Web API access"
+            },
+            "service_account/": {
+              "type": "lib",
+              "children": {
+                "service": {
+                  "type": "module",
+                  "children": {
+                    "GoogleServiceAccountAPIClient": {
+                      "type": "class",
+                      "children": {}
+                    },
+                    "run": {
+                      "type": "function"
+                    }
+                  },
+                  "summary": "service account-based Google Web API access"
+                }
+              },
+              "summary": "Service account-based Google Web API access"
             }
           },
           "summary": "Google Web API"
