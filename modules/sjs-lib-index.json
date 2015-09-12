@@ -7228,6 +7228,48 @@
           },
           "summary": "Bootstrap UI building blocks"
         },
+        "cmd-old": {
+          "type": "module",
+          "children": {
+            "CTX_CMDSINKS": {
+              "type": "variable"
+            },
+            "Click": {
+              "type": "function"
+            },
+            "CmdSink": {
+              "type": "function"
+            },
+            "Emitter": {
+              "type": "function"
+            },
+            "KeyMap": {
+              "type": "function"
+            }
+          },
+          "summary": "HTML 'Cmd' abstraction"
+        },
+        "cmd": {
+          "type": "module",
+          "children": {
+            "CTX_CMDSINKS": {
+              "type": "variable"
+            },
+            "Click": {
+              "type": "function"
+            },
+            "CmdSink": {
+              "type": "function"
+            },
+            "Emitter": {
+              "type": "function"
+            },
+            "KeyMap": {
+              "type": "function"
+            }
+          },
+          "summary": "HTML 'Cmd' abstraction"
+        },
         "doc-fragment": {
           "type": "module",
           "children": {
@@ -7356,20 +7398,6 @@
             },
             "Validate": {
               "type": "function"
-            },
-            "ValidationState": {
-              "type": "class",
-              "children": {
-                "errors": {
-                  "type": "variable"
-                },
-                "state": {
-                  "type": "variable"
-                },
-                "warnings": {
-                  "type": "variable"
-                }
-              }
             },
             "fieldValue": {
               "type": "function"

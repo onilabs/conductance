@@ -149,38 +149,11 @@ function validate(node) {
 exports.validate = validate;
 
 /**
-  @class ValidationState
-  @summary Validation state
-  @desc
-    Each element of `errors` and `warnings` is either
-    a string, or an object with a `key` and `message` property.
-
-    The `key` property allows you to perform validations on
-    [::FieldMap] fields, but to have the returned errors
-    associated with a specific field (rather than the entire
-    [::FieldMap]).
-
-  @variable ValidationState.state
-  @type String
-  @summary `'error'` | `'warning'` | `'success'` | `'unknown'`
-
-  @variable ValidationState.errors
-  @type an Array
-  @summary Array
-
-  @variable ValidationState.warnings
-  @type an Array
-  @summary Array
-*/
-
-/**
    @function validationState
    @altsyntax node .. validationState
    @summary Return the validation state [sjs:observable::Observable] for a field
    @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
    @desc
-     The returned [sjs:observable::ObservableVar] contains a [::ValidationState] object.
-
      See [::Field] for an example.
 */
 function validationState(node) {
@@ -347,43 +320,26 @@ function run_validators(field) {
   var errors = [], warnings = [];
   // execute the validators in parallel, but obtain an ordered
   // results set:
-  field.validators .. @transform.par(v -> v(field.value .. @current, field)) .. @each {
+  field.validators .. @transform.par(v -> v(field.value .. @current)) .. @each {
     |validation_result|
     if (validation_result === true) continue;
     if (typeof validation_result === 'string')
       errors.push(validation_result);
     else if (typeof validation_result === 'object') {
-      var keyed = validation_result.key
-        ? (msg) -> {key:validation_result.key, message: msg}
-        : -> msg;
-
       if (validation_result.error)
-        errors.push(keyed(validation_result.error));
+        errors.push(validation_result.error);
       if (validation_result.warning)
-        warnings.push(keyed(validation_result.warning));
+        warnings.push(validation_result.warning);
       if (validation_result.errors)
         errors = errors.concat(validation_result.errors);
       if (validation_result.warnings)
         warnings = warnings.concat(validation_result.warnings);
     }
     else
-      errors.push(null);
+      errors.push("Unspecified validation error");
   }
   
   return { errors: errors, warnings: warnings };
-}
-
-function ValidationState(state) {
-  // takes a raw object with `errors` / `warnings` and sets its `state` summary field.
-  if(state.errors && state.warnings) {
-    if (state.errors.length)
-      state.state = 'error';
-    else if (state.warnings.length)
-      state.state = 'warning';
-    else
-      state.state = 'success';
-  } else state.state = 'unknown';
-  return state;
 }
 
 function validate_field() {
@@ -397,37 +353,21 @@ function validate_field() {
     hold(100);
     // if the validators don't return immediately, we reset
     // the validation_state to 'unknown':
-    field.validation_state.modify(function(current) {
-      if(current.state === 'unknown') return current;
-      return {state:'unknown'};
-    });
+    if ((field.validation_state .. @current).state !== 'unknown')
+      field.validation_state.set({state:'unknown'});
     hold();
   }
-  var rv = ValidationState({errors: errors, warnings: warnings});
+  var state;
+  if (errors.length)
+    state = 'error';
+  else if (warnings.length)
+    state = 'warning';
+  else
+    state = 'success';
+  var rv = {state: state, errors: errors, warnings: warnings};
   field.validation_state.set(rv);
   return rv;
 }
-
-function mergeValidationState(a, b) {
-  var rv = {};
-  var sources = [a,b];
-  rv.errors = concatArrayProperty(sources, 'errors');
-  rv.warnings = concatArrayProperty(sources, 'warnings');
-  return ValidationState(rv);
-}
-
-function concatArrayProperty(sources, key) {
-  var rv;
-  sources .. @each {|source|
-    if(!source) continue;
-    var a = source[key];
-    if(a) {
-      rv = rv ? rv.concat(a) : a;
-    }
-  }
-  return rv;
-}
-
 
 function Field(elem, settings /* || name, initval */) {
   // untangle settings
@@ -444,47 +384,30 @@ function Field(elem, settings /* || name, initval */) {
     Value:    undefined,
     ValidationState: undefined
   } .. @override(settings);
-  var name = settings.name;
 
   if (settings.ValidationState)
     settings.ValidationState.set({state:'unknown'});
 
   return elem ..
     @Mechanism(function(node) {
-      var validation_obs = settings.ValidationState || @ObservableVar({state:'unknown'});
-      var validation_state = validation_obs;
-      var parent_container = node.parentNode .. @findContext(CTX_FIELDCONTAINER);
-
-      if (parent_container) {
-        if (!name && settings.Value) {
-          // field has no name but has an explicit value
-          name = false;
-        }
-
-        parent_container.addField(name, node);
-
-        if(name && parent_container.upstreamValidationState) {
-          var upstream = parent_container.upstreamValidationState(name);
-          validation_state = @observe(validation_obs, upstream, function(mine, upstream) {
-            return mergeValidationState(mine, upstream);
-          }) .. @dedupe(@eq) .. emulateObservable(validation_obs);
-        }
-      }
 
       var field = node[CTX_FIELD] = {
         id: "__oni_field_#{++field_id_counter}",
         
         value: settings.Value || @ObservableVar(settings.initval),
         
-        validation_state: validation_state,
+        validation_state: settings.ValidationState || @ObservableVar({state:'unknown'}),
         auto_validate: @ObservableVar(false),
         validators: [],
         validators_deps: {},
         validate: validate_field
       };
-      
+
+      var parent_container = node.parentNode .. @findContext(CTX_FIELDCONTAINER);
       
       try {
+        if (parent_container)
+          parent_container.addField(settings.name, node);
         
         // asynchronize so that tree gets built before we start validating:
         hold(0);
@@ -506,37 +429,12 @@ function Field(elem, settings /* || name, initval */) {
       }
       finally {
         if (parent_container)
-          parent_container.removeField(name, node);
+          parent_container.removeField(settings.name, node);
       }
     }, true /* we PREPEND this mechanism, so that Mechanisms that search for a Field interface (like ContextualInputMechanism) works correctly, even when the Field interface and the Mechanism depending on the Field are on the same element */);
 };
 exports.Field = Field;
   
-
-// helper for both FieldMap & FieldArray
-function getUpstreamValidation(field, name) {
-  if(name == null) throw new Error("name not provided");
-  var filter = function(item) {
-    // XXX only deals with single keys, not paths
-    if(!item.inherited && item.key === name) {
-      var rv = item .. @clone();
-      delete rv.key;
-      return rv;
-    }
-  }
-
-  return field.validation_state .. @transform(function(state) {
-    if(state && typeof(state) === 'object') {
-      var rv = {state: state.state};
-      if(state.errors) rv.errors = state.errors .. @map.filter(filter);
-      if(state.warnings) rv.warnings = state.warnings .. @map.filter(filter);
-      return rv;
-    }
-    return state;
-  });
-}
-
-
 /**
    @function FieldMap
    @altsyntax element .. FieldMap()
@@ -647,37 +545,22 @@ var FieldMap = (elem) ->
     // XXX maybe instantiate a field on us if there isn't one?
 
     var fieldmap = {};
-    var unnamedChildren = [];
     var field_mutation_emitter = @Emitter();
         
     node[CTX_FIELDCONTAINER] = {
       getField: function(name) { return fieldmap[name]; },
       addField: function(name, field_node) {
-        if(name === false) {
-          unnamedChildren.push(field_node);
-        } else {
-          if (!name) throw new Error("Fields added to FieldMap require a name");
-          if (fieldmap .. @hasOwn(name)) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
-          
-          fieldmap[name] = field_node;
-          field_mutation_emitter.emit();
-        }
+        if (!name) throw new Error("Fields added to FieldMap require a name");
+        if (fieldmap .. @hasOwn(name)) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
+        fieldmap[name] = field_node;
+        field_mutation_emitter.emit();
       },
       removeField: function(name, field_node) {
-        if(name === false) {
-          if(!unnamedChildren .. @remove(field_node)) {
-            throw new Error("Field not found in FieldMap");
-          }
-        } else {
-          if(!fieldmap .. @hasOwn(name)) throw new Error("Field '#{name}' not found in FieldMap");
-          var entry = fieldmap[name];
-          delete fieldmap[name];
-          field_mutation_emitter.emit();
-        }
-      },
-      upstreamValidationState: function(name) {
-        return getUpstreamValidation(field, name);
-      },
+        if(!fieldmap .. @hasOwn(name)) throw new Error("Field '#{name}' not found in FieldMap");
+        var entry = fieldmap[name];
+        delete fieldmap[name];
+        field_mutation_emitter.emit();
+      }
     };
 
     // give children a chance to register (with addField) before we
@@ -729,21 +612,16 @@ var FieldMap = (elem) ->
     and {
       // add validator to the field:
       field.validators.push(function() {
-        var rv = { errors: [], warnings: []};
-        fieldmap
-          .. @ownPropertyPairs
-          .. @transform.par([key,subfield] -> [key, subfield[CTX_FIELD].validate()])
-          .. @each {|[key,state]|
-          rv .. extendValidationResult(state, key);
-        }
-
-        unnamedChildren
-          .. @transform.par(field -> field[CTX_FIELD].validate())
-          .. @each {|state|
-          rv .. extendValidationResult(state, null);
-        }
-
-        return rv;
+        var errors = [], warnings = [];
+        @ownPropertyPairs(fieldmap) .. 
+          @transform.par([key,subfield] -> [key, subfield[CTX_FIELD].validate()]) .. @each {
+            |[key,state]|
+            if (state.errors.length)
+              errors.push({key:key, errors: state.errors});
+            if (state.warnings.length)
+              warnings.push({key:key, warnings: state.warnings});
+          }
+        return {errors: errors, warnings: warnings};
       });
       // XXX this doesn't work: field.auto_validate.set(true);
 
@@ -751,13 +629,6 @@ var FieldMap = (elem) ->
     }
   });
 exports.FieldMap = FieldMap;
-
-function extendValidationResult(dest, src, key) {
-  if (src.errors.length)
-    dest.errors.push({key:key, errors: src.errors, inherited: true});
-  if (src.warnings.length)
-    dest.warnings.push({key:key, warnings: src.warnings, inherited: true});
-}
 
 
 /**
@@ -886,7 +757,7 @@ function FieldArray(elem, settings) {
         }
         // if we're here, the element has already been removed (from value.set) or we don't know about it
         console.log('warning: array field already removed');
-      },
+      }
     };
     
     var current_value = undefined;
@@ -922,7 +793,7 @@ function FieldArray(elem, settings) {
             array_mutation = true;
             var Index = @ObservableVar(i);
             var inserted = (node .. 
-                            @appendContent(Field(settings.template(
+                            @appendContent(settings.template(
                               {
                                 Index:       Index,
                                 ArrayLength: FieldArrayLength,
@@ -935,17 +806,11 @@ function FieldArray(elem, settings) {
                                   FieldArrayLength.modify(l-> --l);
                                   array_mutation_emitter.emit();
                                 }
-                              }))));
+                              }) ..
+                                           Field()));
             fieldarray[i] = {node: inserted[0], Index: Index};
           }
           fieldarray[i].node[CTX_FIELD].value.set(val);
-
-          var upstream = getUpstreamValidation(field, i);
-          fieldarray[i].node[CTX_FIELD].validation_state = function(orig) {
-            return @observe(orig, upstream, function(mine, upstream) {
-              return mergeValidationState(mine, upstream);
-            }) .. emulateObservable(orig);
-          }(fieldarray[i].node[CTX_FIELD].validation_state);
         }
         while ( fieldarray.length > x.length) {
           array_mutation = true;
@@ -990,14 +855,17 @@ function FieldArray(elem, settings) {
     and {
       // add validator to the field:
       field.validators.push(function() {
-        var rv = { errors: [], warnings: []};
+        var errors = [], warnings = [];
         fieldarray .. @indexed .. 
           @transform.par([key, subfield] -> [key, subfield.node[CTX_FIELD].validate()]) .. 
           @each {
             |[key,state]|
-            rv .. extendValidationResult(state, key);
+            if (state.errors.length)
+              errors.push({key:key, errors: state.errors});
+            if (state.warnings.length)
+              warnings.push({key:key, warnings: state.warnings});
           }
-        return rv;
+        return {errors: errors, warnings: warnings};
       });
       // XXX could remove validator in finally clause
     }
@@ -1005,16 +873,6 @@ function FieldArray(elem, settings) {
 };
 
 exports.FieldArray = FieldArray;
-
-function emulateObservable(stream, obs) {
-  // Emulate ObservableVar interface on a stream
-  // (which is logically derived from `obs`)
-  // XXX should this be somewhere standard?
-  stream.set = obs.set.bind(obs);
-  stream.modify = obs.modify.bind(obs);
-  stream.get = -> @first(this);
-  return stream;
-}
 
 
 /**
@@ -1028,7 +886,7 @@ function emulateObservable(stream, obs) {
      implicitly when a form element - such as an [mho:surface/html::Input]) - bound to
      the field receives user input).
 
-     `validator` will be passed the [::Field]'s current value, and the [::Field].
+     `validator` will be passed the [::Field]'s current value.
      It is expected to return either `true` (signifying that the value is valid),
      `false` (signifying that the value is invalid for an unspecified reason),
      or a "validation object".
@@ -1039,7 +897,6 @@ function emulateObservable(stream, obs) {
      * simple form
 
            {
-             key:      optional subfield to which this notice applies,
              error:    description of error (object or string),
              warning:  description of warning (object or string)
            }
