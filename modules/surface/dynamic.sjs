@@ -23,6 +23,7 @@
   'sjs:std'
 ]);
 var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator } = require('./base');
+var { withDOMRootContext } = require('./nodes');
 var { ownPropertyPairs, ownKeys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
@@ -49,7 +50,10 @@ var resourceRegistry = {
         desc = cssInstalled[id] = { ref_count: cnt, elem: def.createElement(), mechanism: def.mechanism };
         (document.head || document.getElementsByTagName("head")[0] /* IE<9 */).appendChild(desc.elem);
         if (desc.mechanism) {
-          desc.elem.__oni_mech = spawn(desc.mechanism.call(desc.elem, desc.elem));
+          withDOMRootContext(desc.elem) {
+            ||
+            desc.elem.__oni_mech = spawn(desc.mechanism.call(desc.elem, desc.elem));
+          }
         }
         if (def.waitforLoading) {
           // wait for stylesheet to load for an arbitrary maximum of 2s; 
@@ -208,7 +212,9 @@ function runMechanisms(elems, await) {
       var streams = StreamNodes(elem) .. toArray;
 
       elems .. each {
-          |elem|
+        |elem|
+        withDOMRootContext(elem) {
+          ||
           elem.__oni_mechs = [];
           elem.getAttribute('data-oni-mechanisms').split(' ') ..
             filter .. // only truthy elements
@@ -217,20 +223,27 @@ function runMechanisms(elems, await) {
               elem .. addMech(mech);
             }
         }
+      }
       
       // start streams:
       streams .. each { 
-        |node| 
-        var [,mech] = node.nodeValue.split("|");
-        node.__oni_mechs = [];
-        node .. addMech(mech);
+        |node|
+        withDOMRootContext(node) {
+          ||
+          var [,mech] = node.nodeValue.split("|");
+          node.__oni_mechs = [];
+          node .. addMech(mech);
+        }
       }
     }
     else if (elem.nodeValue.indexOf('surface_stream') !== -1) {
       // we assume nodetype == COMMENT_NODE
       var [,mech] = elem.nodeValue.split("|");
       elem.__oni_mechs = [];
-      elem .. addMech(mech);
+      withDOMRootContext(elem) {
+        ||
+        elem .. addMech(mech);
+      }
     }
   }
 
@@ -280,10 +293,14 @@ function insertHtml(html, block, doInsertHtml) {
   }
 
 
+  var dom_context = inserted .. filterElementsAndComments .. toArray;
   if (block) {
     try {
       waitfor {
-        return block.apply(null, inserted .. filterElementsAndComments .. toArray);
+        withDOMRootContext(dom_context) {
+          ||
+          return block.apply(null, dom_context);
+        }
       } or {
         mechResult.value();
       }
@@ -292,7 +309,7 @@ function insertHtml(html, block, doInsertHtml) {
       inserted .. each(removeNode);
     }
   } else {
-    return inserted .. filterElementsAndComments .. toArray;
+    return dom_context;
   }
 }
 
@@ -366,7 +383,10 @@ exports.replaceContent = replaceContent;
        top-level text that has been inserted.
 
      * If a function (or blocklambda) `block` is provided, it will be passed as arguments
-       the DOM elements and comment nodes that have been appended. When `block` 
+       the DOM elements and comment nodes that have been appended. Furthermore, 
+       `block` will be executed with an implicit [::DynamicDOMContext] set to the 
+       appended DOM elements.
+       When `block` 
        exits (normally, by exception or by retraction), the appended nodes will be removed.
        Any [::Mechanism]s running on the inserted nodes will be aborted.
 
@@ -554,11 +574,14 @@ exports.Prop = Prop;
   @altsyntax element .. Enabled(obs)
   @summary Add a `disabled` attribute to element when obs is not truthy
   @param {::HtmlFragment} [element]
-  @param {sjs:observable::Observable} [obs] Observable
+  @param {sjs:sequence::Stream} [obs] Stream of true/false values (typically an [sjs:observable::Observable])
   @return {::Element}
   @hostenv xbrowser
   @desc
-     Works on most elements that accept user input, such as buttons, input element, checkboxes
+     Works on most elements that accept user input, such as buttons, input element, checkboxes.
+     
+     `obs` is iterated in a [::DynamicDOMContext] set to `element`s DOM node.
+
   @demo
      @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
      var Flag = @ObservableVar(false);
@@ -605,6 +628,8 @@ exports.Enabled = (html, obs) -> html .. Attrib('disabled', obs .. transform(x->
   @hostenv xbrowser
   @desc
     Sets an event handler on the element's DOM once it is inserted into the document.
+
+    `event_handler` will be passed the DOM event object (possibly amended by the provided `settings` - see [sjs:event::events]), and executed with an implicit [::DynamicDOMContext] set to `element`s DOM node.
 
     Note that no buffering of events takes place: any events emitted
     while `event_handler` is blocked will have no effect.     

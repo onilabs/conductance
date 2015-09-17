@@ -1332,7 +1332,7 @@ exports.FormGroup = (content) ->
     var field = node .. @field.getField();
     if (!field) return;
     var state = 'unknown';
-    field .. @field.validationState() .. @each {
+    field .. @field.ValidationState() .. @each {
       |validation|
       if (state == validation.state) continue;
       node.classList.remove("has-#{state}");
@@ -1352,7 +1352,7 @@ exports.ValidationMessage = function() {
   .. @Mechanism(function(node) {
     var field = node .. @field.getField();
     if (!field) return;
-    field .. @field.validationState() .. @each {
+    field .. @field.ValidationState() .. @each {
       |validation|
       content.modify(function(current) {
         ['errors', 'warnings'] .. @each {|key|
@@ -1838,7 +1838,7 @@ function DateInput(settings) {
   function doDropdown(container) {
 
     var field_itf = (container .. @field.getField())[@field.CTX_FIELD];
-    var Value = container .. @field.fieldValue();
+    var Value = container .. @field.Value();
 
     // initialize date to today; will update from Value, below
     var date = new Date();

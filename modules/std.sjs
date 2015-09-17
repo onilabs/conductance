@@ -170,6 +170,7 @@ module.exports = require(modules);
    - **ContentGenerator**: (function [mho:surface::ContentGenerator])
    - **CSS**: (function [mho:surface::CSS])
    - **Document**: (function [mho:surface::Document])
+   - **DynamicDOMContext**: (feature [mho:surface::DynamicDOMContext])
    - **Element**: (class [mho:surface::Element])
    - **Enabled**: (function [mho:surface::Enabled])
    - **ensureElement**: (function [mho:surface::ensureElement])

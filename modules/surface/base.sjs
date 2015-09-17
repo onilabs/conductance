@@ -686,6 +686,38 @@ exports.GlobalCSS = function(content) {
 //----------------------------------------------------------------------
 
 /**
+  @feature DynamicDOMContext
+  @summary An implicitly defined dynamic DOM context
+  @desc
+     There are a number of functions in the [surface::] module that operate on 
+     the DOM tree and need to be called with a DOM node argument, such as e.g. 
+     [surface/field::Valid].
+
+     This is problematic under some circumstances, because we sometimes want to 
+     use these functions before the DOM tree has actually been built, and we haven't got a DOM node to pass to the function. E.g.:
+
+         @Button('click me') .. @Enabled(@field.Valid(/* can't pass in a node here *\/))
+
+     The [surface::] module solves this problem by having certain functions automatically inject a "dynamic DOM context" (using [sjs:sys::withDynVarContext]).
+
+     E.g. [::Mechanism] executes its mechanism function with a dynamic DOM context set to the DOM node that the mechanism will be executed on. Functions such as [surface/field::Valid] executed inside the mechanism function then automatically bind to this context if they are not explicitly bound to a DOM node:
+
+         @Mechanism(function() { ... @field.Valid() ... } // automatically binds the
+                                                          // @field.Valid call to
+                                                          // the Mechanism's DOM node
+
+     The injected DOM context has *dynamic extent*, meaning that nested function calls (and even spawned calls) from within the mechanism function will receive this context.
+
+     Most surface functions that take a function as argument inject dynamic DOM contextswhen calling that function argument. They include [::Mechanism], [::appendContent], [::replaceContent], [::prependContent], [::insertBefore], [::insertAfter], [::On], [::OnClick].
+     
+     Most surface functions that take a [sjs:sequence::Stream] argument inject dynamic DOM contexts when playing back the stream. They include [::Attrib], [::Class], [::Enabled].
+
+     Functions that take advantage of dynamically injected DOM contexts in lieu of an 
+     explicit DOM node argument include [surface/field::getField], [surface/field::Valid], [surface/field::validate], [surface/field::ValidationState], [surface/field::Value].
+
+*/
+
+/**
   @function Mechanism
   @altsyntax element .. Mechanism(mechanism, [prepend])
   @param {optional ::HtmlFragment} [element]
@@ -698,7 +730,7 @@ exports.GlobalCSS = function(content) {
     document using [::appendContent] or one of the surface module's other
     content insertion functions, `mechanism` will be called 
     with its first argument and
-    `this` pointer both set to `element`s DOM node.
+    `this` pointer both set to `element`s DOM node. Furthermore, `mechanism` will be executed with an implicit [::DynamicDOMContext] set to `element`s DOM node. 
 
     When `element` is removed from the document using [::removeNode],
     any still-running mechanisms attached to that element will be
@@ -826,7 +858,8 @@ function StreamAttribMechanism(ft, name, obs) {
     `value` can be an [sjs:sequence::Stream], but only in a
     dynamic (xbrowser) context; if `val` is a Stream and
     this element is used in a static [::Document], an error will
-    be thrown.
+    be thrown. `values` of Stream type will be iterated in a [::DynamicDOMContext] set to 
+    `element`s DOM node.
 
     If `value` is a boolean (or `value` is a a stream that yields a
     boolean), then the attribute will be set to the string `'true'` if
@@ -932,6 +965,8 @@ __js {
 
     If `Class` is applied to a [::HtmlFragment] that is not of class [::Element], 
     `element` will automatically be wrapped using [::ensureElement].
+
+    [sjs:sequence::Stream] arguments will be iterated in a [::DynamicDOMContext] set to `element`s DOM node.
 */
 function Class(element, clsname, val) {
   __js  var element = cloneElement(element);

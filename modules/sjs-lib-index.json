@@ -7354,19 +7354,22 @@
             "FieldMap": {
               "type": "function"
             },
+            "Valid": {
+              "type": "function"
+            },
             "Validate": {
               "type": "function"
             },
-            "fieldValue": {
+            "ValidationState": {
+              "type": "function"
+            },
+            "Value": {
               "type": "function"
             },
             "getField": {
               "type": "function"
             },
             "validate": {
-              "type": "function"
-            },
-            "validationState": {
               "type": "function"
             }
           },
@@ -7437,6 +7440,9 @@
         },
         "Document": {
           "type": "function"
+        },
+        "DynamicDOMContext": {
+          "type": "feature"
         },
         "Element": {
           "type": "class",

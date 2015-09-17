@@ -27,7 +27,8 @@ if (hostenv !== 'xbrowser')
   'sjs:std',
   {id:'./base', include: ['Mechanism']},
   {id:'./dynamic', include: ['appendContent', 'removeNode', 'findNodeWithContext', 'findContext']},
-  {id:'sjs:type', include: ['Interface']}
+  {id:'sjs:type', include: ['Interface']},
+  {id:'./nodes', include: ['Node']}
 ]);
 
 
@@ -92,10 +93,10 @@ var CTX_FIELDCONTAINER = exports.CTX_FIELDCONTAINER = @Interface(module, "ctx_fi
 // Field API:
 
 /**
-   @function fieldValue
-   @altsyntax node .. fieldValue
+   @function Value
    @summary Return the 'Value' [sjs:observable::ObservableVar] for a field
-   @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
+   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
+   @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
    @demo
        @ =  require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'},
        {id:'mho:surface/field', name:'field'}]);
@@ -104,22 +105,16 @@ var CTX_FIELDCONTAINER = exports.CTX_FIELDCONTAINER = @Interface(module, "ctx_fi
          @field.Field() ::
            [
              @Input(),
-             @ContentGenerator(
-               (append, node) ->
-                 append(`<br>The value is: '${node .. @field.fieldValue}'<br>`)
-             ),
+             `<br>The value is: '${@field.Value()}'<br>`,
              @Button('Capitalize') .. 
-               @OnClick({target} -> (target .. @field.fieldValue).modify(x->x.toUpperCase())),
+               @OnClick(-> @field.Value().modify(x->x.toUpperCase())),
            ]
        ",
          @field.Field({initval:'foo'}) ::
            [
              @Input(),
-             @ContentGenerator(
-               (append, node) ->
-                 append(`<br>The value is: '${node .. @field.fieldValue}'<br>`)
-             ),
-             @Button("Capitalize") .. @OnClick({target}-> (target .. @field.fieldValue).modify(x->x.toUpperCase())),
+             `<br>The value is: '${@field.Value()}'<br>`,
+             @Button("Capitalize") .. @OnClick(-> @field.Value().modify(x->x.toUpperCase())),
            ]
        );
        
@@ -127,47 +122,112 @@ var CTX_FIELDCONTAINER = exports.CTX_FIELDCONTAINER = @Interface(module, "ctx_fi
        @mainContent .. @appendContent(demo);
      
 */
-function fieldValue(node) {
-  var ctx = node .. @findContext(CTX_FIELD);
-  if (!ctx) throw new Error("fieldValue: node #{node} is not part of a Field");
-  return ctx.value;
+function Value(/*[node], [path]*/) {
+
+  var args = arguments;
+  
+  var stream = @Stream(function(r) {
+    var field_node = getField.apply(null, args);
+    if (!field_node) throw new Error("field::Value: Cannot resolve Field");
+    field_node[CTX_FIELD].value .. @each(r);
+  });
+  // XXX amend stream to be an observable var:
+  stream.set = function(v) {
+    var field_node = getField.apply(null, args);
+    if (!field_node) throw new Error("field::Value: Cannot resolve Field");
+    return field_node[CTX_FIELD].value.set(v);
+  };
+  stream.modify = function(f) {
+    var field_node = getField.apply(null, args);
+    if (!field_node) throw new Error("field::Value: Cannot resolve Field");
+    return field_node[CTX_FIELD].value.modify(f);
+  };
+  stream.__oni_is_ObservableVar = true;
+
+  return stream;
 }
-exports.fieldValue = fieldValue;
+exports.Value = Value;
 
 /**
    @function validate
    @altsyntax node .. validate
    @summary Run all [::Validate] functions attached to a [::Field]
-   @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
+   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
+   @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
 
 */
-function validate(node) {
-  var ctx = node .. @findContext(CTX_FIELD);
-  if (!ctx) throw new Error("validate: node #{node} is not part of a Field");
-  return ctx.validate();
+function validate(/*[node], [path]*/) {
+  var field_node = getField.apply(null, arguments);
+  if (!field_node) throw new Error("field::validate: Cannot resolve Field");
+  return field_node[CTX_FIELD].validate();
 }
 exports.validate = validate;
 
 /**
-   @function validationState
-   @altsyntax node .. validationState
+   @function ValidationState
    @summary Return the validation state [sjs:observable::Observable] for a field
-   @param {DOMNode} [node] DOM node with attached [::Field] or a child thereof
+   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
+   @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
    @desc
      See [::Field] for an example.
 */
-function validationState(node) {
-  var ctx = node .. @findContext(CTX_FIELD);
-  if (!ctx) throw new Error("validationState: node #{node} is not part of a Field");
-  return ctx.validation_state;
+function ValidationState(/*[node], [path]*/) {
+
+  var args = arguments;
+  
+  return @Stream(function(r) {
+    var field_node = getField.apply(null, args);
+    if (!field_node) throw new Error("field::ValidationState: Cannot resolve Field");
+    field_node[CTX_FIELD].validation_state .. @each(r);
+  });
 }
-exports.validationState = validationState;
+exports.ValidationState = ValidationState;
+
+/**
+   @function Valid
+   @summary Return an [sjs:observable::Observable] that is `true` if the field is valid, `false` otherwise
+   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
+   @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
+   @demo
+       @ =  require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'},
+       {id:'mho:surface/field', name:'field'}]);
+
+       var demo = @demo.CodeResult("\
+         @field.Field() .. 
+           @field.Validate(x-> x.length > 4) ..
+           @field.Validate(x-> x.toLowerCase() === x) :: 
+             @Div :: 
+               [
+                  @ControlLabel('Username (min 5 chars, no caps)'),
+                  @Input(),
+                  @Button('Log in') .. @Enabled(@field.Valid())
+               ]
+       ",
+         @field.Field() .. 
+           @field.Validate(x-> x.length > 4) ..
+           @field.Validate(x-> x.toLowerCase() === x) :: 
+             @Div :: 
+               [
+                   @ControlLabel('Username (min 5 chars, no caps)'),
+                   @Input(),
+                   @Button('Log in') .. @Enabled(@field.Valid())
+               ]
+       );
+       
+
+       @mainContent .. @appendContent(demo);
+
+*/
+exports.Valid = function(/*[node], [path]*/) {
+  return ValidationState.apply(null, arguments) ..
+    @transform({state} -> state === 'success');
+};
 
 /**
    @function getField
    @summary Find a DOM node bound to a Field 
-   @param {DOMNode} [node] DOM node at which to start searching
-   @param {optional String} [path] Path for traversing a field container hierarchy
+   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
+   @param {optional String} [path] Address of the field in a container hierarchy
    @desc
      If `path` is undefined, `getField` returns the closest parent that has a [::Field] attached.
 
@@ -183,11 +243,37 @@ exports.validationState = validationState;
 
      - `'../foo'` locates the field named 'foo' in the FieldMap that contains the FieldMap in which `node` is located.
 */
-function getField(node, path) {
+function getField(/*[node], [path]*/) {
+
+  // untangle arguments:
+  var node, path;
+  if (arguments.length === 1) {
+    if (typeof arguments[0] === 'string')
+      path = arguments[0];
+    else
+      node = arguments[0];
+  }
+  else if (arguments.length === 2) {
+    node = arguments[0];
+    path = arguments[1];
+  }
+  else if (arguments.length !== 0)
+    throw new Error("Surplus arguments supplied to getField()");
+
+  if (node !== undefined) {
+    if (!@dom.isDOMNode(node))
+      throw new Error("Invalid argument to getField(); DOM node expected, #{node} given");
+  }
+  else {
+    node = @Node();
+  }
+    
   
   // XXX is this a good idea? Always asynchronize so that 'getField'
   // works from ancestor mechanisms:
   hold(0);
+  
+  if (!path && node[CTX_FIELD]) return node;
   
   node = node .. @findNodeWithContext(CTX_FIELD);
   if (path && path.length) {
@@ -252,7 +338,7 @@ exports.getField = getField;
      A validation of the current field value can be performed **explicitly** by
      using the [::validate] function. This applies all validators and returns
      and an object describing any errors and warnings. The validation object is 
-     also accessible as an [sjs:observable::Observable] via the [::validationState] function.  
+     also accessible as an [sjs:observable::Observable] via the [::ValidationState] function.  
 
      Validation is also performed **implicitly** when the form element
      in a field receives user input. Once user input is received, a
@@ -285,10 +371,7 @@ exports.getField = getField;
                      @Input()
                    ],
                    
-                 @ContentGenerator(
-                   (append, node) ->
-                     append(node .. @field.validationState .. @project(@inspect))
-                 )
+                 @field.ValidationState() .. @project(@inspect)
                ]
        ",
          @field.Field() .. 
@@ -302,10 +385,7 @@ exports.getField = getField;
                      @Input()
                    ],
                    
-                 @ContentGenerator(
-                   (append, node) ->
-                     append(node .. @field.validationState .. @project(@inspect))
-                 )
+                   @field.ValidationState() .. @project(@inspect)
                ]
        );
        
@@ -484,13 +564,10 @@ exports.Field = Field;
                        ' Check this'
                      ],
 
-               @ContentGenerator(
-                 (append, node) ->
-                   append(node .. @field.fieldValue .. @project(@inspect))
-               ),
+               @field.Value() .. @project(@inspect),
 
                @Button('Set to {foo:\'ABC\', bar:\'XYZ\', check:false, baz:\'123\'}') .. 
-                 @OnClick({target} -> (target .. @field.fieldValue).set(
+                 @OnClick(-> @field.Value().set(
                                         {foo:'ABC', bar:'XYZ', check:false, baz:'123'}))
              ]
        ",
@@ -521,13 +598,11 @@ exports.Field = Field;
                      ],
                @Br(),
 
-               @ContentGenerator(
-                 (append, node) ->
-                   append(node .. @field.fieldValue .. @project(@inspect))
-               ),
+               @field.Value() .. @project(@inspect),
+
                @Br(),@Br(),
                @Button('Set to {foo:\'ABC\', bar:\'XYZ\', check:false, baz:\'123\'}') .. 
-                 @OnClick({target} -> (target .. @field.fieldValue).set(
+                 @OnClick(-> @field.Value().set(
                                         {foo:'ABC', bar:'XYZ', check:false, baz:'123'}))
              ]
        );
@@ -694,24 +769,17 @@ exports.FieldMap = FieldMap;
              @field.FieldArray(template) :: @Div(),
 
              @Button('Add new') .. 
-               @OnClick({target} -> 
-                 (target .. @field.fieldValue()).modify(x->x.concat(['new']))),
+               @OnClick(-> @field.Value().modify(x->x.concat(['new']))),
 
-             @ContentGenerator(
-               (append, node) ->
-                 append(node .. @field.fieldValue() .. @project(@inspect))
-             )
+             @field.Value() .. @project(@inspect)
            ]
        ",
        @field.Field({initval:['foo', 'bar', 'baz']}) ::
          @Div() :: 
            [
              @Div() .. @field.FieldArray(template), @Br(),
-             @Button('Add new') .. @OnClick({target} -> (target .. @field.fieldValue()).modify(x->x.concat(['new']))), @Br(), @Br(),
-             @ContentGenerator(
-               (append, node) ->
-                 append(node .. @field.fieldValue() .. @project(@inspect))
-             )
+             @Button('Add new') .. @OnClick(-> @field.Value().modify(x->x.concat(['new']))), @Br(), @Br(),
+             @field.Value() .. @project(@inspect)
            ]
        );
        

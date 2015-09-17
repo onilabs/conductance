@@ -312,7 +312,7 @@ exports.Label = Label;
 
     If `value` is undefined, `Input` will automatically attempt to
     bind to the nearest enclosing [./field::Field]. This makes the
-    Input's value available as the [./field::fieldValue]
+    Input's value available as the [./field::Value]
     [sjs:observable::ObservableVar], and assigns a generated id
     attribute to the Input. When the Input is edited by the user,
     validation will be performed on the field. The first user edit
@@ -473,7 +473,7 @@ exports.Input = Input;
 
     If `value` is undefined, `TextArea` will automatically attempt to
     bind to the nearest enclosing [./field::Field]. This makes the
-    TextArea's value available as the [./field::fieldValue]
+    TextArea's value available as the [./field::Value]
     [sjs:observable::ObservableVar], and assigns a generated id
     attribute to the Input. When the TextArea is edited by the user,
     validation will be performed on the field. The first user edit
@@ -563,7 +563,7 @@ exports.TextArea = TextArea;
 
     If `checked` is undefined, `Checkbox` will automatically attempt
     to bind to the nearest enclosing [./field::Field]. This makes the
-    Checkbox's value available as the [./field::fieldValue]
+    Checkbox's value available as the [./field::Value]
     [sjs:observable::ObservableVar], and assigns a generated id
     attribute to the Input. When the Checkbox is manipulated by the user,
     validation will be performed on the field. The first user manipulation
