@@ -25,7 +25,9 @@ var docComments = modules
     ( comment .. @contains('@nodoc') ||
       comment .. @contains('@noindex')
     ))
-  .. @transform(unindent);
+  .. @transform(unindent)
+// for some reason escaping '*\/' in doc comments gets lost:
+  .. @transform(x -> x.replace(/\*\//, '*\\/'));
 
 var output = contents + MARKER + "
 /**
