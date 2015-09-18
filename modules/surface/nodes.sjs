@@ -89,3 +89,56 @@ function Node(/* [root], [selector] */) {
   }
 };
 exports.Node = Node;
+
+/**
+   @function Nodes
+   @summary XXX document me
+*/
+function Nodes(/* [root], [selector] */) {
+
+  var args = arguments;
+  
+  return @Stream(function(receiver) {
+    // untangle arguments:
+    var root, selector;
+    if (args.length === 1) {
+      if (typeof args[0] === 'string')
+        selector = args[0];
+      else
+        root = args[0];
+    }
+    else if (args.length === 2) {
+      root = args[0];
+      selector = args[1];
+    }
+    else if (args.length !== 0)
+      throw new Error("Surplus arguments supplied to Node()");
+    
+    // if we don't have a dom root, try to obtain it from the environment:
+    if (root === undefined) {
+      root = @sys.getDynVar(CTX_DOMROOT, undefined);
+      if (root === undefined)
+        throw new Error("No DOM root to operate on");
+    }
+    
+    // make sure our DOM root is an array (that's the general case):
+    if (!Array.isArray(root))
+      root = [root];
+    
+    // now resolve the node being queried:
+    if (selector === undefined) {
+      root .. @each(receiver);
+    }
+    else {
+      root .. @each {
+        |node|
+        if (node .. @dom.matchesSelector(selector))
+          receiver(node);
+        var matches = node.querySelectorAll(selector);
+        if (matches)
+          matches .. @each(receiver);
+      }
+    }
+  });
+}
+exports.Nodes = Nodes;
