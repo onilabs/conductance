@@ -66,7 +66,7 @@ function createOAuthCallbackHandler() {
     var rv = process(req.url.params());
 
     if (!rv) {
-      rv = "<html><script>parent.close();</script></html>";
+      rv = "<html></html>";
     }
 
     req .. @response.setStatus(200);
