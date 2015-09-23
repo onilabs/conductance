@@ -6281,6 +6281,17 @@
                   },
                   "summary": "Gmail API v1 - The Gmail REST API."
                 },
+                "picasawebV2": {
+                  "type": "module",
+                  "children": {
+                    "listAlbums": {
+                      "type": "function"
+                    },
+                    "recentPhotos": {
+                      "type": "function"
+                    }
+                  }
+                },
                 "storageV1": {
                   "type": "module",
                   "children": {
@@ -6859,7 +6870,10 @@
                     "GoogleOAuthAPIClient": {
                       "type": "class",
                       "children": {
-                        "AccessToken": {
+                        "AuthTokens": {
+                          "type": "variable"
+                        },
+                        "Authorized": {
                           "type": "variable"
                         },
                         "promptUserAuthorization": {
@@ -7080,6 +7094,9 @@
           "children": {
             "withAPI": {
               "type": "function"
+            },
+            "withResumingAPI": {
+              "type": "function"
             }
           },
           "summary": "API connection utility"
@@ -7298,6 +7315,9 @@
                   "type": "function"
                 },
                 "withBusyIndicator": {
+                  "type": "function"
+                },
+                "withResumingAPI": {
                   "type": "function"
                 }
               },
