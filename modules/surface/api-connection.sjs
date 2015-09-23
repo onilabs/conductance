@@ -9,13 +9,208 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['mho:surface', 'sjs:xbrowser/dom', 'sjs:event', 'sjs:sequence', 'sjs:object']);
-var {@warn} = require('sjs:logging');
+@ = require([
+  'mho:surface',
+  'sjs:std',
+  {id: 'sjs:logging', include: ['warn']},
+  {id: 'mho:rpc/bridge', name: 'bridge'}
+]);
 
 /**
   @summary API connection utility
   @hostenv xbrowser
+*/
 
+
+//----------------------------------------------------------------------
+// new-style transparently reconnecting API connection
+
+/**
+   @function withResumingAPI
+   @param {Object} [api] api module
+   @param {Function} [block]
+   @summary Connect and use an `.api` module; transparently reconnecting if
+            the connection drops; EXPERIMENTAL
+   @desc
+     Like [::withAPI], but transparently reconnects when the connection 
+     temporarily disconnects; keeping pending function calls waiting
+*/
+
+/*
+
+  beta-gamma algorithm for transparently reconnecting, arbitrarily
+  nested APIs
+
+  XXX document and clarify API rules (ideally all functions should be
+  referentially transparent / idempotent, but don't necessarily have
+  to be)
+
+*/
+
+function proxyObj(obj, Beta, key_path) {
+  var rv;
+  if (Array.isArray(obj)) {
+    rv = [];
+    obj .. @indexed .. @each {
+      |[key, val]|
+      rv[key] = proxyObj(val, Beta, key_path.concat(key)); 
+    }
+  }
+  else if (typeof obj === 'function') {
+    rv = proxyFunc(Beta, key_path);
+    if (obj .. @isBatchedStream)
+      rv = @BatchedStream(rv);
+    else if (obj .. @isStream)
+      rv = @Stream(rv);
+    rv.proxiedFunc = obj;
+  }
+  else if (obj && typeof obj == 'object') {
+    // generic structural object
+    rv = {};
+    obj .. @ownPropertyPairs .. @each {
+      |[key, val]|
+      rv[key] = proxyObj(val, Beta, key_path.concat(key)); 
+    }
+  }
+  else {
+    rv = obj;
+  }
+  return rv;
+}
+
+function proxyFunc(Beta, key_path) {
+
+  return function() {
+    var beta, gamma = true, gamma_args = arguments;
+    
+    function Gamma(old_gamma) {
+      while (1) {
+        try {
+          if (old_gamma !== undefined && old_gamma === gamma) {
+            
+            beta = Beta(beta);
+            var target = beta .. @getPath(key_path);
+            // XXX ProxyAPI still uses old method of proxying without
+            // proxiedFunc. Needs consolidation
+            if (target.proxiedFunc) target = target.proxiedFunc;
+            console.log("API CALL #{key_path} > apply(#{gamma_args..@toArray})");
+            gamma = target.apply(null, gamma_args);
+            gamma = gamma .. proxyObj(Gamma, []);
+/*
+            gamma = 
+              (
+                (
+                  (beta = Beta(beta)) .. 
+                    @getPath(key_path)
+                ).proxiedFunc.apply(null, gamma_args)
+              ) ..
+                proxyObj(Gamma, []);
+*/
+          } 
+          return gamma;
+        }
+        catch (e) {
+          if (!@bridge.isTransportError(e)) throw new Error('api '+key_path+': '+e);
+          console.log(key_path + ': '+e);
+          /* else go round loop again */
+        }
+      }
+    }
+    var rv = Gamma(gamma);
+    return rv;
+  };
+}
+
+// helper to wrap an API into one that works across temporary server
+// disconnects.
+// The base API can be nested; all functions will be wrapped.
+// The functions must all be idempotent!
+function ProxyAPI() {
+  var base = @Condition();
+  var proxy = undefined;
+
+  // XXX consolidate this with proxyObj
+  function mirrorAPIProps(src, dest, path) {
+    src .. @ownPropertyPairs .. @each {
+      |[key, val]|
+      // XXX it sucks that we have to treat streams different to normal functions here
+      if (val .. @isBatchedStream) {
+        dest[key] = @BatchedStream(proxyFunc(-> base.wait(), path.concat(key)));
+        dest[key].proxiedFunc = val;
+      }
+      if (val .. @isStream) {
+        dest[key] = @Stream(proxyFunc(-> base.wait(), path.concat(key)));
+        dest[key].proxiedFunc = val;
+      }
+      else if (typeof val === 'function') {
+        dest[key] = proxyFunc(-> base.wait(), path.concat(key));
+        dest[key].proxiedFunc = val;
+      }
+      else if (typeof val === 'object') {
+        dest[key] = {};
+        mirrorAPIProps(src[key], dest[key], path.concat(key));
+      }
+      else { // static strings, numbers
+        dest[key] = val;
+      }
+    }
+  }
+
+  function initializeProxyAPI(template) {
+    var rv = {};
+    
+    mirrorAPIProps(template, rv, []);
+
+    return rv;
+  }
+
+  return {
+    getAPI: -> (base.wait(), proxy),
+    setBaseAPI: function(base_api) {
+      if (!proxy)
+        proxy = initializeProxyAPI(base_api);
+        base.set(base_api)
+    },
+    clearBaseAPI: -> base.clear()
+  };
+}
+
+exports.withResumingAPI = function(api_module, block) {
+  var API = ProxyAPI();
+
+  waitfor {
+    while (1) {
+      try {
+        @bridge.connect(api_module, {}) {
+          |{api}|
+          try {
+            API.setBaseAPI(api);
+
+            // now just hold until an error occurs or 'block' below returns
+            hold();
+          }
+          finally {
+            API.clearBaseAPI();
+          }
+        } /* bridge.connection */
+      } /* try */
+      catch (e) {
+        if (!@bridge.isTransportError(e)) throw e;
+      }
+      // XXX should have exponential backoff here
+      hold(200);
+    } /* while (1) */
+  }
+  or {
+    block(API.getAPI());
+  }
+};
+
+
+//----------------------------------------------------------------------
+// deprecated withAPI function
+
+/**
   @function withAPI
   @param {Object} [api] api module
   @param {optional Settings} [settings] settings passed to [rpc/bridge::connect]
@@ -24,14 +219,14 @@ var {@warn} = require('sjs:logging');
   @param {Function} [block]
   @summary Connect and use an `.api` module
   @desc
-    `withAPi` opens a connection to the given API, and invokes
+    `withAPI` opens a connection to the given API, and invokes
     `block` with the API's exports.
 
     If the API connection is lost, `block` is retracted and
     a UI notification is displayed informing the user that
     the app is disconnected, and displaying the time until the next
     connection attempt. `withAPI` will keep attempting to reconnect
-    with an exponential backoff capped at 10 minutes.
+    with an exponential backoff capped at 1 minute.
 
     **Note:** the notifications displayed by this utility make use of
     bootstrap styles. If your page us not using bootstrap styles, you
@@ -44,16 +239,15 @@ exports.withAPI = function(api, opts, block) {
   }
   var initialDelay = 1000;
   var delay = initialDelay;
-  var { @isTransportError, @connect } = require('../rpc/bridge');
   var { @Countdown } = require('./widget/countdown');
   var Notice = opts.notice;
   if (!Notice) ({Notice}) = require('./bootstrap/notice');
 
   while (1) {
     try {
-      @connect(api, opts .. @merge({
+      @bridge.connect(api, opts .. @merge({
         connectMonitor: function() {
-          hold(300); // small delay before showing ui feedback
+          hold(1000); // small delay before showing ui feedback
           document.body .. @appendContent(Notice('Connecting...', {'class':'alert-warning'}), -> hold());
         }
       })) {
@@ -63,7 +257,7 @@ exports.withAPI = function(api, opts, block) {
         block(connection.api);
       }
     } catch(e) {
-      if (@isTransportError(e)) {
+      if (@bridge.isTransportError(e)) {
         @warn("Connection error: #{e}");
         hold(300); // small delay before showing ui feedback
         if (window.onerror && window.onerror.triggered) return;
@@ -76,8 +270,8 @@ exports.withAPI = function(api, opts, block) {
             waitfor {
               hold(delay);
               delay *= 1.5;
-              if (delay > 60*1000*10) // cap at 10 minutes
-                delay = 60*1000*10;
+              if (delay > 60*1000) // cap at 1 minute
+                delay = 60*1000;
             } or {
               elem.querySelector('a') .. @wait('click', {handle:@preventDefault});
             }
