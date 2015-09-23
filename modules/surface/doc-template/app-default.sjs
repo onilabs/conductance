@@ -210,6 +210,11 @@
   @param {Function} [block]
   @summary alias for [surface/api-connection::withAPI]
 
+  @function withResumingAPI
+  @param {Object} [api] api module
+  @param {Function} [block]
+  @summary alias for [surface/api-connection::withResumingAPI]
+
 
   @function Notice
   @param {surface/HtmlFragment} [content]
@@ -247,7 +252,7 @@ exports.Document = function(data, settings) {
           exports = module.exports = require([
                                     'mho:surface/bootstrap',
                                     { id:'mho:surface/api-connection',
-                                      include: ['withAPI']
+                                      include: ['withAPI', 'withResumingAPI']
                                     },
                                     { id:'mho:surface/bootstrap/notice',
                                       include: ['Notice']
