@@ -44,6 +44,9 @@ exports.run = function(config, block) {
 
       var Tokens = @ObservableVar(initial_tokens);
 
+      var Authorized = @ObservableVar(false);
+      // check if we're authorized already with the initial_tokens. This will set 'Authorized':
+      refreshGoogleAuthorization();
 
       // the inner request handler:
       function _request(url, opts) {
@@ -63,33 +66,40 @@ exports.run = function(config, block) {
             throwing: false,
             response: 'full'
           });
-          try {
-            rv = JSON.parse(rv.content);
-            
-            // xxx could make this logic more specific
-            // xxx could preemptively reauth when we know the token is expired
-            if (rv.error && !refreshed) {
+          if (rv.status == 401) {
+            if (!refreshed) {
+              // xxx could preemptively reauth when we know the token is expired
+              if (!refreshGoogleAuthorization())
+                throw new Error("no access");
               refreshed = true;
-              var new_tokens = refreshGoogleAuthorization();
               if (!(access_token = new_tokens.access_token)) throw new Error("access not granted");
-              
-              Tokens.set(new_tokens);
-              continue;
+              refreshed = true;
+              continue; // retry request
+            }
+            else {
+              // we have refreshed, but are still not authorized;
+              // this probably means that we haven't got all scopes we need for the request
+              Tokens.set(undefined);
+              Authorized.set(false);
             }
           }
+          try {
+            rv = JSON.parse(rv.content);
+          }
           catch(e) {
-            rv = {error: rv.status}
+            rv = {error: "Cannot parse reply (#{rv.status})"};
           }
           return rv;
         }
       }
 
       // helper for refreshing token:
+      // XXX THIS SHOULD BE A CRITICAL SECTION
       function refreshGoogleAuthorization() {
         
         var tokens = Tokens .. @current;
-        if (!tokens || !tokens.refresh_token) throw new Error("No refresh token");
-        
+        console.log("TOKENS:"+tokens..@inspect);
+        if (!tokens || !tokens.refresh_token) return false;
         
         // get new access token:
         var reply = @http.post(
@@ -103,7 +113,9 @@ exports.run = function(config, block) {
           {
             headers: {
               'Content-Type':'application/x-www-form-urlencoded'
-            }
+            },
+            throwing: false,
+            response: 'full'
           }
         );
         
@@ -115,8 +127,19 @@ exports.run = function(config, block) {
           "expires_in": 3600,
           }
         */
-        var rv = JSON.parse(reply);        
-        return tokens .. @merge(rv);
+        
+        if (reply.status !=  200) {
+          console.log("On attempting to refresh token: "+reply .. JSON.stringify(null, '  '));
+          Tokens.set(undefined);
+          Authorized.set(false);
+          return false;
+        }
+        else {
+          tokens = tokens .. @merge(JSON.parse(reply.content));
+          Tokens.set(tokens);
+          Authorized.set(true);
+          return true;
+        }
       }
 
       //----------------------------------------------------------------------
@@ -127,11 +150,16 @@ exports.run = function(config, block) {
       */
       var client = {
         /**
-           @variable GoogleOAuthAPIClient.AccessToken
+           @variable GoogleOAuthAPIClient.AuthTokens
            @summary XXX write me
         */
         AuthTokens: Tokens,
 
+        /**
+           @variable GoogleOAuthAPIClient.Authorized
+           @summary XXX write me
+        */
+        Authorized: Authorized,
 
         /**
            @function GoogleOAuthAPIClient.promptUserAuthorization
@@ -184,6 +212,8 @@ exports.run = function(config, block) {
           */
           var tokens = JSON.parse(reply);
           Tokens.set(tokens);
+          Authorized.set(true);
+          return tokens;
         },
         
         /* internal interface */
