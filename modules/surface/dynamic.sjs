@@ -765,39 +765,60 @@ exports.CollectStream = CollectStream;
    @hostenv xbrowser
    @summary A [::HtmlFragment] for inserting elements of a stream into the DOM as the user scrolls vertically
    @param {sjs:sequence::Stream} [stream]
+   @param {optional Object} [settings]
+   @setting {Integer} [tolerance=0] Distance (in pixels) that an element needs to be off-screen before we stop appending elements and wait for scrolling
    @return {::HtmlFragment}
    @desc
      `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
      parent of the CollectStream being inserted into the DOM).
 
      Elements of `stream` will be appended to the DOM as they are produced and only up the point where they overflow
-     the window. When the user scrolls to the bottom, more elements will be inserted.
+     the window. When the user scrolls the last element into view, more elements will be inserted.
 */
 
-function elemWithinWindow(elem) {
-  // XXX this needs a better implementation. We need to check if the
-  // actual element is off window.
-  return (document.body.clientHeight - pageYOffset -50 <= window.innerHeight);
+__js function elemPartiallyWithinViewport(elem, tolerance) {
+  var viewportWidth = window.innerWidth;
+  var viewportHeight = window.innerHeight;
+  var boundingRect = elem.getBoundingClientRect();
+  return (boundingRect.left < viewportWidth+tolerance &&
+          boundingRect.right > -tolerance &&
+          boundingRect.top < viewportHeight+tolerance &&
+          boundingRect.bottom > -tolerance);
 }
+  
+var AncestorScrollEvents = function(node) {
+  var events = [];
+  while (node) {
+    events.push(node .. @events('scroll'));
+    node = node.parentNode;
+  }
+  return @combine.apply(null, events);
+};
 
-var ScrollStream = stream -> ContentGenerator ::
-                          function(append) {
-                            var appended = [];
-                            try {
-                              stream .. each {
-                                |item|
-                                appended = appended.concat(append(item));
-                                // check if the last piece we appended is within window:
-                                while (!elemWithinWindow(appended[appended.length -1]))
-                                  window .. events('scroll') .. wait;
-                              }
-                              hold();
-                            }
-                            finally {
-                              if (appended.length)
-                                appended .. each(removeNode);
-                            } 
-                          };
+var ScrollStream = (stream,settings) -> ContentGenerator ::
+  function(append) {
+    var tolerance = settings && settings.tolerance ? settings.tolerance : 0;
+    // XXX it sucks that we have to keep track of all elements to remove them in the
+    // finally clause, when in 90% of the time a container would take care of element
+    // removal (and shutdown of their mechanisms)
+    var appended = [];
+    try {
+      stream .. each {
+        |item|
+        appended = appended.concat(append(item));
+        // check if the last piece we appended is within window:
+        while (!elemPartiallyWithinViewport(appended[appended.length - 1], tolerance)) {
+          AncestorScrollEvents(appended[appended.length -1]) .. @wait();
+        }
+        console.log('appending');
+      }
+      hold();
+    }
+    finally {
+      if (appended.length)
+        appended .. each(removeNode);
+    } 
+  };
 exports.ScrollStream = ScrollStream;
 
 //----------------------------------------------------------------------

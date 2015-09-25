@@ -697,13 +697,15 @@ module.exports = require(modules);
 @hostenv xbrowser
 @summary A [::HtmlFragment] for inserting elements of a stream into the DOM as the user scrolls vertically
 @param {sjs:sequence::Stream} [stream]
+@param {optional Object} [settings]
+@setting {Integer} [tolerance=0] Distance (in pixels) that an element needs to be off-screen before we stop appending elements and wait for scrolling
 @return {::HtmlFragment}
 @desc
   `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
   parent of the CollectStream being inserted into the DOM).
 
   Elements of `stream` will be appended to the DOM as they are produced and only up the point where they overflow
-  the window. When the user scrolls to the bottom, more elements will be inserted.
+  the window. When the user scrolls the last element into view, more elements will be inserted.
 
 @function Document
 @hostenv nodejs
