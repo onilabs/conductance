@@ -810,7 +810,6 @@ var ScrollStream = (stream,settings) -> ContentGenerator ::
         while (!elemPartiallyWithinViewport(appended[appended.length - 1], tolerance)) {
           AncestorScrollEvents(appended[appended.length -1]) .. @wait();
         }
-        console.log('appending');
       }
       hold();
     }
