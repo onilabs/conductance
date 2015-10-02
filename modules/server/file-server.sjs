@@ -204,7 +204,13 @@ function formatResponse(req, item, settings) {
     req .. setStatus(status);
     req.response.end();
 
-  } else {
+  }
+  else if (output === undefined) {
+    // this is e.g. to support *.gen files that write redirect responses themselves and return 'undefined'
+    if (!req.response.finished)
+      throw new Error('request not handled');
+  }
+  else {
     if (isSequence(output)) {
       output = compress(req, formatdesc, output);
     } else {
