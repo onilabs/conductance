@@ -164,7 +164,7 @@ function writeRedirectResponse(req, location, status) {
 exports.writeRedirectResponse = writeRedirectResponse;
 
 function writeErrorResponse(req, status, title, text) {
-  req .. setStatus(status, title, { "Content-Type":"text/html" });
+  req .. setStatus(status, title, title ? { "Content-Type":"text/html" });
 
   text = text || title;
   var resp = (
