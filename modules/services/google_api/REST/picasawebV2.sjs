@@ -55,7 +55,7 @@ function recentPhotos(client, params) {
         // XXX we're using a very large max-results here, because the paging mechanism in the API is broken; see http://stackoverflow.com/questions/25263934/picasa-web-albums-api-no-effect-of-start-index-in-photos-feed
         var res = client.performRequest({
           url:'https://picasaweb.google.com/data/feed/api/user/default',
-          params: params .. @merge({v:2, alt:'json', kind:'photo', 'max-results':10000, 'start-index':index}),
+          params: {v:2, alt:'json', kind:'photo', 'max-results':10000, 'start-index':index} .. @merge(params),
           requiredParams: [],
           pathParams: []    
         });
