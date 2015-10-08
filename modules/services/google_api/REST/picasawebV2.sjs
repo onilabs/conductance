@@ -64,7 +64,6 @@ function recentPhotos(client, params) {
 //          ++index;
           receiver(entry);
         }
-      console.log('picasa stream done');
 //      }
     }
     catch (e) {
