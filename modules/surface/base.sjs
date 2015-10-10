@@ -601,7 +601,7 @@ __js {
       
       var classes = ft._normalizeClasses();
       if (classes.indexOf('_oni_css_') == -1)
-        ft.attribs['class'] = classes.concat(' _oni_css_', class_name);
+        ft.attribs['class'] = classes.concat('_oni_css_', class_name);
       else if (classes.indexOf(class_name) == -1)
         ft.attribs['class'] = classes.concat(class_name);
       return ft;
@@ -782,7 +782,7 @@ __js {
 
       var classes = ft._normalizeClasses();
       if (classes.indexOf('_oni_mech_') == -1)
-        ft.attribs['class'] = classes.concat(' _oni_mech_');
+        ft.attribs['class'] = classes.concat('_oni_mech_');
       return ft;
     }
     
