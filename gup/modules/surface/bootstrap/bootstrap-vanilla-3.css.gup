@@ -1,4 +1,4 @@
-#!env sjs
+#!../../../../node_modules/stratifiedjs/sjs
 // vim: syntax=sjs:
 @ = require(['sjs:std']);
 
