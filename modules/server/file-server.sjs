@@ -572,6 +572,8 @@ exports.MappedDirectoryHandler = function(root, settings) {
       if (!served) {
         if (settings.allowDirListing)
           listDirectory(req, file, relativeURI, format, settings);
+        else
+          throw Forbidden();
       }
     }
     else {
