@@ -10,11 +10,11 @@ var sjs = require('stratifiedjs');
 var base = sjs.pathToFileUrl(path.dirname(fs.realpathSync(__filename))) + '/';
 
 exports.run = function() {
-	sjs.run(sjs.canonicalizeURL('modules/server/main.sjs', base));
+	sjs.run(sjs.normalizeURL('modules/server/main.sjs', base));
 };
 
 exports.init = function(cb) {
-	sjs.require(canonicalizeURL('hub.sjs', base), {callback: cb});
+	sjs.require(normalizeURL('hub.sjs', base), {callback: cb});
 }
 
 if (require.main === module) {
