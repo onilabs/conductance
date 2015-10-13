@@ -41,7 +41,7 @@ function checkEtag(t) {
   @function AllowCORS
   @param {../server::Responder|Array} [responder]
   @param {optional String|Function} [allow="*"] Access-Control-Allow-Origin value or filter
-  @param {optional Settings} [options]
+  @param {optional Object} [options]
   @setting {String} [methods="GET,PUT,POST,HEAD,DELETE"] Access-Control-Allow-Methods value
   @setting {String} [headers="origin, content-type"] Access-Control-Allow-Headers value
   @summary Allow Cross-Origin-Resource-Sharing for the given responder
@@ -331,7 +331,9 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
    @function ExecutableDirectory
    @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem (path or 'file:' url)
-   @param {optional Settings} [options]
+   @param {optional Object} [options]
+   @setting {Boolean} [allowDirListing=true] If `true`, directory listings will be served (if there is no index.* file in a directory)
+   @setting {Boolean} [mapIndexToDir=true] If `true`, requests to a directory will be mapped onto the `index.app`, `index.html`, `index.app.gen`, or `index.html.gen` file in the given directory.
    @setting {String} [bridgeRoot] Override root location for bridge connections
    @return {../server::Route}
    @summary Creates a [../server::Route] that serves executable, code and static files from the local filesystem
@@ -378,6 +380,9 @@ var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
    @function CodeDirectory
    @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem (path or 'file:' url)
+   @param {optional Object} [options]
+   @setting {Boolean} [allowDirListing=true] If `true`, requests to a directory will generate a directory listings (if there is no index.* file in the directory)
+   @setting {Boolean} [mapIndexToDir=true] If `true`, requests to a directory will be mapped onto the `index.app`, `index.html`, `index.app.gen`, or `index.html.gen` file in the given directory.
    @return {../server::Route}
    @summary Creates a [../server::Route] that serves code and static files from the local filesystem
    @desc
@@ -397,6 +402,9 @@ var CodeDirectory = exports.CodeDirectory = createDirectoryMapper({
    @function StaticDirectory
    @param {optional RegExp|String} [path] Path to match
    @param {String} [root] Directory on local filesystem (path or 'file:' url)
+   @param {optional Object} [options]
+   @setting {Boolean} [allowDirListing=true] If `true`, directory listings will be served (if there is no index.* file in a directory)
+   @setting {Boolean} [mapIndexToDir=true] If `true`, requests to a directory will be mapped onto the `index.app`, `index.html`, `index.app.gen`, or `index.html.gen` file in the given directory.
    @return {../server::Route}
    @summary Creates a [../server::Route] that serves static files from the local filesystem
    @desc
