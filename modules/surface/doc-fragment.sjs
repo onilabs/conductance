@@ -298,8 +298,8 @@ staticExports.configure = function(opts) {
       @Element('script', null, {src: "#{serverRoot()}__sjs/stratified.js", async:'true'}),
       @Element('script', `
         require.hubs.shift();
-        require.hubs.push(['mho:','${serverRoot()}__mho/']);
-        require.hubs.push(['sjs:','${serverRoot()}__sjs/']);
+        require.hubs.unshift(['mho:','${serverRoot()}__mho/']);
+        require.hubs.unshift(['sjs:','${serverRoot()}__sjs/modules/']);
       `, {'type': "text/sjs"}),
     ];
   };
