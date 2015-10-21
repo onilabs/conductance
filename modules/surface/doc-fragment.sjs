@@ -288,10 +288,18 @@ staticExports.configure = function(opts) {
     @summary HTML required to initialize the SJS runtime and Conductance hub
   */
   exports.initializeRuntime = function() {
+
+    // below we remove sjs's built-in 'sjs' hub (always at the first
+    // location in the hubs array) and replace it explicitly. This is to fix an issue with
+    // Android's Chrome Data Saver, which sometimes inlines scripts, leading to the inferred
+    // 'sjs' hub not being able to be resolved.
+
     return [
       @Element('script', null, {src: "#{serverRoot()}__sjs/stratified.js", async:'true'}),
       @Element('script', `
+        require.hubs.shift();
         require.hubs.push(['mho:','${serverRoot()}__mho/']);
+        require.hubs.push(['sjs:','${serverRoot()}__sjs/']);
       `, {'type': "text/sjs"}),
     ];
   };
