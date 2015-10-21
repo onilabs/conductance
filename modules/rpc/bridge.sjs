@@ -911,6 +911,7 @@ exports.resolve = function(api_name, opts) {
     throw TransportError(e.message);
   }
   // catch syntax errors in the api module; don't throw as transport errors:
+  if (!apiinfo) throw new Error("Error resolving #{api_name}");
   if (apiinfo.error) throw new Error(apiinfo.error);
   if (!nodejs && !api_name .. contains('://')) {
     // resolve relative paths in browser
