@@ -105,6 +105,7 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
         [Url.normalize('./', pathUrl), Url.normalize('./', url.source)],
       ],
       skipFailed: true,
+      compile: true
     };
     var appSettings = env.get('bundleSettings', defaultSettings);
     var docutil = require('sjs:docutil');
