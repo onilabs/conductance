@@ -129,12 +129,4 @@
     **every hub configured on the server is exposed to the client through automatic bundling, whether or not
     that hub is exposed through the server's [mho:#features/mho-file::] or not.**
 
-@directive @bundle-compile
-@summary Serve up a bundled dependencies precompiled to JS
-@desc
-  In conjunction with [::@bundle], this directive causes the
-  module's dependencies to be served up as precompiled JS. 
-  This leads to shorter startup times on the client, but 
-  increases the file size of the bundle.
-
 */
