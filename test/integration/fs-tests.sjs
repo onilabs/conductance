@@ -35,7 +35,7 @@ context("serving files") {||
 
 	test("Accessing a file outside the document root (encoded path components)") {||
 		assert.raises(
-			{filter: e -> e.status === 403},
+			{filter: e -> e.status === 404},
 			-> http.get(rel('%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/hosts')));
 	}.skipIf(isBrowser);
 
