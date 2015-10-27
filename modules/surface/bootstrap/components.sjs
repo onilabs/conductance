@@ -1331,13 +1331,21 @@ exports.FormGroup = (content) ->
   @Mechanism(function(node) {
     var field = node .. @field.getField();
     if (!field) return;
-    var state = 'unknown';
-    field .. @field.ValidationState() .. @each {
-      |validation|
-      if (state == validation.state) continue;
-      node.classList.remove("has-#{state}");
-      state = validation.state;
-      node.classList.add("has-#{state}");
+
+    field .. @field.ValidationDisplayFlag() .. @each.track {
+      |display|
+      if (!display) continue;
+      field .. @field.ValidationState() .. @each.track {
+        |validation|
+        if (validation.state === 'unknown') continue;
+        try {
+          node.classList.add("has-#{validation.state}");
+          hold();
+        }
+        finally {
+          node.classList.remove("has-#{validation.state}");
+        }
+      }
     }
   });
 
@@ -1347,26 +1355,30 @@ exports.FormGroup = (content) ->
   @return {surface::Element}
 */
 exports.ValidationMessage = function() {
-  var content = @ObservableVar(null);
-  return @html.Span(content, { 'class':'help-block' })
-  .. @Mechanism(function(node) {
-    var field = node .. @field.getField();
-    if (!field) return;
-    field .. @field.ValidationState() .. @each {
-      |validation|
-      content.modify(function(current) {
-        ['errors', 'warnings'] .. @each {|key|
-          var notices = validation[key];
-          if(notices && notices.length) {
-            return notices
-              .. @map(notice -> @isString(notice) ? notice : notice.message)
-              .. @intersperse(`<br>`);
+  return @html.Span() .. @Class('help-block')
+    .. @Mechanism(function(node) {
+      var field = node .. @field.getField();
+      if (!field) return;
+      
+      field .. @field.ValidationDisplayFlag() .. @each.track {
+        |display|
+        if (!display) continue;
+        field .. @field.ValidationState() .. @each.track {
+          |validation|
+          ['errors', 'warnings'] .. @each {|key|
+            var notices = validation[key];
+            if(notices && notices.length) {
+              node .. @appendContent(notices
+                                     .. @transform(notice -> @isString(notice) ? notice : notice.message)
+                                     .. @join(`<br>`)) {
+                ||
+                hold();
+              }
+            }
           }
         }
-        return null;
-      });
-    }
-  });
+      }
+    })
 };
 
 /**
@@ -1907,7 +1919,7 @@ function DateInput(settings) {
             $(node.parentNode.parentNode.
               querySelector('.dropdown-toggle')).dropdown('toggle');
             // XXX distinguish between contextual and non-contextual DateInputs
-            field_itf.auto_validate.set(true);
+            field_itf.display_validation.set(true);
             Value.set(txtToVal(command));
           }
         }

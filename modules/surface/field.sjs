@@ -46,10 +46,9 @@ if (hostenv !== 'xbrowser')
            id:               String, // document unique id
            value:            ObservableVar,
            validation_state: Observable,
-           auto_validate   : ObservableVar,
+           display_validation   : ObservableVar,
            validators:       Array,
-           validators_deps:  Object,
-           validate:         Function
+           validators_deps:  Object
          }
 
      `validation_state` is an object
@@ -151,15 +150,26 @@ exports.Value = Value;
 /**
    @function validate
    @altsyntax node .. validate
-   @summary Run all [::Validate] functions attached to a [::Field]
+   @summary Wait for and return decisive (i.e. not 'unknown') validation result for a field & toggle displaying of validation results
    @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
    @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
 
 */
+
+//helper:
+function waitforDecisiveValidationState(field) {
+  field.validation_state .. @each {
+    |validation|
+    if (validation.state !== 'unknown')
+      return validation;
+  }
+}
+
 function validate(/*[node], [path]*/) {
   var field_node = getField.apply(null, arguments);
   if (!field_node) throw new Error("field::validate: Cannot resolve Field");
-  return field_node[CTX_FIELD].validate();
+  field_node[CTX_FIELD].toggle_display_validation();
+  return waitforDecisiveValidationState(field_node[CTX_FIELD]);
 }
 exports.validate = validate;
 
@@ -182,6 +192,26 @@ function ValidationState(/*[node], [path]*/) {
   });
 }
 exports.ValidationState = ValidationState;
+
+/**
+   @function ValidationDisplayFlag
+   @summary Return the 'display validation flag' [sjs:observable::Observable] for a field
+   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
+   @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
+   @desc
+      Returns a boolean observable. If 'true', validations for the given field should be displayed
+*/
+function ValidationDisplayFlag(/*[node], [path]*/) {
+
+  var args = arguments;
+  
+  return @Stream(function(r) {
+    var field_node = getField.apply(null, args);
+    if (!field_node) throw new Error("field::ValidationDisplayFlag: Cannot resolve Field");
+    field_node[CTX_FIELD].display_validation .. @each(r);
+  });
+}
+exports.ValidationDisplayFlag = ValidationDisplayFlag;
 
 /**
    @function Valid
@@ -237,7 +267,7 @@ exports.Valid = function(/*[node], [path]*/) {
      ### Path examples:
 
      - `'./foo'`, `'/foo'` and `'foo'` all locate the Field named 'foo' located in the nearest enclosing
-     FieldMap to `node`.
+     FieldMap enclosing `node`.
 
      - `'foo/bar'` locates the field named 'bar' in the Field named 'foo' which is also expected to be a FieldMap and which in turn is contained in the same FieldMap as `node`.
 
@@ -268,7 +298,6 @@ function getField(/*[node], [path]*/) {
     node = @Node();
   }
     
-  
   // XXX is this a good idea? Always asynchronize so that 'getField'
   // works from ancestor mechanisms:
   hold(0);
@@ -396,11 +425,28 @@ exports.getField = getField;
 var field_id_counter = 0;
 
 
-function run_validators(field) {
+function run_validators(field_node) {
   var errors = [], warnings = [];
+
+  // get current values for all of our dependencies:
+  var our_value = field_node[CTX_FIELD].value .. @current;
+
+  var deps = @ownPropertyPairs(field_node[CTX_FIELD].validators_deps) ..
+    @map([path] -> [path, (field_node .. getField(path))[CTX_FIELD].value .. @current]) .. @pairsToObject;
+
   // execute the validators in parallel, but obtain an ordered
   // results set:
-  field.validators .. @transform.par(v -> v(field.value .. @current)) .. @each {
+  field_node[CTX_FIELD].validators .. @transform.par(function(v) {
+    if (typeof v === 'object') {
+      // collect all deps, starting with our current value:
+      var args = [our_value];
+      v.deps .. @each { |dep| args.push(deps[dep]) }
+      return v.validate.apply(null, args);
+    }
+    else {
+      return v(our_value);
+    }
+  }) .. @each {
     |validation_result|
     if (validation_result === true) continue;
     if (typeof validation_result === 'string')
@@ -422,15 +468,43 @@ function run_validators(field) {
   return { errors: errors, warnings: warnings };
 }
 
-function validate_field() {
-  var field = this;
-  var val = field.value .. @current;
+function validate_field_loop(field_node) {
+
+  var field = field_node[CTX_FIELD];
+
+  // determine our dependencies:
+  var deps = @ownPropertyPairs(field.validators_deps) ..
+    @map([path] -> (field_node .. getField(path))[CTX_FIELD].value);
+
+  var validation_trigger;
+
+  if (deps.length) {
+    // add our own value:
+    deps.push(field.value);
+    // add a dummy transformer:
+    deps.push(->1);
+    validation_trigger = @observe.apply(null, deps);
+  }
+  else {
+    // simple form; we only depend on our own value
+    validation_trigger = field.value;
+  }
+
   
+    // validate whenever value changes
+  validation_trigger .. @each.track {
+    ||
+    //console.log("VALIDATING #{field.id}");
+    validate_field_iteration(field_node);
+  }
+}
+
+function validate_field_iteration(field_node) {
+  var field = field_node[CTX_FIELD];
   waitfor {
-    var {errors, warnings} = field .. run_validators();
+    var {errors, warnings} = field_node .. run_validators();
   }
   or {
-    hold(100);
     // if the validators don't return immediately, we reset
     // the validation_state to 'unknown':
     if ((field.validation_state .. @current).state !== 'unknown')
@@ -444,10 +518,9 @@ function validate_field() {
     state = 'warning';
   else
     state = 'success';
-  var rv = {state: state, errors: errors, warnings: warnings};
-  field.validation_state.set(rv);
-  return rv;
+  field.validation_state.set({state: state, errors: errors, warnings: warnings});
 }
+
 
 function Field(elem, settings /* || name, initval */) {
   // untangle settings
@@ -477,34 +550,30 @@ function Field(elem, settings /* || name, initval */) {
         value: settings.Value || @ObservableVar(settings.initval),
         
         validation_state: settings.ValidationState || @ObservableVar({state:'unknown'}),
-        auto_validate: @ObservableVar(false),
+        display_validation: @ObservableVar(false),
         validators: [],
         validators_deps: {},
-        validate: validate_field
+        toggle_display_validation: -> field.display_validation.set(true),
+        validation_loop: validate_field_loop
       };
 
       var parent_container = node.parentNode .. @findContext(CTX_FIELDCONTAINER);
       
-      try {
+      waitfor {
         if (parent_container)
           parent_container.addField(settings.name, node);
         
         // asynchronize so that tree gets built before we start validating:
         hold(0);
         
-        field.auto_validate .. @each.track {
-          |flag|
-          field.value .. @each.track {
-            ||
-            if (flag) {
-              // validate whenever value changes
-              field.validate();
-            }
-            else {
-              // reset to 'unknown' whenever value changes
-              field.validation_state.modify(state -> state.state === 'unknown' ? state : {state: 'unknown', errors:[], warnings:[]});
-            }
-          }
+        field.validation_loop(node);
+      }
+      and {
+        // if our 'display_validation' is turned on, also turn it on for the container's field:
+        if (parent_container) {
+          field.display_validation .. @filter(x->!!x) .. @wait();
+          var parent_field = node.parentNode .. @findContext(CTX_FIELD);
+          if (parent_field) parent_field.display_validation.set(true);
         }
       }
       finally {
@@ -611,12 +680,31 @@ exports.Field = Field;
        @mainContent .. @appendContent(demo);
 */
 
+// helper:
+function aggregateSubfieldValidations(id_and_field_stream) {
+  var errors = [], warnings = [];
+  id_and_field_stream ..
+    @transform.par([key, subfield] -> [key, waitforDecisiveValidationState(subfield[CTX_FIELD])]) ..
+    @each {
+      |[key, state]|
+      if (state.errors.length) {
+        errors.push({key:key, errors: state.errors});
+      }
+      if (state.warnings.length)
+        warnings.push({key:key, warnings: state.warnings});
+    }
+  return {errors: errors, warnings: warnings};
+}
+
+
 var FieldMap = (elem) ->
   elem ..
   @Mechanism(function(node) {
 
-    var field = node .. @findContext(CTX_FIELD);
-    if (!field) throw new Error("FieldMap must be contained in a Field");
+    var field_node = node .. @findNodeWithContext(CTX_FIELD);
+    if (!field_node) throw new Error("FieldMap must be contained in a Field");
+    var field = field_node[CTX_FIELD];
+
     // XXX maybe instantiate a field on us if there isn't one?
 
     var fieldmap = {};
@@ -637,6 +725,41 @@ var FieldMap = (elem) ->
         field_mutation_emitter.emit();
       }
     };
+
+    // override field.toggle_display_validation, so that our subfields are also toggled:
+    field.toggle_display_validation = @fn.seq(field.toggle_display_validation,
+                                              function() {
+                                                @ownPropertyPairs(fieldmap) ..
+                                                  @each {
+                                                    |[key, subfield]|
+                                                    subfield[CTX_FIELD].toggle_display_validation()
+                                                  }
+                                              });
+    
+    // XXX these two do too much work; we don't need to rerun *all* validators when the child
+    // validations change. What we should do is to aggregate child validations separately.
+
+    // add validator to the field that aggregates the validation state of our subfields. xxx don't do this as a validator
+    field.validators.push(-> @ownPropertyPairs(fieldmap) .. aggregateSubfieldValidations); 
+
+    // override field.validation_loop to trigger on child validation changes:
+    field.validation_loop = function() {
+      // XXX allows deps like in validate_field_loop
+      if(field.validators_deps .. @ownKeys .. @count > 0) 
+        throw new Error("Validator dependencies not implemented for field maps yet"); 
+
+      // XXX effectively this does validations twice, because a value change goes 
+      // hand in hand with a change in children's validation states
+      var args = @ownPropertyPairs(fieldmap) .. @map([,subfield] -> subfield[CTX_FIELD].validation_state);
+      args.push(field.value);
+      args.push(->0);
+      @observe.apply(null, args) .. @each.track {
+        ||
+        //console.log("VALIDATING MAP #{field.id}");
+        validate_field_iteration(field_node);
+      }
+    };
+
 
     // give children a chance to register (with addField) before we
     // run our synchronization loop below:
@@ -662,6 +785,8 @@ var FieldMap = (elem) ->
           @observe.apply(null, args) .. @each {
             |x| 
             current_value = x;
+            //console.log("SETTING FIELD VALUE OF OBJECT #{field.id} TO", current_value);
+
             field.value.set(current_value);
           }
         }
@@ -684,24 +809,6 @@ var FieldMap = (elem) ->
         }
       }
     }
-    and {
-      // add validator to the field:
-      field.validators.push(function() {
-        var errors = [], warnings = [];
-        @ownPropertyPairs(fieldmap) .. 
-          @transform.par([key,subfield] -> [key, subfield[CTX_FIELD].validate()]) .. @each {
-            |[key,state]|
-            if (state.errors.length)
-              errors.push({key:key, errors: state.errors});
-            if (state.warnings.length)
-              warnings.push({key:key, warnings: state.warnings});
-          }
-        return {errors: errors, warnings: warnings};
-      });
-      // XXX this doesn't work: field.auto_validate.set(true);
-
-      // XXX could remove validator in finally clause
-    }
   });
 exports.FieldMap = FieldMap;
 
@@ -717,7 +824,7 @@ exports.FieldMap = FieldMap;
    @setting {optional Function} [arrToVal]
    @setting {optional Function} [valToArr]
    @desc
-     A [../surface::Element] that is decorated as a FieldMap creates a DOM node 
+     A [../surface::Element] that is decorated as a FieldArray creates a DOM node 
      implementing the [::CTX_FIELDCONTAINER] interface. The element must **also** be decorated as a [::Field] or
      be enclosed in a [::Field].
 
@@ -796,10 +903,12 @@ function FieldArray(elem, settings) {
   }
 
   return elem ..
-    @Mechanism(function(node) {
+  @Mechanism(function(node) {
 
-    var field = node .. @findContext(CTX_FIELD);
-    if (!field) throw new Error("FieldArray must be contained in a Field");
+    var field_node = node .. @findNodeWithContext(CTX_FIELD);
+    if (!field_node) throw new Error("FieldArray must be contained in a Field");
+    var field = field_node[CTX_FIELD];
+
     // XXX maybe instantiate a field on us if there isn't one?
 
     var fieldarray = [];
@@ -827,6 +936,47 @@ function FieldArray(elem, settings) {
         console.log('warning: array field already removed');
       }
     };
+      
+    // override field.toggle_display_validation, so that our subfields are also toggled:
+    field.toggle_display_validation = @fn.seq(field.toggle_display_validation,
+                                              function() {
+                                                fieldarray ..
+                                                  @each {
+                                                    |{node}|
+                                                    node[CTX_FIELD].toggle_display_validation()
+                                                  }
+                                              });
+    
+    // XXX these two do too much work; we don't need to rerun *all* validators when
+    // the child validations change. What we should do is to aggregate child validations separately.
+
+    // add validator to the field that aggreates the validation state of our subfields. XXX don't do this as a validator
+    field.validators.push(-> fieldarray .. @transform({node} -> node) ..
+                          @indexed .. aggregateSubfieldValidations);
+    
+
+    // override field.validation_loop to trigger on child validation changes:
+    field.validation_loop = function() {
+      // XXX allows deps like in validate_field_loop
+      if(field.validators_deps .. @ownKeys .. @count > 0) 
+        throw new Error("Validator dependencies not implemented for field maps yet"); 
+
+      @eventStreamToObservable(array_mutation_emitter,->0) .. @each.track {
+        ||
+        // XXX effectively this does validations twice, because a value change goes 
+        // hand in hand with a change in children's validation states
+        var args = fieldarray .. @map(field -> field.node[CTX_FIELD].validation_state);
+        args.push(field.value);
+        args.push(->0);
+        @observe.apply(null, args) .. @each.track {
+          ||
+          //console.log("VALIDATING ARRAY #{field.id}");
+          validate_field_iteration(field_node);
+        }
+      }
+    };
+
+
     
     var current_value = undefined;
     waitfor {
@@ -912,6 +1062,7 @@ function FieldArray(elem, settings) {
               x = settings.arrToVal(x);
 
             current_value = x;
+            //console.log("SETTING FIELD VALUE OF ARRAY #{field.id} TO", current_value);
             field.value.set(current_value);
           }
         }
@@ -919,23 +1070,6 @@ function FieldArray(elem, settings) {
           array_mutation_emitter .. @wait;
         } 
       }
-    }
-    and {
-      // add validator to the field:
-      field.validators.push(function() {
-        var errors = [], warnings = [];
-        fieldarray .. @indexed .. 
-          @transform.par([key, subfield] -> [key, subfield.node[CTX_FIELD].validate()]) .. 
-          @each {
-            |[key,state]|
-            if (state.errors.length)
-              errors.push({key:key, errors: state.errors});
-            if (state.warnings.length)
-              warnings.push({key:key, warnings: state.warnings});
-          }
-        return {errors: errors, warnings: warnings};
-      });
-      // XXX could remove validator in finally clause
     }
   });
 };
@@ -995,8 +1129,9 @@ var Validate = (elem, validator) ->
     var field = node .. @findContext(CTX_FIELD);
     if (!field) throw new Error("'Validate' decorator outside of a Field");
     field.validators.push(validator);
-    if (validator .. @isArrayLike) {
-      validator[0] .. @each { |dep| field.validators_deps[dep] = true }
+    if (typeof validator === 'object') {
+      if (!Array.isArray(validator.deps)) throw "field::Validate: 'deps' array expected in #{validator .. @inspect}";
+      validator.deps .. @each { |dep| field.validators_deps[dep] = true }
     }
     // XXX could remove validator in finally clause
   });

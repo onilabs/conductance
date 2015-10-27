@@ -407,7 +407,7 @@ if (hostenv === 'xbrowser') {
   var FieldInputMechanism = (content, settings) ->
     content .. @Mechanism(function(node) {
     // XXX should use more specific api here; not
-    // [CTX_FIELD].id/.value/.auto_validate directly
+    // [CTX_FIELD].id/.value/.display_validation directly
       var ctx = node .. @findContext(@field.CTX_FIELD);
       if (ctx) {
         var value = ctx.value;
@@ -417,7 +417,7 @@ if (hostenv === 'xbrowser') {
         value = '';
       }
       // keep node's value in sync with observable:
-      syncValue(node, value, ctx ? ctx.auto_validate, settings);
+      syncValue(node, value, ctx ? ctx.display_validation, settings);
     });
 
 
@@ -676,7 +676,7 @@ if (hostenv === 'xbrowser') {
   var FieldCheckboxMechanism = (content, settings) ->
     content .. @Mechanism(function(node) {
       // XXX should use more specific api here; not
-      // [CTX_FIELD].id/.value/.auto_validate directly
+      // [CTX_FIELD].id/.value/.display_validation directly
       var ctx = node .. @findContext(@field.CTX_FIELD);
       if (ctx) {
         var value = ctx.value;
@@ -686,7 +686,7 @@ if (hostenv === 'xbrowser') {
         value = '';
       }
       // keep node's value in sync with observable:
-      syncCheckboxValue(node, value, ctx ? ctx.auto_validate, settings);
+      syncCheckboxValue(node, value, ctx ? ctx.display_validation, settings);
     });
 
 

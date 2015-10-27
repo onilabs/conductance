@@ -295,7 +295,7 @@ exports.collapseHtmlFragment = collapseHtmlFragment;
 */
 __js var ElementProto = Object.create(FragmentBase);
 
-var voidTags = {
+__js var voidTags = {
   // source: http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
   area: 1,
   base: 1,
