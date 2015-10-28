@@ -7377,6 +7377,9 @@
             "Validate": {
               "type": "function"
             },
+            "ValidationDisplayFlag": {
+              "type": "function"
+            },
             "ValidationState": {
               "type": "function"
             },
