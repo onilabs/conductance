@@ -322,7 +322,7 @@ function getField(/*[node], [path]*/) {
     }
   }
   
-  if (!node[CTX_FIELD]) {
+  if (node && !node[CTX_FIELD]) {
     // this is to resolve paths like '.':
     node = node .. @findNodeWithContext(CTX_FIELD);
   }
