@@ -321,6 +321,12 @@ function getField(/*[node], [path]*/) {
         node = node[CTX_FIELDCONTAINER].getField(component);
     }
   }
+  
+  if (!node[CTX_FIELD]) {
+    // this is to resolve paths like '.':
+    node = node .. @findNodeWithContext(CTX_FIELD);
+  }
+  
   return node;
 }
 exports.getField = getField;
@@ -1123,16 +1129,24 @@ exports.FieldArray = FieldArray;
      See [::Field] for an example.
 */
 
-var Validate = (elem, validator) ->
-  elem ..
+var Validate = function(elem, validator) {
+
+  if (typeof validator === 'object') {
+      if (!Array.isArray(validator.deps)) throw new Error("field::Validate: 'deps' array expected in #{validator .. @inspect}");
+      if (typeof validator.validate !== 'function') throw new Error("field::Validate: 'validate' function expected in #{validator .. @inspect}");
+  }
+  else if (typeof validator !== 'function')
+    throw new Error("field::Validate: invalid validator argument");
+  
+  return elem ..
   @Mechanism(function(node) {
     var field = node .. @findContext(CTX_FIELD);
     if (!field) throw new Error("'Validate' decorator outside of a Field");
     field.validators.push(validator);
     if (typeof validator === 'object') {
-      if (!Array.isArray(validator.deps)) throw "field::Validate: 'deps' array expected in #{validator .. @inspect}";
       validator.deps .. @each { |dep| field.validators_deps[dep] = true }
     }
     // XXX could remove validator in finally clause
   });
+};
 exports.Validate = Validate;
