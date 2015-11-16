@@ -200,7 +200,7 @@ module.exports = require(modules);
 
    The injected DOM context has *dynamic extent*, meaning that nested function calls (and even spawned calls) from within the mechanism function will receive this context.
 
-   Most surface functions that take a function as argument inject dynamic DOM contextswhen calling that function argument. They include [::Mechanism], [::appendContent], [::replaceContent], [::prependContent], [::insertBefore], [::insertAfter], [::On], [::OnClick].
+   Most surface functions that take a function as argument inject dynamic DOM contexts when calling that function argument. They include [::Mechanism], [::appendContent], [::replaceContent], [::prependContent], [::insertBefore], [::insertAfter], [::On], [::OnClick].
    
    Most surface functions that take a [sjs:sequence::Stream] argument inject dynamic DOM contexts when playing back the stream. They include [::Attrib], [::Class], [::Enabled].
 
