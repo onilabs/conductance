@@ -115,6 +115,13 @@ exports.builtinServices = {
         description: 'Local [LevelDB Instance](http://localhost:6060/doc/#mho:flux/kv::LevelDB)',
         service:     'mho:services/leveldb/service',
         admin:       'mho:services/leveldb/admin'
+      },
+  'mixpanel':
+      {
+        name:        'mixpanel',
+        description: '[Mixpanel](https://mixpanel.com) Analytics Service',
+        service:     'mho:services/mixpanel/service',
+        admin:       'mho:services/mixpanel/admin'
       }
 };
 
