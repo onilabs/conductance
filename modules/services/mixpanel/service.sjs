@@ -36,6 +36,16 @@ exports.run = function(config, block) {
           } .. JSON.stringify .. @octetsToBase64;
 
           return (@http.get("http://api.mixpanel.com/track/?data=#{payload}") == 1);
+        },
+
+        engage: function(distinct_id, attributes) {
+          
+          var payload = (attributes || {}) .. @merge({
+            $token: config.token,
+            $distinct_id: distinct_id
+          }) .. JSON.stringify .. @octetsToBase64;
+          
+          return (@http.get("http://api.mixpanel.com/engage/?data=#{payload}") == 1);
         }
       }
     );
