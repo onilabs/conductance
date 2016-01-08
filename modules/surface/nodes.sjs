@@ -98,19 +98,19 @@ function getDOMNode(/* [root], [selector] */) {
 
   // untangle arguments:
   var root, selector;
-
+  var args = arguments;
   __js {
-    if (arguments.length === 1) {
-      if (typeof arguments[0] === 'string')
-        selector = arguments[0];
+    if (args.length === 1) {
+      if (typeof args[0] === 'string')
+        selector = args[0];
       else
-        root = arguments[0];
+        root = args[0];
     }
-    else if (arguments.length === 2) {
-      root = arguments[0];
-      selector = arguments[1];
+    else if (args.length === 2) {
+      root = args[0];
+      selector = args[1];
     }
-    else if (arguments.length !== 0)
+    else if (args.length !== 0)
       throw new Error("Surplus arguments supplied to Node()");
   }
 
@@ -211,14 +211,14 @@ exports.getDOMNodes = getDOMNodes;
 function getDOMITFNode(/* [node] , itf */) {
   // untangle arguments:
   var node, itf;
-  
+  var args = arguments;
   __js {
-    if (arguments.length === 1) {
-      itf = arguments[0];
+    if (args.length === 1) {
+      itf = args[0];
     }
-    else if (arguments.length === 2) {
-      node = arguments[0];
-      itf = arguments[1];
+    else if (args.length === 2) {
+      node = args[0];
+      itf = args[1];
     }
     else
       throw new Error("Invalid argument count for getDOMITFNode");
@@ -240,17 +240,17 @@ exports.getDOMITFNode = getDOMITFNode;
 function getDOMITF(/* [node], itf */) {
   // untangle arguments:
   var node, itf;
-  
+  var args = arguments;
   __js {
-    if (arguments.length === 1) {
-      itf = arguments[0];
+    if (args.length === 1) {
+      itf = args[0];
     }
-    else if (arguments.length === 2) {
-      node = arguments[0];
-      itf = arguments[1];
+    else if (args.length === 2) {
+      node = args[0];
+      itf = args[1];
     }
     else
-      throw new Error("Invalid argument count for getDOMITFNode");
+      throw new Error("Invalid argument count for getDOMITF");
   }
 
   if (node === undefined) 
