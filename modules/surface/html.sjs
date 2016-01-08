@@ -554,9 +554,12 @@ exports.TextArea = TextArea;
 
     #### On client-side ([sjs:sys::hostenv] === 'xbrowser')
 
-    When the element is inserted into the document, its checked state will be set to 
-    will be set to `checked`. If `checked` is a [sjs:sequence::Stream], the
-    element's state will be updated every time `checked` changes. If (in addition)
+    If `checked` is defined (i.e. `!== undefined`) and not of type [sjs:sequence::Stream], an element with a 'checked' attribute
+    set to `Boolean(checked)` will be inserted into the document.
+
+    If `checked` is a [sjs:sequence::Stream], the
+    element's checked state will only be set once the element is 
+    inserted into the document and updated every time `checked` changes. If (in addition)
     `checked` is an [sjs:observable::ObservableVar], 
     then `checked` will be updated to reflect any manual changes to the element's state.
 
@@ -579,7 +582,7 @@ exports.TextArea = TextArea;
     #### On server-side ([sjs:sys::hostenv] === 'nodejs')
 
     `checked` must be a Boolean and not a [sjs:sequence::Stream] or [sjs:observable::ObservableVar].
-    An element with a 'checked' attribute set to `checked` will be inserted into the document.
+    An element with a 'checked' attribute set to `Boolean(checked)` will be inserted into the document.
 
     ----
 
@@ -626,50 +629,46 @@ if (hostenv === 'xbrowser') {
   // just setting it, if the given value is not an observable):
   function syncCheckboxValue(node, value, edited, settings) {
     settings = settings || {};
-    if (@isStream(value)) {
-      var internal_set = false, first = true;
-      waitfor {
-        value .. @each.track {|val|
-          if (internal_set) continue;
-          // make sure an undefined field gets initialized with 'false':
-          if (first) {
-            first = false;
-            if (val === undefined && @isObservableVar(value)) {
-              val = false;
-              if (settings.checkedToVal)
-                val = settings.checkedToVal(val);
-              value.set(val);
-              continue;
-            }
-          }
-          if (settings.valToChecked)
-            val = settings.valToChecked(val);
-          val = Boolean(val);
-          if (node.checked !== val)
-            node.checked = val;
-        }
-      }
-      and {
-        if (@isObservableVar(value)) {
-          @events(node, 'change') .. @each { |ev|
-            var val = node.checked;
+    var internal_set = false, first = true;
+    waitfor {
+      value .. @each.track {|val|
+        if (internal_set) continue;
+        // make sure an undefined field gets initialized with 'false':
+        if (first) {
+          first = false;
+          if (val === undefined && @isObservableVar(value)) {
+            val = false;
             if (settings.checkedToVal)
               val = settings.checkedToVal(val);
-
-            internal_set = true;
-            try {
-              value.set(val);
-            }
-            finally {
-              internal_set = false;
-            }
-            if (edited)
-              edited.set(true);
+            value.set(val);
+            continue;
           }
         }
+        if (settings.valToChecked)
+          val = settings.valToChecked(val);
+        val = Boolean(val);
+        if (node.checked !== val)
+          node.checked = val;
       }
-    } else {
-      node.checked = Boolean(value);
+    }
+    and {
+      if (@isObservableVar(value)) {
+        @events(node, 'change') .. @each { |ev|
+          var val = node.checked;
+          if (settings.checkedToVal)
+            val = settings.checkedToVal(val);
+          
+          internal_set = true;
+          try {
+            value.set(val);
+          }
+          finally {
+            internal_set = false;
+          }
+          if (edited)
+            edited.set(true);
+        }
+      }
     }
   }
 
@@ -682,12 +681,9 @@ if (hostenv === 'xbrowser') {
       if (itf) {
         var value = itf.value;
         node.setAttribute('id', itf.id);
+        // keep node's value in sync with observable:
+        syncCheckboxValue(node, value, itf ? itf.display_validation, settings);
       }
-      else {
-        value = '';
-      }
-      // keep node's value in sync with observable:
-      syncCheckboxValue(node, value, itf ? itf.display_validation, settings);
     });
 
 
@@ -699,11 +695,15 @@ if (hostenv === 'xbrowser') {
       // a field input element
       rv = rv .. FieldCheckboxMechanism(settings);
     }
-    else {
+    else if (@isStream(settings.checked)) {
       rv = rv .. @Mechanism(function(node) {
         syncCheckboxValue(node, settings.checked);
       });
     }
+    else {
+      rv = rv .. @Attrib('checked', Boolean(settings.checked));
+    }
+
     return rv;
   };
 }
