@@ -788,7 +788,7 @@ function StreamClassMechanism(ft, cls) {
   });
 }
 
-function setAttribValue(element, name, v) {
+__js function setAttribValue(element, name, v) {
   if (typeof v === 'boolean') {
     if (v) element.attribs[name] = 'true';
     // else leave out attribute
@@ -828,7 +828,7 @@ function StreamAttribMechanism(ft, name, obs) {
     dynamic (xbrowser) context; if `val` is a Stream and
     this element is used in a static [::Document], an error will
     be thrown. `values` of Stream type will be iterated in a [::DynamicDOMContext] set to 
-    `element`s DOM node.
+    `element`'s DOM node.
 
     If `value` is a boolean (or `value` is a a stream that yields a
     boolean), then the attribute will be set to the string `'true'` if
@@ -849,8 +849,10 @@ function Attrib(element, name, value) {
   if (isStream(value)) {
     return element .. StreamAttribMechanism(name, value);
   }
-  __js element = cloneElement(element);
-  setAttribValue(element, name, value);
+  __js {
+    element = cloneElement(element);
+    setAttribValue(element, name, value);
+  }
   return element;
 }
 exports.Attrib = Attrib;
