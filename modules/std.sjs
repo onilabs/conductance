@@ -174,6 +174,8 @@ module.exports = require(modules);
    - **Element**: (class [mho:surface::Element])
    - **Enabled**: (function [mho:surface::Enabled])
    - **ensureElement**: (function [mho:surface::ensureElement])
+   - **getDOMNode**: (function [mho:surface::getDOMNode])
+   - **getDOMNodes**: (function [mho:surface::getDOMNodes])
    - **GlobalCSS**: (function [mho:surface::GlobalCSS])
    - **Id**: (function [mho:surface::Id])
    - **insertAfter**: (function [mho:surface::insertAfter])
@@ -195,6 +197,7 @@ module.exports = require(modules);
    - **RequireExternalScript**: (function [mho:surface::RequireExternalScript])
    - **ScrollStream**: (function [mho:surface::ScrollStream])
    - **Style**: (function [mho:surface::Style])
+   - **withDOMContext**: (function [mho:surface::withDOMContext])
   
   
   ### Symbols from the [sjs:array](#sjs%3Aarray) module:
@@ -297,6 +300,7 @@ module.exports = require(modules);
   ### Symbols from the [sjs:observable](#sjs%3Aobservable) module:
   
    - **changes**: (function [sjs:observable::changes])
+   - **constantObservable**: (function [sjs:observable::constantObservable])
    - **current**: (function [sjs:observable::current])
    - **eventStreamToObservable**: (function [sjs:observable::eventStreamToObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])

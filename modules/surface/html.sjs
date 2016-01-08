@@ -18,8 +18,9 @@ var imports = [
 
 if (hostenv === 'xbrowser') {
   imports = imports.concat([
-    {id:'./dynamic', include: ['replaceContent', 'findContext']},
-    {id:'./field', name:'field'}
+    {id:'./dynamic', include: ['replaceContent']},
+    {id:'./field', name:'field'},
+    {id:'./nodes', include: ['getDOMITF']}
   ]);
 }
 
@@ -271,10 +272,10 @@ var Label;
 if (hostenv === 'xbrowser') {
 
   var FieldLabelMechanism = @Mechanism(function(node) {
-    // XXX should use more specific api here; not [CTX_FIELD].id directly
-    var ctx = node .. @findContext(@field.CTX_FIELD);
-    if (ctx) {
-      node.setAttribute('for', ctx.id);
+    // XXX should use more specific api here; not [ITF_FIELD].id directly
+    var itf = node .. @getDOMITF(@field.ITF_FIELD);
+    if (itf) {
+      node.setAttribute('for', itf.id);
     }
   });
 
@@ -407,17 +408,17 @@ if (hostenv === 'xbrowser') {
   var FieldInputMechanism = (content, settings) ->
     content .. @Mechanism(function(node) {
     // XXX should use more specific api here; not
-    // [CTX_FIELD].id/.value/.display_validation directly
-      var ctx = node .. @findContext(@field.CTX_FIELD);
-      if (ctx) {
-        var value = ctx.value;
-        node.setAttribute('id', ctx.id);
+    // [ITF_FIELD].id/.value/.display_validation directly
+      var itf = node .. @getDOMITF(@field.ITF_FIELD);
+      if (itf) {
+        var value = itf.value;
+        node.setAttribute('id', itf.id);
       }
       else {
         value = '';
       }
       // keep node's value in sync with observable:
-      syncValue(node, value, ctx ? ctx.display_validation, settings);
+      syncValue(node, value, itf ? itf.display_validation, settings);
     });
 
 
@@ -676,17 +677,17 @@ if (hostenv === 'xbrowser') {
   var FieldCheckboxMechanism = (content, settings) ->
     content .. @Mechanism(function(node) {
       // XXX should use more specific api here; not
-      // [CTX_FIELD].id/.value/.display_validation directly
-      var ctx = node .. @findContext(@field.CTX_FIELD);
-      if (ctx) {
-        var value = ctx.value;
-        node.setAttribute('id', ctx.id);
+      // [ITF_FIELD].id/.value/.display_validation directly
+      var itf = node .. @getDOMITF(@field.ITF_FIELD);
+      if (itf) {
+        var value = itf.value;
+        node.setAttribute('id', itf.id);
       }
       else {
         value = '';
       }
       // keep node's value in sync with observable:
-      syncCheckboxValue(node, value, ctx ? ctx.display_validation, settings);
+      syncCheckboxValue(node, value, itf ? itf.display_validation, settings);
     });
 
 

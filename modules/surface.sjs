@@ -13,7 +13,7 @@
   @summary Conductance sub-system for constructing static and dynamic client-side UI
 */
 
-var modules = ['./surface/base'];
+var modules = ['./surface/base', './surface/nodes'];
 if (require('sjs:sys').hostenv === 'xbrowser') {
   modules.push('./surface/dynamic');
 } else {
@@ -26,6 +26,7 @@ module.exports = require(modules);
 /**
 
 @require ./surface/base
+@require ./surface/nodes
 @require ./surface/dynamic
 
 @class HtmlFragment
@@ -177,36 +178,6 @@ module.exports = require(modules);
   Creates a widget which (when inserted into the document)
   adds the given `style` CSS rules. Unlike [::CSS], the attached style
   will not be scoped to any particular widget.
-
-@feature DynamicDOMContext
-@summary An implicitly defined dynamic DOM context
-@desc
-   There are a number of functions in the [surface::] module that operate on 
-   the DOM tree and need to be called with a DOM node argument, such as e.g. 
-   [surface/field::Valid].
-
-   This is problematic under some circumstances, because we sometimes want to 
-   use these functions before the DOM tree has actually been built, and we haven't got a DOM node to pass to the function. E.g.:
-
-       @Button('click me') .. @Enabled(@field.Valid(/* can't pass in a node here *\/))
-
-   The [surface::] module solves this problem by having certain functions automatically inject a "dynamic DOM context" (using [sjs:sys::withDynVarContext]).
-
-   E.g. [::Mechanism] executes its mechanism function with a dynamic DOM context set to the DOM node that the mechanism will be executed on. Functions such as [surface/field::Valid] executed inside the mechanism function then automatically bind to this context if they are not explicitly bound to a DOM node:
-
-       @Mechanism(function() { ... @field.Valid() ... } // automatically binds the
-                                                        // @field.Valid call to
-                                                        // the Mechanism's DOM node
-
-   The injected DOM context has *dynamic extent*, meaning that nested function calls (and even spawned calls) from within the mechanism function will receive this context.
-
-   Most surface functions that take a function as argument inject dynamic DOM contexts when calling that function argument. They include [::Mechanism], [::appendContent], [::replaceContent], [::prependContent], [::insertBefore], [::insertAfter], [::On], [::OnClick].
-   
-   Most surface functions that take a [sjs:sequence::Stream] argument inject dynamic DOM contexts when playing back the stream. They include [::Attrib], [::Class], [::Enabled].
-
-   Functions that take advantage of dynamically injected DOM contexts in lieu of an 
-   explicit DOM node argument include [surface/field::getField], [surface/field::Valid], [surface/field::validate], [surface/field::ValidationState], [surface/field::Value].
-
 
 @function Mechanism
 @altsyntax element .. Mechanism(mechanism, [prepend])
@@ -422,6 +393,66 @@ module.exports = require(modules);
   will not be scoped to any particular element -
   they will be applied globally.
 
+
+@feature DynamicDOMContext
+@summary An implicitly defined dynamic DOM context
+@hostenv xbrowser
+@desc
+   There are a number of functions in the [surface::] module that operate on 
+   the DOM tree and need to be called with a DOM node argument, such as e.g. 
+   [surface/field::Valid].
+
+   This is problematic under some circumstances, because we sometimes want to 
+   use these functions before the DOM tree has actually been built, and we haven't got a DOM node to pass to the function. E.g.:
+
+       @Button('click me') .. @Enabled(@field.Valid(/* can't pass in a node here *\/))
+
+   The [surface::] module solves this problem by having certain functions automatically inject a "dynamic DOM context" (using [::withDOMContext]) - a variable with dynamic (rather than lexical) scope that contains a reference DOM element (or array of DOM elements).
+
+   E.g. [::Mechanism] executes its mechanism function with a dynamic DOM context set to the DOM node that the mechanism will be executed on. Functions such as [surface/field::Valid] executed inside the mechanism function then automatically bind to this context if they are not explicitly bound to a DOM node:
+
+       @Mechanism(function() { ... @field.Valid() ... } // automatically binds the
+                                                        // @field.Valid call to
+                                                        // the Mechanism's DOM node
+
+   The injected DOM context has *dynamic extent*, meaning that nested function calls (and even spawned calls) from within the mechanism function will receive this context.
+
+   Most surface functions that take a function as argument inject dynamic DOM contexts when calling that function argument. They include [::Mechanism], [::appendContent], [::replaceContent], [::prependContent], [::insertBefore], [::insertAfter], [::On], [::OnClick].
+   
+   Most surface functions that take a [sjs:sequence::Stream] argument inject dynamic DOM contexts when playing back the stream. They include [::Attrib], [::Class], [::Enabled].
+
+   The current dynamic DOM context can be retrieved using [::getDOMNode] or [::getDOMNodes].
+
+   Functions that take advantage of dynamically injected DOM contexts in lieu of an 
+   explicit DOM node argument include [surface/field::getField], [surface/field::Valid], [surface/field::validate], [surface/field::ValidationState], [surface/field::Value].
+
+
+@function withDOMContext
+@param {DOMNode|Array} [context] DOM node or Array of DOM nodes
+@param {Function} [block]
+@summary Execute `block` with a [::DynamicDOMContext] set to `context`
+@hostenv xbrowser
+@desc
+   The DOM node(s) are injected as a dynamically-scoped variable using [sjs:sys::withDynVarContext].
+
+   As described under [::DynamicDOMContext], this function is called implicitly by many surface functions, 
+   and is rarely useful in user code.
+
+@function getDOMNode
+@param {optional DOMNode|Array} [context] DOM node or Array of DOM nodes (overrides use of the [::DynamicDOMContext])
+@param {optional String} [selector] CSS selector
+@hostenv xbrowser
+@summary Retrieve a DOM node from the implicit [::DynamicDOMContext] (or an explicit context if provided)
+@desc
+   Retrieves the first DOM node in the current [::DynamicDOMContext] (or the explicit `context`, if provided) that matches `selector`. If no `selector` is given, the first node in the context will be returned.
+
+@function getDOMNodes
+@param {optional DOMNode|Array} [context] DOM node or Array of DOM nodes (overrides use of the [::DynamicDOMContext])
+@param {optional String} [selector] CSS selector
+@hostenv xbrowser
+@summary Retrieve DOM nodes from the implicit [::DynamicDOMContext] (or an explicit context if provided)
+@desc
+   Retrieves all DOM node in the current [::DynamicDOMContext] (or the explicit `context`, if provided) that matches `selector`. If no `selector` is given, an array of all root nodes in the context will be returned.
 
 @function replaceContent
 @altsyntax parent_element .. replaceContent(html)

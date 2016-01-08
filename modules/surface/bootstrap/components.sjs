@@ -1849,7 +1849,7 @@ function DateInput(settings) {
 
   function doDropdown(container) {
 
-    var field_itf = (container .. @field.getField())[@field.CTX_FIELD];
+    var field_itf = (container .. @field.getField())[@field.ITF_FIELD];
     var Value = container .. @field.Value();
 
     // initialize date to today; will update from Value, below

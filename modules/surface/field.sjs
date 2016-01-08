@@ -26,9 +26,9 @@ if (hostenv !== 'xbrowser')
 @ = require([
   'sjs:std',
   {id:'./base', include: ['Mechanism']},
-  {id:'./dynamic', include: ['appendContent', 'removeNode', 'findNodeWithContext', 'findContext']},
+  {id:'./dynamic', include: ['appendContent', 'removeNode']},
   {id:'sjs:type', include: ['Interface']},
-  {id:'./nodes', include: ['Node']}
+  {id:'./nodes', include: ['getDOMNode', 'getDOMITF', 'getDOMITFNode']}
 ]);
 
 
@@ -36,13 +36,13 @@ if (hostenv !== 'xbrowser')
 // Interfaces:
 
 /**
-   @variable CTX_FIELD
+   @variable ITF_FIELD
    @summary An [sjs:type::Interface] implemented by [::Field] DOM objects.
    @desc
-     A DOM object `obj` implementing CTX_FIELD promises to have 
+     A DOM object `obj` implementing ITF_FIELD promises to have 
      the following interface defined:
    
-         obj[CTX_FIELD] = {
+         obj[ITF_FIELD] = {
            id:               String, // document unique id
            value:            ObservableVar,
            validation_state: Observable,
@@ -59,33 +59,33 @@ if (hostenv !== 'xbrowser')
            warnings: Array of Strings
          }
 
-     CTX_FIELD is an internal implementation detail that might
+     ITF_FIELD is an internal implementation detail that might
      change in future. Client code should never call the functions listed
      above directly, but instead use the API function in the [./field::] 
      module.
 */
-var CTX_FIELD = exports.CTX_FIELD = @Interface(module, "ctx_field");
+var ITF_FIELD = exports.ITF_FIELD = @Interface(module, "itf_field");
 
 
 /**
-   @variable CTX_FIELDCONTAINER
+   @variable ITF_FIELDCONTAINER
    @summary An [sjs:type::Interface] implemented by [::FieldArray] and [::FieldMap] DOM objects. 
    @desc     
-       A DOM object `obj` implementing CTX_FIELDCONTAINER promises to have 
+       A DOM object `obj` implementing ITF_FIELDCONTAINER promises to have 
        the following interface defined:
        
-           obj[CTX_FIELDCONTAINER] = {
+           obj[ITF_FIELDCONTAINER] = {
              getField: function(name),
              addField: function(name, node),
              removeField: function(name, node)
            }
 
-       CTX_FIELDCONTAINER is an internal implementation detail that might
+       ITF_FIELDCONTAINER is an internal implementation detail that might
        change in future. Client code should never call the functions listed
        above directly, but instead use the API function in the [./field::] 
        module.
 */
-var CTX_FIELDCONTAINER = exports.CTX_FIELDCONTAINER = @Interface(module, "ctx_fieldcontainer");
+var ITF_FIELDCONTAINER = exports.ITF_FIELDCONTAINER = @Interface(module, "itf_fieldcontainer");
 
 
 //----------------------------------------------------------------------
@@ -128,18 +128,18 @@ function Value(/*[node], [path]*/) {
   var stream = @Stream(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::Value: Cannot resolve Field");
-    field_node[CTX_FIELD].value .. @each(r);
+    field_node[ITF_FIELD].value .. @each(r);
   });
   // XXX amend stream to be an observable var:
   stream.set = function(v) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::Value: Cannot resolve Field");
-    return field_node[CTX_FIELD].value.set(v);
+    return field_node[ITF_FIELD].value.set(v);
   };
   stream.modify = function(f) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::Value: Cannot resolve Field");
-    return field_node[CTX_FIELD].value.modify(f);
+    return field_node[ITF_FIELD].value.modify(f);
   };
   stream.__oni_is_ObservableVar = true;
 
@@ -168,8 +168,8 @@ function waitforDecisiveValidationState(field) {
 function validate(/*[node], [path]*/) {
   var field_node = getField.apply(null, arguments);
   if (!field_node) throw new Error("field::validate: Cannot resolve Field");
-  field_node[CTX_FIELD].toggle_display_validation();
-  return waitforDecisiveValidationState(field_node[CTX_FIELD]);
+  field_node[ITF_FIELD].toggle_display_validation();
+  return waitforDecisiveValidationState(field_node[ITF_FIELD]);
 }
 exports.validate = validate;
 
@@ -188,7 +188,7 @@ function ValidationState(/*[node], [path]*/) {
   return @Stream(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::ValidationState: Cannot resolve Field");
-    field_node[CTX_FIELD].validation_state .. @each(r);
+    field_node[ITF_FIELD].validation_state .. @each(r);
   });
 }
 exports.ValidationState = ValidationState;
@@ -208,7 +208,7 @@ function ValidationDisplayFlag(/*[node], [path]*/) {
   return @Stream(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::ValidationDisplayFlag: Cannot resolve Field");
-    field_node[CTX_FIELD].display_validation .. @each(r);
+    field_node[ITF_FIELD].display_validation .. @each(r);
   });
 }
 exports.ValidationDisplayFlag = ValidationDisplayFlag;
@@ -295,19 +295,19 @@ function getField(/*[node], [path]*/) {
       throw new Error("Invalid argument to getField(); DOM node expected, #{node} given");
   }
   else {
-    node = @Node();
+    node = @getDOMNode();
   }
     
   // XXX is this a good idea? Always asynchronize so that 'getField'
   // works from ancestor mechanisms:
   hold(0);
   
-  if (!path && node[CTX_FIELD]) return node;
+  if (!path && node[ITF_FIELD]) return node;
   
-  node = node .. @findNodeWithContext(CTX_FIELD);
+  node = node .. @getDOMITFNode(ITF_FIELD);
   if (path && path.length) {
-    if (!node[CTX_FIELDCONTAINER])
-      node = node .. @findNodeWithContext(CTX_FIELDCONTAINER);
+    if (!node[ITF_FIELDCONTAINER])
+      node = node .. @getDOMITFNode(ITF_FIELDCONTAINER);
     
     path.split('/') .. @each { 
       |component|
@@ -315,16 +315,16 @@ function getField(/*[node], [path]*/) {
         // nothing to be done
       }
       else if (component === '..') {
-        node = node.parentNode .. @findNodeWithContext(CTX_FIELDCONTAINER);
+        node = node.parentNode .. @getDOMITFNode(ITF_FIELDCONTAINER);
       }
       else
-        node = node[CTX_FIELDCONTAINER].getField(component);
+        node = node[ITF_FIELDCONTAINER].getField(component);
     }
   }
   
-  if (node && !node[CTX_FIELD]) {
+  if (node && !node[ITF_FIELD]) {
     // this is to resolve paths like '.':
-    node = node .. @findNodeWithContext(CTX_FIELD);
+    node = node .. @getDOMITFNode(ITF_FIELD);
   }
   
   return node;
@@ -354,7 +354,7 @@ exports.getField = getField;
    @setting {optional sjs:observable::ObservableVar} [ValidationState] [sjs:observable::ObservableVar] tracking the validation state of this field
    @desc
      A [../surface::Element] that is decorated as a Field creates a DOM node 
-     implementing the [::CTX_FIELD] interface.
+     implementing the [::ITF_FIELD] interface.
      
      It keeps track of a value and the validation state for this
      value. Certain DOM children, such as [./html::Input] or
@@ -435,14 +435,14 @@ function run_validators(field_node) {
   var errors = [], warnings = [];
 
   // get current values for all of our dependencies:
-  var our_value = field_node[CTX_FIELD].value .. @current;
+  var our_value = field_node[ITF_FIELD].value .. @current;
 
-  var deps = @ownPropertyPairs(field_node[CTX_FIELD].validators_deps) ..
-    @map([path] -> [path, (field_node .. getField(path))[CTX_FIELD].value .. @current]) .. @pairsToObject;
+  var deps = @ownPropertyPairs(field_node[ITF_FIELD].validators_deps) ..
+    @map([path] -> [path, (field_node .. getField(path))[ITF_FIELD].value .. @current]) .. @pairsToObject;
 
   // execute the validators in parallel, but obtain an ordered
   // results set:
-  field_node[CTX_FIELD].validators .. @transform.par(function(v) {
+  field_node[ITF_FIELD].validators .. @transform.par(function(v) {
     if (typeof v === 'object') {
       // collect all deps, starting with our current value:
       var args = [our_value];
@@ -476,11 +476,11 @@ function run_validators(field_node) {
 
 function validate_field_loop(field_node) {
 
-  var field = field_node[CTX_FIELD];
+  var field = field_node[ITF_FIELD];
 
   // determine our dependencies:
   var deps = @ownPropertyPairs(field.validators_deps) ..
-    @map([path] -> (field_node .. getField(path))[CTX_FIELD].value);
+    @map([path] -> (field_node .. getField(path))[ITF_FIELD].value);
 
   var validation_trigger;
 
@@ -506,7 +506,7 @@ function validate_field_loop(field_node) {
 }
 
 function validate_field_iteration(field_node) {
-  var field = field_node[CTX_FIELD];
+  var field = field_node[ITF_FIELD];
   waitfor {
     var {errors, warnings} = field_node .. run_validators();
   }
@@ -550,7 +550,7 @@ function Field(elem, settings /* || name, initval */) {
   return elem ..
     @Mechanism(function(node) {
 
-      var field = node[CTX_FIELD] = {
+      var field = node[ITF_FIELD] = {
         id: "__oni_field_#{++field_id_counter}",
         
         value: settings.Value || @ObservableVar(settings.initval),
@@ -563,7 +563,7 @@ function Field(elem, settings /* || name, initval */) {
         validation_loop: validate_field_loop
       };
 
-      var parent_container = node.parentNode .. @findContext(CTX_FIELDCONTAINER);
+      var parent_container = node.parentNode .. @getDOMITF(ITF_FIELDCONTAINER);
       
       waitfor {
         if (parent_container)
@@ -578,7 +578,7 @@ function Field(elem, settings /* || name, initval */) {
         // if our 'display_validation' is turned on, also turn it on for the container's field:
         if (parent_container) {
           field.display_validation .. @filter(x->!!x) .. @wait();
-          var parent_field = node.parentNode .. @findContext(CTX_FIELD);
+          var parent_field = node.parentNode .. @getDOMITF(ITF_FIELD);
           if (parent_field) parent_field.display_validation.set(true);
         }
       }
@@ -597,7 +597,7 @@ exports.Field = Field;
    @param {../surface::Element} [element]
    @desc
      A [../surface::Element] that is decorated as a FieldMap creates a DOM node 
-     implementing the [::CTX_FIELDCONTAINER] interface. The element must **also** be decorated as a [::Field] or
+     implementing the [::ITF_FIELDCONTAINER] interface. The element must **also** be decorated as a [::Field] or
      be enclosed in a [::Field].
 
      FieldMaps construct a `{name:value}` hash from their contained named [::Field]s and track this value on their 
@@ -690,7 +690,7 @@ exports.Field = Field;
 function aggregateSubfieldValidations(id_and_field_stream) {
   var errors = [], warnings = [];
   id_and_field_stream ..
-    @transform.par([key, subfield] -> [key, waitforDecisiveValidationState(subfield[CTX_FIELD])]) ..
+    @transform.par([key, subfield] -> [key, waitforDecisiveValidationState(subfield[ITF_FIELD])]) ..
     @each {
       |[key, state]|
       if (state.errors.length) {
@@ -707,16 +707,16 @@ var FieldMap = (elem) ->
   elem ..
   @Mechanism(function(node) {
 
-    var field_node = node .. @findNodeWithContext(CTX_FIELD);
+    var field_node = node .. @getDOMITFNode(ITF_FIELD);
     if (!field_node) throw new Error("FieldMap must be contained in a Field");
-    var field = field_node[CTX_FIELD];
+    var field = field_node[ITF_FIELD];
 
     // XXX maybe instantiate a field on us if there isn't one?
 
     var fieldmap = {};
     var field_mutation_emitter = @Emitter();
         
-    node[CTX_FIELDCONTAINER] = {
+    node[ITF_FIELDCONTAINER] = {
       getField: function(name) { return fieldmap[name]; },
       addField: function(name, field_node) {
         if (!name) throw new Error("Fields added to FieldMap require a name");
@@ -738,7 +738,7 @@ var FieldMap = (elem) ->
                                                 @ownPropertyPairs(fieldmap) ..
                                                   @each {
                                                     |[key, subfield]|
-                                                    subfield[CTX_FIELD].toggle_display_validation()
+                                                    subfield[ITF_FIELD].toggle_display_validation()
                                                   }
                                               });
     
@@ -756,7 +756,7 @@ var FieldMap = (elem) ->
 
       // XXX effectively this does validations twice, because a value change goes 
       // hand in hand with a change in children's validation states
-      var args = @ownPropertyPairs(fieldmap) .. @map([,subfield] -> subfield[CTX_FIELD].validation_state);
+      var args = @ownPropertyPairs(fieldmap) .. @map([,subfield] -> subfield[ITF_FIELD].validation_state);
       args.push(field.value);
       args.push(->0);
       @observe.apply(null, args) .. @each.track {
@@ -777,7 +777,7 @@ var FieldMap = (elem) ->
       // Keep our associated observable up to date:
       while (1) {
         waitfor {
-          var args = @ownPropertyPairs(fieldmap) .. @map([,subfield] -> subfield[CTX_FIELD].value);
+          var args = @ownPropertyPairs(fieldmap) .. @map([,subfield] -> subfield[ITF_FIELD].value);
           
           if (args.length === 0) {
             current_value = {};
@@ -811,7 +811,7 @@ var FieldMap = (elem) ->
           |[key,val]|
           var subfield = fieldmap[key];
           if (!subfield) continue;
-          subfield[CTX_FIELD].value.set(val);
+          subfield[ITF_FIELD].value.set(val);
         }
       }
     }
@@ -831,7 +831,7 @@ exports.FieldMap = FieldMap;
    @setting {optional Function} [valToArr]
    @desc
      A [../surface::Element] that is decorated as a FieldArray creates a DOM node 
-     implementing the [::CTX_FIELDCONTAINER] interface. The element must **also** be decorated as a [::Field] or
+     implementing the [::ITF_FIELDCONTAINER] interface. The element must **also** be decorated as a [::Field] or
      be enclosed in a [::Field].
 
      FieldArrays expect their attached [::Field]'s Value to be an
@@ -911,9 +911,9 @@ function FieldArray(elem, settings) {
   return elem ..
   @Mechanism(function(node) {
 
-    var field_node = node .. @findNodeWithContext(CTX_FIELD);
+    var field_node = node .. @getDOMITFNode(ITF_FIELD);
     if (!field_node) throw new Error("FieldArray must be contained in a Field");
-    var field = field_node[CTX_FIELD];
+    var field = field_node[ITF_FIELD];
 
     // XXX maybe instantiate a field on us if there isn't one?
 
@@ -922,7 +922,7 @@ function FieldArray(elem, settings) {
     var array_mutation_emitter = @Emitter();
         
     // fieldcontainer for our array items
-    node[CTX_FIELDCONTAINER] = {
+    node[ITF_FIELDCONTAINER] = {
       getField: function(name) { /* XXX */ },
       addField: function(name, field_node) { 
         // sanity check:
@@ -949,7 +949,7 @@ function FieldArray(elem, settings) {
                                                 fieldarray ..
                                                   @each {
                                                     |{node}|
-                                                    node[CTX_FIELD].toggle_display_validation()
+                                                    node[ITF_FIELD].toggle_display_validation()
                                                   }
                                               });
     
@@ -971,7 +971,7 @@ function FieldArray(elem, settings) {
         ||
         // XXX effectively this does validations twice, because a value change goes 
         // hand in hand with a change in children's validation states
-        var args = fieldarray .. @map(field -> field.node[CTX_FIELD].validation_state);
+        var args = fieldarray .. @map(field -> field.node[ITF_FIELD].validation_state);
         args.push(field.value);
         args.push(->0);
         @observe.apply(null, args) .. @each.track {
@@ -1034,7 +1034,7 @@ function FieldArray(elem, settings) {
                                            Field()));
             fieldarray[i] = {node: inserted[0], Index: Index};
           }
-          fieldarray[i].node[CTX_FIELD].value.set(val);
+          fieldarray[i].node[ITF_FIELD].value.set(val);
         }
         while ( fieldarray.length > x.length) {
           array_mutation = true;
@@ -1056,7 +1056,7 @@ function FieldArray(elem, settings) {
             }
             hold(); 
           }
-          var args = fieldarray .. @map(field -> field.node[CTX_FIELD].value);
+          var args = fieldarray .. @map(field -> field.node[ITF_FIELD].value);
           // the hold(0) is necessary so that we don't get individual
           // notifications when setting several fields in a temporally
           // contiguous block
@@ -1140,7 +1140,7 @@ var Validate = function(elem, validator) {
   
   return elem ..
   @Mechanism(function(node) {
-    var field = node .. @findContext(CTX_FIELD);
+    var field = node .. @getDOMITF(ITF_FIELD);
     if (!field) throw new Error("'Validate' decorator outside of a Field");
     field.validators.push(validator);
     if (typeof validator === 'object') {

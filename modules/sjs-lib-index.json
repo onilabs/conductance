@@ -264,24 +264,7 @@
       "children": {
         "formats": {
           "type": "module",
-          "children": {
-            "Code": {
-              "type": "function"
-            },
-            "Executable": {
-              "type": "function"
-            },
-            "FormatMap": {
-              "type": "class",
-              "children": {}
-            },
-            "StaticFormatMap": {
-              "type": "variable"
-            },
-            "withFormats": {
-              "type": "function"
-            }
-          },
+          "children": {},
           "summary": "File-format configuration for the conductance server"
         },
         "generator": {
@@ -7356,12 +7339,6 @@
         "field": {
           "type": "module",
           "children": {
-            "CTX_FIELD": {
-              "type": "variable"
-            },
-            "CTX_FIELDCONTAINER": {
-              "type": "variable"
-            },
             "Field": {
               "type": "function"
             },
@@ -7370,6 +7347,12 @@
             },
             "FieldMap": {
               "type": "function"
+            },
+            "ITF_FIELD": {
+              "type": "variable"
+            },
+            "ITF_FIELDCONTAINER": {
+              "type": "variable"
             },
             "Valid": {
               "type": "function"
@@ -7521,6 +7504,12 @@
         "ensureElement": {
           "type": "function"
         },
+        "getDOMNode": {
+          "type": "function"
+        },
+        "getDOMNodes": {
+          "type": "function"
+        },
         "insertAfter": {
           "type": "function"
         },
@@ -7546,6 +7535,9 @@
           "type": "function"
         },
         "replaceContent": {
+          "type": "function"
+        },
+        "withDOMContext": {
           "type": "function"
         }
       },

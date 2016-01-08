@@ -23,7 +23,7 @@
   'sjs:std'
 ]);
 var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator } = require('./base');
-var { withDOMRootContext } = require('./nodes');
+var { withDOMContext } = require('./nodes');
 var { ownPropertyPairs, ownKeys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
@@ -50,7 +50,7 @@ var resourceRegistry = {
         desc = cssInstalled[id] = { ref_count: cnt, elem: def.createElement(), mechanism: def.mechanism };
         (document.head || document.getElementsByTagName("head")[0] /* IE<9 */).appendChild(desc.elem);
         if (desc.mechanism) {
-          withDOMRootContext(desc.elem) {
+          withDOMContext(desc.elem) {
             ||
             desc.elem.__oni_mech = spawn(desc.mechanism.call(desc.elem, desc.elem));
           }
@@ -213,7 +213,7 @@ function runMechanisms(elems, await) {
 
       elems .. each {
         |elem|
-        withDOMRootContext(elem) {
+        withDOMContext(elem) {
           ||
           elem.__oni_mechs = [];
           elem.getAttribute('data-oni-mechanisms').split(' ') ..
@@ -228,7 +228,7 @@ function runMechanisms(elems, await) {
       // start streams:
       streams .. each { 
         |node|
-        withDOMRootContext(node) {
+        withDOMContext(node) {
           ||
           var [,mech] = node.nodeValue.split("|");
           node.__oni_mechs = [];
@@ -240,7 +240,7 @@ function runMechanisms(elems, await) {
       // we assume nodetype == COMMENT_NODE
       var [,mech] = elem.nodeValue.split("|");
       elem.__oni_mechs = [];
-      withDOMRootContext(elem) {
+      withDOMContext(elem) {
         ||
         elem .. addMech(mech);
       }
@@ -297,7 +297,7 @@ function insertHtml(html, block, doInsertHtml) {
   if (block) {
     try {
       waitfor {
-        withDOMRootContext(dom_context) {
+        withDOMContext(dom_context) {
           ||
           return block.apply(null, dom_context);
         }
@@ -820,29 +820,3 @@ var ScrollStream = (stream,settings) -> ContentGenerator ::
   };
 exports.ScrollStream = ScrollStream;
 
-//----------------------------------------------------------------------
-// General 'Context' helpers for use with fields, cmds, etc.
-
-/* not documented for now
-   @function findNodeWithContext
-*/
-function findNodeWithContext(node, ctx) {
-  @dom.traverseDOM(node, document) {
-    |node|
-    if (node[ctx] !== undefined) return node;
-  }
-  return undefined;
-}
-exports.findNodeWithContext = findNodeWithContext;
-
-/* not documented for now
-   @function findContext
-*/
-function findContext(node, ctx, defval) {
-  @dom.traverseDOM(node, document) {
-    |node|
-    if (node[ctx] !== undefined) return node[ctx];
-  }
-  return defval;
-}
-exports.findContext = findContext;

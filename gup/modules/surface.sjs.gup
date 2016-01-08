@@ -12,7 +12,7 @@ var contentEnd = contents.indexOf(MARKER);
 if (contentEnd != -1) {
   contents = contents.slice(0, contentEnd);
 }
-var modules = ['surface/base.sjs', 'surface/dynamic.sjs', 'surface/static.sjs'];
+var modules = ['surface/base.sjs', 'surface/nodes.sjs', 'surface/dynamic.sjs', 'surface/static.sjs'];
 @childProcess.run('gup', ['-u'].concat(modules), {stdio:'inherit'});
 
 var unindent = (s) -> s.replace(/^\n+/, '') .. @unindent;
@@ -33,6 +33,7 @@ var output = contents + MARKER + "
 /**
 
 @require ./surface/base
+@require ./surface/nodes
 @require ./surface/dynamic
 
 #{docComments .. @join("\n")}
