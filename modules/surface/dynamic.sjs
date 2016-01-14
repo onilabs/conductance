@@ -767,6 +767,7 @@ exports.CollectStream = CollectStream;
    @param {sjs:sequence::Stream} [stream]
    @param {optional Object} [settings]
    @setting {Integer} [tolerance=0] Distance (in pixels) that an element needs to be off-screen before we stop appending elements and wait for scrolling
+   @setting {Function} [post_append] Function `f(appended_node_array)` to call after each item in the stream has been appended. 
    @return {::HtmlFragment}
    @desc
      `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
@@ -774,6 +775,8 @@ exports.CollectStream = CollectStream;
 
      Elements of `stream` will be appended to the DOM as they are produced and only up the point where they overflow
      the window. When the user scrolls the last element into view, more elements will be inserted.
+
+     If a `post_append` function is provided, it will be called with an array of the top DOM nodes of each appended element. If `post_append` returns a truthy value, no overflow check will be made, and the next element from `stream` will be appended.
 */
 
 __js function elemPartiallyWithinViewport(elem, tolerance) {
@@ -797,7 +800,11 @@ var AncestorScrollEvents = function(node) {
 
 var ScrollStream = (stream,settings) -> ContentGenerator ::
   function(append) {
-    var tolerance = settings && settings.tolerance ? settings.tolerance : 0;
+    settings = {
+      tolerance: 0,
+      post_append: undefined 
+    } .. @override(settings);
+
     // XXX it sucks that we have to keep track of all elements to remove them in the
     // finally clause, when in 90% of the time a container would take care of element
     // removal (and shutdown of their mechanisms)
@@ -805,9 +812,11 @@ var ScrollStream = (stream,settings) -> ContentGenerator ::
     try {
       stream .. each {
         |item|
-        appended = appended.concat(append(item));
+        appended = appended.concat(item = append(item));
+        if (settings.post_append)
+          if (settings.post_append(item)) continue;
         // check if the last piece we appended is within window:
-        while (!elemPartiallyWithinViewport(appended[appended.length - 1], tolerance)) {
+        while (!elemPartiallyWithinViewport(appended[appended.length - 1], settings.tolerance)) {
           AncestorScrollEvents(appended[appended.length -1]) .. @wait();
         }
       }

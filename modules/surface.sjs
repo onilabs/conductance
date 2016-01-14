@@ -236,7 +236,7 @@ module.exports = require(modules);
   dynamic (xbrowser) context; if `val` is a Stream and
   this element is used in a static [::Document], an error will
   be thrown. `values` of Stream type will be iterated in a [::DynamicDOMContext] set to 
-  `element`s DOM node.
+  `element`'s DOM node.
 
   If `value` is a boolean (or `value` is a a stream that yields a
   boolean), then the attribute will be set to the string `'true'` if
@@ -730,6 +730,7 @@ module.exports = require(modules);
 @param {sjs:sequence::Stream} [stream]
 @param {optional Object} [settings]
 @setting {Integer} [tolerance=0] Distance (in pixels) that an element needs to be off-screen before we stop appending elements and wait for scrolling
+@setting {Function} [post_append] Function `f(appended_node_array)` to call after each item in the stream has been appended. 
 @return {::HtmlFragment}
 @desc
   `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
@@ -737,6 +738,8 @@ module.exports = require(modules);
 
   Elements of `stream` will be appended to the DOM as they are produced and only up the point where they overflow
   the window. When the user scrolls the last element into view, more elements will be inserted.
+
+  If a `post_append` function is provided, it will be called with an array of the top DOM nodes of each appended element. If `post_append` returns a truthy value, no overflow check will be made, and the next element from `stream` will be appended.
 
 @function Document
 @hostenv nodejs
