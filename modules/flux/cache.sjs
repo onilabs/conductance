@@ -126,15 +126,18 @@ exports.Cache = function(upstream, options) {
     query: function(entity) {
       // XXX expulsion; finalization
       var key = JSON.stringify(entity);
-      var entry = items.get(key);
-      if (!entry) {
-        items.put(key, entry = MemoizedStream(upstream.query(entity)));
-        var hook;
-        if (!(hook = query_items[entity.schema]))
-          hook = query_items[entity.schema] = [];
-        hook.push(key);
-      }
-      return entry;
+
+      return Stream(function(receiver) {
+        var entry = items.get(key);
+        if (!entry) {
+          items.put(key, entry = MemoizedStream(upstream.query(entity)));
+          var hook;
+          if (!(hook = query_items[entity.schema]))
+            hook = query_items[entity.schema] = [];
+          hook.push(key);
+        }
+        entry .. each(receiver);
+      });
     },
     withTransaction: function(options, block) {
       // for consistency, we need to have transactions handled directly by the backend:
