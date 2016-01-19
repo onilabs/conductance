@@ -264,3 +264,42 @@ function getDOMITF(/* [node], itf */) {
   return undefined;
 }
 exports.getDOMITF = getDOMITF;
+
+/* not documented for now
+*/
+function makeDOMITFMethodAPI(itf_name, method_name, settings) {
+  
+  settings = {
+    dom_node_passthrough: true
+  } .. @override(settings);
+
+  return function(/* node, other args */) {
+    args = @clone(arguments);
+
+    var node;
+    if (@dom.isDOMNode(args[0])) {
+      node = args[0];
+      if (!settings.dom_node_passthrough)
+        args.shift();
+    }
+    else {
+      console.log('first arg is ', args[0]);
+      node = getDOMNode();
+      if (settings.dom_node_passthrough)
+        args.unshift(node);
+    }
+      
+    var itf = node .. getDOMITF(itf_name);
+    return itf[method_name].apply(itf, args);
+  }
+}
+exports.makeDOMITFMethodAPI = makeDOMITFMethodAPI;
+
+/* not documented for now
+*/
+function makeDOMITFVarAPI(itf_name, var_name) {
+  return function(node) {
+    return (node .. getDOMITF(itf_name))[var_name];
+  }
+}
+exports.makeDOMITFVarAPI = makeDOMITFVarAPI;

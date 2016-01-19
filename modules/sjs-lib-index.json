@@ -7413,6 +7413,20 @@
             }
           },
           "summary": "Basic HTML elements"
+        },
+        "widgets": {
+          "type": "module",
+          "children": {
+            "DropdownMenu": {
+              "type": "function"
+            },
+            "doDropdown": {
+              "type": "function"
+            },
+            "popover": {
+              "type": "function"
+            }
+          }
         }
       },
       "summary": "Client-side UI module"
