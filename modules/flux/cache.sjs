@@ -54,7 +54,8 @@ function MemoizedStream(s) {
 exports.Cache = function(upstream, options) {
 
   options = {
-    maxsize: 10000
+    maxsize: 10000,
+    cacheQueries: true
   } .. override(options);
 
   var items = makeCache(options.maxsize);
@@ -123,21 +124,26 @@ exports.Cache = function(upstream, options) {
       }
       return entry .. clone;
     },
-    query: function(entity) {
-      // XXX expulsion; finalization
-      var key = JSON.stringify(entity);
-
-      return Stream(function(receiver) {
-        var entry = items.get(key);
-        if (!entry) {
-          items.put(key, entry = MemoizedStream(upstream.query(entity)));
-          var hook;
-          if (!(hook = query_items[entity.schema]))
-            hook = query_items[entity.schema] = [];
-          hook.push(key);
-        }
-        entry .. each(receiver);
-      });
+    query: function(entity) { 
+      if (options.cacheQueries) {
+        // XXX expulsion; finalization
+        var key = JSON.stringify(entity);
+        
+        return Stream(function(receiver) {
+          var entry = items.get(key);
+          if (!entry) {
+            items.put(key, entry = MemoizedStream(upstream.query(entity)));
+            var hook;
+            if (!(hook = query_items[entity.schema]))
+              hook = query_items[entity.schema] = [];
+            hook.push(key);
+          }
+          entry .. each(receiver);
+        });
+      }
+      else {
+        return upstream.query(entity);
+      }
     },
     withTransaction: function(options, block) {
       // for consistency, we need to have transactions handled directly by the backend:
