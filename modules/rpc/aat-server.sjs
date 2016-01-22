@@ -142,8 +142,9 @@ function createTransport(finish) {
         // if we only sent part of the messages (because we have to
         // send binary & json messages separately), make sure we prod
         // any pending poll to pick up messages immediately:
-        if (out_messages.length && resume_poll) 
+        if (send_q.length && resume_poll) { 
           resume_poll();
+        }
 
       } retract {
         // out_messages didn't actually make it - re-queue them
