@@ -122,22 +122,14 @@ Protocol:
 
 */
 
-var logging = require('sjs:logging');
-var { each, toArray, map, filter, find, join, transform, isStream, isBatchedStream, BatchedStream, Stream, at, any } = require('sjs:sequence');
-var { hostenv } = require('sjs:sys');
-var { pairsToObject, allKeys, ownKeys, get, ownPropertyPairs, ownValues, merge, hasOwn } = require('sjs:object');
-var { isArrayLike } = require('sjs:array');
-var { isString, startsWith, contains } = require('sjs:string');
-var { identity, isFunction, ITF_SIGNAL, signal } = require('sjs:function');
-var { Emitter, wait } = require('sjs:event');
-var { Quasi, isQuasi } = require('sjs:quasi');
-var { eq } = require('sjs:compare');
-var bytes = require('sjs:bytes');
-var http = require('sjs:http');
-var Url = require('sjs:url');
-var global = require('sjs:sys').getGlobal();
+@ = require([
+  'sjs:std',
+  {id:'sjs:bytes', name:'bytes'},
+  {id:'./error', include: ['isTransportError', 'TransportError']}
+]);
+
 var apiRegistry, weak;
-if (hostenv !== 'xbrowser') {
+if (@sys.hostenv !== 'xbrowser') {
   apiRegistry = require('../server/api-registry')
   try {
     weak = require('nodejs:weak');
@@ -165,15 +157,14 @@ var MAX_MSG_REORDER_BUFFER = 10000;
   @return {Boolean}
   @summary Returns whether `err` is a [::TransportError]
 */
-var { isTransportError, TransportError } = require('./error');
 
 /**
   @class TransportError
   @summary The error type raised by connection errors in a [::BridgeConnection]
 */
-exports.isTransportError = isTransportError;
+exports.isTransportError = @isTransportError;
 
-exports.TransportError = TransportError;
+exports.TransportError = @TransportError;
 
 //----------------------------------------------------------------------
 // marshalling
@@ -220,7 +211,7 @@ function setMarshallingDescriptor(obj, descr) {
   var [remoteMod, remoteKey] = wrapRemote;
   // turn an api object into a serializable reference
   if (remoteMod.__oni_apiid !== undefined) {
-    descr = descr .. merge({
+    descr = descr .. @merge({
       wrapRemote: [{__oni_apiid: remoteMod.__oni_apiid}, remoteKey],
     });
   }
@@ -284,27 +275,27 @@ exports.API = API;
 
 
 __js {
-  var coerceBinary, isNodeJSBuffer, nodejs = hostenv === 'nodejs';
-  var toIterableBytes = identity;
-  var isBytes = bytes.isBytes;
+  var coerceBinary, isNodeJSBuffer, nodejs = @sys.hostenv === 'nodejs';
+  var toIterableBytes = @fn.identity;
+  var isBytes = @bytes.isBytes;
   if (nodejs) {
     isNodeJSBuffer = value -> Buffer.isBuffer(value);
     coerceBinary = function(b, t) {
       switch(t) {
-        case 'b': return b .. bytes.toBuffer();
-        case 'a': return b .. bytes.toUint8Array();
+        case 'b': return b .. @bytes.toBuffer();
+        case 'a': return b .. @bytes.toUint8Array();
         default: throw new Error("Unknown binary type #{t}");
       }
     };
     // nodejs can't send an ArrayBuffer as a request body
-    toIterableBytes = b -> b instanceof ArrayBuffer ? b .. bytes.toUint8Array : b;
+    toIterableBytes = b -> b instanceof ArrayBuffer ? b .. @bytes.toUint8Array : b;
   } else {
     isNodeJSBuffer = -> false;
     // browser can only represent binary data as TypedArray
-    coerceBinary = identity;
+    coerceBinary = @fn.identity;
     if(typeof(Blob) !== 'undefined') {
       // treat browser `Blob` as bytes
-      isBytes = (b) -> bytes.isBytes(b) || b instanceof Blob;
+      isBytes = (b) -> @bytes.isBytes(b) || b instanceof Blob;
     }
   }
 }
@@ -325,21 +316,21 @@ function marshall(value, connection) {
       if(value.__oni_marshalling_properties)
         k = value.__oni_marshalling_properties.concat('__oni_marshalling_properties');
       else
-        k = allKeys(value) .. filter(name ->
+        k = @allKeys(value) .. @filter(name ->
           root[name] !== value[name] && (
             name === '__oni_apiid' || (
               name !== 'toString' && 
-              !name.. startsWith('__oni') &&
-              name !== ITF_SIGNAL  
+              !name.. @startsWith('__oni') &&
+              name !== @fn.ITF_SIGNAL  
             )
           )
         );
-      return k .. transform(name -> [name, prepare(value[name])]);
+      return k .. @transform(name -> [name, prepare(value[name])]);
     }
 
     function withProperties(dest, value, root) {
       var props = dest.props = {};
-      processProperties(value, root) .. each {|[name, val]|
+      processProperties(value, root) .. @each {|[name, val]|
         props[name] = val;
       }
       return dest;
@@ -355,9 +346,9 @@ function marshall(value, connection) {
     function prepare(value) {
       var rv = value;
       if (typeof value === 'function') {
-        if (isStream(value)) {
+        if (@isStream(value)) {
           rv = { __oni_type: 'stream', id: connection.publishFunction(value) };
-          if (isBatchedStream(value))
+          if (@isBatchedStream(value))
             rv.batched = true;
         }
         else {
@@ -376,10 +367,10 @@ function marshall(value, connection) {
         connection.sendBlob(id, value);
         rv = { __oni_type: 'blob', id:id };
       }
-      else if (isArrayLike(value)) {
-        rv = value .. map(prepare);
+      else if (@isArrayLike(value)) {
+        rv = value .. @map(prepare);
       }
-      else if (isQuasi(value)) {
+      else if (@isQuasi(value)) {
         rv = {__oni_type: 'quasi', val: prepare(value.parts) };
       }
       else if (typeof value === 'object' && value !== null) {
@@ -392,7 +383,7 @@ function marshall(value, connection) {
           rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack } .. withExplicitProperties(value);
           // many error APIs provide errno / code to distinguish error types, so include
           // those if present
-          ['errno','code'] .. each {|k|
+          ['errno','code'] .. @each {|k|
             if(value[k] === undefined) continue;
             if(!rv.props) rv.props = {};
             rv.props[k] = value[k];
@@ -402,14 +393,14 @@ function marshall(value, connection) {
           // publish on the connection:
           connection.publishAPI(value);
           // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
-          var methods = allKeys(value.obj) .. 
-            filter(name -> typeof value.obj[name] === 'function') ..
-            toArray;
+          var methods = @allKeys(value.obj) .. 
+            @filter(name -> typeof value.obj[name] === 'function') ..
+            @toArray;
           rv = { __oni_type:'api', id: value.id, methods: methods};
         }
         else {
           // a normal object -> traverse it
-          rv = processProperties(value, Object.prototype) .. pairsToObject;
+          rv = processProperties(value, Object.prototype) .. @pairsToObject;
         }
       }
       else if (typeof value === 'undefined') {
@@ -457,7 +448,7 @@ function unmarshallComplexTypes(obj, connection) {
     rv = new Date(obj.val);
   }
   else if (obj.__oni_type == 'quasi') {
-    rv = Quasi(obj.val);
+    rv = @Quasi(obj.val);
   }
   else if (obj.__oni_type == 'error') {
     rv = unmarshallError(obj, connection);
@@ -469,7 +460,7 @@ function unmarshallComplexTypes(obj, connection) {
       mod = apiRegistry.getAPIbyAPIID(apiid);
     } else {
       if (connection.localWrappers &&
-          connection.localWrappers .. find(w -> w .. eq(obj.wrap), false)
+          connection.localWrappers .. @find(w -> w .. @eq(obj.wrap), false)
       ) {
         mod = require(obj.wrap[0]);
       } else {
@@ -482,14 +473,14 @@ function unmarshallComplexTypes(obj, connection) {
     rv = undefined;
   }
   else {
-    ownKeys(obj) .. each {
+    @ownKeys(obj) .. @each {
       |key|
       obj[key] = unmarshallComplexTypes(obj[key], connection);
     }
     return obj;
   }
-  if (obj .. hasOwn('props')) {
-    ownKeys(obj.props) .. each {
+  if (obj .. @hasOwn('props')) {
+    @ownKeys(obj.props) .. @each {
       |key|
       rv[key] = unmarshallComplexTypes(obj.props[key], connection);
     }
@@ -508,7 +499,7 @@ function unmarshallBlob(obj, connection) {
     // referencing call: aat-server doesn't get a "notification" when
     // the data has arrived at the client, since it is being sent in a
     // http response. Hence the `wait` here:
-    connection.dataReceived .. wait();
+    connection.dataReceived .. @wait();
   }
   delete connection.received_blobs[id];
   return blob;
@@ -524,13 +515,13 @@ function unmarshallAPI(obj, connection) {
   // make a proxy for the api:
   var proxy = { };
 
-  obj.methods .. each {
+  obj.methods .. @each {
     |m| 
     __js {
       var f = function() { 
         return connection.makeCall(obj.id, m, arguments);
       };
-      f[ITF_SIGNAL] = function(this_obj, args) {
+      f[@fn.ITF_SIGNAL] = function(this_obj, args) {
         return connection.makeSignalledCall(obj.id, m, args);
       };
       proxy[m] = f;
@@ -546,7 +537,7 @@ function unmarshallFunction(obj, connection) {
     var f = function() {
       return connection.makeCall(-1, obj.id, arguments);
     };
-    f[ITF_SIGNAL] = function(this_obj, args) {
+    f[@fn.ITF_SIGNAL] = function(this_obj, args) {
       return connection.makeSignalledCall(-1, obj.id, args);
     };
     if(weak) {
@@ -562,7 +553,7 @@ function unmarshallStream(obj, connection) {
   // them. 
   // To fix this, we introduce an intermediate `getter` function:
 
-  var ctor = obj.batched ? BatchedStream : Stream;
+  var ctor = obj.batched ? @BatchedStream : @Stream;
 
   return ctor(
     function(receiver) {
@@ -619,17 +610,17 @@ function BridgeConnection(transport, opts) {
   var closed = false;
   var throwing = opts.throwing !== false;
 
-  var sessionLost = Emitter(); // session has been lost
+  var sessionLost = @Emitter(); // session has been lost
   
   // emitter that gets prodded every time a binary data packet is received;
   // see note under `unmarshallBlob` for details
-  var dataReceived = Emitter(); 
+  var dataReceived = @Emitter(); 
 
   if (opts.publish)
     published_apis[0] = opts.publish;
 
   function send(data) {
-    if (closed) throw TransportError('session lost');
+    if (closed) throw @TransportError('session lost');
 
     var args = marshall(data, connection);
 
@@ -649,12 +640,12 @@ function BridgeConnection(transport, opts) {
     localWrappers: opts.localWrappers,
 
     sendBlob: function(id, obj) {
-      var t = bytes.isArrayBuffer(obj) || bytes.isUint8Array(obj) ? 'a' : 'b'; // array | buffer
+      var t = @bytes.isArrayBuffer(obj) || @bytes.isUint8Array(obj) ? 'a' : 'b'; // array | buffer
       transport.sendData({id: id, t:t}, obj .. toIterableBytes);
       return id;
     },
     makeSignalledCall: function(api, method, args) {
-      send(['signal', api, method, toArray(args)])
+      send(['signal', api, method, @toArray(args)])
     },
     del: function(type, id) {
       var args = marshall(['del', type, id], connection);
@@ -665,22 +656,22 @@ function BridgeConnection(transport, opts) {
       waitfor {
         // initiate waiting for return value:
         waitfor (var rv, isException) {
-          //logging.debug("awaiting result for call #{call_no} (#{method})");
+          //@logging.debug("awaiting result for call #{call_no} (#{method})");
           pending_calls[call_no] = resume;
         }
         retract {
-          //logging.debug("call #{call_no} (#{method}) retracted");
+          //@logging.debug("call #{call_no} (#{method}) retracted");
           send(['abort', call_no]);
         }
         finally {
-          //logging.debug("deleting call responder #{call_no} (#{method})");
+          //@logging.debug("deleting call responder #{call_no} (#{method})");
           delete pending_calls[call_no];
         }
-        //logging.debug("got result for call #{call_no} - #{rv}");
+        //@logging.debug("got result for call #{call_no} - #{rv}");
       }
       and {
         // make the call.
-        send(['call', call_no, api, method, toArray(args)]);
+        send(['call', call_no, api, method, @toArray(args)]);
       }
       if (isException) throw rv;
       return rv;
@@ -708,23 +699,23 @@ function BridgeConnection(transport, opts) {
         transport = null;
       }
 
-      executing_calls .. ownValues .. each {|s|
+      executing_calls .. @ownValues .. @each {|s|
         spawn(function() {
           try {
             s.abort();
           } catch(e) {
-            logging.warn("Error while aborting executing call: #{e}");
+            @logging.warn("Error while aborting executing call: #{e}");
           }
         }());
       }
       executing_calls = {};
 
-      pending_calls .. ownValues .. each {|r|
+      pending_calls .. @ownValues .. @each {|r|
         spawn(function() {
           try {
-            r(TransportError('session lost'), true);
+            r(@TransportError('session lost'), true);
           } catch(e) {
-            logging.warn("Error while aborting pending call: #{e}");
+            @logging.warn("Error while aborting pending call: #{e}");
           }
         }());
       }
@@ -740,7 +731,7 @@ function BridgeConnection(transport, opts) {
 
     function inner() {
       var packet = transport.receive();
-      //logging.debug("received packet", packet);
+      //@logging.debug("received packet", packet);
       waitfor {
         if (packet.type === 'message') {
           var data = packet.data;
@@ -751,7 +742,7 @@ function BridgeConnection(transport, opts) {
             msg_reorder_buffer[data.seq] = data.msg;
             ++queued_msg_count;
             if (queued_msg_count > MAX_MSG_REORDER_BUFFER)
-              throw TransportError("Message reorder buffer exhausted"); 
+              throw @TransportError("Message reorder buffer exhausted"); 
           }
           else {
             receiveMessage(data.msg);
@@ -771,7 +762,7 @@ function BridgeConnection(transport, opts) {
         else if (packet.type === 'error')
           throw(packet.data);
         else {
-          logging.warn("Unknown packet '#{packet.type}' received");
+          @logging.warn("Unknown packet '#{packet.type}' received");
         }
       }
       and {
@@ -788,7 +779,7 @@ function BridgeConnection(transport, opts) {
     }
     catch (e) {
       if (!throwing) {
-        logging.debug("Error while receiving; terminating BridgeConnection: #{e}");
+        @logging.debug("Error while receiving; terminating BridgeConnection: #{e}");
         connection.__finally__();
         sessionLost.emit(e);
         return;
@@ -821,11 +812,11 @@ function BridgeConnection(transport, opts) {
       break;
     case 'signal':
       if (message[1] /*api_id*/ == -1) {
-        published_funcs[message[2] /*method*/] .. signal(null, message[3] /*args*/);
+        published_funcs[message[2] /*method*/] .. @signal(null, message[3] /*args*/);
       }
       else {
         published_apis[message[1] /*api_id*/][message[2] /*method*/] .. 
-          signal(published_apis[message[1]], message[3] /*args*/);
+          @signal(published_apis[message[1]], message[3] /*args*/);
       }
       break;
     case 'del':
@@ -905,19 +896,19 @@ function BridgeConnection(transport, opts) {
 */
 exports.resolve = function(api_name, opts) {
   try {
-    var apiinfo = http.json([api_name, {format:'json'}], opts);
+    var apiinfo = @http.json([api_name, {format:'json'}], opts);
   }
   catch(e) {
-    throw TransportError(e.message);
+    throw @TransportError(e.message);
   }
   // catch syntax errors in the api module; don't throw as transport errors:
   if (!apiinfo) throw new Error("Error resolving #{api_name}");
   if (apiinfo.error) throw new Error(apiinfo.error);
-  if (!nodejs && !api_name .. contains('://')) {
+  if (!nodejs && !api_name .. @contains('://')) {
     // resolve relative paths in browser
-    api_name = Url.normalize(api_name, document.location.href);
+    api_name = @url.normalize(api_name, document.location.href);
   }
-  apiinfo.server = Url.normalize(apiinfo.root || '/', api_name);
+  apiinfo.server =@url.normalize(apiinfo.root || '/', api_name);
   return apiinfo;
 };
 
@@ -967,7 +958,7 @@ exports.connect = function(apiinfo, opts, block) {
   if(typeof(opts) == 'function') throw new Error("opts are required when passing a block to connect()");
   if(!opts) opts={};
   var transport = opts.transport;
-  if (isString(apiinfo)) {
+  if (@isString(apiinfo)) {
     apiinfo = exports.resolve(apiinfo);
   }
 
@@ -977,16 +968,16 @@ exports.connect = function(apiinfo, opts, block) {
       transport = require('./aat-client').openTransport(server);
     }
     var marshallers = defaultMarshallers.concat(opts.localWrappers || []);
-    var connection = BridgeConnection(transport, opts .. merge({
+    var connection = BridgeConnection(transport, opts .. @merge({
       throwing: !!block,
-      api:apiinfo .. get('id'),
+      api:apiinfo .. @get('id'),
       localWrappers: marshallers
     }));
   }
   or {
     if (opts.connectMonitor) {
       opts.connectMonitor();
-      throw TransportError("connect monitor abort");
+      throw @TransportError("connect monitor abort");
     }
     else
       hold();
@@ -998,10 +989,10 @@ exports.connect = function(apiinfo, opts, block) {
         connection.stratum.waitforValue();
       }
       catch (e) {
-        logging.verbose("Bridge connection lost: #{e}");
+        @logging.verbose("Bridge connection lost: #{e}");
       }
 
-      throw TransportError("Bridge connection lost");
+      throw @TransportError("Bridge connection lost");
     } or {
       return block(connection);
     }
