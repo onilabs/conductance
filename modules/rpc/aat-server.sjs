@@ -31,8 +31,10 @@ var { toBuffer } = require('sjs:bytes');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
 var PING_INTERVAL = 1000*40; // 40 seconds
-var POLL_ACCU_INTERVAL = 100; // 200 ms
-var EXCHANGE_ACCU_INTERVAL = 10; // 10ms
+
+// maximum number of return messages to batch:
+var MAX_RETURN_BATCH = 200;
+
 
 var isNodeJSBuffer;
 if (hostenv === 'nodejs') {
@@ -113,20 +115,25 @@ function createTransport(finish) {
           if (in_messages.length && resume_receive) {
             resume_receive();
             if (!flush) return;
-            // wait a little bit for outgoing messages:
-            hold(EXCHANGE_ACCU_INTERVAL);
+            // wait for temporally adjacent calls:
+            hold(0);
           }
           
           // construct our out_messages queue. this will either be
           // a single binary message, or an arbitrary number of textual 
           // messages (which will be encoded as JSON):
-          while (send_q.length) {
+          while (send_q.length && out_messages.length < MAX_RETURN_BATCH) {
             if (isNodeJSBuffer(send_q[0])) {
               if (out_messages.length === 0)
                 out_messages.push(send_q.shift());
               break;
             }
             out_messages.unshift(send_q.shift());
+            // accumulate 'hold(0)-adjacent calls' (see also TemporalBatcher in aat-client):
+            if (send_q.length === 0) {
+              hold(0);
+              hold(0);
+            }
           }
         }
         finally {
@@ -166,8 +173,6 @@ function createTransport(finish) {
         if(resume_receive) resume_receive();
       }
 
-      // give messages a small time to accumulate:
-      hold(POLL_ACCU_INTERVAL);
       if (!send_q.length) {
         waitfor {
           waitfor(var e) { resume_poll = resume; }

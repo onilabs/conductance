@@ -26,7 +26,7 @@
    @nodoc
 */
 
-@ = require(['sjs:string', 'sjs:object', 'sjs:sequence']);
+@ = require(['sjs:string', 'sjs:object', 'sjs:sequence', 'sjs:event']);
 var http = require('sjs:http');
 var url  = require('sjs:url');
 var func = require('sjs:function');
@@ -41,28 +41,65 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
 // The maximum time that the server will take to answer our poll
 // requests + a little grace period. Coordinated with
 // aat-server::PING_INTERVAL.
-var SERVER_PING_INTERVAL = 1000*(40+5); 
+var SERVER_PING_INTERVAL = 1000*(40+15); 
 
-// time (in ms) over which to batch aat calls:
+// maximum number of calls to batch:
+var MAX_CALL_BATCH = 200;
+
+
 /* 
-  Why we set a non-zero call batch period:
+  NB
+  Why we use two hold(0)'s in TemporalBatcher
 
-  With CALL_BATCH_PERIOD set to 0, only 'temporally adjacent' calls
+  With one hold(0), only 'temporally adjacent' calls
   will batched into a single request, i.e. calls that don't have a
   hold(0) (or longer) in between them. 
 
   Several library functions, such as each.par/transform.par, etc, have
-  hold(0)'s built-in to limit recursion depth. 
+  hold(0)'s built-in to limit recursion depth. We say they produce "hold(0)-adjacent results".
   In a call such as
 
     data .. @transform.par(50, datum -> server.foo(datum)) .. ...
 
   there will be a built-in hold(0) for every 10's concurrent invocation of 
   server.foo.
-  Thus a value of CALL_BATCH_PERIOD = 0 would cause only 10 server.foo calls to be batched up 
-  into the same request, and not 50 as the code might suggest. 
 */
-var CALL_BATCH_PERIOD = 20;
+function TemporalBatcher(flush) {
+  var batch;
+
+  function batcher(initial) {
+    var args = [initial];
+    batch = @Emitter();
+    while (1) {
+      waitfor {
+        args.push(batch .. @wait());
+        if (args.length >= MAX_CALL_BATCH)
+          break;
+      }
+      or {
+        // see comment above on why there are two holds here
+        hold(0);
+        hold(0);
+        break;
+      }
+    }
+    batch = undefined;
+    try {
+      // XXX we might flush reentrantly. the transport should be able to cope with that
+      flush(args);
+    }
+    catch(e) { console.log('aat-client: error flushing:'+e); }
+  }
+
+  return function(arg) {
+    if (batch) { 
+      batch.emit(arg);
+    }
+    else
+      spawn batcher(arg);
+  }
+}
+
 
 /*
 
@@ -185,6 +222,12 @@ function openTransport(server, requestOpts) {
         }
         
         // put any messages in receive queue:
+/*        
+        if (messages.length)
+          console.log('<< '+messages.length+' messages from poll');
+        else
+          console.log('<< empty poll');
+*/
         receive_q = receive_q.concat(messages);
 
         // prod receiver:
@@ -229,6 +272,9 @@ function openTransport(server, requestOpts) {
         throw TransportError("response not ok: #{status_code}");
 
       // put any messages in receive queue:
+/*      if (messages.length)
+        console.log('<< '+messages.length+' received from send');
+*/
       receive_q = receive_q.concat(messages);
 
       // prod receiver:
@@ -245,11 +291,14 @@ function openTransport(server, requestOpts) {
   var transport = {
     active: true,
 
-    send: func.unbatched(function(messages) {
-      // XXX we actually don't want to use 'unbatched' here, because
-      // we don't need to map the return value. We want some async
-      // equivalent to 'unbatched'
-      sendCommand.call(this,
+    send: TemporalBatcher(function(messages) { 
+/*      if (messages.length === 1) {
+        console.log(messages[0]);
+      }
+      else
+        console.log('>> sending '+messages.length);
+*/
+      sendCommand.call(transport,
         [server, SERVER_PATH, AAT_VERSION,
         {
           cmd: "send#{transport_id_suffix}"
@@ -259,8 +308,7 @@ function openTransport(server, requestOpts) {
           headers: {'Content-Type': 'text/plain; charset=utf-8'},
           body: JSON.stringify(collectPending(messages))
         });
-      return messages; // XXX no point in mapping the return value
-    }, {batch_period:CALL_BATCH_PERIOD}),
+    }),
 
     enqueue: function(message) {
       // add a non-timely message to be sent out with the next
