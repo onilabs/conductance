@@ -35,13 +35,14 @@ var PING_INTERVAL = 1000*40; // 40 seconds
 // maximum number of return messages to batch:
 var MAX_RETURN_BATCH = 200;
 
-
-var isNodeJSBuffer;
-if (hostenv === 'nodejs') {
-  isNodeJSBuffer = value -> Buffer.isBuffer(value);
-}
-else {
-  isNodeJSBuffer = -> false;
+__js {
+  var isNodeJSBuffer;
+  if (hostenv === 'nodejs') {
+    isNodeJSBuffer = value -> Buffer.isBuffer(value);
+  }
+  else {
+    isNodeJSBuffer = -> false;
+  }
 }
 
 //----------------------------------------------------------------------
@@ -116,7 +117,8 @@ function createTransport(finish) {
             resume_receive();
             if (!flush) return;
             // wait for temporally adjacent calls:
-            hold(0);
+            if (send_q.length === 0)
+              hold(0);
           }
           
           // construct our out_messages queue. this will either be
@@ -132,7 +134,8 @@ function createTransport(finish) {
             // accumulate 'hold(0)-adjacent calls' (see also TemporalBatcher in aat-client):
             if (send_q.length === 0) {
               hold(0);
-              hold(0);
+              if (send_q.length === 0)
+                hold(0);
             }
           }
         }

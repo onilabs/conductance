@@ -430,55 +430,74 @@ function unmarshall(message, connection) {
 }
 
 function unmarshallComplexTypes(obj, connection) {
+
   if (typeof obj != 'object' || obj === null) return obj;
-  var rv;
+
+  __js {
+
+  // XXX ideally we would like 'unmarshallComplexTypes' to be fully __js, but the presence of blobs and
+  // potentially asynchronous localWrappers makes this impossible atm.
+
+  var rv, potentially_async = false;
+
   if (obj.__oni_type == 'func') {
-    rv = unmarshallFunction(obj, connection);
+    rv = unmarshallFunction(obj, connection); //__js
   }
   else if (obj.__oni_type == 'stream') {
-    rv = unmarshallStream(obj, connection);
+    rv = unmarshallStream(obj, connection); // can be called __js
   }
   else if (obj.__oni_type == 'api') {
-    rv = unmarshallAPI(obj, connection);
+    rv = unmarshallAPI(obj, connection); // can be called __js
   }
-  else if (obj.__oni_type == 'blob') {
-    rv = unmarshallBlob(obj, connection);
-  }
-  else if (obj.__oni_type == 'date') {
+  else if (obj.__oni_type == 'date') { // __js
     rv = new Date(obj.val);
   }
-  else if (obj.__oni_type == 'quasi') {
+  else if (obj.__oni_type == 'quasi') { // __js
     rv = @Quasi(obj.val);
   }
-  else if (obj.__oni_type == 'error') {
+  else if (obj.__oni_type == 'error') { // __js
     rv = unmarshallError(obj, connection);
   }
-  else if (obj.__oni_type == 'custom_marshalled') {
-    var mod;
-    var apiid = obj.wrap[0].__oni_apiid;
-    if(apiid !== undefined) {
-      mod = apiRegistry.getAPIbyAPIID(apiid);
-    } else {
-      if (connection.localWrappers &&
-          connection.localWrappers .. @find(w -> w .. @eq(obj.wrap), false)
-      ) {
-        mod = require(obj.wrap[0]);
-      } else {
-        throw new Error("Unsupported marshalling descriptor: #{obj.wrap}");
-      }
-    }
-    rv = mod[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
-  }
-  else if (obj.__oni_type === 'undef') {
+  else if (obj.__oni_type === 'undef') { // __js
     rv = undefined;
   }
-  else {
-    @ownKeys(obj) .. @each {
-      |key|
-      obj[key] = unmarshallComplexTypes(obj[key], connection);
+  else
+    potentially_async = true;
+
+  } // __js
+  
+
+  if (potentially_async) {
+
+    if (obj.__oni_type == 'blob') {
+      rv = unmarshallBlob(obj, connection); // NOT __JS
     }
-    return obj;
+    else if (obj.__oni_type == 'custom_marshalled') {
+      var mod;
+      var apiid = obj.wrap[0].__oni_apiid;
+      if(apiid !== undefined) {
+        mod = apiRegistry.getAPIbyAPIID(apiid);
+      } else {
+        if (connection.localWrappers &&
+            connection.localWrappers .. @find(w -> w .. @eq(obj.wrap), false)
+           ) {
+          mod = require(obj.wrap[0]);
+        } else {
+          throw new Error("Unsupported marshalling descriptor: #{obj.wrap}");
+        }
+      }
+      rv = mod[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
+    }
+    else {
+      // generic object -> descend recursively
+      @ownKeys(obj) .. @each {
+        |key|
+        obj[key] = unmarshallComplexTypes(obj[key], connection);
+      }
+      return obj;
+    }
   }
+
   if (obj .. @hasOwn('props')) {
     @ownKeys(obj.props) .. @each {
       |key|
@@ -505,7 +524,7 @@ function unmarshallBlob(obj, connection) {
   return blob;
 }
 
-function unmarshallError(props, connection) {
+__js function unmarshallError(props, connection) {
   var err = new Error(props.message);
   err.__oni_stack = props.stack;
   return err;
@@ -531,21 +550,21 @@ function unmarshallAPI(obj, connection) {
   return proxy;
 }
 
+__js {
 function unmarshallFunction(obj, connection) {
   // make a proxy for the function:
-  __js {
-    var f = function() {
-      return connection.makeCall(-1, obj.id, arguments);
-    };
-    f[@fn.ITF_SIGNAL] = function(this_obj, args) {
-      return connection.makeSignalledCall(-1, obj.id, args);
-    };
-    if(weak) {
-      weak(f, unpublishFunction(obj.id, connection));
-    }
+  var f = function() {
+    return connection.makeCall(-1, obj.id, arguments);
+  };
+  f[@fn.ITF_SIGNAL] = function(this_obj, args) {
+    return connection.makeSignalledCall(-1, obj.id, args);
+  };
+  if(weak) {
+    weak(f, unpublishFunction(obj.id, connection));
   }
   return f;
 }
+} // __js
 
 function unmarshallStream(obj, connection) {
   // Blocklambda return/break don't work across spawn boundaries
@@ -796,6 +815,22 @@ function BridgeConnection(transport, opts) {
     dataReceived.emit();
   }
 
+  __js {
+    function performReceivedCallSync(call_no, api_id, method, args) {
+      var rv;
+      try {
+        if (api_id === -1) 
+          rv = published_funcs[method].apply(null, args);
+        else
+          rv = published_apis[api_id][method].apply(published_apis[api_id], args);
+      }
+      catch (e) {
+        return ['return_exception', call_no, e];
+      }
+      return ['return', call_no, rv];
+    }
+  }
+
   function receiveMessage(message) {
     var message = unmarshall(message, connection);
 
@@ -827,28 +862,39 @@ function BridgeConnection(transport, opts) {
       }
       break;
     case 'call':
+
       if (executing_calls[message[1]]) break; // duplicate call
-      executing_calls[message[1]] = spawn (function(call_no, api_id, method, args) {
-        // xxx asynchronize, so that executing_calls[call_no] will be filled in:
-        hold(0);
-        var response;
-        try {
-          var rv;
-          if (api_id == -1)
-            rv = published_funcs[method].apply(null, args);
-          else
-            rv = published_apis[api_id][method].apply(published_apis[api_id], args);
-          response = ["return", call_no, rv];
-        }
-        catch (e) {
-          response = ["return_exception", call_no, e];
-        }
-        finally {
-          delete executing_calls[call_no];
-        }
-        send(response);
-      })(message[1], message[2], message[3], message[4]);
+      
+      // we'll attempt to perform the call synchronously. this will return
+      // an execution frame if the call went async. in that case we spawn a
+      // stratum to manage the call.
+      __js var call_rv = performReceivedCallSync(message[1], //call_no
+                                                 message[2], // api_id
+                                                 message[3], // method, 
+                                                 message[4] // args
+                                                );
+      if (__oni_rt.is_ef(call_rv[2])) {
+        // go async
+        executing_calls[message[1]] = 
+          spawn(function(ef, call_id) { 
+            var rv;
+            try {
+              rv = ['return', call_id, ef.wait()];
+            }
+            catch (e) {
+              rv = ['return_exception', call_id, e];
+            }
+            finally {
+              delete executing_calls[call_id];
+            }
+            send(rv);
+          })(call_rv[2], message[1])
+      }
+      else {
+          send(call_rv);
+      }
       break;
+
     case 'abort':
       var executing_call = executing_calls[message[1]];
       if (executing_call) {
