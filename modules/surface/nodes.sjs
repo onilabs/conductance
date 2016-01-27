@@ -283,7 +283,6 @@ function makeDOMITFMethodAPI(itf_name, method_name, settings) {
         args.shift();
     }
     else {
-      console.log('first arg is ', args[0]);
       node = getDOMNode();
       if (settings.dom_node_passthrough)
         args.unshift(node);
