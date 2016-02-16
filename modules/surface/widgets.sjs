@@ -128,14 +128,15 @@ function popover(anchor, element, settings, block) {
   // append to the document body. determine position from anchor:
 
   var anchor_rect = anchor.getBoundingClientRect(); 
+
   var popover_CSS = @CSS("
     {
       position: absolute;
       z-index: 1000;
       #{settings.left !== undefined ?  "left: #{anchor_rect.left + (anchor_rect.right-anchor_rect.left)*settings.left+window.scrollX}px;" : ''}
-      #{settings.right !== undefined ?  "right: #{anchor_rect.left + (anchor_rect.right-anchor_rect.left)*settings.right+window.scrollX}px;" : ''}
+      #{settings.right !== undefined ?  "right: #{window.innerWidth - (anchor_rect.left + (anchor_rect.right-anchor_rect.left)*settings.right+window.scrollX)}px;" : ''}
       #{settings.top !== undefined ?  "top: #{anchor_rect.top + (anchor_rect.bottom-anchor_rect.top)*settings.top+window.scrollY}px;" : ''}
-      #{settings.bottom !== undefined ?  "bottom: #{anchor_rect.top + (anchor_rect.bottom-anchor_rect.top)*settings.bottom+window.scrollY}px;" : ''}
+      #{settings.bottom !== undefined ?  "bottom: #{window.innerHeight - (anchor_rect.top + (anchor_rect.bottom-anchor_rect.top)*settings.bottom+window.scrollY)}px;" : ''}
     }
   ");
 
@@ -223,6 +224,12 @@ function waitforClosingClick(elem) {
      Any content that is not an `Li()` [surface::Element] will be wrapped as an `Li()`.
 
      Any click will close the dropdown. If an item with an attached `action` function is clicked, `doDropdown` returns the result of executing `action()`.
+
+     ### Positioning
+
+     If neither `left` nor `right` are specified the dropdown will be horizontally aligned to the
+     edge closest to the viewport border.
+
    @demo
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, 'mho:surface/widgets']);
 
@@ -308,6 +315,19 @@ function doDropdown(/* anchor, items, [settings] */) {
     return rv;
   }
 
+  if (settings.left === undefined && settings.right === undefined) {
+    // intelligently align dropdown to edge closest to viewport boundary
+    var anchor_rect = anchor.getBoundingClientRect(); 
+    var dX = (anchor_rect.left + anchor_rect.right)/2;
+    if (dX < window.innerWidth - dX) {
+      settings.left = 0;
+    }
+    else {
+      settings.right = 1;
+    }
+      
+  }
+
 
   anchor .. popover(
     @Ul(settings.items .. @transform(makeDropdownItem) .. @toArray) .. DropdownMenu_CSS,
@@ -315,8 +335,8 @@ function doDropdown(/* anchor, items, [settings] */) {
   ) {
     |dropdownDOMElement|
     waitforClosingClick(dropdownDOMElement);
-    hold(0); // asynchronize, so that we don't act on propagating clicks again
   }
+  hold(0); // asynchronize, so that we don't act on propagating clicks again
   if (action)
     return action();
 }
