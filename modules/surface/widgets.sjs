@@ -34,6 +34,21 @@ var CaretCSS = @CSS(
   `);
 exports.Caret = @B() .. CaretCSS;
 
+//----------------------------------------------------------------------
+/**
+   @function ActionLink
+   @summary An `<a>` element that performs an action when clicked
+   @param {surface::HtmlFragment} [content] Link content
+   @param {Function} [action] Function to be executed when clicked. Will be passed the `<a>` DOM element.
+   @desc
+     Shorthand for
+
+         @A(content) .. 
+           @Attrib('href', '#') .. 
+           @OnClick({handle: @preventDefault}, ev -> action(ev.currentTarget))
+*/
+exports.ActionLink = (content, action) ->
+  @A(content) .. @Attrib('href', '#') .. @OnClick({handle: @preventDefault}, ev -> action(ev.currentTarget));
 
 //----------------------------------------------------------------------
 
@@ -212,8 +227,7 @@ function waitforClosingClick(elem) {
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, 'mho:surface/widgets']);
 
 
-     function doMenu(event) {
-       var target = event.currentTarget;
+     function doMenu(target) {
        var rv = 
           target .. @doDropdown(
            [
@@ -227,8 +241,7 @@ function waitforClosingClick(elem) {
 
      @mainContent .. @appendContent([
        @demo.CodeResult("\
-     function doMenu(event) {
-       var anchor = event.currentTarget;
+     function doMenu(anchor) {
        var rv = 
          anchor .. @doDropdown(
            [
@@ -241,14 +254,10 @@ function waitforClosingClick(elem) {
      }
      
      @mainContent .. @appendContent(
-
-       @Span(`Menu $@Caret`) .. 
-         @Style('cursor:pointer') ..
-         @OnClick(doMenu)
-
+       @ActionLink(`Menu $@Caret`, doMenu)
      )
      ",
-     @Span(`Menu $@Caret`) .. @Style('cursor: pointer') .. @OnClick(doMenu)
+     @ActionLink(`Menu $@Caret`, doMenu)
      )
      ])
      
@@ -315,7 +324,7 @@ exports.doDropdown = doDropdown;
 
 /**
    @function DropdownMenu
-   @summary document me
+   @deprecated Use [::doDropdown]
 */
 function DropdownMenu(anchor, items, settings) {
   return anchor ..
