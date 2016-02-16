@@ -19,10 +19,64 @@
 
 /**
    @function popover
-   @summary document me
+   @summary Show a popover appended
+   @param {DOMNode} [anchor] DOM element relative to which popover will be positioned
+   @param {surface::HtmlFragment} [content] Popover content
+   @param {optional Object} [settings] 
+   @param {Function} [block] Function bounding lifetime of popover
+   @setting {Integer} [top=1] Top position of popover relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
+   @setting {Integer} [left=0] Left position of popover relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
+   @setting {Integer} [bottom=undefined] Bottom position of popover relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
+   @setting {Integer} [right=undefined] Right position of popover relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
+   @demo
+     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, 'mho:surface/widgets']);
+
+     function doPopover(event) {
+       @stopEvent(event);
+       event.target .. @popover(@Div('This is a popover') .. @Style('border:2px solid #ffff00;background: #ffffcc;padding:5px;')) { 
+         ||
+         document .. @wait('click');
+       }
+     }
+
+     @mainContent .. @appendContent([
+       @demo.CodeResult("\
+     function doPopover(event) {
+       @stopEvent(event);
+       event.target .. 
+         @popover(
+           @Div('This is a popover') .. 
+             @Style(...)
+         ) { 
+           ||
+           document .. @wait('click');
+         }
+     }
+
+     @mainContent .. @appendContent([
+       'The quick brown fox jumps over the ',
+       @B('lazy') .. @OnClick(doPopover),
+       ' dog',
+       @Br(),
+       'This is some more content. 1234567890.'
+     ]);
+       ",
+       ["The quick brown fox jumps over the ", 
+        @B("lazy") .. @Style('cursor:pointer') .. @OnClick(doPopover), 
+        " dog.",
+       @Br(),
+       'This is some more content. 1234567890.'])
+        ]);
 */
 
 function popover(anchor, element, settings, block) {
+
+  // untangle arguments:
+  if (block === undefined && typeof settings === 'function') {
+    block = settings;
+    settings = undefined;
+  }
+  
   settings = {
     top: undefined,
     left: undefined,
