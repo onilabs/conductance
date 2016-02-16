@@ -287,6 +287,9 @@ function doDropdown(/* anchor, items, [settings] */) {
         item.content !== undefined) {
       rv = item.content;
       if (item.action) {
+        // make sure item is wrapped as <li>, so that we capture clicks on the full menu item:
+        if (!@isElementOfType(rv, 'li'))
+          rv = @Li(rv);
         rv = rv .. @OnClick(-> action = item.action);
       }
     }
