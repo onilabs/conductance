@@ -16,10 +16,30 @@
 ])
 
 //----------------------------------------------------------------------
+/**
+   @variable Caret
+   @summary A down-pointing caret arrow [surface::Element] (e.g. for use in dropdown triggers) 
+*/
+
+var CaretCSS = @CSS(
+  `
+  {
+    display: inline-block;
+    margin-left: 2px;
+    vertical-align: middle;
+    border-top: 4px solid;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+  }
+  `);
+exports.Caret = @B() .. CaretCSS;
+
+
+//----------------------------------------------------------------------
 
 /**
    @function popover
-   @summary Show a popover appended
+   @summary Display a popover 
    @param {DOMNode} [anchor] DOM element relative to which popover will be positioned
    @param {surface::HtmlFragment} [content] Popover content
    @param {optional Object} [settings] 
@@ -165,10 +185,73 @@ function waitforClosingClick(elem) {
   }
 }
 
-
 /**
    @function doDropdown
-   @summary document me
+   @altsyntax anchor .. doDropdown(items, [settings])
+   @summary Display a dropdown menu and handle mouse/keyboard interactions
+   @param {Object} [settings] 
+   @setting {DOMNode} [anchor] DOM element relative to which dropdown will be positioned
+   @setting {Array} [items] Array of menu items as outlined in the description below. 
+   @setting {Integer} [top=1] Top position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
+   @setting {Integer} [left=0] Left position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
+   @setting {Integer} [bottom=undefined] Bottom position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
+   @setting {Integer} [right=undefined] Right position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
+   @return {Object} 
+   @desc
+     Members of `elems` can either be [surface::HTMLFragment] content or objects
+
+         {
+           content: HTMLFragment,
+           action: Function
+         }
+
+     Any content that is not an `Li()` [surface::Element] will be wrapped as an `Li()`.
+
+     Any click will close the dropdown. If an item with an attached `action` function is clicked, `doDropdown` returns the result of executing `action()`.
+   @demo
+     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, 'mho:surface/widgets']);
+
+
+     function doMenu(event) {
+       var target = event.currentTarget;
+       var rv = 
+          target .. @doDropdown(
+           [
+             {content: 'foo', action: -> 'You chose foo'},
+             {content: 'bar', action: -> 'You chose bar'}
+           ]
+         );
+       if (rv !== undefined) 
+         target .. @insertAfter(@Div(rv));
+     }
+
+     @mainContent .. @appendContent([
+       @demo.CodeResult("\
+     function doMenu(event) {
+       var anchor = event.currentTarget;
+       var rv = 
+         anchor .. @doDropdown(
+           [
+             {content: 'foo', action: -> 'You chose foo'},
+             {content: 'bar', action: -> 'You chose bar'}
+           ]
+         );
+       if (rv !== undefined) 
+         anchor .. @insertAfter(@Div(rv));
+     }
+     
+     @mainContent .. @appendContent(
+
+       @Span(`Menu $@Caret`) .. 
+         @Style('cursor:pointer') ..
+         @OnClick(doMenu)
+
+     )
+     ",
+     @Span(`Menu $@Caret`) .. @Style('cursor: pointer') .. @OnClick(doMenu)
+     )
+     ])
+     
 */
 function doDropdown(/* anchor, items, [settings] */) {
   
