@@ -238,7 +238,7 @@ staticExports.configure = function(opts) {
               }
 
               a, .btn-link { color: ${mhoColors.onilabs_red}; }
-              a:hover, a:active, .btn-link:hover, .btn-link:active { color: ${mhoColors.onilabs_redhighlight}; }
+              a:hover, a:focus, a:active, .btn-link:hover, .btn-link:active { color: ${mhoColors.onilabs_redhighlight}; }
 
               code {
                 color:#333;
