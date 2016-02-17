@@ -7417,6 +7417,12 @@
         "widgets": {
           "type": "module",
           "children": {
+            "ActionLink": {
+              "type": "function"
+            },
+            "Caret": {
+              "type": "variable"
+            },
             "DropdownMenu": {
               "type": "function"
             },
