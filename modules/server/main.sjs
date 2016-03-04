@@ -260,6 +260,14 @@ var actions = [
       }
       require('./project-template').initProject(args[0]);
     }
+  },
+  { name: 'doc',
+    desc: 'Run the conductance/sjs documentation browser app',
+    fn: function(args) {
+      process.chdir("#{env.conductanceRoot}doc");
+      exports.serve(args);
+    },
+    defaultVerbosity: -1, // WARN
   }
 ];
 
