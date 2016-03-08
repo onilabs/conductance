@@ -19,6 +19,13 @@
   `.app` files contain Stratified JavaScript code, but are served by Conductance as HTML documents. 
   The file's code will be executed on the client-side on document load.
 
+  ### Wildcard _.gen files
+
+  A file `_.app` is a **wildcard** application file: It will be
+  invoked whenever a requested file in the directory of the `_.app`
+  file or any subdirectory thereof is not found.
+
+
   ### Customizing how the `.app` file gets served
 
   Before serving the file, Conductance will scan any [sjs:#language/metadata::] comments 
@@ -84,19 +91,21 @@
   [surface::loadTemplate].
 
 
-@directive @bundle
-@summary Bundle this module's dependencies in a single .js file
+@directive @no-bundle
+@summary Don't bundle this module's dependencies 
 @desc
   By default, `.sjs` modules used by an `.app` are loaded
-  individually, on-demand. If you include the `@bundle`
-  directive, Conductance will serve up this app's code as
-  a single file containing all required modules.
+  in a single file containing all required modules.
+  If you include the `@no-bundle` directive, Conductance will serve up this 
+  app's code as individual files, on-demand. 
 
-  This reduces the number of round-trips, but reduces the
-  opportunity for caching - e.g different bundles will
+  Bundling reduces the number of round-trips, but at the same time 
+  reduces the opportunity for caching - e.g different bundles will
   duplicate all common modules, and a change
   in any file will cause the entire bundle to
   be re-downloaded.
+
+  ### General notes on bundling
 
   The same limitations as mentioned in the documentation for the
   [sjs:bundle::] module apply:
@@ -107,7 +116,7 @@
     (and any transitively `require`d modules). To include other modules in the 
     bundle you can use the [sjs:#language/metadata::@require] directive.
 
-  Furthermore, [::@bundle] makes certain assumptions about co-location 
+  Furthermore, bundling makes certain assumptions about co-location 
   of relative paths as mapped from server to client (in the server's [mho:#features/mho-file::]):
 
   * Relative module URLs such as `require('./some-directory/foo')` will be resolved 

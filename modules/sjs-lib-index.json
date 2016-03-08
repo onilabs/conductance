@@ -24,7 +24,7 @@
         "app-file": {
           "type": "module",
           "children": {
-            "@bundle": {
+            "@no-bundle": {
               "type": "directive"
             },
             "@template": {

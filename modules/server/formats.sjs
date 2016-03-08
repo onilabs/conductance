@@ -59,7 +59,7 @@ function sjscompile(src, aux) {
 //----------------------------------------------------------------------
 // filter that generates the html boilerplate for *.app files:
 function gen_app_html(src, aux) {
-  var app_name = aux.request.url.file || "index.app";
+  var app_name = aux.appurl || aux.request.url.file || "index.app";
 
   var documentSettings = {
     init: "require(\"#{app_name}!sjs\");",
@@ -79,8 +79,8 @@ function gen_app_html(src, aux) {
     }
   }
 
-  if (docs['bundle'] .. docutil.toBool === true) {
-      documentSettings.externalScripts.push("#{app_name}!bundle");
+  if (docs['no-bundle'] .. docutil.toBool !== true) {
+      documentSettings.externalScripts.push("#{aux.appurl || app_name}!bundle");
   }
 
   var { Document, loadTemplate } = require('../surface');
