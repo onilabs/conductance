@@ -120,8 +120,9 @@ var generatorCache = lruCache.makeCache(10*1000*1000); // 10MB
 // Optionally:
 //  - etag:  etag of the input stream
 //  - apiinfo: function returning API info object (for api files; only if settings.allowApis == true)
+//  - appurl: name of app module (for use with _.app wildcard apps)
 function formatResponse(req, item, settings) {
-  var { input, filePath, filetype, format, apiinfo } = item;
+  var { input, filePath, filetype, format, apiinfo, appurl } = item;
 
   var notAcceptable = HttpError(406, 'Not Acceptable',
                                 'Could not find an appropriate representation');
@@ -178,7 +179,7 @@ function formatResponse(req, item, settings) {
         var cache_entry = formatdesc.cache.get(req.request.url);
 
         if (!cache_entry || cache_entry.etag != etag) {
-          output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, filepath: filePath });
+          output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, appurl: appurl, filepath: filePath });
           cache_entry = { etag: etag, data: output ..join('') };
           debug("populating cache #{req.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(req.request.url, cache_entry, cache_entry.data.length);
@@ -190,7 +191,7 @@ function formatResponse(req, item, settings) {
 
       // no cache or no etag -> filter straight to response
       } else {
-        output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, filepath: filePath });
+        output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, appurl: appurl, filepath: filePath });
       }
 
     // No filter function -> serve the file straight from disk
@@ -327,11 +328,40 @@ var defaultApiinfo = function() { throw new Error("apiinfo not set"); }
 
 // attempt to serve the given file; return 'false' if not found
 function serveFile(req, filePath, format, settings) {
+  var appurl;
   try {
     var stat = fs.stat(filePath);
   }
   catch (e) {
-    return settings.allowGenerators ? generateFile(req, filePath, format, settings) : false;
+    try {
+      // check if we've got a wildcard _.app file in one of our parent directories
+      var p = filePath;
+      var wildcardDepth = './';
+      while (1) {
+        // strip off last component of path:
+        var idx = p.lastIndexOf('/');
+        if (idx === -1) throw 'bail';
+        p = p.substring(0, idx);
+
+        // make sure we don't go below 'root':
+        if (p.indexOf(settings.root) !== 0) throw 'bail';
+        try {
+          var stat = fs.stat(p + '/_.app');
+          if (!stat.isFile()) continue;
+          // success!
+          filePath = p + '/_.app';
+          appurl = wildcardDepth + '_.app';
+          break;
+        }
+        catch (e) {
+          // go a level higher
+          wildcardDepth = wildcardDepth + '../';
+        }
+      }
+    }
+    catch (e) {
+      return settings.allowGenerators ? generateFile(req, filePath, format, settings) : false;
+    }
   }
   if (!stat.isFile()) return false;
 
@@ -378,6 +408,7 @@ function serveFile(req, filePath, format, settings) {
                nodefs.createReadStream(filePath, opts) .. stream.contents,
       filePath: filePath,
       apiinfo: apiinfo,
+      appurl: appurl,
       filetype: extension,
       format: format,
       etag: (settings.etag || exports.etag.mtime)(stat, filePath),
