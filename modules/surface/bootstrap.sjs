@@ -1436,9 +1436,10 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @param {Object} [settings]
 @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
 @setting {sjs:sequence::Sequence|Function} [suggestions] function search_term_stream -> suggestions_stream
-@setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
-@setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
+@setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.)
+@setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.)
 @setting {optional surface::HtmlFragment} [extra_buttons]
+@setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
 @desc
   suggestions can be one of the following:
   

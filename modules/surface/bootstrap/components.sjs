@@ -1414,6 +1414,7 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
    @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.)
    @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.)
    @setting {optional surface::HtmlFragment} [extra_buttons]
+   @setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
    @desc
      suggestions can be one of the following:
      
@@ -1443,14 +1444,15 @@ function ElemClass(elem,cls) {
 var InputGroup      = ElemClass('div','input-group');
 var InputGroupBtn   = ElemClass('span', 'input-group-btn');
 var Caret           = ElemClass('span', 'caret');
+var PositionInitial = @CSS(`{position: initial; }`);
 
-var InputDropdown = menu -> [exports.Btn('default',
+var InputDropdown = (left_align,menu) -> [exports.Btn('default',
                                               Caret(),
                                               {'class': 'dropdown-toggle',
                                                'type':  'button',
                                                'data-toggle': 'dropdown',
                                                'style': 'width:34px;'}),
-                             menu .. @Class('dropdown-menu dropdown-menu-right')];
+                             menu .. @Class("dropdown-menu #{left_align ? '':'dropdown-menu-right'}")];
 
 // helper to format suggestions:
 // returns a structure { matching: true|false, html: ... }
@@ -1529,12 +1531,14 @@ function SelectInput(settings) {
         suggestions : [],
         txtToVal: null,
         valToTxt: null,
-        extra_buttons: undefined
+        extra_buttons: undefined,
+        left_dropdown: false
       } .. @override(settings);
   }
 
 
   var dropdown = InputDropdown(
+                  settings.left_dropdown,
                   @html.Ul() .. 
                     @Mechanism(function(node) {
                       // get our associated text input:
@@ -1621,16 +1625,21 @@ function SelectInput(settings) {
         ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open'));
 */
 
+  var btn_group = InputGroupBtn([
+    dropdown,
+    settings.extra_buttons
+  ]);
+
+  if (settings.left_dropdown)
+    btn_group = btn_group .. PositionInitial; // override 'position:relative'
+
   var rv = 
     InputGroup(
       [
         @html.Input(settings) ..
           @On('input', 
               ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
-        InputGroupBtn([
-          dropdown,
-          settings.extra_buttons
-        ])
+        btn_group
       ]
     );
       
