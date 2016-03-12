@@ -1411,8 +1411,8 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
    @param {Object} [settings]
    @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
    @setting {sjs:sequence::Sequence|Function} [suggestions] function search_term_stream -> suggestions_stream
-   @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.
-   @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.
+   @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.)
+   @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.)
    @setting {optional surface::HtmlFragment} [extra_buttons]
    @desc
      suggestions can be one of the following:
@@ -1541,7 +1541,7 @@ function SelectInput(settings) {
                       var textinput = node.parentNode.parentNode.firstChild;
 
                       // create an observable for the text entered in the textfield:
-                      var TextValue = @eventStreamToObservable(
+                      var TextValue = settings.value || @eventStreamToObservable(
                         @events(textinput, 'input') .. @transform(ev -> ev.target.value),
                         -> textinput.value);
 
