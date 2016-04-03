@@ -1465,7 +1465,8 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @param {optional Object} [settings]
 @setting {optional Function} [dateToVal]
 @setting {optional Function} [valToDate]
-@setting {optional HTML} [extra_buttons] 
+@setting {optional surface::HTMLFragment} [extra_buttons] 
+@setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
 @desc
 
   * Currently only works when bound to a [./field::Field].

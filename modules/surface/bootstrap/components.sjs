@@ -1655,7 +1655,8 @@ exports.SelectInput = SelectInput;
    @param {optional Object} [settings]
    @setting {optional Function} [dateToVal]
    @setting {optional Function} [valToDate]
-   @setting {optional HTML} [extra_buttons] 
+   @setting {optional surface::HTMLFragment} [extra_buttons] 
+   @setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
    @desc
 
      * Currently only works when bound to a [./field::Field].
@@ -1825,6 +1826,7 @@ function DateInput(settings) {
       dateToVal: @fn.identity,
       valToDate: @fn.identity,
       extra_buttons: undefined,
+      left_dropdown: false,
       weekStart: 1 // 0 = Sunday, 1 = Monday
     } .. @override(settings);
 
@@ -1941,10 +1943,18 @@ function DateInput(settings) {
   }
 
 
-  var dropdown = InputDropdown(@html.Ul() .. @Mechanism(doDropdown));
+  var dropdown = InputDropdown(settings.left_dropdown, @html.Ul() .. @Mechanism(doDropdown));
   
   if (settings.extra_buttons)
     dropdown[0] = dropdown[0] .. @Style('border-radius:0px');
+
+  var btn_group = InputGroupBtn([
+    dropdown,
+    settings.extra_buttons
+  ]);
+
+  if (settings.left_dropdown)
+    btn_group = btn_group .. PositionInitial; // override 'position:relative'
 
   var rv = 
     InputGroup(
@@ -1952,10 +1962,7 @@ function DateInput(settings) {
         @html.Input({txtToVal:txtToVal, valToTxt:valToTxt}) ..
           @On('input', 
               ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
-        InputGroupBtn([
-          dropdown,
-          settings.extra_buttons
-        ])
+        btn_group
       ]
     ) ..
     @field.Validate(-> is_valid);
