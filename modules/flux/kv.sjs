@@ -11,7 +11,6 @@
 
 /**
   @summary Key-Value Storage
-  @hostenv nodejs
 */
 
 module.setCanonicalId('mho:flux/kv');
