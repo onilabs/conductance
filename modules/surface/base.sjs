@@ -880,7 +880,7 @@ exports.Id = (element, id) -> Attrib(element, 'id', id);
   @altsyntax element .. Style(style)
   @summary Add to an element's "style" attribute
   @param {::HtmlFragment} [element]
-  @param {String} [style]
+  @param {String|undefined} [style]
   @return {::Element}
   @desc
     Returns a copy of `element` with `style` added to the 
@@ -894,9 +894,12 @@ exports.Id = (element, id) -> Attrib(element, 'id', id);
     If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
     `element` will automatically be wrapped using [::ensureElement].
 
+    If the `style` parameter is `undefined`, `element` will be returned unmodified.
+
 */
 __js {
   function Style(element, style) {
+    if (style === undefined) return element;
     element = cloneElement(element);
     var prop = element.attribs['style'];
     if (!prop)
