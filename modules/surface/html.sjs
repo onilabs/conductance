@@ -115,6 +115,7 @@ var _map = function(items, fn) {
 */
 
 // commented-out tag names are those we have advanced bindings for, so we don't want the default
+__js {
 ;[
   'Html',
   'Head', 'Title', 'Base', 'Link', 'Meta', /* 'Style', */
@@ -137,6 +138,7 @@ var _map = function(items, fn) {
 ] .. @each {|name|
   var tag = name.toLowerCase();
   exports[name] = (content, attr) -> @Element(tag, content, attr);
+}
 }
 
 //----------------------------------------------------------------------
@@ -168,7 +170,7 @@ __js function wrapLi(item) {
   return exports.Li(item);
 }
 
-exports.Ul = (items, attrs) -> @Element('ul', items ? items .. _map(wrapLi), attrs);
+__js exports.Ul = (items, attrs) -> @Element('ul', items ? items .. _map(wrapLi), attrs);
 
 /**
   @function Ol
@@ -230,7 +232,7 @@ exports.Ul = (items, attrs) -> @Element('ul', items ? items .. _map(wrapLi), att
     ]);
 
 */
-exports.Ol = (items, attrs) -> @Element('ol', items ? items .. _map(wrapLi), attrs);
+__js exports.Ol = (items, attrs) -> @Element('ol', items ? items .. _map(wrapLi), attrs);
 
 /**
   @function Submit
@@ -239,7 +241,7 @@ exports.Ol = (items, attrs) -> @Element('ol', items ? items .. _map(wrapLi), att
   @return {surface::Element}
   @summary Create an `<input type="submit">` element.
 */
-exports.Submit = (content, attr) -> @Element('input', null, {type:'submit', value: content} .. @merge(attr || {}));
+__js exports.Submit = (content, attr) -> @Element('input', null, {type:'submit', value: content} .. @merge(attr || {}));
 
 /**
   @function Button
@@ -250,7 +252,7 @@ exports.Submit = (content, attr) -> @Element('input', null, {type:'submit', valu
 */
 // without `type="button"`, every button is a submit button by default. see
 // http://stackoverflow.com/a/2825867
-exports.Button = (content, attr) -> @Element('button', content, {type:'button'} .. @merge(attr || {}));
+__js exports.Button = (content, attr) -> @Element('button', content, {type:'button'} .. @merge(attr || {}));
 
 //----------------------------------------------------------------------
 /**
