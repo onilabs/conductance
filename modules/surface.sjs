@@ -36,7 +36,8 @@ module.exports = require(modules);
   A HtmlFragment is anything that can be treated as HTML content. Many
   different Javascript types can be used, namely:
 
-   - Any [sjs:quasi::Quasi], which is treated as raw HTML. Embedded
+   - `null` or `undefined` (which both stand for empty html)
+   - Any [sjs:#language/syntax::quasi-quote], which is treated as raw HTML. Embedded
      [::HtmlFragment] values are allowed. e.g:
 
          var name = "John"
@@ -50,13 +51,12 @@ module.exports = require(modules);
    - An `Array` of [::HtmlFragment]s.
    - A `String`, which will be automatically escaped (see [::RawHTML] for
      inserting a String as HTML).
-   - A number
+   - A Number
    - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
      to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
      Typically, this will be an [sjs:observable::ObservableVar] or a Stream derived from one. To append all the
      elements of a stream, use [sjs:sequence::toArray], [::CollectStream], or [::ScrollStream].
    - A [::ContentGenerator]
-   - `null` or `undefined`
 
   #### Caveats
 
@@ -65,6 +65,21 @@ module.exports = require(modules);
    - Streams and ContentGenerators are only allowed for content that will be used in
      the 'dynamic world' (i.e. client-side). Attempting to add
      a stream to a [::Document] will raise an error.
+
+@function looksLikeHtmlFragment
+@summary Check whether an object looks like a [::HtmlFragment]
+@param {Object} [obj]
+@desc
+  Returns `true` if `obj` is any of the following:
+    - `null` or `undefined`
+    - [sjs:#language/syntax::quasi-quote]
+    - [::Element]
+    - [::ElementConstructor]
+    - String
+    - Number
+    - Array
+    - [sjs:sequence::Stream]
+    - [::ContentGenerator]
 
 @class Element
 @__inherit__ CURRENTLY HIDDEN ::CollapsedFragment

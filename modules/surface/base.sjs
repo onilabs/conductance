@@ -50,7 +50,8 @@ exports._getDynOniSurfaceInit = ->
     A HtmlFragment is anything that can be treated as HTML content. Many
     different Javascript types can be used, namely:
 
-     - Any [sjs:quasi::Quasi], which is treated as raw HTML. Embedded
+     - `null` or `undefined` (which both stand for empty html)
+     - Any [sjs:#language/syntax::quasi-quote], which is treated as raw HTML. Embedded
        [::HtmlFragment] values are allowed. e.g:
 
            var name = "John"
@@ -64,13 +65,12 @@ exports._getDynOniSurfaceInit = ->
      - An `Array` of [::HtmlFragment]s.
      - A `String`, which will be automatically escaped (see [::RawHTML] for
        inserting a String as HTML).
-     - A number
+     - A Number
      - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
        to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
        Typically, this will be an [sjs:observable::ObservableVar] or a Stream derived from one. To append all the
        elements of a stream, use [sjs:sequence::toArray], [::CollectStream], or [::ScrollStream].
      - A [::ContentGenerator]
-     - `null` or `undefined`
 
     #### Caveats
 
@@ -93,6 +93,39 @@ exports._getDynOniSurfaceInit = ->
     LITERAL_TXT        : STRING
     CFRAGMENT          : an instance of class [::CollapsedFragment]
 */
+
+/**
+   @function looksLikeHtmlFragment
+   @summary Check whether an object looks like a [::HtmlFragment]
+   @param {Object} [obj]
+   @desc
+     Returns `true` if `obj` is any of the following:
+       - `null` or `undefined`
+       - [sjs:#language/syntax::quasi-quote]
+       - [::Element]
+       - [::ElementConstructor]
+       - String
+       - Number
+       - Array
+       - [sjs:sequence::Stream]
+       - [::ContentGenerator]
+*/
+__js {
+  function looksLikeHtmlFragment(obj) {
+    return (obj == null ||
+            isQuasi(obj) ||
+            isFragment(obj) ||
+            isElementConstructor(obj) ||
+            typeof obj === 'string' ||
+            typeof obj === 'number' ||
+            Array.isArray(obj) ||
+            isStream(obj) ||
+            isContentGenerator(obj)
+           );
+  }
+  exports.looksLikeHtmlFragment = looksLikeHtmlFragment;
+}
+
 __js var FragmentBase = {
   appendTo: function(target) {
     target.css .. extendCSS(this.css);

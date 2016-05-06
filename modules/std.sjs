@@ -186,6 +186,7 @@ module.exports = require(modules);
    - **isElementOfType**: (function [mho:surface::isElementOfType])
    - **isElementWithClass**: (function [mho:surface::isElementWithClass])
    - **loadTemplate**: (function [mho:surface::loadTemplate])
+   - **looksLikeHtmlFragment**: (function [mho:surface::looksLikeHtmlFragment])
    - **Mechanism**: (function [mho:surface::Mechanism])
    - **On**: (function [mho:surface::On])
    - **OnClick**: (function [mho:surface::OnClick])

@@ -7554,6 +7554,9 @@
         "loadTemplate": {
           "type": "function"
         },
+        "looksLikeHtmlFragment": {
+          "type": "function"
+        },
         "prependContent": {
           "type": "function"
         },
