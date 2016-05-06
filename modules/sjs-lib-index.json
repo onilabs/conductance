@@ -7475,6 +7475,9 @@
             }
           }
         },
+        "ElementConstructor": {
+          "type": "function"
+        },
         "Enabled": {
           "type": "function"
         },
@@ -7537,6 +7540,9 @@
           "type": "function"
         },
         "isElement": {
+          "type": "function"
+        },
+        "isElementConstructor": {
           "type": "function"
         },
         "isElementOfType": {

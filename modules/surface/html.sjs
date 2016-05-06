@@ -13,7 +13,7 @@ var { hostenv } = require('builtin:apollo-sys');
 
 var imports = [
   'sjs:std',
-  {id:'./base', include: ['Element', 'Attrib', 'Mechanism', 'isElementOfType']}
+  {id:'./base', include: ['Element', 'ElementConstructor', 'Attrib', 'Mechanism', 'isElementOfType']}
 ];
 
 if (hostenv === 'xbrowser') {
@@ -65,7 +65,9 @@ var _map = function(items, fn) {
      - H1 ... H6
      - BlockQuote, THead, TBody, FigCaption, DataLost, OptGroup, MenuItem, etc
 
-    Each of these tag methods is a shortcut for calling [surface::Element] with the given tag name - i.e `Element(<tagName>, ... )`.
+    Each of these tag functions is a shortcut for calling [surface::Element] with the given tag name - i.e `Element(<tagName>, ... )`.
+
+    The functions are [surface::ElementConstructor]s, i.e. they can be used with or without function application.
 
     ### Clashing names
 
@@ -83,7 +85,7 @@ var _map = function(items, fn) {
 
         P(`Elements can be $Em(`nested`)`)
 
-        Br();
+        Br;
 
     ### Void Elements
 
@@ -137,7 +139,7 @@ __js {
   'Details', 'Summary', 'MenuItem', 'Menu',
 ] .. @each {|name|
   var tag = name.toLowerCase();
-  exports[name] = (content, attr) -> @Element(tag, content, attr);
+  exports[name] = @ElementConstructor :: (content, attr) -> @Element(tag, content, attr);
 }
 }
 

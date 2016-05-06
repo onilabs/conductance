@@ -46,6 +46,7 @@ module.exports = require(modules);
          // with the text "Hello, John"
 
    - Any [::Element]
+   - Any [::ElementConstructor]
    - An `Array` of [::HtmlFragment]s.
    - A `String`, which will be automatically escaped (see [::RawHTML] for
      inserting a String as HTML).
@@ -74,11 +75,37 @@ module.exports = require(modules);
 @desc 
   ### Notes
   
-  * As an alternative to specifying `attributes`, see the the [::Attrib] decorator.
+  * As an alternative to specifying `attributes`, see the [::Attrib] decorator.
 
 @function isElement
 @param {Object} [element]
 @summary Test whether `element` is an [::Element]
+@return {Boolean}
+
+@function ElementConstructor
+@summary Marks a function as returning an {::Element}
+@param {Function} [f]
+@return {Function}
+@desc
+  Functions wrapped with `ElementConstructor` are expected to return an [::Element] when 
+  called with no arguments.
+ 
+  An ElementConstructor `a` is a [::HtmlFragment] equivalent to `a()`, i.e. `a` can be used with or 
+  without function application.
+ 
+  #### Example
+
+  Most of the HTML constructors defined in [mho:surface/html::] are ElementConstructors:
+
+      var my_html = [@Div, @Hr, @Div];
+
+      // is equivalent to:
+
+      var my_html = [@Div(), @Hr(), @Div()];
+
+@function isElementConstructor
+@summary Tests whether `element` is an [::ElementConstructor]
+@param {Object} [element]
 @return {Boolean}
 
 @function isElementWithClass
@@ -272,7 +299,7 @@ module.exports = require(modules);
 @altsyntax element .. Style(style)
 @summary Add to an element's "style" attribute
 @param {::HtmlFragment} [element]
-@param {String} [style]
+@param {String|undefined} [style]
 @return {::Element}
 @desc
   Returns a copy of `element` with `style` added to the 
@@ -285,6 +312,8 @@ module.exports = require(modules);
 
   If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
   `element` will automatically be wrapped using [::ensureElement].
+
+  If the `style` parameter is `undefined`, `element` will be returned unmodified.
 
 
 @function Class

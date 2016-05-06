@@ -60,6 +60,7 @@ exports._getDynOniSurfaceInit = ->
            // with the text "Hello, John"
 
      - Any [::Element]
+     - Any [::ElementConstructor]
      - An `Array` of [::HtmlFragment]s.
      - A `String`, which will be automatically escaped (see [::RawHTML] for
        inserting a String as HTML).
@@ -238,6 +239,9 @@ function appendFragmentTo(target, ft, tag) {
   else if (isFragment(ft)) {
     return ft.appendTo(target, tag);
   }
+  else if (isElementConstructor(ft)) {
+    return ft().appendTo(target, tag);
+  }
   else if (isStream(ft)) { 
     // streams are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
@@ -395,7 +399,7 @@ ElementProto.createElement = function() {
   @desc 
     ### Notes
     
-    * As an alternative to specifying `attributes`, see the the [::Attrib] decorator.
+    * As an alternative to specifying `attributes`, see the [::Attrib] decorator.
 */
 __js {
   function Element(tag, content, attribs) {
@@ -415,6 +419,47 @@ __js {
 __js {
   function isElement(obj) { return ElementProto.isPrototypeOf(obj); }
   exports.isElement = isElement;
+}
+
+/**
+  @function ElementConstructor
+  @summary Marks a function as returning an {::Element}
+  @param {Function} [f]
+  @return {Function}
+  @desc
+    Functions wrapped with `ElementConstructor` are expected to return an [::Element] when 
+    called with no arguments.
+   
+    An ElementConstructor `a` is a [::HtmlFragment] equivalent to `a()`, i.e. `a` can be used with or 
+    without function application.
+ 
+    #### Example
+
+    Most of the HTML constructors defined in [mho:surface/html::] are ElementConstructors:
+
+        var my_html = [@Div, @Hr, @Div];
+
+        // is equivalent to:
+
+        var my_html = [@Div(), @Hr(), @Div()];
+*/
+__js {
+  function ElementConstructor(f) {
+    f.__mho_is_element_constructor = true;
+    return f;
+  }
+  exports.ElementConstructor = ElementConstructor;
+}
+
+/**
+   @function isElementConstructor
+   @summary Tests whether `element` is an [::ElementConstructor]
+   @param {Object} [element]
+   @return {Boolean}
+*/
+__js {
+  function isElementConstructor(obj) { return obj && obj.__mho_is_element_constructor; }
+  exports.isElementConstructor = isElementConstructor;
 }
 
 /**
@@ -454,8 +499,14 @@ __js {
 */
 __js {
   function ensureElement(ft) {
-    if (!isElement(ft))
-      ft = Element('surface-ui', ft);
+    if (!isElement(ft)) {
+      if (isElementConstructor(ft)) {
+        ft = ft();
+      }
+      else {
+        ft = Element('surface-ui', ft);
+      }
+    }
     return ft;
   }
   exports.ensureElement = ensureElement;
