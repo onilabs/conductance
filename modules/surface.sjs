@@ -50,18 +50,21 @@ module.exports = require(modules);
    - An `Array` of [::HtmlFragment]s.
    - A `String`, which will be automatically escaped (see [::RawHTML] for
      inserting a String as HTML).
+   - A number
    - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
      to be **time-varying** - i.e the most recently emitted item from the stream is displayed at all times.
      Typically, this will be an [sjs:observable::ObservableVar] or a Stream derived from one. To append all the
      elements of a stream, use [sjs:sequence::toArray], [::CollectStream], or [::ScrollStream].
    - A [::ContentGenerator]
+   - `null` or `undefined`
 
-  Any other types will be coerced to a String wherever a HtmlFragment
-  is required.
+  #### Caveats
 
-  Note: Streams and ContentGenerators are only allowed for content that will be used in
-  the 'dynamic world' (i.e. client-side). Attempting to add
-  a stream to a [::Document] will raise an error.
+   - Other types of objects (such as e.g. a `Date` object) will *NOT* be coerced to a String and are not allowed as HtmlFragments. This is deliberate because experience has shown that more often than not plain objects in HtmlFragments point towards an error in program logic.
+
+   - Streams and ContentGenerators are only allowed for content that will be used in
+     the 'dynamic world' (i.e. client-side). Attempting to add
+     a stream to a [::Document] will raise an error.
 
 @class Element
 @__inherit__ CURRENTLY HIDDEN ::CollapsedFragment
