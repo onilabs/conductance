@@ -49,7 +49,7 @@ module.exports = require(modules);
    - Any [::Element]
    - Any [::ElementConstructor]
    - An `Array` of [::HtmlFragment]s.
-   - A `String`, which will be automatically escaped (see [::RawHTML] for
+   - A `String` or nodejs buffer, which will be automatically escaped (see [::RawHTML] for
      inserting a String as HTML).
    - A Number
    - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
@@ -76,6 +76,7 @@ module.exports = require(modules);
     - [::Element]
     - [::ElementConstructor]
     - String
+    - Nodejs Buffer
     - Number
     - Array
     - [sjs:sequence::Stream]

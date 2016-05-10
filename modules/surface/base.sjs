@@ -15,6 +15,10 @@
   (documented as mho:surface)
  */
 
+@ = require([
+  'sjs:std'
+]);
+
 var { isQuasi, Quasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
 var { each, indexed, reduce, map, join, isStream, first, toArray } = require('sjs:sequence');
@@ -63,7 +67,7 @@ exports._getDynOniSurfaceInit = ->
      - Any [::Element]
      - Any [::ElementConstructor]
      - An `Array` of [::HtmlFragment]s.
-     - A `String`, which will be automatically escaped (see [::RawHTML] for
+     - A `String` or nodejs buffer, which will be automatically escaped (see [::RawHTML] for
        inserting a String as HTML).
      - A Number
      - A [sjs:sequence::Stream] whose values are themselves [::HtmlFragment]s. Note that streams are assumed
@@ -90,7 +94,7 @@ exports._getDynOniSurfaceInit = ->
     UNSAFE_TXT         : '"' STRING '"'
     STREAM             : an instance of [sjs:sequence::Stream] whose
                          value is a [::HtmlFragment]
-    LITERAL_TXT        : STRING
+    LITERAL_TXT        : STRING | NODEJS_BUFFER
     CFRAGMENT          : an instance of class [::CollapsedFragment]
 */
 
@@ -105,6 +109,7 @@ exports._getDynOniSurfaceInit = ->
        - [::Element]
        - [::ElementConstructor]
        - String
+       - Nodejs Buffer
        - Number
        - Array
        - [sjs:sequence::Stream]
@@ -120,7 +125,8 @@ __js {
             typeof obj === 'number' ||
             Array.isArray(obj) ||
             isStream(obj) ||
-            isContentGenerator(obj)
+            isContentGenerator(obj) ||
+            (@sys.hostenv === 'nodejs' && Buffer.isBuffer(obj))
            );
   }
   exports.looksLikeHtmlFragment = looksLikeHtmlFragment;
@@ -303,7 +309,10 @@ function appendFragmentTo(target, ft, tag) {
   else if (typeof ft === 'string') {
     target.content += escapeForTag(ft, tag);
   }
-  else throw new Error("Invalid content in HtmlFragment: '#{ft}'");
+  else if (@sys.hostenv === 'nodejs' && Buffer.isBuffer(ft)) {
+    target.content += escapeForTag(ft, tag);
+  }
+  else throw new Error("Invalid content in HtmlFragment: '#{typeof ft}'");
 }
 
 __js {
