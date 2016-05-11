@@ -58,10 +58,33 @@ __js {
 //----------------------------------------------------------------------
 
 /**
-   @summary Basic SVG elements
+   @summary Basic SVG building blocks
    @desc
-     This module defined basic SVG building blocks
+     This module defined basic SVG elements and supporting functions
 */
+
+//----------------------------------------------------------------------
+// Supporting functions
+
+/**
+   @function eventToSvgCoords
+   @summary Converts event coordinates to coordinates of the given svg node
+   @param {DOMEvent} [event] 
+   @param {DOMNode}  [svg_node] An 'SVGLocatable' DOM node
+   @return {SVGPoint} SVGPoint object with {x,y} members
+*/
+__js {
+  function eventToSvgCoords(ev, svg_node) {
+    var svg_svg_node = svg_node.farthestViewportElement || svg_node;
+    var pt = svg_svg_node.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    return pt.matrixTransform(svg_node.getScreenCTM().inverse());
+  }
+  exports.eventToSvgCoords = eventToSvgCoords;
+}
+
+//----------------------------------------------------------------------
+// Elements
 
 /**
    @function Path
