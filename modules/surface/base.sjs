@@ -312,7 +312,7 @@ function appendFragmentTo(target, ft, tag) {
   else if (@sys.hostenv === 'nodejs' && Buffer.isBuffer(ft)) {
     target.content += escapeForTag(ft, tag);
   }
-  else throw new Error("Invalid content in HtmlFragment: '#{typeof ft}'");
+  else throw new Error("Invalid content in HtmlFragment: #{typeof ft} #{ft}");
 }
 
 __js {
