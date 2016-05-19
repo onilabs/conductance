@@ -659,6 +659,14 @@ function fileStream(conn, path, options) {
 }
 exports.fileStream = fileStream;
 
+/**
+   @function writeFile
+   @summary Write a file
+   @param {::Connection|::SFTPSession} [connection] Connection or SFTP session
+   @param {String} [path] Path to the file
+   @param {String|Buffer} [contents]
+   @param {optional Object} [settings]
+*/
 function writeFile(conn, path, contents, options){
   var session = conn..getSFTSession();
   var ws = session.createWriteStream(path, options);
@@ -675,6 +683,10 @@ function writeFile(conn, path, contents, options){
 }
 exports.writeFile = writeFile;
 
+/**
+   @function readFile
+   @summary XXX document me
+*/
 function readFile(conn, path, options){
   var session = conn..getSFTSession();
   var rs = session.createReadStream(path, options);
@@ -693,6 +705,10 @@ function readFile(conn, path, options){
 }
 exports.readFile = readFile;
 
+/** 
+    @function mkdir
+    @summary XXX document me
+*/
 function mkdir(conn, dir){
   var session = conn .. getSFTSession();
   waitfor (err) {session.mkdir(dir, resume);}
@@ -700,6 +716,10 @@ function mkdir(conn, dir){
 }
 exports.mkdir = mkdir
 
+/** 
+    @function unlink
+    @summary XXX document me
+*/
 function unlink(conn, path){
   var session = conn .. getSFTSession();
   waitfor (err) {session.unlink(path, resume);}
