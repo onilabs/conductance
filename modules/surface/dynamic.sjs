@@ -135,7 +135,12 @@ exports.resourceRegistry = resourceRegistry;
 
 // helpers
 
-function stopMechanisms(parent, include_parent) {
+// it's important that this function is __js, because we don't want abort loops when 
+// a mechanism aborts itself (e.g. OnClick -> Delete my node).
+// Alternatively to making the whole function __js we could spawn the individual aborts 
+// (or use the equivalent `__js (stratum.abort(),null)`, `null` being important here)
+
+__js function stopMechanisms(parent, include_parent) {
   var nodes = StreamNodes(parent);
   if (parent.querySelectorAll)
     nodes = concat(parent.querySelectorAll('._oni_mech_'), nodes);
