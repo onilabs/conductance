@@ -165,7 +165,7 @@ function cotraverse(obj, schema, block) {
       else if (typeof schema === 'object')
         type = 'object';
       else
-        throw new Error("Schema error: unknown type '#{schema}' (property: '#{property_name}')");
+        throw new Error("Schema error: unknown type '#{schema}' (property: '#{property_name}', path: '#{path}')");
     }
 
     var node = { 
