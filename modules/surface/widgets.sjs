@@ -12,7 +12,8 @@
 @ = require([
   'sjs:std',
   'mho:surface',
-  'mho:surface/html'
+  'mho:surface/html',
+  {id:'mho:surface/cmd', name:'cmd'}
 ])
 
 //----------------------------------------------------------------------
@@ -351,3 +352,55 @@ function DropdownMenu(anchor, items, settings) {
     @OnClick(ev -> doDropdown(ev.currentTarget, items, settings));
 }
 exports.DropdownMenu = DropdownMenu;
+
+//----------------------------------------------------------------------
+// XXX This needs some work. see e.g. https://www.smashingmagazine.com/2014/09/making-modal-windows-better-for-everyone/
+
+/**
+   @function overlay
+   @summary XXX write me
+   @desc
+     Generates command 'backdrop-click'
+*/
+function overlay(content, settings, block) {
+
+  // untangle arguments:
+  if (block === undefined && typeof settings === 'function') {
+    block = settings;
+    settings = undefined;
+  }
+
+  var overlay_CSS = @CSS("
+    {
+      top: 0;
+      left: 0;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: 1040;
+      overflow-y: scroll;
+    }
+    #backdrop {
+      top: 0; 
+      left: 0;
+      width: 100%;
+      height: 100%;
+      position: fixed;
+      background-color: rgba(24,24,24,0.6);
+    }
+    @global {
+      body { 
+        overflow: hidden;
+      }
+    }
+  ");
+
+  var html = @Div .. overlay_CSS .. @Attrib('tabindex', '-1') ::
+    [
+      @Div .. @Id('backdrop') .. @cmd.Click('backdrop-click'),
+      content
+    ];
+
+  document.body .. @appendContent(html, block);
+}
+exports.overlay = overlay;
