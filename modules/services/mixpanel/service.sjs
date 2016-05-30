@@ -34,8 +34,14 @@ exports.run = function(config, block) {
             event: event_name,
             properties: (properties || {}) .. @merge({'token': config.token})
           } .. JSON.stringify .. @octetsToBase64;
-
-          return (@http.get("http://api.mixpanel.com/track/?data=#{payload}") == 1);
+          
+          try {
+            return (@http.get("http://api.mixpanel.com/track/?data=#{payload}") == 1);
+          }
+          catch (e) {
+            console.log("Mixpanel track() error: #{e}");
+            return false;
+          }
         },
 
         engage: function(distinct_id, attributes) {
@@ -45,7 +51,13 @@ exports.run = function(config, block) {
             $distinct_id: distinct_id
           }) .. JSON.stringify .. @octetsToBase64;
           
-          return (@http.get("http://api.mixpanel.com/engage/?data=#{payload}") == 1);
+          try {
+            return (@http.get("http://api.mixpanel.com/engage/?data=#{payload}") == 1);
+          }
+          catch (e) {
+            console.log("Mixpanel engage() error: #{e}");
+            return false;
+          }
         }
       }
     );
