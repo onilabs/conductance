@@ -150,7 +150,7 @@ exports.Value = Value;
 /**
    @function validate
    @altsyntax node .. validate
-   @summary Wait for and return decisive (i.e. not 'unknown') validation result for a field & toggle displaying of validation results
+   @summary Wait for and return decisive (i.e. not 'unknown') validation result for a field & turn on displaying of validation results
    @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
    @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
 
@@ -168,7 +168,7 @@ function waitforDecisiveValidationState(field) {
 function validate(/*[node], [path]*/) {
   var field_node = getField.apply(null, arguments);
   if (!field_node) throw new Error("field::validate: Cannot resolve Field");
-  field_node[ITF_FIELD].toggle_display_validation();
+  field_node[ITF_FIELD].turn_on_display_validation();
   return waitforDecisiveValidationState(field_node[ITF_FIELD]);
 }
 exports.validate = validate;
@@ -559,7 +559,7 @@ function Field(elem, settings /* || name, initval */) {
         display_validation: @ObservableVar(false),
         validators: [],
         validators_deps: {},
-        toggle_display_validation: -> field.display_validation.set(true),
+        turn_on_display_validation: -> field.display_validation.set(true),
         validation_loop: validate_field_loop
       };
 
@@ -732,13 +732,13 @@ var FieldMap = (elem) ->
       }
     };
 
-    // override field.toggle_display_validation, so that our subfields are also toggled:
-    field.toggle_display_validation = @fn.seq(field.toggle_display_validation,
+    // override field.turn_on_display_validation, so that our subfields are also turned on:
+    field.turn_on_display_validation = @fn.seq(field.turn_on_display_validation,
                                               function() {
                                                 @ownPropertyPairs(fieldmap) ..
                                                   @each {
                                                     |[key, subfield]|
-                                                    subfield[ITF_FIELD].toggle_display_validation()
+                                                    subfield[ITF_FIELD].turn_on_display_validation()
                                                   }
                                               });
     
@@ -943,13 +943,13 @@ function FieldArray(elem, settings) {
       }
     };
       
-    // override field.toggle_display_validation, so that our subfields are also toggled:
-    field.toggle_display_validation = @fn.seq(field.toggle_display_validation,
+    // override field.turn_on_display_validation, so that our subfields are also turned on:
+    field.turn_on_display_validation = @fn.seq(field.turn_on_display_validation,
                                               function() {
                                                 fieldarray ..
                                                   @each {
                                                     |{node}|
-                                                    node[ITF_FIELD].toggle_display_validation()
+                                                    node[ITF_FIELD].turn_on_display_validation()
                                                   }
                                               });
     
