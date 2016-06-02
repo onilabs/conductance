@@ -170,10 +170,26 @@ function waitforDecisiveValidationState(field) {
 function validate(/*[node], [path]*/) {
   var field_node = getField.apply(null, arguments);
   if (!field_node) throw new Error("field::validate: Cannot resolve Field");
-  field_node[ITF_FIELD].turn_on_display_validation();
+  field_node[ITF_FIELD].set_display_validation(true);
   return waitforDecisiveValidationState(field_node[ITF_FIELD]);
 }
 exports.validate = validate;
+
+/**
+   @function displayValidation
+   @summary Turn displaying of validation results on or off
+   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
+   @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
+   @param {Boolean} [on]
+*/
+function displayValidation(/*[node], [path], on*/) {
+  var args = arguments .. @toArray;
+  var on = args.pop();
+  var field_node = getField.apply(null, args);
+  if (!field_node) throw new Error("field::displayValidation: Cannot resolve Field");
+  field_node[ITF_FIELD].set_display_validation(on);
+}
+exports.displayValidation = displayValidation;
 
 /**
    @function ValidationState
@@ -590,7 +606,7 @@ function Field(elem, settings /* || name, initval */) {
         },
         validators: [],
         validators_deps: {},
-        turn_on_display_validation: -> field.display_validation.set(true),
+        set_display_validation: (bool) -> field.display_validation.set(bool),
         validation_loop: validate_field_loop
       };
 
@@ -766,13 +782,13 @@ var FieldMap = (elem) ->
       }
     };
 
-    // override field.turn_on_display_validation, so that our subfields are also turned on:
-    field.turn_on_display_validation = @fn.seq(field.turn_on_display_validation,
-                                              function() {
+    // override field.set_display_validation, so that our subfields are also turned on:
+    field.set_display_validation = @fn.seq(field.set_display_validation,
+                                              function(bool) {
                                                 @ownPropertyPairs(fieldmap) ..
                                                   @each {
                                                     |[key, subfield]|
-                                                    subfield[ITF_FIELD].turn_on_display_validation()
+                                                    subfield[ITF_FIELD].set_display_validation(bool)
                                                   }
                                               });
     
@@ -977,13 +993,13 @@ function FieldArray(elem, settings) {
       }
     };
       
-    // override field.turn_on_display_validation, so that our subfields are also turned on:
-    field.turn_on_display_validation = @fn.seq(field.turn_on_display_validation,
-                                              function() {
+    // override field.set_display_validation, so that our subfields are also turned on:
+    field.set_display_validation = @fn.seq(field.set_display_validation,
+                                              function(bool) {
                                                 fieldarray ..
                                                   @each {
                                                     |{node}|
-                                                    node[ITF_FIELD].turn_on_display_validation()
+                                                    node[ITF_FIELD].set_display_validation(bool)
                                                   }
                                               });
     
