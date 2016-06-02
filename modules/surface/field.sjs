@@ -508,6 +508,11 @@ function validate_field_loop(field_node) {
 }
 
 function validate_field_iteration(field_node) {
+
+  // always asynchronize this, so that we don't do extra work for temporally-contiguous notifications:
+  // (for this to be effective, we always need to call validate_field_iteration from @each.track blocks)
+  hold(0);
+
   var field = field_node[ITF_FIELD];
   waitfor {
     var {errors, warnings} = field_node .. run_validators(field.validators, field.validators_deps);
@@ -549,6 +554,8 @@ function Field(elem, settings /* || name, initval */) {
   if (settings.ValidationState)
     settings.ValidationState.set({state:'unknown'});
 
+  var ValidatorsChange = @Emitter();
+
   return elem ..
     @Mechanism(function(node) {
 
@@ -569,6 +576,7 @@ function Field(elem, settings /* || name, initval */) {
                 ++field.validators_deps[dep];
             }
           }
+          ValidatorsChange.emit();
         },
         removeValidator: function(validator) {
           field.validators .. @remove(validator);
@@ -578,6 +586,7 @@ function Field(elem, settings /* || name, initval */) {
                 delete field.validators_deps[dep];
             }
           }
+          ValidatorsChange.emit();
         },
         validators: [],
         validators_deps: {},
@@ -592,9 +601,12 @@ function Field(elem, settings /* || name, initval */) {
           parent_container.addField(settings.name, node);
         
         // asynchronize so that tree gets built before we start validating:
+        // (XXX mostly this is still needed because FieldMap/FieldArray overrides validation_loop?)
         hold(0);
-        
-        field.validation_loop(node);
+        // [1] here to make sure that we have an initial prod
+        @combine([1],ValidatorsChange) .. @each.track { ||
+          field.validation_loop(node);
+        }
       }
       and {
         // if our 'display_validation' is turned on, also turn it on for the container's field:
