@@ -47,8 +47,10 @@ if (hostenv !== 'xbrowser')
            value:            ObservableVar,
            validation_state: Observable,
            display_validation   : ObservableVar,
-           validators:       Array,
-           validators_deps:  Object
+           addValidator: function(obj),
+           removeValidator: function(obj),
+           validators:       Array, // current set of validators;managed by add/remove functions above
+           validators_deps:  Object // current set of validators_deps ;managed by add/remove functions above
          }
 
      `validation_state` is an object
@@ -431,18 +433,18 @@ exports.getField = getField;
 var field_id_counter = 0;
 
 
-function run_validators(field_node) {
+function run_validators(field_node, validators, validators_deps) {
   var errors = [], warnings = [];
 
   // get current values for all of our dependencies:
   var our_value = field_node[ITF_FIELD].value .. @current;
 
-  var deps = @ownPropertyPairs(field_node[ITF_FIELD].validators_deps) ..
+  var deps = @ownPropertyPairs(validators_deps) ..
     @map([path] -> [path, (field_node .. getField(path))[ITF_FIELD].value .. @current]) .. @pairsToObject;
 
   // execute the validators in parallel, but obtain an ordered
   // results set:
-  field_node[ITF_FIELD].validators .. @transform.par(function(v) {
+  validators .. @transform.par(function(v) {
     if (typeof v === 'object') {
       // collect all deps, starting with our current value:
       var args = [our_value];
@@ -508,7 +510,7 @@ function validate_field_loop(field_node) {
 function validate_field_iteration(field_node) {
   var field = field_node[ITF_FIELD];
   waitfor {
-    var {errors, warnings} = field_node .. run_validators();
+    var {errors, warnings} = field_node .. run_validators(field.validators, field.validators_deps);
   }
   or {
     // if the validators don't return immediately, we reset
@@ -557,6 +559,26 @@ function Field(elem, settings /* || name, initval */) {
         
         validation_state: settings.ValidationState || @ObservableVar({state:'unknown'}),
         display_validation: @ObservableVar(false),
+        addValidator: function(validator) { 
+          field.validators.push(validator);
+          if (typeof validator === 'object') {
+            validator.deps .. @each { |dep| 
+              if (field.validators_deps[dep] === undefined)
+                field.validators_deps[dep] = 1;
+              else
+                ++field.validators_deps[dep];
+            }
+          }
+        },
+        removeValidator: function(validator) {
+          field.validators .. @remove(validator);
+          if (typeof validator === 'object') {
+            validator.deps .. @each { |dep|
+              if (--field.validators_deps[dep] === 0) 
+                delete field.validators_deps[dep];
+            }
+          }
+        },
         validators: [],
         validators_deps: {},
         turn_on_display_validation: -> field.display_validation.set(true),
@@ -1139,14 +1161,16 @@ var Validate = function(elem, validator) {
     throw new Error("field::Validate: invalid validator argument");
   
   return elem ..
-  @Mechanism(function(node) {
-    var field = node .. @getDOMITF(ITF_FIELD);
-    if (!field) throw new Error("'Validate' decorator outside of a Field");
-    field.validators.push(validator);
-    if (typeof validator === 'object') {
-      validator.deps .. @each { |dep| field.validators_deps[dep] = true }
-    }
-    // XXX could remove validator in finally clause
-  });
+    @Mechanism(function(node) {
+      var field = node .. @getDOMITF(ITF_FIELD);
+      if (!field) throw new Error("'Validate' decorator outside of a Field");
+      field.addValidator(validator);
+      try {
+        hold();
+      }
+      finally {
+        field.removeValidator(validator);
+      }
+    });
 };
 exports.Validate = Validate;
