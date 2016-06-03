@@ -401,6 +401,19 @@ function overlay(content, settings, block) {
       content
     ];
 
-  document.body .. @appendContent(html, block);
+  document.body .. @appendContent(html) {
+    |overlay_node|
+    var content_nodes = overlay_node.childNodes .. @toArray;
+    // move the backdrop to the end of the context, so that
+    // field.Value resolves ok (field.Value only checks the first node
+    // in the DOM context). Don't omit backdrop from context entirely
+    // so that we can still bind to the 'backdrop-click' command.
+    var backdrop_node = content_nodes.shift();
+    content_nodes.push(backdrop_node);
+    @withDOMContext(content_nodes) {
+      ||
+      block.apply(null, content_nodes);
+    }
+  }
 }
 exports.overlay = overlay;
