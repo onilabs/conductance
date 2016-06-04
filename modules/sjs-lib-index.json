@@ -7046,6 +7046,9 @@
         "fileStream": {
           "type": "function"
         },
+        "readFile": {
+          "type": "function"
+        },
         "readdir": {
           "type": "function"
         },
@@ -7056,6 +7059,9 @@
           "type": "function"
         },
         "stat": {
+          "type": "function"
+        },
+        "writeFile": {
           "type": "function"
         }
       },
@@ -7369,6 +7375,9 @@
             "Value": {
               "type": "function"
             },
+            "displayValidation": {
+              "type": "function"
+            },
             "getField": {
               "type": "function"
             },
@@ -7427,6 +7436,9 @@
               "type": "function"
             },
             "doDropdown": {
+              "type": "function"
+            },
+            "overlay": {
               "type": "function"
             },
             "popover": {
