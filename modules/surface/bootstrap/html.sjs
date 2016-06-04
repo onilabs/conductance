@@ -31,7 +31,7 @@ exports .. @extend(base_html);
 
 // XXX there has to be a better way to set the classes here
 __js function wrapWithClass(baseElement, cls) {
-  return () -> baseElement.apply(null, arguments) .. @Class(cls);
+  return @ElementConstructor :: () -> baseElement.apply(null, arguments) .. @Class(cls);
 }
 
 __js function callWithClass(baseElement, cls, content, attribs) {
