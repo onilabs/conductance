@@ -215,7 +215,7 @@ function waitforClosingClick(elem) {
    @setting {Integer} [right=undefined] Right position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
    @return {Object} 
    @desc
-     Members of `elems` can either be [surface::HTMLFragment] content or objects
+     Members of `items` can either be [surface::HTMLFragment] content or objects
 
          {
            content: HTMLFragment,
