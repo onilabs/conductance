@@ -271,6 +271,8 @@ __js exports.Button = (content, attr) -> @Element('button', content, {type:'butt
 
     See [./field::Field] and [./field::FieldMap] for example usage.
 
+    #### Other notes
+    This function is a [surface::ElementConstructor]s, i.e. it can be used with or without function application.
 */
 var Label;
 if (hostenv === 'xbrowser') {
@@ -288,7 +290,7 @@ if (hostenv === 'xbrowser') {
 else { // hostenv === 'nodejs'
  Label = (content, attr) -> @Element('label', content, attr);
 }
-exports.Label = Label;
+exports.Label = @ElementConstructor :: Label;
 
 //----------------------------------------------------------------------
 /**
@@ -335,6 +337,10 @@ exports.Label = Label;
     An element with a 'value' attribute set to `value` will be inserted into the document.
 
     ----
+
+    #### Other notes
+    This function is a [surface::ElementConstructor]s, i.e. it can be used with or without function application.
+
 */
 
 __js function untangleInputSettings(settings) {
@@ -449,7 +455,7 @@ else { // hostenv === 'nodejs'
     return @Element('input', {'type':settings.type, 'value':settings.value||''} .. @merge(settings.attrs));
   };
 }
-exports.Input = Input;
+exports.Input = @ElementConstructor :: Input;
   
 
 //----------------------------------------------------------------------
@@ -496,6 +502,10 @@ exports.Input = Input;
     An element with a 'value' attribute set to `value` will be inserted into the document.
 
     ----
+
+    #### Other notes
+    This function is a [surface::ElementConstructor]s, i.e. it can be used with or without function application.
+
 */
 
 __js function untangleTextAreaSettings(settings) {
@@ -540,7 +550,7 @@ else { // hostenv === 'nodejs'
     return @Element('textarea', null, {'value':settings.value||''} .. @merge(settings.attrs));
   };
 }
-exports.TextArea = TextArea;
+exports.TextArea = @ElementConstructor :: TextArea;
 
 
 //----------------------------------------------------------------------
@@ -550,8 +560,8 @@ exports.TextArea = TextArea;
   @summary A HTML 'checkbox' widget
   @param  {optional Object} [settings]
   @setting {optional Boolean|sjs:sequence::Stream|sjs:observable::ObservableVar} [checked=undefined] 
-  @setting {optional Function} [valToChecked] Transformer yielding control's 'checked' state from value (only used for field-bound TextAreas; see description below).
-  @setting {optional Function} [checkedToVal] Transformer yielding value from control's 'checked' state (only used for field-bound TextAreas; see description below).
+  @setting {optional Function} [valToChecked] Transformer yielding control's 'checked' state from value (only used for field-bound Checkboxes; see description below).
+  @setting {optional Function} [checkedToVal] Transformer yielding value from control's 'checked' state (only used for field-bound Checkboxes; see description below).
   @return {surface::Element}
   @desc
     ----
@@ -589,6 +599,9 @@ exports.TextArea = TextArea;
     An element with a 'checked' attribute set to `Boolean(checked)` will be inserted into the document.
 
     ----
+
+    #### Other notes
+    This function is a [surface::ElementConstructor]s, i.e. it can be used with or without function application.
 
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
@@ -714,7 +727,7 @@ if (hostenv === 'xbrowser') {
 else { // hostenv === 'nodejs'
   Checkbox = value -> @Element('input', { type: 'checkbox', checked: Boolean(settings.value) });
 }
-exports.Checkbox = Checkbox;
+exports.Checkbox = @ElementConstructor :: Checkbox;
 
 
 
