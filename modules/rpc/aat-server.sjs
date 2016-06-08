@@ -232,7 +232,7 @@ function createTransport(finish) {
       delete transports[this.id];
       this.active = false;
       if (this._reaper) {
-        this._reaper.abort();
+        spawn this._reaper.abort();
         this._reaper = null;
       }
       if (resume_receive)
