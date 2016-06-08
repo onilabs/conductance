@@ -30,13 +30,13 @@
 
      - Array (containing serializable types)
      - Object
-       - only "own" properties are serialized (no inherited properties)
-       - the prototype chain is *not* preserved
-     - Function
+     - Function, including streams and observables
      - Error
-     - [sjs:sequence::Stream]
-     - All [sjs:observable::] types
      - [::API]
+
+     - For all types apart from Error, "own" properties are serialized (but no inherited properties)
+     - the prototype chain is *not* preserved
+
 
     ### Wrapped functions
 
@@ -81,6 +81,13 @@
        remote versions of that object. If you have an object with properties that
        may change, you should expose them as methods (i.e `getFoo()` and `setFoo(newVal)`).
 
+     - abortion across the bridge is asynchronous
+
+       Retracting a pending call does not wait for the abortion on the other end of the bridge
+       to return. For almost all sensible use cases of bridge communication this behavior is
+       desirable and leads to quicker and more robust code, but in pathological code it could
+       introduce race conditions.
+
     ### Ordering guarantees
 
     The bridge module guarantees that calls/returns/exceptions are
@@ -118,7 +125,7 @@ Protocol:
 
 
   Marshalling: values are being serialized as JSON
-  special objects get an __oni_type attribute
+  special objects get an __oni_bridge_type attribute
 
 */
 
@@ -183,10 +190,7 @@ exports.TransportError = @TransportError;
     If called on an object prototype, all objects inherited from that
     prototype will use this marshalling descriptor.
 
-    If you only wish to control which properties of an object are
-    marshalled, see [::setMarshallingProperties].
-
-    `descr` must be an object with the following properties:
+    `desc` must be an object with the following properties:
 
      - wrapLocal: A method accepting a single `localObject` argument,
        and returning a serializable object. This return value can
@@ -224,30 +228,6 @@ var defaultMarshallers = [];
 
 exports.defaultMarshallers = defaultMarshallers;
 
-
-/**
-  @function setMarshallingProperties
-  @summary control which properties are marshalled for an object
-  @param {Object} [obj] object or prototype
-  @param {Array} [props] list of (String) property names
-  @desc
-    When called on a plain object, the properties which will be marshalled
-    are limited to `props`, rather than sending all properties defined on the object.
-
-    For special objects which don't marshall properties by default (e.g
-    `Function` or `Error` instances), the properties listed will be
-    marshalled this in addition to the object's standard marshalling behaviour.
-    Note that this is in addition to the default marshalling behaviour, i.e.
-    the stack trace and `message` property will still be marshalled for an `Error`
-    instance even when they aren't listed in `props`.
-
-    For more control over how an object is marshalled, see [::setMarshallingDescriptor].
-*/
-exports.setMarshallingProperties = function (obj, props) {
-  obj.__oni_marshalling_properties = props;
-  return obj;
-};
-
 /**
    @class API
    @summary Remotable
@@ -266,7 +246,7 @@ exports.setMarshallingProperties = function (obj, props) {
 
 var api_counter = 1;
 function API(obj, isBaseAPI) {
-  return { __oni_type: 'api', 
+  return { __oni_bridge_type: 'api', 
            id : isBaseAPI ? 0 : api_counter++,
            obj:obj 
          };
@@ -311,76 +291,53 @@ function marshall(value, connection) {
   
     var stringifyable = {};
 
-    function processProperties(value, root) {
-      var k;
-      if(value.__oni_marshalling_properties)
-        k = value.__oni_marshalling_properties.concat('__oni_marshalling_properties');
-      else
-        k = @allKeys(value) .. @filter(name ->
-          root[name] !== value[name] && (
-            name === '__oni_apiid' || (
-              name !== 'toString' && 
-              !name.. @startsWith('__oni') &&
-              name !== @fn.ITF_SIGNAL  
-            )
-          )
-        );
-      return k .. @transform(name -> [name, prepare(value[name])]);
+    function processProperties(value) {
+      __js var k = @ownKeys(value) .. @filter(name ->
+                                              name !== 'toString' && 
+                                              name !== @fn.ITF_SIGNAL  
+                                             );
+      return k .. /*@monitor(k -> k .. @startsWith('__oni') ? console.log(k)) ..*/ @transform(name -> [name, prepare(value[name])]);
     }
 
-    function withProperties(dest, value, root) {
+    function withProperties(dest, value) {
       var props = dest.props = {};
-      processProperties(value, root) .. @each {|[name, val]|
+      processProperties(value) .. @each {|[name, val]|
         props[name] = val;
       }
       return dest;
     }
 
-    function withExplicitProperties(rv, value) {
-      if(value.__oni_marshalling_properties) {
-        rv = rv .. withProperties(value);
-      }
-      return rv;
-    };
-
     function prepare(value) {
       var rv = value;
       if (typeof value === 'function') {
-        if (@isStream(value)) {
-          rv = { __oni_type: 'stream', id: connection.publishFunction(value) };
-          if (@isBatchedStream(value))
-            rv.batched = true;
-        }
-        else {
-          // a normal function
-          // XXX we'll be calling the function with the wrong 'this' object
-          rv = { __oni_type: 'func', id: connection.publishFunction(value) } .. withExplicitProperties(value);
-        }
-        rv = rv .. withProperties(value, Function.prototype);
+        // XXX we'll be calling the function with the wrong 'this' object
+        rv = { __oni_bridge_type: 'func', 
+               id: connection.publishFunction(value), 
+               props: processProperties(value) .. @pairsToObject };
       }
       else if (value instanceof Date) {
-        rv = { __oni_type: 'date', val: value.getTime() };
+        rv = { __oni_bridge_type: 'date', val: value.getTime() };
       }
       else if (isBytes(value)) {
         // NOTE: this must go before `isArrayLike`, since a Uint8Array is both
         var id = ++connection.sent_blob_counter;
         connection.sendBlob(id, value);
-        rv = { __oni_type: 'blob', id:id };
+        rv = { __oni_bridge_type: 'blob', id:id };
       }
       else if (@isArrayLike(value)) {
         rv = value .. @map(prepare);
       }
       else if (@isQuasi(value)) {
-        rv = {__oni_type: 'quasi', val: prepare(value.parts) };
+        rv = {__oni_bridge_type: 'quasi', val: prepare(value.parts) };
       }
       else if (typeof value === 'object' && value !== null) {
         var descriptor;
         if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
           rv = prepare(descriptor.wrapLocal(value));
-          rv = { __oni_type: 'custom_marshalled', proxy: rv, wrap: descriptor.wrapRemote };
+          rv = { __oni_bridge_type: 'custom_marshalled', proxy: rv, wrap: descriptor.wrapRemote };
         }
         else if (value instanceof Error || value._oniE) {
-          rv = { __oni_type: 'error', message: value.message, stack: value.__oni_stack } .. withExplicitProperties(value);
+          rv = { __oni_bridge_type: 'error', message: value.message, stack: value.__oni_stack };
           // many error APIs provide errno / code to distinguish error types, so include
           // those if present
           ['errno','code'] .. @each {|k|
@@ -389,25 +346,25 @@ function marshall(value, connection) {
             rv.props[k] = value[k];
           };
         }
-        else if (value.__oni_type == 'api') {
+        else if (value.__oni_bridge_type == 'api') {
           // publish on the connection:
           connection.publishAPI(value);
-          // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
+          // serialize as "{ __oni_bridge_type:'api', methods: ['m1', 'm2', ...] }"
           var methods = @allKeys(value.obj) .. 
             @filter(name -> typeof value.obj[name] === 'function') ..
             @toArray;
-          rv = { __oni_type:'api', id: value.id, methods: methods};
+          rv = { __oni_bridge_type:'api', id: value.id, methods: methods};
         }
         else {
           // a normal object -> traverse it
-          rv = processProperties(value, Object.prototype) .. @pairsToObject;
+          rv = processProperties(value) .. @pairsToObject;
         }
       }
       else if (typeof value === 'undefined') {
         // We need to treat 'undefined' specially, because JSON doesn't
         // allow it, and worse: 
         // JSON.stringify([undefined]) yields "[null]"!!
-        rv = { __oni_type:'undef' };
+        rv = { __oni_bridge_type:'undef' };
       }
       return rv;
     }
@@ -440,25 +397,22 @@ function unmarshallComplexTypes(obj, connection) {
 
   var rv, potentially_async = false;
 
-  if (obj.__oni_type == 'func') {
+  if (obj.__oni_bridge_type == 'func') {
     rv = unmarshallFunction(obj, connection); //__js
   }
-  else if (obj.__oni_type == 'stream') {
-    rv = unmarshallStream(obj, connection); // can be called __js
-  }
-  else if (obj.__oni_type == 'api') {
+  else if (obj.__oni_bridge_type == 'api') {
     rv = unmarshallAPI(obj, connection); // can be called __js
   }
-  else if (obj.__oni_type == 'date') { // __js
+  else if (obj.__oni_bridge_type == 'date') { // __js
     rv = new Date(obj.val);
   }
-  else if (obj.__oni_type == 'quasi') { // __js
+  else if (obj.__oni_bridge_type == 'quasi') { // __js
     rv = @Quasi(obj.val);
   }
-  else if (obj.__oni_type == 'error') { // __js
+  else if (obj.__oni_bridge_type == 'error') { // __js
     rv = unmarshallError(obj, connection);
   }
-  else if (obj.__oni_type === 'undef') { // __js
+  else if (obj.__oni_bridge_type === 'undef') { // __js
     rv = undefined;
   }
   else
@@ -469,10 +423,10 @@ function unmarshallComplexTypes(obj, connection) {
 
   if (potentially_async) {
 
-    if (obj.__oni_type == 'blob') {
+    if (obj.__oni_bridge_type == 'blob') {
       rv = unmarshallBlob(obj, connection); // NOT __JS
     }
-    else if (obj.__oni_type == 'custom_marshalled') {
+    else if (obj.__oni_bridge_type == 'custom_marshalled') {
       var mod;
       var apiid = obj.wrap[0].__oni_apiid;
       if(apiid !== undefined) {
@@ -553,7 +507,7 @@ function unmarshallAPI(obj, connection) {
 __js {
 function unmarshallFunction(obj, connection) {
   // make a proxy for the function:
-  var f = function() {
+  var f = function() { 
     return connection.makeCall(-1, obj.id, arguments);
   };
   f[@fn.ITF_SIGNAL] = function(this_obj, args) {
@@ -565,40 +519,6 @@ function unmarshallFunction(obj, connection) {
   return f;
 }
 } // __js
-
-function unmarshallStream(obj, connection) {
-  // Blocklambda return/break don't work across spawn boundaries
-  // (yet), but many stream primitives (such as `first`) depend on
-  // them. 
-  // To fix this, we introduce an intermediate `getter` function:
-
-  var ctor = obj.batched ? @BatchedStream : @Stream;
-
-  return ctor(
-    function(receiver) {
-      var have_val, want_val;
-      function getter(x) {
-        waitfor {
-          waitfor() { want_val = resume; }
-        }
-        and {
-          have_val(x);
-        }
-      }
-
-      waitfor {
-        while (1) {
-          waitfor(var val) { have_val = resume }
-          receiver(val);
-          want_val();
-        }
-      }
-      or {
-        connection.makeCall(-1, obj.id, [getter]);
-      }
-    });
-}
-
 
 //----------------------------------------------------------------------
 
@@ -679,7 +599,6 @@ function BridgeConnection(transport, opts) {
           pending_calls[call_no] = resume;
         }
         retract {
-          //@logging.debug("call #{call_no} (#{method}) retracted");
           send(['abort', call_no]);
         }
         finally {
@@ -711,7 +630,7 @@ function BridgeConnection(transport, opts) {
       }
       closed = true;
 
-      this.stratum.abort();
+      spawn this.stratum.abort();
 
       if (transport) {
         transport.__finally__();
@@ -797,8 +716,13 @@ function BridgeConnection(transport, opts) {
       inner();
     }
     catch (e) {
+      if (@isTransportError(e)) {
+        @logging.debug("Transport Error while receiving; terminating BridgeConnection: #{e}");
+      }
+      else {
+        @logging.error("Error while receiving; terminating BridgeConnection: #{e}");
+      }
       if (!throwing) {
-        @logging.debug("Error while receiving; terminating BridgeConnection: #{e}");
         connection.__finally__();
         sessionLost.emit(e);
         return;
@@ -815,6 +739,7 @@ function BridgeConnection(transport, opts) {
     dataReceived.emit();
   }
 
+
   __js {
     function performReceivedCallSync(call_no, api_id, method, args) {
       var rv;
@@ -824,11 +749,52 @@ function BridgeConnection(transport, opts) {
         else
           rv = published_apis[api_id][method].apply(published_apis[api_id], args);
       }
-      catch (e) {
+      catch (e) { 
+        if (e && e.__oni_cfx) {
+          // a control-flow exception
+          if (e.type === 'blb') {
+            handleBlockLambdaBreak(e);
+          }
+          else { // blocklambda return
+            handleBlocklambdaReturn(e);
+          }
+          return;
+        }
+
         return ['return_exception', call_no, e];
       }
       return ['return', call_no, rv];
     }
+  }
+
+  function handleBlocklambdaReturn(e) {
+    // we have special logic in sjs's vm1 to have spawn handle disjointed synchronous blambda returns:
+    spawn(function() { return e; })();
+  }
+
+  __js function handleBlockLambdaBreak(cfx) {
+    // we have to find the proper execution frame to abort among our pending_calls:
+    for (var call_no in pending_calls) {
+      var cb = pending_calls[call_no];
+      try { 
+        // XXX FRAGILE
+        // cb.ef.parent.parent.parent.parent traverses up the execution frame structure
+        // of makeCall. This is somewhat fragile; if makeCall, or the encoding of functions
+        // changes, we need to change this code
+        if (cb.ef.parent.parent.parent.parent.env.blscope === cfx.ef) {
+          // handle the other bridge side:
+          send(['abort', call_no]);
+          // and let the resume callback handle our side:
+          cb(cfx);
+          return;
+        }
+      }
+      catch (e) {
+        throw new Error("bridge.sjs: Unexpected callback frame structure in pending_call #{call_no}");
+      }
+    }
+    // we failed to find the frame to return to; 
+    throw new Error("Unexpected blocklambda break");
   }
 
   function receiveMessage(message) {
@@ -868,21 +834,80 @@ function BridgeConnection(transport, opts) {
       // we'll attempt to perform the call synchronously. this will return
       // an execution frame if the call went async. in that case we spawn a
       // stratum to manage the call.
+
+      // blocklambda returns & breaks are both handled on the side of the 
+      // bridge connection where they happen. The other side will not receive
+      // a special retract signal, but this shouldn't matter in all (apart from pathological?) 
+      // cases because there should be a wrapper tearing everything down, e.g.:
+      /*
+
+          CLIENT:
+
+            api.S { |x|
+              console.log(x);
+              if (x === 10) break;
+            }
+
+          SERVER:
+
+            exports.S = @Stream(function(r) {
+              try {
+                var i=0;
+                while (1) { r(++i); }
+              }
+              finally {
+                console.log("Done with stream");
+              }
+            });
+
+          Here, S on the server will be aborted by the blambda break, which will in turn
+          tear down 'r'.
+
+
+          XXX Unfortunately tearing down 'r' causes a needless 'abort' to be sent to the client 
+          atm, so maybe we should revisit this at some point.
+
+       */
+
       __js var call_rv = performReceivedCallSync(message[1], //call_no
                                                  message[2], // api_id
                                                  message[3], // method, 
                                                  message[4] // args
                                                 );
+
+      if (call_rv === undefined) break;
+
       if (__oni_rt.is_ef(call_rv[2])) {
         // go async
         executing_calls[message[1]] = 
           spawn(function(ef, call_id) { 
             var rv;
             try {
-              rv = ['return', call_id, ef.wait()];
+              ef.wait();
             }
-            catch (e) {
-              rv = ['return_exception', call_id, e];
+            catchall (e) {
+              if (e[1]) { // exception
+                if (e[0] && e[0].__oni_cfx) {
+                  if (e[0].type === 'blb') {
+                    return handleBlockLambdaBreak(e[0]);
+                  }
+                  else {
+                    // blocklambda return
+                    // we're already in a spawn, so no reason to call
+                    // handleBlocklambdaReturn. just returning the exception will
+                    // make sure that the current spawn stratum will handle the return
+                    // correctly
+                    return e[0]; 
+                  }
+                }
+                else {
+                  rv = ['return_exception', call_id, e[0]];
+                }
+              }
+              else {
+                rv = ['return', call_id, e[0]];
+              }
+              
             }
             finally {
               delete executing_calls[call_id];
@@ -891,11 +916,11 @@ function BridgeConnection(transport, opts) {
           })(call_rv[2], message[1])
       }
       else {
-          send(call_rv);
+        send(call_rv);
       }
       break;
 
-    case 'abort':
+    case 'abort': 
       var executing_call = executing_calls[message[1]];
       if (executing_call) {
         executing_call.abort();
