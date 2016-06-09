@@ -133,7 +133,7 @@ function popover(anchor, element, settings, block) {
   var popover_CSS = @CSS("
     {
       position: absolute;
-      z-index: 1000;
+      z-index: 1050;
       #{settings.left !== undefined ?  "left: #{anchor_rect.left + (anchor_rect.right-anchor_rect.left)*settings.left+window.scrollX}px;" : ''}
       #{settings.right !== undefined ?  "right: #{window.innerWidth - (anchor_rect.left + (anchor_rect.right-anchor_rect.left)*settings.right+window.scrollX)}px;" : ''}
       #{settings.top !== undefined ?  "top: #{anchor_rect.top + (anchor_rect.bottom-anchor_rect.top)*settings.top+window.scrollY}px;" : ''}
@@ -208,7 +208,7 @@ function waitforClosingClick(elem) {
    @summary Display a dropdown menu and handle mouse/keyboard interactions
    @param {Object} [settings] 
    @setting {DOMNode} [anchor] DOM element relative to which dropdown will be positioned
-   @setting {Array} [items] Array of menu items as outlined in the description below. 
+   @setting {sjs:sequence::Sequence|sjs:observable::Observable} [items] Sequence of menu items as outlined in the description below, or Observable thereof.
    @setting {Integer} [top=1] Top position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
    @setting {Integer} [left=0] Left position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
    @setting {Integer} [bottom=undefined] Bottom position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
@@ -270,6 +270,10 @@ function waitforClosingClick(elem) {
      ])
      
 */
+
+// XXX
+var NakedUl = @ElementConstructor :: (content, attr) -> @Element('ul', content, attr);
+
 function doDropdown(/* anchor, items, [settings] */) {
   
   // untangle arguments
@@ -281,7 +285,7 @@ function doDropdown(/* anchor, items, [settings] */) {
   anchor = arguments[0];
 
   if (arguments.length === 2) {
-    if (Array.isArray(arguments[1]))
+    if (@isSequence(arguments[1]))
       settings.items = arguments[1];
     else
       settings = settings .. @merge(arguments[1]);
@@ -293,6 +297,9 @@ function doDropdown(/* anchor, items, [settings] */) {
   else
     throw new Error("Unexpected number of arguments");
 
+  if (!@isObservable(settings.items)) {
+    settings.items = @constantObservable(settings.items);
+  }
   var action;
 
   function makeDropdownItem(item) {
@@ -303,15 +310,18 @@ function doDropdown(/* anchor, items, [settings] */) {
         !Array.isArray(item) &&
         item.content !== undefined) {
       rv = item.content;
+      if (!@isElementOfType(rv, 'li'))
+        rv = @Li(rv);
       if (item.action) {
-        // make sure item is wrapped as <li>, so that we capture clicks on the full menu item:
-        if (!@isElementOfType(rv, 'li'))
-          rv = @Li(rv);
+        // make sure item is wrapped as <li> before we do the OnClick, so that we capture clicks on the full menu item:
         rv = rv .. @OnClick(-> action = item.action);
       }
     }
-    else
+    else {
       rv = item;
+      if (!@isElementOfType(rv, 'li'))
+        rv = @Li(rv);
+    }
     
     return rv;
   }
@@ -331,7 +341,10 @@ function doDropdown(/* anchor, items, [settings] */) {
 
 
   anchor .. popover(
-    @Ul(settings.items .. @transform(makeDropdownItem) .. @toArray) .. DropdownMenu_CSS,
+    NakedUl .. DropdownMenu_CSS ::
+      settings.items .. 
+      @transform(items ->
+                 @CollectStream(items .. @transform(makeDropdownItem))),
     settings
   ) {
     |dropdownDOMElement|
