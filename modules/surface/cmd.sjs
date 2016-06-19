@@ -10,11 +10,10 @@
  */
 
 /**
-@nodoc
-@summary HTML 'Cmd' abstraction 
-@hostenv xbrowser
-@desc
-  Command routing abstractions.
+   @summary HTML command routing abstractions
+   @hostenv xbrowser
+   @desc
+     Constructs for command routing in DOM trees 
 */
 
 module.setCanonicalId('mho:surface/cmd');
@@ -27,20 +26,22 @@ if (hostenv !== 'xbrowser')
 @ = require([
   'sjs:std',
   {id:'./base', include: ['Mechanism', 'Class']},
-  {id:'./dynamic', include: ['On']},
+  {id:'./dynamic', include: ['On', 'Enabled']},
   {id:'sjs:type', include: ['Interface']},
-  {id:'./nodes', include: ['getDOMNodes']}
+  {id:'./nodes', include: ['getDOMNodes', 'getDOMNode']}
 ]);
 
 /* - undocumented 
-   @variable ITF_CMD_EMITTERS
+   @variable ITF_CMD_UIS
+   @desc 
+     cmd uis are command emitters or state listeners
 */
-var ITF_CMD_EMITTERS = exports.ITF_CMD_EMITTERS = @Interface(module, "itf_cmd_emitters");
+var ITF_CMD_UIS = exports.ITF_CMD_UIS = @Interface(module, "itf_cmd_uis");
 
 /* - undocumented 
-   @variable ITF_CMD_RECEIVERS
+   @variable ITF_CMD_PROCESSORS
 */
-var ITF_CMD_RECEIVERS = exports.ITF_CMD_RECEIVERS = @Interface(module, "itf_cmd_receivers");
+var ITF_CMD_PROCESSORS = exports.ITF_CMD_PROCESSORS = @Interface(module, "itf_cmd_processors");
 
 
 /**
@@ -87,28 +88,28 @@ function Click(/*element, settings*/) {
   
   var methods = {
     cmd: cmd,
-    isActive: function() { return !!emitter },
+    isBound: function() { return !!emitter },
     setEmitter: function(e) { emitter = e; if (Enabled) { Enabled.set(!!e); } }
   };
 
   var rv = element ..
-    @Class('__oni_cmd_emitter') ..
+    @Class('__oni_cmd_uis') ..
     @Mechanism(function(node) {
-      // install api with which receivers can bind to us:
-      var itf = node[ITF_CMD_EMITTERS];
+      // install api through which processors can bind to us:
+      var itf = node[ITF_CMD_UIS];
       if (!itf)
-        itf = node[ITF_CMD_EMITTERS] = [];
+        itf = node[ITF_CMD_UIS] = [];
 
       itf.push(methods);
 
-      // xxx why this?
+      // give command processors priority for finding _us_. XXX does this make sense; is this needed?
       hold(0);
 
-      if (!methods.isActive()) {
-        // if we're not bound yet, attempt to find receiver to bind to:
+      if (!methods.isBound()) {
+        // if we're not bound yet, attempt to find processors to bind to:
         do {
-          if (node[ITF_CMD_RECEIVERS]) {
-            node[ITF_CMD_RECEIVERS] .. @each {
+          if (node[ITF_CMD_PROCESSORS]) {
+            node[ITF_CMD_PROCESSORS] .. @each {
               |rec|
               if (rec.bound_commands && rec.bound_commands.indexOf(methods.cmd) === -1)
                 continue;
@@ -139,7 +140,82 @@ function Click(/*element, settings*/) {
 };
 exports.Click = Click;
 
+////////////////////////////////////////////////////////////////////////
+/**
+   @function Active
+   @summary XXX write me
+*/
+function Active(/*[dom_root], cmd */) {
+  // untangle arguments:
+  var root, cmd;
+  if (arguments.length === 1) {
+    cmd = arguments[0];
+  }
+  else if (arguments.length === 2) {
+    root = arguments[0];
+    cmd = arguments[1];
+  }
+  else
+    throw new Error("cmd::Active: Invalid number of arguments");
 
+  return @Stream(function(downstream) {
+
+    var Enabled = @ObservableVar(false);
+    var emitter;
+    var methods = {
+      cmd: cmd,
+      isBound: function() { return !!emitter },
+      setEmitter: function(e) { emitter = e; Enabled.set(!!e); }
+    };
+
+
+    // XXX we're only installing on the first node in the dom context;
+    // processors are installed on all. This is probably the correct
+    // logic: we don't want a processor to attempt to bind to us
+    // multiple times, but is _should_ be ok to install on all nodes here too
+    var node = root .. @getDOMNode();
+
+    // install api through which processors can bind to us: 
+    var itf = node[ITF_CMD_UIS];
+    if (!itf) {
+      node.classList.add('__oni_cmd_uis');
+      itf = node[ITF_CMD_UIS] = [];
+    }
+
+    itf.push(methods);
+
+    
+    // give command processors priority for finding _us_. 
+    // XXX does this make sense; is this needed?
+    hold(0);
+
+   // attempt to find processor to bind to:
+    if (!methods.isBound()) {
+      do { 
+        if (node[ITF_CMD_PROCESSORS]) {
+          node[ITF_CMD_PROCESSORS] .. @each {
+            |proc|
+            if (proc.bound_commands && proc.bound_commands.indexOf(methods.cmd) === -1)
+              continue;
+            proc.cmd_nodes.push(methods);
+            methods.setEmitter(proc.emitter);
+            break; // we're bound
+          }
+        }
+        node = node.parentNode;
+      } while (node);
+    }
+ 
+    Enabled .. @each(downstream);
+
+    // XXX could remove us from ITF_CMD_UIS here
+
+  });
+}
+exports.Active = Active;
+
+
+////////////////////////////////////////////////////////////////////////
 /**
    @function stream
    @summary XXX write me
@@ -171,38 +247,38 @@ function stream(/*[dom_root], [commands]*/) {
         try {
           var cmd_nodes = [];
 
-          // install a handler where retrospectively added command emitters can bind themselves:
-          var cmd_receiver = {
+          // install a handler where retrospectively added command uis can bind themselves:
+          var cmd_processor = {
             bound_commands: bound_commands,
             cmd_nodes: cmd_nodes,
             emitter: emitter
           };
           root .. @getDOMNodes() .. @each {
             |node|
-            var receivers = node[ITF_CMD_RECEIVERS];
-            if (!receivers)
-              receivers = node[ITF_CMD_RECEIVERS] = [];
-            receivers.push(cmd_receiver);
+            var processors = node[ITF_CMD_PROCESSORS];
+            if (!processors)
+              processors = node[ITF_CMD_PROCESSORS] = [];
+            processors.push(cmd_processor);
           }
 
-          // proactively bind existing command emitters:
-          root .. @getDOMNodes('.__oni_cmd_emitter') ..
+          // proactively bind existing command uis:
+          root .. @getDOMNodes('.__oni_cmd_uis') ..
             @each {
               |node|
-              var cmd_emitters = node[ITF_CMD_EMITTERS];
-              if (!cmd_emitters) {
+              var cmd_uis = node[ITF_CMD_UIS];
+              if (!cmd_uis) {
                 // node has probably just been added
-                // we'll let it add itself using our ITF_CMD_RECEIVERS
+                // we'll let it add itself using our ITF_CMD_PROCESSORS
                 continue;
               }
-              cmd_emitters .. @each {
-                |cmd_emitter|
-                if (cmd_emitter.isActive()) 
+              cmd_uis .. @each {
+                |cmd_ui|
+                if (cmd_ui.isBound()) 
                   continue; // already bound
-                if (bound_commands && bound_commands.indexOf(cmd_emitter.cmd) === -1)
+                if (bound_commands && bound_commands.indexOf(cmd_ui.cmd) === -1)
                   continue; // not a command we bind to
-                cmd_nodes.push(cmd_emitter);
-                cmd_emitter.setEmitter(emitter);
+                cmd_nodes.push(cmd_ui);
+                cmd_ui.setEmitter(emitter);
               }
             }
 
@@ -213,15 +289,15 @@ function stream(/*[dom_root], [commands]*/) {
         finally {
           // unbind
           cmd_nodes .. @each {
-            |command_emitter|
-            command_emitter.setEmitter(null);
+            |command_ui|
+            command_ui.setEmitter(null);
           }
 
           root .. @getDOMNodes() .. @each {
             |node|
-            var receivers = node[ITF_CMD_RECEIVERS];
-            if (receivers)
-              receivers .. @remove(cmd_receiver);
+            var processors = node[ITF_CMD_PROCESSORS];
+            if (processors)
+              processors .. @remove(cmd_processor);
           }
         }
       }
@@ -251,10 +327,12 @@ exports.stream = stream;
 //----------------------------------------------------------------------
 // key handling
 
-/**
+/* - to be added -
    @function KeyMap
    @summary XXX write me
 */
+
+/*
 
 var modifiermap = {
   16 : "SHIFT",
@@ -296,7 +374,6 @@ var keymap = {
   145: "SCROLLLOCK"
 };
 
-/*
 
 
 exports.KeyMap = (element, key_map) ->
