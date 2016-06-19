@@ -127,7 +127,7 @@ function Value(/*[node], [path]*/) {
 
   var args = arguments;
   
-  var stream = @Stream(function(r) {
+  var stream = @Observable(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::Value: Cannot resolve Field");
     field_node[ITF_FIELD].value .. @each(r);
