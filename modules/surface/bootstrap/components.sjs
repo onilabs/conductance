@@ -2100,14 +2100,17 @@ function doModal() {
   document.body .. @appendContent(
     `<div class='modal' tabindex='-1'>
       <div class='modal-dialog'>
-        <div class='modal-content'>
-          $content
-        </div>
+        <div class='modal-content'></div>
       </div>
      </div>`) {
     |dialog|
-
+    
     $(dialog).modal(bs_options);
+    // the dialog starts off hidden; this messes up any DOM
+    // measurements performed in mechanisms. Therefore we wait with
+    // appending content until here:
+    dialog.querySelector('.modal-content') .. @appendContent(content);
+
     try {
       waitfor {
         return block(dialog);
