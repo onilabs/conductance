@@ -47,7 +47,13 @@ var ITF_CMD_PROCESSORS = exports.ITF_CMD_PROCESSORS = @Interface(module, "itf_cm
 /**
    @function Click
    @altsyntax element .. Click(cmd, [settings])
-   @summary XXX write me
+   @summary An [mho:surface::ElementWrapper] that emits command `cmd` when the element is clicked
+   @param {mho:surface::Element} [element]
+   @param {Object} [settings]
+   @setting {String} [cmd] Command to be emitted
+   @setting {Function} [filter]
+   @setting {Object} [param]
+   @setting {Boolean} [track_enabled=false]
    
 */
 function Click(/*element, settings*/) {

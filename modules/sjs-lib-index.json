@@ -7228,6 +7228,21 @@
           },
           "summary": "Bootstrap UI building blocks"
         },
+        "cmd": {
+          "type": "module",
+          "children": {
+            "Active": {
+              "type": "function"
+            },
+            "Click": {
+              "type": "function"
+            },
+            "stream": {
+              "type": "function"
+            }
+          },
+          "summary": "HTML command routing abstractions"
+        },
         "doc-fragment": {
           "type": "module",
           "children": {
@@ -7486,6 +7501,10 @@
         },
         "ElementConstructor": {
           "type": "function"
+        },
+        "ElementWrapper": {
+          "type": "class",
+          "children": {}
         },
         "Enabled": {
           "type": "function"

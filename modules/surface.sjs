@@ -86,6 +86,19 @@ module.exports = require(modules);
 @__inherit__ CURRENTLY HIDDEN ::CollapsedFragment
 @summary A [::HtmlFragment] rooted in a single HTML element
 
+@class ElementWrapper
+@summary A 'builder'-type function that, when applied to an [::Element], returns a new [::Element] derived from the original [::Element]. The original element will not be modified. 
+@desc
+   ### Note: 
+
+   If an ElementWrapper is applied to a [::HtmlFragment] that is not
+   an [::Element], the [::HtmlFragment] will automatically be cast
+   into an [::Element] using [::ensureElement]. This behavior is
+   under review, and in future the implementation might throw an
+   error in this case instead.
+
+
+
 @function Element
 @param {String} [tag]
 @param {::HtmlFragment} [content] Content to set on DOM element
@@ -102,7 +115,7 @@ module.exports = require(modules);
 @return {Boolean}
 
 @function ElementConstructor
-@summary Marks a function as returning an {::Element}
+@summary Marks a function as returning an [::Element]
 @param {Function} [f]
 @return {Function}
 @desc
@@ -142,14 +155,14 @@ module.exports = require(modules);
 @function ensureElement
 @param {::HtmlFragment} [html]
 @return {::Element}
-@summary Wrap a [::HtmlFragment] in an [::Element] with tag name 'surface-ui', if it isn't already one.
+@summary Return `html` unmodified if it is an [::Element]; otherwise return `html`  wrapped in an [::Element] with tag name `<surface-ui>`.
 
 @function CSS
 @altsyntax element .. CSS(style)
-@param {optional ::HtmlFragment} [element]
+@param {optional ::Element} [element]
 @param {String|sjs:quasi::Quasi} [style]
 @return {::Element|Function}
-@summary Add CSS style to an element
+@summary An [::ElementWrapper] that adds CSS style to an element
 @desc
   `style` should be a CSS string, which will be automatically
   scoped to all instances of the given widget.
@@ -213,9 +226,6 @@ module.exports = require(modules);
   intermediate `CSS` function in this way, because it
   ensures that underlying <style> elements are re-used.
 
-  If `CSS` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
-
 @function GlobalCSS
 @param {String} [style]
 @return {::HtmlFragment}
@@ -227,10 +237,10 @@ module.exports = require(modules);
 
 @function Mechanism
 @altsyntax element .. Mechanism(mechanism, [prepend])
-@param {optional ::HtmlFragment} [element]
+@param {optional ::Element} [element]
 @param {Function|String} [mechanism] Function to execute when `element` is added to the DOM
 @param {optional Boolean} [prepend=false] If `true`, this mechanism will be executed before any other existing mechanisms on `element`.
-@summary Add a mechanism to an element
+@summary An [::ElementWrapper] that adds a "mechanism" to an element
 @return {::Element|Function}
 @desc
   Whenever an instance of the returned element is inserted into the
@@ -254,8 +264,6 @@ module.exports = require(modules);
   Calling `elem .. cached_mech` for a number of `elem`s is more efficient than 
   calling `elem .. Mechanism(f)` on each of them. 
 
-  If `Mechanism` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
 
   The `prepend` flag is used to coordinate the order of execution
   when there are multiple mechanisms on an element. By default,
@@ -272,8 +280,8 @@ module.exports = require(modules);
 
 @function Attrib
 @altsyntax element .. Attrib(name, value)
-@summary Add a HTML attribute to an element
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that adds a HTML attribute to an element
+@param {::Element} [element]
 @param {String} [name] Attribute name
 @param {Boolean|String|sjs:sequence::Stream} [value] Attribute value
 @return {::Element}
@@ -294,16 +302,13 @@ module.exports = require(modules);
   `Div() .. Attrib('foo', undefined)` yields `<div foo='undefined'></div>` and not
   `<div foo></div>` or `<div></div>` as one might expect. 
 
-  If `Attrib` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
-
   See also [::Prop].
 
 @function Id
 @altsyntax element .. Id(id)
-@param {::HtmlFragment} [element]
+@param {::Element} [element]
 @param {String|sjs:sequence::Stream} [id]
-@summary Add an `id` attribute to an element
+@summary An [::ElementWrapper] that adds an `id` attribute to an element
 @return {::Element}
 @desc
   `id` can be an [sjs:sequence::Stream], but only in a
@@ -311,13 +316,10 @@ module.exports = require(modules);
   this element is used in a static [::Document], an error will
   be thrown.
 
-  If `Id` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
-
 @function Style
 @altsyntax element .. Style(style)
-@summary Add to an element's "style" attribute
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that adds to an element's "style" attribute
+@param {::Element} [element]
 @param {String|undefined} [style]
 @return {::Element}
 @desc
@@ -329,16 +331,13 @@ module.exports = require(modules);
 
   For a richer way to add styling, see [::CSS].
 
-  If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
-
   If the `style` parameter is `undefined`, `element` will be returned unmodified.
 
 
 @function Class
 @altsyntax element .. Class(class, [flag])
-@summary Add a `class` to an element
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that adds a `class` to an element
+@param {::Element} [element]
 @param {String|sjs:sequence::Stream} [class]
 @param {optional Boolean|sjs:sequence::Stream} [flag]
 @return {::Element}
@@ -357,24 +356,17 @@ module.exports = require(modules);
   To replace the `class` attribute entirely rather
   than adding to it, use [::Attrib]`('class', newVal)`.
 
-  If `Class` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
-
   [sjs:sequence::Stream] arguments will be iterated in a [::DynamicDOMContext] set to `element`s DOM node.
 
 @function Content
 @altsyntax element .. Content(content)
-@summary Add to an element's content
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that adds to an element's content
+@param {::Element} [element]
 @param {::HtmlFragment} [content]
 @return {::Element}
 @desc
   Returns a copy of `element` with `content` added to the 
   element's content.
-
-  If `Content` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
-
 
 @function RawHTML
 @summary Cast a string into raw HTML
@@ -402,15 +394,12 @@ module.exports = require(modules);
 
 @function Autofocus
 @altsyntax element .. Autofocus()
-@summary Focus element when loaded into DOM
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that focusses an element when loaded into DOM
+@param {::Element} [element]
 @return {::Element}
 @desc
   Similar to setting an attribute 'autofocus' on an element, but works in 
   more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1. Also, if the element itself is not focusable, the first child element matching the CSS selector `input, a[href], area[href], iframe` will be focussed.
-
-  If `Autofocus` is applied to a [::HtmlFragment] that is not of class [::Element], 
-  `element` will automatically be wrapped using [::ensureElement].
 
 @function RequireExternalScript
 @summary Declare a dependency on an external `.js` script
@@ -616,8 +605,8 @@ module.exports = require(modules);
 
 @function Prop
 @altsyntax element .. Prop(name, value)
-@summary Add a javascript property to an element
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that adds a javascript property to an element
+@param {::Element} [element]
 @param {String} [name] Property name
 @param {Object} [value] Property value
 @return {::Element}
@@ -630,8 +619,8 @@ module.exports = require(modules);
 
 @function Enabled
 @altsyntax element .. Enabled(obs)
-@summary Add a `disabled` attribute to element when obs is not truthy
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that adds a `disabled` attribute to element when obs is not truthy
+@param {::Element} [element]
 @param {sjs:sequence::Stream} [obs] Stream of true/false values (typically an [sjs:observable::Observable])
 @return {::Element}
 @hostenv xbrowser
@@ -670,8 +659,8 @@ module.exports = require(modules);
 
 @function On
 @altsyntax element .. On(event, [settings], event_handler)
-@summary Adds an event handler on an element
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that adds an event handler on an element
+@param {::Element} [element]
 @param {String} [event] Name of the event, e.g. 'click'
 @param {optional Object} [settings] Settings as described at [sjs:event::events].
 @param {Function} [event_handler] 
@@ -698,8 +687,8 @@ module.exports = require(modules);
 
 @function OnClick
 @altsyntax element .. OnClick([settings], event_handler)
-@summary Adds a 'click' event handler on an element
-@param {::HtmlFragment} [element]
+@summary An [::ElementWrapper] that adds a 'click' event handler on an element
+@param {::Element} [element]
 @param {optional Object} [settings] Settings as described at [sjs:event::events].
 @param {Function} [event_handler] 
 @return {::Element}
@@ -721,8 +710,8 @@ module.exports = require(modules);
 
 @function OnSubmit
 @altsyntax element .. OnSubmit([settings], event_handler)
-@summary Adds a 'submit' event handler on a form element
-@param {::HtmlFragment} [form]
+@summary An [::ElementWrapper] that adds a 'submit' event handler on a form element
+@param {::Element} [form]
 @param {optional Object} [settings] Settings as described at [sjs:event::events].
 @param {Function} [event_handler]
 @return {::Element}

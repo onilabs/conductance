@@ -554,8 +554,8 @@ exports.removeNode = removeNode;
 /**
   @function Prop
   @altsyntax element .. Prop(name, value)
-  @summary Add a javascript property to an element
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that adds a javascript property to an element
+  @param {::Element} [element]
   @param {String} [name] Property name
   @param {Object} [value] Property value
   @return {::Element}
@@ -577,8 +577,8 @@ exports.Prop = Prop;
 /**
   @function Enabled
   @altsyntax element .. Enabled(obs)
-  @summary Add a `disabled` attribute to element when obs is not truthy
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that adds a `disabled` attribute to element when obs is not truthy
+  @param {::Element} [element]
   @param {sjs:sequence::Stream} [obs] Stream of true/false values (typically an [sjs:observable::Observable])
   @return {::Element}
   @hostenv xbrowser
@@ -624,8 +624,8 @@ exports.Enabled = (html, obs) -> html .. Attrib('disabled', obs .. transform(x->
 /**
   @function On
   @altsyntax element .. On(event, [settings], event_handler)
-  @summary Adds an event handler on an element
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that adds an event handler on an element
+  @param {::Element} [element]
   @param {String} [event] Name of the event, e.g. 'click'
   @param {optional Object} [settings] Settings as described at [sjs:event::events].
   @param {Function} [event_handler] 
@@ -663,8 +663,8 @@ exports.On = On;
 /**
   @function OnClick
   @altsyntax element .. OnClick([settings], event_handler)
-  @summary Adds a 'click' event handler on an element
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that adds a 'click' event handler on an element
+  @param {::Element} [element]
   @param {optional Object} [settings] Settings as described at [sjs:event::events].
   @param {Function} [event_handler] 
   @return {::Element}
@@ -690,8 +690,8 @@ exports.OnClick = OnClick;
 /**
   @function OnSubmit
   @altsyntax element .. OnSubmit([settings], event_handler)
-  @summary Adds a 'submit' event handler on a form element
-  @param {::HtmlFragment} [form]
+  @summary An [::ElementWrapper] that adds a 'submit' event handler on a form element
+  @param {::Element} [form]
   @param {optional Object} [settings] Settings as described at [sjs:event::events].
   @param {Function} [event_handler]
   @return {::Element}

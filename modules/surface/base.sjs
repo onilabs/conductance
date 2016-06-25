@@ -346,6 +346,19 @@ exports.collapseHtmlFragment = collapseHtmlFragment;
   @class Element
   @__inherit__ CURRENTLY HIDDEN ::CollapsedFragment
   @summary A [::HtmlFragment] rooted in a single HTML element
+
+  @class ElementWrapper
+  @summary A 'builder'-type function that, when applied to an [::Element], returns a new [::Element] derived from the original [::Element]. The original element will not be modified. 
+  @desc
+     ### Note: 
+
+     If an ElementWrapper is applied to a [::HtmlFragment] that is not
+     an [::Element], the [::HtmlFragment] will automatically be cast
+     into an [::Element] using [::ensureElement]. This behavior is
+     under review, and in future the implementation might throw an
+     error in this case instead.
+
+
 */
 __js var ElementProto = Object.create(FragmentBase);
 
@@ -473,7 +486,7 @@ __js {
 
 /**
   @function ElementConstructor
-  @summary Marks a function as returning an {::Element}
+  @summary Marks a function as returning an [::Element]
   @param {Function} [f]
   @return {Function}
   @desc
@@ -545,7 +558,7 @@ __js {
   @function ensureElement
   @param {::HtmlFragment} [html]
   @return {::Element}
-  @summary Wrap a [::HtmlFragment] in an [::Element] with tag name 'surface-ui', if it isn't already one.
+  @summary Return `html` unmodified if it is an [::Element]; otherwise return `html`  wrapped in an [::Element] with tag name `<surface-ui>`.
 */
 __js {
   function ensureElement(ft) {
@@ -616,10 +629,10 @@ __js function InternalCSSDef(content, parent_class, mech) {
 /**
   @function CSS
   @altsyntax element .. CSS(style)
-  @param {optional ::HtmlFragment} [element]
+  @param {optional ::Element} [element]
   @param {String|sjs:quasi::Quasi} [style]
   @return {::Element|Function}
-  @summary Add CSS style to an element
+  @summary An [::ElementWrapper] that adds CSS style to an element
   @desc
     `style` should be a CSS string, which will be automatically
     scoped to all instances of the given widget.
@@ -682,9 +695,6 @@ __js function InternalCSSDef(content, parent_class, mech) {
     When reusing styles, it is more efficient to create an
     intermediate `CSS` function in this way, because it
     ensures that underlying <style> elements are re-used.
-
-    If `CSS` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
 */
 
 __js {
@@ -790,10 +800,10 @@ exports.GlobalCSS = function(content) {
 /**
   @function Mechanism
   @altsyntax element .. Mechanism(mechanism, [prepend])
-  @param {optional ::HtmlFragment} [element]
+  @param {optional ::Element} [element]
   @param {Function|String} [mechanism] Function to execute when `element` is added to the DOM
   @param {optional Boolean} [prepend=false] If `true`, this mechanism will be executed before any other existing mechanisms on `element`.
-  @summary Add a mechanism to an element
+  @summary An [::ElementWrapper] that adds a "mechanism" to an element
   @return {::Element|Function}
   @desc
     Whenever an instance of the returned element is inserted into the
@@ -817,8 +827,6 @@ exports.GlobalCSS = function(content) {
     Calling `elem .. cached_mech` for a number of `elem`s is more efficient than 
     calling `elem .. Mechanism(f)` on each of them. 
 
-    If `Mechanism` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
 
     The `prepend` flag is used to coordinate the order of execution
     when there are multiple mechanisms on an element. By default,
@@ -919,8 +927,8 @@ function StreamAttribMechanism(ft, name, obs) {
 /**
   @function Attrib
   @altsyntax element .. Attrib(name, value)
-  @summary Add a HTML attribute to an element
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that adds a HTML attribute to an element
+  @param {::Element} [element]
   @param {String} [name] Attribute name
   @param {Boolean|String|sjs:sequence::Stream} [value] Attribute value
   @return {::Element}
@@ -941,9 +949,6 @@ function StreamAttribMechanism(ft, name, obs) {
     `Div() .. Attrib('foo', undefined)` yields `<div foo='undefined'></div>` and not
     `<div foo></div>` or `<div></div>` as one might expect. 
 
-    If `Attrib` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
-
     See also [::Prop].
 */
 function Attrib(element, name, value) {
@@ -961,26 +966,23 @@ exports.Attrib = Attrib;
 /**
   @function Id
   @altsyntax element .. Id(id)
-  @param {::HtmlFragment} [element]
+  @param {::Element} [element]
   @param {String|sjs:sequence::Stream} [id]
-  @summary Add an `id` attribute to an element
+  @summary An [::ElementWrapper] that adds an `id` attribute to an element
   @return {::Element}
   @desc
     `id` can be an [sjs:sequence::Stream], but only in a
     dynamic (xbrowser) context; if `val` is a Stream and
     this element is used in a static [::Document], an error will
     be thrown.
-
-    If `Id` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
 */
 exports.Id = (element, id) -> Attrib(element, 'id', id);
 
 /**
   @function Style
   @altsyntax element .. Style(style)
-  @summary Add to an element's "style" attribute
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that adds to an element's "style" attribute
+  @param {::Element} [element]
   @param {String|undefined} [style]
   @return {::Element}
   @desc
@@ -991,9 +993,6 @@ exports.Id = (element, id) -> Attrib(element, 'id', id);
     than adding to it, use [::Attrib]`('style', newVal)`.
 
     For a richer way to add styling, see [::CSS].
-
-    If `Style` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
 
     If the `style` parameter is `undefined`, `element` will be returned unmodified.
 
@@ -1018,8 +1017,8 @@ __js {
 /**
   @function Class
   @altsyntax element .. Class(class, [flag])
-  @summary Add a `class` to an element
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that adds a `class` to an element
+  @param {::Element} [element]
   @param {String|sjs:sequence::Stream} [class]
   @param {optional Boolean|sjs:sequence::Stream} [flag]
   @return {::Element}
@@ -1037,9 +1036,6 @@ __js {
 
     To replace the `class` attribute entirely rather
     than adding to it, use [::Attrib]`('class', newVal)`.
-
-    If `Class` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
 
     [sjs:sequence::Stream] arguments will be iterated in a [::DynamicDOMContext] set to `element`s DOM node.
 */
@@ -1086,17 +1082,13 @@ exports.Class = Class;
 /**
   @function Content
   @altsyntax element .. Content(content)
-  @summary Add to an element's content
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that adds to an element's content
+  @param {::Element} [element]
   @param {::HtmlFragment} [content]
   @return {::Element}
   @desc
     Returns a copy of `element` with `content` added to the 
     element's content.
-
-    If `Content` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
-
 */
 __js {
   function Content(elem, content) {
@@ -1141,15 +1133,12 @@ exports.RawHTML = (str) -> Quasi([str]);
 /**
   @function Autofocus
   @altsyntax element .. Autofocus()
-  @summary Focus element when loaded into DOM
-  @param {::HtmlFragment} [element]
+  @summary An [::ElementWrapper] that focusses an element when loaded into DOM
+  @param {::Element} [element]
   @return {::Element}
   @desc
     Similar to setting an attribute 'autofocus' on an element, but works in 
     more circumstances, e.g. in Bootstrap modal dialog boxes that have tabindex=-1. Also, if the element itself is not focusable, the first child element matching the CSS selector `input, a[href], area[href], iframe` will be focussed.
-
-    If `Autofocus` is applied to a [::HtmlFragment] that is not of class [::Element], 
-    `element` will automatically be wrapped using [::ensureElement].
 */
 // the hold(0) is necessary to make focus work for content that is initially hidden; e.g.
 // in doModal:
