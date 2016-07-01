@@ -205,27 +205,21 @@ function StreamingContent(stream) {
   function mechanism(node) {
     stream .. each.track {
       |val|
-      var anchor = node.nextSibling;
-      if (anchor) {
-        // we've got an anchor for 'insertBefore'
-        anchor .. dyn.insertBefore(val) { 
-          ||
-          // We hold until aborted (when content gets removed from doc
-          // and we get retracted, or when a new stream value arrives
-          // and 'each.track' aborts us)
-          // On abortion, insertBefore will clean up our content.
-          hold();
-        }
-      }
-      else {
-        // we're appending to the end:
-        node.parentNode .. dyn.appendContent(val) { || hold(); }
+      var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
+
+      anchor .. dyn.insertBefore(val) { 
+        ||
+        // We hold until aborted (when content gets removed from doc
+        // and we get retracted, or when a new stream value arrives
+        // and 'each.track' aborts us)
+        // On abortion, insertBefore will clean up our content.
+        hold();
       }
     }
   }
 
   var ft = CollapsedFragment(), id = ++gMechanismCounter;
-  ft.content = "<!-- surface_stream |#{id}| -->";
+  ft.content = "<!-- surface_stream |#{id}| --><!-- surface_end_stream |#{id}| -->";
   ft.mechanisms[id] = mechanism;
   return ft;
 }
@@ -237,18 +231,14 @@ function GeneratedContent(generator) {
   var dyn = require('./dynamic');
   
   function mechanism(node) {
-    var appendFunc;
-    var anchor = node.nextSibling;
-    if (anchor) 
-      appendFunc = (content,block) -> anchor .. dyn.insertBefore(content,block);
-    else
-      appendFunc = (content,block) -> node.parentNode .. dyn.appendContent(content,block);
+    var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
+    var appendFunc = (content,block) -> anchor .. dyn.insertBefore(content,block);
 
     generator(appendFunc, node);
   }
 
   var ft = CollapsedFragment(), id = ++gMechanismCounter;
-  ft.content = "<!-- surface_stream |#{id}| -->";
+  ft.content = "<!-- surface_stream |#{id}| --><!-- surface_end_stream |#{id}| -->";
   ft.mechanisms[id] = mechanism;
   return ft;
 }
