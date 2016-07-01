@@ -390,7 +390,7 @@ exports.replaceContent = replaceContent;
      * If a function (or blocklambda) `block` is provided, it will be passed as arguments
        the DOM elements and comment nodes that have been appended. Furthermore, 
        `block` will be executed with an implicit [::DynamicDOMContext] set to the 
-       appended DOM elements.
+       appended DOM elements & comment nodes.
        When `block` 
        exits (normally, by exception or by retraction), the appended nodes will be removed.
        Any [::Mechanism]s running on the inserted nodes will be aborted.
