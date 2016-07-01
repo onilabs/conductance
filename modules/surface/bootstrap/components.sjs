@@ -2111,14 +2111,12 @@ function doModal() {
     // appending content until here:
     dialog.querySelector('.modal-content') .. @appendContent(content);
 
-    try {
-      waitfor {
-        return block(dialog);
-      }
-      or {
-        waitfor() {
-          $(dialog).on('hidden.bs.modal', resume);
-        }
+    waitfor {
+      return block(dialog);
+    }
+    or {
+      waitfor() {
+        $(dialog).on('hidden.bs.modal', resume);
       }
     }
     finally {
