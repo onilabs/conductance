@@ -42,7 +42,7 @@ var ITF_DOMCONTEXT = exports.ITF_DOMCONTEXT = @Interface(module, "itf_domcontext
 
          @Button('click me') .. @Enabled(@field.Valid(/* can't pass in a node here *\/))
 
-     The [surface::] module solves this problem by having certain functions automatically inject a "dynamic DOM context" (using [::withDOMContext]) - a variable with dynamic (rather than lexical) scope that contains a reference DOM element (or array of DOM elements).
+     The [surface::] module solves this problem by having certain functions automatically inject a "dynamic DOM context" (using [::withDOMContext]) - a variable with dynamic (rather than lexical) scope that contains a reference DOM nodes (or array of DOM nodes).
 
      E.g. [::Mechanism] executes its mechanism function with a dynamic DOM context set to the DOM node that the mechanism will be executed on. Functions such as [surface/field::Valid] executed inside the mechanism function then automatically bind to this context if they are not explicitly bound to a DOM node:
 
