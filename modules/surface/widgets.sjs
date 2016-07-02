@@ -179,6 +179,11 @@ function waitforClosingClick(elem) {
   waitfor {
     // we wait for clicks during the capture phase, and if they are
     // outside of the menu, we close the menu:
+
+    // before we wait for clicks, we wait for an initiating 'mousedown'. This is to ignore 
+    // clicks that are already pendinging *before* calling waitforClosingClick.
+    window .. @wait('!mousedown');
+
     window .. @events('!click') .. @each {
       |ev|
       var node = ev.target;
