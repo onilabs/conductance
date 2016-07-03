@@ -7237,6 +7237,9 @@
             "Click": {
               "type": "function"
             },
+            "On": {
+              "type": "function"
+            },
             "stream": {
               "type": "function"
             }
