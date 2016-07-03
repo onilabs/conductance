@@ -17,6 +17,22 @@
 ])
 
 //----------------------------------------------------------------------
+// helper to call a function after the first item in a stream is emitted. 
+// XXX something more generic to go into sequence module?
+var afterFirst = (in_stream, f) ->
+  @Stream(function(r) {
+    var first = true;
+    in_stream .. @each {
+      |elem|
+      r(elem);
+      if (first) {
+        f(elem);
+        first = false;
+      }
+    }
+  });
+
+//----------------------------------------------------------------------
 /**
    @variable Caret
    @summary A down-pointing caret arrow [surface::Element] (e.g. for use in dropdown triggers) 
@@ -173,6 +189,10 @@ var DropdownMenu_CSS = @CSS('
   & > li:hover {
     background: #fafafa;
   }
+
+  & > li.selected {
+    background: #f0f0f0;
+  }
 ');
 
 function waitforClosingClick(elem) {
@@ -214,6 +234,7 @@ function waitforClosingClick(elem) {
    @param {Object} [settings] 
    @setting {DOMNode} [anchor] DOM element relative to which dropdown will be positioned
    @setting {sjs:sequence::Sequence|sjs:observable::Observable} [items] Sequence of menu items as outlined in the description below, or Observable thereof.
+   @setting {Boolean} [keyboard=false] If `true`, UP, DOWN, and ENTER interactions will be enabled.
    @setting {Integer} [top=1] Top position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
    @setting {Integer} [left=0] Left position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
    @setting {Integer} [bottom=undefined] Bottom position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
@@ -284,7 +305,8 @@ function doDropdown(/* anchor, items, [settings] */) {
   // untangle arguments
   var anchor;
   var settings = {
-    items: undefined
+    items: undefined,
+    keyboard: false
   };
   
   anchor = arguments[0];
@@ -344,12 +366,19 @@ function doDropdown(/* anchor, items, [settings] */) {
       
   }
 
+  var DropdownUpdatedEmitter = @Emitter();
+
+  var DropdownContent = @Observable(function(r) {
+    settings.items .. @each.track {
+      |items|
+      DropdownUpdatedEmitter.emit();
+      r(@CollectStream(items .. afterFirst(-> DropdownUpdatedEmitter.emit()) .. @transform(makeDropdownItem)));
+    }
+  });
 
   anchor .. popover(
     NakedUl .. DropdownMenu_CSS ::
-      settings.items .. 
-      @transform(items ->
-                 @CollectStream(items .. @transform(makeDropdownItem))),
+      DropdownContent,
     settings
   ) {
     |dropdownDOMElement|
@@ -361,6 +390,41 @@ function doDropdown(/* anchor, items, [settings] */) {
         |ev|
         // prevent mousedowns from initiating blur events
         ev.preventDefault();
+      }
+    }
+    or {
+      if (!settings.keyboard) hold();
+      DropdownUpdatedEmitter .. @each.track {
+        ||
+        var selected = dropdownDOMElement.querySelector('li');
+        if (!selected) continue;
+        selected.classList.add('selected');
+
+        document .. @events('!keydown') .. @each {
+          |ev|
+          var code = ev.keyCode;
+          if ( (code === 38 || code === 40 || code === 13) &&
+               (!ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey)
+             ) {
+            ev.preventDefault();
+            if (code === 13) {
+              selected.click();
+            }
+            else {
+              var new_selected;
+              if (code === 38)
+                new_selected = selected.previousElementSibling;
+              else
+                new_selected = selected.nextElementSibling;
+              if (new_selected) {
+                selected.classList.remove('selected');
+                selected = new_selected;
+                selected.classList.add('selected');
+              }
+            }
+          }
+        }
+
       }
     }
   }
