@@ -353,7 +353,16 @@ function doDropdown(/* anchor, items, [settings] */) {
     settings
   ) {
     |dropdownDOMElement|
-    waitforClosingClick(dropdownDOMElement);
+    waitfor {
+      waitforClosingClick(dropdownDOMElement);
+    }
+    or {
+      dropdownDOMElement .. @events('!mousedown') .. @each {
+        |ev|
+        // prevent mousedowns from initiating blur events
+        ev.preventDefault();
+      }
+    }
   }
   hold(0); // asynchronize, so that we don't act on propagating clicks again
   if (action)
