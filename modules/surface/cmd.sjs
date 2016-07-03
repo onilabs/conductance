@@ -49,41 +49,77 @@ var ITF_CMD_PROCESSORS = exports.ITF_CMD_PROCESSORS = @Interface(module, "itf_cm
    @altsyntax element .. Click(cmd, [settings])
    @summary An [mho:surface::ElementWrapper] that emits command `cmd` when the element is clicked
    @param {mho:surface::Element} [element]
-   @param {Object} [settings]
-   @setting {String} [cmd] Command to be emitted
-   @setting {Function} [filter]
-   @setting {Object} [param]
-   @setting {Boolean} [track_enabled=false]
-   
+   @param {Object} [settings] Admits the same settings as [::On], but by default `event` is set to `"click"` and `handle` to [sjs:xbrowser/dom::preventDefault].
 */
-function Click(/*element, settings*/) {
+__js {
+  function Click(/*element, settings*/) {
+    // untangle arguments
+    var settings = {
+      event:         'click',
+      cmd:           undefined,
+      filter:        undefined,
+      handle:        @dom.preventDefault,
+      param:         undefined,
+      track_enabled: undefined
+    };
+    var element;
+    if (arguments.length === 2) {
+      element = arguments[0];
+      if (typeof arguments[1] === 'string') {
+        settings.cmd = arguments[1];
+      }
+      else {
+        settings = settings .. @override(arguments[1]);
+      }
+    }
+    else if (arguments.length === 3) {
+      element = arguments[0];
+      settings = settings .. @override(arguments[2]);
+      settings.cmd = arguments[1];
+    }
+    else 
+      throw new Error("Unexpected number of arguments");
+    return On(element, settings);
+  }
+  exports.Click = Click;
+}
 
+/**
+   @function On
+   @altsyntax element .. On(event, cmd, [settings])
+   @summary An [mho:surface::ElementWrapper] that emits command `cmd` when the element receives the given `event`
+   @param {mho:surface::Element} [element]
+   @param {Object} [settings]
+   @setting {String} [event] Name of DOM event (can be prefixed with '!' to listen to the event during the capture phase)
+   @setting {String} [cmd] Command to be emitted
+   @setting {Function} [filter] Function through which received events will be passed. An event will only be considered if this function returns a truthy value.
+   @setting {Function} [handle] A handler function to call directory on the event if it hasn't been filtered.
+   @setting {Object} [param] XXX to be documented
+   @setting {Boolean} [track_enabled=false]
+*/
+function On(/*element, settings*/) {
   // untangle arguments
-  var element, cmd, settings;
+  var element;
+  var settings = {
+    event:         undefined,
+    cmd:           undefined,
+    filter:        undefined,
+    handle:        undefined,
+    param:         undefined,
+    track_enabled: undefined
+  };
+
   if (arguments.length === 2) {
     element = arguments[0];
-    settings = {
-      cmd: undefined,
-      filter: undefined,
-      param: undefined,
-      track_enabled: false
-    };
-    if (typeof arguments[1] === 'string') {
-      cmd = arguments[1];
-    }
-    else {
-      settings = settings .. @override(arguments[1]);
-      cmd = settings.cmd;
-    }
+    settings = settings .. @override(arguments[1]);
   }
-  else if (arguments.length === 3) {
+  else if (arguments.length === 3 || arguments.length === 4) {
     element = arguments[0];
-    cmd = arguments[1];
-    settings = {
-      param: undefined,
-      filter: undefined,
-      track_enabled: false
-    } .. @override(arguments[2]);
+    if (arguments.length === 4)
+      settings = settings .. @override(arguments[3]);
+    
+    settings.event = arguments[1];
+    settings.cmd = arguments[2];
   }
   else 
     throw new Error("Unexpected number of arguments");
@@ -93,7 +129,7 @@ function Click(/*element, settings*/) {
   var emitter;
   
   var methods = {
-    cmd: cmd,
+    cmd: settings.cmd,
     isBound: function() { return !!emitter },
     setEmitter: function(e) { emitter = e; if (Enabled) { Enabled.set(!!e); } }
   };
@@ -128,11 +164,11 @@ function Click(/*element, settings*/) {
         } while (node);
       }
     }) ..
-    @On('click',
-        {handle:@dom.preventDefault,
+    @On(settings.event,
+        {handle: settings.handle,
          filter: settings.filter
         },
-        ev -> emitter ? emitter.emit([cmd,
+        ev -> emitter ? emitter.emit([settings.cmd,
                                       settings.param!==undefined ?
                                       (typeof settings.param === 'function' ? settings.param(ev) : settings.param) :
                                       ev
