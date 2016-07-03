@@ -773,10 +773,11 @@ exports.CollectStream = CollectStream;
    @param {optional Object} [settings]
    @setting {Integer} [tolerance=0] Distance (in pixels) that an element needs to be off-screen before we stop appending elements and wait for scrolling
    @setting {Function} [post_append] Function `f(appended_node_array)` to call after each item in the stream has been appended. 
+   @setting {::HtmlFragment} [in_progress_html] [::HtmlFragment] to show while the stream is still being iterated. Will be appended at the end and removed when `stream` is finished.
    @return {::HtmlFragment}
    @desc
      `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
-     parent of the CollectStream being inserted into the DOM).
+     parent of the ScrollStream being inserted into the DOM).
 
      Elements of `stream` will be appended to the DOM as they are produced and only up the point where they overflow
      the window. When the user scrolls the last element into view, more elements will be inserted.
@@ -807,14 +808,23 @@ var ScrollStream = (stream,settings) -> ContentGenerator ::
   function(append) {
     settings = {
       tolerance: 0,
-      post_append: undefined 
+      post_append: undefined,
+      in_progress_html: undefined
     } .. @override(settings);
 
     // XXX it sucks that we have to keep track of all elements to remove them in the
     // finally clause, when in 90% of the time a container would take care of element
     // removal (and shutdown of their mechanisms)
     var appended = [];
+
     try {
+      
+      if (settings.in_progress_html) {
+        var in_progress_anchor = append(settings.in_progress_html);
+        // override append function to insert before anchor:
+        append = html -> in_progress_anchor[0] .. insertBefore(html);
+      }
+    
       stream .. each {
         |item|
         appended = appended.concat(item = append(item));
@@ -825,11 +835,19 @@ var ScrollStream = (stream,settings) -> ContentGenerator ::
           AncestorScrollEvents(appended[appended.length -1]) .. @wait();
         }
       }
+
+      if (in_progress_anchor) {
+        in_progress_anchor .. each(removeNode);
+        in_progress_anchor = undefined;
+      }
+
       hold();
     }
     finally {
       if (appended.length)
         appended .. each(removeNode);
+      if (in_progress_anchor)
+        in_progress_anchor .. each(removeNode);
     } 
   };
 exports.ScrollStream = ScrollStream;
