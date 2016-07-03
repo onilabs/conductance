@@ -774,6 +774,7 @@ exports.CollectStream = CollectStream;
    @setting {Integer} [tolerance=0] Distance (in pixels) that an element needs to be off-screen before we stop appending elements and wait for scrolling
    @setting {Function} [post_append] Function `f(appended_node_array)` to call after each item in the stream has been appended. 
    @setting {::HtmlFragment} [in_progress_html] [::HtmlFragment] to show while the stream is still being iterated. Will be appended at the end and removed when `stream` is finished.
+   @setting {::HtmlFragment} [empty_html] [::HtmlFragment] to show if the stream is empty. 
    @return {::HtmlFragment}
    @desc
      `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
@@ -809,7 +810,8 @@ var ScrollStream = (stream,settings) -> ContentGenerator ::
     settings = {
       tolerance: 0,
       post_append: undefined,
-      in_progress_html: undefined
+      in_progress_html: undefined,
+      empty_html: undefined
     } .. @override(settings);
 
     // XXX it sucks that we have to keep track of all elements to remove them in the
@@ -834,6 +836,10 @@ var ScrollStream = (stream,settings) -> ContentGenerator ::
         while (!elemPartiallyWithinViewport(appended[appended.length - 1], settings.tolerance)) {
           AncestorScrollEvents(appended[appended.length -1]) .. @wait();
         }
+      }
+
+      if (!appended.length && settings.empty_html) {
+        appended.concat(append(settings.empty_html));
       }
 
       if (in_progress_anchor) {
