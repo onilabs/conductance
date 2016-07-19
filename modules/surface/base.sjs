@@ -557,6 +557,7 @@ __js {
         ft = ft();
       }
       else {
+        console.log("Warning: wrapping #{ft} with a <surface-ui> element. In future this might throw");
         ft = Element('surface-ui', ft);
       }
     }
