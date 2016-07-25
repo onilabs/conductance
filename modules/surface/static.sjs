@@ -134,6 +134,7 @@ exports.Document = function(content, settings) {
   if (userInit) bootScript += userInit + '\n';
 
   if (mechanisms.length > 0) {
+    throw new Error("server-injected static mechanisms are currently broken - need to be updated to priority-based api");
     bootScript += "
       (function () {
         var mechs = {};
@@ -143,10 +144,11 @@ exports.Document = function(content, settings) {
           each {
             |elem|
             elem.__oni_mechs = [];
-            elem.getAttribute('data-oni-mechanisms').split(' ') .. 
+            elem.getAttribute('data-oni-mechs').split(' ') .. 
             filter .. // only truthy elements
             each { 
               |mech|
+              //XXX var id_prio = 
               elem.__oni_mechs.push(spawn mechs[mech].call(elem, elem));
             }
           }

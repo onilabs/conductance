@@ -790,10 +790,12 @@ exports.GlobalCSS = function(content) {
 
 /**
   @function Mechanism
-  @altsyntax element .. Mechanism(mechanism, [prepend])
+  @altsyntax element .. Mechanism(mechanism, [settings])
   @param {optional ::Element} [element]
   @param {Function|String} [mechanism] Function to execute when `element` is added to the DOM
-  @param {optional Boolean} [prepend=false] If `true`, this mechanism will be executed before any other existing mechanisms on `element`.
+  @param {optional Object} [settings] Additional settings
+  @setting {optional Integer} [priority] Priority value for coordinating mechanism execution order (Default: [::MECH_PRIORITY_NORMAL])
+  @setting {optional Boolean} [prepend=false] If `true`, this mechanism will be executed before any other existing mechanisms on `element`. **deprecated**
   @summary An [::ElementWrapper] that adds a "mechanism" to an element
   @return {::Element|Function}
   @desc
@@ -818,36 +820,61 @@ exports.GlobalCSS = function(content) {
     Calling `elem .. cached_mech` for a number of `elem`s is more efficient than 
     calling `elem .. Mechanism(f)` on each of them. 
 
+    *** Coordinating execution order ***
+
+    When a [::HTMLFragment] is inserted into the document using [::appendContent] (or one
+    of the surface module's other content insertion functions) and there are multiple 
+    mechanisms to be executed, their execution order can be coordinated using the 
+    `priority` setting: Mechanisms with a lower numerical `priority` value will be 
+    executed first. See also [::MECH_PRIORITY_API], [::MECH_PRIORITY_STREAM] and [::MECH_PRIORITY_NORMAL]. 
+
+    Mechanisms of the same priority will be started in pre-order (i.e. mechanisms on outer DOM nodes before mechanisms on more inner DOM nodes).
 
     The `prepend` flag is used to coordinate the order of execution
-    when there are multiple mechanisms on an element. By default,
+    when there are multiple mechanisms *on the same element*. By default,
     mechanisms will be executed in the order that they were
     added. `prepend`=`true` overrides this by adding a mechanism to the
-    front of the queue. It guarantees that a given mechanism will be
-    executed before all mechanisms with `prepend`=`false`.
-
-    Mechanisms that inject interfaces/apis into a DOM element should
-    generally be added with `prepend`=`true`, so that other mechanisms
-    on the element can make use of them.
-
- 
+    front of the queue. It guarantees that - given same `priority` - on a particular 
+    element, a given mechanism will be executed before all mechanisms 
+    that have `prepend`=`false`.
 */
 __js {
-  function Mechanism(/* [opt] ft, code, [opt] prepend */) {
-    var id = ++gMechanismCounter, code, prepend;
+
+  /**
+     @variable MECH_PRIORITY_API
+     @summary Priority at which API-injecting mechanisms should be executed to ensure that they are available for streams and other mechanisms (100). See [::Mechanism]
+   */
+  var MECH_PRIORITY_API = exports.MECH_PRIORITY_API = 100;
+  /**
+     @variable MECH_PRIORITY_STREAM
+     @summary Priority at which streams are executed (500). See [::Mechanism]
+   */
+  var MECH_PRIORITY_STREAM = exports.MECH_PRIORITY_STREAM = 500;
+  /**
+     @variable MECH_PRIORITY_NORMAL
+     @summary Default priority at which mechanisms are (1000). See [::Mechanism]
+   */
+  var MECH_PRIORITY_NORMAL = exports.MECH_PRIORITY_NORMAL = 1000;
+
+  function Mechanism(/* [opt] ft, code, [opt] settings */) {
+    var id = ++gMechanismCounter, code, settings;
     
+    var settings = {
+      priority: MECH_PRIORITY_NORMAL,
+      prepend: false
+    };
+
     function setMechanism(ft) {
       if (code == null) throw new Error("null mechanism");
       ft = cloneElement(ft);
-      
       ft.mechanisms[id] = code;
       
-      if(!ft.attribs['data-oni-mechanisms'])
-        ft.attribs['data-oni-mechanisms'] = String(id);
-      else if (!prepend)
-        ft.attribs['data-oni-mechanisms'] += ' '+id;
-      else
-        ft.attribs['data-oni-mechanisms'] = id + ' ' + ft.attribs['data-oni-mechanisms'];
+      if(!ft.attribs['data-oni-mechs'])
+        ft.attribs['data-oni-mechs'] = "#{id}!#{settings.priority}";
+      else if (settings.prepend)
+        ft.attribs['data-oni-mechs'] = " #{id}!#{settings.priority} "+ft.attribs['data-oni-mechs'];
+      else // append
+        ft.attribs['data-oni-mechs'] += " #{id}!#{settings.priority}";
 
       var classes = ft._normalizeClasses();
       if (classes.indexOf('_oni_mech_') == -1)
@@ -855,14 +882,14 @@ __js {
       return ft;
     }
     
-    if (arguments.length == 1 || typeof arguments[1] === 'boolean') {
+    if (arguments.length === 1 || typeof arguments[1] === 'object') {
       code = arguments[0];
-      prepend = arguments[1];
+      settings = settings .. @override(arguments[1]);
       return setMechanism;
     }
     else /* if (arguments.length == 2|3 ) */ {
       code = arguments[1];
-      prepend = arguments[2];
+      settings = settings .. @override(arguments[2]);
       return setMechanism(arguments[0]);
     }
   }

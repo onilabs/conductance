@@ -22,7 +22,7 @@
 @ = require([
   'sjs:std'
 ]);
-var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator } = require('./base');
+var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator, MECH_PRIORITY_STREAM } = require('./base');
 var { withDOMContext } = require('./nodes');
 var { ownPropertyPairs, ownKeys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
@@ -199,59 +199,83 @@ function awaitStratumError(s) {
 
 __js var fakeArray = { push: -> null };
 
+
+__js {
+  // XXX helper for runMechanisms that should go elsewhere
+  function PrioritySet() { return {}; }
+
+  function PrioritySet_push(ps, elem, priority) {
+    if (typeof priority !== 'number') throw new Error("PrioritySet_push requires a numerical priority (saw '#{priority}'");
+    if (ps[priority] === undefined)
+      ps[priority] = [elem];
+    else
+      ps[priority].push(elem);
+  }
+
+  function PrioritySet_stream(ps) { 
+    return @Stream(function(r) {
+      ps .. @ownPropertyPairs .. 
+        @transform([priority, elems] -> [Number(priority), elems]) .. 
+        @sortBy('0') .. @each {
+          |[,elems]| 
+          elems .. @each(r);
+        }
+    });
+  }
+}
+
 function runMechanisms(elems, await) {
   var rv = await ? [] : fakeArray;
-  var addMech = function(elem, mech) {
-    var s = spawn mechanismsInstalled[mech].func.call(elem, elem);
-    elem.__oni_mechs.push(s);
-    rv.push(s);
-  };
+
+  var mechs = PrioritySet();
+  __js function addMech(elem, [mech, priority]) {
+    mechs .. PrioritySet_push([elem, mechanismsInstalled[mech]], Number(priority));
+  }
 
   elems .. each {|elem|
     if (elem.nodeType === ELEMENT_NODE) {
 
-      var elems = (elem.hasAttribute('data-oni-mechanisms') ? [elem] : []) ..
-        concat(elem.querySelectorAll('[data-oni-mechanisms]')) ..
+      var elems = (elem.hasAttribute('data-oni-mechs') ? [elem] : []) ..
+        concat(elem.querySelectorAll('[data-oni-mechs]')) ..
         toArray;
 
       var streams = StreamNodes(elem) .. toArray;
 
       elems .. each {
         |elem|
-        withDOMContext(elem) {
-          ||
-          elem.__oni_mechs = [];
-          elem.getAttribute('data-oni-mechanisms').split(' ') ..
-            filter .. // only truthy elements
-            each {
-              |mech|
-              elem .. addMech(mech);
-            }
-        }
+        elem.__oni_mechs = [];
+        elem.getAttribute('data-oni-mechs').split(' ') ..
+          filter .. // only truthy elements
+          each {
+            |mech|
+            elem .. addMech(mech.split('!'));
+          }
       }
       
-      // start streams:
+      // add stream mechanisms:
       streams .. each { 
         |node|
-        withDOMContext(node) {
-          ||
-          var [,mech] = node.nodeValue.split("|");
-          node.__oni_mechs = [];
-          node .. addMech(mech);
-        }
+        var [,mech] = node.nodeValue.split("|");
+        node.__oni_mechs = [];
+        node .. addMech([mech, @MECH_PRIORITY_STREAM]);
       }
     }
     else if (elem.nodeValue.indexOf('surface_stream') !== -1) {
       // we assume nodetype == COMMENT_NODE
       var [,mech] = elem.nodeValue.split("|");
       elem.__oni_mechs = [];
-      withDOMContext(elem) {
-        ||
-        elem .. addMech(mech);
-      }
+      elem .. addMech([mech, @MECH_PRIORITY_STREAM]);
     }
   }
 
+  // add this point 'mechs' contains all of our mechanisms sorted by priority.
+  // let's start them:
+  mechs .. PrioritySet_stream .. @each {
+    |[elem, mech]|
+    var s = spawn withDOMContext(elem) { || mech.func.call(elem, elem) };
+    elem.__oni_mechs.push(s);
+    rv.push(s);
+  };
   if (await) {
     return spawn(function() {
       try {
@@ -379,7 +403,7 @@ exports.replaceContent = replaceContent;
 
      * See also [::replaceContent], [::prependContent], [::insertBefore] and [::insertAfter].
 
-     * Any [::Mechanism]s contained in `html` will be started in pre-order (i.e. mechanisms on outer 
+     * Any [::Mechanism]s contained in `html` will be started in order of their priority setting. Mechanisms of the same priority will be started in pre-order (i.e. mechanisms on outer 
        DOM nodes before mechanisms on more inner DOM nodes).
 
      * If no function `block` is provided, `appendContent` returns an
