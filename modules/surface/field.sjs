@@ -25,12 +25,16 @@ if (hostenv !== 'xbrowser')
 
 @ = require([
   'sjs:std',
-  {id:'./base', include: ['Mechanism']},
+  {id:'./base', include: ['Mechanism', 'MECH_PRIORITY_API', 'MECH_PRIORITY_STREAM', 'MECH_PRIORITY_NORMAL']},
   {id:'./dynamic', include: ['appendContent', 'removeNode']},
   {id:'sjs:type', include: ['Interface']},
   {id:'./nodes', include: ['getDOMNode', 'getDOMITF', 'getDOMITFNode']}
 ]);
 
+var MECH_PRIORITY_FIELD_API = @MECH_PRIORITY_API;
+var MECH_PRIORITY_FIELD_CONTAINER_API = @MECH_PRIORITY_API;
+var MECH_PRIORITY_FIELD_SYNC = @MECH_PRIORITY_STREAM-1; // starting synchronization before stream priority means that an initialized 'Value' is available for streaming
+var MECH_PRIORITY_FIELD_CONTAINER_SYNC = @MECH_PRIORITY_STREAM-1;
 
 //----------------------------------------------------------------------
 // Interfaces:
@@ -316,10 +320,6 @@ function getField(/*[node], [path]*/) {
     node = @getDOMNode();
   }
     
-  // XXX is this a good idea? Always asynchronize so that 'getField'
-  // works from ancestor mechanisms:
-  hold(0);
-  
   if (!path && node[ITF_FIELD]) return node;
   
   node = node .. @getDOMITFNode(ITF_FIELD);
@@ -573,70 +573,83 @@ function Field(elem, settings /* || name, initval */) {
   var ValidatorsChange = @Emitter();
 
   return elem ..
-    @Mechanism(function(node) {
-
-      var field = node[ITF_FIELD] = {
-        id: "__oni_field_#{++field_id_counter}",
-        
-        value: settings.Value || @ObservableVar(settings.initval),
-        
-        validation_state: settings.ValidationState || @ObservableVar({state:'unknown'}),
-        display_validation: @ObservableVar(false),
-        addValidator: function(validator) { 
-          field.validators.push(validator);
-          if (typeof validator === 'object') {
-            validator.deps .. @each { |dep| 
-              if (field.validators_deps[dep] === undefined)
-                field.validators_deps[dep] = 1;
-              else
-                ++field.validators_deps[dep];
+    // Mechanism that installs field api:
+    @Mechanism(
+      function(node) { 
+        var field = node[ITF_FIELD] = {
+          id: "__oni_field_#{++field_id_counter}",
+          
+          value: settings.Value || @ObservableVar(settings.initval),
+          
+          validation_state: settings.ValidationState || @ObservableVar({state:'unknown'}),
+          display_validation: @ObservableVar(false),
+          addValidator: function(validator) { 
+            field.validators.push(validator);
+            if (typeof validator === 'object') {
+              validator.deps .. @each { |dep| 
+                if (field.validators_deps[dep] === undefined)
+                  field.validators_deps[dep] = 1;
+                else
+                  ++field.validators_deps[dep];
+              }
             }
-          }
-          ValidatorsChange.emit();
-        },
-        removeValidator: function(validator) {
-          field.validators .. @remove(validator);
-          if (typeof validator === 'object') {
-            validator.deps .. @each { |dep|
-              if (--field.validators_deps[dep] === 0) 
-                delete field.validators_deps[dep];
+            ValidatorsChange.emit();
+          },
+          removeValidator: function(validator) {
+            field.validators .. @remove(validator);
+            if (typeof validator === 'object') {
+              validator.deps .. @each { |dep|
+                if (--field.validators_deps[dep] === 0) 
+                  delete field.validators_deps[dep];
+              }
             }
-          }
-          ValidatorsChange.emit();
-        },
-        validators: [],
-        validators_deps: {},
-        set_display_validation: (bool) -> field.display_validation.set(bool),
-        validation_loop: validate_field_loop
-      };
+            ValidatorsChange.emit();
+          },
+          validators: [],
+          validators_deps: {},
+          set_display_validation: (bool) -> field.display_validation.set(bool),
+          validation_loop: validate_field_loop,
 
-      var parent_container = node.parentNode .. @getDOMITF(ITF_FIELDCONTAINER);
-      
-      waitfor {
-        if (parent_container)
-          parent_container.addField(settings.name, node);
+          _parent_container: node.parentNode .. @getDOMITF(ITF_FIELDCONTAINER)
+        };
         
-        // asynchronize so that tree gets built before we start validating:
-        // (XXX mostly this is still needed because FieldMap/FieldArray overrides validation_loop?)
-        hold(0);
-        // [1] here to make sure that we have an initial prod
-        @combine([1],ValidatorsChange) .. @each.track { ||
-          field.validation_loop(node);
+        if (field._parent_container)
+          field._parent_container.addField(settings.name, node);
+      },
+      {
+        priority: MECH_PRIORITY_FIELD_API,
+        prepend: true
+      }
+    ) ..  /* end of api injection mechanism */
+    // Mechanism that handles synchronization
+    @Mechanism(
+      function(node) {
+        var field_itf = node[ITF_FIELD];
+
+        waitfor {
+          // [1] here to make sure that we have an initial prod
+          @combine([1],ValidatorsChange) .. @each.track { ||
+            field_itf.validation_loop(node);
+          }
         }
-      }
-      and {
-        // if our 'display_validation' is turned on, also turn it on for the container's field:
-        if (parent_container) {
-          field.display_validation .. @filter(x->!!x) .. @wait();
-          var parent_field = node.parentNode .. @getDOMITF(ITF_FIELD);
-          if (parent_field) parent_field.display_validation.set(true);
+        and {
+          // if our 'display_validation' is turned on, also turn it on for the container's field:
+          if (field_itf._parent_container) {
+            field_itf.display_validation .. @filter(x->!!x) .. @wait();
+            var parent_field = node.parentNode .. @getDOMITF(ITF_FIELD);
+            if (parent_field) parent_field.display_validation.set(true);
+          }
         }
+        finally {
+          if (field_itf._parent_container)
+            field_itf._parent_container.removeField(settings.name, node);
+        }
+      },
+      {
+        priority: MECH_PRIORITY_FIELD_SYNC,
+        prepend: true
       }
-      finally {
-        if (parent_container)
-          parent_container.removeField(settings.name, node);
-      }
-    }, true /* we PREPEND this mechanism, so that Mechanisms that search for a Field interface (like ContextualInputMechanism) works correctly, even when the Field interface and the Mechanism depending on the Field are on the same element */);
+    ); /* end of synchronization mechanism */
 };
 exports.Field = Field;
   
@@ -755,117 +768,161 @@ function aggregateSubfieldValidations(id_and_field_stream) {
 
 var FieldMap = (elem) ->
   elem ..
-  @Mechanism(function(node) {
+  // Mechanism that installs field map api:
+  @Mechanism(
+    function(node) {
 
-    var field_node = node .. @getDOMITFNode(ITF_FIELD);
-    if (!field_node) throw new Error("FieldMap must be contained in a Field");
-    var field = field_node[ITF_FIELD];
+      var fieldcontainer_itf = node[ITF_FIELDCONTAINER] = {
+        getField: function(name) { return this._fieldmap[name]; },
+        addField: function(name, field_node) {
+          if (!name) throw new Error("Fields added to FieldMap require a name");
+          if (this._fieldmap .. @hasOwn(name)) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
+          this._fieldmap[name] = field_node;
 
-    // XXX maybe instantiate a field on us if there isn't one?
+          // propagate our initial value to sub field, or vice/versa
+          var current_map_value = this._field.value .. @current;
+          if (current_map_value .. @hasOwn(name)) 
+            field_node[ITF_FIELD].value.set(current_map_value[name]);
+          else
+            this._field.value.set(current_map_value .. @merge(@pairsToObject([[name, field_node[ITF_FIELD].value .. @current]])));
 
-    var fieldmap = {};
-    var field_mutation_emitter = @Emitter();
+          // make sure we listen to the new field in our synchronization loop: (only applicable if this field is added dynamically)
+          this._field_mutation_emitter.emit();
+        },
+        removeField: function(name, field_node) {
+          if(!this._fieldmap .. @hasOwn(name)) throw new Error("Field '#{name}' not found in FieldMap");
+          var entry = this._fieldmap[name];
+          delete this._fieldmap[name];
+          
+          // XXX should we delete the associated value from our _field (or set it to 'undefined')?
+
+          this._field_mutation_emitter.emit();
+        },
+
+        // internal fields:
+
+        _fieldmap: {},
+        _field_mutation_emitter: @Emitter()
+        // _field: our bound field; will be set below
+      };
+
+      // override some methods on our containing field.
+      // xxx if the containing field is defined on the same dom node,
+      // this code requires that the field api is always installed
+      // _before_ us. we currently ensure that by setting the
+      // 'prepend' flag on the field api install
+      // mechanism. alternatively, we could run the code below in
+      // another mechanism with priority between
+      // MECH_PRIORITY_FIELD_API and MECH_PRIORITY_FIELD_SYNC
+      var field_node = node .. @getDOMITFNode(ITF_FIELD);
+      if (!field_node) throw new Error("FieldMap must be contained in a Field");
+      fieldcontainer_itf._field = field_node[ITF_FIELD];
+
+      // override field.set_display_validation, so that our subfields are also turned on:
+      fieldcontainer_itf._field.set_display_validation = @fn.seq(fieldcontainer_itf._field.set_display_validation,
+                                             function(bool) {
+                                               @ownPropertyPairs(fieldcontainer_itf._fieldmap) ..
+                                                 @each {
+                                                   |[key, subfield]|
+                                                   subfield[ITF_FIELD].set_display_validation(bool)
+                                                 }
+                                             });
+      
+      // XXX these two do too much work; we don't need to rerun *all* validators when the child
+      // validations change. What we should do is to aggregate child validations separately.
+      
+      // add validator to the field that aggregates the validation state of our subfields. xxx don't do this as a validator
+      fieldcontainer_itf._field.validators.push(-> @ownPropertyPairs(fieldcontainer_itf._fieldmap) .. aggregateSubfieldValidations); 
+      
+      // override field.validation_loop to trigger on child validation changes:
+      fieldcontainer_itf._field.validation_loop = function() {
+        // XXX allows deps like in validate_field_loop
+        if(fieldcontainer_itf._field.validators_deps .. @ownKeys .. @count > 0) 
+          throw new Error("Validator dependencies not implemented for field maps yet"); 
         
-    node[ITF_FIELDCONTAINER] = {
-      getField: function(name) { return fieldmap[name]; },
-      addField: function(name, field_node) {
-        if (!name) throw new Error("Fields added to FieldMap require a name");
-        if (fieldmap .. @hasOwn(name)) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
-        fieldmap[name] = field_node;
-        field_mutation_emitter.emit();
-      },
-      removeField: function(name, field_node) {
-        if(!fieldmap .. @hasOwn(name)) throw new Error("Field '#{name}' not found in FieldMap");
-        var entry = fieldmap[name];
-        delete fieldmap[name];
-        field_mutation_emitter.emit();
-      }
-    };
+        // XXX effectively this does validations twice, because a value change goes 
+        // hand in hand with a change in children's validation states
+        var args = @ownPropertyPairs(fieldcontainer_itf._fieldmap) .. @map([,subfield] -> subfield[ITF_FIELD].validation_state);
+        args.push(fieldcontainer_itf._field.value);
+        args.push(->0);
+        @observe.apply(null, args) .. @each.track {
+          ||
+          //console.log("VALIDATING MAP #{fieldcontainer_itf._field.id}");
+          validate_field_iteration(field_node);
+        }
+      };
 
-    // override field.set_display_validation, so that our subfields are also turned on:
-    field.set_display_validation = @fn.seq(field.set_display_validation,
-                                              function(bool) {
-                                                @ownPropertyPairs(fieldmap) ..
-                                                  @each {
-                                                    |[key, subfield]|
-                                                    subfield[ITF_FIELD].set_display_validation(bool)
-                                                  }
-                                              });
-    
-    // XXX these two do too much work; we don't need to rerun *all* validators when the child
-    // validations change. What we should do is to aggregate child validations separately.
+      if (typeof fieldcontainer_itf._field.value .. @current !== 'object')
+        fieldcontainer_itf._field.value.set({});
 
-    // add validator to the field that aggregates the validation state of our subfields. xxx don't do this as a validator
-    field.validators.push(-> @ownPropertyPairs(fieldmap) .. aggregateSubfieldValidations); 
-
-    // override field.validation_loop to trigger on child validation changes:
-    field.validation_loop = function() {
-      // XXX allows deps like in validate_field_loop
-      if(field.validators_deps .. @ownKeys .. @count > 0) 
-        throw new Error("Validator dependencies not implemented for field maps yet"); 
-
-      // XXX effectively this does validations twice, because a value change goes 
-      // hand in hand with a change in children's validation states
-      var args = @ownPropertyPairs(fieldmap) .. @map([,subfield] -> subfield[ITF_FIELD].validation_state);
-      args.push(field.value);
-      args.push(->0);
-      @observe.apply(null, args) .. @each.track {
-        ||
-        //console.log("VALIDATING MAP #{field.id}");
-        validate_field_iteration(field_node);
-      }
-    };
+    },
+    {
+      priority: MECH_PRIORITY_FIELD_CONTAINER_API
+    }      
+  ) ..  /* end of api injection mechanism */
+  // Mechanism that handles synchronization:
+  @Mechanism(
+    function(node) {
+      var fieldcontainer_itf = node[ITF_FIELDCONTAINER];
 
 
-    // give children a chance to register (with addField) before we
-    // run our synchronization loop below:
-    hold(0);
+      var current_value = fieldcontainer_itf._field.value .. @current;
+      
+      var CollectNotifications = @Semaphore(1, true);
 
-    var current_value = undefined;
-
-    waitfor {
-      // Keep our associated observable up to date:
-      while (1) {
-        waitfor {
-          var args = @ownPropertyPairs(fieldmap) .. @map([,subfield] -> subfield[ITF_FIELD].value);
-          
-          if (args.length === 0) {
-            current_value = {};
-            field.value.set(current_value);
-            hold();
+      waitfor {
+        // Keep our associated observable up to date:
+        while (1) {
+          waitfor {
+            var args = @ownPropertyPairs(fieldcontainer_itf._fieldmap) .. @map([,subfield] -> subfield[ITF_FIELD].value);
+            
+            if (args.length === 0) {
+              hold();
+            }
+            
+            args.push(function() {
+              // the semaphore here is so that we don't act upon the individual notifications we get when propagating
+              // _our_ field value to the subfields
+              CollectNotifications.synchronize { ||
+                return @zip(@ownKeys(fieldcontainer_itf._fieldmap), arguments) .. @pairsToObject;
+              }
+            });
+            
+            @observe.apply(null, args) .. @changes .. @each {
+              |x| 
+              current_value = current_value .. @merge(x);
+              //console.log("SETTING FIELD VALUE OF OBJECT #{fieldcontainer_itf._field.id} TO", current_value);
+              
+              fieldcontainer_itf._field.value.set(current_value);
+            }
           }
-          
-          // the hold(0) is necessary so that we don't get individual notifications when setting several 
-          // subfields in a temporally contiguous block
-          args.push(-> (hold(0),@zip(@ownKeys(fieldmap), arguments) .. @pairsToObject));
-          @observe.apply(null, args) .. @each {
-            |x| 
-            current_value = x;
-            //console.log("SETTING FIELD VALUE OF OBJECT #{field.id} TO", current_value);
-
-            field.value.set(current_value);
+          or {
+            fieldcontainer_itf._field_mutation_emitter .. @wait;
           }
         }
-        or {
-          field_mutation_emitter .. @wait;
+      }
+      and {
+        // Propagate changes from our associated observable to our
+        // children:
+        fieldcontainer_itf._field.value .. @changes .. @each {
+          |x| 
+          if (x === current_value) continue; 
+          CollectNotifications.synchronize { ||
+            @ownPropertyPairs(x) .. @each {
+              |[key,val]|
+              var subfield = fieldcontainer_itf._fieldmap[key];
+              if (!subfield) continue;
+              subfield[ITF_FIELD].value.set(val);
+            }
+          }
+          // the 'current_value' var will be updated from the 1st branch of the waitfor/and
         }
       }
+    },
+    {
+      priority: MECH_PRIORITY_FIELD_CONTAINER_SYNC
     }
-    and {
-      // Propagate changes from our associated observable to our
-      // children:
-      field.value .. @each {
-        |x|
-        if (x === current_value) continue;
-        @ownPropertyPairs(x) .. @each {
-          |[key,val]|
-          var subfield = fieldmap[key];
-          if (!subfield) continue;
-          subfield[ITF_FIELD].value.set(val);
-        }
-      }
-    }
-  });
+  ); /* end of synchronization mechanism */
 exports.FieldMap = FieldMap;
 
 
@@ -959,175 +1016,192 @@ function FieldArray(elem, settings) {
   }
 
   return elem ..
-  @Mechanism(function(node) {
-
-    var field_node = node .. @getDOMITFNode(ITF_FIELD);
-    if (!field_node) throw new Error("FieldArray must be contained in a Field");
-    var field = field_node[ITF_FIELD];
-
-    // XXX maybe instantiate a field on us if there isn't one?
-
-    var fieldarray = [];
-    var FieldArrayLength = @ObservableVar(0);
-    var array_mutation_emitter = @Emitter();
+    // Mechanism that installs field array api:
+    @Mechanism(
+      function(node) {
         
-    // fieldcontainer for our array items
-    node[ITF_FIELDCONTAINER] = {
-      getField: function(name) { /* XXX */ },
-      addField: function(name, field_node) { 
-        // sanity check:
-        if (name !== undefined) throw new Error("A FieldArray template must not contain a named Field");
-      },
-      removeField: function(name, field_node) {
-        for (var i=0; i<fieldarray.length; ++i) {
-          if (fieldarray[i].node === field_node) {
-            fieldarray.splice(i,1);
-            FieldArrayLength.modify(x -> --x);
-
-            array_mutation_emitter.emit();
-            return;
-          }
-        }
-        // if we're here, the element has already been removed (from value.set) or we don't know about it
-        console.log('warning: array field already removed');
-      }
-    };
-      
-    // override field.set_display_validation, so that our subfields are also turned on:
-    field.set_display_validation = @fn.seq(field.set_display_validation,
-                                              function(bool) {
-                                                fieldarray ..
-                                                  @each {
-                                                    |{node}|
-                                                    node[ITF_FIELD].set_display_validation(bool)
-                                                  }
-                                              });
-    
-    // XXX these two do too much work; we don't need to rerun *all* validators when
-    // the child validations change. What we should do is to aggregate child validations separately.
-
-    // add validator to the field that aggreates the validation state of our subfields. XXX don't do this as a validator
-    field.validators.push(-> fieldarray .. @transform({node} -> node) ..
-                          @indexed .. aggregateSubfieldValidations);
-    
-
-    // override field.validation_loop to trigger on child validation changes:
-    field.validation_loop = function() {
-      // XXX allows deps like in validate_field_loop
-      if(field.validators_deps .. @ownKeys .. @count > 0) 
-        throw new Error("Validator dependencies not implemented for field maps yet"); 
-
-      @eventStreamToObservable(array_mutation_emitter,->0) .. @each.track {
-        ||
-        // XXX effectively this does validations twice, because a value change goes 
-        // hand in hand with a change in children's validation states
-        var args = fieldarray .. @map(field -> field.node[ITF_FIELD].validation_state);
-        args.push(field.value);
-        args.push(->0);
-        @observe.apply(null, args) .. @each.track {
-          ||
-          //console.log("VALIDATING ARRAY #{field.id}");
-          validate_field_iteration(field_node);
-        }
-      }
-    };
-
-
-    
-    var current_value = undefined;
-    waitfor {
-      // Propagate changes from our associated observable to our
-      // children:
-      var first = true;
-      field.value .. @each.track {
-        |x|
-        
-        // make sure an undefined field value gets initialized with []:
-        if (first) {
-          first = false;
-          if (x === undefined) {
-            x = [];
-            if (settings.arrToVal)
-              x = settings.arrToVal(x);
-            field.value.set(x);
-            continue;
-          }
-        }
-
-        if (x === current_value) continue;
-
-        if (settings.valToArr)
-          x = settings.valToArr(x);
-
-        var array_mutation = false;
-
-        FieldArrayLength.modify(l -> x.length);
-        x .. @indexed .. @each { |[i,val]|
-          if (!fieldarray[i]) { 
-            array_mutation = true;
-            var Index = @ObservableVar(i);
-            var inserted = (node .. 
-                            @appendContent(settings.template(
-                              {
-                                Index:       Index,
-                                ArrayLength: FieldArrayLength,
-                                remove:      function() {
-                                  var i = Index .. @current;
-                                  var field = fieldarray.splice(i, 1)[0];
-                                  field.node .. @removeNode();
-                                  for (/**/;i<fieldarray.length;++i)
-                                    fieldarray[i].Index.modify(l-> --l);
-                                  FieldArrayLength.modify(l-> --l);
-                                  array_mutation_emitter.emit();
-                                }
-                              }) ..
-                                           Field()));
-            fieldarray[i] = {node: inserted[0], Index: Index};
-          }
-          fieldarray[i].node[ITF_FIELD].value.set(val);
-        }
-        while ( fieldarray.length > x.length) {
-          array_mutation = true;
-          fieldarray.pop().node .. @removeNode();
-        }
-        if (array_mutation) array_mutation_emitter.emit();
-      };
-    }
-    and {
-      // Keep our associated observable up to date:
-      while (1) {
-        waitfor {
-          if (!fieldarray.length) { 
-            if (current_value !== undefined) {
-              var x = [];
-              if (settings.arrToVal)
-                x = settings.arrToVal(x);
-              field.value.set(x);
+        // fieldcontainer for our array items
+        var fieldcontainer_itf = node[ITF_FIELDCONTAINER] = {
+          getField: function(name) { /* XXX */ },
+          addField: function(name, field_node) { 
+            // sanity check:
+            if (name !== undefined) throw new Error("A FieldArray template must not contain a named Field");
+          },
+          removeField: function(name, field_node) {
+            for (var i=0; i<this._fieldarray.length; ++i) {
+              if (this._fieldarray[i].node === field_node) {
+                this._fieldarray.splice(i,1);
+                this._array_length.modify(x -> --x);
+                
+                this._array_mutation_emitter.emit();
+                return;
+              }
             }
-            hold(); 
+            // if we're here, the element has already been removed (from value.set) or we don't know about it
+            console.log('warning: array field already removed');
+          },
+
+          // internal fields:
+          _fieldarray: [],
+          _array_mutation_emitter: @Emitter(),
+          _array_length: @ObservableVar(0),
+          // _field: out bound field; will be set below
+        };
+
+        // see notes in equivalent FieldMap code
+        var field_node = node .. @getDOMITFNode(ITF_FIELD);
+        if (!field_node) throw new Error("FieldArray must be contained in a Field");
+        fieldcontainer_itf._field = field_node[ITF_FIELD];
+
+      
+        // override field.set_display_validation, so that our subfields are also turned on:
+        fieldcontainer_itf._field.set_display_validation = @fn.seq(fieldcontainer_itf._field.set_display_validation,
+                                                                   function(bool) {
+                                                                     fieldcontainer_itf._fieldarray ..
+                                                                       @each {
+                                                                         |{node}|
+                                                                         node[ITF_FIELD].set_display_validation(bool)
+                                                                       }
+                                                                   });
+      
+        // XXX these two do too much work; we don't need to rerun *all* validators when
+        // the child validations change. What we should do is to aggregate child validations separately.
+      
+        // add validator to the field that aggreates the validation state of our subfields. XXX don't do this as a validator
+        fieldcontainer_itf._field.validators.push(-> fieldcontainer_itf._fieldarray .. @transform({node} -> node) ..
+                                                  @indexed .. aggregateSubfieldValidations);
+      
+      
+        // override field.validation_loop to trigger on child validation changes:
+        fieldcontainer_itf._field.validation_loop = function() {
+          // XXX allows deps like in validate_field_loop
+          if(fieldcontainer_itf._field.validators_deps .. @ownKeys .. @count > 0) 
+            throw new Error("Validator dependencies not implemented for field maps yet"); 
+        
+          @eventStreamToObservable(fieldcontainer_itf._array_mutation_emitter,->0) .. @each.track {
+            ||
+            // XXX effectively this does validations twice, because a value change goes 
+            // hand in hand with a change in children's validation states
+            var args = fieldcontainer_itf._fieldarray .. @map(field -> field.node[ITF_FIELD].validation_state);
+            args.push(fieldcontainer_itf._field.value);
+            args.push(->0);
+            @observe.apply(null, args) .. @each.track {
+              ||
+              //console.log("VALIDATING ARRAY #{fieldcontainer_itf._field.id}");
+              validate_field_iteration(field_node);
+            }
           }
-          var args = fieldarray .. @map(field -> field.node[ITF_FIELD].value);
-          // the hold(0) is necessary so that we don't get individual
-          // notifications when setting several fields in a temporally
-          // contiguous block
-          args.push(-> (hold(0),arguments .. @toArray));
-          @observe.apply(null, args) .. @each {
+        };
+      },
+      {
+        priority: MECH_PRIORITY_FIELD_CONTAINER_API
+      }
+    ) ..  /* end of api injection mechanism */
+    // Mechanism that handles synchronization:
+    @Mechanism(
+      function(node) {
+        var fieldcontainer_itf = node[ITF_FIELDCONTAINER];
+        var current_value = undefined;
+        waitfor {
+          // Propagate changes from our associated observable to our
+          // children:
+          var first = true;
+          fieldcontainer_itf._field.value .. @each.track {
             |x|
             
-            if (settings.arrToVal)
-              x = settings.arrToVal(x);
-
-            current_value = x;
-            //console.log("SETTING FIELD VALUE OF ARRAY #{field.id} TO", current_value);
-            field.value.set(current_value);
+            // make sure an undefined field value gets initialized with []:
+            if (first) {
+              first = false;
+              if (x === undefined) {
+                x = [];
+                if (settings.arrToVal)
+                  x = settings.arrToVal(x);
+                fieldcontainer_itf._field.value.set(x);
+                continue;
+              }
+            }
+            
+            if (x === current_value) continue;
+            
+            if (settings.valToArr)
+              x = settings.valToArr(x);
+          
+            var array_mutation = false;
+          
+            fieldcontainer_itf._array_length.modify(l -> x.length);
+            x .. @indexed .. @each { |[i,val]|
+              if (!fieldcontainer_itf._fieldarray[i]) { 
+                array_mutation = true;
+                var Index = @ObservableVar(i);
+                var inserted = (node .. 
+                                @appendContent(settings.template(
+                                  {
+                                    Index:       Index,
+                                    ArrayLength: fieldcontainer_itf._array_length,
+                                    remove:      function() {
+                                      var i = Index .. @current;
+                                      var field = fieldcontainer_itf._fieldarray.splice(i, 1)[0];
+                                      field.node .. @removeNode();
+                                      for (/**/;i<fieldcontainer_itf._fieldarray.length;++i)
+                                        fieldcontainer_itf._fieldarray[i].Index.modify(l-> --l);
+                                      fieldcontainer_itf._array_length.modify(l-> --l);
+                                      fieldcontainer_itf._array_mutation_emitter.emit();
+                                    }
+                                  }) ..
+                                               Field()));
+                fieldcontainer_itf._fieldarray[i] = {node: inserted[0], Index: Index};
+              }
+              fieldcontainer_itf._fieldarray[i].node[ITF_FIELD].value.set(val);
+            }
+            while ( fieldcontainer_itf._fieldarray.length > x.length) {
+              array_mutation = true;
+              fieldcontainer_itf._fieldarray.pop().node .. @removeNode();
+            }
+            if (array_mutation) fieldcontainer_itf._array_mutation_emitter.emit();
+          };
+        }
+        and {
+          // Keep our associated observable up to date:
+          while (1) {
+            waitfor {
+              if (!fieldcontainer_itf._fieldarray.length) { 
+                if (current_value !== undefined) {
+                  var x = [];
+                  if (settings.arrToVal)
+                    x = settings.arrToVal(x);
+                  fieldcontainer_itf._field.value.set(x);
+                }
+                hold(); 
+              }
+              var args = fieldcontainer_itf._fieldarray .. @map(field -> field.node[ITF_FIELD].value);
+              // XXX the hold(0) here was inserted to prevent individual
+              // notifications when setting several fields in a temporally
+              // contiguous block (e.g. when setting our outer field value).
+              // This seems to be uncommon, and performance is better if we don't have the hold(0) here, but 
+              // if need be, we could add a semaphore to coordinate between outer and inner updates - see 
+              // FieldMap.
+              args.push(-> (/*hold(0),*/arguments .. @toArray));
+              @observe.apply(null, args) .. @each {
+                |x|
+                
+                if (settings.arrToVal)
+                  x = settings.arrToVal(x);
+                
+                current_value = x;
+                //console.log("SETTING FIELD VALUE OF ARRAY #{field.id} TO", current_value);
+                fieldcontainer_itf._field.value.set(current_value);
+              }
+            }
+            or {
+              fieldcontainer_itf._array_mutation_emitter .. @wait;
+            } 
           }
         }
-        or {
-          array_mutation_emitter .. @wait;
-        } 
+      },
+      {
+        priority: MECH_PRIORITY_FIELD_CONTAINER_SYNC
       }
-    }
-  });
+    ); /* end of synchronization mechanism */
 };
 
 exports.FieldArray = FieldArray;
