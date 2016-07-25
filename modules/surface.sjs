@@ -236,10 +236,12 @@ module.exports = require(modules);
   will not be scoped to any particular widget.
 
 @function Mechanism
-@altsyntax element .. Mechanism(mechanism, [prepend])
+@altsyntax element .. Mechanism(mechanism, [settings])
 @param {optional ::Element} [element]
 @param {Function|String} [mechanism] Function to execute when `element` is added to the DOM
-@param {optional Boolean} [prepend=false] If `true`, this mechanism will be executed before any other existing mechanisms on `element`.
+@param {optional Object} [settings] Additional settings
+@setting {optional Integer} [priority] Priority value for coordinating mechanism execution order (Default: [::MECH_PRIORITY_NORMAL])
+@setting {optional Boolean} [prepend=false] If `true`, this mechanism will be executed before any other existing mechanisms on `element`. **deprecated**
 @summary An [::ElementWrapper] that adds a "mechanism" to an element
 @return {::Element|Function}
 @desc
@@ -264,20 +266,33 @@ module.exports = require(modules);
   Calling `elem .. cached_mech` for a number of `elem`s is more efficient than 
   calling `elem .. Mechanism(f)` on each of them. 
 
+  *** Coordinating execution order ***
+
+  When a [::HTMLFragment] is inserted into the document using [::appendContent] (or one
+  of the surface module's other content insertion functions) and there are multiple 
+  mechanisms to be executed, their execution order can be coordinated using the 
+  `priority` setting: Mechanisms with a lower numerical `priority` value will be 
+  executed first. See also [::MECH_PRIORITY_API], [::MECH_PRIORITY_STREAM] and [::MECH_PRIORITY_NORMAL]. 
+
+  Mechanisms of the same priority will be started in pre-order (i.e. mechanisms on outer DOM nodes before mechanisms on more inner DOM nodes).
 
   The `prepend` flag is used to coordinate the order of execution
-  when there are multiple mechanisms on an element. By default,
+  when there are multiple mechanisms *on the same element*. By default,
   mechanisms will be executed in the order that they were
   added. `prepend`=`true` overrides this by adding a mechanism to the
-  front of the queue. It guarantees that a given mechanism will be
-  executed before all mechanisms with `prepend`=`false`.
+  front of the queue. It guarantees that - given same `priority` - on a particular 
+  element, a given mechanism will be executed before all mechanisms 
+  that have `prepend`=`false`.
 
-  Mechanisms that inject interfaces/apis into a DOM element should
-  generally be added with `prepend`=`true`, so that other mechanisms
-  on the element can make use of them.
-
- 
-
+@variable MECH_PRIORITY_API
+@summary Priority at which API-injecting mechanisms should be executed to ensure that they are available for streams and other mechanisms (100). See [::Mechanism]
+   
+@variable MECH_PRIORITY_STREAM
+@summary Priority at which streams are executed (500). See [::Mechanism]
+   
+@variable MECH_PRIORITY_NORMAL
+@summary Default priority at which mechanisms are (1000). See [::Mechanism]
+   
 @function Attrib
 @altsyntax element .. Attrib(name, value)
 @summary An [::ElementWrapper] that adds a HTML attribute to an element
@@ -518,7 +533,7 @@ module.exports = require(modules);
 
   * See also [::replaceContent], [::prependContent], [::insertBefore] and [::insertAfter].
 
-  * Any [::Mechanism]s contained in `html` will be started in pre-order (i.e. mechanisms on outer 
+  * Any [::Mechanism]s contained in `html` will be started in order of their priority setting. Mechanisms of the same priority will be started in pre-order (i.e. mechanisms on outer 
     DOM nodes before mechanisms on more inner DOM nodes).
 
   * If no function `block` is provided, `appendContent` returns an
@@ -768,10 +783,12 @@ module.exports = require(modules);
 @param {optional Object} [settings]
 @setting {Integer} [tolerance=0] Distance (in pixels) that an element needs to be off-screen before we stop appending elements and wait for scrolling
 @setting {Function} [post_append] Function `f(appended_node_array)` to call after each item in the stream has been appended. 
+@setting {::HtmlFragment} [in_progress_html] [::HtmlFragment] to show while the stream is still being iterated. Will be appended at the end and removed when `stream` is finished.
+@setting {::HtmlFragment} [empty_html] [::HtmlFragment] to show if the stream is empty. 
 @return {::HtmlFragment}
 @desc
   `stream` will be iterated when the ScrollStream is inserted into the DOM (directly or indirectly via a 
-  parent of the CollectStream being inserted into the DOM).
+  parent of the ScrollStream being inserted into the DOM).
 
   Elements of `stream` will be appended to the DOM as they are produced and only up the point where they overflow
   the window. When the user scrolls the last element into view, more elements will be inserted.

@@ -7522,6 +7522,15 @@
         "Id": {
           "type": "function"
         },
+        "MECH_PRIORITY_API": {
+          "type": "variable"
+        },
+        "MECH_PRIORITY_NORMAL": {
+          "type": "variable"
+        },
+        "MECH_PRIORITY_STREAM": {
+          "type": "variable"
+        },
         "Mechanism": {
           "type": "function"
         },
