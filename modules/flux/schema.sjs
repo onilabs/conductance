@@ -20,6 +20,8 @@ TODO: document
 //----------------------------------------------------------------------
 // 
 
+// XXX this function used only in gcd.sjs is incomplete; it should
+// traverse the schema and set default values for nested values too
 function instantiate(schema) {
   var rv = {};
   // set any default values:
@@ -223,6 +225,7 @@ function cotraverse(obj, schema, block) {
 exports.cotraverse = cotraverse;
 
 //----------------------------------------------------------------------
+// gcd specific?
 
 var simple_types = {
   'integer': true,
@@ -238,8 +241,6 @@ function isSimpleType(t) {
 }
 exports.isSimpleType = isSimpleType;
 
-//----------------------------------------------------------------------
-// gcd specific?
 
 function KeyToId(path) {
   var matches = /\:([^\:\/]+)$/.exec(path);
