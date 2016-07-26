@@ -120,9 +120,11 @@ function connect(parameters, block) {
       connection.end();
     }
     finally {
+      console.log('terminating ssh connection (1/2)');
       if (connection.__oni_sftpsession)
         connection.__oni_sftpsession.end();
       connection.destroy();
+      console.log('terminating ssh connection (2/2)');
     }
   }
   or {
