@@ -917,8 +917,10 @@ function GoogleCloudDatastore(attribs) {
               return result.written;
             }, {batch_period: WRITE_T_BATCH_PERIOD}),
             
-            query: function(entities) { 
-              return queryInner(entities, transaction_context) 
+            query: function(entities) {
+              // XXX this query should be amended to take into account the 
+              // updates, inserts and deletes that were performed in the transaction 
+              return queryInner(entities, transaction_context);
             },
             
             withTransaction: function() { throw new Error("GCD doesn't support nested transactions"); }
