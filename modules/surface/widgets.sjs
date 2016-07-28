@@ -370,8 +370,20 @@ function doDropdown(/* anchor, items, [settings] */) {
 
   var DropdownContent = @Observable(function(r) {
     settings.items .. @each.track {
-      |items|
+      |items| 
+
+
       DropdownUpdatedEmitter.emit();
+
+      // asynchronizing here makes sure that the
+      // DropdownUpdatedEmitter call below is caught by the keyboard
+      // processing code below when the dropdown is opened initially.
+      // Also, it prevents certain flicker scenarios: e.g. when we want to 
+      // hide the dropdown when text in a select field is empty, we want a chance to
+      // do so _before_ the dropdown is refilled with suggestions:
+      hold(0);
+
+
       r(@CollectStream(items .. afterFirst(-> DropdownUpdatedEmitter.emit()) .. @transform(makeDropdownItem)));
     }
   });
