@@ -1409,7 +1409,7 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
    @altsyntax SelectInput(suggestions)
    @summary An [::Input] that provides a dropdown with selectable suggestions
    @param {Object} [settings]
-   @setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+   @setting {optional sjs:observable::ObservableVar} [value=undefined]
    @setting {sjs:sequence::Sequence|Function} [suggestions] function search_term_stream -> suggestions_stream
    @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.)
    @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.)
@@ -1420,7 +1420,7 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
      
      - A concrete [sjs:sequence::Sequence] (such as a static array) of suggestion items
      - An [sjs:observable::Observable] yielding a [sjs:sequence::Sequence] of suggestion items
-     - A function that receives an [sjs:observable::Observable] of the current value and returns either
+     - A function that receives an object `{TextValue, node}` with the [sjs:observable::Observable] of the current text value and text input field node and returns either
        a concrete sequence of suggestion items or an [sjs:observable::Observable] yielding a suggestions sequence
 
      A 'suggestion item' is either a string, or an object:
@@ -1536,6 +1536,7 @@ function SelectInput(settings) {
       } .. @override(settings);
   }
 
+  var TextValue = @ObservableVar('');
 
   var dropdown = InputDropdown(
                   settings.left_dropdown,
@@ -1543,11 +1544,6 @@ function SelectInput(settings) {
                     @Mechanism(function(node) {
                       // get our associated text input:
                       var textinput = node.parentNode.parentNode.firstChild;
-
-                      // create an observable for the text entered in the textfield:
-                      var TextValue = settings.value || @eventStreamToObservable(
-                        @events(textinput, 'input') .. @transform(ev -> ev.target.value),
-                        -> textinput.value);
 
                       var suggestions;
                       if (settings.suggestions .. @isSequence)
@@ -1588,12 +1584,7 @@ function SelectInput(settings) {
                         handle: {ev} -> @dom.preventDefault(ev)
                       },
                       function({node}) {
-                        var textInput = @dom.findNode('.input-group', node).firstChild;
-                        textInput.value = node.txt;
-                        // manually trigger an event to trigger validation, etc:
-                        var evt = document.createEvent('HTMLEvents');
-                        evt.initEvent("input", false, true);
-                        textInput.dispatchEvent(evt);
+                        TextValue.set(node.txt);
                       }
                      )
                  );
@@ -1636,12 +1627,27 @@ function SelectInput(settings) {
   var rv = 
     InputGroup(
       [
-        @html.Input(settings) ..
+        @html.Input({value:TextValue}) ..
           @On('input', 
               ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
         btn_group
       ]
-    );
+    ) .. 
+    // Mechanism to synchronize outer and inner (text) values:
+    @Mechanism(function(node) {
+      var OuterValue = settings.value;
+      if (!OuterValue) {
+        // attempt to bind to field:
+        try {
+          OuterValue = @field.Value();
+        }
+        catch (e) {
+          console.log('failed to bind SelectInput to field');
+          return; // ignore
+        }
+      }
+      @synchronize(OuterValue, TextValue, { aToB: settings.valToTxt, bToA: settings.txtToVal });
+    });
       
   return rv;
 };
