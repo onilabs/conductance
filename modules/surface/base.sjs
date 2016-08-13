@@ -849,6 +849,7 @@ __js {
      @variable MECH_PRIORITY_STREAM
      @summary Priority at which streams are executed (500). See [::Mechanism]
    */
+  // WARNING: this value needs to be synchronized with the equivalent value in mech-helpers.sjs!!
   var MECH_PRIORITY_STREAM = exports.MECH_PRIORITY_STREAM = 500;
   /**
      @variable MECH_PRIORITY_NORMAL

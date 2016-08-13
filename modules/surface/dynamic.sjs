@@ -20,7 +20,8 @@
 // if hostenv == xbrowser
 
 @ = require([
-  'sjs:std'
+  'sjs:std',
+  {id:'./mech-helpers', name: 'helpers'}
 ]);
 var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator, MECH_PRIORITY_STREAM } = require('./base');
 var { withDOMContext } = require('./nodes');
@@ -28,7 +29,6 @@ var { ownPropertyPairs, ownKeys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
 var { split } = require('sjs:string');
 var { events, wait } = require('sjs:event');
-var { waitforAll, StratumAborted } = require('sjs:cutil');
 
 // DOM Node Types:
 var ELEMENT_NODE = 1;
@@ -135,28 +135,6 @@ exports.resourceRegistry = resourceRegistry;
 
 // helpers
 
-// it's important that this function is __js, because we don't want abort loops when 
-// a mechanism aborts itself (e.g. OnClick -> Delete my node).
-// Alternatively to making the whole function __js we could spawn the individual aborts 
-// (or use the equivalent `__js (stratum.abort(),null)`, `null` being important here)
-
-__js function stopMechanisms(parent, include_parent) {
-  var nodes = StreamNodes(parent);
-  if (parent.querySelectorAll)
-    nodes = concat(parent.querySelectorAll('._oni_mech_'), nodes);
-  if (include_parent)
-    nodes = concat([parent], nodes);
-
-  nodes .. each {
-    |node|
-    if (!node.__oni_mechs) continue;
-    node.__oni_mechs .. each {
-      |stratum|
-      stratum.abort();
-    }
-    delete node.__oni_mechs;
-  }
-}
 
 function unuseCSS(elems) {
   elems .. each {
@@ -170,123 +148,32 @@ function unuseCSS(elems) {
   }
 }
 
-// XXX DOM module backfill?
-// returns a stream of comment nodes:
-function CommentNodes(node) {
-  return Stream(function(r) {
-    if (node.nodeType !== ELEMENT_NODE) return;
-    var walker = document.createTreeWalker(
-      node, NodeFilter.SHOW_COMMENT, null, false);
-    while (walker.nextNode()) {
-      r(walker.currentNode);
-    }
-  });
-}
-
-function StreamNodes(elem) {
-  return CommentNodes(elem) .. 
-    filter({nodeValue} -> nodeValue.indexOf('surface_stream')!== -1);
-}
-
-function awaitStratumError(s) {
-  // ignores stratum cancellation
-  try {
-    s.value();
-  } catch(e) {
-    if (!(e instanceof StratumAborted)) throw e;
-  }
-};
-
-__js var fakeArray = { push: -> null };
-
-
 __js {
-  // XXX helper for runMechanisms that should go elsewhere
-  function PrioritySet() { return {}; }
+  // it's important that this function is __js, because we don't want abort loops when 
+  // a mechanism aborts itself (e.g. OnClick -> Delete my node).
+  // Alternatively to making the whole function __js we could spawn the individual aborts 
+  // (or use the equivalent `__js (stratum.abort(),null)`, `null` being important here)
 
-  function PrioritySet_push(ps, elem, priority) {
-    if (typeof priority !== 'number') throw new Error("PrioritySet_push requires a numerical priority (saw '#{priority}'");
-    if (ps[priority] === undefined)
-      ps[priority] = [elem];
-    else
-      ps[priority].push(elem);
-  }
-
-  function PrioritySet_stream(ps) { 
-    return @Stream(function(r) {
-      ps .. @ownPropertyPairs .. 
-        @transform([priority, elems] -> [Number(priority), elems]) .. 
-        @sortBy('0') .. @each {
-          |[,elems]| 
-          elems .. @each(r);
-        }
-    });
+  function stopMechanisms(parent, include_parent) {
+    var nodes = @helpers.StreamNodes(parent);
+    if (parent.querySelectorAll)
+      nodes = @concat(parent.querySelectorAll('._oni_mech_'), nodes);
+    if (include_parent)
+      nodes = @concat([parent], nodes);
+    
+    nodes .. @each {
+      |node|
+      if (!node.__oni_mechs) continue;
+      node.__oni_mechs .. @each {
+        |stratum|
+        stratum.abort();
+      }
+      delete node.__oni_mechs;
+    }
   }
 }
 
-function runMechanisms(elems, await) {
-  var rv = await ? [] : fakeArray;
 
-  var mechs = PrioritySet();
-  __js function addMech(elem, [mech, priority]) {
-    mechs .. PrioritySet_push([elem, mechanismsInstalled[mech]], Number(priority));
-  }
-
-  elems .. each {|elem|
-    if (elem.nodeType === ELEMENT_NODE) {
-
-      var elems = (elem.hasAttribute('data-oni-mechs') ? [elem] : []) ..
-        concat(elem.querySelectorAll('[data-oni-mechs]')) ..
-        toArray;
-
-      var streams = StreamNodes(elem) .. toArray;
-
-      elems .. each {
-        |elem|
-        elem.__oni_mechs = [];
-        elem.getAttribute('data-oni-mechs').split(' ') ..
-          filter .. // only truthy elements
-          each {
-            |mech|
-            elem .. addMech(mech.split('!'));
-          }
-      }
-      
-      // add stream mechanisms:
-      streams .. each { 
-        |node|
-        var [,mech] = node.nodeValue.split("|");
-        node.__oni_mechs = [];
-        node .. addMech([mech, @MECH_PRIORITY_STREAM]);
-      }
-    }
-    else if (elem.nodeValue.indexOf('surface_stream') !== -1) {
-      // we assume nodetype == COMMENT_NODE
-      var [,mech] = elem.nodeValue.split("|");
-      elem.__oni_mechs = [];
-      elem .. addMech([mech, @MECH_PRIORITY_STREAM]);
-    }
-  }
-
-  // add this point 'mechs' contains all of our mechanisms sorted by priority.
-  // let's start them:
-  mechs .. PrioritySet_stream .. @each {
-    |[elem, mech]|
-    var s = spawn withDOMContext(elem) { || mech.func.call(elem, elem) };
-    elem.__oni_mechs.push(s);
-    rv.push(s);
-  };
-  if (await) {
-    return spawn(function() {
-      try {
-        waitforAll(awaitStratumError, rv);
-        hold();
-      } finally { 
-        rv .. each(s -> s.abort());
-      }
-    }());
-  }
-}
 
 function insertHtml(html, block, doInsertHtml) {
   html = collapseHtmlFragment(html);
@@ -309,7 +196,7 @@ function insertHtml(html, block, doInsertHtml) {
 
   try {
     var inserted = doInsertHtml(html) .. toArray;
-    var mechResult = inserted .. runMechanisms(block);
+    var mechResult = inserted .. @helpers.runMechanisms(mechanismsInstalled, block);
   }
   catch (e) {
     resourceRegistry.unuseCSSDefs(css);
