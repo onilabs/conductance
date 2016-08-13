@@ -124,7 +124,7 @@ exports.Document = function(content, settings) {
     map(function([id, code]) {
       if (typeof code !== 'string')
         throw new Error('Static surface code cannot contain mechanisms with function objects');
-      return "mechs[#{id}] = function(){ #{code} };"
+      return "mechs[#{id}] = {func:function(){ #{code} }};"
     });
 
   var bootScript = "";
@@ -134,25 +134,13 @@ exports.Document = function(content, settings) {
   if (userInit) bootScript += userInit + '\n';
 
   if (mechanisms.length > 0) {
-    throw new Error("server-injected static mechanisms are currently broken - need to be updated to priority-based api");
     bootScript += "
       (function () {
         var mechs = {};
         #{mechanisms .. join('\n')}
-        var { each, filter } = require('sjs:sequence');
-        (document.body.querySelectorAll('._oni_mech_') || []) .. 
-          each {
-            |elem|
-            elem.__oni_mechs = [];
-            elem.getAttribute('data-oni-mechs').split(' ') .. 
-            filter .. // only truthy elements
-            each { 
-              |mech|
-              //XXX var id_prio = 
-              elem.__oni_mechs.push(spawn mechs[mech].call(elem, elem));
-            }
-          }
-        })();
+        var helpers = require('mho:surface/mech-helpers');
+        helpers.runMechanisms([document.body], mechs);
+       })();
     ";
   }
 

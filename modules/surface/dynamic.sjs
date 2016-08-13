@@ -115,6 +115,7 @@ var resourceRegistry = {
     ids .. each {
       |id|
       var desc = mechanismsInstalled[id];
+      if (!desc) continue; // this is probably a static mechanism which is not in our dynamic 'mechanismsInstalled' hash (see bootScript in static.sjs)
       /*
         XXX: we don't actually want to purge the mechanism immediately... we want
         to cache mechanisms for a while -
