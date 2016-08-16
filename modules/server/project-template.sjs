@@ -20,6 +20,10 @@ function toPosixPath(p) {
   return require('path').resolve(p).replace(/\\/g, '/');
 }
 
+exports.getTemplateDescriptions = function() {
+  return @fs.readFile(require.url("../../project-templates/index.txt") .. @url.toPath).toString();
+};
+
 exports.initProject = function(template_name) {
   // check that the template directory exists
   var template_dir = require.url("../../project-templates/#{template_name}/") .. @url.toPath;

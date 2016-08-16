@@ -253,12 +253,18 @@ var actions = [
   {
     name: 'init',
     args: '<template>',
-    desc: 'Initialize a new Conductance project',
+    desc: 'Initialize a new Conductance project in the current directory',
     fn: function(args) {
       if (args.length !== 1) {
-        throw new Error("One <template> argument expected");
+        console.log("Run this command in a new directory and specify a <template> argument:");
+        console.log("  mkdir myapp");
+        console.log("  cd myapp");
+        console.log("  conductance init <template>");
+        console.log("Available templates:");
+        console.log(require('./project-template').getTemplateDescriptions());
       }
-      require('./project-template').initProject(args[0]);
+      else
+        require('./project-template').initProject(args[0]);
     }
   },
   { name: 'doc',
