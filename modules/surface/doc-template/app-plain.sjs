@@ -35,14 +35,26 @@
   @variable mainContent
   @summary Alias for (`document.body`)
 
+  @directive @template-head
+  @summary Content to go into document <head> section.
+  @desc
+     ### Example:
+
+         /**
+           @template-head
+             <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+             <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+          *\/
+
 */
 
-exports.Document = settings ->
-  `<!DOCTYPE html>
+@ = require('sjs:std');
+
+exports.Document = function(data, settings) {
+  return `<!DOCTYPE html>
 <html>
   <head>
-    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    ${settings.head ? [settings.head] .. @Quasi}
     <script type='text/sjs' module='mho:app'>
       var html = require('mho:surface/html');
       module.exports = require('sjs:object').merge(html, {
@@ -50,8 +62,9 @@ exports.Document = settings ->
         mainContent: document.body
       });
     </script>
-    ${ settings.head }
-    ${ settings.script }
+    ${ data.head }
+    ${ data.script }
   </head>
-  <body>${settings.body}</body>
+  <body>${data.body}</body>
 </html>`;
+}
