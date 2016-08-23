@@ -9,6 +9,10 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+   @require ./field
+*/
+
 var { hostenv } = require('builtin:apollo-sys');
 
 var imports = [
