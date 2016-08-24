@@ -14,24 +14,17 @@
   @hostenv nodejs
 */
 
-var env = require('./env');
-var { pump, end } = require('sjs:nodejs/stream');
-var { map, each, toArray, join, Stream } = require('sjs:sequence');
-var { clone, merge, ownPropertyPairs } = require('sjs:object');
-var { matches } = require('sjs:regexp');
-var { startsWith, decode } = require('sjs:string');
-var func = require('sjs:function');
-var logging = require('sjs:logging');
-var assert = require('sjs:assert');
-var Url = require('sjs:url');
-var fs = require('sjs:nodejs/fs');
-var { CachedBundle } = require('./generator');
-var lruCache = require('sjs:lru-cache');
+@ = require([
+  'sjs:std', 
+  {id:'./env', name: 'env'},
+  {id:'./generator', include: ['CachedBundle']},
+  {id:'sjs:lru-cache', name:'lruCache'}
+]);
 
 // XXX this should be configurable separately somewhere
 // XXX see also the separate *.gen caching in file-server.sjs
-var SJSCache = lruCache.makeCache(10*1000*1000); // 10MB
-var bundleCache = lruCache.makeCache(10*1000*1000); // 10MB
+var SJSCache = @lruCache.makeCache(10*1000*1000); // 10MB
+var bundleCache = @lruCache.makeCache(10*1000*1000); // 10MB
 
 //----------------------------------------------------------------------
 // filters XXX these should maybe go in their own module
@@ -40,13 +33,13 @@ var bundleCache = lruCache.makeCache(10*1000*1000); // 10MB
 // filter that compiles sjs into '__oni_compiled_sjs_1' format:
 function sjscompile(src, aux) {
   // TODO what if src is a Buffer ?
-  if (typeof src !== 'string') src = src ..join('');
+  if (typeof src !== 'string') src = src .. @join('');
   __js {
     try {
       src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
     }
     catch (e) {
-      logging.error("sjscompiler: #{aux.request.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
+      @error("sjscompiler: #{aux.request.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
       // communicate the compilation error to the caller in a little bit
       // of a round-about way: We create a compiled SJS file that throws
       // our compile error as an exception on execution
@@ -68,7 +61,7 @@ function gen_app_html(src, aux) {
     externalScripts: [],
   };
   var docutil = require('sjs:docutil');
-  var docs = docutil.parseModuleDocs(decode(src ..join(''), 'utf-8'));
+  var docs = docutil.parseModuleDocs(@decode(src .. @join(''), 'utf-8'));
 
   var [template, metadata] = docutil.getPrefixedProperties(docs, 'template');
   if (!template) template = 'app-default';
@@ -86,8 +79,8 @@ function gen_app_html(src, aux) {
   }
 
   var { Document, loadTemplate } = require('../surface');
-  var d = Document(null, documentSettings .. merge({
-    template: loadTemplate(template, aux.filepath .. Url.fileURL),
+  var d = Document(null, documentSettings .. @merge({
+    template: loadTemplate(template, aux.filepath .. @url.fileURL),
     templateData: metadata,
     title: metadata.title,
   }));
@@ -98,39 +91,39 @@ function gen_app_html(src, aux) {
 // filter that generates a .js bundle from a source module
 var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
   function getSettings(path, url) {
-    var pathUrl = path .. Url.fileURL;
+    var pathUrl = path .. @url.fileURL;
     var defaultSettings = {
       resources: [
         // Assume relative paths are co-located.
         // This will not work if .app files import paths from their parent,
         // but we can't handle that in the general case without deep knowledge of routes.
-        [Url.normalize('./', pathUrl), Url.normalize('./', url.source)],
+        [@url.normalize('./', pathUrl), @url.normalize('./', url.source)],
       ],
       skipFailed: true,
       compile: true
     };
-    var appSettings = env.get('bundleSettings', defaultSettings);
+    var appSettings = @env.get('bundleSettings', defaultSettings);
     var docutil = require('sjs:docutil');
 
-    var [_, sourceSettings] = fs.readFile(path)
+    var [_, sourceSettings] = @fs.readFile(path)
       .. docutil.parseModuleDocs()
       .. docutil.getPrefixedProperties('bundle');
 
-    var settings = appSettings .. merge(sourceSettings, { sources: [pathUrl] });
+    var settings = appSettings .. @merge(sourceSettings, { sources: [pathUrl] });
     return settings;
   };
 
   var bundleAccessor = function(path) {
-    assert.ok(path);
+    @assert.ok(path);
     var get = bundleCache.get(path);
     if (!get) {
       // serialize requests for the given path, as we don't
       // want to regenerate the same bundle in parallel
       get = (function() {
         var b;
-        return func.sequential(function(url) {
+        return @fn.sequential(function(url) {
           if (!b) {
-            b = CachedBundle(getSettings(path, url));
+            b = @CachedBundle(getSettings(path, url));
           } else if (b.isStale(false)) {
             b.modifySettings(getSettings(path, url));
           }
@@ -161,7 +154,7 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
 // filter that generates html for a directory listing:
 function gen_dir_html(src, aux) {
   // TODO src needs to be ascii encoding
-  var listing = require('../server-ui/dir-listing').generateDirListing(JSON.parse(src .. join('')));
+  var listing = require('../server-ui/dir-listing').generateDirListing(JSON.parse(src .. @join('')));
   var d = require('../surface').Document(listing);
   return [d];
 }
@@ -169,7 +162,7 @@ function gen_dir_html(src, aux) {
 //----------------------------------------------------------------------
 // filter that generates docs for an sjs module:
 function gen_moduledocs_html(src, aux) {
-  var docs = require('../server-ui/module-doc').generateModuleDoc(aux.request.url.path, decode(src .. join(''), 'utf-8'));
+  var docs = require('../server-ui/module-doc').generateModuleDoc(aux.request.url.path, @decode(src .. @join(''), 'utf-8'));
   var d = require('../surface').Document(docs);
   return [d];
 }
@@ -210,20 +203,20 @@ function apisrc(src, aux) {
   var docutil = require('sjs:docutil');
   var comments = [];
   // TODO what if src is a Buffer?
-  docutil.parseSource(src ..join('')) {
+  docutil.parseSource(src .. @join('')) {
     |comment|
     // extract only comments beginning with '/**'
-    if (comment .. startsWith('/**'))
+    if (comment .. @startsWith('/**'))
       comments.push(comment);
   }
   comments.unshift('/* SOURCE CODE REDACTED */');
-  return [comments .. join('\n')];
+  return [comments .. @join('\n')];
 }
 
 //----------------------------------------------------------------------
 // filter that generates html for markdown (*.md) files:
 function gen_markdown_html(src, aux) {
-  var docs = require('../server-ui/markdown-file').generateMarkdown(decode(src ..join(''), 'utf-8'));
+  var docs = require('../server-ui/markdown-file').generateMarkdown(@decode(src .. @join(''), 'utf-8'));
   var d = require('../surface').Document(docs);
   return [d];
 }
@@ -303,9 +296,9 @@ exports.StaticFormatMap = {
     This function returns a new object - neither argument is modififed.
 */
 var withFormats = exports.withFormats = function(map, extensions) {
-  var rv = clone(map);
-  extensions .. ownPropertyPairs .. each {|[extension, formats]|
-    rv[extension] = merge(rv[extension], formats);
+  var rv = @clone(map);
+  extensions .. @ownPropertyPairs .. @each {|[extension, formats]|
+    rv[extension] = @merge(rv[extension], formats);
   }
   return rv;
 }
@@ -337,7 +330,7 @@ var withFormats = exports.withFormats = function(map, extensions) {
     content from the server in some circumstances.
 
 */
-var conductanceVersionEtag = "#{env.conductanceVersion()}-#{env.compilerStamp()}";
+var conductanceVersionEtag = "#{@env.conductanceVersion()}-#{@env.compilerStamp()}";
 var Code = (base) -> base
   .. withFormats({
     sjs: { none     : { mime: "text/html",
