@@ -31,24 +31,24 @@ var lruCache = require('sjs:lru-cache');
 
 var Forbidden = -> HttpError(403, 'Forbidden', 'Invalid Path' );
 
-function checkEtag(t) {
+__js function checkEtag(t) {
   if (!isString(t)) throw new Error("non-string etag: #{t}");
   return t;
 }
 
 // http://tools.ietf.org/html/rfc2616#section-3.9
-function isQvalue(s) {
+__js function isQvalue(s) {
   return /^(?:1(?:\.0{0,3})?|0(?:\.[0-9]{0,3})?)$/.test(s);
 }
 
-function canCompressFormat(encodings, format) {
+__js function canCompressFormat(encodings, format) {
   return encodings[format] != null && encodings[format] > 0;
 }
 
 // http://tools.ietf.org/html/rfc2616#section-14.3
 // TODO should handle identity;q=0 and *;q=0
 // TODO should more specific things like gzip;q=1 take precedence over *;q=0 ?
-function canCompress(headers, format) {
+__js function canCompress(headers, format) {
   var encodings = { 'identity': 1 };
   var accept    = headers['accept-encoding'];
 
