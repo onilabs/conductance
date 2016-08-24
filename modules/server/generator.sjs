@@ -39,7 +39,7 @@ var {@murmur3_32} = require('sjs:crypto/murmur');
         exports.etag = @moduleTimestamp();
 */
     
-exports.moduleTimestamp = function() {
+__js exports.moduleTimestamp = function() {
   var t = new Date().getTime().toString();
   return -> t;
 }
@@ -48,15 +48,15 @@ var CachedBundle = exports.CachedBundle = function(settings) {
   var self = {};
   var _cache = null;
   var _stale = true;
-  var isStale = self.isStale = function() {
+  var isStale = self.isStale = function(compute_etag) {
     // sets _stale, which short-circuits future calls until
     // it's cleared by refresh()
-    _stale = _stale || !_cache || genEtag(_cache.sources) !== _cache.etag;
+    _stale = _stale || !_cache || (compute_etag && (genEtag(_cache.sources) !== _cache.etag));
     return _stale;
   };
 
-  var refresh = @func.sequential(function() {
-    if (isStale()) {
+  var refresh = @func.sequential(function(compute_etag) {
+    if (isStale(compute_etag)) {
       var curr = { generated: new Date() };
       @logging.verbose("bundle.findDependencies: ", settings);
       var deps = curr.deps = @bundle.findDependencies(settings.sources, settings);
@@ -73,20 +73,20 @@ var CachedBundle = exports.CachedBundle = function(settings) {
 
   var genEtag = function(sources) {
     var max = 0;
-    var inodes = [];
-    sources .. @each {|source|
-      var st = @fs.stat(source);
-      var mt = st.mtime.getTime();
-      inodes.push(st.ino);
-      if (max < mt) max = mt;
-    }
+    var inodes = sources .. @map.par(10,
+      function(source) {
+        var st = @fs.stat(source);
+        var mt = st.mtime.getTime();
+        if (max < mt) max = mt;
+        return st.ino;
+      });
     return "#{max}-#{inodes.join('-') .. @murmur3_32(0)}";
   };
 
-  self.etag = -> refresh().etag .. String();
+  self.etag = -> refresh(true).etag .. String();
 
   self.content = @func.sequential(function() {
-    var curr = refresh();
+    var curr = refresh(false);
     if (!curr.content) {
       var content = @bundle.generateBundle(curr.deps, settings);
       curr.content = settings.output ? @fs.readFile(settings.output) : content .. @join("\n");

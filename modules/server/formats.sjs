@@ -129,7 +129,7 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
         return func.sequential(function(url) {
           if (!b) {
             b = CachedBundle(getSettings(path, url));
-          } else if (b.isStale()) {
+          } else if (b.isStale(false)) {
             b.modifySettings(getSettings(path, url));
           }
           return b;
