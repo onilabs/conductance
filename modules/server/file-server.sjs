@@ -403,9 +403,12 @@ function serveFile(req, filePath, format, settings) {
 
   formatResponse(
     req,
-    { input: opts ->
-               // XXX hmm, might need to destroy this somewhere
-               nodefs.createReadStream(filePath, opts) .. stream.contents,
+    { input: opts -> Stream(function(r) {
+                               fs.withReadStream(filePath, opts) {
+                                 |file_stream|
+                                 file_stream .. stream.contents .. each(r);
+                               }
+                             }),
       filePath: filePath,
       apiinfo: apiinfo,
       appurl: appurl,
