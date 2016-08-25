@@ -1,7 +1,7 @@
 var {Element, Mechanism, CSS, Class, prependContent, removeNode, RawHTML} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
-     reduce, reverse, join, find, hasElem, at
+     reduce, reverse, join, find, hasElem, at, any
      } = require('sjs:sequence');
 var string = require('sjs:string');
 var {split, startsWith, endsWith, strip} = string;
@@ -298,14 +298,15 @@ exports.renderer = function(libraries, rootSymbol) {
 		} else {
 			var summary = Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"});
 			if (docs.type == "class") {
-				rv.push(`<h2>Class ${symbol.name}${docs.inherit ? [" inherits", makeTypeHTML(docs.inherit,symbol)]}</h2>`);
+				var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor', undefined);
+
+				rv.push(`<h2>Class ${constructor ? 'with eponymous constructor'} ${docs.inherit ? [" inheriting", makeTypeHTML(docs.inherit,symbol)]}</h2>`);
 				rv.push(summary);
 
 				if (docs.desc) {
 					rv.push(Element("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
 				}
 
-				var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor', undefined);
 				if (constructor) {
 					var [name, child] = constructor;
 					var childSymbol = symbol.child(name);
@@ -637,6 +638,10 @@ exports.renderer = function(libraries, rootSymbol) {
                                          } */</code>`) .. 
               Class('mb-require');
           }
+          break;
+        case 'class':
+          if (docs.children .. ownPropertyPairs .. any([name, val] -> val.type == 'ctor'))
+            snippet = makeRequireSnippet(symbol.fullModulePath, symbol.name);
           break;
         default:
           if ((!symbol.className || docs.type == 'ctor') && docs.type !== 'class') {
