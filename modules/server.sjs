@@ -12,6 +12,7 @@
 /**
   @summary The Conductance webserver
   @hostenv nodejs
+  @inlibrary mho:std as server when nodejs
 */
 
 var cutil = require('sjs:cutil');
@@ -286,6 +287,7 @@ var Responder = {
 
 /**
   @class Host
+  @inlibrary mho:std when nodejs
   @summary Host descriptor for use in a [::run] server configuration.
   @function Host
   @param {String|RexExp} [hostName] Hostname to handle requests for
@@ -441,6 +443,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
 /**
   @class Route
   @summary Route descriptor for use in a [::run] server configuration.
+  @inlibrary mho:std when nodejs
   @function Route
   @param {optional RexExp|String|Function} [matcher] Path/request matcher
   @param {Object|Array} [handlers] handler object or array of sub-routes
@@ -502,6 +505,7 @@ exports.Route = Constructor(RouteProto);
 /**
   @class Port
   @summary Port descriptor for use in a [::run] server configuration.
+  @inlibrary mho:std when nodejs
   @function Port
   @param {Number} [port]
   @param {optional String} [address] interface (IP address) to listen on

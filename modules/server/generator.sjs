@@ -20,6 +20,7 @@ var {@murmur3_32} = require('sjs:crypto/murmur');
 /**
   @summary Utilities for generator (`.gen`) modules
   @hostenv nodejs
+  @inlibrary mho:std when nodejs
 */
 
 /**

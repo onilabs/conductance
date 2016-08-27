@@ -1,3 +1,6 @@
+@ = require([
+  'mho:surface/html'
+]);
 var {Element, Mechanism, CSS, Class, prependContent, removeNode, RawHTML} = require('mho:surface');
 var {each, transform, map, filter, indexed,
      intersperse, toArray, groupBy, sortBy,
@@ -138,20 +141,59 @@ exports.renderer = function(libraries, rootSymbol) {
 		return Element("div", docs.desc ? `<h3>Description</h3>${markup(docs.desc, symbol)}`, {"class":"desc"});
 	}
 
-	function makeRequireSnippet(fullModulePath, name) {
-		if(fullModulePath .. find(p -> p .. startsWith('#'), false) ||
-       /\.app$/.test(fullModulePath[fullModulePath.length-1])
-      ) {
-			//    documentation URL - not actually importable
-      // or app file - doesn't make sense to import
-			return undefined;
-		}
-    else if (/\.api$/.test(fullModulePath[fullModulePath.length-1])) {
-      return Element("div", 
-                     `<code>require('${fullModulePath.join('')}').connect { |api| ${name ? "api." + name : '...'} }</code>`) .. 
-        Class('mb-require');
+	function makeRequireSnippet(symbol, fullModulePath, name) {
+    
+    var rv = [];
+    try {
+      
+		  if(fullModulePath .. find(p -> p .. startsWith('#'), false) ||
+         /\.app$/.test(fullModulePath[fullModulePath.length-1])
+        ) {
+			  //    documentation URL - not actually importable
+        // or app file - doesn't make sense to import
+        /* do nothing */
+		  }
+      else if (/\.api$/.test(fullModulePath[fullModulePath.length-1])) {
+        // an api
+        rv.push(Element("div", 
+                        `<code>require('${fullModulePath.join('')}').connect { |api| ${name ? "api." + name : '...'} }</code>`) .. 
+                Class('mb-require')
+               );
+      }
+      else if (!name) {
+        // a module
+        rv.push(@Div .. Class('mb-require') :: @Code :: `require('${fullModulePath.join('')}');`);
+        var docs = symbol.docs();
+        if (docs.inlibrary)
+          docs.inlibrary .. each { 
+            |inlib|
+            rv.push(@Div .. Class('mb-require') :: @Code :: `require('${inlib.library}')${inlib.as ? ".#{inlib.as}"};${inlib.when ? " //in #{inlib.when} environment only"}`);
+          }
+      }
+      else {
+        // a symbol in module
+        rv.push(@Div .. Class('mb-require') :: @Code :: `require('${fullModulePath.join('')}').${name};`);
+
+        var docs = symbol.docs();
+        if (docs.inlibrary)
+          docs.inlibrary .. each { 
+            |inlib|
+            rv.push(@Div .. Class('mb-require') :: @Code :: `require('${inlib.library}')${inlib.as ? ".#{inlib.as}" : ".#{name}"};${inlib.when ? " //in #{inlib.when} environment only"}`);
+          }
+
+        var module_docs = symbol.parent().docs();
+        if (module_docs.inlibrary)
+          module_docs.inlibrary .. each { 
+            |inlib|
+            rv.push(@Div .. Class('mb-require') :: @Code :: `require('${inlib.library}')${inlib.as ? ".#{inlib.as}"}.${name};${inlib.when ? " //in #{inlib.when} environment only"}`);
+          }
+      }
     }
-		return Element("div", `<code>require('${fullModulePath.join('')}')${name ? "." + name};</code>`) .. Class('mb-require');
+    catch (e) {
+      console.log("Error in conductance/doc/ui::makeRequireSnippet: #{e}");
+    }
+
+    return rv;
 	};
 
   function makeDemo(docs) {
@@ -288,7 +330,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		var rv = [];
 		var [moduleLink, moduleDesc] = symbol.moduleLink();
 		/* if (!symbol.className && docs.type != 'class') {
-			rv.push(makeRequireSnippet(symbol.fullModulePath, symbol.name));
+			rv.push(makeRequireSnippet(symbol, symbol.fullModulePath, symbol.name));
 		}
     */
 
@@ -432,7 +474,7 @@ exports.renderer = function(libraries, rootSymbol) {
 	function makeModuleView(docs, symbol) {
 		var rv = [];
 		rv.push(`<h2>The ${symbol.relativeModulePath ..join('')} module</h2>`);
-		/* rv.push(makeRequireSnippet(symbol.fullModulePath)); */
+		/* rv.push(makeRequireSnippet(symbol, symbol.fullModulePath)); */
 
 		rv.push(Element("div", makeSummaryHTML(docs, symbol), {"class":"mb-summary"}));
 		rv.push(makeDescriptionHTML(docs, symbol));
@@ -623,7 +665,7 @@ exports.renderer = function(libraries, rootSymbol) {
 
       switch(docs.type) {
         case 'module':
-          snippet = makeRequireSnippet(symbol.fullModulePath);
+          snippet = makeRequireSnippet(symbol, symbol.fullModulePath);
           break;
         case 'lib':
         case 'doclib':
@@ -641,7 +683,7 @@ exports.renderer = function(libraries, rootSymbol) {
           break;
         case 'class':
           if (docs.children .. ownPropertyPairs .. any([name, val] -> val.type == 'ctor'))
-            snippet = makeRequireSnippet(symbol.fullModulePath, symbol.name);
+            snippet = makeRequireSnippet(symbol, symbol.fullModulePath, symbol.name);
           break;
         default:
           if ((!symbol.className || docs.type == 'ctor') && docs.type !== 'class') {
@@ -651,7 +693,7 @@ exports.renderer = function(libraries, rootSymbol) {
               symbol_path = ['mho:app'];
             else
               symbol_path = symbol.fullModulePath;
-            snippet = makeRequireSnippet(symbol_path, symbol.name);
+            snippet = makeRequireSnippet(symbol, symbol_path, symbol.name);
           }
       }
       content.push(snippet);

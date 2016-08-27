@@ -11,6 +11,7 @@
 
 /**
   @summary Conductance sub-system for constructing static and dynamic client-side UI
+  @inlibrary mho:std
 */
 
 var modules = ['./surface/base', './surface/nodes'];

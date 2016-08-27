@@ -12,6 +12,7 @@
 /**
   @summary Routing objects for use in the Conductance web server
   @hostenv nodejs
+  @inlibrary mho:std as route when nodejs
   @desc
     See [server::run] and [#features/mho-file::] for more details
     on configuring and running the Conductance web server.

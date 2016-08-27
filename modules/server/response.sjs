@@ -12,6 +12,7 @@
 /**
   @summary Utilities for generating and handling HTTP responses
   @hostenv nodejs
+  @inlibrary mho:std as response when nodejs
 */
 
 var { debug, info, verbose } = require('sjs:logging');

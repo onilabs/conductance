@@ -11,6 +11,7 @@
 
 /**
   @summary Application environment
+  @inlibrary mho:std as env
   @desc
     This module is actually a [sjs:service::Registry] object. In
     a web browser, that's all it is - an empty shell to be
