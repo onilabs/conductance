@@ -19,29 +19,16 @@
      * Uses the [google-oauth-jwt library](https://github.com/extrabacon/google-oauth-jwt) 
        for obtaining access tokens.
 
-     * Uses version [v1beta1](https://developers.google.com/datastore/docs/apis/v1beta1/) of 
+     * Uses version [v1](https://cloud.google.com/datastore/reference/rest/v1/projects) of 
        the Google Cloud Datastore API.
-
-     **Notes on protobuf-json mapping**
-
-     This module uses [protocol buffers](https://code.google.com/p/protobuf/) 
-     to communicate with the Google Cloud Datastore. The mapping between
-     json objects and protocol buffers is performed by the 
-     [protobuf library](https://github.com/chrisdew/protobuf) using the 
-     datastore schema [here](./protobuf/datastore_v1.proto).
-     For more information and examples on how json objects equate to their
-     corresponding entities in the schema, see [protobuf-for-node](https://code.google.com/p/protobuf-for-node/). The basic idea is that that all names 
-     appearing in the schema will be camel-cased in JS, e.g.: 
-     title_string -> titleString. 
-     Furthermore 'repeated' elements map to arrays in JS.
-     
 */
 
 @ = require('sjs:logging');
-var { override, get } = require('sjs:object');
+var { override, get, extend } = require('sjs:object');
 var { request } = require('sjs:http');
 var { TokenCache } = require('google-oauth-jwt');
 var { HttpsAgent } = require('agentkeepalive');
+var { readAll } = require('sjs:nodejs/stream');
 
 var keepaliveAgent = new HttpsAgent({
   maxSockets: 20,
@@ -52,16 +39,6 @@ var keepaliveAgent = new HttpsAgent({
 // authentication token cache:
 var tokens = new TokenCache(); 
 
-// initialize protobuf marshalling:
-// we use protobufs instead of json because e.g. 
-// the local development server doesn't have a json option. 
-var { Schema } = require('protobuf');
-var { readFile } = require('sjs:nodejs/fs');
-var { readAll } = require('sjs:nodejs/stream');
-var { normalize, toPath } = require('sjs:url');
-
-var datastore_schema = new Schema(readFile('./protobuf/datastore_v1.desc' .. normalize(module.id) .. toPath));
-
 /**
    @class Context
    @summary Context for accessing the [Google Cloud Datastore](https://developers.google.com/datastore/).
@@ -70,72 +47,45 @@ var datastore_schema = new Schema(readFile('./protobuf/datastore_v1.desc' .. nor
 var ContextProto = {
   /**
      @function Context.allocateIds
-     @param {Object} [req] "AllocateIdsRequest" message
-     @return {Object} "AllocateIdsResponse" message
-     @desc
-       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
+     @param {Object} [req]
+     @return {Object} 
   */
   allocateIds: function(req) {
-    return this._request(
-      'allocateIds', 
-      datastore_schema['api.services.datastore.AllocateIdsRequest'].serialize(req),
-      datastore_schema['api.services.datastore.AllocateIdsResponse']      
-    );
+    return this._request('allocateIds', req);
   },
   
   /**
      @function Context.blindWrite
-     @param {Object} [req] "BlindWriteRequest" message
-     @return {Object} "BlindWriteResponse" message
-     @desc
-       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
+     @param {Object} [req] 
+     @return {Object} 
   */
   blindWrite: function(req) { //console.log(require('sjs:debug').inspect(req, false, 10));
-    return this._request(
-      'blindWrite', 
-      datastore_schema['api.services.datastore.BlindWriteRequest'].serialize(req),
-      datastore_schema['api.services.datastore.BlindWriteResponse']
-    );
+    return this._request('commit', req .. extend({mode: 'NON_TRANSACTIONAL'}));
   },
 
   /**
      @function Context.lookup
-     @param {Object} [req] "LookupRequest" message
-     @return {Object} "LookupResponse" message
-     @desc
-       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
+     @param {Object} [req] 
+     @return {Object} 
    */
   lookup: function(req) {
-    return this._request(
-      'lookup', 
-      datastore_schema['api.services.datastore.LookupRequest'].serialize(req),
-      datastore_schema['api.services.datastore.LookupResponse']
-    );
+    return this._request('lookup', req);
   },
 
   /**
      @function Context.runQuery
-     @param {Object} [req] "RunQueryRequest" message
-     @return {Object} "RunQueryResponse" message
-     @desc
-       Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
+     @param {Object} [req] 
+     @return {Object} 
   */
   runQuery: function(req) {
-//    console.log(require('sjs:debug').inspect(datastore_schema['api.services.datastore.RunQueryRequest'].serialize(req) ..
-//                datastore_schema['api.services.datastore.RunQueryRequest'].parse, false, 10));
-
-    return this._request(
-      'runQuery', 
-      datastore_schema['api.services.datastore.RunQueryRequest'].serialize(req),
-      datastore_schema['api.services.datastore.RunQueryResponse']
-    );
+    return this._request('runQuery', req);
   },
 
   
   /**
      @function Context.withTransaction
      @altsyntax context.withTransaction([isolationLevel]) { |transaction| ... }
-     @param {optional String} [isolationLevel='SNAPSHOT'] One of 'SNAPSHOT' or 'SERIALIZABLE'.
+     @param {optional String} [isolationLevel] Obsolete flag
      @param {Function} [block] 
      @summary Execute *block* with a new [::Transaction] object. The transaction will automatically be rolled back if there is an error during committing.
   */
@@ -147,15 +97,8 @@ var ContextProto = {
     else {
       [isolationLevel, block] = arguments;
     }
-    if (!isolationLevel) 
-      isolationLevel = 'SNAPSHOT';
-
     var context = this;
-    var transaction_id = context._request(
-      'beginTransaction', 
-      datastore_schema['api.services.datastore.BeginTransactionRequest'].serialize({ isolationLevel: isolationLevel}),
-      datastore_schema['api.services.datastore.BeginTransactionResponse']
-    ).transaction;
+    var transaction_id = context._request('beginTransaction').transaction;
 
     var committed = false;
 
@@ -166,8 +109,8 @@ var ContextProto = {
     var transaction = {
       /**
          @function Transaction.lookup
-         @param {Object} [req] "LookupRequest" message
-         @return {Object} "LookupResponse" message
+         @param {Object} [req] 
+         @return {Object} 
          @summary Same as [::Context::lookup], but in the context of a 
          transaction. The transaction id will automatically be spliced 
          into the request.
@@ -179,8 +122,8 @@ var ContextProto = {
       },
       /**
          @function Transaction.runQuery
-         @param {Object} [req] "RunQueryRequest" message
-         @return {Object} "RunQueryResponse" message
+         @param {Object} [req] 
+         @return {Object} 
          @summary Same as [::Context::runQuery], but in the context of a 
          transaction. The transaction id will automatically be spliced 
          into the request.
@@ -192,18 +135,13 @@ var ContextProto = {
       },
       /**
          @function Transaction.commit
-         @param {Object} [req] "CommitRequest" message
-         @return {Object} "CommitResponse" message
-         @desc
-         Note: For details on the request and response object, see the corresponding message definitions in the [datastore schema](./protobuf/datastore_v1.proto) and consult the notes on protobuf-json mapping in the [./backend::] module description.
+         @param {Object} [req] 
+         @return {Object} 
        */
       commit: function(req) {
         if (committed) throw new Error('Transaction already committed');
         req.transaction = transaction_id;
-        var rv = context._request(
-          'commit', 
-          datastore_schema['api.services.datastore.CommitRequest'].serialize(req),
-          datastore_schema['api.services.datastore.CommitResponse']);
+        var rv = context._request('commit', req);
         committed = true;
         return rv;
       }
@@ -215,10 +153,8 @@ var ContextProto = {
     finally {
       if (!committed) {
         @verbose("rolling back transaction");
-        try {
-          context._request(
-            'rollback',
-            datastore_schema['api.services.datastore.RollbackRequest'].serialize({ transaction: transaction_id}));
+        try {_
+          context._request('rollback',{ transaction: transaction_id});
         }
         catch (e) {
           @verbose("Silently ignoring rollback error: #{e}");
@@ -254,7 +190,7 @@ function Context(attribs) {
 
     dataset = process.env.DATASTORE_DATASET || attribs.dataset;
     req_base = process.env.DATASTORE_HOST || 'http://localhost:8080';
-    @verbose("Google Cloud Datastore backend running from #{req_base}, dataset: #{dataset}");
+    console.log("Google Cloud Datastore backend running from #{req_base}, dataset: #{dataset}");
 
     req_f = request;
   }
@@ -283,7 +219,7 @@ function Context(attribs) {
       opts.agent = keepaliveAgent;
       return request(url, opts);
     };
-    req_base = 'https://www.googleapis.com/';
+    req_base = 'https://datastore.googleapis.com/';
   }
 
   var rv = Object.create(ContextProto);
@@ -291,19 +227,19 @@ function Context(attribs) {
   // we deliberately define `_request` in the closure here and not on
   // the prototype so that we don't need to expose `attribs` on the
   // object
-  rv._request = function(api_func, req_body, response_schema) {  
+  rv._request = function(api_func, req_body) {  
     var max_retries = 10; // make configurable
     var retries = 0;
-    //console.log("#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}");
+    req_body = req_body .. JSON.stringify;
+    //console.log("GCD REQUEST="+req_body);
     while (true) {
       var response = req_f(
-        "#{req_base}/datastore/v1beta1/datasets/#{dataset}/#{api_func}",
+        "#{req_base}v1/projects/#{dataset}:#{api_func}",
         { 
-          headers: {'Content-Type':'application/x-protobuf',
+          headers: {'Content-Type':'application/json',
                     'Connection':'Keep-Alive'
                    },
           method: 'POST',
-          encoding: null,
           body: req_body,
           response: 'raw',
           throwing: false
@@ -311,7 +247,7 @@ function Context(attribs) {
       );
 
       // extract content into a buffer:
-      var content = readAll(response);
+      var content = readAll(response, 'utf8');
       
       if (response.statusCode !== 200) {
 
@@ -331,7 +267,7 @@ function Context(attribs) {
         throw new DatastoreError(api_func, response, content, req_body);
       }
       
-      return response_schema ? response_schema.parse(content);
+      return JSON.parse(content);
     }
   };
 
