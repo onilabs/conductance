@@ -7327,6 +7327,9 @@
             "app-plain": {
               "type": "module",
               "children": {
+                "@template-head": {
+                  "type": "directive"
+                },
                 "@template-title": {
                   "type": "directive"
                 },
@@ -7437,6 +7440,10 @@
             }
           },
           "summary": "Basic HTML elements"
+        },
+        "mech-helpers": {
+          "type": "module",
+          "children": {}
         },
         "widgets": {
           "type": "module",

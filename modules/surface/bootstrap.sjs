@@ -1434,7 +1434,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @altsyntax SelectInput(suggestions)
 @summary An [::Input] that provides a dropdown with selectable suggestions
 @param {Object} [settings]
-@setting {optional String|sjs:sequence::Stream|sjs:observable::ObservableVar} [value=undefined]
+@setting {optional sjs:observable::ObservableVar} [value=undefined]
 @setting {sjs:sequence::Sequence|Function} [suggestions] function search_term_stream -> suggestions_stream
 @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.)
 @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.)
@@ -1445,7 +1445,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
   
   - A concrete [sjs:sequence::Sequence] (such as a static array) of suggestion items
   - An [sjs:observable::Observable] yielding a [sjs:sequence::Sequence] of suggestion items
-  - A function that receives an [sjs:observable::Observable] of the current value and returns either
+  - A function that receives an object `{TextValue, node}` with the [sjs:observable::Observable] of the current text value and text input field node and returns either
     a concrete sequence of suggestion items or an [sjs:observable::Observable] yielding a suggestions sequence
 
   A 'suggestion item' is either a string, or an object:
