@@ -26,17 +26,17 @@
 
       @test("are flattened") {||
         var source = {
-          array_values: [ "one", "two", "three" ],
+          array_values: [ "one", "two", "three" ]
         };
 
-        convert(source).property[0] .. @assert.eq({
-          name: 'array_values',
-          multi: true,
-          value: [
-            {stringValue: 'one' },
-            {stringValue: 'two' },
-            {stringValue: 'three' },
-          ],
+        convert(source).properties['array_values'] .. @assert.eq({
+          arrayValue: { 
+            values: [
+              {stringValue: 'one' },
+              {stringValue: 'two' },
+              {stringValue: 'three' },
+            ]
+          }
         });
 
         roundtrip(source) .. @assert.eq(source);
@@ -59,7 +59,7 @@
           array_values: [ undefined, undefined, undefined ],
         };
 
-        convert(source).property .. @assert.eq([]);
+        convert(source).properties .. @assert.eq({});
 
         roundtrip(source) .. @assert.eq({});
       }
@@ -71,7 +71,7 @@
           array_values: [ {
             first: { __type: 'string'},
             middle: { __type: 'string'},
-            last: { __type: 'string'},
+            last: { __type: 'string'}
           } ],
         },
       };
@@ -95,36 +95,37 @@
         var source = {
           array_values: [
             { first: "f1", middle: "m1", last: "l1" },
-            { first: "f2", middle: "m2", last: "l2" },
+            { first: "f2", middle: "m2", last: "l2" }
           ]
         };
 
-        convert(source).property .. @assert.eq([
+        convert(source).properties .. @assert.eq(
           {
-            name: 'array_values.first',
-            multi: true,
-            value: [
-              {stringValue: 'f1' },
-              {stringValue: 'f2' },
-            ],
-          },
-          {
-            name: 'array_values.middle',
-            multi: true,
-            value: [
-              {stringValue: 'm1' },
-              {stringValue: 'm2' },
-            ],
-          },
-          {
-            name: 'array_values.last',
-            multi: true,
-            value: [
-              {stringValue: 'l1' },
-              {stringValue: 'l2' },
-            ],
-          },
-        ]);
+            'array_values.first': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'f1' },
+                  {stringValue: 'f2' }
+                ]
+              }
+            },
+            'array_values.middle': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'm1' },
+                  {stringValue: 'm2' }
+                ]
+              }
+            },
+            'array_values.last': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'l1' },
+                  {stringValue: 'l2' }
+                ]
+              }
+            }
+          });
 
         roundtrip(source) .. @assert.eq(source);
       }
@@ -159,31 +160,33 @@
           ],
         };
 
-        convert(source).property .. @assert.eq([
+        convert(source).properties .. @assert.eq(
           {
-            name: 'array_values.first',
-            multi: true,
-            value: [
-              {stringValue: 'f1' },
-              {stringValue: 'f2' },
-            ],
-          },
-          {
-            name: 'array_values.last',
-            multi: true,
-            value: [
-              {stringValue: 'l1' },
-              {stringValue: 'l2' },
-            ],
-          },
-        ]);
+            'array_values.first': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'f1' },
+                  {stringValue: 'f2' }
+                ]
+              }
+            },
+            'array_values.last': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'l1' },
+                  {stringValue: 'l2' }
+                ]
+              }
+            }
+          });
+
         roundtrip(source) .. @assert.eq(source);
 
         // ------
         source = {
           array_values: [ undefined, undefined ],
         };
-        convert(source).property .. @assert.eq([]);
+        convert(source).properties .. @assert.eq({});
 
         roundtrip(source) .. @assert.eq({});
 
@@ -231,32 +234,33 @@
           ]
         };
 
-        convert(source).property .. @assert.eq([
+        convert(source).properties .. @assert.eq(
           {
-            name: 'array_values.first.lower',
-            multi: true,
-            value: [
-              {stringValue: 'f1' },
-              {stringValue: 'f2' },
-            ],
-          },
-          {
-            name: 'array_values.first.upper',
-            multi: true,
-            value: [
-              {stringValue: 'F1' },
-              {stringValue: 'F2' },
-            ],
-          },
-          {
-            name: 'array_values.last',
-            multi: true,
-            value: [
-              {stringValue: 'l1' },
-              {stringValue: 'l2' },
-            ],
-          },
-        ]);
+            'array_values.first.lower': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'f1' },
+                  {stringValue: 'f2' }
+                ]
+              }
+            },
+            'array_values.first.upper': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'F1' },
+                  {stringValue: 'F2' }
+                ]
+              }
+            },
+            'array_values.last': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'l1' },
+                  {stringValue: 'l2' }
+                ]
+              }
+            }
+          });
 
         roundtrip(source) .. @assert.eq(source);
       }
@@ -295,44 +299,48 @@
           ],
         };
 
-        convert(source).property .. @assert.eq([
+        convert(source).properties .. @assert.eq(
           {
-            name: 'array_values.first.lower',
-            multi: true,
-            value: [
-              {stringValue: 'f1' },
-              {stringValue: 'f2' },
-            ],
-          },
-          {
-            name: 'array_values.last',
-            multi: true,
-            value: [
-              {stringValue: 'l1' },
-              {stringValue: 'l2' },
-            ],
-          },
-        ]);
+            'array_values.first.lower': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'f1' },
+                  {stringValue: 'f2' }
+                ]
+              }
+            },
+            'array_values.last': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'l1' },
+                  {stringValue: 'l2' }
+                ]
+              }
+            }
+          });
+
         roundtrip(source) .. @assert.eq(source);
 
         // ------
         source = {
           array_values: [
             { last: "l1" },
-            { last: "l2" },
+            { last: "l2" }
           ],
         };
 
-        convert(source).property .. @assert.eq([
+        convert(source).properties .. @assert.eq(
           {
-            name: 'array_values.last',
-            multi: true,
-            value: [
-              {stringValue: 'l1' },
-              {stringValue: 'l2' },
-            ],
-          },
-        ]);
+            'array_values.last': {
+              arrayValue: {
+                values: [
+                  {stringValue: 'l1' },
+                  {stringValue: 'l2' }
+                ]
+              }
+            }
+          });
+
         roundtrip(source) .. @assert.eq(source);
 
 
@@ -340,7 +348,7 @@
         source = {
           array_values: [ undefined, undefined ],
         };
-        convert(source).property .. @assert.eq([]);
+        convert(source).properties .. @assert.eq({});
 
         roundtrip(source) .. @assert.eq({});
 
