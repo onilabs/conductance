@@ -202,7 +202,7 @@ function JSValueToGCDValue(js_val, descriptor, path) {
 __js function checkUndefinedArrayMembers(dest, node, gcd_entity) {
   if (node.value === undefined) {
     // either ALL values must be undefined:
-    if(dest.arrayValue.values.length > 0) {
+    if(dest.property.arrayValue.values.length > 0) {
       throw new Error("Google Cloud Datastore: Undefined values in arrays not supported (#{node.path})");
     }
     dest.has_undefined_members = true;
