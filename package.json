@@ -10,18 +10,8 @@
   }
 , "main": "conductance"
 , "bin": { "conductance": "conductance" }
-, "devDependencies":
-  { "karma-sjs-adapter": "~0.2.2"
-  , "karma-quiet-reporter": "*"
-  , "karma-chrome-launcher": "*"
-  , "karma-firefox-launcher": "*"
-  , "karma-phantomjs-launcher": "*"
-  , "karma-script-launcher": "*"
-  , "tar": "~2.0.0"
-  , "fstream": "~0.1.25"
-  }
 , "dependencies":
-  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#f498398539b7a6580342a153dbe9d5d36fa5cd9e"
+  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#77975e1c93d7ea2f434a955491b5b56e39e87bd2"
   , "nodemon": "git://github.com/onilabs/nodemon.git#826928de2771068dbdbc5cc7f75b9b49c1ae73db"
   , "google-oauth-jwt": "~0.0.7"
   , "agentkeepalive": "=2.0.3"
