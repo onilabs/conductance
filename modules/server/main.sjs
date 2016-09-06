@@ -132,38 +132,36 @@ exports.serve = function(args) {
     // to customise `opts`
     var opts = {
       ext: 'api sjs mho gen js',
-      exec: process.execPath,
-      execShell: false,
+      exec: '"'+process.execPath.replace(/\"/g, '\\"')+'"',
       args: [env.executable, 'serve'].concat(args),
     };
     logging.debug("nodemon options:", opts);
 
-    waitfor() {
-      __js {
-        nodemon(opts)
-            .on('log', function(log) {
-              var output = log.colour;
-              //console.log(log);
-
-              // skip `starting <exec>`
-              if (log.type === 'status' && log.message .. str.startsWith('starting ')) {
-                //output = output.replace(/starting.*`/, 'starting conductance ...');
-                return;
-              }
-              
-              // skip version message
-              if (log.type === 'info' && /^v\d+(\.\d+)+$/.test(log.message)) return;
-
-              // skip "watching: *.*
-              if (log.type === 'info' && log.message .. str.startsWith('watching: ')) return;
-
-              console.warn(output);
-            })
-        ;
-        // NOTE: never resumes
-      }
+    __js {
+      nodemon(opts)
+        .on('log', function(log) {
+          var output = log.colour;
+          //console.log(log);
+          
+          // skip `starting <exec>`
+          if (log.type === 'status' && log.message .. str.startsWith('starting ')) {
+            //output = output.replace(/starting.*`/, 'starting conductance ...');
+            return;
+          }
+          
+          // skip version message
+          if (log.type === 'info' && /^v\d+(\.\d+)+$/.test(log.message)) return;
+          
+          // skip "watching: *.*
+          if (log.type === 'info' && log.message .. str.startsWith('watching: ')) return;
+          
+          console.warn(output);
+        })
+      ;
+      
     }
-    return;
+    // never returns
+    hold();
   }
 
   //----------------------------------------------------------------------

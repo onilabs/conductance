@@ -12,7 +12,7 @@
 , "bin": { "conductance": "conductance" }
 , "dependencies":
   { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#77975e1c93d7ea2f434a955491b5b56e39e87bd2"
-  , "nodemon": "git://github.com/onilabs/nodemon.git#826928de2771068dbdbc5cc7f75b9b49c1ae73db"
+  , "nodemon": "~1.10.2"    
   , "google-oauth-jwt": "~0.0.7"
   , "agentkeepalive": "=2.0.3"
   , "ssh2": "git://github.com/onilabs/ssh2.git#7e95458095de28dbb1768ea0c26fd278bbf6f2ea"
