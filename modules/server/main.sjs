@@ -132,8 +132,10 @@ exports.serve = function(args) {
     // to customise `opts`
     var opts = {
       ext: 'api sjs mho gen js',
+      ignore: 'frontend/',
       exec: '"'+process.execPath.replace(/\"/g, '\\"')+'"',
       args: [env.executable, 'serve'].concat(args),
+      legacyWatch: true
     };
     logging.debug("nodemon options:", opts);
 
