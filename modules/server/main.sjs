@@ -160,9 +160,10 @@ exports.serve = function(args) {
           console.warn(output);
         })
       ;
-      
+      // ensure that a SIGINT (e.g. from docker-compose run ) actually shuts us down:
+      process.on('SIGINT', function() { process.exit(0); });
     }
-    // never returns
+    // never return
     hold();
   }
 
