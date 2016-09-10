@@ -155,7 +155,15 @@ Library.prototype.loadModuleDocs = function(path) {
 		var docs = null;
 		try {
 			if (!path.length || path .. str.endsWith('/')) {
-				docs = docutil.parseSJSLibDocs(this.loadFile(path + "sjs-lib-index.txt"));
+        try {
+          var file = this.loadFile(path + "sjs-lib-index.txt");
+        }
+        catch (e) {
+          // graciously handle missing sjs-lib-index.txt files
+          console.log("Warning, no sjs-lib-index.txt file at #{this.root}#{path} (#{e})");
+          file = "\n";
+        }
+				docs = docutil.parseSJSLibDocs(file);
 			}
       else if (/.*\..*/.test(path)) {
         docs = docutil.parseModuleDocs(this.loadFile(path, { format:"src"}));
