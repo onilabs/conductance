@@ -658,10 +658,10 @@ var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
     root = path;
   }
 
-  if(!fs.exists(nodePath.join(root, 'sjs-lib-index.txt'))) {
+/*  if(!fs.exists(nodePath.join(root, 'sjs-lib-index.txt'))) {
     throw new Error("Directory #{root} doesn't contain an sjs-lib-index.txt file");
   }
-
+*/
   if (path.length > 0 && !path .. endsWith("/")) {
     path = path + "/";
   }
