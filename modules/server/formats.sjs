@@ -319,7 +319,7 @@ var withFormats = exports.withFormats = function(map, extensions) {
 
     Note that the source of .app files is accessible via the `src` format.
 
-    .api files will be served non-executable and with their source code
+    .api/.REST/.gen files will be served non-executable and with their source code
     redacted (only documentation comments will be returned).
 
     #### Warning
@@ -382,6 +382,16 @@ var Code = (base) -> base
                           filter: apisrc,
                           compress: true
                         }
+               },
+    REST     : { none: { mime: "text/plain",
+                         filter: apisrc,
+                         compress: true
+                       }
+               },
+    gen      : { none: { mime: "text/plain",
+                         filter: apisrc,
+                         compress: true
+                       }
                }
   });
 exports.Code = Code;
@@ -399,6 +409,8 @@ exports.Code = Code;
 
     Note that the redacted source (only documentation comments) of .api files is
     accessible via the `src` format.
+    Similarly, the refacted source of .gen and .REST files is accessible when these files are 
+    accessed directly (e.g. a request to foo.REST rather than foo)
 
     #### Warning
 
@@ -420,5 +432,15 @@ var Executable = (base) -> base
                           compress: true
                         }
                },
+    REST     : { none: { mime: "text/plain",
+                         filter: apisrc,
+                         compress: true
+                       }
+               },
+    gen      : { none: { mime: "text/plain",
+                         filter: apisrc,
+                         compress: true
+                       }
+               }
   });
 exports.Executable = Executable;

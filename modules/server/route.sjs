@@ -373,6 +373,7 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
 */
 var ExecutableDirectory = exports.ExecutableDirectory = createDirectoryMapper({
   allowGenerators: true,
+  allowREST:       true,
   allowApis:       true,
   formats: formats.StaticFormatMap .. formats.Code() .. formats.Executable(),
 });

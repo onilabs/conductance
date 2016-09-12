@@ -16,11 +16,8 @@
     A `.gen` file is used to serve generated content from the
     conductance web server.
 
-    While you can write your own [server/route::] configuration to
-    generate custom content from the server, this is best suited
-    to truly dynamic content (like an API).
-
-    For server-generated documents and other content, `.gen` files
+    While you can write your own [server/route::] configuration in a [#features/mho-file::] to
+    generate custom content, for server-generated documents, `.gen` files
     are often more convenient.
 
     `.gen` files are expected to export at least a [::content] method,
@@ -28,6 +25,8 @@
 
     See also the [server/generator::] module, which provides utilities
     for use in generator files.
+
+    For serving REST APIs see [#features/REST-file::]. For serving conductance-specific APIs see [#features/api-file::].
 
     ### Configuring .gen files
 

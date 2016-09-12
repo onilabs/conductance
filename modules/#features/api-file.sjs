@@ -16,6 +16,8 @@
   The `.api` file format is used to provide clients transparent access
   to code running on the server.
 
+  An `.api` file is a standard sjs module which will be executed on the **server** when first requested from the **client**. All exports from the `.api` file will be made available to the client.
+
 @feature require-api
 @summary Require an .api file from the client
 @desc

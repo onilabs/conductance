@@ -96,6 +96,7 @@ exports.setStatus = setStatus;
 
 /**
   @function send
+  @param {sjs:nodejs/http::ServerRequest} [request]
   @param {optional Object} [settings]
   @setting {Number} [status=200]
   @setting {Object} [headers]
