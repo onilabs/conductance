@@ -62,7 +62,8 @@ context("serving files") {||
 	test("Can't access source code of .gen files") {||
 		var url = rel('hello.txt');
 		http.get(url) .. assert.eq('world!');
-		assert.raises({filter: e -> e.status === 404}, -> http.get(url + '.gen'));
+    var contents = http.get(url + '.gen');
+    contents .. assert.notContains('world', "raw .gen contents served at #{url}");
 	}
 }
 
