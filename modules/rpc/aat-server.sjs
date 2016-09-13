@@ -17,6 +17,8 @@
    @nodoc
 */
 
+@ = require(['sjs:std']);
+
 var logging = require('sjs:logging');
 var cutil   = require('sjs:cutil');
 var event   = require('sjs:event');
@@ -301,8 +303,10 @@ function createTransportHandler(transportSink) {
       
       transportSink(transport);
       
+      // XXX should parse up to a maximum size here to prevent DOS attacks
+      var body = req.body('utf8') .. @join;
       in_messages = 
-        (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) .. 
+        (body.length ? JSON.parse(body) : []) .. 
         map(mes -> { type: 'message', data: mes}) .. toArray;
 
       logging.debug("messages: ", in_messages);
@@ -318,8 +322,10 @@ function createTransportHandler(transportSink) {
         error_code = 'id';
       }
       else {
+        // XXX should parse up to a maximum size here to prevent DOS attacks
+        var body = req.body('utf8') .. @join;
         in_messages = 
-          (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) ..
+          (body.length ? JSON.parse(body) : []) ..
           map(mes -> { type: 'message', data: mes}) .. toArray;
       }
     }
@@ -334,7 +340,9 @@ function createTransportHandler(transportSink) {
         in_messages = [
           { type: 'data', 
             header: JSON.parse(req.url.params().header),
-            data: req.body
+            // XXX should parse up to a maximum size here to prevent DOS attacks
+            // XXX better yet, we should pass through the stream, rather than accumulate the data
+            data: req.body() .. @join
           }]; 
       }
     }
@@ -346,8 +354,10 @@ function createTransportHandler(transportSink) {
         error_code = 'id';
       }
       else {
+        // XXX should parse up to a maximum size here to prevent DOS attacks
+        var body = req.body('utf8') .. @join;
         error_code = transport.pollMessages(
-          req.body.length ? JSON.parse(req.body.toString('utf8')) : []
+          body.length ? JSON.parse(body) : []
         );
       }
     }
