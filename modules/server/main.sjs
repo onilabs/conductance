@@ -132,8 +132,10 @@ exports.serve = function(args) {
     // to customise `opts`
     var opts = {
       ext: 'api sjs mho gen js',
+      ignore: 'frontend/',
       exec: '"'+process.execPath.replace(/\"/g, '\\"')+'"',
       args: [env.executable, 'serve'].concat(args),
+      legacyWatch: true
     };
     logging.debug("nodemon options:", opts);
 
@@ -158,9 +160,10 @@ exports.serve = function(args) {
           console.warn(output);
         })
       ;
-      
+      // ensure that a SIGINT (e.g. from docker-compose run ) actually shuts us down:
+      process.on('SIGINT', function() { process.exit(0); });
     }
-    // never returns
+    // never return
     hold();
   }
 

@@ -20,7 +20,7 @@ exports.serve = function() {
 
       @Route('log', {POST: function(req) {
         req .. @response.setStatus(200);
-        console.log("message from client: #{req.body.toString('utf-8')}");
+        console.log("message from client: #{req.body('utf8') .. @join}");
         req.response.end();
       }}),
     ],

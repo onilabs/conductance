@@ -44,7 +44,7 @@ exports.serve = function() {
 
       @Route(/^write\/(.*)$/, {POST: function(req, [_, path]) {
         @info("writing #{path}");
-        fs.writeFile(path, req.body);
+        fs.writeFile(path, req.body() .. @join);
         req .. @response.setStatus(200);
         req.response.end(path);
       }}),
@@ -67,7 +67,7 @@ exports.serve = function() {
       }}),
 
       @Route(/^kv\/set\/(.*)$/, {POST: function(req, [_,key]) {
-        var payload = req.body.toString('utf-8');
+        var payload = req.body('utf-8') .. @join;
         try {
           payload = payload .. JSON.parse();
         } catch(e) {

@@ -27,7 +27,7 @@ exports.serve = function(args, condition) {
 						var opts = {
 							method: req.request.method,
 							response: 'raw',
-							body: req.body,
+							body: req.body() .. @join,
 							headers: req.request.headers .. @merge({
 								'x-forwarded-proto': req.url.protocol,
 								'x-forwarded-host': req.request.headers.host,

@@ -124,8 +124,13 @@ var generatorCache = lruCache.makeCache(10*1000*1000); // 10MB
 function formatResponse(req, item, settings) {
   var { input, filePath, filetype, format, apiinfo, appurl } = item;
 
+  if (req.request.method !== "GET" && req.request.method !== "HEAD") {
+    throw HttpError(405, "Method not allowed");
+  }
+
   var notAcceptable = HttpError(406, 'Not Acceptable',
                                 'Could not find an appropriate representation');
+
   var filedesc = settings.formats[filetype] || settings.formats["*"];
   if (!filedesc) {
     verbose("Don't know how to serve item of type '#{filetype}'");
@@ -360,15 +365,22 @@ function serveFile(req, filePath, format, settings) {
       }
     }
     catch (e) {
-      return settings.allowGenerators ? generateFile(req, filePath, format, settings) : false;
+      if (settings.allowGenerators && generateFile(req, filePath, format, settings))
+        return true;
+      if (settings.allowREST && serveREST(req, filePath, format, settings))
+        return true;
+      return false;
     }
   }
   if (!stat.isFile()) return false;
 
   var extension = path.extname(filePath).slice(1);
+/*
+  we handle source code redaction through in entry in the formats map in formats.sjs
   if (settings.allowGenerators && extension == 'gen') {
     return false;
   }
+*/
 
   var apiinfo = defaultApiinfo;
   if (settings.allowApis && extension == 'api') {
@@ -522,6 +534,75 @@ function generateFile(req, filePath, format, settings) {
   return true;
 }
 
+// XXX this logic should be consolidated with generateFile
+function serveREST(req, filePath, format, settings) {
+  var restFilePath = filePath + ".REST";
+  var wildcardPath = undefined;
+  try {
+    var stat = fs.stat(restFilePath);
+    if (!stat.isFile()) return false;
+    restFilePath = fs.realpath(restFilePath);
+  }
+  catch (e) {
+
+    // try to find a wildcard rest generator (_.REST file) in one of our
+    // parent directories.
+
+    restFilePath = filePath;
+    wildcardPath = '';
+    while (1) {
+      // strip off last component of restFilePath:
+      var idx = restFilePath.lastIndexOf('/');
+      if (idx === -1) return false;
+      wildcardPath = restFilePath.substring(idx) + wildcardPath;
+      restFilePath = restFilePath.substring(0, idx);
+
+      // we need to make sure we don't go below 'root':
+      if (restFilePath.indexOf(settings.root) !== 0) return false;
+      try {
+        var stat = fs.stat(restFilePath+'/_.REST');
+        if (!stat.isFile()) continue;
+        restFilePath = fs.realpath(restFilePath+'/_.REST');
+        break;
+      }
+      catch (e) {
+        // go round loop again
+      }
+    }
+  }
+
+  var rest_file_mtime = stat.mtime.getTime();
+
+  var resolved_path = require.resolve(restFilePath .. url.fileURL).path;
+
+  // purge module if it is loaded already, but the mtime doesn't match:
+  var module_desc = require.modules[resolved_path];
+  var outOfDate = module_desc && module_desc.etag && module_desc.etag !== rest_file_mtime;
+  if (outOfDate) logging.verbose("reloading REST generator file #{resolved_path}; mtime #{module_desc.etag} doesn't match stat #{rest_file_mtime}");
+
+  var rest_generator = require(resolved_path, {reload: outOfDate});
+  if (!rest_generator[req.request.method]) {
+    throw HttpError(405, "Method not allowed");
+  }
+
+  if (!require.modules[resolved_path])
+    throw new Error("Module at #{resolved_path} not populated in require.modules");
+
+  require.modules[resolved_path].etag = rest_file_mtime;
+  var params = req.url.params();
+
+  // for wildcard rest generator files (_.REST), we pass the truncated path as a parameter 'path':
+  if (wildcardPath) params.path = wildcardPath;
+
+  rest_generator[req.request.method](req, params);
+  if (!req.response.finished) {
+    console.log("Module #{resolved_path} failed to handle #{req.request.method} request");
+    throw new Error('request not handled');
+  }
+
+  return true;
+}
+
 //----------------------------------------------------------------------
 var restrictedUrlPathPattern = /%2f/i;
 
@@ -531,7 +612,6 @@ var restrictedUrlPathPattern = /%2f/i;
 //   e.g.:  pattern: /^/virtual_root(\/.*)?$/
 // - 'root' is the absolute on-disk path prefix.
 // - XXX settings
-// - Can handle 'GET' or 'HEAD' requests
 exports.MappedDirectoryHandler = function(root, settings) {
 
   // NOTE: these settings MUST be safe by default, suitable for
@@ -544,6 +624,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
   settings = { mapIndexToDir:   true,
                allowDirListing: true,
                allowGenerators: false,
+               allowREST:       false,
                allowApis:       false,
                context:         null,
                formats: StaticFormatMap,
@@ -620,8 +701,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
   }
 
   return {
-    "GET":  handler_func,
-    "HEAD": handler_func
+    "*":  handler_func
   };
 }
 

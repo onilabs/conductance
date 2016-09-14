@@ -4,6 +4,15 @@
     "#features/": {
       "type": "lib",
       "children": {
+        "REST-file": {
+          "type": "module",
+          "children": {
+            "REQUEST_METHOD": {
+              "type": "function"
+            }
+          },
+          "summary": "Server-side REST generator files"
+        },
         "api-file": {
           "type": "module",
           "children": {
@@ -6926,6 +6935,20 @@
             }
           },
           "summary": "Mandrill Email Service"
+        },
+        "mixpanel/": {
+          "type": "lib",
+          "children": {
+            "service": {
+              "type": "module",
+              "children": {
+                "run": {
+                  "type": "function"
+                }
+              },
+              "summary": "Mixpanel Analytics Service"
+            }
+          }
         }
       },
       "summary": "Common application services"
