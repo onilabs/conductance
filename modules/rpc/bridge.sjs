@@ -582,7 +582,7 @@ function BridgeConnection(transport, opts) {
       // in nodejs 4.5 and later, Buffers are also Uint8Arrays, so we need to test for isBuffer, and not this:
       //var t = @bytes.isArrayBuffer(obj) || @bytes.isUint8Array(obj) ? 'a' : 'b'; // array | buffer
       // XXX at some point we should harmonize uint8arrays and buffers
-      var t = @bytes.isBuffer(obj) ? 'b' : 'a';
+      var t = isNodeJSBuffer(obj) ? 'b' : 'a';
       transport.sendData({id: id, t:t}, obj .. toIterableBytes);
       return id;
     },
