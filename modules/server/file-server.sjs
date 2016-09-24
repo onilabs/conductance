@@ -604,7 +604,6 @@ function serveREST(req, filePath, format, settings) {
 }
 
 //----------------------------------------------------------------------
-var restrictedUrlPathPattern = /%2f/i;
 
 // Maps a directory on disk into the server fs.
 // - The 'pattern' regex under which the handler will be filed needs to
@@ -646,9 +645,23 @@ exports.MappedDirectoryHandler = function(root, settings) {
     req.context = settings.context;
     var relativeURI = req.url.path;
     var [relativePath, format] = matches.input.slice(matches.index + matches[0].length).split('!');
+
+/*
+    // We must not decode %2f ('/') for our paths, because '/' has a special meaning in the file system.
+    // However we also don't want to disallow it, in order to allow arbitrary path parameters
+
+    // so instead of this:
+
+    var restrictedUrlPathPattern = /%2f/i; // = '/'
     if(restrictedUrlPathPattern.test(relativePath)) {
       throw new HttpError(400, "Bad request");
     }
+
+    // we escape the '%' before performing uri decoding:
+*/
+    relativePath = relativePath.replace(/%2f/ig, '%252f');
+
+
     var relativePath = decodeURIComponent(relativePath);
 
     if (format !== undefined)
