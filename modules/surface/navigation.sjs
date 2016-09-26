@@ -208,7 +208,10 @@ function navigate(url, settings) {
 
   // find part of node_path that is already active:
   for (var i=0; i<global_active_node_path.length; ++i) {
-    if (global_active_node_path[i].node === node_path[0].node &&
+    if (node_path.length === 0) {
+      break; // global_node_path is at a sub route of node_path
+    }
+    else if (global_active_node_path[i].node === node_path[0].node &&
         global_active_node_path[i].param === node_path[0].param) {
       // this node is already active; don't execute it again:
       node_path.shift();
@@ -335,7 +338,12 @@ function route(routing_table) {
   else 
     content = root_content; 
 
-  global_active_node_path = [ { node: root_node, content: content, params:{} } ];
+  // to ensure that `navigate` doesn't wrongly bail when the initial navigation is to '/', we 
+  // have to ensure that the initial active node path isn't equal to '/'.
+  // XXX it's a bit hackish, but for now, let's just push a dummy_node in addition to '/':
+  var dummy_node = { node: {} };
+  
+  global_active_node_path = [ { node: root_node, content: content, params:{} }, dummy_node ];
 
   // navigate to initial page:
   if (!navigate(location.href, {omit_state_push: true, enable_not_found_route: true})) {
