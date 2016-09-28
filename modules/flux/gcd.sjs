@@ -43,6 +43,9 @@ var READ_BATCH_PERIOD    = 100;
 var WRITE_BATCH_PERIOD   = 20;
 var READ_T_BATCH_PERIOD  =  0; // read batch period inside transaction
 var WRITE_T_BATCH_PERIOD =  0; // write batch period inside transaction
+var MAX_CONCURRENT_LOOKUPS = 300; // if this is too high, we might get deferred results
+                                  // on lookup, which we can handle just fine, but it is
+                                  // more performant to prevent them in the first place
 
 /**
    @class Entity
@@ -577,44 +580,56 @@ function GoogleCloudDatastore(attribs) {
     }
   }
 
-  function readInner(entities, transaction) { 
-    //console.log("GCD: read #{entities.length}: #{entities.. @map(e->e.id)}");
-    var query = [];
+  function readInner(entities, transaction) {
+//    console.log("GCD: read #{entities.length} entities");
+    var unresolved = {};
     entities .. @indexed .. @each {
       |[i,entity]|
       try {
-        query.push({path: keyToGCDKey(entity.id)})
+        unresolved[entity.id] = i;
       }
       catch (e) {
         entities[i] = new Error("Invalid Key '#{entity ? entity.id}'");
       }
     }
-    var results = (transaction || context).lookup({
-      keys: query
-    });
-    
-    // XXX we need to handle this
-    if (results.deferred && results.deferred.length) console.log("WARNING: DEFERRED BATCH RESULTS IN GCD.read!!!");
-    // index found results by id
-    var found = {};
-    (results.found || []) .. @each {
-      |result|
-      found[GCDKeyToKey(result.entity.key.path)] = result.entity;
-    }
-    entities .. @indexed .. @each {
-      |[i,entity]|
-      if (entity.id) {
+
+    var outstanding = unresolved .. @ownKeys .. @count;
+    while (1) {
+      var query = unresolved .. @ownKeys .. 
+        @take(MAX_CONCURRENT_LOOKUPS) .. @map(id -> {path: keyToGCDKey(id)});
+
+      var results = (transaction || context).lookup({keys: query});
+
+      (results.found || []) .. @each {
+        |result|
+        var key = GCDKeyToKey(result.entity.key.path);
+        var index = unresolved[key];
+        if (index === undefined) 
+          throw new Error("Unexpected result in google cloud datastore lookup");
+        delete unresolved[key];
         try {
-          entities[i] = found[entity.id] .. GCDEntityToJSEntity(entity, schemas);
+          entities[index] = GCDEntityToJSEntity(result.entity, entities[index], schemas);
         }
         catch (e) {
-          entities[i] = e;
+          entities[index] = e;
         }
+      };
+      (results.missing || []) .. @each {
+        |result|
+        var key = GCDKeyToKey(result.entity.key.path);
+        // clear out of unresolved and leave original query entity untouched
+        delete unresolved[key];
       }
-      else if (!entities[i]) // XXX why is this needed?
-        entities[i] = null;
-      // else entity is an 'InvalidKey' Error (which will be thrown by our unbatched function)
+      var new_outstanding = unresolved .. @ownKeys .. @count;
+      if (new_outstanding === 0) 
+        break;
+      if (new_outstanding >= outstanding)
+        throw new Error("GCD lookup not making progress (#{new_outstanding} outstanding from #{entities.length})");
+      outstanding = new_outstanding;
+//      if (results.deferred)
+//        console.log(" #{results.deferred.length} deferred results");
     }
+
     return entities;
   }
 
