@@ -22,7 +22,7 @@ TODO: document
 
 // XXX this function used only in gcd.sjs is incomplete; it should
 // traverse the schema and set default values for nested values too
-function instantiate(schema) {
+__js function instantiate(schema) {
   var rv = {};
   // set any default values:
   ownPropertyPairs(schema) .. each {
