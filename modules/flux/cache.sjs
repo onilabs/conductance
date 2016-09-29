@@ -14,37 +14,10 @@ var { each, map, makeIterator, Stream } = require('sjs:sequence');
 var { wait } = require('sjs:event');
 var { override, clone } = require('sjs:object');
 var { exclusive } = require('sjs:function');
-var { ChangeBuffer } = require('./helpers');
+var { ChangeBuffer, structuralClone } = require('./helpers');
 
 /** @nodoc */
 
-//----------------------------------------------------------------------
-// helpers
-
-// recursive clone with special case for 'Date'
-__js function structural_clone(obj) {
-  var rv;
-  if (obj === null) {
-    rv = obj;
-  }
-  else if (Array.isArray(obj)) {
-    rv = new Array(obj.length);
-    for (var i=0; i<obj.length; ++i) {
-      rv[i] = structural_clone(obj[i]);
-    }
-  }
-  else if (typeof obj === 'object' && ! (obj instanceof Date)) {
-    rv = {};
-    for (var prop in obj) {
-      // XXX check for 'own' properties here?
-      rv[prop] = structural_clone(obj[prop]);
-    }
-  }
-  else {
-    rv = obj;
-  }
-  return rv;
-}
 
 //----------------------------------------------------------------------
 // sequence module backfill
@@ -64,7 +37,7 @@ function MemoizedStream(s) {
     var i=0;
     while (true) {
       while (i< memoized_results.length)
-        receiver(memoized_results[i++] .. structural_clone);
+        receiver(memoized_results[i++] .. structuralClone);
       if (done) return;
       next();
     }
@@ -150,7 +123,7 @@ exports.Cache = function(upstream, options) {
           }
         }
       }
-      return entry .. structural_clone;
+      return entry .. structuralClone;
     },
     query: function(entity) { 
       if (options.cacheQueries) {

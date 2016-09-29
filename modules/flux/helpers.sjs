@@ -37,3 +37,32 @@ exports.ChangeBuffer = function(size) {
   };
   return rv;
 };
+
+//----------------------------------------------------------------------
+// helpers
+
+// recursive clone with special case for 'Date'
+__js function structural_clone(obj) {
+  var rv;
+  if (obj === null) {
+    rv = obj;
+  }
+  else if (Array.isArray(obj)) {
+    rv = new Array(obj.length);
+    for (var i=0; i<obj.length; ++i) {
+      rv[i] = structural_clone(obj[i]);
+    }
+  }
+  else if (typeof obj === 'object' && ! (obj instanceof Date)) {
+    rv = {};
+    for (var prop in obj) {
+      // XXX check for 'own' properties here?
+      rv[prop] = structural_clone(obj[prop]);
+    }
+  }
+  else {
+    rv = obj;
+  }
+  return rv;
+}
+exports.structuralClone = structural_clone;
