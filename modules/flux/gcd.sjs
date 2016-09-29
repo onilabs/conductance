@@ -587,7 +587,7 @@ function GoogleCloudDatastore(attribs) {
     entities .. @indexed .. @each {
       |[i,entity]|
       if (unresolved[entity.id] !== undefined) {
-        duplicates.push([unresolved[entity.id], i]);
+        duplicates.push([unresolved[entity.id][0], i]);
       }
       else {
         try {
