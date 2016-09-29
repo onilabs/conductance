@@ -12,7 +12,7 @@
 @ = require('mho:std');
 var { instantiate, isSimpleType, IdToKey, KeyToId, KeyToParentKey, KeyToKind, cotraverse } = require('./schema');
 var { Context } = require('./gcd/backend');
-var { ChangeBuffer } = require('./helpers');
+var { ChangeBuffer, structuralClone } = require('./helpers');
 
 /**
   @nodoc
@@ -583,27 +583,33 @@ function GoogleCloudDatastore(attribs) {
   function readInner(entities, transaction) {
 //    console.log("GCD: read #{entities.length} entities");
     var unresolved = {};
+    var duplicates = []; // array of duplicate queries [ [ primary_index, duplicate_index ], ... ]
     entities .. @indexed .. @each {
       |[i,entity]|
-      try {
-        unresolved[entity.id] = i;
+      if (unresolved[entity.id] !== undefined) {
+        duplicates.push([unresolved[entity.id], i]);
       }
-      catch (e) {
-        entities[i] = new Error("Invalid Key '#{entity ? entity.id}'");
+      else {
+        try {
+          unresolved[entity.id] = [i, keyToGCDKey(entity.id)];
+        }
+        catch(e) {
+          entities[i] = new Error("Invalid key '#{entity.id}'");
+        }
       }
     }
 
     var outstanding = unresolved .. @ownKeys .. @count;
     while (1) {
-      var query = unresolved .. @ownKeys .. 
-        @take(MAX_CONCURRENT_LOOKUPS) .. @map(id -> {path: keyToGCDKey(id)});
+      var query = unresolved .. @ownValues .. 
+        @take(MAX_CONCURRENT_LOOKUPS) .. @map([i,gcd_key] -> {path: gcd_key});
 
       var results = (transaction || context).lookup({keys: query});
 
       (results.found || []) .. @each {
         |result|
         var key = GCDKeyToKey(result.entity.key.path);
-        var index = unresolved[key];
+        var index = unresolved[key][0];
         if (index === undefined) 
           throw new Error("Unexpected result in google cloud datastore lookup");
         delete unresolved[key];
@@ -628,6 +634,12 @@ function GoogleCloudDatastore(attribs) {
       outstanding = new_outstanding;
 //      if (results.deferred)
 //        console.log(" #{results.deferred.length} deferred results");
+    }
+
+    duplicates .. @each {
+      |[from, to]|
+//      console.log("Multiple concurrent reads for same id #{entities[from].id} (#{from} -> #{to})");
+      entities[to] = entities[from] .. structuralClone;
     }
 
     return entities;
