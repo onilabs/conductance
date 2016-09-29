@@ -67,11 +67,13 @@ var MAX_CONCURRENT_LOOKUPS = 300; // if this is too high, we might get deferred 
 // id:       'Alexander Fritze'
 // kind:     'Person'
 
-function keyToGCDKey(path) {
+__js function keyToGCDKey(path) {
   try {
     return path.split('/') ..
       @map(function(pelem) {
-        var [kind, id_or_name] = pelem.split(':');
+        var split = pelem.split(':');
+        var kind = split[0];
+        var id_or_name = split[1];
         if (!id_or_name)
           return { kind: kind };
         else if (id_or_name.charAt(0) == '#')
@@ -85,28 +87,28 @@ function keyToGCDKey(path) {
   }
 }
 
-function GCDKeyToKey(path) {
+__js function GCDKeyToKey(path) {
   return path .. 
-    @transform({kind, name, id} -> name ? "#{kind}:#{name}" : "#{kind}:##{id}") ..
+    @transform(p -> p.name ? "#{p.kind}:#{p.name}" : "#{p.kind}:##{p.id}") ..
     @join('/');
 }
 
-function GCDKeyToId(path) {
+__js function GCDKeyToId(path) {
   var last = path[path.length-1];
   return last.id ? "##{last.id}" : last.name;
 }
 
-function GCDKeyToKind(path) {
+__js function GCDKeyToKind(path) {
   var last = path[path.length-1];
   return last.kind;
 }
 
-function GCDKeyToParent(path) {
+__js function GCDKeyToParent(path) {
   return GCDKeyToKey(path .. @slice(0,-1));
 }
 
 
-function GCDValueToJSValue(gcd_value, descriptor) {
+__js function GCDValueToJSValue(gcd_value, descriptor) {
   var base_val;
   switch (descriptor.__type) {
   case 'date':
@@ -150,8 +152,10 @@ function GCDValueToJSValue(gcd_value, descriptor) {
   default:
     throw new Error("Schema error: Unknown type #{descriptor.__type}");
   }
+/*
   if (descriptor.fromRepository)
     base_val = descriptor.fromRepository(base_val);
+*/
   return base_val;
 }
 
@@ -332,7 +336,7 @@ function JSEntityToGCDEntity(js_entity, schemas) {
 exports._JSEntityToGCDEntity = JSEntityToGCDEntity;
 
 
-function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
+__js function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
   // clone relevant parts of js_entity:
   js_entity = { id: js_entity.id, schema: js_entity.schema };
 
@@ -351,8 +355,11 @@ function GCDEntityToJSEntity(gcd_entity, js_entity, schemas) {
     |[name, value]|
     // find schema descriptor:
     var descriptor=schema, path=[], array_path;
-    name.split('.') .. @each {
-      |n|
+
+    var split = name.split('.');
+
+    for (var i=0; i<split.length; ++i) {
+      var n = split[i];
       descriptor = descriptor[n];
       if (!descriptor) break; 
       if (@isArrayLike(descriptor) || descriptor.__type === 'array') {
@@ -582,6 +589,9 @@ function GoogleCloudDatastore(attribs) {
 
   function readInner(entities, transaction) {
 //    console.log("GCD: read #{entities.length} entities");
+
+    //var SW = @Stopwatch('gcd_read');
+
     var unresolved = {};
     var duplicates = []; // array of duplicate queries [ [ primary_index, duplicate_index ], ... ]
     entities .. @indexed .. @each {
@@ -599,13 +609,17 @@ function GoogleCloudDatastore(attribs) {
       }
     }
 
+    //SW.snapshot('prep') .. console.log;
+
     var outstanding = unresolved .. @ownKeys .. @count;
     while (1) {
       var query = unresolved .. @ownValues .. 
         @take(MAX_CONCURRENT_LOOKUPS) .. @map([i,gcd_key] -> {path: gcd_key});
 
+      //SW.snapshot('prep2') .. console.log;
       var results = (transaction || context).lookup({keys: query});
 
+      //SW.snapshot('data') .. console.log;
       (results.found || []) .. @each {
         |result|
         var key = GCDKeyToKey(result.entity.key.path);
@@ -634,6 +648,7 @@ function GoogleCloudDatastore(attribs) {
       outstanding = new_outstanding;
 //      if (results.deferred)
 //        console.log(" #{results.deferred.length} deferred results");
+      //SW.snapshot('resolve')  .. console.log;
     }
 
     duplicates .. @each {
@@ -642,6 +657,7 @@ function GoogleCloudDatastore(attribs) {
       entities[to] = entities[from] .. structuralClone;
     }
 
+    //SW.snapshot('end') .. console.log;
     return entities;
   }
 
