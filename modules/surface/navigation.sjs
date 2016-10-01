@@ -322,7 +322,12 @@ function dispatchStateChanges() {
 //----------------------------------------------------------------------
 // top-level driver:
 
-function route(routing_table) {
+function route(routing_table, settings) {
+
+  settings = {
+    DOMParent: document.body
+  } .. @override(settings);
+
   processRoutingTable(routing_table);
 
   // install root into global_active_node_path:
@@ -352,7 +357,7 @@ function route(routing_table) {
 
   // append to document and wait for state changes:
 
-  document.body .. @appendContent(root_content) { 
+  settings.DOMParent .. @appendContent(root_content) { 
     || 
     waitfor {
       captureLinks();
@@ -370,6 +375,8 @@ function route(routing_table) {
   @function route
   @summary Install a global routing table and perform client-side routing urls
   @param {::RoutingTable} [routing_table] Table of routes to install
+  @param {optional Object} [settings]
+  @setting {DOMNode} [DOMParent=document.body] DOM parent to which routed content will be appended
   @desc
      This function performs global routing for an application, appending content to the document's body and swapping it 
      out when navigating between different URLs. It should be called exactly once. 
