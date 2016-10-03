@@ -304,6 +304,7 @@ function captureLinks() {
   document .. 
     @events("!click") .. @each {
       |ev|
+      if (ev.target.tagName !== 'A') continue;
       if (navigate(ev.target.href))
         ev .. @preventDefault;
     }
