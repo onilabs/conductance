@@ -338,18 +338,22 @@ function serveFile(req, filePath, format, settings) {
     var stat = fs.stat(filePath);
   }
   catch (e) {
-    try {
+    if (settings.allowGenerators && generateFile(req, filePath, format, settings))
+      return true;
+    else if (settings.allowREST && serveREST(req, filePath, format, settings))
+      return true;
+    else {
       // check if we've got a wildcard _.app file in one of our parent directories
       var p = filePath;
       var wildcardDepth = './';
       while (1) {
         // strip off last component of path:
         var idx = p.lastIndexOf('/');
-        if (idx === -1) throw 'bail';
+        if (idx === -1) return false;
         p = p.substring(0, idx);
 
         // make sure we don't go below 'root':
-        if (p.indexOf(settings.root) !== 0) throw 'bail';
+        if (p.indexOf(settings.root) !== 0) return false;
         try {
           var stat = fs.stat(p + '/_.app');
           if (!stat.isFile()) continue;
@@ -363,13 +367,6 @@ function serveFile(req, filePath, format, settings) {
           wildcardDepth = wildcardDepth + '../';
         }
       }
-    }
-    catch (e) {
-      if (settings.allowGenerators && generateFile(req, filePath, format, settings))
-        return true;
-      if (settings.allowREST && serveREST(req, filePath, format, settings))
-        return true;
-      return false;
     }
   }
   if (!stat.isFile()) return false;
