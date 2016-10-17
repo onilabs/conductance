@@ -80,6 +80,7 @@ exports.ActionLink = (content, action) ->
    @setting {Integer} [left=0] Left position of popover relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
    @setting {Integer} [bottom=undefined] Bottom position of popover relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
    @setting {Integer} [right=undefined] Right position of popover relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
+   @setting {Integer} [zindex=1050] CSS z-index of popover
    @demo
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, 'mho:surface/widgets']);
 
@@ -133,7 +134,8 @@ function popover(anchor, element, settings, block) {
     top: undefined,
     left: undefined,
     bottom: undefined,
-    right: undefined
+    right: undefined,
+    zindex: 1050
   } .. @override(settings);
 
   if (settings.left === undefined && settings.right === undefined)
@@ -149,7 +151,7 @@ function popover(anchor, element, settings, block) {
   var popover_CSS = @CSS("
     {
       position: absolute;
-      z-index: 1050;
+      z-index: #{settings.zindex};
       #{settings.left !== undefined ?  "left: #{anchor_rect.left + (anchor_rect.right-anchor_rect.left)*settings.left+window.scrollX}px;" : ''}
       #{settings.right !== undefined ?  "right: #{window.innerWidth - (anchor_rect.left + (anchor_rect.right-anchor_rect.left)*settings.right+window.scrollX)}px;" : ''}
       #{settings.top !== undefined ?  "top: #{anchor_rect.top + (anchor_rect.bottom-anchor_rect.top)*settings.top+window.scrollY}px;" : ''}
@@ -473,6 +475,10 @@ function overlay(content, settings, block) {
     settings = undefined;
   }
 
+  settings = {
+    zindex: 1040
+  } .. @override(settings);
+
   var overlay_CSS = @CSS("
     {
       top: 0;
@@ -480,7 +486,7 @@ function overlay(content, settings, block) {
       position: fixed;
       width: 100%;
       height: 100%;
-      z-index: 1040;
+      z-index: #{settings.zindex};
       overflow-y: scroll;
     }
     #backdrop {
