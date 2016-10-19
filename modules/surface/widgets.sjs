@@ -476,7 +476,7 @@ function overlay(content, settings, block) {
   }
 
   settings = {
-    zindex: 1040
+    zindex: 1050
   } .. @override(settings);
 
   var overlay_CSS = @CSS("
