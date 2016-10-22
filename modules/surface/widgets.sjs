@@ -80,7 +80,7 @@ exports.ActionLink = (content, action) ->
    @setting {Integer} [left=0] Left position of popover relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
    @setting {Integer} [bottom=undefined] Bottom position of popover relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
    @setting {Integer} [right=undefined] Right position of popover relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
-   @setting {Integer} [zindex=1050] CSS z-index of popover
+   @setting {Integer} [zindex=1040] CSS z-index of popover
    @demo
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, 'mho:surface/widgets']);
 
@@ -135,7 +135,7 @@ function popover(anchor, element, settings, block) {
     left: undefined,
     bottom: undefined,
     right: undefined,
-    zindex: 1050
+    zindex: 1040
   } .. @override(settings);
 
   if (settings.left === undefined && settings.right === undefined)
@@ -476,7 +476,7 @@ function overlay(content, settings, block) {
   }
 
   settings = {
-    zindex: 1050
+    zindex: 1040
   } .. @override(settings);
 
   var overlay_CSS = @CSS("
