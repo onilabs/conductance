@@ -637,7 +637,9 @@ function GoogleCloudDatastore(attribs) {
       (results.missing || []) .. @each {
         |result|
         var key = GCDKeyToKey(result.entity.key.path);
-        // clear out of unresolved and leave original query entity untouched
+        // mark entity as missing (set data = null) and clear out of unresolved
+        var index = unresolved[key][0];
+        entities[index] = GCDEntityToJSEntity(null, entities[index], schemas);
         delete unresolved[key];
       }
       var new_outstanding = unresolved .. @ownKeys .. @count;
@@ -870,6 +872,7 @@ function GoogleCloudDatastore(attribs) {
        @summary Query for entities
      */
     query: function(query_descriptor) {
+      console.log("GCD QUERY");
       return queryInner(query_descriptor);
     },
 
