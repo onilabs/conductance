@@ -11,7 +11,7 @@
 , "main": "conductance"
 , "bin": { "conductance": "conductance" }
 , "dependencies":
-  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#74a5ae0e03f5fbed4367c8e4e7573cc562d59e1c"
+  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#962c5c743ca195d8d8ffc1480a2c00fc8a5dcc25"
   , "nodemon": "~1.10.2"    
   , "google-oauth-jwt": "~0.0.7"
   , "agentkeepalive": "=2.0.3"
