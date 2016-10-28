@@ -175,6 +175,7 @@ function getNodePath(path_arr) {
 //  omit_state_push: don't make history entry
 //  enable_not_found_route: if url has the correct origin, but is not found, invoke the global_error_route (otherwise return false)
 function navigate(url, settings) {
+  console.log("NAVIGATE TO "+url);
   settings = {
     omit_state_push: false,
     enable_not_found_route: false
@@ -183,6 +184,7 @@ function navigate(url, settings) {
   url = url .. @url.normalize(location.href);
   var origin = location.origin;
   if (!url .. @startsWith(origin)) {
+    console.log("REJECT NAVIGATION BASED ON ORIGIN "+url);
     return false;
   }
   url = url .. @url.parse;
@@ -304,7 +306,7 @@ function captureLinks() {
   document .. 
     @events("!click") .. @each {
       |ev|
-      if (ev.target.tagName !== 'A') continue;
+      if (ev.target.tagName !== 'A' || ev.target.hasAttribute('download')) continue;
       if (navigate(ev.target.href))
         ev .. @preventDefault;
     }
