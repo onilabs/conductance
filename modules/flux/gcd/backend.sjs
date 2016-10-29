@@ -153,7 +153,7 @@ var ContextProto = {
     finally {
       if (!committed) {
         @verbose("rolling back transaction");
-        try {_
+        try {
           context._request('rollback',{ transaction: transaction_id});
         }
         catch (e) {

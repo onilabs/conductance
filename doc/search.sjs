@@ -18,7 +18,7 @@ var ui = require('./ui');
 var flattenLibraryIndex = function(lib) {
 	var symbols = [];
 	var addSymbols = function(obj, path) {
-		if (!obj.children) return;
+		if (!obj || !obj.children) return;
 		obj.children .. ownPropertyPairs .. each {|[k,v]|
 			var id = path + k;
 			if (v.type == 'ctor') continue;

@@ -695,10 +695,10 @@ module.exports = require(modules);
      @demo.CodeResult(
        "@Button('mouse me over') .. 
      @On('mouseover', ev -> @mainContent ..
-                              @appendContent(ev))",
+                              @appendContent(String(ev)))",
        @Button('mouse me over') .. 
          @On('mouseover', ev -> @mainContent .. 
-           @appendContent(ev))
+           @appendContent(String(ev)))
      ));
 
 @function OnClick

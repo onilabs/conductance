@@ -7311,6 +7311,9 @@
                 "@template-fluid": {
                   "type": "directive"
                 },
+                "@template-head": {
+                  "type": "directive"
+                },
                 "@template-mho-style": {
                   "type": "directive"
                 },
@@ -7467,6 +7470,48 @@
         "mech-helpers": {
           "type": "module",
           "children": {}
+        },
+        "navigation": {
+          "type": "module",
+          "children": {
+            "Container": {
+              "type": "class",
+              "children": {
+                "Container": {
+                  "type": "ctor"
+                }
+              }
+            },
+            "Page": {
+              "type": "class",
+              "children": {
+                "Page": {
+                  "type": "ctor"
+                }
+              }
+            },
+            "PathPattern": {
+              "type": "class",
+              "children": {}
+            },
+            "RoutingTable": {
+              "type": "class",
+              "children": {}
+            },
+            "back": {
+              "type": "function"
+            },
+            "forward": {
+              "type": "function"
+            },
+            "navigate": {
+              "type": "function"
+            },
+            "route": {
+              "type": "function"
+            }
+          },
+          "summary": "Client-side URL routing and navigation"
         },
         "widgets": {
           "type": "module",

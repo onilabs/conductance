@@ -119,6 +119,17 @@
          *\/
 
 
+  @directive @template-head
+  @summary Content to go into document <head> section.
+  @desc
+     ### Example:
+
+         /**
+           @template-head
+             <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+             <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+          *\/
+
   @function withBusyIndicator
   @param {Function} [block]
   @summary Show a busy indicator for the duration of `block` 
@@ -222,6 +233,8 @@
   @summary alias for [surface/bootstrap/notice::Notice]
 */
 
+@ = require('sjs:std');
+
 var frag = require('../doc-fragment');
 var { toBool } = require('sjs:docutil');
 var { Script } = require('../html');
@@ -277,6 +290,7 @@ exports.Document = function(data, settings) {
     )}
     ${ data.head }
     ${ data.script }
+    ${ settings.head ? [settings.head] .. @Quasi}
   </head>
   <body>${content}
     ${useBootstrapJs ? frag.bootstrapJavascript()}

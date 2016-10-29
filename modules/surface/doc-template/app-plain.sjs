@@ -54,7 +54,6 @@ exports.Document = function(data, settings) {
   return `<!DOCTYPE html>
 <html>
   <head>
-    ${settings.head ? [settings.head] .. @Quasi}
     <script type='text/sjs' module='mho:app'>
       var html = require('mho:surface/html');
       module.exports = require('sjs:object').merge(html, {
@@ -64,6 +63,7 @@ exports.Document = function(data, settings) {
     </script>
     ${ data.head }
     ${ data.script }
+    ${settings.head ? [settings.head] .. @Quasi}
   </head>
   <body>${data.body}</body>
 </html>`;

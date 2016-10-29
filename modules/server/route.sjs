@@ -21,7 +21,7 @@
 var { conductanceRoot, sjsRoot } = require('./env');
 var { setStatus, setHeader, writeRedirectResponse, writeErrorResponse, isHttpError, HttpError, ServerError } = require('./response');
 var { flatten } = require('sjs:array');
-var { isString, sanitize, endsWith } = require('sjs:string');
+var { isString, sanitize, endsWith, rstrip } = require('sjs:string');
 var { each, join, map } = require('sjs:sequence');
 var { keys, ownPropertyPairs, merge } = require('sjs:object');
 var { Route } = require('../server');
@@ -711,7 +711,6 @@ var DocumentationIndex = exports.DocumentationIndex = function(path, root) {
 
     ## Documentation index
 
-    Each served hub needs to have an [sjs:#language/documentation::sjs-lib-index.txt] or `sjs-lib-index.json` file in its root.
     For each served hub that doesn't contain a compiled documentation index (`sjs-lib-index.json`) file,
      the documentation index will be re-generated 
     each time it is accessed. This is not very efficient, but it's convenient
@@ -758,8 +757,8 @@ var DocumentationBrowser = exports.DocumentationBrowser = function(path, hubs, s
       var sourcePath = hub.path .. url.coerceToPath;
       assert.string(sourcePath, "hub.path");
 
-      var hubRoute = "hubs/#{encodeURIComponent(hub.name)}"
-      var fullHubRoute = "#{path}/#{hubRoute}";
+      var hubRoute = "hubs/#{encodeURIComponent(hub.name)}";
+      var fullHubRoute = "#{path .. rstrip('/')}/#{hubRoute}";
 
       if(!fs.exists(nodePath.join(sourcePath, 'sjs-lib-index.json'))) {
         // add a handler to auto-generate documentation index

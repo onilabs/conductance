@@ -44,6 +44,46 @@ var ITF_CMD_UIS = exports.ITF_CMD_UIS = @Interface(module, "itf_cmd_uis");
 var ITF_CMD_PROCESSORS = exports.ITF_CMD_PROCESSORS = @Interface(module, "itf_cmd_processors");
 
 
+//----------------------------------------------------------------------
+// helpers
+
+function findCmdProcessor(node, cmd) {
+  do {
+    if (node[ITF_CMD_PROCESSORS]) {
+      node[ITF_CMD_PROCESSORS] .. @each {
+        |proc|
+        if (proc.bound_commands && proc.bound_commands.indexOf(cmd) === -1)
+          continue;
+        return proc;
+      }
+    }
+    node = node.parentNode;
+  } while (node);
+  return null;
+}
+
+
+//----------------------------------------------------------------------
+
+/**
+   @function emit
+   @summary XXX write me
+*/
+function emit(settings /*{[node], cmd, [param]}*/) {
+  settings = {
+    node: undefined,
+    cmd: undefined,
+    param: undefined
+  } .. @override(settings);
+
+  var node = settings.node .. @getDOMNode();
+  var processor = node .. findCmdProcessor(settings.cmd);
+  if (!processor) return false;
+  processor.emitter.emit([settings.cmd, settings.param]);
+  return true;
+}
+exports.emit = emit;
+
 /**
    @function Click
    @altsyntax element .. Click(cmd, [settings])
@@ -94,8 +134,12 @@ __js {
    @setting {String} [cmd] Command to be emitted
    @setting {Function} [filter] Function through which received events will be passed. An event will only be considered if this function returns a truthy value.
    @setting {Function} [handle] A handler function to call directory on the event if it hasn't been filtered.
-   @setting {Object} [param] XXX to be documented
+   @setting {Object|Function} [param] optional value to be passed to command handler, or function generating value (see description below)
    @setting {Boolean} [track_enabled=false]
+   @desc
+     ### Notes
+     - If a functional `param` parameter is given, the result of executing `param(event_object)` 
+       will be passed to the command handler (instead of `param` itself).
 */
 function On(/*element, settings*/) {
   // untangle arguments

@@ -338,18 +338,22 @@ function serveFile(req, filePath, format, settings) {
     var stat = fs.stat(filePath);
   }
   catch (e) {
-    try {
+    if (settings.allowGenerators && generateFile(req, filePath, format, settings))
+      return true;
+    else if (settings.allowREST && serveREST(req, filePath, format, settings))
+      return true;
+    else {
       // check if we've got a wildcard _.app file in one of our parent directories
       var p = filePath;
       var wildcardDepth = './';
       while (1) {
         // strip off last component of path:
         var idx = p.lastIndexOf('/');
-        if (idx === -1) throw 'bail';
+        if (idx === -1) return false;
         p = p.substring(0, idx);
 
         // make sure we don't go below 'root':
-        if (p.indexOf(settings.root) !== 0) throw 'bail';
+        if (p.indexOf(settings.root) !== 0) return false;
         try {
           var stat = fs.stat(p + '/_.app');
           if (!stat.isFile()) continue;
@@ -363,13 +367,6 @@ function serveFile(req, filePath, format, settings) {
           wildcardDepth = wildcardDepth + '../';
         }
       }
-    }
-    catch (e) {
-      if (settings.allowGenerators && generateFile(req, filePath, format, settings))
-        return true;
-      if (settings.allowREST && serveREST(req, filePath, format, settings))
-        return true;
-      return false;
     }
   }
   if (!stat.isFile()) return false;
@@ -604,7 +601,6 @@ function serveREST(req, filePath, format, settings) {
 }
 
 //----------------------------------------------------------------------
-var restrictedUrlPathPattern = /%2f/i;
 
 // Maps a directory on disk into the server fs.
 // - The 'pattern' regex under which the handler will be filed needs to
@@ -646,9 +642,23 @@ exports.MappedDirectoryHandler = function(root, settings) {
     req.context = settings.context;
     var relativeURI = req.url.path;
     var [relativePath, format] = matches.input.slice(matches.index + matches[0].length).split('!');
+
+/*
+    // We must not decode %2f ('/') for our paths, because '/' has a special meaning in the file system.
+    // However we also don't want to disallow it, in order to allow arbitrary path parameters
+
+    // so instead of this:
+
+    var restrictedUrlPathPattern = /%2f/i; // = '/'
     if(restrictedUrlPathPattern.test(relativePath)) {
       throw new HttpError(400, "Bad request");
     }
+
+    // we escape the '%' before performing uri decoding:
+*/
+    relativePath = relativePath.replace(/%2f/ig, '%252f');
+
+
     var relativePath = decodeURIComponent(relativePath);
 
     if (format !== undefined)

@@ -556,10 +556,10 @@ exports.Enabled = (html, obs) -> html .. Attrib('disabled', obs .. transform(x->
        @demo.CodeResult(
          "@Button('mouse me over') .. 
        @On('mouseover', ev -> @mainContent ..
-                                @appendContent(ev))",
+                                @appendContent(String(ev)))",
          @Button('mouse me over') .. 
            @On('mouseover', ev -> @mainContent .. 
-             @appendContent(ev))
+             @appendContent(String(ev)))
        ));
 */
 var On = (html, event, opts, f) -> html .. Mechanism(function(node) {
