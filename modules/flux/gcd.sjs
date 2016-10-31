@@ -872,7 +872,7 @@ function GoogleCloudDatastore(attribs) {
        @summary Query for entities
      */
     query: function(query_descriptor) {
-      console.log("GCD QUERY");
+      //console.log("GCD QUERY");
       return queryInner(query_descriptor);
     },
 
