@@ -77,7 +77,7 @@ exports.serve = function(args, condition) {
 			] .. @route.AllowCORS()
 		}
 	]) {|servers|
-		[proxyPort, mainPort] = servers .. @map(s -> s.nodeServer.address().port);
+		[proxyPort, mainPort] = servers .. @map(s -> (s.nodeServer .. @current).address().port);
 
 		@info("Server up (port #{proxyPort}, proxying to #{mainPort})");
 		if(condition) condition.set([proxyPort, mainPort]);
