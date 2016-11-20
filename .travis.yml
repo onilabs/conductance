@@ -1,6 +1,8 @@
 language: node_js
 node_js:
-  - "0.10"
+  - v4
+  - v6
+  - v7
 env:
   - a="test/run --karma single-run"
   - a="test/run --karma single-run" BROWSERS=Firefox
@@ -9,17 +11,6 @@ env:
 # workaround https://github.com/npm/npm/issues/6679
 install: "npm install --production && ./tools/gup node_modules/update"
 
-matrix:
-  # just run integration tests on other node versions
-  include:
-    - node_js: "0.12"
-      env: a="test/run"
-  allow_failures:
-    - node_js: "0.12"
-      env: a="test/run"
-    - node_js: "0.10"
-      env: a="test/run --karma single-run" BROWSERS=Firefox
-  
 notifications:
   email:
     recipients:
