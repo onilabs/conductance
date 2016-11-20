@@ -1,0 +1,114 @@
+/* (c) 2013-2014 Oni Labs, http://onilabs.com
+ *
+ * This file is part of Conductance, http://conductance.io/
+ *
+ * It is subject to the license terms in the LICENSE file
+ * found in the top-level directory of this distribution.
+ * No part of Conductance, including this file, may be
+ * copied, modified, propagated, or distributed except
+ * according to the terms contained in the LICENSE file.
+ */
+
+require('./modules/hubs');
+
+@ = require(['mho:std',
+             {id: 'backend:services', name:'services'},
+             {id: 'mho:commandline-utils', name:'commandline'}
+            ]);
+
+//----------------------------------------------------------------------
+
+exports.serve = function(args) {
+
+  args = @commandline.parseArgs({
+    argv:args,
+    exe_name: "conductance serve",
+    args: [
+    ],
+    options: [
+      {
+        names: ['devel'],
+        type: 'bool',
+        help: 'Run in devel mode'
+      }
+    ]
+  });
+
+  @services.run() {
+    |services|
+
+    // web server
+    var routes = [
+      // __mho, etc:
+      @route.SystemRoutes(),
+
+      // hub definitions:
+      @route.CodeDirectory(/^(?=hubs\.sjs[^\/]*$)/, require.url("./modules/")), 
+      // common library:
+      @route.CodeDirectory('lib/', require.url("./modules/lib/")),
+      // frontend modules:
+      @route.ExecutableDirectory(/^\/?/, require.url("./modules/frontend/"))
+    ];
+
+
+    if (args.devel) {
+
+      routes.unshift([
+        // XXX should be rolled into project admin app
+        @route.DocumentationBrowser('doc', [
+          {
+            name: 'frontend:',
+            path: require.url('./modules/frontend/'),
+            serve: true
+          },
+          {
+            name: 'backend:',
+            path: require.url('./modules/backend/'),
+            serve: true
+          },
+          {
+            name: 'lib:',
+            path: require.url('./modules/lib/'),
+            serve: true
+          }
+        ]),
+        // admin interface 
+        @route.ExecutableDirectory(/^admin\/?/, require.url("./modules/admin/")),
+      ]);
+
+    }
+    
+    var config;
+
+    if (services.https) {
+      // XXX port 80 redirect
+      config = [
+        {
+          address: @Port(80),
+          routes: [
+            // https challenge directory
+            @route.StaticDirectory('.well-known/', '/etc/letsencrypt/.well-known', { allowDirListing: true, mapIndexToDir: false }),      
+            routes
+          ] .. @flatten
+        },
+        {
+          address: @Port(443).ssl(services.https.credentials),
+          routes: routes
+        }
+      ];
+    }
+    else {
+      config = [
+        {
+          address: @Port(80),
+          routes: routes
+        }
+      ];
+    }
+    
+    @server.run(config) {
+      ||
+      hold();
+    }
+  }
+};

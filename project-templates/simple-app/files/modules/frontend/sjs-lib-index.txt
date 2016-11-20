@@ -1,0 +1,2 @@
+@lib     Frontend modules
+@summary App specific frontend modules

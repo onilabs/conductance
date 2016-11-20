@@ -219,7 +219,7 @@ exports.run = function(config, block) {
       }
     }
   }
-  logging.print("\nOni Conductance finished");
+  //logging.print("\nOni Conductance finished");
   servers .. each {|[_, _, routes]|
     routes .. each(r -> r.__finally__());
   }
@@ -536,12 +536,11 @@ PortProto._init = function(port, address) {
  @param {Settings} [settings]
  @summary enable SSL with the given settings
  @desc
-  Settings provided here are passed to the underlying [sjs:nodejs/http::withServer] method,
-  generally just `cert` and `key`.
+  Settings provided here are passed to the underlying [sjs:nodejs/http::withServer] method under the `ssl` key
  */
 PortProto.ssl = function(opts) {
   assert.is(this.sslConfig, null, "SSL already set");
-  this.sslConfig = merge(opts, {ssl:true});
+  this.sslConfig = opts;
   return this;
 };
 
@@ -565,8 +564,8 @@ PortProto.getAddress = function() {
 };
 
 PortProto.getConfig = function() {
-  var sslConfig = this.sslConfig || {ssl:false};
-  return merge(this.defaultConfig, this._config, sslConfig, {
+  var sslConfig = this.sslConfig || undefined;
+  return merge(this.defaultConfig, this._config, { ssl: sslConfig}, {
     address: this.getAddress(),
   });
 };

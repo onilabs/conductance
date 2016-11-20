@@ -122,6 +122,13 @@ exports.builtinServices = {
         description: '[Mixpanel](https://mixpanel.com) Analytics Service',
         service:     'mho:services/mixpanel/service',
         admin:       'mho:services/mixpanel/admin'
+      },
+  'https':
+      {
+        name:        'https',
+        description: 'Automatic HTTPS certificates via [certbot](https://certbot.eff.org/)',
+        service:     'mho:services/https/service',
+        admin:       'mho:services/https/admin'
       }
 };
 

@@ -6906,6 +6906,28 @@
           },
           "summary": "Google Web API"
         },
+        "https/": {
+          "type": "lib",
+          "children": {
+            "service": {
+              "type": "module",
+              "children": {
+                "HttpsService": {
+                  "type": "class",
+                  "children": {
+                    "credentials": {
+                      "type": "variable"
+                    }
+                  }
+                },
+                "run": {
+                  "type": "function"
+                }
+              },
+              "summary": "HTTPS Certificate Service"
+            }
+          }
+        },
         "leveldb/": {
           "type": "lib",
           "children": {
@@ -7261,6 +7283,9 @@
               "type": "function"
             },
             "On": {
+              "type": "function"
+            },
+            "emit": {
               "type": "function"
             },
             "stream": {
