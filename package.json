@@ -16,11 +16,11 @@
   , "google-oauth-jwt": "~0.0.7"
   , "agentkeepalive": "=2.0.3"
   , "ssh2": "git://github.com/onilabs/ssh2.git#7e95458095de28dbb1768ea0c26fd278bbf6f2ea"
-  , "leveldown": "~0.10.2"
+  , "leveldown": "~1.5.0"
   }
 , "optionalDependencies":
   { 
-    "weak": "~0.4.0"
+    "weak": "~1.0.1"
   }
 , "scripts":
   { "test": "./conductance test/run.mho"
