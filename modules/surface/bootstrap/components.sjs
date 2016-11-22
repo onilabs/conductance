@@ -1415,6 +1415,7 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
    @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.)
    @setting {optional surface::HtmlFragment} [extra_buttons]
    @setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
+   @setting {optional String|sjs:observable::Observable} [placeholder] Placeholder text
    @desc
      suggestions can be one of the following:
      
@@ -1532,7 +1533,8 @@ function SelectInput(settings) {
         txtToVal: null,
         valToTxt: null,
         extra_buttons: undefined,
-        left_dropdown: false
+        left_dropdown: false,
+        placeholder: undefined
       } .. @override(settings);
   }
 
@@ -1624,12 +1626,17 @@ function SelectInput(settings) {
   if (settings.left_dropdown)
     btn_group = btn_group .. PositionInitial; // override 'position:relative'
 
+  var Input = @html.Input({value:TextValue}) ..
+    @On('input', 
+        ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open'));
+
+  if (settings.placeholder)
+    Input = Input .. @Attrib('placeholder', settings.placeholder);
+
   var rv = 
     InputGroup(
       [
-        @html.Input({value:TextValue}) ..
-          @On('input', 
-              ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
+        Input,
         btn_group
       ]
     ) .. 
@@ -1663,6 +1670,7 @@ exports.SelectInput = SelectInput;
    @setting {optional Function} [valToDate]
    @setting {optional surface::HTMLFragment} [extra_buttons] 
    @setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
+   @setting {optional String|sjs:observable::Observable} [placeholder] Placeholder text
    @desc
 
      * Currently only works when bound to a [./field::Field].
@@ -1833,6 +1841,7 @@ function DateInput(settings) {
       valToDate: @fn.identity,
       extra_buttons: undefined,
       left_dropdown: false,
+      placeholder: undefined,
       weekStart: 1 // 0 = Sunday, 1 = Monday
     } .. @override(settings);
 
@@ -1962,12 +1971,17 @@ function DateInput(settings) {
   if (settings.left_dropdown)
     btn_group = btn_group .. PositionInitial; // override 'position:relative'
 
+  var Input = @html.Input({txtToVal:txtToVal, valToTxt:valToTxt}) ..
+          @On('input', 
+              ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open'));
+
+  if (settings.placeholder)
+    Input = Input .. @Attrib('placeholder', settings.placeholder);
+
   var rv = 
     InputGroup(
       [
-        @html.Input({txtToVal:txtToVal, valToTxt:valToTxt}) ..
-          @On('input', 
-              ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')),
+        Input,
         btn_group
       ]
     ) ..
