@@ -86,8 +86,7 @@ exports.serve = function(args) {
         {
           address: @Port(80),
           routes: [
-            // https challenge directory
-            @route.StaticDirectory('.well-known/', '/etc/letsencrypt/.well-known', { allowDirListing: true, mapIndexToDir: false }),      
+            require('mho:services/https/service').ChallengeDirectory,
             routes
           ] .. @flatten
         },
@@ -108,6 +107,8 @@ exports.serve = function(args) {
     
     @server.run(config) {
       ||
+      if (services.https)
+        services.https.updateCredentials(false);
       hold();
     }
   }

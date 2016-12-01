@@ -12,11 +12,11 @@
 /**
   @summary HTTPS Certificate Service
   @desc
-     Automatically obtains and renews HTTPS TLS certificates using [certbot](https://certbot.eff.org/).
+     * Automatically obtains and renews HTTPS TLS certificates using [certbot](https://certbot.eff.org/).
 
-     On first run, a webserver will be run on port 80 to retrieve the initial certificates.
+     * For initial retrieval of certificates, see [::HttpsService.updateCredentials].
 
-     For automated renewal to work, the project using the service needs to run a webserver on port 80 that serves the directory `/etc/letsencrypt/.well-known/` under the URL `/.well-known/`.
+     * For automated renewal, the project using the service needs to run a webserver on port 80 that serves the directory `/var/letsencrypt/.well-known/` under the URL `/.well-known/` - see [::ChallengeDirectory] for a ready-made [mho:server::Route] that can be used in a [mho:server::run] configuration.
 */
 
 @ = require([
@@ -28,7 +28,29 @@
    @class HttpsService
    @summary HttpsService instance
    @variable HttpsService.credentials
-   @summary An [sjs:observable::Observable] containing automatically-renewing HTTPS credentials that can be passed to [sjs:nodejs/http::withServer] or [mho:server::Port::ssl]
+   @summary An [sjs:observable::Observable] containing automatically-renewing HTTPS credentials that can be passed to [sjs:nodejs/http::withServer] or [mho:server::Port::ssl]. If credentials are not available (yet) at the expected location (/etc/letsencrypt/live/), the observable yields a test certificate for 'localhost'.
+*/
+
+/**
+   @function HttpsService.updateCredentials
+   @param {Boolean} [run_server] Whether `updateCredentials` should run a webserver - see description. 
+   @summary Obtain new or updated credentials from certbot and install at /etc/letsencrypt/live/.
+   @desc
+
+     ### Basic Operation
+
+     * This function should only be called once on application startup. After that, credentials will automatically renew in the background (via crontab at an interval of 12h). 
+
+     * Credentials will be persisted in /etc/letsencrypt/.
+
+     * If `run_server` is `false`, the caller needs to arrange for a webserver at port 80 that reachable via the configured domains and serves
+       the directory `/var/letsencrypt/.well-known/` under the URL `/.well-known/`. Conversely, if `run_server` is `true`, `updateCredentials` will
+       itself run a port 80 webserver for the duration of its execution.
+
+     ### Automatic Renewal
+
+     * For periodic automated background renewal (every 12h via crontab) to work, the project using the service needs to run a 
+       webserver on port 80 that serves the directory `/var/letsencrypt/.well-known/` under the URL `/.well-known/` - see [::ChallengeDirectory] for a ready-made [mho:server::Route] that can be used in a [mho:server::run] configuration.
 */
 
 /**
@@ -39,60 +61,78 @@
    @desc
       Usually implicitly run by [mho:services::run]
  */
+
+var WEBROOT = '/var/letsencrypt/';
+var CHALLENGE_DIR = WEBROOT + '/.well-known/';
+@mkdirp(CHALLENGE_DIR);
+
 exports.run = function(config, block) {
   console.log("Starting Https Service: ");
   
   var email = config.email;
   var domains = config.domains.split(/[ ,]+/);
-  var webroot = '/etc/letsencrypt';
-  var challenge_dir = webroot + '/.well-known/';
-  var cert_dir = '/etc/letsencrypt/live/'+domains[0];
-  @mkdirp(challenge_dir);
+  var cert_root = '/etc/letsencrypt/live/';
+  var cert_dir = cert_root + domains[0];
 
-  if (!@fs.exits(cert_dir)) {
-    console.log("Https service: Obtaining certificates for first time");
-    @server.run({
-      address: @Port(80),
-      routes: [@route.StaticDirectory('.well-known/', challenge_dir, { allowDirListing: false, mapIndexToDir: false })]
-    }) {
-      ||
-      
-      var process = @childProcess.run('certbot', @flatten :: 
-                                      [
-                                        'certonly', 
-                                        '-n',
-                                        '--agree-tos',
-                                        '--expand',
-                                        //'--staging',
-                                     '-m', email,
-                                        '--webroot',
-                                        '-w', webroot,
-                                        domains .. @map(d -> ['-d', d])
-                                      ]);
-      console.log(process.stdout + '\n' + process.stderr);
+  @mkdirp(cert_root);
+
+  function updateCredentials(run_server) {
+    if (run_server) {
+      @server.run({
+        address: @Port(80),
+      routes: [exports.ChallengeDirectory]
+      }) {
+        ||
+        return updateCredentials(false);
+      }
     }
+
+    console.log("Https service: Obtaining/Updating certificates");
+    var process = @childProcess.run('certbot', @flatten :: 
+                                    [
+                                      'certonly', 
+                                      '-n',
+                                      '--agree-tos',
+                                      '--expand',
+                                      //'--staging',
+                                      '-m', email,
+                                      '--webroot',
+                                      '-w', WEBROOT,
+                                      domains .. @map(d -> ['-d', d])
+                                    ]);
+    console.log(process.stdout + '\n' + process.stderr);
+  }
     
-    // the certificate & key should now be available. renewal happens
-    // automatically (via crontab), so we create an observable that monitors
-    // the certificate directory
   var credentials = @Observable(function(r) {
     while (1) {
-      var ssl = {
+
+      if (!@fs.exists(cert_dir)) {
+        r({
+          key: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.key"),
+          cert: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.crt"),
+        });
+        do { 
+          @fs.watch(cert_root) .. @wait();
+        } while (!@fs.exists(cert_dir));
+        hold(2000);
+      }
+
+      r({
         key:  @fs.readFile(cert_dir + '/privkey.pem').toString(),
         cert: @fs.readFile(cert_dir + '/fullchain.pem').toString()
-      };
-      r(ssl);
+      });
       @fs.watch(cert_dir) .. @wait();
       console.log('Https service: certificate change detected');
       // wait a few seconds, to make sure all files are updated:
-      hold(5000);
+      hold(2000);
     }
   });
-  console.log('Https service: certificates obtained');
+
   try {
     block(
       {
-        credentials: credentials
+        credentials: credentials,
+        updateCredentials: updateCredentials
       }
     );
   }
@@ -100,3 +140,20 @@ exports.run = function(config, block) {
     console.log("Shutting down Https Service");
   }
 };
+
+//----------------------------------------------------------------------
+/**
+   @variable ChallengeDirectory
+   @summary A [mho:server::Route] that can be used in a [mho:server::run] configuration to serve the certbot's challenge directory (under '/.well-known/')
+   @desc
+     Equivalent to:
+
+         @route.StaticDirectory('.well-known/',
+                                '/var/letsencrypt/.well-known',
+                                {
+                                  allowDirListing: false,
+                                  mapIndexToDir:   false
+                                }
+                               )
+*/
+exports.ChallengeDirectory = @route.StaticDirectory('.well-known/', CHALLENGE_DIR, { allowDirListing: false, mapIndexToDir: false});

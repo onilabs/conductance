@@ -6912,11 +6912,17 @@
             "service": {
               "type": "module",
               "children": {
+                "ChallengeDirectory": {
+                  "type": "variable"
+                },
                 "HttpsService": {
                   "type": "class",
                   "children": {
                     "credentials": {
                       "type": "variable"
+                    },
+                    "updateCredentials": {
+                      "type": "function"
                     }
                   }
                 },
