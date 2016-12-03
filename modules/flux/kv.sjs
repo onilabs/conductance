@@ -348,6 +348,7 @@ exports.LevelDB = LevelDB;
   @setting {optional String} [localStorage] The name to use in `localStorage` for loading/saving the DB
   @setting {optional String} [file] The file path to use for loading/saving the DB
   @setting {optional sjs:observable::ObservableVar} [string] A string [sjs:observable::ObservableVar] backing the DB
+  @setting {optional Boolean} [readonly=false] If this is `true`, any mutation attempts will throw an exception
   @desc
   
     * `localStorage`, `file`, and `string` are exclusive of each other.

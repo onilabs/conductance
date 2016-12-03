@@ -560,6 +560,10 @@ function test_all(new_db) {
   }
 }
 
+@test("LocalDB readonly") {||
+  var db = @kv.LocalDB({readonly: true});
+  @assert.raises(-> db .. @kv.set('foo', 'bar'));
+}
 
 @context {||
   @test.beforeAll {|s|
@@ -614,3 +618,4 @@ function test_all(new_db) {
   }
 
 }.serverOnly();
+

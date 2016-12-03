@@ -322,6 +322,7 @@ function get_cache(o, s, f) {
 }
 
 function save_db(dict, options) {
+
   if (options.localStorage != null) {
     localStorage[options.localStorage] = dict.serialize();
 
@@ -412,6 +413,9 @@ function wrap_dict(dict, options) {
     // We use `sequential` to guarantee that `batch` is atomic,
     // even with asynchronous operations like `@fs.writeFile`
     batch: @fn.sequential(function (ops) {
+
+      if (options.readonly) throw new Error("Attempted mutation on readonly database");
+
       ops ..@each(function (op) {
         var type  = op.type;
         var key   = op.key;
