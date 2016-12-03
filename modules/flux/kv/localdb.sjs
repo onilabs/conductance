@@ -325,8 +325,12 @@ function save_db(dict, options) {
   if (options.localStorage != null) {
     localStorage[options.localStorage] = dict.serialize();
 
-  } else if (options.file != null) {
+  } 
+  else if (options.file != null) {
     @fs.writeFile(options.file, dict.serialize(), 'utf8');
+  }
+  else if (options.string != null) {
+    options.string.set(dict.serialize());
   }
 }
 
@@ -461,7 +465,8 @@ function load_db(options) {
       return @wrap.wrapDB(wrap_dict(dict, options));
     });
 
-  } else if (options.file != null) {
+  } 
+  else if (options.file != null) {
     return get_cache(cache_file, options.file, function () {
       var dict = SortedDict();
 
@@ -477,14 +482,26 @@ function load_db(options) {
       return @wrap.wrapDB(wrap_dict(dict, options));
     });
 
-  } else {
+  } 
+  else if (options.string != null) {
+    var dict = SortedDict();
+    var value = options.string .. @current;
+    if (value)
+      dict = load_db1(dict, value);
+    return @wrap.wrapDB(wrap_dict(dict, options));
+  }
+  else {
     return @wrap.wrapDB(wrap_dict(SortedDict(), options));
   }
 }
 
 function LocalDB(options) {
-  if (options.localStorage != null && options.file != null) {
-    throw new Error("Cannot specify both localStorage and file at the same time");
+  var backends = 0;
+  if (options.localStorage != null) ++backends;
+  if (options.file != null) ++backends;
+  if (options.string != null) ++backends;
+  if (backends > 1) {
+    throw new Error("Cannot specify more than one storage backend at the same time");
   }
 
   if (options.file != null) {

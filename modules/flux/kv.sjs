@@ -347,23 +347,33 @@ exports.LevelDB = LevelDB;
   @param {optional Function} [block] Lexical block to scope the LocalDB object to
   @setting {optional String} [localStorage] The name to use in `localStorage` for loading/saving the DB
   @setting {optional String} [file] The file path to use for loading/saving the DB
+  @setting {optional sjs:observable::ObservableVar} [string] A string [sjs:observable::ObservableVar] backing the DB
   @desc
+  
+    * `localStorage`, `file`, and `string` are exclusive of each other.
+
     * If you provide `localStorage`, the DB will be loaded/saved to
       `localStorage`, using the name provided. This can only be used in
-      the browser.
+      the xbrowser host environment.
 
     * If you provide `file`, the DB will be loaded/saved to a file. This
-      can only be used in Node.js.
+      can only be used in the nodejs host environment.
+
+    * If you provide `string`, the DB will be loaded/saved to the string accessed through the [sjs:observable::ObservableVar].
 
     * If you do not provide either, the DB will be stored in memory. That
       means it is **not** persistent: if you close and restart your program,
       the data in the DB *will be lost*, with no way to retrieve it.
 
-    If two DBs are loaded with the same `localStorage` or `file`, they will
-    be exactly the same DB:
+    * Note that external modifications to the backing store of the DB will *not* be reflected in the DB.
 
-        // true
-        @LocalDB({ localStorage: 'foo' }) === @LocalDB({ localStorage: 'foo' });
+    * The serialization format is the same for all backing stores.
+
+    * If two DBs are loaded with the same `localStorage` or `file`, they will
+      be exactly the same DB:
+
+          // true
+          @LocalDB({ localStorage: 'foo' }) === @LocalDB({ localStorage: 'foo' });
 
     ----
 

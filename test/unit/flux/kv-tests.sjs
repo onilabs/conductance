@@ -260,7 +260,11 @@ function test_persistence(info) {
     if (info.file != null) {
       @fs.readFile(s.path(info.file), 'utf8') ..@assert.eq(expected);
 
-    } else {
+    }
+    else if (info.string != null) {
+      info.string .. @current .. @assert.eq(expected);
+    }
+    else {
       localStorage[info.localStorage] ..@assert.eq(expected);
     }
   }
@@ -542,6 +546,20 @@ function test_all(new_db) {
     test_all(s -> @kv.Encrypted(s.raw, { password: 'foobar' }));
   }
 }.browserOnly();
+
+@context {||
+  var obs = @ObservableVar('');
+  @context("LocalDB (string)") {||
+    @test.beforeAll {|s|
+      obs.set('');
+      s.db = @kv.LocalDB({ string: obs });
+    }
+
+    test_persistence({ string: obs });
+    test_all(s -> /*@kv.LocalDB({ string: obs })*/s.db); // XXX two dbs with same 'string=obs' are **not** the same db (yet - maybe this behavior will be changed at some point)
+  }
+}
+
 
 @context {||
   @test.beforeAll {|s|
