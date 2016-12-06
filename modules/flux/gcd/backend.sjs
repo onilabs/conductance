@@ -27,13 +27,12 @@
 var { override, get, extend } = require('sjs:object');
 var { request } = require('sjs:http');
 var { TokenCache } = require('google-oauth-jwt');
-var { HttpsAgent } = require('agentkeepalive');
+var { Agent } = require('nodejs:https');
 var { readAll } = require('sjs:nodejs/stream');
 
-var keepaliveAgent = new HttpsAgent({
+var keepaliveAgent = new Agent({
   maxSockets: 20,
-  maxKeepAliveRequests: 0, // == unbounded
-  maxKeepAliveTime: 30000 // keep alive for 30 seconds
+  keepAliveMsecs: 30000 // ping every 30 seconds
 });
 
 // authentication token cache:
