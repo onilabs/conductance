@@ -271,8 +271,6 @@ function navigate(url, settings) {
   var page_node_descriptor = global_active_node_path[global_active_node_path.length-1];
   var ctx = {params: page_node_descriptor.params};
 
-  page_node_descriptor.content.set(page_node_descriptor.node.page.content(ctx));
-
   if (!settings.omit_state_push)
     history.pushState(null, '', url);
 
@@ -293,6 +291,12 @@ function navigate(url, settings) {
 
     history.replaceState(null, '', amended_url);
   }
+
+  // We need to do this last (after pefroming the history push) to prevent a 
+  // retraction if the navigation is performed by a mechanism attached to the 
+  // ui that is being removed (e.g. an OnClick handler).
+  page_node_descriptor.content.set(page_node_descriptor.node.page.content(ctx));
+
   return true;
 }
 
