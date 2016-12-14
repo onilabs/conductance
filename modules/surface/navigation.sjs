@@ -174,15 +174,22 @@ function getNodePath(path_arr) {
 // settings:
 //  omit_state_push: don't make history entry
 //  enable_not_found_route: if url has the correct origin, but is not found, invoke the global_error_route (otherwise return false)
+//  event: event that initiated the navigation; '@preventDefault()' will be called on it if the url is navigatable.
 function navigate(url, settings) {
   settings = {
     omit_state_push: false,
-    enable_not_found_route: false
+    enable_not_found_route: false,
+    event: undefined
   } .. @override(settings);
 
   url = url .. @url.normalize(location.href);
   if (!url .. @url.isSameOrigin(location.origin)) {
+    //console.log("NOT SAME ORIGIN: #{url} and #{location.origin}");
     return false;
+  }
+  else if (settings.event) {
+    // to be effective, we need to do this before doing anything async:
+    settings.event .. @preventDefault();
   }
   url = url .. @url.parse;
 
@@ -308,8 +315,7 @@ function captureLinks() {
     @events("!click") .. @each {
       |ev|
       if (ev.target.tagName !== 'A' || ev.target.hasAttribute('download')) continue;
-      if (navigate(ev.target.href))
-        ev .. @preventDefault;
+      navigate(ev.target.href, {event: ev});
     }
 }
 
@@ -318,8 +324,7 @@ function dispatchStateChanges() {
     @events("popstate") ..
     @each {
       |ev|
-      if (navigate(location.href, {omit_state_push:true, enable_not_found_route: true}))
-        ev .. @preventDefault;
+      navigate(location.href, {omit_state_push:true, enable_not_found_route: true, event: ev});
     }
 }
 
