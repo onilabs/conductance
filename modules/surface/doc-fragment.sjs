@@ -284,10 +284,11 @@ staticExports.configure = function(opts) {
 
   /**
     @function initializeRuntime
+    @param {String|sjs:quasi::Quasi|undefined} [sjsInitCode] Additional SJS initialization code to execute after setting 'mho' and 'sjs' hubs.
     @return {surface::HtmlFragment}
     @summary HTML required to initialize the SJS runtime and Conductance hub
   */
-  exports.initializeRuntime = function() {
+  exports.initializeRuntime = function(sjsInitCode) {
 
     // below we remove sjs's built-in 'sjs' hub (always at the first
     // location in the hubs array) and replace it explicitly. This is to fix an issue with
@@ -296,11 +297,14 @@ staticExports.configure = function(opts) {
 
     return [
       @Element('script', null, {src: "#{serverRoot()}__sjs/stratified.js", async:'true'}),
-      @Element('script', `
-        require.hubs.shift();
-        require.hubs.unshift(['mho:','${serverRoot()}__mho/']);
-        require.hubs.unshift(['sjs:','${serverRoot()}__sjs/modules/']);
-      `, {'type': "text/sjs"}),
+      @Element('script', [
+        `require.hubs.shift();
+         require.hubs.unshift(['mho:','${serverRoot()}__mho/']);
+         require.hubs.unshift(['sjs:','${serverRoot()}__sjs/modules/']);
+        `,
+        sjsInitCode
+        ], 
+               {'type': "text/sjs"}),
     ];
   };
   return exports;
