@@ -39,7 +39,7 @@ exports.CSSDocument = function(content, parent_class) {
   @param {Settings} [settings]
   @setting {surface::HtmlFragment} [title] Document title
   @setting {surface::HtmlFragment} [head] Additional HTML content to appear in the document's <head> (before SJS is initialized)
-  @setting {String} [init] SJS source code to run on the client once SJS is initialized
+  @setting {String|sjs:quasi::Quasi} [init] SJS source code to run on the client once SJS is initialized
   @setting {String} [main] SJS module URL to run on the client
   @setting {Array}  [externalScripts] Array of Javascript script URLs to add to the page
   @setting {Object} [templateData] object which will be be passed through to the template function
@@ -117,7 +117,7 @@ exports.Document = function(content, settings) {
   headContent = headContent.concat(cssDefs);
 
   if(!runtimeInit)
-    runtimeInit = docFragment.initializeRuntime('/');
+    runtimeInit = docFragment.initializeRuntime();
   headContent.push(runtimeInit);
 
   var mechanisms = ownPropertyPairs(content.getMechanisms()) ..
@@ -127,24 +127,27 @@ exports.Document = function(content, settings) {
       return "mechs[#{id}] = {func:function(){ #{code} }};"
     });
 
-  var bootScript = "";
-  // keep static & dynamic worlds from colliding; see comment at top of html.sjs
-  bootScript += html._getDynOniSurfaceInit()
+  var bootScript = [
+    // keep static & dynamic worlds from colliding; see comment at top of base.sjs
+    html._getDynOniSurfaceInit()
+  ]
 
-  if (userInit) bootScript += userInit + '\n';
+  if (userInit) 
+    bootScript.push(userInit,'\n');
 
   if (mechanisms.length > 0) {
-    bootScript += "
+    bootScript.push("
       (function () {
         var mechs = {};
         #{mechanisms .. join('\n')}
         var helpers = require('mho:surface/mech-helpers');
         helpers.runMechanisms([document.body], mechs);
        })();
-    ";
+    ");
   }
 
-  if(mainModule) bootScript += "\nrequire(\"#{sanitize(mainModule)}\", {main: true});";
+  if(mainModule) 
+    bootScript.push("\nrequire(\"#{sanitize(mainModule)}\", {main: true});");
 
   bootScript = html.Element('script', bootScript, {type:'text/sjs'});
 
