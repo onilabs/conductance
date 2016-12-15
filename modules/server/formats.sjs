@@ -18,7 +18,8 @@
   'sjs:std', 
   {id:'./env', name: 'env'},
   {id:'./generator', include: ['CachedBundle']},
-  {id:'sjs:lru-cache', name:'lruCache'}
+  {id:'sjs:lru-cache', name:'lruCache'},
+  {id:'./routed-directory', name: 'routed_directory'}
 ]);
 
 // XXX this should be configurable separately somewhere
@@ -444,3 +445,52 @@ var Executable = (base) -> base
                }
   });
 exports.Executable = Executable;
+
+/**
+  @function Routed
+  @altsyntax base .. Routed
+  @param {::FormatMap} [base]
+  @summary return a copy of `base` with mappings for serving a 'routed frontend directory'
+  @desc
+    This function is part of a new experimental 'routed frontend directories' feature; see ; see [mho:server/routed-directory::RoutedFrontendDirectory]
+
+    This function adds the following mappings in the returned [::FormatMap]:
+
+       - .page, .container: For pages and containers that will be routed automatically on the client-side with [mho:surface/navigation::RoutingTable]
+       - .yaml!bundle: For serving the bundle associated with the routed frontend, as specified in the frontend-config.yaml file
+
+    #### Warning
+
+    You should never use these filters for locations containing untrusted or
+    user-submitted content, as they enable arbitrary code execution on the server.
+*/
+var Routed = (base) -> base ..
+  withFormats({
+    page:      { none     : { mime: "text/html",
+                              filter: @routed_directory.gen_routed_page,
+                              compress: true
+                            },
+                 compiled : { mime: "text/plain",
+                              filter: sjscompile,
+                              compress: true
+                            }
+               },
+    container: { none     : { mime: "text/html",
+                              compress: true
+                            },
+                 compiled : { mime: "text/plain",
+                              filter: sjscompile,
+                              compress: true
+                            }
+               },
+    yaml:      { 
+                 // XXX this is a bit hackish; we actually only want this bundled representation for one file:
+                 // frontend-config.yaml
+                 bundle   : { mime: "text/javascript",
+                              filter: @routed_directory.gen_frontend_bundle,
+                              filterETag: @routed_directory.gen_frontend_bundle_etag,
+                              compress: true
+                            }
+               }
+  });
+exports.Routed = Routed;

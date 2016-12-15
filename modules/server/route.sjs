@@ -348,8 +348,7 @@ var createDirectoryMapper = exports.createDirectoryMapper = function(settings) {
 
       - Serves the given directory with [./formats::StaticFormatMap] as well as the [./formats::Code] and [./formats::Executable] extensions.
 
-      - `path` can be a regexp or a string, as described in
-        [../server::Route]. If `path` is ommited it defaults to the
+      - `path` can be a regexp or a string. If `path` is ommited it defaults to the
         empty string (i.e. all requests will be matched by the route).
 
       - The file to be served is determined by stripping the prefix
@@ -416,6 +415,18 @@ var CodeDirectory = exports.CodeDirectory = createDirectoryMapper({
 */
 exports.StaticDirectory = createDirectoryMapper({});
 
+//----------------------------------------------------------------------
+
+/**
+   @function RoutedDirectory
+   @param {optional RegExp|String} [path] Path to match
+   @param {String} [root] Directory on local filesystem (path or 'file:' url)
+   @return {../server::Route}
+   @summary Creates a [../server::Route] that serves a 'routed frontend directory'
+   @desc
+     This function is part of a new experimental 'routed frontend directories' feature; see [mho:server/routed-directory::RoutedFrontendDirectory]
+*/
+exports.RoutedDirectory = -> require('./routed-directory').RoutedDirectory.apply(this, arguments);
 
 //----------------------------------------------------------------------
 

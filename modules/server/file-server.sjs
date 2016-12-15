@@ -150,7 +150,7 @@ function formatResponse(req, item, settings) {
   var etag;
   if (item.etag) {
     if (formatdesc.filter && formatdesc.filterETag) {
-      etag = "\"#{formatdesc.filterETag(req, filePath) .. checkEtag}-#{item.etag .. checkEtag}\"";
+      etag = "\"#{formatdesc.filterETag(req, filePath, {directoryMapping:settings.directoryMapping}) .. checkEtag}-#{item.etag .. checkEtag}\"";
     } else if (!formatdesc.filter) {
       etag = "\"#{item.etag .. checkEtag}\"";
     }
@@ -184,7 +184,7 @@ function formatResponse(req, item, settings) {
         var cache_entry = formatdesc.cache.get(req.request.url);
 
         if (!cache_entry || cache_entry.etag != etag) {
-          output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, appurl: appurl, filepath: filePath });
+          output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, appurl: appurl, filepath: filePath, directoryMapping: settings.directoryMapping });
           cache_entry = { etag: etag, data: output ..join('') };
           debug("populating cache #{req.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(req.request.url, cache_entry, cache_entry.data.length);
@@ -196,7 +196,7 @@ function formatResponse(req, item, settings) {
 
       // no cache or no etag -> filter straight to response
       } else {
-        output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, appurl: appurl, filepath: filePath });
+        output = formatdesc.filter(input(), { request: req, apiinfo: apiinfo, appurl: appurl, filepath: filePath, directoryMapping: settings.directoryMapping });
       }
 
     // No filter function -> serve the file straight from disk
@@ -626,8 +626,13 @@ exports.MappedDirectoryHandler = function(root, settings) {
                formats: StaticFormatMap,
                etag: null,
                bridgeRoot: null,
+               directoryMapping: null
              } ..
     override(settings || {});
+
+  var index_files = ['index.html', 'index.app'];
+  if (settings.directoryMapping)
+    index_files.push('index.page');
 
   if (process.platform == 'win32')
     settings.root = root.replace(/\\/g, '/');
@@ -643,18 +648,45 @@ exports.MappedDirectoryHandler = function(root, settings) {
     var relativeURI = req.url.path;
     var [relativePath, format] = matches.input.slice(matches.index + matches[0].length).split('!');
 
-/*
-    // We must not decode %2f ('/') for our paths, because '/' has a special meaning in the file system.
-    // However we also don't want to disallow it, in order to allow arbitrary path parameters
-
-    // so instead of this:
-
-    var restrictedUrlPathPattern = /%2f/i; // = '/'
-    if(restrictedUrlPathPattern.test(relativePath)) {
-      throw new HttpError(400, "Bad request");
+    if (settings.directoryMapping) {
+      relativePath = require('./routed-directory').resolveParametrizedPath(relativePath, settings);
+      // XXX it's a bit odd to inject this here, but difficult to do elsewhere:
+      req.strippedURLPrefix = matches[0];
     }
 
-    // we escape the '%' before performing uri decoding:
+/*
+
+    relativePath is already canonicalized, i.e. *unreserved* escaped characters are
+    replaced with their literal equivalents. It may, however, still contain escaped 
+    *reserved* characters:
+
+      reserved    = gen-delims / sub-delims
+
+      gen-delims  = ":" / "/" / "?" / "#" / "[" / "]" / "@"
+
+      sub-delims  = "!" / "$" / "&" / "'" / "(" / ")"
+                  / "*" / "+" / "," / ";" / "="
+
+     
+     We convert these to their literal equivalents now.
+
+     XXX MAYBE WE SHOULDN'T.
+
+     We must not decode %2f ('/') for our paths, because '/' has a special meaning in the file system.
+     However we also don't want to disallow it, in order to allow us to match wildcard files 
+     (e.g. _.gen) with arbitrary characters.
+
+     So instead of this:
+
+       var restrictedUrlPathPattern = /%2f/i; // = '/'
+       if(restrictedUrlPathPattern.test(relativePath)) {
+          throw new HttpError(400, "Bad request");
+       }
+
+    we escape the '%' before performing uri decoding, so that %2f in the url stays %2f
+    
+    XXX hmm, this means that a file 'A%2fB' on disk could refer to the url 
+        'A%252fB' or 'A%2fB' :/
 */
     relativePath = relativePath.replace(/%2f/ig, '%252f');
 
@@ -666,12 +698,15 @@ exports.MappedDirectoryHandler = function(root, settings) {
     else
       format = { name: req.url.params().format || 'none' };
 
-
     var file = relativePath ? path.join(root, relativePath) : root;
 
-    // the result of path.join is normalized; make sure that '..'
+
+    // the result of path.join is canonicalized & normalized; make sure that '..'
     // components in relativePath don't take us below our root
     // directory:
+    // XXX note that the url we get from the ServerRequest is already normalized (i.e.
+    // .. & . collapsed, so it should be impossible to reach this. It is just an additional 
+    // layer of security
     if (file.indexOf(root) !== 0) {
       throw Forbidden();
     }
@@ -691,7 +726,7 @@ exports.MappedDirectoryHandler = function(root, settings) {
       // ... else
       var served = false;
       if (settings.mapIndexToDir) {
-        served = ['index.html', 'index.app'] ..
+        served = index_files ..
           any(name -> serveFile(req, path.join(file, name), format, settings));
       }
       if (!served) {
