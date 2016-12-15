@@ -9,7 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require(['sjs:object', 'sjs:sequence']);
+@ = require(['sjs:object', 'sjs:sequence', 'sjs:observable']);
 @func = require('sjs:function');
 @bundle = require('sjs:bundle');
 @logging = require('sjs:logging');
@@ -52,7 +52,7 @@ var CachedBundle = exports.CachedBundle = function(settings) {
   var isStale = self.isStale = function(compute_etag) {
     // sets _stale, which short-circuits future calls until
     // it's cleared by refresh()
-    _stale = _stale || !_cache || (compute_etag && (genEtag(_cache.sources) !== _cache.etag));
+    _stale = _stale || !_cache || (compute_etag && (genEtag(_cache.etag_sources) !== _cache.etag));
     return _stale;
   };
 
@@ -60,12 +60,17 @@ var CachedBundle = exports.CachedBundle = function(settings) {
     if (isStale(compute_etag)) {
       var curr = { generated: new Date() };
       @logging.verbose("bundle.findDependencies: ", settings);
-      var deps = curr.deps = @bundle.findDependencies(settings.sources, settings);
-      curr.sources = deps.modules
+      var sources = settings.sources;
+      if (sources .. @isObservable) sources = sources .. @current;
+      var deps = curr.deps = @bundle.findDependencies(sources, settings);
+      curr.etag_sources = deps.modules
         .. @ownValues
         .. @filter(mod -> mod.loaded)
         .. @map(mod -> mod.path .. @url.toPath);
-      curr.etag = genEtag(curr.sources);
+      if (settings.configFile) {
+        curr.etag_sources.push(settings.configFile);
+      }
+      curr.etag = genEtag(curr.etag_sources);
       _cache = curr;
       _stale = false;
     }
