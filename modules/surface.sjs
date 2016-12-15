@@ -804,7 +804,7 @@ module.exports = require(modules);
 @param {Settings} [settings]
 @setting {surface::HtmlFragment} [title] Document title
 @setting {surface::HtmlFragment} [head] Additional HTML content to appear in the document's <head> (before SJS is initialized)
-@setting {String} [init] SJS source code to run on the client once SJS is initialized
+@setting {String|sjs:quasi::Quasi} [init] SJS source code to run on the client once SJS is initialized
 @setting {String} [main] SJS module URL to run on the client
 @setting {Array}  [externalScripts] Array of Javascript script URLs to add to the page
 @setting {Object} [templateData] object which will be be passed through to the template function

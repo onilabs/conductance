@@ -386,6 +386,9 @@
             "Redirect": {
               "type": "function"
             },
+            "RoutedDirectory": {
+              "type": "function"
+            },
             "SetHeader": {
               "type": "function"
             },
@@ -412,6 +415,15 @@
             }
           },
           "summary": "Routing objects for use in the Conductance web server"
+        },
+        "routed-directory": {
+          "type": "module",
+          "children": {
+            "RoutedFrontendDirectory": {
+              "type": "feature"
+            }
+          },
+          "summary": "Internal support for serving routed frontend directories"
         },
         "systemd": {
           "type": "module",
