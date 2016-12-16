@@ -268,7 +268,7 @@ exports.gen_routed_page = function(src, aux) {
       ],
       
       @Body :: [
-        @Pre :: mapping .. @inspect(false, 10)
+//        @Pre :: mapping .. @inspect(false, 10)
       ]        
     ]
   ];
