@@ -240,8 +240,21 @@ function navigate(url, settings) {
   if (i < global_active_node_path.length)
     global_active_node_path = global_active_node_path.slice(0, i);
 
+  var insertion_node = global_active_node_path[global_active_node_path.length-1];
+
+  // The `content` functions of the individual nodes are potentially asynchronous. 
+  // To prevent retraction from leaving us with half-baked content, inserting the new 
+  // content into insertion_node's `content` observable has to be the last thing we do.
+  // We could construct the new node tree from the top down, but (for historical reasons) 
+  // here we construct it from the bottom up and move the `content` observable out of the
+  // way temporarily, and then set the 'real' observable at the very bottom of this function.
+  // see also the comment there.
+  var old_content = insertion_node.content;
+  var new_content = @ObservableVar();
+  insertion_node.content = new_content;
+
+  var prev_node_descriptor = insertion_node;
   // install inner nodes
-  var prev_node_descriptor = global_active_node_path[global_active_node_path.length-1];
   node_path .. @each { 
     |node_descriptor|
 
@@ -277,6 +290,7 @@ function navigate(url, settings) {
 
   var page_node_descriptor = global_active_node_path[global_active_node_path.length-1];
   var ctx = {params: page_node_descriptor.params};
+  page_node_descriptor.content.set(page_node_descriptor.node.page.content(ctx));
 
   if (!settings.omit_state_push)
     history.pushState(null, '', url);
@@ -299,11 +313,12 @@ function navigate(url, settings) {
     history.replaceState(null, '', amended_url);
   }
 
-  // We need to do this last (after pefroming the history push) to prevent a 
+  // We need to do this last (after performing the history push) to prevent a 
   // retraction if the navigation is performed by a mechanism attached to the 
-  // ui that is being removed (e.g. an OnClick handler).
-  page_node_descriptor.content.set(page_node_descriptor.node.page.content(ctx));
-
+  // ui that is being removed (e.g. an OnClick handler). See also the comment at the
+  // declaration of insertion_node, above.
+  insertion_node.content = old_content;
+  old_content.set(new_content .. @current);
   return true;
 }
 
