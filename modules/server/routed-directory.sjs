@@ -244,10 +244,7 @@ exports.gen_routed_page = function(src, aux) {
 
   //console.log("URL PREFIX=#{aux.request.strippedURLPrefix}");
 
-  var bundle;
-  if (config.bundle && config.bundle.length) {
-    bundle = @Script .. @surface.Attrib('src', @path.join('/', aux.request.strippedURLPrefix, 'frontend-config.yaml!bundle'));
-  }
+  var bundle = @Script .. @surface.Attrib('src', @path.join('/', aux.request.strippedURLPrefix, 'frontend-config.yaml!bundle'));
 
   var builtin_modules = [];
   if (config.main) {
@@ -333,6 +330,11 @@ function getBundleSettings(path, url, directoryMapping) {
       // but we can't handle that in the general case without deep knowledge of routes.
       [pathUrl, @url.normalize('./', url.source)],
     ],
+    allowedPaths: [
+      require.url('sjs:'),
+      require.url('mho:'),
+      pathUrl
+    ],
     configFile: path .. @url.coerceToPath, // we're passing in the yaml config file name for use in the etag generation by ./generator.sjs; see comment below (XXX this is a bit ugly)
     skipFailed: true,
     compile: true,
@@ -357,7 +359,12 @@ function getBundleSettings(path, url, directoryMapping) {
   // need to make sure that the bundle's internal refresh mechanism sees the sources as specified in the current 
   // config file. To ensure the latter, we pass the sources in as an observable (the bundle code - or rather generator.js::refresh) knows how to deal with this: 
   var sources = @Observable(function(r) {
-    r(directoryMapping().config.bundle);
+    var config = directoryMapping().config;
+    var deps = config.bundle || [];
+    if (config.api) {
+      deps.push('mho:surface/api-connection');
+    }
+    r(['mho:std', 'mho:surface/navigation'].concat(deps));
   });
 
   var settings = appSettings .. @merge({sources: sources});
