@@ -21,7 +21,8 @@
   {id:'nodejs:path', name: 'path'},
   {id:'../surface/doc-fragment', name: 'doc_fragment'},
   {id:'./generator', include: ['CachedBundle']},
-  {id:'sjs:lru-cache', name:'lruCache'}
+  {id:'sjs:lru-cache', name:'lruCache'},
+  {id:'./api-registry', name:'api_registry'}
 ]);
 
 
@@ -145,6 +146,14 @@ function RoutedDirectory(path, root, overrides) {
   // XXX parseDirectory should be memoized; in devel we should watch the directory (and subdirs)
   var directoryMapping = -> parseDirectory(root);
 
+  // register api, so that it can be found by any clients that are already running (while the server was
+  // restarted). we register under the module name instead of an automatically generated apiid, so 
+  // that we can skip the *.api!json resolution step (less client<->server traffic):
+  var mapping = directoryMapping();
+  if (mapping.config.api) {
+    @api_registry.registerAPI(mapping.config.api, mapping.config.api);
+  }
+
   var RoutedDirectoryMapper = createDirectoryMapper({
     allowGenerators: true,
     allowREST:       true,
@@ -213,6 +222,13 @@ exports.resolveParametrizedPath = resolveParametrizedPath;
 
 //----------------------------------------------------------------------
 
+var BuiltinModule = (content, name) ->  
+  @Script .. 
+    @surface.Attrib('type', 'text/sjs') ..
+    @surface.Attrib('module', name) ::
+      content;
+
+
 var MappingPathToRoutingTablePath = (mp) -> mp.replace(/\[([^\]]*)\]/g, ':$1').replace(/\'/g, "\\'");
 
 exports.gen_routed_page = function(src, aux) {
@@ -222,10 +238,47 @@ exports.gen_routed_page = function(src, aux) {
   var config = {
     title: 'Conductance App',
     main: undefined,
-    bundle: []
+    bundle: [],
+    api: undefined
   } .. @override(mapping.config);
 
   //console.log("URL PREFIX=#{aux.request.strippedURLPrefix}");
+
+  var bundle;
+  if (config.bundle && config.bundle.length) {
+    bundle = @Script .. @surface.Attrib('src', @path.join('/', aux.request.strippedURLPrefix, 'frontend-config.yaml!bundle'));
+  }
+
+  var builtin_modules = [];
+  if (config.main) {
+    builtin_modules.push(
+      BuiltinModule('frontend-config.yaml:main') :: [
+        `require.hubs.push(['frontend-config.yaml:', '${aux.request.url.protocol+"://"+aux.request.url.authority}']);`,
+        config.main
+      ]
+    );
+  }
+
+  if (config.api) {
+    builtin_modules.push(
+      BuiltinModule('backend:api') ::
+        `
+        require.hubs.push(['backend:', '${aux.request.url.protocol+"://"+aux.request.url.authority}']);
+        @ = require([
+          'sjs:std',
+          {id: 'mho:surface/api-connection', name: 'api_connection'}
+        ]);
+        var api = @breaking { |brk| 
+          @api_connection.withResumingAPI({ id: '${mapping.config.api}' }, brk);
+        }
+      
+        api.value .. @ownPropertyPairs .. @each { |[key, val]|
+          exports[key] = val;
+        }
+
+        `
+    );
+  }
 
   var initCode = [
     `
@@ -243,19 +296,6 @@ exports.gen_routed_page = function(src, aux) {
     config.main ? `require('frontend-config.yaml:main');`
   ];
  
-  var user_init;
-  if (config.main) {
-    user_init = @Script .. 
-      @surface.Attrib('type', 'text/sjs') .. 
-      @surface.Attrib('module', 'frontend-config.yaml:main') ::
-        config.main;
-  }
-
-  var bundle;
-  if (config.bundle && config.bundle.length) {
-    bundle = @Script .. @surface.Attrib('src', @path.join('/', aux.request.strippedURLPrefix, 'frontend-config.yaml!bundle'));
-  }
-
   var content = [
     `<!DOCTYPE html>`,
     @Html :: [
@@ -263,7 +303,7 @@ exports.gen_routed_page = function(src, aux) {
       @Head :: [
         @Title :: config.title,
         bundle,
-        user_init,
+        builtin_modules,
         @doc_fragment.initializeRuntime(initCode)
       ],
       
