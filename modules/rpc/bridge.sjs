@@ -952,8 +952,14 @@ function BridgeConnection(transport, opts) {
   var getAPI = -> connection.makeCall(0, 'getAPI', [opts.api]);
 
   connection.stratum = spawn receiver();
-  if (opts.api)
-    connection.api = getAPI();
+  waitfor {
+    // to make sure errors are routed while the getAPI call is in progress
+    connection.stratum.waitforValue();
+  }
+  or {
+    if (opts.api)
+      connection.api = getAPI();
+  }
 
   connection._published_funcs = published_funcs;
   return connection;
