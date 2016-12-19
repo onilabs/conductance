@@ -20,8 +20,8 @@ var { API } = require('mho:rpc/bridge');
 var api_by_apiid = exports._registry = {};
 
 // returns an apiid
-exports.registerAPI = function(moduleid) {
-  var resolved_path = require.resolve(moduleid).path;
+exports.registerAPI = function(moduleid, apiid) {
+  var resolved_path = require.url(moduleid);
   // ensure module is loaded:
   require(resolved_path);
   
@@ -29,11 +29,16 @@ exports.registerAPI = function(moduleid) {
   var module_desc = require.modules[resolved_path];
 
   if (module_desc.apiid) {
+    if (apiid !== undefined && module_desc.apiid !== apiid) {
+      throw new Error("API #{moduleid} already registered under different id");
+    }
     // already registered
     return module_desc.apiid;
   }
 
-  var apiid = module_desc.apiid = createID(4);
+  if (apiid === undefined) {
+    apiid = module_desc.apiid = createID(4);
+  }
   api_by_apiid[apiid] = merge(module_desc.exports, {__oni_apiid: apiid});
 
   return apiid;
