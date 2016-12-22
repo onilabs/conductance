@@ -121,10 +121,27 @@ function parseDirectory(root_dir) {
     return node;
   }
 
-  var config;
-  if (@fs.isFile(@path.join(root_dir, 'frontend-config.yaml'))) {
-    var config_file = @path.join(root_dir, 'frontend-config.yaml');
-    config = @fs.readFile(config_file, 'utf8') .. require('sjs:yaml').safeLoad;
+  var config = {
+    title: 'Conductance App',
+    main: undefined,
+    bundle: [],
+    api: undefined
+  };
+
+  var frontend_config_file = @path.join(root_dir, 'frontend-config.yaml');
+
+  if (@fs.isFile(frontend_config_file)) {
+    var config_file = frontend_config_file;
+    config = config .. @override(@fs.readFile(config_file, 'utf8') .. require('sjs:yaml').safeLoad);
+  }
+
+  // make sure relative api urls are resolved relative to root_dir:
+  if (config.api) {
+    config.api = @url.normalize(config.api, @url.coerceToURL(frontend_config_file));
+    // (re-)register api 
+    // we register under the module name instead of an automatically generated apiid, so 
+    // that we can skip the *.api!json resolution step (less client<->server traffic):
+    @api_registry.registerAPI(config.api, config.api);
   }
 
   return {paths: paths, tree: traverse(root_dir, '/'), config: config, root: root_dir};
@@ -146,13 +163,9 @@ function RoutedDirectory(path, root, overrides) {
   // XXX parseDirectory should be memoized; in devel we should watch the directory (and subdirs)
   var directoryMapping = -> parseDirectory(root);
 
-  // register api, so that it can be found by any clients that are already running (while the server was
-  // restarted). we register under the module name instead of an automatically generated apiid, so 
-  // that we can skip the *.api!json resolution step (less client<->server traffic):
-  var mapping = directoryMapping();
-  if (mapping.config.api) {
-    @api_registry.registerAPI(mapping.config.api, mapping.config.api);
-  }
+  // call directoryMapping() now so that any api gets registered and already running clients can connect to it
+  // (important on server restart while clients are running):
+  directoryMapping();
 
   var RoutedDirectoryMapper = createDirectoryMapper({
     allowGenerators: true,
@@ -235,28 +248,21 @@ exports.gen_routed_page = function(src, aux) {
 
   var mapping = aux.directoryMapping();
 
-  var config = {
-    title: 'Conductance App',
-    main: undefined,
-    bundle: [],
-    api: undefined
-  } .. @override(mapping.config);
-
   //console.log("URL PREFIX=#{aux.request.strippedURLPrefix}");
 
   var bundle = @Script .. @surface.Attrib('src', @path.join('/', aux.request.strippedURLPrefix, 'frontend-config.yaml!bundle'));
 
   var builtin_modules = [];
-  if (config.main) {
+  if (mapping.config.main) {
     builtin_modules.push(
       BuiltinModule('frontend-config.yaml:main') :: [
         `require.hubs.push(['frontend-config.yaml:', '${aux.request.url.protocol+"://"+aux.request.url.authority}']);`,
-        config.main
+        mapping.config.main
       ]
     );
   }
 
-  if (config.api) {
+  if (mapping.config.api) {
     builtin_modules.push(
       BuiltinModule('backend:api') ::
         `
@@ -290,7 +296,7 @@ exports.gen_routed_page = function(src, aux) {
                    }
                  ]);
     `,
-    config.main ? `require('frontend-config.yaml:main');`
+    mapping.config.main ? `require('frontend-config.yaml:main');`
   ];
  
   var content = [
@@ -298,7 +304,7 @@ exports.gen_routed_page = function(src, aux) {
     @Html :: [
 
       @Head :: [
-        @Title :: config.title,
+        @Title :: mapping.config.title,
         bundle,
         builtin_modules,
         @doc_fragment.initializeRuntime(initCode)
@@ -360,7 +366,7 @@ function getBundleSettings(path, url, directoryMapping) {
   // config file. To ensure the latter, we pass the sources in as an observable (the bundle code - or rather generator.js::refresh) knows how to deal with this: 
   var sources = @Observable(function(r) {
     var config = directoryMapping().config;
-    var deps = config.bundle || [];
+    var deps = config.bundle;
     if (config.api) {
       deps.push('mho:surface/api-connection');
     }
