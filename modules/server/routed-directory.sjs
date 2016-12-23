@@ -248,15 +248,15 @@ exports.gen_routed_page = function(src, aux) {
 
   var mapping = aux.directoryMapping();
 
-  //console.log("URL PREFIX=#{aux.request.strippedURLPrefix}");
+  // console.log("URL PREFIX=#{aux.request.strippedURLPrefix}");
 
   var bundle = @Script .. @surface.Attrib('src', @path.join('/', aux.request.strippedURLPrefix, 'frontend-config.yaml!bundle'));
 
   var builtin_modules = [];
   if (mapping.config.main) {
+    var yaml_url_root = aux.request.url.protocol+"://"+aux.request.url.authority+"/"+(aux.request.strippedURLPrefix ? aux.request.strippedURLPrefix + "/" : "");
     builtin_modules.push(
-      BuiltinModule('frontend-config.yaml:main') :: [
-        `require.hubs.push(['frontend-config.yaml:', '${aux.request.url.protocol+"://"+aux.request.url.authority}']);`,
+      BuiltinModule(yaml_url_root + "__inline__.sjs") :: [
         mapping.config.main
       ]
     );
@@ -295,7 +295,7 @@ exports.gen_routed_page = function(src, aux) {
                    }
                  ]);
     `,
-    mapping.config.main ? `require('frontend-config.yaml:main');`
+    mapping.config.main ? `require.hubs.push(['frontend-config.yaml:', '${yaml_url_root}']);require('frontend-config.yaml:__inline__');`
   ];
  
   var content = [
