@@ -187,10 +187,6 @@ function navigate(url, settings) {
     //console.log("NOT SAME ORIGIN: #{url} and #{location.origin}");
     return false;
   }
-  else if (settings.event) {
-    // to be effective, we need to do this before doing anything async:
-    settings.event .. @preventDefault();
-  }
   url = url .. @url.parse;
 
   var path_arr = url.path .. @rstrip('/') .. @split('/');
@@ -210,6 +206,11 @@ function navigate(url, settings) {
     }
     else
       return false;
+  }
+
+  if (settings.event) {
+    // to be effective, we need to do this before doing anything async:
+    settings.event .. @preventDefault();
   }
 
   // find part of node_path that is already active:
