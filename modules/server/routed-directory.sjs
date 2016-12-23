@@ -266,7 +266,6 @@ exports.gen_routed_page = function(src, aux) {
     builtin_modules.push(
       BuiltinModule('backend:api') ::
         `
-        require.hubs.push(['backend:', '${aux.request.url.protocol+"://"+aux.request.url.authority}']);
         @ = require([
           'sjs:std',
           {id: 'mho:surface/api-connection', name: 'api_connection'}
@@ -307,7 +306,7 @@ exports.gen_routed_page = function(src, aux) {
         @Title :: mapping.config.title,
         bundle,
         builtin_modules,
-        @doc_fragment.initializeRuntime(initCode)
+        @doc_fragment.configure({serverRoot:aux.request.url.protocol+"://"+aux.request.url.authority+"/"}).initializeRuntime(initCode)
       ],
       
       @Body :: [
