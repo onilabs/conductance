@@ -7556,6 +7556,19 @@
           },
           "summary": "Client-side URL routing and navigation"
         },
+        "style/": {
+          "type": "lib",
+          "children": {
+            "ui-default.css.gen": {
+              "type": "module",
+              "children": {}
+            },
+            "ui-default": {
+              "type": "module",
+              "children": {}
+            }
+          }
+        },
         "widgets": {
           "type": "module",
           "children": {
@@ -7656,9 +7669,6 @@
           "type": "function"
         },
         "OnClick": {
-          "type": "function"
-        },
-        "OnSubmit": {
           "type": "function"
         },
         "Prop": {

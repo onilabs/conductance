@@ -724,35 +724,6 @@ module.exports = require(modules);
                         @appendContent(ev))
      ));
 
-@function OnSubmit
-@altsyntax element .. OnSubmit([settings], event_handler)
-@summary An [::ElementWrapper] that adds a 'submit' event handler on a form element
-@param {::Element} [form]
-@param {optional Object} [settings] Settings as described at [sjs:event::events].
-@param {Function} [event_handler]
-@return {::Element}
-@hostenv xbrowser
-@desc
-  See also [::On].
-@demo
-   @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
-   var content = @ObservableVar("");
-   @mainContent .. @appendContent(
-     @demo.CodeResult(
-       "@Form([
-      @TextInput(content),
-      @Button('submit')
-    ]) ..
-      @OnSubmit({handle: @stopEvent},
-        ev -> @mainContent .. @appendContent(ev))",
-    @Form([
-      @TextInput(content),
-      @Button('submit')
-    ]) ..
-      @OnSubmit({handle: @stopEvent},
-        function(ev) { @mainContent .. @appendContent(ev); resize(); })
-     ));
-
 @function ContentGenerator
 @summary A [::HtmlFragment] consisting of content generated dynamically after inserting in the DOM
 @return {::HtmlFragment}
