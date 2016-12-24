@@ -123,6 +123,7 @@ function parseDirectory(root_dir) {
 
   var config = {
     title: 'Conductance App',
+    head: undefined,
     main: undefined,
     bundle: [],
     api: undefined
@@ -303,6 +304,7 @@ exports.gen_routed_page = function(src, aux) {
     @Html :: [
 
       @Head :: [
+        mapping.config.head ? @surface.RawHTML :: mapping.config.head,
         @Title :: mapping.config.title,
         bundle,
         builtin_modules,
