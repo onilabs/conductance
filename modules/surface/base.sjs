@@ -19,7 +19,7 @@
   'sjs:std'
 ]);
 
-var { isQuasi, Quasi } = require('sjs:quasi');
+var { isQuasi, Quasi, mapQuasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
 var { each, indexed, reduce, map, join, isStream, first, toArray } = require('sjs:sequence');
 var { clone, ownPropertyPairs, extend, hasOwn } = require('sjs:object');
@@ -768,7 +768,7 @@ __js {
 
 /**
   @function GlobalCSS
-  @param {String} [style]
+  @param {String|Quasi} [style]
   @return {::HtmlFragment}
   @summary Create a global CSS style
   @desc
@@ -779,6 +779,8 @@ __js {
 exports.GlobalCSS = function(content) {
   var f = Object.create(FragmentBase);
   var id = ++gCSSCounter;
+  if (isQuasi(content))
+    content = (content .. mapQuasi(String)).join("");
   var cssdef = InternalCSSDef(scope(content));
   f._init();
   f.css[id] = [1, cssdef];
