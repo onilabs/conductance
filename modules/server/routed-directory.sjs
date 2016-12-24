@@ -125,6 +125,7 @@ function parseDirectory(root_dir) {
     title: 'Conductance App',
     head: undefined,
     main: undefined,
+    init: undefined,
     bundle: [],
     api: undefined
   };
@@ -254,10 +255,19 @@ exports.gen_routed_page = function(src, aux) {
   var bundle = @Script .. @surface.Attrib('src', @path.join('/', aux.request.strippedURLPrefix, 'frontend-config.yaml!bundle'));
 
   var builtin_modules = [];
-  if (mapping.config.main) {
-    var yaml_url_root = aux.request.url.protocol+"://"+aux.request.url.authority+"/"+(aux.request.strippedURLPrefix ? aux.request.strippedURLPrefix + "/" : "");
+
+  var yaml_url_root = aux.request.url.protocol+"://"+aux.request.url.authority+"/"+(aux.request.strippedURLPrefix ? aux.request.strippedURLPrefix + "/" : "");
+
+  if (mapping.config.init) {
     builtin_modules.push(
-      BuiltinModule(yaml_url_root + "__inline__.sjs") :: [
+      BuiltinModule(yaml_url_root + "__inline_init__.sjs") :: [
+        mapping.config.init
+      ]
+    );
+  }
+  if (mapping.config.main) {
+    builtin_modules.push(
+      BuiltinModule(yaml_url_root + "__inline_main__.sjs") :: [
         mapping.config.main
       ]
     );
@@ -284,6 +294,8 @@ exports.gen_routed_page = function(src, aux) {
   }
 
   var initCode = [
+    mapping.config.main || mapping.config.init ? `require.hubs.push(['frontend-config.yaml:', '${yaml_url_root}']);`,
+    mapping.config.init ? `require('frontend-config.yaml:__inline_init__');`,
     `
     @ = require(['mho:surface/navigation']);
     spawn @route([${
@@ -296,7 +308,7 @@ exports.gen_routed_page = function(src, aux) {
                    }
                  ]);
     `,
-    mapping.config.main ? `require.hubs.push(['frontend-config.yaml:', '${yaml_url_root}']);require('frontend-config.yaml:__inline__');`
+    mapping.config.main ? `require('frontend-config.yaml:__inline_main__');`
   ];
  
   var content = [
