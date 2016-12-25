@@ -110,7 +110,12 @@ function proxyFunc(Beta, key_path) {
           return gamma;
         }
         catch (e) {
-          if (!@bridge.isTransportError(e)) throw new Error('api '+key_path+': '+e);
+          if (!@bridge.isTransportError(e)) { 
+            //throw new Error('api '+key_path+': '+e);
+            // XXX it's a bad idea to change the error, like we did above, but maybe we can patch up the stack
+            //if (e.__oni_stack) console.log(e.__oni_stack);
+            throw e;
+          }
           console.log(key_path + ': '+e);
           /* else go round loop again */
         }
