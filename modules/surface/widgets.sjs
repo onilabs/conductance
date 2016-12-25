@@ -463,9 +463,27 @@ exports.DropdownMenu = DropdownMenu;
 
 /**
    @function overlay
-   @summary XXX write me
+   @altsyntax content .. overlay([settings]) { |node1, node2, ..., backdrop_node| ... }
+   @summary Modal overlay
+   @param {surface::HtmlFragment} [content] Overlay content
+   @param {optional Object} [settings]
+   @param {Function} [block]
+   @setting {Integer} [zindex=1040]
+   @setting {String} [backdrop_color='rgba(24,24,24,0.6)']
    @desc
-     Generates command 'backdrop-click'
+     Displays a fixed backdrop covering the full viewport with fixed `content` overlayed. 
+     
+     The overlay will be displayed for the duration of `block`, a function which will be called with
+     an argument list consisting of the top-level content DOM nodes and, as last parameter, the backdrop DOM node:
+     
+         block(content_node1, content_node2, ..., backdrop_node) 
+
+     `block` is called with a [mho:surface::DynamicDOMContext] set to the same list of nodes as block's arguments.
+     This means that certain operations within `block` do not require an explicit context. E.g. [mho:surface/field::Field]s contained 
+     in the first top-level content DOM node can be implicitly resolved. Similarly, any commands emitted by [mho:surface/cmd::On] on
+     *any* of the content nodes or the backdrop node can be bound to using [mho:surface/cmd::stream].
+     
+     Clicks on the backdrop generate the command 'backdrop-click'.
 */
 function overlay(content, settings, block) {
 
@@ -476,7 +494,8 @@ function overlay(content, settings, block) {
   }
 
   settings = {
-    zindex: 1040
+    zindex: 1040,
+    backdrop_color: 'rgba(24,24,24,0.6)'
   } .. @override(settings);
 
   var overlay_CSS = @CSS("
@@ -495,7 +514,7 @@ function overlay(content, settings, block) {
       width: 100%;
       height: 100%;
       position: fixed;
-      background-color: rgba(24,24,24,0.6);
+      background-color: #{settings.backdrop_color};
     }
     @global {
       body { 
