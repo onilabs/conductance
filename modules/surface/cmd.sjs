@@ -229,7 +229,9 @@ exports.Click = Click;
 ////////////////////////////////////////////////////////////////////////
 /**
    @function Active
-   @summary XXX write me
+   @summary Returns an [sjs:observable::Observable] that is `true` if the command is being listened for, `false` otherwise.
+   @param {optional DOMNode} [node] DOM node, or child thereof, on which we want to observe active commands. If `undefined`: use the implicit [mho:surface::DynamicDOMContext]
+   @param {String} [cmd] Command name
 */
 function Active(/*[dom_root], cmd */) {
   // untangle arguments:
