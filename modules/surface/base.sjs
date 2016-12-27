@@ -610,10 +610,11 @@ __js var InternalCSSDefProto = {
   }
 };
 
-__js function InternalCSSDef(content, parent_class, mech) {
+__js function InternalCSSDef(content, parent_class, mech, prepend) {
   var rv = Object.create(InternalCSSDefProto);
   rv.content = content;
   rv.mechanism = mech;
+  rv.prepend = prepend; // whether to prepend stylesheet in <head> instead of appending
   return rv;
 }
 
@@ -621,7 +622,7 @@ __js function InternalCSSDef(content, parent_class, mech) {
   @function CSS
   @altsyntax element .. CSS(style)
   @param {optional ::Element} [element]
-  @param {String|sjs:quasi::Quasi} [style]
+  @param {String|sjs:quasi::Quasi|Array} [style]
   @return {::Element|Function}
   @summary An [::ElementWrapper] that adds CSS style to an element
   @desc
@@ -680,6 +681,15 @@ __js function InternalCSSDef(content, parent_class, mech) {
     static [::Document] context an error will be thrown if a Stream is
     encountered.
 
+    If `style` is an array, the first element is an object of flags, and the second element
+    the 'actual' style (i.e. a string or quasi, as explained above). The following flags are
+    supported:
+
+      - `prepend`: if this is set to true, the stylesheet will be prepended to the 
+        document's <head>, rather than appended.
+        This is useful for defining 'default' styles which can easily be overridden by
+        normal (i.e. appended) stylesheets through the normal css cascading rules.
+
     If `element` is not provided, `CSS` will
     return a cached style function which can later be
     called on a [::HtmlFragment] to apply the given style.
@@ -713,6 +723,11 @@ __js {
 
     var cssMechanism;
     var content = arguments.length == 1 ? arguments[0] : arguments[1];
+    var flags = {};
+    if (Array.isArray(content)) {
+      flags = content[0];
+      content = content[1];
+    }
     if (content .. isQuasi) {
       var q = content;
       var render = function(collectObservables, values) {
@@ -754,7 +769,7 @@ __js {
     } else {
       content = scope(content, selector);
     }
-    cssdef = InternalCSSDef(content, class_name, cssMechanism);
+    cssdef = InternalCSSDef(content, class_name, cssMechanism, flags.prepend);
     
     if (arguments.length == 1) {
       return setCSS;

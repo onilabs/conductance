@@ -48,7 +48,12 @@ var resourceRegistry = {
       var desc;
       if (!(desc = cssInstalled[id])) {
         desc = cssInstalled[id] = { ref_count: cnt, elem: def.createElement(), mechanism: def.mechanism };
-        (document.head || document.getElementsByTagName("head")[0] /* IE<9 */).appendChild(desc.elem);
+        if (def.prepend) {
+          document.head.insertBefore(desc.elem, document.head.firstChild);
+        }
+        else {
+          document.head.appendChild(desc.elem);
+        }
         if (desc.mechanism) {
           withDOMContext(desc.elem) {
             ||
