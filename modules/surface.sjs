@@ -161,7 +161,7 @@ module.exports = require(modules);
 @function CSS
 @altsyntax element .. CSS(style)
 @param {optional ::Element} [element]
-@param {String|sjs:quasi::Quasi} [style]
+@param {String|sjs:quasi::Quasi|Array} [style]
 @return {::Element|Function}
 @summary An [::ElementWrapper] that adds CSS style to an element
 @desc
@@ -220,6 +220,15 @@ module.exports = require(modules);
   static [::Document] context an error will be thrown if a Stream is
   encountered.
 
+  If `style` is an array, the first element is an object of flags, and the second element
+  the 'actual' style (i.e. a string or quasi, as explained above). The following flags are
+  supported:
+
+    - `prepend`: if this is set to true, the stylesheet will be prepended to the 
+      document's <head>, rather than appended.
+      This is useful for defining 'default' styles which can easily be overridden by
+      normal (i.e. appended) stylesheets through the normal css cascading rules.
+
   If `element` is not provided, `CSS` will
   return a cached style function which can later be
   called on a [::HtmlFragment] to apply the given style.
@@ -228,7 +237,7 @@ module.exports = require(modules);
   ensures that underlying <style> elements are re-used.
 
 @function GlobalCSS
-@param {String} [style]
+@param {String|Quasi} [style]
 @return {::HtmlFragment}
 @summary Create a global CSS style
 @desc
