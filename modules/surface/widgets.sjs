@@ -469,9 +469,10 @@ exports.DropdownMenu = DropdownMenu;
    @param {optional Object} [settings]
    @param {Function} [block]
    @setting {Integer} [zindex=1040]
-   @setting {String} [backdrop_color='rgba(24,24,24,0.6)']
+   @setting {String} [backdrop_click_cmd='backdrop-click'] Name of command to emit when backdrop is clicked
+   @setting {mho:surface::CSS} [css] CSS overrides
    @desc
-     Displays a fixed backdrop covering the full viewport with fixed `content` overlayed. 
+     Displays a fixed backdrop covering the full viewport with `content` overlayed. 
      
      The overlay will be displayed for the duration of `block`, a function which will be called with
      an argument list consisting of the top-level content DOM nodes and, as last parameter, the backdrop DOM node:
@@ -483,7 +484,15 @@ exports.DropdownMenu = DropdownMenu;
      in the first top-level content DOM node can be implicitly resolved. Similarly, any commands emitted by [mho:surface/cmd::On] on
      *any* of the content nodes or the backdrop node can be bound to using [mho:surface/cmd::stream].
      
-     Clicks on the backdrop generate the command 'backdrop-click'.
+     Clicks on the backdrop generate the command 'backdrop-click', customizable through the setting `backdrop_click_cmd`.
+
+     ### CSS Customization
+ 
+         // (use '&.mho-overlay' when applying as `css` parameter to `overlay`; '.mho-overlay' otherwise):
+         &.mho-overlay {
+           // overlay backdrop color:
+           background-color: rgba(24,24,24,0.6);
+         }
 */
 function overlay(content, settings, block) {
 
@@ -495,48 +504,48 @@ function overlay(content, settings, block) {
 
   settings = {
     zindex: 1040,
-    backdrop_color: 'rgba(24,24,24,0.6)'
+    backdrop_click_cmd: 'backdrop-click',
+    css: undefined
   } .. @override(settings);
 
-  var overlay_CSS = @CSS("
-    {
-      top: 0;
-      left: 0;
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      z-index: #{settings.zindex};
-      overflow-y: scroll;
-    }
-    #backdrop {
-      top: 0; 
-      left: 0;
-      width: 100%;
-      height: 100%;
-      position: fixed;
-      background-color: #{settings.backdrop_color};
-    }
+  var OverlayCSS = @CSS([
+    { prepend: true },
+    `
     @global {
+      .mho-overlay {
+        z-index: #{settings.zindex};
+        overflow-y: scroll;
+        top: 0; 
+        left: 0;
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        background-color: rgba(24,24,24,0.6);
+      }
       body { 
         overflow: hidden;
       }
     }
-  ");
+    `]);
 
-  var html = @Div .. overlay_CSS .. @Attrib('tabindex', '-1') ::
-    [
-      @Div .. @Id('backdrop') .. @cmd.Click('backdrop-click'),
-      content
-    ];
+  var html = @Div .. 
+    OverlayCSS ..
+    @Class('mho-overlay') .. 
+    @Attrib('tabindex', '-1') .. 
+    @cmd.Click(settings.backdrop_click_cmd, {filter: ev -> ev.eventPhase === 2 /* AT_TARGET */}) ::
+      content;
+
+  if (settings.css)
+    html = html .. settings.css;
 
   document.body .. @appendContent(html) {
     |overlay_node|
     var content_nodes = overlay_node.childNodes .. @toArray;
-    // move the backdrop to the end of the context, so that
+    // append the backdrop to the end of the context, so that
     // field.Value resolves ok (field.Value only checks the first node
     // in the DOM context). Don't omit backdrop from context entirely
     // so that we can still bind to the 'backdrop-click' command.
-    var backdrop_node = content_nodes.shift();
+    var backdrop_node = overlay_node;
     content_nodes.push(backdrop_node);
     @withDOMContext(content_nodes) {
       ||
@@ -545,3 +554,180 @@ function overlay(content, settings, block) {
   }
 }
 exports.overlay = overlay;
+
+
+/**
+   @function dialog
+   @summary Modal 'dialog-style' overlay page
+   @param {surface::HtmlFragment} [content] Page content
+   @param {optional Object} [settings]
+   @param {Function} [block]
+   @setting {Integer} [zindex=1040]
+   @setting {String} [type='small'] Type of page layout ('small', 'large', 'page') 
+   @setting {mho:surface::CSS} [css] CSS overrides
+   @desc
+     Displays a fixed backdrop (see [::overlay]) with an overlayed dialog-style page.
+
+     The dialog will be displayed for the duration of `block`, a function which will be called with
+     an argument list consisting of the top-level page content DOM nodes and, as last parameter, the backdrop DOM node:
+     
+         block(page_content_node1, page_content_node2, ..., backdrop_node)
+
+     `block` is called with a [mho:surface::DynamicDOMContext] set to the same list of nodes as block's arguments.
+     This means that certain operations within `block` do not require an explicit context. E.g. [mho:surface/field::Field]s contained 
+     in the first top-level content DOM node can be implicitly resolved. Similarly, any commands emitted by [mho:surface/cmd::On] on
+     *any* of the content nodes or the backdrop node can be bound to using [mho:surface/cmd::stream].
+
+     Clicks on the background generate command 'dialog-close'. If 'dialog-close' is active (i.e. being listened for), a 
+     close button ('x') in the top right corner will also be displayed (and clicks on this button also generate 'dialog-close'). 
+
+     ### CSS Customization
+ 
+     - See also [::overlay]
+
+
+         .mho-dialog {
+           background-color: #fff;
+           border-radius: 4px;
+           width: depends on `type`
+           margin: depends on `type`
+           min-height: depends on `type`
+         }
+
+         .mho-dialog-close {
+           color: #fff;
+           opacity: 0.6;
+           position: fixed;
+         }
+         
+         .mho-dialog-close:hover {
+           opacity: 1;
+         }
+*/
+
+var SMALL_DIALOG_MARGIN_TOP = 80;
+var SMALL_DIALOG_WIDTH = 600;
+var SMALL_DIALOG_MIN_HEIGHT = 100;
+
+var LARGE_DIALOG_MARGIN_TOP = 80;
+var LARGE_DIALOG_WIDTH = 817;
+var LARGE_DIALOG_MIN_HEIGHT = 200;
+
+var PAGE_DIALOG_MARGIN_TOP_BOTTOM = 20;
+var PAGE_DIALOG_WIDTH = 920;
+
+
+var DialogCSS = @CSS([
+  { prepend: true },
+  `
+  @global {
+    .mho-dialog-close {
+      position: fixed;
+      top: 0;
+      right: 0;
+      padding-top: 10px;
+      padding-right: 20px;
+      color: #fff;
+      opacity: 0.6;
+      font-size: 36px;
+      cursor: pointer;
+    }
+
+    .mho-dialog-close:hover {
+      opacity: 1;
+    }
+
+    .mho-dialog-close-disabled {
+      display: none;
+    }
+
+    .mho-dialog {
+      position:relative;
+      background-color: #fff;
+      box-shadow: 0 12px 10px 0 rgba(0,0,0,0.18);
+      border-radius: 4px;
+      overflow:auto;
+    }
+
+    .mho-dialog-small {
+      width: ${SMALL_DIALOG_WIDTH}px;
+      margin: ${SMALL_DIALOG_MARGIN_TOP}px auto;
+      min-height: ${SMALL_DIALOG_MIN_HEIGHT}px;      
+    }
+
+    .mho-dialog-large {
+      width: ${LARGE_DIALOG_WIDTH}px;
+      margin: ${LARGE_DIALOG_MARGIN_TOP}px auto;
+      min-height: ${LARGE_DIALOG_MIN_HEIGHT}px;      
+    }
+
+    .mho-dialog-page {
+      width: ${PAGE_DIALOG_WIDTH}px;
+      margin: ${PAGE_DIALOG_MARGIN_TOP_BOTTOM}px auto;
+      min-height: calc(100vh - ${PAGE_DIALOG_MARGIN_TOP_BOTTOM*2}px);      
+    }
+
+    .mho-dialog-body {
+      padding: 29px 38px;
+    }
+  }
+`]);
+
+
+function dialog(content, settings, block) {
+  // untangle arguments:
+  if (block === undefined && typeof settings === 'function') {
+    block = settings;
+    settings = undefined;
+  }
+
+  settings = {
+    zindex: 1040,
+    type: 'small',
+    css: undefined
+  } .. @override(settings);
+
+  var css;
+  if (settings.css)
+    css = x -> x .. DialogCSS .. settings.css;
+  else
+    css = DialogCSS;
+
+  var ui = [
+    @Div .. 
+      @Class('mho-dialog-close') .. 
+      @Class(@cmd.Active('dialog-close') .. @transform(b -> !b ? 'mho-dialog-close-disabled' )) .. 
+      @cmd.Click('dialog-close') :: `&#xd7;`,
+    @Div .. @Class("mho-dialog mho-dialog-#{settings.type}") :: content
+  ];
+
+  overlay(ui, {zindex: settings.zindex, css: css, backdrop_click_cmd: 'dialog-close'}) {
+    |dialog_close_node, dialog_node, backdrop_node|
+    // see comment in @appendContent body of @overlay
+    var content_nodes = dialog_node.children .. @toArray;
+    content_nodes.push(dialog_close_node);
+    content_nodes.push(backdrop_node);
+    @withDOMContext(content_nodes) {
+      ||
+      block.apply(null, content_nodes);
+    }
+  }
+
+
+}
+exports.dialog = dialog;
+
+/**
+   @function dialog.Body
+   @summary A `<div>` element with padding for [::dialog] page content
+   @param {surface::HtmlFragment} [content]
+   @desc
+     ### CSS Customization
+         
+         // (use '&.mho-dialog-body' when applying directly to element; '.mho-dialog-body' otherwise):
+         &.mho-dialog-body {
+           padding: 29px 38px;
+         }
+
+*/
+dialog.Body = content -> @Div .. @Class('mho-dialog-body') :: content;
