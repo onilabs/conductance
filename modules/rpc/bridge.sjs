@@ -113,7 +113,7 @@
 /*
 Protocol:
 
-  ['call', call#, API, METHOD, [ARG1, ARG2, ARG3, ...]]
+  ['call', call#, dynvar_call_ctx, API, METHOD, [ARG1, ARG2, ARG3, ...]]
 
   ['return', call#, RV ]
 
@@ -539,7 +539,10 @@ function unmarshallFunction(obj, connection) {
   @function BridgeConnection.__finally__
   @summary Terminate and clean up this connection
 */
+var bridge_id_counter = 0;
 function BridgeConnection(transport, opts) {
+  // bridge_id to uniquely identify this connection
+  var bridge_id = ++bridge_id_counter;
   var pending_calls  = {}; // calls in progress, made to the other side
   var executing_calls = {}; // calls in progress, made to our side; call_no -> stratum
   var call_counter   = 0;
@@ -599,7 +602,10 @@ function BridgeConnection(transport, opts) {
         // initiate waiting for return value:
         waitfor (var rv, isException) {
           //@logging.debug("awaiting result for call #{call_no} (#{method})");
-          pending_calls[call_no] = resume;
+
+          // in addition to `resume`, we store the current dyn var context, so that it can be restored when
+          // we get reentrant callback calls from the other side of the bridge:
+          pending_calls[call_no] = [resume, @sys.getCurrentDynVarContext()];
         }
         retract {
           send(['abort', call_no]);
@@ -611,8 +617,12 @@ function BridgeConnection(transport, opts) {
         //@logging.debug("got result for call #{call_no} - #{rv}");
       }
       and {
-        // make the call.
-        send(['call', call_no, api, method, @toArray(args)]);
+        // make the call:
+
+        // check if the current stratum originates from a call from the other side of the bridge, and
+        // if yes, tell the other side about any dynamic variable context it needs to restore:
+        var dynvar_call_ctx = @sys.getDynVar("__mho_bridge_#{bridge_id}_dynvarctx", 0); // default 0 == no context to restore
+        send(['call', call_no, dynvar_call_ctx, api, method, @toArray(args)]);
       }
       if (isException) throw rv;
       return rv;
@@ -651,7 +661,7 @@ function BridgeConnection(transport, opts) {
       }
       executing_calls = {};
 
-      pending_calls .. @ownValues .. @each {|r|
+      pending_calls .. @ownValues .. @each {|[r]|
         spawn(function() {
           try {
             r(@TransportError('session lost'), true);
@@ -778,7 +788,7 @@ function BridgeConnection(transport, opts) {
   __js function handleBlockLambdaBreak(cfx) {
     // we have to find the proper execution frame to abort among our pending_calls:
     for (var call_no in pending_calls) {
-      var cb = pending_calls[call_no];
+      var cb = pending_calls[call_no][0];
       try { 
         // XXX FRAGILE
         // cb.ef.parent.parent.parent.parent traverses up the execution frame structure
@@ -805,12 +815,12 @@ function BridgeConnection(transport, opts) {
 
     switch (message[0]) {
     case 'return':
-      var cb = pending_calls[message[1]];
+      var cb = pending_calls[message[1]][0];
       if (cb)
         cb(message[2], false);
       break;
     case 'return_exception':
-      var cb = pending_calls[message[1]];
+      var cb = pending_calls[message[1]][0];
       if (cb)
         cb(message[2], true);
       break;
@@ -872,55 +882,73 @@ function BridgeConnection(transport, opts) {
 
        */
 
-      __js var call_rv = performReceivedCallSync(message[1], //call_no
-                                                 message[2], // api_id
-                                                 message[3], // method, 
-                                                 message[4] // args
-                                                );
 
-      if (call_rv === undefined) break;
+      // If this is a reentrant bridge call, restore dynvar context of the original call we made to the other side:
+      var dynvar_proto;
 
-      if (__oni_rt.is_ef(call_rv[2])) {
-        // go async
-        executing_calls[message[1]] = 
-          spawn(function(ef, call_id) { 
-            var rv;
-            try {
-              ef.wait();
-            }
-            catchall (e) {
-              if (e[1]) { // exception
-                if (e[0] && e[0].__oni_cfx) {
-                  if (e[0].type === 'blb') {
-                    return handleBlockLambdaBreak(e[0]);
+      __js if (message[2] /* dynvar_call_ctx */) {
+        var originating_call = pending_calls[message[2]];
+        if (!originating_call) 
+          console.log("Warning: Cannot restore dynamic variable context from a non-nested spawned bridge call");
+        else
+          dynvar_proto = originating_call[1];
+      }
+      else
+        dynvar_proto = @sys.getCurrentDynVarContext();
+
+      @sys.withDynVarContext(dynvar_proto) { ||
+        @sys.setDynVar("__mho_bridge_#{bridge_id}_dynvarctx", message[1]);
+
+        __js var call_rv = performReceivedCallSync(message[1], //call_no
+                                                   message[3], // api_id
+                                                   message[4], // method
+                                                   message[5] // args
+                                                  );
+
+        if (call_rv === undefined) break;
+
+        if (__oni_rt.is_ef(call_rv[2])) {
+          // go async
+          executing_calls[message[1]] = 
+            spawn(function(ef, call_id) { 
+              var rv;
+              try {
+                ef.wait();
+              }
+              catchall (e) {
+                if (e[1]) { // exception
+                  if (e[0] && e[0].__oni_cfx) {
+                    if (e[0].type === 'blb') {
+                      return handleBlockLambdaBreak(e[0]);
+                    }
+                    else {
+                      // blocklambda return
+                      // we're already in a spawn, so no reason to call
+                      // handleBlocklambdaReturn. just returning the exception will
+                      // make sure that the current spawn stratum will handle the return
+                      // correctly
+                      return e[0]; 
+                    }
                   }
                   else {
-                    // blocklambda return
-                    // we're already in a spawn, so no reason to call
-                    // handleBlocklambdaReturn. just returning the exception will
-                    // make sure that the current spawn stratum will handle the return
-                    // correctly
-                    return e[0]; 
+                    rv = ['return_exception', call_id, e[0]];
                   }
                 }
                 else {
-                  rv = ['return_exception', call_id, e[0]];
+                  rv = ['return', call_id, e[0]];
                 }
+                
               }
-              else {
-                rv = ['return', call_id, e[0]];
+              finally {
+                delete executing_calls[call_id];
               }
-              
-            }
-            finally {
-              delete executing_calls[call_id];
-            }
-            send(rv);
-          })(call_rv[2], message[1])
-      }
-      else {
-        send(call_rv);
-      }
+              send(rv);
+            })(call_rv[2], message[1])
+        }
+        else {
+          send(call_rv);
+        }
+      } /* @sys.withDynVarContext */
       break;
 
     case 'abort': 
@@ -939,7 +967,7 @@ function BridgeConnection(transport, opts) {
           break;
         case 'return':
           // turn it into return_exception
-          var cb = pending_calls[id];
+          var cb = pending_calls[id][0];
           if (cb) cb(e, true);
           break;
       }
