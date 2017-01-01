@@ -62,6 +62,10 @@ exports.renderer = function(libraries, rootSymbol) {
 
 	function markup(text, symbol) {
 		if (!text) return undefined;
+    if (typeof text !== 'string') {
+      logging.debug("Unexpected data for #{symbol}");
+      return undefined;
+    }
 		logging.debug("Rendering: ", text);
 		if (symbol) {
 			// try to linkify everything that looks like a doc reference
