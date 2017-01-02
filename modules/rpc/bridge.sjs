@@ -815,14 +815,14 @@ function BridgeConnection(transport, opts) {
 
     switch (message[0]) {
     case 'return':
-      var cb = pending_calls[message[1]][0];
+      var cb = pending_calls[message[1]];
       if (cb)
-        cb(message[2], false);
+        cb[0](message[2], false);
       break;
     case 'return_exception':
-      var cb = pending_calls[message[1]][0];
+      var cb = pending_calls[message[1]];
       if (cb)
-        cb(message[2], true);
+        cb[0](message[2], true);
       break;
     case 'signal':
       if (message[1] /*api_id*/ == -1) {
@@ -888,8 +888,10 @@ function BridgeConnection(transport, opts) {
 
       __js if (message[2] /* dynvar_call_ctx */) {
         var originating_call = pending_calls[message[2]];
-        if (!originating_call) 
+        if (!originating_call) {
           console.log("Warning: Cannot restore dynamic variable context from a non-nested spawned bridge call");
+          dynvar_proto = @sys.getCurrentDynVarContext();
+        }
         else
           dynvar_proto = originating_call[1];
       }
@@ -967,8 +969,8 @@ function BridgeConnection(transport, opts) {
           break;
         case 'return':
           // turn it into return_exception
-          var cb = pending_calls[id][0];
-          if (cb) cb(e, true);
+          var cb = pending_calls[id];
+          if (cb) cb[0](e, true);
           break;
       }
       break;
