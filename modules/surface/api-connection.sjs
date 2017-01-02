@@ -93,7 +93,7 @@ function proxyFunc(Beta, key_path) {
             // XXX ProxyAPI still uses old method of proxying without
             // proxiedFunc. Needs consolidation
             if (target.proxiedFunc) target = target.proxiedFunc;
-            console.log("API CALL #{key_path} > apply(#{gamma_args..@toArray})");
+            //console.log("API CALL #{key_path} > apply(#{gamma_args..@toArray})");
             gamma = target.apply(null, gamma_args);
             gamma = gamma .. proxyObj(Gamma, []);
 /*
