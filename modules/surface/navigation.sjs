@@ -26,6 +26,34 @@ var global_error_route = {};
 var global_active_node_path = [];
 
 //----------------------------------------------------------------------
+// helpers:
+
+// a wrapper similar to @fn.exclusive, but which isn't abortable from the outside
+// this is to support the case where @navigate is called from ui constructed
+// within a @navigate call... the new reentrant @navigate call should only abort the
+// ui code, but not the fresh @navigate call
+function non_cancelable_exclusive(f) {
+  var stratum, cancel;
+  return function() {
+    if (cancel) { cancel(); cancel = null; }
+    if (!cancel) stratum = spawn (function(t,a){
+      var cancel_func;
+      waitfor {
+        waitfor() { cancel_func = resume; cancel = cancel_func; }
+      } or {
+        return f.apply(t,a);
+      } finally { 
+        if (cancel === cancel_func) 
+          cancel = null;
+      }
+    }(this,arguments));
+
+    return stratum.value();
+  }
+};
+
+
+//----------------------------------------------------------------------
 // ROUTING TREE CONSTRUCTION:
 
 /*
@@ -149,7 +177,7 @@ function makeRoutingNode(parent, name) {
 //----------------------------------------------------------------------
 // navigation
 
-// map the path array to an array of descriptors {node, param?} in the global routing tree
+// map the path array to an array of descriptors {node, param?} and a final {node, page=true} in the global routing tree
 function getNodePath(path_arr) {
   var node_path = [];
   var current_node = global_routing_tree;
@@ -166,7 +194,12 @@ function getNodePath(path_arr) {
     }
     else return undefined;
   }
-  if (!current_node.page) return undefined;
+  if (!current_node.page) 
+    return undefined;
+  else {
+    // push a final page node:
+    node_path.push({node: current_node, is_page: true});
+  }
   return node_path;
 }
 
@@ -175,14 +208,14 @@ function getNodePath(path_arr) {
 //  omit_state_push: don't make history entry
 //  enable_not_found_route: if url has the correct origin, but is not found, invoke the global_error_route (otherwise return false)
 //  event: event that initiated the navigation; '@preventDefault()' will be called on it if the url is navigatable.
-function navigate(url, settings) {
+var navigate = non_cancelable_exclusive :: function(url, settings) {
   settings = {
     omit_state_push: false,
     enable_not_found_route: false,
     event: undefined
   } .. @override(settings);
 
-  url = url .. @url.normalize(location.href);
+  url = url .. @url.normalize(location.href); 
   if (!url .. @url.isSameOrigin(location.origin)) {
     //console.log("NOT SAME ORIGIN: #{url} and #{location.origin}");
     return false;
@@ -207,6 +240,8 @@ function navigate(url, settings) {
     else
       return false;
   }
+
+  var expect_slash = !!((node_path[node_path.length-1].node.page || {}).slash);
 
   if (settings.event) {
     // to be effective, we need to do this before doing anything async:
@@ -233,74 +268,27 @@ function navigate(url, settings) {
   //    (a) node_path.length == 0 // -> path is already set; bail
   //    (b) node_path.length > 0 // install nodes onto active_node_path  and page at final one
   // (2) i < global_active_node_path.length
-  //    (a) node_path.length == 0 // remove global_active_node_path[i..end]; install page at global_active_node_path[i-1]
+  //    (a) node_path.length == 0 // remove global_active_node_path[i..end]; -> shouldn't happen, because we never have a page node as inner node!
   //    (b) node_path.length > 0 // remove global_active_node_path[i..end]; install nodes onto active_node_path and page at final one
 
-  if (node_path.length === 0 && i === global_active_node_path.length) return true; // (1) (a)
-
-  if (i < global_active_node_path.length)
-    global_active_node_path = global_active_node_path.slice(0, i);
-
-  var insertion_node = global_active_node_path[global_active_node_path.length-1];
-
-  // The `content` functions of the individual nodes are potentially asynchronous. 
-  // To prevent retraction from leaving us with half-baked content, inserting the new 
-  // content into insertion_node's `content` observable has to be the last thing we do.
-  // We could construct the new node tree from the top down, but (for historical reasons) 
-  // here we construct it from the bottom up and move the `content` observable out of the
-  // way temporarily, and then set the 'real' observable at the very bottom of this function.
-  // see also the comment there.
-  var old_content = insertion_node.content;
-  var new_content = @ObservableVar();
-  insertion_node.content = new_content;
-
-  var prev_node_descriptor = insertion_node;
-  // install inner nodes
-  node_path .. @each { 
-    |node_descriptor|
-
-    var content;
-    if (node_descriptor.node.container) {
-      content = @ObservableVar();
-      var ctx = {content: content, params: node_descriptor.params};
-      prev_node_descriptor.content.set(node_descriptor.node.container.content(ctx));
-    }
-    else {
-      content = prev_node_descriptor.content;
-    }
-
-    // splice in our path parameter (if any)
-    var params = prev_node_descriptor.params;
-    if (node_descriptor.node.param) {
-      params = params .. @clone;
-      params[node_descriptor.node.param] = node_descriptor.param .. decodeURIComponent;
-    }
-
-    var node_descriptor =       {
-      node: node_descriptor.node,
-      param: node_descriptor.param,
-      params: params,
-      content: content
-    };
-
-
-    global_active_node_path.push(node_descriptor);
-
-    prev_node_descriptor = node_descriptor;
+  if (node_path.length === 0) {
+    if (i === global_active_node_path.length) { 
+      return true; 
+    } // (1) (a)
+    else
+      throw new Error("Unexpected state of node path");
   }
 
-  var page_node_descriptor = global_active_node_path[global_active_node_path.length-1];
-  var ctx = {params: page_node_descriptor.params};
-  page_node_descriptor.content.set(page_node_descriptor.node.page.content(ctx));
+  // case 1(b) or (2) (b): we're currently at a different path than we should be
 
   if (!settings.omit_state_push)
     history.pushState(null, '', url);
 
   // possibly amend the url depending on whether we expect a '/' or not:
-  if (page_node_descriptor.node.page.slash != url.path .. @endsWith('/')) {
+  if (expect_slash != url.path .. @endsWith('/')) {
 
     var amended_url = url.path;
-    if (page_node_descriptor.node.page.slash)
+    if (expect_slash)
       amended_url += '/';
     else
       amended_url = amended_url .. @rstrip('/');
@@ -314,12 +302,54 @@ function navigate(url, settings) {
     history.replaceState(null, '', amended_url);
   }
 
-  // We need to do this last (after performing the history push) to prevent a 
-  // retraction if the navigation is performed by a mechanism attached to the 
-  // ui that is being removed (e.g. an OnClick handler). See also the comment at the
-  // declaration of insertion_node, above.
-  insertion_node.content = old_content;
-  old_content.set(new_content .. @current);
+  // the history entry is set. now actually navigate to the page:
+
+  // remove diverging nodes:
+  if (i < global_active_node_path.length)
+    global_active_node_path = global_active_node_path.slice(0, i);
+
+
+  // install inner nodes:
+  var prev_node_descriptor = global_active_node_path[global_active_node_path.length-1];
+  node_path .. @each { 
+    |node_descriptor|
+
+    if (node_descriptor.is_page) break; // the final page node, to be installed last
+    
+    // splice in our path parameter (if any)
+    var params = prev_node_descriptor.params;
+    if (node_descriptor.node.param) {
+      params = params .. @clone;
+      params[node_descriptor.node.param] = node_descriptor.param .. decodeURIComponent;
+    }
+
+    var content;
+    if (node_descriptor.node.container) {
+      content = @ObservableVar();
+      var ctx = {content: content, params: params};
+      prev_node_descriptor.content.set(node_descriptor.node.container.content(ctx));
+    }
+    else {
+      content = prev_node_descriptor.content;
+    }
+    
+    node_descriptor = {
+      node: node_descriptor.node,
+      param: node_descriptor.param,
+      params: params,
+      content: content
+    };
+
+    global_active_node_path.push(node_descriptor);
+    
+    prev_node_descriptor = node_descriptor;
+  }
+
+  // install final page node:
+  var page_node = node_path[node_path.length-1].node;
+  prev_node_descriptor.content.set(page_node.page.content({params: prev_node_descriptor.params}));
+  global_active_node_path.push({node: page_node});
+
   return true;
 }
 
@@ -376,7 +406,7 @@ function route(routing_table, settings) {
   global_active_node_path = [ { node: root_node, content: content, params:{} }, dummy_node ];
 
   // navigate to initial page:
-  if (!navigate(location.href, {omit_state_push: true, enable_not_found_route: true})) {
+  if (navigate(location.href, {omit_state_push: true, enable_not_found_route: true})===false) {
     throw new Error("Invalid location #{location.href}");
   }
 
@@ -525,7 +555,8 @@ exports.Page = (path, content) -> [path, { page: { content: content, slash: path
    @desc
      If `url` refers to one of the routes known by the global routing table, the associated page will be shown,
      the browser's URL history changed accordingly, and `true` returned.
-     Otherwise `false` will be returned.
+     Otherwise `false` will be returned, or `undefined` if there is a reentrant call to navigate which cancels the current
+     call.
      Note that no attempt will be made to fetch the URL via the network (in contrast to clicks on links - see [::route]).
    
 */
