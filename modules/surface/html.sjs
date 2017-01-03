@@ -255,9 +255,10 @@ __js exports.Submit = (content, attr) -> @Element('input', null, {type:'submit',
   @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
   @return {surface::Element}
   @summary Create an `<button type="button">` element.
+  @desc
+    Note: The element has an attribute `type='button'` to prevent it from being interpreted as a
+    'submit' button - see also http://stackoverflow.com/a/2825867
 */
-// without `type="button"`, every button is a submit button by default. see
-// http://stackoverflow.com/a/2825867
 __js exports.Button = (content, attr) -> @Element('button', content, {type:'button'} .. @merge(attr || {}));
 
 //----------------------------------------------------------------------
