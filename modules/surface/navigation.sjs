@@ -361,7 +361,7 @@ function captureLinks() {
     @events("!click") .. @each {
       |ev|
       if (ev.target.tagName !== 'A' || ev.target.hasAttribute('download')) continue;
-      navigate(ev.target.href, {event: ev});
+      spawn navigate(ev.target.href, {event: ev});
     }
 }
 
@@ -370,7 +370,7 @@ function dispatchStateChanges() {
     @events("popstate") ..
     @each {
       |ev|
-      navigate(location.href, {omit_state_push:true, enable_not_found_route: true, event: ev});
+      spawn navigate(location.href, {omit_state_push:true, enable_not_found_route: true, event: ev});
     }
 }
 
