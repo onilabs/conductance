@@ -103,12 +103,12 @@ module.exports = require(modules);
 @function Element
 @param {String} [tag]
 @param {::HtmlFragment} [content] Content to set on DOM element
-@param {optional Object} [attributes] Object with {name: string} attributes to set on DOM element
+@param {optional Object|String} [attributes_or_class] Object with {name: string} attributes to set on DOM element, or a string of class names to apply to the element.
 @return {::Element}
 @desc 
   ### Notes
   
-  * As an alternative to specifying `attributes`, see the [::Attrib] decorator.
+  * As an alternative to specifying `attributes_or_class`, see the [::Attrib] and [::Class] decorators.
 
 @function isElement
 @param {Object} [element]
