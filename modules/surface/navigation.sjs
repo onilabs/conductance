@@ -405,19 +405,21 @@ function route(routing_table, settings) {
   
   global_active_node_path = [ { node: root_node, content: content, params:{} }, dummy_node ];
 
-  // navigate to initial page:
-  if (navigate(location.href, {omit_state_push: true, enable_not_found_route: true})===false) {
-    throw new Error("Invalid location #{location.href}");
-  }
-
-  // append to document and wait for state changes:
-
   settings.DOMParent .. @appendContent(root_content) { 
-    || 
+    ||
+ 
     waitfor {
+      // navigate to initial page:
+      if (navigate(location.href, {omit_state_push: true, enable_not_found_route: true})===false) {
+        throw new Error("Invalid location #{location.href}");
+      }
+    }
+    and {
+      // handle clicks on links ...
       captureLinks();
     }
-    or {
+    and {
+      // ... and state changes:
       dispatchStateChanges();
     }
   }
