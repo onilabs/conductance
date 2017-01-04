@@ -46,6 +46,16 @@ exports._getDynOniSurfaceInit = ->
   "__oni_surface_init = [#{gCSSCounter+1}, #{gMechanismCounter+1}];\n";
 
 
+//----------------------------------------------------------------------
+// helpers
+
+// helper to recursively flatten a quasi into a string:
+function recursiveQuasiToString(q) {
+  return (q .. mapQuasi(q -> q .. isQuasi ? recursiveQuasiToString(q) : String(q))).join();
+}
+
+//----------------------------------------------------------------------
+
 /**
   @class HtmlFragment
   @summary A tree structure representing a piece of Html along with meta information
@@ -682,6 +692,9 @@ __js function InternalCSSDef(content, parent_class, mech, prepend) {
     static [::Document] context an error will be thrown if a Stream is
     encountered.
 
+    A quasi-valued `style` is allowed to contain interpolated values which are quasis themselves.
+    Note that currently Stream-valued interpolated values are only allowed in the top-level quasi.
+
     If `style` is an array, the first element is an object of flags, and the second element
     the 'actual' style (i.e. a string or quasi, as explained above). The following flags are
     supported:
@@ -740,7 +753,12 @@ __js {
               if(collectObservables) collectObservables.push(p);
               // XXX: are there general escaping rules we can use for CSS attribs?
               else rv += String(values[obsIdx++]);
-            } else {
+            }
+            else if (isQuasi(p)) {
+              // XXX we should extract observables here too
+              rv += recursiveQuasiToString(p);
+            }
+            else {
               rv += String(p);
             }
           } else rv += p;
@@ -796,7 +814,7 @@ exports.GlobalCSS = function(content) {
   var f = Object.create(FragmentBase);
   var id = ++gCSSCounter;
   if (isQuasi(content))
-    content = (content .. mapQuasi(String)).join("");
+    content = content .. recursiveQuasiToString;
   var cssdef = InternalCSSDef(scope(content));
   f._init();
   f.css[id] = [1, cssdef];
