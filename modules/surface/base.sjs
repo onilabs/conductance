@@ -51,7 +51,7 @@ exports._getDynOniSurfaceInit = ->
 
 // helper to recursively flatten a quasi into a string:
 function recursiveQuasiToString(q) {
-  return (q .. mapQuasi(q -> q .. isQuasi ? recursiveQuasiToString(q) : String(q))).join();
+  return (q .. mapQuasi(q -> q .. isQuasi ? recursiveQuasiToString(q) : String(q))).join('');
 }
 
 //----------------------------------------------------------------------
