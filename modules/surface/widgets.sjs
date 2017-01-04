@@ -594,13 +594,13 @@ exports.overlay = overlay;
            min-height: depends on `type`
          }
 
-         .mho-dialog-close {
+         .mho-dialog__close {
            color: #fff;
            opacity: 0.6;
            position: fixed;
          }
          
-         .mho-dialog-close:hover {
+         .mho-dialog__close:hover {
            opacity: 1;
          }
 */
@@ -621,7 +621,7 @@ var DialogCSS = @CSS([
   { prepend: true },
   `
   @global {
-    .mho-dialog-close {
+    .mho-dialog__close {
       position: fixed;
       top: 0;
       right: 0;
@@ -633,11 +633,11 @@ var DialogCSS = @CSS([
       cursor: pointer;
     }
 
-    .mho-dialog-close:hover {
+    .mho-dialog__close:hover {
       opacity: 1;
     }
 
-    .mho-dialog-close-disabled {
+    .mho-dialog__close_disabled {
       display: none;
     }
 
@@ -649,25 +649,25 @@ var DialogCSS = @CSS([
       overflow:auto;
     }
 
-    .mho-dialog-small {
+    .mho-dialog_small {
       width: ${SMALL_DIALOG_WIDTH}px;
       margin: ${SMALL_DIALOG_MARGIN_TOP}px auto;
       min-height: ${SMALL_DIALOG_MIN_HEIGHT}px;      
     }
 
-    .mho-dialog-large {
+    .mho-dialog_large {
       width: ${LARGE_DIALOG_WIDTH}px;
       margin: ${LARGE_DIALOG_MARGIN_TOP}px auto;
       min-height: ${LARGE_DIALOG_MIN_HEIGHT}px;      
     }
 
-    .mho-dialog-page {
+    .mho-dialog_page {
       width: ${PAGE_DIALOG_WIDTH}px;
       margin: ${PAGE_DIALOG_MARGIN_TOP_BOTTOM}px auto;
       min-height: calc(100vh - ${PAGE_DIALOG_MARGIN_TOP_BOTTOM*2}px);      
     }
 
-    .mho-dialog-body {
+    .mho-dialog__body {
       padding: 29px 38px;
     }
   }
@@ -695,10 +695,10 @@ function dialog(content, settings, block) {
 
   var ui = [
     @Div .. 
-      @Class('mho-dialog-close') .. 
-      @Class(@cmd.Active('dialog-close') .. @transform(b -> !b ? 'mho-dialog-close-disabled' )) .. 
+      @Class('mho-dialog__close') .. 
+      @Class(@cmd.Active('dialog-close') .. @transform(b -> !b ? 'mho-dialog__close_disabled' )) .. 
       @cmd.Click('dialog-close') :: `&#xd7;`,
-    @Div .. @Class("mho-dialog mho-dialog-#{settings.type}") :: content
+    @Div .. @Class("mho-dialog mho-dialog_#{settings.type}") :: content
   ];
 
   overlay(ui, {zindex: settings.zindex, css: css, backdrop_click_cmd: 'dialog-close'}) {
@@ -724,10 +724,10 @@ exports.dialog = dialog;
    @desc
      ### CSS Customization
          
-         // (use '&.mho-dialog-body' when applying directly to element; '.mho-dialog-body' otherwise):
-         &.mho-dialog-body {
+         // (use '&.mho-dialog__body' when applying directly to element; '.mho-dialog__body' otherwise):
+         &.mho-dialog__body {
            padding: 29px 38px;
          }
 
 */
-dialog.Body = content -> @Div .. @Class('mho-dialog-body') :: content;
+dialog.Body = content -> @Div .. @Class('mho-dialog__body') :: content;
