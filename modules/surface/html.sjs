@@ -241,25 +241,16 @@ __js exports.Ul = (items, attrs) -> @Element('ul', items ? items .. _map(wrapLi)
 __js exports.Ol = (items, attrs) -> @Element('ol', items ? items .. _map(wrapLi), attrs);
 
 /**
-  @function Submit
-  @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-  @return {surface::Element}
-  @summary Create an `<input type="submit">` element.
-*/
-__js exports.Submit = (content, attr) -> @Element('input', null, {type:'submit', value: content} .. @merge(attr || {}));
-
-/**
   @function Button
   @param {surface::HtmlFragment} [content]
-  @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
+  @param {optional Object} [attrs_or_class] Hash of additional DOM attributes to set on the element, or string of class names to apply to the element.
   @return {surface::Element}
-  @summary Create an `<button type="button">` element.
+  @summary Create a `<button type="button">` element.
   @desc
     Note: The element has an attribute `type='button'` to prevent it from being interpreted as a
     'submit' button - see also http://stackoverflow.com/a/2825867
 */
-__js exports.Button = (content, attr) -> @Element('button', content, {type:'button'} .. @merge(attr || {}));
+__js exports.Button = (content, attr) -> @Element('button', content, {type:'button'} .. @merge(typeof attr === 'string' ? {'class':attr} : attr));
 
 //----------------------------------------------------------------------
 /**
