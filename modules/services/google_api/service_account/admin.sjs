@@ -17,7 +17,11 @@
 
 // TODO: document
 
-@ = require(['mho:std', 'mho:app']);
+@ = require([
+  'mho:std',
+  'mho:surface/html',
+  'mho:surface/components'
+]);
 
 exports.configui = function() {
   return   [
@@ -28,18 +32,17 @@ exports.configui = function() {
                 and copy the full contents of the JSON key file here.
                `,
 
-             @field.Field('json_key_file') ::
-               @FormGroup ::
-                 [
-                   @ControlLabel('JSON Key File'),
-                   @TextArea()
-                 ],
+             @Div :: @TextField({
+               name: 'json_key_file',
+               label: 'JSON Key File',
+               type: 'multiline'
+             }),
+
+             @Div :: @TextField({
+               name: 'scopes',
+               label: 'Authorization Scopes',
+               help: 'comma-separated'
+             })
             
-             @field.Field('scopes') ::
-               @FormGroup ::
-                 [
-                   @ControlLabel('Authorization Scopes (comma-separated)'),
-                   @Input()
-                 ]
            ]
 };

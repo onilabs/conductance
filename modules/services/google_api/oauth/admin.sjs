@@ -17,7 +17,11 @@
 
 // TODO: document
 
-@ = require(['mho:std', 'mho:app']);
+@ = require([
+  'mho:std',
+  'mho:surface/html',
+  'mho:surface/components'
+]);
 
 exports.configui = function() {
   return   [
@@ -35,19 +39,14 @@ exports.configui = function() {
                 for each of the domains.
                `,
 
-             @field.Field('client_id') ::
-               @FormGroup ::
-                 [
-                   @ControlLabel('CLIENT ID'),
-                   @Input()
-                 ],
+             @Div :: @TextField({
+               name: 'client_id',
+               label: 'Client ID'
+             }),
 
-             @field.Field('client_secret') ::
-               @FormGroup ::
-                 [
-                   @ControlLabel('CLIENT SECRET'),
-                   @Input()
-                 ],
-
+             @Div :: @TextField({
+               name: 'client_secret',
+               label: 'Client Secret'
+             })
            ]
 };

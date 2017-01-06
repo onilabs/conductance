@@ -17,17 +17,18 @@
 
 // TODO: document
 
-@ = require(['mho:std', 'mho:app']);
+@ = require([
+  'mho:std', 
+  'mho:surface/html',
+  'mho:surface/components'
+]);
 
 exports.configui = function() {
   return   [
-             @field.Field('token') ::
-               @FormGroup ::
-                 [
-                   @ControlLabel('Token'),
-                   @Input(),
-                   @P() .. @Class('help-block') ::
-                     `Project token from Accounts > Projects at ${@A("https://mixpanel.com/", {href:"https://mixpanel.com/"})}`
-                 ]
-           ]
+    @Div :: @TextField({
+      name:'token', 
+      label:'Project Token', 
+      help: `Project token from Accounts > Projects at ${@A("https://mixpanel.com/", {href:"https://mixpanel.com/"})}`
+    })
+  ]
 };

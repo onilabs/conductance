@@ -17,7 +17,11 @@
 
 // TODO: document
 
-@ = require(['mho:std', 'mho:app']);
+@ = require([
+  'mho:std',
+  'mho:surface/html',
+  'mho:surface/components'
+]);
 
 exports.configui = function() {
 
@@ -25,21 +29,17 @@ exports.configui = function() {
     @P ::
       `Enabling this service implies that you agree to the ACME Subscriber Agreement - for details please see the <a href='https://certbot.eff.org/'>certbot docs</a>.`,
 
-    @field.Field('email') ::
-      @FormGroup :: [
-        @ControlLabel('Email'),
-        @Input(),
-        @P .. @Class('help-block') ::
-          "An email address is required to prevent loss of access to the certificate, and receive
+    @Div :: @TextField({
+      name: 'email',
+      label: 'Email',
+      help: "An email address is required to prevent loss of access to the certificate, and receive
            notices about impending expiration (in case the periodic automated renewal process fails for any reason) or revocation."
-      ],
+    }),
 
-    @field.Field('domains') ::
-      @FormGroup :: [
-        @ControlLabel('Domains'),
-        @Input(),
-        @P .. @Class('help-block') ::
-          "Comma and/or whitespace-separated list of domains for which to obtain a certificate."
-      ]
+    @Div :: @TextField({
+      name: 'domains',
+      label: 'Domains',
+      help: "Comma and/or whitespace-separated list of domains for which to obtain a certificate"
+    })
   ];
 };

@@ -17,17 +17,18 @@
 
 // TODO: document
 
-@ = require(['mho:std', 'mho:app']);
+@ = require([
+  'mho:std',
+  'mho:surface/html',
+  'mho:surface/components'
+]);
 
 exports.configui = function() {
   return   [
-             @field.Field('key') ::
-               @FormGroup ::
-                 [
-                   @ControlLabel('Key'),
-                   @Input(),
-                   @P() .. @Class('help-block') ::
-                     `API Key from ${@A("https://mandrillapp.com/settings", {href:"https://mandrillapp.com/settings"})}`
-                 ]
-           ]
+    @Div :: @TextField({
+      name: 'key',
+      label: 'Key',
+      help: `API Key from ${@A("https://mandrillapp.com/settings", {href:"https://mandrillapp.com/settings"})}`
+    })
+  ];
 };

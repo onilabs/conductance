@@ -20,7 +20,7 @@ var modules = ['mho:std',
               ];
 
 if (require('sjs:sys').hostenv === 'xbrowser') {
-  modules = modules.concat('mho:app', {id:'sjs:marked', name:'marked'});
+  modules = modules.concat({id:'mho:surface/field', name: 'field'}, 'mho:surface/components', 'mho:surface/html', {id:'sjs:marked', name:'marked'});
 }
 
 @ = require(modules);
@@ -182,14 +182,19 @@ exports.run = function(registry, block) {
   }
 };
 
+
+//----------------------------------------------------------------------
+// Config UI (client-side only)
+
 /**
    @function configUI
    @param {::ServicesRegistry} [registry]
+   @param {optional mho:surface::HtmlFragment} [title]
    @hostenv xbrowser
    @summary Generate html for configuring the services registered in `registry`
    @return {mho:surface::Element} Configuration HTML
 */
-exports.configUI = function(registry) {
+exports.configUI = function(registry, title) {
 
   var CommittedConfig = @ObservableVar(registry .. modulesConfigDB .. 
                                        @kv.query(@kv.RANGE_ALL) ..
@@ -224,23 +229,24 @@ exports.configUI = function(registry) {
   var makeConfigPanel = [instance_name, descriptor] ->
     @field.Field("#{instance_name}@#{descriptor.service}") ::
       @field.FieldMap ::
-        @Panel :: 
+        @Div('mho-services-ui__instance') :: 
           [
-            @PanelHeading ::
+            @Hr,
+            @Div('mho-services-ui__instance-heading') ::
               [
+                @H4('mho-services-ui__instance-name') :: [instance_name, ': ', descriptor.name],
                 @field.Field('enabled') :: 
-                  @Label .. @Class('pull-right') :: 
+                  @Label('mho-services-ui__enable-checkbox') ::
                     [
                       @Checkbox(), 
                       ' Enabled'
                     ],
-                @H4 :: [instance_name, ': ', descriptor.name],
-                @RawHTML :: descriptor.description .. @marked.convert
               ],
+            @P('mho-services-ui__instance-desc') :: @RawHTML :: descriptor.description .. @marked.convert,
 
             @field.Field('config') ::
               @field.FieldMap ::
-                @PanelBody ::
+                @Div('mho-services-ui__instance-body') ::
                   require(descriptor.admin).configui()
           ];
         
@@ -249,19 +255,19 @@ exports.configUI = function(registry) {
 
   var ui = @field.Field({Value: Config}) :: 
              @field.FieldMap :: 
-               @Div ::
+               @Div('mho-services-ui') .. ConfigUICSS ::
                  [
+                   @Div('mho-services-ui__heading') :: [
+                     title || @H3 :: "Services Configuration",
+                     @Btn('raised accent') .. 
+                       @OnClick(applyChanges) ..
+                       @Enabled(havePendingChanges) :: "Apply Changes"
+                   ],
                    ChangesCommitted .. 
                      @project(committed ->
                               committed ? 
-                              @Div('Committed Changes will become effective when server is restarted!') ..
-                                @Class("alert alert-info")
+                              @P('mho-services-ui__alert') :: 'Committed Changes will become effective when server is restarted!'
                              ),
-                   @Btn('primary', 'Apply Changes') .. 
-                     @OnClick(applyChanges) ..
-                     @Enabled(havePendingChanges) ..
-                     @Class('pull-right'),
-                   @H1('Services'),
                    registry.instances .. @ownPropertyPairs .. @map.par(makeConfigPanel)
                    /*,@ContentGenerator((append) ->
                                      append(@Div(Config .. @project(@inspect)))) */
@@ -270,3 +276,33 @@ exports.configUI = function(registry) {
 
   return ui;
 };
+
+
+var ConfigUICSS = @CSS(
+  `
+  &.mho-services-ui { margin: 8px; }
+  .mho-services-ui__heading { 
+    display:flex; 
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    & > * {
+      margin-top: 16px;
+      margin-bottom: 0px;
+    }
+  }
+
+  .mho-services-ui__instance-heading {
+    display:flex; 
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    & > * {
+      margin-top: 16px;
+      margin-bottom: 0px;
+    }
+  }
+
+  `);

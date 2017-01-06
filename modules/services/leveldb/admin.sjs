@@ -17,17 +17,18 @@
 
 // TODO: document
 
-@ = require(['mho:std', 'mho:app']);
+@ = require([
+  'mho:std',
+  'mho:surface/html',
+  'mho:surface/components'
+]);
 
 exports.configui = function() {
   return   [
-             @field.Field('path') ::
-               @FormGroup ::
-                 [
-                   @ControlLabel('Path to LevelDB DB directory on disk'),
-                   @Input(),
-                   @P() .. @Class('help-block') ::
-                   `'\$configRoot/' will be substituted for the directory containing the config.mho file for this project.`
-                 ]
-           ]
+    @Div :: @TextField({
+      name: 'path',
+      label: 'Path to LevelDB DB directory on disk',
+      help: `'\$configRoot/' will be substituted for the directory containing the config.mho file for this project.`
+    })
+  ];
 };
