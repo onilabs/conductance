@@ -21,7 +21,8 @@
   './style/normalize',
   './style/typography',
   './style/button',
-  './style/textfield'
+  './style/textfield',
+  './style/color'
 ]);
 
 
@@ -41,6 +42,7 @@ var CSSSurfaceDefault = [
     -webkit-font-smoothing: antialiased;
   }     
 
+  $@Color
   $@Typography
   $@Button
   $@TextField

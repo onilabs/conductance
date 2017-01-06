@@ -9,11 +9,16 @@
  * according to the terms contained in the LICENSE file.
  */
 
+/**
+   legacy widgets which will over time be replaced by components.sjs
+*/
+
 @ = require([
   'sjs:std',
   'mho:surface',
   'mho:surface/html',
-  {id:'mho:surface/cmd', name:'cmd'}
+  {id:'mho:surface/cmd', name:'cmd'},
+  {id:'mho:surface/style/helpers', name:'style_helpers'}
 ])
 
 //----------------------------------------------------------------------
@@ -586,23 +591,13 @@ exports.overlay = overlay;
      - See also [::overlay]
 
 
-         .mho-dialog {
-           background-color: #fff;
-           border-radius: 4px;
-           width: depends on `type`
-           margin: depends on `type`
-           min-height: depends on `type`
-         }
-
-         .mho-dialog__close {
-           color: #fff;
-           opacity: 0.6;
-           position: fixed;
-         }
+         .mho-dialog 
+         .mho-dialog--type_small
+         .mho-dialog--type_large
+         .mho-dialog--type_page
+         .mho-dialog__close
          
-         .mho-dialog__close:hover {
-           opacity: 1;
-         }
+
 */
 
 var SMALL_DIALOG_MARGIN_TOP = 80;
@@ -643,32 +638,46 @@ var DialogCSS = @CSS([
 
     .mho-dialog {
       position:relative;
-      background-color: #fff;
-      box-shadow: 0 12px 10px 0 rgba(0,0,0,0.18);
-      border-radius: 4px;
+      background-color: var(--mho-theme-background, #fff);
+      ${@style_helpers.Elevation(24)}
+      border-radius: 2px;
       overflow:auto;
     }
 
-    .mho-dialog_small {
+    .mho-dialog--type_small {
       width: ${SMALL_DIALOG_WIDTH}px;
       margin: ${SMALL_DIALOG_MARGIN_TOP}px auto;
       min-height: ${SMALL_DIALOG_MIN_HEIGHT}px;      
     }
 
-    .mho-dialog_large {
+    .mho-dialog--type_large {
       width: ${LARGE_DIALOG_WIDTH}px;
       margin: ${LARGE_DIALOG_MARGIN_TOP}px auto;
       min-height: ${LARGE_DIALOG_MIN_HEIGHT}px;      
     }
 
-    .mho-dialog_page {
+    .mho-dialog--type_page {
       width: ${PAGE_DIALOG_WIDTH}px;
       margin: ${PAGE_DIALOG_MARGIN_TOP_BOTTOM}px auto;
       min-height: calc(100vh - ${PAGE_DIALOG_MARGIN_TOP_BOTTOM*2}px);      
     }
 
-    .mho-dialog__body {
-      padding: 29px 38px;
+    .mho-dialog__content {
+      margin: 24px 24px 8px 24px;
+    }
+
+    .mho-dialog__title + .mho-dialog__content {
+      margin-top: 20px;
+    }
+
+    .mho-dialog__title {
+      margin: 24px 24px 0px 24px;
+    }
+
+    .mho-dialog__actions {
+      margin: 32px 8px 8px 24px;
+      display: flex;
+      justify-content: flex-end;
     }
   }
 `]);
@@ -698,7 +707,7 @@ function dialog(content, settings, block) {
       @Class('mho-dialog__close') .. 
       @Class(@cmd.Active('dialog-close') .. @transform(b -> !b ? 'mho-dialog__close_disabled' )) .. 
       @cmd.Click('dialog-close') :: `&#xd7;`,
-    @Div .. @Class("mho-dialog mho-dialog_#{settings.type}") :: content
+    @Div .. @Class("mho-dialog mho-dialog--type_#{settings.type}") :: content
   ];
 
   overlay(ui, {zindex: settings.zindex, css: css, backdrop_click_cmd: 'dialog-close'}) {
@@ -718,16 +727,34 @@ function dialog(content, settings, block) {
 exports.dialog = dialog;
 
 /**
-   @function dialog.Body
-   @summary A `<div>` element with padding for [::dialog] page content
+   @function dialog.Content
+   @summary A `<div>` element with suitable styles for [::dialog] page content
    @param {surface::HtmlFragment} [content]
    @desc
      ### CSS Customization
          
-         // (use '&.mho-dialog__body' when applying directly to element; '.mho-dialog__body' otherwise):
-         &.mho-dialog__body {
-           padding: 29px 38px;
-         }
-
+         &.mho-dialog__content // (use &.mho-dialog__content' when applying directly to element; '.mho-dialog__content' otherwise)
 */
-dialog.Body = content -> @Div .. @Class('mho-dialog__body') :: content;
+dialog.Content = content -> @Div .. @Class('mho-dialog__content mho-typo--body-1 mho-color--secondary') :: content;
+
+/**
+   @function dialog.Title
+   @summary A `<div>` element with suitable styles for [::dialog] title content
+   @param {surface::HtmlFragment} [content]
+   @desc
+     ### CSS Customization
+         
+         &.mho-dialog__title // (use &.mho-dialog__title' when applying directly to element; '.mho-dialog__title' otherwise)
+*/
+dialog.Title = content -> @Div .. @Class('mho-dialog__title mho-typo--title mho-color--primary') :: content;
+
+/**
+   @function dialog.Actions
+   @summary A `<div>` element with suitable styles for [::dialog] actions section content
+   @param {surface::HtmlFragment} [content]
+   @desc
+     ### CSS Customization
+         
+         &.mho-dialog__actions // (use &.mho-dialog__actions' when applying directly to element; '.mho-dialog__actions' otherwise)
+*/
+dialog.Actions = content -> @Div .. @Class('mho-dialog__actions') :: content;

@@ -62,12 +62,22 @@ var TextFieldMechanism = @Mechanism(function(node) {
 
 function TextField(settings) {
 
+  settings = {
+    name: undefined,
+    type: 'text',
+    label: undefined,
+    help: undefined,
+    Value: undefined,
+    ValidationState: undefined,
+    persistent_help: false
+  } .. @override(settings);
+
   var control;
   if (settings.type === 'multiline') {
-    control = @TextArea({attrs: { 'class': 'mho-textfield__input', rows:'8', cols:'50' }});
+    control = @TextArea({attrs: { 'class': 'mho-textfield__input', rows:'8' }});
   }
   else {
-    control = @Input({attrs: { 'class': 'mho-textfield__input', size:'52' }});
+    control = @Input({type: settings.type, attrs: { 'class': 'mho-textfield__input' }});
   }
 
   var innerHtml = [
@@ -91,7 +101,7 @@ function TextField(settings) {
     ];
   }
 
-  return @field.Field(settings.name) :: outerHtml;
+  return @field.Field({name:settings.name, Value:settings.Value, ValidationState:settings.ValidationState}) :: outerHtml;
 }
 exports.TextField = TextField;
 

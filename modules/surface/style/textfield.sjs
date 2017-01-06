@@ -24,9 +24,10 @@
 var TextField = `
   .mho-textfield-container {
     vertical-align: top;
-    display: inline-block;
+    display: block;
   }
   .mho-textfield {
+    width: 100%;
     vertical-align: top;
     line-height: normal;
     font-size: 16px;
@@ -38,6 +39,7 @@ var TextField = `
 
     &__input {
       color: rgba(0,0,0,.87);
+      width: 100%;
       padding: 0 0 8px;
       border: none;
       background: none;
@@ -81,8 +83,8 @@ var TextField = `
 
     /* these are 'upgraded' styles in mdc: */
     &:not(.mho-textfield-fullwidth) {
-      display: inline-flex;
-      position: relative;
+      display: flex;
+      position: relative; /* to create a positioning context for the absolutely positioned stuff? */
       box-sizing: border-box;
       align-items: flex-end;
       -webkit-box-align: end;
@@ -103,7 +105,7 @@ var TextField = `
         }
       }
       &.mho-textfield--multiline {
-        margin-top: 32px;
+        margin-top: 38px;
       }
 
       .mho-textfield__label {

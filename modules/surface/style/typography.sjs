@@ -49,7 +49,7 @@ var Typography_headline = `
 var Typography_title = `
   font-size: 20px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 28px;
   letter-spacing: 0.02em;
 `;
 
@@ -70,11 +70,18 @@ var Typography_body_1 = `
 var Typography = `
   html, body {
     font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 20px;
     margin: 0;
+    $Typography_body_1
   }
+
+  .mho-typo--display-3 { $Typography_display_3 }
+  .mho-typo--display-2 { $Typography_display_2 }
+  .mho-typo--display-1 { $Typography_display_1 }
+  .mho-typo--headline  { $Typography_headline }
+  .mho-typo--title     { $Typography_title }
+  .mho-typo--subhead   { $Typography_subhead }
+  .mho-typo--body-1    { $Typography_body_1 }
+
   h1, h2, h3, h4, h5, h6, p {
     margin: 0;
     padding: 0;
