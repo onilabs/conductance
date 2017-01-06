@@ -775,7 +775,10 @@ var FieldMap = (elem) ->
       var fieldcontainer_itf = node[ITF_FIELDCONTAINER] = {
         getField: function(name) { return this._fieldmap[name]; },
         addField: function(name, field_node) {
-          if (!name) throw new Error("Fields added to FieldMap require a name");
+          if (!name) {
+            console.log('Warning: unnamed field not added to fieldmap');
+            return;
+          }
           if (this._fieldmap .. @hasOwn(name)) throw new Error("Multiple instances of field '#{name}' in FieldMap.");
           this._fieldmap[name] = field_node;
 
