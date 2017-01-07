@@ -23,8 +23,19 @@
 ////////////////////////////////////////////////////////////////////////
 // Animation
 
+/*
+Standard curve; any animations that are visible from start to finish (e.g. a FAB transforming into a toolbar)
+*/
 var Animation_curve_fast_out_slow_in = exports.Animation_curve_fast_out_slow_in =  'cubic-bezier(0.4, 0, 0.2, 1)';
+
+/*
+Animations that cause objects to enter the screen (e.g. a fade in)
+*/
 var Animation_curve_linear_out_slow_in = exports.Animation_curve_linear_out_slow_in = 'cubic-bezier(0, 0, 0.2, 1)';
+
+/*
+Animations that cause objects to leave the screen (e.g. a fade out)
+*/
 var Animation_curve_fast_out_linear_in = exports.Animation_curve_fast_out_linear_in = 'cubic-bezier(0.4, 0, 1, 1)';
 
 ////////////////////////////////////////////////////////////////////////
