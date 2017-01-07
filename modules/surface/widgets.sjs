@@ -38,6 +38,49 @@ var afterFirst = (in_stream, f) ->
   });
 
 //----------------------------------------------------------------------
+// experimental 'ResizingMaterial' that resizes with MD transitions when content 
+// resizes
+
+function mutationEvents(element, config) {
+  return @Stream(function(r) {
+    var emitter = @Emitter();
+    var observer = new MutationObserver(mutations -> emitter.emit(mutations));
+    try {
+      observer.observe(element, config);
+      emitter .. @each(r);
+    }
+    finally {
+      observer.disconnect();
+    }
+  });
+}
+
+function ResizingMaterial(content, attribs) {
+  return @Div() .. 
+    @CSS(`
+         {
+           overflow:hidden;
+           max-height: 10000px; /* to prevent animation when Material is first shown */
+           transition: max-height 280ms ${@style_helpers.Animation_curve_fast_out_slow_in};
+         }
+         > div { overflow:hidden; }
+         `) ..
+    @Mechanism(function(node) {
+      var old_height = 0;
+      mutationEvents(node.firstChild, {childList: true, characterData: true, subtree: true}) .. @each {
+        |ev|
+        var new_height = node.firstChild.scrollHeight;
+        if(new_height > old_height) {
+          old_height = new_height;
+          node.style.height = old_height + 'px';
+        }
+        node.style.maxHeight = new_height + 'px';
+      }
+    }) :: @Div(attribs) :: content;
+}
+
+
+//----------------------------------------------------------------------
 /**
    @variable Caret
    @summary A down-pointing caret arrow [surface::Element] (e.g. for use in dropdown triggers) 
@@ -682,6 +725,8 @@ var DialogCSS = @CSS([
   }
 `]);
 
+//----------------------------------------------------------------------
+
 
 function dialog(content, settings, block) {
   // untangle arguments:
@@ -707,13 +752,13 @@ function dialog(content, settings, block) {
       @Class('mho-dialog__close') .. 
       @Class(@cmd.Active('dialog-close') .. @transform(b -> !b ? 'mho-dialog__close_disabled' )) .. 
       @cmd.Click('dialog-close') :: `&#xd7;`,
-    @Div .. @Class("mho-dialog mho-dialog--type_#{settings.type}") :: content
+    ResizingMaterial .. @Class("mho-dialog mho-dialog--type_#{settings.type}") :: content
   ];
 
   overlay(ui, {zindex: settings.zindex, css: css, backdrop_click_cmd: 'dialog-close'}) {
     |dialog_close_node, dialog_node, backdrop_node|
     // see comment in @appendContent body of @overlay
-    var content_nodes = dialog_node.children .. @toArray;
+    var content_nodes = dialog_node.firstChild.children .. @toArray;
     content_nodes.push(dialog_close_node);
     content_nodes.push(backdrop_node);
     @withDOMContext(content_nodes) {
