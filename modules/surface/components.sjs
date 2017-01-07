@@ -45,17 +45,26 @@ var TextFieldMechanism = @Mechanism(function(node) {
     if (node.firstChild.value)
       node.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
     node.firstChild.nextSibling.classList.remove('mho-textfield__label--not-initialized');
+    node.firstChild .. @events('input') .. @each { 
+      ||
+      if (node.firstChild.value) {
+        node.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
+      }
+      else {
+        node.firstChild.nextSibling.classList.remove('mho-textfield__label--float-above');
+      }
+    }
   }
   and {
     // focus lifecycle
     while (1) {
       node.firstChild .. @wait('focus');
       node.classList.add('mho-textfield--focused');
-      node.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
+      //node.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
       
       node.firstChild .. @wait('blur');
       node.classList.remove('mho-textfield--focused');
-      if (!node.firstChild.value) node.firstChild.nextSibling.classList.remove('mho-textfield__label--float-above');
+      //if (!node.firstChild.value) node.firstChild.nextSibling.classList.remove('mho-textfield__label--float-above');
     }
   }
 });

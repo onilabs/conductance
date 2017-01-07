@@ -122,7 +122,9 @@ var TextField = `
     }
 
     .mho-textfield__label {
-      color: var(--mho-theme-primary);
+      &--float-above {
+        color: var(--mho-theme-primary);
+      }
     }
   }
 
