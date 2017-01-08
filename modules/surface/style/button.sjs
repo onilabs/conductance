@@ -48,6 +48,10 @@ var Button = `
     letter-spacing: 0.04em;
     text-decoration: none;
 
+    + .mho-button {
+      margin-left: 8px;
+    }
+
     &::before {
       position: absolute;
       top: 0;
