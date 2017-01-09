@@ -25,28 +25,30 @@ if (require('sjs:sys').hostenv === 'xbrowser') {
 
 @ = require(modules);
 
+//----------------------------------------------------------------------
+
 /**
    @class ServicesRegistry
    @summary Object keeping track of services configuration data
-   @function ServicesRegistry
-   @param {./flux/kv::KVStore} [kvstore] Key-Value store for holding configuration data (e.g. typically a [./flux/kv::Subspace] of an [./flux/kv::Encrypted] persistent [./flux/kv::LocalDB])
+   @desc
+      There is a well-known global services registry which is used by [::withServices] and [::withService]. It needs to be initialized before use with [::initGlobalRegistry].
+   @variable ServicesRegistry.kvstore
+   @summary [./flux/kv::KVStore] Key-Value store holding configuration data for registered services
+   @variable ServicesRegistry.instances 
+   @summary Hash of `instance_name: service_descriptor`. See [::initGlobalRegistry] for format of `service_descriptor`.
 */
-exports.ServicesRegistry = function(kvstore) {
-  return {
-    kvstore:  kvstore,
-    instances: {}
-  };
-};
+var gServicesRegistry;
 
-var modulesConfigDB = registry -> registry.kvstore .. @kv.Subspace('modules');
+var gRunningInstances = {};
 
 /**
-   @function register
-   @summary Register services for management by a ServicesRegistry instance
-   @param {::ServicesRegistry} [registry] 
-   @param {Object} [service_instances] Hash of `instance_name: service descriptors`
+   @function ServicesRegistry
+   @param {./flux/kv::KVStore} [config_store] Key-value store for holding configuration data
+   @param {Object} [service_instances] Hash of services to register
    @desc
-      A service descriptor is an object:
+      `config_store` will typically be a persistent [./flux/kv::LocalDB] configuration database that is encrypted ([./flux/kv::Encrypted]).
+
+      `service_instances` is a hash of `instance_name: service_descriptor`, where a service descriptor is an object:
 
           {
             name:          Service name (String),
@@ -71,17 +73,49 @@ var modulesConfigDB = registry -> registry.kvstore .. @kv.Subspace('modules');
       that defines a [mho:surface/field::] based configuration ui. 
       The [mho:surface::Element] will be instantiated in the context of 
       a [mho:surface/field::FieldMap].
-      
+
+     Usually an application will only use the well-known global services registry initialized with [::initGlobalRegistry]. To facilitate
+     configuration of other registries (with [::configUI]), this function can be used to initialize auxilliary registaries.
+*/
+function ServicesRegistry(config_store, service_instances) {
+  return {
+    kvstore: config_store,
+    instances: service_instances
+  };
+}
+exports.ServicesRegistry = ServicesRegistry;
+
+//----------------------------------------------------------------------
+
+/**
+   @function getGlobalRegistry
+   @summary Return the global [::ServicesRegistry]
+   
+*/
+function getGlobalRegistry() {
+  if (!gServicesRegistry) throw new Error("Global services registry is not initialized");
+  return gServicesRegistry;
+};
+
+
+/**
+    @function initGlobalRegistry
+    @summary Initialize the global [::ServicesRegistry]
+    @param {::ServicesRegistry} [registry] Registry object
+    @desc
+      This function needs to be called before using the global [::ServicesRegistry] with one of the functions [::withServices],
+      [::withService], or [::getGlobalRegistry].
 
 */
-exports.register = function(registry, service_instances) {
-  service_instances .. @ownPropertyPairs .. @each {
-    |[instance,descriptor]|
-    if (registry.instances[instance]) 
-      throw new Error("Service Instance #{instance} already registered");
-    registry.instances[instance] = descriptor;
-  }
-};
+function initGlobalRegistry(registry) {
+  if (gServicesRegistry) throw new Error("Global services registry is already initialized");
+  gServicesRegistry = registry;
+}
+exports.initGlobalRegistry = initGlobalRegistry;
+
+
+var modulesConfigDB = registry -> registry.kvstore .. @kv.Subspace('modules');
+
 
 /**
    @variable builtinServices
@@ -132,14 +166,31 @@ exports.builtinServices = {
       }
 };
 
+/**
+   @function withService
+   @altsyntax withService(instance_name) { |instance| ... }
+   @param {String} [instance_name]
+   @param {Function} [block]
+   @summary A shorthand for `withServices({required: [instance_name]}, instances -> block(instances[instance_name]))`
+*/
+function withService(instance_name, block) {
+  withServices([instance_name]) { 
+    |instances|
+    block(instances[instance_name]);
+  }
+}
+exports.withService = withService;
 
 /**
-   @function run
-   @summary Run all enabled registered services
-   @param {::ServicesRegistry} [registry]
-   @param {Function} [block] Block bounding services lifetime
-   @desc 
-     `run` creates service instances for each enabled service in the registry by calling each
+   @function withServices
+   @altsyntax withServices(required) { |{instance1, instance2, ...}| ... }
+   @summary Execute `block` with the given running service instances
+   @param {Object} [settings]
+   @param {Function} [block] Function that will be called with a hash of `instance_name: instance`.
+   @setting {Array} [required] Array of instance names of required services
+   @setting {Array} [optional] Array of instance names of optional services
+   @desc
+     `withServices` runs service instance in the registry by calling each
      service's exported `run` function (see description for [::register]).
 
      `block` will be passed a 'services' object containing the created service instances:
@@ -149,39 +200,84 @@ exports.builtinServices = {
            ...
          }
 
-    If a particular requested service is disabled, a warning will be
+    If a particular **optional** requested service instance is disabled, a warning will be
     written to the console and the corresponding `instance_name` in the services
     object will be set to `null`.
 
-    If a service is requested that hasn't been [::register]ed an exception will be thrown.
-*/
-exports.run = function(registry, block) {
-  
-  try {
-    var service_ctxs = [];
-    var services = {};
-    registry.instances .. @ownPropertyPairs .. @each.par {
-      |[instance_name, descriptor]|
-      var config = registry .. modulesConfigDB .. @kv.get("#{instance_name}@#{descriptor.service}", undefined);
-      if (!config || !config.enabled) {
-        console.log("WARNING: Service '#{instance_name}' is not enabled");
-        continue;
-      }
-      var ctx = @breaking {|brk| 
-        require(descriptor.service).run(config.config, brk);
-      };  
-      service_ctxs.push(ctx);
-      services[instance_name] = ctx.value;
-    }
 
-    block(services);
+    An error will be thrown if a `required` service is disabled or not registered; a warning will be emitted if an `optional` service is disabled or not registered.
+   
+    The execution of service instances is reference-counted: `withServices` will start a service if it is not running yet, and a
+    service will be terminated when all `withServices` calls that have requested it have terminated.
+ */
+function withServices(settings, block) {
+  if (Array.isArray(settings))
+    settings = { required: settings, optional: [] };
+  else
+    settings = { required: [], optional: [] } .. @override(settings);
+
+  var instances = {};
+
+  try {
+    @concat(settings.required .. @transform(name -> [name, true]),
+            settings.optional .. @transform(name -> [name, false])) ..
+      @each.par {
+        |[instance_name, required]| 
+        var run_info = gRunningInstances[instance_name];
+        
+        if (!run_info) {
+          var instance_info = getGlobalRegistry().instances[instance_name];
+          if (!instance_info) {
+            if (required) 
+              throw new Error("Required service instance #{instance_name} not registered.");
+            else {
+              console.log("Optional service instance #{instance_name} not registered. Ignoring.");
+              instances[instance_name] = null;
+              continue;
+            }
+          }
+          var service_config = getGlobalRegistry() .. modulesConfigDB .. @kv.get("#{instance_name}@#{instance_info.service}", undefined);
+          if (!service_config || !service_config.enabled) {
+          if (required)
+            throw new Error("Required service instance #{instance_name}@#{instance_info.service} not enabled");
+            else {
+              console.log("Optional service instance #{instance_name}@#{instance_info.service} not enabled. Ignoring.");
+              instances[instance_name] = null;
+              continue;
+            }
+          }
+          
+          gRunningInstances[instance_name] = run_info = { 
+            ref_count: 0,
+            api: @Condition(),
+            stratum: spawn (function() { try { hold(0); require(instance_info.service).run(service_config.config) { |api| console.log("Started service instance #{instance_name}@#{instance_info.service}"); run_info.api.set(api); hold(); }; } catch(e) { run_info.api.set(new Error(e)); } })()
+          };
+        }
+        // so far the block has been synchronous. we have a hold(0) in the stratum above, so that reentrant calls to withServices from 
+        // within the run() call see the run_info we've created (very unlikely case, and probably dead-locking case - with a service requesting itself -  but hey)
+        ++run_info.ref_count;
+        var api = run_info.api.wait();
+        if (api instanceof Error) throw api;
+        instances[instance_name] = api;
+      }
+    
+    // now run our caller's block:
+    block(instances);
   }
   finally {
-    // clean up after services
-    service_ctxs .. @each.par { |ctx| ctx.resume(); }
+    // de-ref & potentially stop services
+    instances .. @ownPropertyPairs .. @each {
+      |[instance_name, val]|
+      if (val === null) continue;
+      if (--gRunningInstances[instance_name].ref_count <= 0) {
+        console.log("Terminating service instance #{instance_name}");
+        gRunningInstances[instance_name].stratum.abort();
+        delete gRunningInstances[instance_name];
+      }
+    }
   }
-};
-
+}
+exports.withServices = withServices;
 
 //----------------------------------------------------------------------
 // Config UI (client-side only)
