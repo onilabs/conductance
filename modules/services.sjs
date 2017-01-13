@@ -98,7 +98,7 @@ function getGlobalRegistry() {
   if (!gServicesRegistry) throw new Error("Global services registry is not initialized");
   return gServicesRegistry;
 };
-
+exports.getGlobalRegistry = getGlobalRegistry;
 
 /**
     @function initGlobalRegistry
