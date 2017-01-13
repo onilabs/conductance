@@ -77,17 +77,13 @@ exports.run = function(block) {
     |configDB|
   
     // Application Services
-    var registry = @services.ServicesRegistry(configDB .. @kv.Subspace('services'));
+    var registry = @services.ServicesRegistry(configDB .. @kv.Subspace('services'),
+                                              SERVICE_INSTANCES);
 
-    registry .. @services.register(SERVICE_INSTANCES);
+    @services.initGlobalRegistry(registry);
 
-    @env.set('services-registry', registry);
-
-    registry .. @services.run() {
+    @services.withServices({optional: SERVICE_INSTANCES .. @ownKeys .. @toArray}) {
       |services|
-
-      @env.set('services', services);
-
       block(services);
     }
   }

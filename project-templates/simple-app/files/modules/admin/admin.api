@@ -9,6 +9,9 @@
  * according to the terms contained in the LICENSE file.
  */
 
-@ = require('mho:std');
+@ = require([
+  {id: 'mho:services', name: 'services'},
+  'mho:std'
+]);
 
-exports.servicesRegistry = @env('services-registry');
+exports.getServicesRegistry = @services.getGlobalRegistry;

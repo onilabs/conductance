@@ -10,7 +10,7 @@
 @withAPI('./admin.api') {
   |api|
 
-  @mainContent .. @appendContent(api.servicesRegistry .. @services.configUI) {
+  @mainContent .. @appendContent(api.getServicesRegistry() .. @services.configUI) {
     ||
     hold();
   }
