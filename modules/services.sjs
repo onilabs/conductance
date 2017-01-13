@@ -35,7 +35,7 @@ if (require('sjs:sys').hostenv === 'xbrowser') {
    @variable ServicesRegistry.kvstore
    @summary [./flux/kv::KVStore] Key-Value store holding configuration data for registered services
    @variable ServicesRegistry.instances 
-   @summary Hash of `instance_name: service_descriptor`. See [::initGlobalRegistry] for format of `service_descriptor`.
+   @summary Hash of `instance_name: service_descriptor`.
 */
 var gServicesRegistry;
 
@@ -54,7 +54,8 @@ var gRunningInstances = {};
             name:          Service name (String),
             description:   Description of service in markdown format (String, optional),
             service:       Id of the service module (String),
-            admin:         Id of an associated admin module (String, optional)
+            admin:         Id of an associated admin module (String, optional),
+            instance_params: Parameter object to pass to service instance upon creation (Object, optional)
           }
 
       Registered services instances get an entry in the registry's associated key-value store, where they
@@ -64,7 +65,8 @@ var gRunningInstances = {};
       sjs modules (and they can point to the same module).
 
       The service module is expected to export a `run` function that takes two arguments:
-      a 'config' argument that will receive the current service configuration and a 
+      a 'config' argument that will receive the current service configuration merged with the
+      instance_params object (if any) and a 
       'block' argument which is a function bounding the lifetime of the service. `run` 
       is expected to pass the service instance to 'block'.
 
@@ -191,7 +193,7 @@ exports.withService = withService;
    @setting {Array} [optional] Array of instance names of optional services
    @desc
      `withServices` runs service instance in the registry by calling each
-     service's exported `run` function (see description for [::register]).
+     service's exported `run` function (see description for [::ServicesRegistry]).
 
      `block` will be passed a 'services' object containing the created service instances:
 
@@ -250,7 +252,7 @@ function withServices(settings, block) {
           gRunningInstances[instance_name] = run_info = { 
             ref_count: 0,
             api: @Condition(),
-            stratum: spawn (function() { try { hold(0); require(instance_info.service).run(service_config.config) { |api| console.log("Started service instance #{instance_name}@#{instance_info.service}"); run_info.api.set(api); hold(); }; } catch(e) { run_info.api.set(new Error(e)); } })()
+            stratum: spawn (function() { try { hold(0); require(instance_info.service).run(service_config.config .. @merge(instance_info.instance_params)) { |api| console.log("Started service instance #{instance_name}@#{instance_info.service}"); run_info.api.set(api); hold(); }; } catch(e) { run_info.api.set(new Error(e)); } })()
           };
         }
         // so far the block has been synchronous. we have a hold(0) in the stratum above, so that reentrant calls to withServices from 
