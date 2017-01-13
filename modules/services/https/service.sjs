@@ -14,7 +14,7 @@
   @desc
      * Automatically obtains and renews HTTPS TLS certificates using [certbot](https://certbot.eff.org/).
 
-     * For initial retrieval of certificates, see [::HttpsService.updateCredentials].
+     * For initial retrieval of certificates, see [::HttpsService::updateCredentials].
 
      * For automated renewal, the project using the service needs to run a webserver on port 80 that serves the directory `/var/letsencrypt/.well-known/` under the URL `/.well-known/` - see [::ChallengeDirectory] for a ready-made [mho:server::Route] that can be used in a [mho:server::run] configuration.
 */
