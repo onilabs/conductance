@@ -23,6 +23,11 @@ var logging = require('sjs:logging');
 var _config = require('./_config');
 var env = require('./env');
 
+// ensure that SIGINT (e.g. from CTRL-C) & SIGTERM (e.g. from docker-compose down ) actually shuts us down:
+process.on('SIGINT', function() { console.log("SIGINT"); process.exit(0); });
+process.on('SIGTERM', function() { console.log("SIGTERM"); process.exit(0); });
+
+
 __js var banner = "
 
               O N I   C O N D U C T A N C E
@@ -160,8 +165,6 @@ exports.serve = function(args) {
           console.warn(output);
         })
       ;
-      // ensure that a SIGINT (e.g. from docker-compose run ) actually shuts us down:
-      process.on('SIGINT', function() { process.exit(0); });
     }
     // never return
     hold();
