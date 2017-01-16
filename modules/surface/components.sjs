@@ -38,33 +38,35 @@ exports.Btn = Btn;
 
 var TextFieldMechanism = @Mechanism(function(node) {
 
+  var input_compound = node.firstChild;
+
   waitfor {
     // XXX this is probably not the best way. we want to initialize the label in a way
     // that prevents a FOUC
     hold(0); // give input field a chance to initialize from observable; XXX maybe use a prioritized mechanism on inputs instead
-    if (node.firstChild.value)
-      node.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
-    node.firstChild.nextSibling.classList.remove('mho-textfield__label--not-initialized');
-    node.firstChild .. @events('input') .. @each { 
+    if (input_compound.firstChild.value)
+      input_compound.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
+    input_compound.firstChild.nextSibling.classList.remove('mho-textfield__label--not-initialized');
+    input_compound.firstChild .. @events('input') .. @each { 
       ||
-      if (node.firstChild.value) {
-        node.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
+      if (input_compound.firstChild.value) {
+        input_compound.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
       }
       else {
-        node.firstChild.nextSibling.classList.remove('mho-textfield__label--float-above');
+        input_compound.firstChild.nextSibling.classList.remove('mho-textfield__label--float-above');
       }
     }
   }
   and {
     // focus lifecycle
     while (1) {
-      node.firstChild .. @wait('focus');
+      input_compound.firstChild .. @wait('focus');
       node.classList.add('mho-textfield--focused');
-      //node.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
+      //input_compound.firstChild.nextSibling.classList.add('mho-textfield__label--float-above');
       
-      node.firstChild .. @wait('blur');
+      input_compound.firstChild .. @wait('blur');
       node.classList.remove('mho-textfield--focused');
-      //if (!node.firstChild.value) node.firstChild.nextSibling.classList.remove('mho-textfield__label--float-above');
+      //if (!input_compound.firstChild.value) node.firstChild.nextSibling.classList.remove('mho-textfield__label--float-above');
     }
   }
 });
@@ -90,25 +92,24 @@ function TextField(settings) {
   }
 
   var innerHtml = [
-    control,
-    @Label('mho-textfield__label mho-textfield__label--not-initialized') :: settings.label
+    @Div('mho-textfield__input_compound') :: [
+      control,
+      @Label('mho-textfield__label mho-textfield__label--not-initialized') :: settings.label
+    ]
   ];
+
+  if (settings.help) {
+    var help_classes = ['mho-textfield__helptext'];
+    if (settings.persistent_help)
+      help_classes.push('mho-textfield__helptext--persistent');
+    innerHtml.push(@P(help_classes.join(" ")) :: settings.help);
+  }
 
   var outer_classes = ['mho-textfield'];
   if (settings.type === 'multiline') outer_classes.push('mho-textfield--multiline');
 
   var outerHtml = @Div(outer_classes.join(" ")) .. TextFieldMechanism :: 
     innerHtml;
-
-  if (settings.help) {
-    var help_classes = ['mho-textfield-helptext'];
-    if (settings.persistent_help)
-      help_classes.push('mho-textfield-helptext--persistent');
-    outerHtml = @Div('mho-textfield-container') :: [
-      outerHtml, 
-      @P(help_classes.join(" ")) :: settings.help
-    ];
-  }
 
   return @field.Field({name:settings.name, Value:settings.Value, ValidationState:settings.ValidationState}) :: outerHtml;
 }
