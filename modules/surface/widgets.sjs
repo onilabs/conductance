@@ -561,7 +561,7 @@ function overlay(content, settings, block) {
     `
     @global {
       .mho-overlay {
-        z-index: #{settings.zindex};
+        z-index: ${settings.zindex};
         overflow-y: scroll;
         top: 0; 
         left: 0;
