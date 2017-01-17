@@ -220,6 +220,9 @@ module.exports = require(modules);
   static [::Document] context an error will be thrown if a Stream is
   encountered.
 
+  A quasi-valued `style` is allowed to contain interpolated values which are quasis themselves.
+  Note that currently Stream-valued interpolated values are only allowed in the top-level quasi.
+
   If `style` is an array, the first element is an object of flags, and the second element
   the 'actual' style (i.e. a string or quasi, as explained above). The following flags are
   supported:

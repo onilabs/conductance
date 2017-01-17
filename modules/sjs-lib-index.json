@@ -7001,6 +7001,12 @@
           "children": {
             "ServicesRegistry": {
               "type": "ctor"
+            },
+            "instances": {
+              "type": "variable"
+            },
+            "kvstore": {
+              "type": "variable"
             }
           }
         },
@@ -7010,10 +7016,16 @@
         "configUI": {
           "type": "function"
         },
-        "register": {
+        "getGlobalRegistry": {
           "type": "function"
         },
-        "run": {
+        "initGlobalRegistry": {
+          "type": "function"
+        },
+        "withService": {
+          "type": "function"
+        },
+        "withServices": {
           "type": "function"
         }
       },
@@ -7312,6 +7324,17 @@
           },
           "summary": "HTML command routing abstractions"
         },
+        "components": {
+          "type": "module",
+          "children": {
+            "Btn": {
+              "type": "function"
+            },
+            "TextField": {
+              "type": "function"
+            }
+          }
+        },
         "doc-fragment": {
           "type": "module",
           "children": {
@@ -7498,9 +7521,6 @@
             "Select": {
               "type": "function"
             },
-            "Submit": {
-              "type": "function"
-            },
             "TextArea": {
               "type": "function"
             },
@@ -7576,7 +7596,13 @@
             "dialog": {
               "type": "function"
             },
-            "dialog.Body": {
+            "dialog.Actions": {
+              "type": "function"
+            },
+            "dialog.Content": {
+              "type": "function"
+            },
+            "dialog.Title": {
               "type": "function"
             },
             "doDropdown": {
