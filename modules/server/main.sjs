@@ -23,10 +23,6 @@ var logging = require('sjs:logging');
 var _config = require('./_config');
 var env = require('./env');
 
-// ensure that SIGINT (e.g. from CTRL-C) & SIGTERM (e.g. from docker-compose down ) actually shuts us down:
-process.on('SIGINT', function() { console.log("SIGINT"); process.exit(0); });
-process.on('SIGTERM', function() { console.log("SIGTERM"); process.exit(0); });
-
 
 __js var banner = "
 
@@ -106,7 +102,19 @@ exports.run = function(args) {
     }
     return usage();
   }
-  action.fn(args);
+
+  waitfor {
+    // ensure that SIGINT (e.g. from CTRL-C) & SIGTERM (e.g. from docker-compose down ) actually shuts us down:
+    waitfor () { 
+      process.on('SIGINT', resume);
+      process.on('SIGTERM', resume);
+    }
+  }
+  or {
+    action.fn(args);
+  }
+  // this process.exit(0) to kill any stray strata. XXX not sure this is a good idea?
+  process.exit(0);
 };
 
 exports.exec = function(args) {
