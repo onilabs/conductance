@@ -18,6 +18,7 @@
 ])
 
 
+//----------------------------------------------------------------------
 /**
    @function Btn
    @summary XXX Document me
@@ -30,6 +31,7 @@ function Btn(content, types) {
 }
 exports.Btn = Btn;
 
+//----------------------------------------------------------------------
 /**
    @function TextField
    @summary XXX Document me
@@ -115,3 +117,13 @@ function TextField(settings) {
 }
 exports.TextField = TextField;
 
+//----------------------------------------------------------------------
+/**
+   @function PermanentDrawer
+   @summary XXX document me
+*/
+function PermanentDrawer(content, settings) {
+  return @Nav("mho-permanent-drawer") :: 
+           @Div("mho-permanent-drawer__content") :: [@Div::'YEAH',content];
+}
+exports.PermanentDrawer = PermanentDrawer;

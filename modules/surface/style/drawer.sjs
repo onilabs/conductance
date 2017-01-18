@@ -10,44 +10,27 @@
  */
 
 /**
-@summary Common CSS Style definitions
-@hostenv xbrowser
+   @nodoc
 */
-
 
 @ = require([
   'sjs:std',
-  {id:'./base', include: ['GlobalCSS']},
-  './style/normalize',
-  './style/typography',
-  './style/button',
-  './style/textfield',
-  './style/color',
-  './style/drawer'
+  {id:'./helpers', name: 'helpers'}
 ]);
-
 
 //----------------------------------------------------------------------
 // Surface Default Theme; heavily inspired by https://getmdl.io & https://material.io
 
-var CSSSurfaceDefault = [
-  @CSSNormalize,
-  @GlobalCSS(`
-  :root {
-    --mho-theme-primary: #3f51b5/* #729f98 */;
-    --mho-theme-accent: #ff4081/*#aa863a*/;
-    --mho-theme-background: #fff/*#fafafa*/;
-  }
-  html, body {
+var Drawer = `
+  .mho-permanent-drawer {
     background-color: var(--mho-theme-background);
-    -webkit-font-smoothing: antialiased;
-  }     
-
-  $@Color
-  $@Typography
-  $@Button
-  $@TextField
-  $@Drawer
-  `)
-];
-exports.CSSSurfaceDefault = CSSSurfaceDefault;
+    border-right: 1px solid #e4e4e4;
+    display: inline-flex;
+    flex-direction: column;
+    width: 240px;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+`;
+exports.Drawer = Drawer;
