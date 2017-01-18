@@ -52,6 +52,12 @@ function non_cancelable_exclusive(f) {
   }
 };
 
+//----------------------------------------------------------------------
+/**
+   @variable Location
+   @summary [sjs:observable::Observable] of the current location.href
+*/
+exports.Location = @ObservableVar(location.href);
 
 //----------------------------------------------------------------------
 // ROUTING TREE CONSTRUCTION:
@@ -303,6 +309,8 @@ var navigate = non_cancelable_exclusive :: function(url, settings) {
   }
 
   // the history entry is set. now actually navigate to the page:
+
+  exports.Location.set(location.href);
 
   // remove diverging nodes:
   if (i < global_active_node_path.length)
