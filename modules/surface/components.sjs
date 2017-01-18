@@ -124,6 +124,45 @@ exports.TextField = TextField;
 */
 function PermanentDrawer(content, settings) {
   return @Nav("mho-permanent-drawer") :: 
-           @Div("mho-permanent-drawer__content") :: [@Div::'YEAH',content];
+           @Div("mho-permanent-drawer__content") :: [@Div::content];
 }
 exports.PermanentDrawer = PermanentDrawer;
+
+
+//----------------------------------------------------------------------
+/**
+   @function List
+   @summary XXX document me
+*/
+
+// helper that should go elsewhere:
+var Href = (elem, address) -> elem .. @Attrib('href', @url.build(address));
+
+var IsURLSelected = url -> @Observable(function(r) {
+  url = @url.normalize(url, location.href) .. @url.canonicalize;
+  var {Location} = require('mho:surface/navigation');
+  Location ..
+    @each {
+      |location|
+      if (url === location)
+        r(true);
+      else
+        r(false);
+    }
+});
+
+function List(content, settings) {
+  return @Ul('mho-list') :: content
+}
+
+List.Item = content -> @Li('mho-list-item') :: content;
+
+List.A = function(content,href) {
+  href = @url.build(href);
+  return @A('mho-list-item') .. 
+    @Attrib('href', href) .. 
+    @Class('mho-list-item--selected', IsURLSelected(href)) :: 
+      content;
+}
+
+exports.List = List;

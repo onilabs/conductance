@@ -23,6 +23,7 @@
   './style/button',
   './style/textfield',
   './style/color',
+  './style/list',
   './style/drawer'
 ]);
 
@@ -47,6 +48,7 @@ var CSSSurfaceDefault = [
   $@Typography
   $@Button
   $@TextField
+  $@List
   $@Drawer
   `)
 ];
