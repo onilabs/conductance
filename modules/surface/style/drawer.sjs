@@ -67,7 +67,7 @@ var Drawer = `
         content:"";
         opacity: 0;
       }
-      &:focus::before, &:hover::before {
+      &:focus::before, &:hover::before, &.mho-list-item--selected::before {
         transition: opacity 180ms ${@helpers.Animation_curve_linear_out_slow_in}; /* XXX should this be fast_out? */
         opacity: .12;
       }
