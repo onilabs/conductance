@@ -28,7 +28,6 @@ var Drawer = `
     display: inline-flex;
     flex-direction: column;
     width: 240px;
-    height: 100%;
     box-sizing: border-box;
     overflow: hidden;
 
