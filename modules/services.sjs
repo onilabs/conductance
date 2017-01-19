@@ -378,7 +378,6 @@ exports.configUI = function(registry, title) {
 
 var ConfigUICSS = @CSS(
   `
-  &.mho-services-ui { margin: 8px; }
   .mho-services-ui__heading { 
     display:flex; 
     align-items: center;
