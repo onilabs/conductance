@@ -24,7 +24,8 @@
   './style/textfield',
   './style/color',
   './style/list',
-  './style/drawer'
+  './style/drawer',
+  './style/toolbar'
 ]);
 
 
@@ -50,6 +51,7 @@ var CSSSurfaceDefault = [
   $@TextField
   $@List
   $@Drawer
+  $@Toolbar
   `)
 ];
 exports.CSSSurfaceDefault = CSSSurfaceDefault;

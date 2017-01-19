@@ -166,3 +166,33 @@ List.A = function(content,href) {
 }
 
 exports.List = List;
+
+//----------------------------------------------------------------------
+/**
+   @function AppBar
+   @summary xxx write me
+*/
+
+var AppBarGlobalCSS = @CSS(`
+  @global {
+    body {
+      padding-top: 56px;
+      box-sizing: border-box;
+    }
+  }
+`);
+
+
+function AppBar(settings) {
+  settings = {
+    title: '',
+    actions: ''
+  } .. @override(settings);
+
+  return @Nav('mho-appbar') .. AppBarGlobalCSS :: [
+    @Div('mho-appbar__navicon') :: '', 
+    @Div('mho-appbar__title') :: settings.title,
+    @Div('mho-appbar__actions') :: settings.actions
+  ]
+}
+exports.AppBar = AppBar;
