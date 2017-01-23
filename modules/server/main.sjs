@@ -103,18 +103,7 @@ exports.run = function(args) {
     return usage();
   }
 
-  waitfor {
-    // ensure that SIGINT (e.g. from CTRL-C) & SIGTERM (e.g. from docker-compose down ) actually shuts us down:
-    waitfor () { 
-      process.on('SIGINT', resume);
-      process.on('SIGTERM', resume);
-    }
-  }
-  or {
-    action.fn(args);
-  }
-  // this process.exit(0) to kill any stray strata. XXX not sure this is a good idea?
-  process.exit(0);
+  action.fn(args);
 };
 
 exports.exec = function(args) {
