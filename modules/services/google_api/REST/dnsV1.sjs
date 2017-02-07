@@ -1,6 +1,6 @@
 // This file was originally generated using conductance/tools/google/generate-google-api dns
 
-/* (c) 2013-2014 Oni Labs, http://onilabs.com
+/* (c) 2013-2017 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *
@@ -13,9 +13,9 @@
 
 
 /**
-  @summary Google Cloud DNS API v1 - The Google Cloud DNS API provides services for configuring and serving authoritative DNS records.
+  @summary Google Cloud DNS API v1 - Configures and serves authoritative DNS records.
   @desc
-    Revision 20150729
+    Revision 20170130
 
     See also https://developers.google.com/cloud-dns.
 */
@@ -41,7 +41,7 @@
    @summary String - Identifies what kind of resource this is. Value: the fixed string "dns#change".
    
    @variable Change.startTime
-   @summary String - The time that this operation was started by the server. This is in RFC3339 text format.
+   @summary String - The time that this operation was started by the server (output only). This is in RFC3339 text format.
    
    @variable Change.status
    @summary String - Status of the operation (output only).
@@ -79,7 +79,7 @@
    @summary String - Identifies what kind of resource this is. Value: the fixed string "dns#managedZone".
    
    @variable ManagedZone.name
-   @summary String - User assigned name for this resource. Must be unique within the project. The name must be 1-32 characters long, must begin with a letter, end with a letter or digit, and only contain lowercase letters, digits or dashes.
+   @summary String - User assigned name for this resource. Must be unique within the project. The name must be 1-63 characters long, must begin with a letter, end with a letter or digit, and only contain lowercase letters, digits or dashes.
    
    @variable ManagedZone.nameServerSet
    @summary String - Optionally specifies the NameServerSet for this ManagedZone. A NameServerSet is a set of DNS name servers that all host the same ManagedZones. Most users will leave this field unset.
@@ -178,7 +178,7 @@ exports.changes = {
   /**
      @function changes.create
      @summary  Atomically update the ResourceRecordSet collection.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Change} [resource] Data of [::Change] structure
      @setting {String} [managedZone] Identifies the managed zone addressed by this request. Can be the managed zone name or id. **Required**
@@ -204,7 +204,7 @@ exports.changes = {
   /**
      @function changes.get
      @summary  Fetch the representation of an existing Change.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [changeId] The identifier of the requested change, from a previous ResourceRecordSetsChangeResponse. **Required**
      @setting {String} [managedZone] Identifies the managed zone addressed by this request. Can be the managed zone name or id. **Required**
@@ -215,7 +215,7 @@ exports.changes = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/ndev.clouddns.readonly - View your DNS records hosted by Google Cloud DNS
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
@@ -231,7 +231,7 @@ exports.changes = {
   /**
      @function changes.list
      @summary  Enumerate Changes to a ResourceRecordSet collection.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [managedZone] Identifies the managed zone addressed by this request. Can be the managed zone name or id. **Required**
      @setting {optional Integer} [maxResults] Optional. Maximum number of results to be returned. If unspecified, the server will decide how many results to return.
@@ -245,7 +245,7 @@ exports.changes = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/ndev.clouddns.readonly - View your DNS records hosted by Google Cloud DNS
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
@@ -265,7 +265,7 @@ exports.managedZones = {
   /**
      @function managedZones.create
      @summary  Create a new ManagedZone.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::ManagedZone} [resource] Data of [::ManagedZone] structure
      @setting {String} [project] Identifies the project addressed by this request. **Required**
@@ -290,7 +290,7 @@ exports.managedZones = {
   /**
      @function managedZones.delete
      @summary  Delete a previously created ManagedZone.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [managedZone] Identifies the managed zone addressed by this request. Can be the managed zone name or id. **Required**
      @setting {String} [project] Identifies the project addressed by this request. **Required**
@@ -315,7 +315,7 @@ exports.managedZones = {
   /**
      @function managedZones.get
      @summary  Fetch the representation of an existing ManagedZone.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [managedZone] Identifies the managed zone addressed by this request. Can be the managed zone name or id. **Required**
      @setting {String} [project] Identifies the project addressed by this request. **Required**
@@ -325,7 +325,7 @@ exports.managedZones = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/ndev.clouddns.readonly - View your DNS records hosted by Google Cloud DNS
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
@@ -341,7 +341,7 @@ exports.managedZones = {
   /**
      @function managedZones.list
      @summary  Enumerate ManagedZones that have been created but not yet deleted.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional String} [dnsName] Restricts the list to return only zones with this domain name.
      @setting {optional Integer} [maxResults] Optional. Maximum number of results to be returned. If unspecified, the server will decide how many results to return.
@@ -353,7 +353,7 @@ exports.managedZones = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/ndev.clouddns.readonly - View your DNS records hosted by Google Cloud DNS
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
@@ -373,7 +373,7 @@ exports.projects = {
   /**
      @function projects.get
      @summary  Fetch the representation of an existing Project.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [project] Identifies the project addressed by this request. **Required**
      @return {::Project}
@@ -382,7 +382,7 @@ exports.projects = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/ndev.clouddns.readonly - View your DNS records hosted by Google Cloud DNS
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */
@@ -402,7 +402,7 @@ exports.resourceRecordSets = {
   /**
      @function resourceRecordSets.list
      @summary  Enumerate ResourceRecordSets that have been created but not yet deleted.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [managedZone] Identifies the managed zone addressed by this request. Can be the managed zone name or id. **Required**
      @setting {optional Integer} [maxResults] Optional. Maximum number of results to be returned. If unspecified, the server will decide how many results to return.
@@ -416,7 +416,7 @@ exports.resourceRecordSets = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/ndev.clouddns.readonly - View your DNS records hosted by Google Cloud DNS
         * https://www.googleapis.com/auth/ndev.clouddns.readwrite - View and manage your DNS records hosted by Google Cloud DNS
   */

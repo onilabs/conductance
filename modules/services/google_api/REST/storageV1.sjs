@@ -1,6 +1,6 @@
 // This file was originally generated using conductance/tools/google/generate-google-api storage
 
-/* (c) 2013-2014 Oni Labs, http://onilabs.com
+/* (c) 2013-2017 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *
@@ -13,9 +13,9 @@
 
 
 /**
-  @summary Cloud Storage API v1 - Lets you store and retrieve potentially-large, immutable data objects.
+  @summary Cloud Storage JSON API v1 - Stores and retrieves potentially large, immutable data objects.
   @desc
-    Revision 20150723
+    Revision 20170123
 
     See also https://developers.google.com/storage/docs/json_api/.
 */
@@ -41,7 +41,7 @@
    @summary String - HTTP 1.1 Entity tag for the bucket.
    
    @variable Bucket.id
-   @summary String - The ID of the bucket.
+   @summary String - The ID of the bucket. For buckets, the id and name properities are the same.
    
    @variable Bucket.kind
    @summary String - The kind of item this is. For buckets, this is always storage#bucket.
@@ -71,16 +71,19 @@
    @summary String - The URI of this bucket.
    
    @variable Bucket.storageClass
-   @summary String - The bucket's storage class. This defines how objects in the bucket are stored and determines the SLA and the cost of storage. Values include STANDARD, NEARLINE and DURABLE_REDUCED_AVAILABILITY. Defaults to STANDARD. For more information, see storage classes.
+   @summary String - The bucket's default storage class, used whenever no storageClass is specified for a newly-created object. This defines how objects in the bucket are stored and determines the SLA and the cost of storage. Values include MULTI_REGIONAL, REGIONAL, STANDARD, NEARLINE, COLDLINE, and DURABLE_REDUCED_AVAILABILITY. If this value is not specified when the bucket is created, it will default to STANDARD. For more information, see storage classes.
    
    @variable Bucket.timeCreated
-   @summary String - Creation time of the bucket in RFC 3339 format.
+   @summary String - The creation time of the bucket in RFC 3339 format.
+   
+   @variable Bucket.updated
+   @summary String - The modification time of the bucket in RFC 3339 format.
    
    @variable Bucket.versioning
    @summary Object - The bucket's versioning configuration.
    
    @variable Bucket.website
-   @summary Object - The bucket's website configuration.
+   @summary Object - The bucket's website configuration, controlling how the service behaves when accessing bucket contents as a web site. See the Static Website Examples for more information.
    
    @class BucketAccessControl
    @summary Google API JSON structure
@@ -124,7 +127,7 @@
    @summary Object - The project team associated with the entity, if any.
    
    @variable BucketAccessControl.role
-   @summary String - The access permission for the entity. Can be READER, WRITER, or OWNER.
+   @summary String - The access permission for the entity.
    
    @variable BucketAccessControl.selfLink
    @summary String - The link to this access-control entry.
@@ -205,7 +208,7 @@
    @summary String - The name of the bucket containing this object.
    
    @variable Object.cacheControl
-   @summary String - Cache-Control directive for the object data.
+   @summary String - Cache-Control directive for the object data. If omitted, and the object is accessible to all anonymous users, the default will be public, max-age=3600.
    
    @variable Object.componentCount
    @summary Integer - Number of underlying components that make up this object. Components are accumulated by compose operations.
@@ -220,10 +223,13 @@
    @summary String - Content-Language of the object data.
    
    @variable Object.contentType
-   @summary String - Content-Type of the object data.
+   @summary String - Content-Type of the object data. If contentType is not specified, object downloads will be served as application/octet-stream.
    
    @variable Object.crc32c
    @summary String - CRC32c checksum, as described in RFC 4960, Appendix B; encoded using base64 in big-endian byte order. For more information about using the CRC32c checksum, see Hashes and ETags: Best Practices.
+   
+   @variable Object.customerEncryption
+   @summary Object - Metadata of customer-supplied encryption key, if the object is encrypted by such a key.
    
    @variable Object.etag
    @summary String - HTTP 1.1 Entity tag for the object.
@@ -232,7 +238,7 @@
    @summary String - The content generation of this object. Used for object versioning.
    
    @variable Object.id
-   @summary String - The ID of the object.
+   @summary String - The ID of the object, including the bucket name, object name, and generation number.
    
    @variable Object.kind
    @summary String - The kind of item this is. For objects, this is always storage#object.
@@ -250,7 +256,7 @@
    @summary String - The version of the metadata for this object at this generation. Used for preconditions and for detecting changes in metadata. A metageneration number is only meaningful in the context of a particular generation of a particular object.
    
    @variable Object.name
-   @summary String - The name of this object. Required if not specified by URL parameter.
+   @summary String - The name of the object. Required if not specified by URL parameter.
    
    @variable Object.owner
    @summary Object - The owner of the object. This will always be the uploader of the object.
@@ -264,11 +270,17 @@
    @variable Object.storageClass
    @summary String - Storage class of the object.
    
+   @variable Object.timeCreated
+   @summary String - The creation time of the object in RFC 3339 format.
+   
    @variable Object.timeDeleted
    @summary String - The deletion time of the object in RFC 3339 format. Will be returned if and only if this version of the object has been deleted.
    
+   @variable Object.timeStorageClassUpdated
+   @summary String - The time at which the object's storage class was last changed. When the object is initially created, it will be set to timeCreated.
+   
    @variable Object.updated
-   @summary String - The creation or modification time of the object in RFC 3339 format. For buckets with versioning enabled, changing an object's metadata does not change this property.
+   @summary String - The modification time of the object metadata in RFC 3339 format.
    
    @class ObjectAccessControl
    @summary Google API JSON structure
@@ -303,7 +315,7 @@
    @summary String - HTTP 1.1 Entity tag for the access-control entry.
    
    @variable ObjectAccessControl.generation
-   @summary String - The content generation of the object.
+   @summary String - The content generation of the object, if applied to an object.
    
    @variable ObjectAccessControl.id
    @summary String - The ID of the access-control entry.
@@ -312,13 +324,13 @@
    @summary String - The kind of item this is. For object access control entries, this is always storage#objectAccessControl.
    
    @variable ObjectAccessControl.object
-   @summary String - The name of the object.
+   @summary String - The name of the object, if applied to an object.
    
    @variable ObjectAccessControl.projectTeam
    @summary Object - The project team associated with the entity, if any.
    
    @variable ObjectAccessControl.role
-   @summary String - The access permission for the entity. Can be READER or OWNER.
+   @summary String - The access permission for the entity.
    
    @variable ObjectAccessControl.selfLink
    @summary String - The link to this access-control entry.
@@ -374,7 +386,7 @@ exports.bucketAccessControls = {
   /**
      @function bucketAccessControls.delete
      @summary  Permanently deletes the ACL entry for the specified entity on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {String} [entity] The entity holding the permission. Can be user-userId, user-emailAddress, group-groupId, group-emailAddress, allUsers, or allAuthenticatedUsers. **Required**
@@ -383,6 +395,7 @@ exports.bucketAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   'delete': function(client, params) {
@@ -398,7 +411,7 @@ exports.bucketAccessControls = {
   /**
      @function bucketAccessControls.get
      @summary  Returns the ACL entry for the specified entity on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {String} [entity] The entity holding the permission. Can be user-userId, user-emailAddress, group-groupId, group-emailAddress, allUsers, or allAuthenticatedUsers. **Required**
@@ -407,6 +420,7 @@ exports.bucketAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   get: function(client, params) {
@@ -421,7 +435,7 @@ exports.bucketAccessControls = {
   /**
      @function bucketAccessControls.insert
      @summary  Creates a new ACL entry on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::BucketAccessControl} [resource] Data of [::BucketAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
@@ -430,6 +444,7 @@ exports.bucketAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   insert: function(client, params) {
@@ -445,7 +460,7 @@ exports.bucketAccessControls = {
   /**
      @function bucketAccessControls.list
      @summary  Retrieves ACL entries on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @return {::BucketAccessControls}
@@ -453,6 +468,7 @@ exports.bucketAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   list: function(client, params) {
@@ -467,7 +483,7 @@ exports.bucketAccessControls = {
   /**
      @function bucketAccessControls.patch
      @summary  Updates an ACL entry on the specified bucket. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::BucketAccessControl} [resource] Data of [::BucketAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
@@ -477,6 +493,7 @@ exports.bucketAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   patch: function(client, params) {
@@ -492,7 +509,7 @@ exports.bucketAccessControls = {
   /**
      @function bucketAccessControls.update
      @summary  Updates an ACL entry on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::BucketAccessControl} [resource] Data of [::BucketAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
@@ -502,6 +519,7 @@ exports.bucketAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   update: function(client, params) {
@@ -521,7 +539,7 @@ exports.buckets = {
   /**
      @function buckets.delete
      @summary  Permanently deletes an empty bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {optional String} [ifMetagenerationMatch] If set, only deletes the bucket if its metageneration matches this value.
@@ -548,7 +566,7 @@ exports.buckets = {
   /**
      @function buckets.get
      @summary  Returns metadata for the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {optional String} [ifMetagenerationMatch] Makes the return of the bucket metadata conditional on whether the bucket's current metageneration matches the given value.
@@ -560,7 +578,7 @@ exports.buckets = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_only - View your data in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
@@ -577,7 +595,7 @@ exports.buckets = {
   /**
      @function buckets.insert
      @summary  Creates a new bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Bucket} [resource] Data of [::Bucket] structure
      @setting {optional String} [predefinedAcl] Apply a predefined set of access controls to this bucket.
@@ -606,7 +624,7 @@ exports.buckets = {
   /**
      @function buckets.list
      @summary  Retrieves a list of buckets for a given project.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional Integer} [maxResults] Maximum number of buckets to return.
      @setting {optional String} [pageToken] A previously-returned page token representing part of the larger set of results to view.
@@ -619,7 +637,7 @@ exports.buckets = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_only - View your data in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
@@ -635,8 +653,8 @@ exports.buckets = {
   
   /**
      @function buckets.patch
-     @summary  Updates a bucket. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @summary  Updates a bucket. Changes to the bucket will be readable immediately after writing, but configuration changes may take time to propagate. This method supports patch semantics.
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Bucket} [resource] Data of [::Bucket] structure
      @setting {String} [bucket] Name of a bucket. **Required**
@@ -652,7 +670,6 @@ exports.buckets = {
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
-        * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
   */
   patch: function(client, params) {
     return client.performRequest({
@@ -666,8 +683,8 @@ exports.buckets = {
   
   /**
      @function buckets.update
-     @summary  Updates a bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @summary  Updates a bucket. Changes to the bucket will be readable immediately after writing, but configuration changes may take time to propagate.
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Bucket} [resource] Data of [::Bucket] structure
      @setting {String} [bucket] Name of a bucket. **Required**
@@ -683,7 +700,6 @@ exports.buckets = {
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
-        * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
   */
   update: function(client, params) {
     return client.performRequest({
@@ -702,7 +718,7 @@ exports.channels = {
   /**
      @function channels.stop
      @summary  Stop watching resources through this channel
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Channel} [resource] Data of [::Channel] structure
      @return {void}
@@ -711,7 +727,7 @@ exports.channels = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_only - View your data in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
@@ -733,7 +749,7 @@ exports.defaultObjectAccessControls = {
   /**
      @function defaultObjectAccessControls.delete
      @summary  Permanently deletes the default object ACL entry for the specified entity on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {String} [entity] The entity holding the permission. Can be user-userId, user-emailAddress, group-groupId, group-emailAddress, allUsers, or allAuthenticatedUsers. **Required**
@@ -742,6 +758,7 @@ exports.defaultObjectAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   'delete': function(client, params) {
@@ -757,7 +774,7 @@ exports.defaultObjectAccessControls = {
   /**
      @function defaultObjectAccessControls.get
      @summary  Returns the default object ACL entry for the specified entity on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {String} [entity] The entity holding the permission. Can be user-userId, user-emailAddress, group-groupId, group-emailAddress, allUsers, or allAuthenticatedUsers. **Required**
@@ -766,6 +783,7 @@ exports.defaultObjectAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   get: function(client, params) {
@@ -780,7 +798,7 @@ exports.defaultObjectAccessControls = {
   /**
      @function defaultObjectAccessControls.insert
      @summary  Creates a new default object ACL entry on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::ObjectAccessControl} [resource] Data of [::ObjectAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
@@ -789,6 +807,7 @@ exports.defaultObjectAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   insert: function(client, params) {
@@ -804,7 +823,7 @@ exports.defaultObjectAccessControls = {
   /**
      @function defaultObjectAccessControls.list
      @summary  Retrieves default object ACL entries on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {optional String} [ifMetagenerationMatch] If present, only return default ACL listing if the bucket's current metageneration matches this value.
@@ -814,6 +833,7 @@ exports.defaultObjectAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   list: function(client, params) {
@@ -828,7 +848,7 @@ exports.defaultObjectAccessControls = {
   /**
      @function defaultObjectAccessControls.patch
      @summary  Updates a default object ACL entry on the specified bucket. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::ObjectAccessControl} [resource] Data of [::ObjectAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
@@ -838,6 +858,7 @@ exports.defaultObjectAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   patch: function(client, params) {
@@ -853,7 +874,7 @@ exports.defaultObjectAccessControls = {
   /**
      @function defaultObjectAccessControls.update
      @summary  Updates a default object ACL entry on the specified bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::ObjectAccessControl} [resource] Data of [::ObjectAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
@@ -863,6 +884,7 @@ exports.defaultObjectAccessControls = {
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   update: function(client, params) {
@@ -882,17 +904,18 @@ exports.objectAccessControls = {
   /**
      @function objectAccessControls.delete
      @summary  Permanently deletes the ACL entry for the specified entity on the specified object.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {String} [entity] The entity holding the permission. Can be user-userId, user-emailAddress, group-groupId, group-emailAddress, allUsers, or allAuthenticatedUsers. **Required**
      @setting {optional String} [generation] If present, selects a specific revision of this object (as opposed to the latest version, the default).
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {void}
      @desc
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   'delete': function(client, params) {
@@ -908,17 +931,18 @@ exports.objectAccessControls = {
   /**
      @function objectAccessControls.get
      @summary  Returns the ACL entry for the specified entity on the specified object.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {String} [entity] The entity holding the permission. Can be user-userId, user-emailAddress, group-groupId, group-emailAddress, allUsers, or allAuthenticatedUsers. **Required**
      @setting {optional String} [generation] If present, selects a specific revision of this object (as opposed to the latest version, the default).
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {::ObjectAccessControl}
      @desc
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   get: function(client, params) {
@@ -933,17 +957,18 @@ exports.objectAccessControls = {
   /**
      @function objectAccessControls.insert
      @summary  Creates a new ACL entry on the specified object.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::ObjectAccessControl} [resource] Data of [::ObjectAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {optional String} [generation] If present, selects a specific revision of this object (as opposed to the latest version, the default).
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {::ObjectAccessControl}
      @desc
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   insert: function(client, params) {
@@ -959,16 +984,17 @@ exports.objectAccessControls = {
   /**
      @function objectAccessControls.list
      @summary  Retrieves ACL entries on the specified object.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {optional String} [generation] If present, selects a specific revision of this object (as opposed to the latest version, the default).
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {::ObjectAccessControls}
      @desc
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   list: function(client, params) {
@@ -983,18 +1009,19 @@ exports.objectAccessControls = {
   /**
      @function objectAccessControls.patch
      @summary  Updates an ACL entry on the specified object. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::ObjectAccessControl} [resource] Data of [::ObjectAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {String} [entity] The entity holding the permission. Can be user-userId, user-emailAddress, group-groupId, group-emailAddress, allUsers, or allAuthenticatedUsers. **Required**
      @setting {optional String} [generation] If present, selects a specific revision of this object (as opposed to the latest version, the default).
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {::ObjectAccessControl}
      @desc
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   patch: function(client, params) {
@@ -1010,18 +1037,19 @@ exports.objectAccessControls = {
   /**
      @function objectAccessControls.update
      @summary  Updates an ACL entry on the specified object.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::ObjectAccessControl} [resource] Data of [::ObjectAccessControl] structure
      @setting {String} [bucket] Name of a bucket. **Required**
      @setting {String} [entity] The entity holding the permission. Can be user-userId, user-emailAddress, group-groupId, group-emailAddress, allUsers, or allAuthenticatedUsers. **Required**
      @setting {optional String} [generation] If present, selects a specific revision of this object (as opposed to the latest version, the default).
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {::ObjectAccessControl}
      @desc
        #### Scopes
        This API call requires authorization with (at least one of) the following scope(s):
        
+        * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
   */
   update: function(client, params) {
@@ -1041,11 +1069,11 @@ exports.objects = {
   /**
      @function objects.compose
      @summary  Concatenates a list of existing objects into a new object in the same bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::ComposeRequest} [resource] Data of [::ComposeRequest] structure
      @setting {String} [destinationBucket] Name of the bucket in which to store the new object. **Required**
-     @setting {String} [destinationObject] Name of the new object. **Required**
+     @setting {String} [destinationObject] Name of the new object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @setting {optional String} [destinationPredefinedAcl] Apply a predefined set of access controls to the destination object.
      @setting {optional String} [ifGenerationMatch] Makes the operation conditional on whether the object's current generation matches the given value.
      @setting {optional String} [ifMetagenerationMatch] Makes the operation conditional on whether the object's current metageneration matches the given value.
@@ -1071,10 +1099,10 @@ exports.objects = {
   /**
      @function objects.copy
      @summary  Copies a source object to a destination object. Optionally overrides metadata.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Object} [resource] Data of [::Object] structure
-     @setting {String} [destinationBucket] Name of the bucket in which to store the new object. Overrides the provided object metadata's bucket value, if any. **Required**
+     @setting {String} [destinationBucket] Name of the bucket in which to store the new object. Overrides the provided object metadata's bucket value, if any.For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @setting {String} [destinationObject] Name of the new object. Required when the object metadata is not otherwise provided. Overrides the object metadata's name value, if any. **Required**
      @setting {optional String} [destinationPredefinedAcl] Apply a predefined set of access controls to the destination object.
      @setting {optional String} [ifGenerationMatch] Makes the operation conditional on whether the destination object's current generation matches the given value.
@@ -1088,7 +1116,7 @@ exports.objects = {
      @setting {optional String} [projection] Set of properties to return. Defaults to noAcl, unless the object resource specifies the acl property, when it defaults to full.
      @setting {String} [sourceBucket] Name of the bucket in which to find the source object. **Required**
      @setting {optional String} [sourceGeneration] If present, selects a specific revision of the source object (as opposed to the latest version, the default).
-     @setting {String} [sourceObject] Name of the source object. **Required**
+     @setting {String} [sourceObject] Name of the source object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {::Object}
      @desc
        #### Scopes
@@ -1111,7 +1139,7 @@ exports.objects = {
   /**
      @function objects.delete
      @summary  Deletes an object and its metadata. Deletions are permanent if versioning is not enabled for the bucket, or if the generation parameter is used.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of the bucket in which the object resides. **Required**
      @setting {optional String} [generation] If present, permanently deletes a specific revision of this object (as opposed to the latest version, the default).
@@ -1119,7 +1147,7 @@ exports.objects = {
      @setting {optional String} [ifGenerationNotMatch] Makes the operation conditional on whether the object's current generation does not match the given value.
      @setting {optional String} [ifMetagenerationMatch] Makes the operation conditional on whether the object's current metageneration matches the given value.
      @setting {optional String} [ifMetagenerationNotMatch] Makes the operation conditional on whether the object's current metageneration does not match the given value.
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {void}
      @desc
        #### Scopes
@@ -1142,7 +1170,7 @@ exports.objects = {
   /**
      @function objects.get
      @summary  Retrieves an object or its metadata.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of the bucket in which the object resides. **Required**
      @setting {optional String} [generation] If present, selects a specific revision of this object (as opposed to the latest version, the default).
@@ -1150,7 +1178,7 @@ exports.objects = {
      @setting {optional String} [ifGenerationNotMatch] Makes the operation conditional on whether the object's generation does not match the given value.
      @setting {optional String} [ifMetagenerationMatch] Makes the operation conditional on whether the object's current metageneration matches the given value.
      @setting {optional String} [ifMetagenerationNotMatch] Makes the operation conditional on whether the object's current metageneration does not match the given value.
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @setting {optional String} [projection] Set of properties to return. Defaults to noAcl.
      @return {::Object}
      @desc
@@ -1158,7 +1186,7 @@ exports.objects = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_only - View your data in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
@@ -1175,7 +1203,7 @@ exports.objects = {
   /**
      @function objects.insert
      @summary  Stores a new object and metadata.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Object} [resource] Data of [::Object] structure
      @setting {String} [media.mimeType] Mime type of media object (accepting \*\/\*)
@@ -1186,7 +1214,7 @@ exports.objects = {
      @setting {optional String} [ifGenerationNotMatch] Makes the operation conditional on whether the object's current generation does not match the given value.
      @setting {optional String} [ifMetagenerationMatch] Makes the operation conditional on whether the object's current metageneration matches the given value.
      @setting {optional String} [ifMetagenerationNotMatch] Makes the operation conditional on whether the object's current metageneration does not match the given value.
-     @setting {optional String} [name] Name of the object. Required when the object metadata is not otherwise provided. Overrides the object metadata's name value, if any.
+     @setting {optional String} [name] Name of the object. Required when the object metadata is not otherwise provided. Overrides the object metadata's name value, if any. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts.
      @setting {optional String} [predefinedAcl] Apply a predefined set of access controls to this object.
      @setting {optional String} [projection] Set of properties to return. Defaults to noAcl, unless the object resource specifies the acl property, when it defaults to full.
      @return {::Object}
@@ -1212,7 +1240,7 @@ exports.objects = {
   /**
      @function objects.list
      @summary  Retrieves a list of objects matching the criteria.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [bucket] Name of the bucket in which to look for objects. **Required**
      @setting {optional String} [delimiter] Returns results in a directory-like mode. items will contain only objects whose names, aside from the prefix, do not contain delimiter. Objects whose names, aside from the prefix, contain delimiter will have their name, truncated after the delimiter, returned in prefixes. Duplicate prefixes are omitted.
@@ -1227,7 +1255,7 @@ exports.objects = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_only - View your data in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
@@ -1244,7 +1272,7 @@ exports.objects = {
   /**
      @function objects.patch
      @summary  Updates an object's metadata. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Object} [resource] Data of [::Object] structure
      @setting {String} [bucket] Name of the bucket in which the object resides. **Required**
@@ -1253,7 +1281,7 @@ exports.objects = {
      @setting {optional String} [ifGenerationNotMatch] Makes the operation conditional on whether the object's current generation does not match the given value.
      @setting {optional String} [ifMetagenerationMatch] Makes the operation conditional on whether the object's current metageneration matches the given value.
      @setting {optional String} [ifMetagenerationNotMatch] Makes the operation conditional on whether the object's current metageneration does not match the given value.
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @setting {optional String} [predefinedAcl] Apply a predefined set of access controls to this object.
      @setting {optional String} [projection] Set of properties to return. Defaults to full.
      @return {::Object}
@@ -1263,7 +1291,6 @@ exports.objects = {
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
-        * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
   */
   patch: function(client, params) {
     return client.performRequest({
@@ -1278,11 +1305,11 @@ exports.objects = {
   /**
      @function objects.rewrite
      @summary  Rewrites a source object to a destination object. Optionally overrides metadata.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Object} [resource] Data of [::Object] structure
      @setting {String} [destinationBucket] Name of the bucket in which to store the new object. Overrides the provided object metadata's bucket value, if any. **Required**
-     @setting {String} [destinationObject] Name of the new object. Required when the object metadata is not otherwise provided. Overrides the object metadata's name value, if any. **Required**
+     @setting {String} [destinationObject] Name of the new object. Required when the object metadata is not otherwise provided. Overrides the object metadata's name value, if any. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @setting {optional String} [destinationPredefinedAcl] Apply a predefined set of access controls to the destination object.
      @setting {optional String} [ifGenerationMatch] Makes the operation conditional on whether the destination object's current generation matches the given value.
      @setting {optional String} [ifGenerationNotMatch] Makes the operation conditional on whether the destination object's current generation does not match the given value.
@@ -1297,7 +1324,7 @@ exports.objects = {
      @setting {optional String} [rewriteToken] Include this field (from the previous rewrite response) on each rewrite request after the first one, until the rewrite response 'done' flag is true. Calls that provide a rewriteToken can omit all other request fields, but if included those fields must match the values provided in the first rewrite request.
      @setting {String} [sourceBucket] Name of the bucket in which to find the source object. **Required**
      @setting {optional String} [sourceGeneration] If present, selects a specific revision of the source object (as opposed to the latest version, the default).
-     @setting {String} [sourceObject] Name of the source object. **Required**
+     @setting {String} [sourceObject] Name of the source object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @return {::RewriteResponse}
      @desc
        #### Scopes
@@ -1320,7 +1347,7 @@ exports.objects = {
   /**
      @function objects.update
      @summary  Updates an object's metadata.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Object} [resource] Data of [::Object] structure
      @setting {String} [bucket] Name of the bucket in which the object resides. **Required**
@@ -1329,7 +1356,7 @@ exports.objects = {
      @setting {optional String} [ifGenerationNotMatch] Makes the operation conditional on whether the object's current generation does not match the given value.
      @setting {optional String} [ifMetagenerationMatch] Makes the operation conditional on whether the object's current metageneration matches the given value.
      @setting {optional String} [ifMetagenerationNotMatch] Makes the operation conditional on whether the object's current metageneration does not match the given value.
-     @setting {String} [object] Name of the object. **Required**
+     @setting {String} [object] Name of the object. For information about how to URL encode object names to be path safe, see Encoding URI Path Parts. **Required**
      @setting {optional String} [predefinedAcl] Apply a predefined set of access controls to this object.
      @setting {optional String} [projection] Set of properties to return. Defaults to full.
      @return {::Object}
@@ -1339,7 +1366,6 @@ exports.objects = {
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
-        * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage
   */
   update: function(client, params) {
     return client.performRequest({
@@ -1354,7 +1380,7 @@ exports.objects = {
   /**
      @function objects.watchAll
      @summary  Watch for changes on all objects in a bucket.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {String} [bucket] Name of the bucket in which to look for objects. **Required**
@@ -1370,7 +1396,7 @@ exports.objects = {
        This API call requires authorization with (at least one of) the following scope(s):
        
         * https://www.googleapis.com/auth/cloud-platform - View and manage your data across Google Cloud Platform services
-        * https://www.googleapis.com/auth/cloud-platform.read-only - MESSAGE UNDER CONSTRUCTION View your data across Google Cloud Platform services
+        * https://www.googleapis.com/auth/cloud-platform.read-only - View your data across Google Cloud Platform services
         * https://www.googleapis.com/auth/devstorage.full_control - Manage your data and permissions in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_only - View your data in Google Cloud Storage
         * https://www.googleapis.com/auth/devstorage.read_write - Manage your data in Google Cloud Storage

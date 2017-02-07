@@ -1,6 +1,6 @@
 // This file was originally generated using conductance/tools/google/generate-google-api calendar
 
-/* (c) 2013-2014 Oni Labs, http://onilabs.com
+/* (c) 2013-2017 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *
@@ -13,9 +13,9 @@
 
 
 /**
-  @summary Calendar API v3 - Lets you manipulate events and other calendar data.
+  @summary Calendar API v3 - Manipulates events and other calendar data.
   @desc
-    Revision 20150812
+    Revision 20170129
 
     See also https://developers.google.com/google-apps/calendar/firstapp.
 */
@@ -76,7 +76,7 @@
    @summary String - ETag of the resource.
    
    @variable Calendar.id
-   @summary String - Identifier of the calendar. To retrieve IDs you call the calendarList.list() method.
+   @summary String - Identifier of the calendar. To retrieve IDs call the calendarList.list() method.
    
    @variable Calendar.kind
    @summary String - Type of the resource ("calendar#calendar").
@@ -259,7 +259,7 @@
    @summary Google API JSON structure
    
    @variable Event.anyoneCanAddSelf
-   @summary Boolean - Whether anyone can invite themselves to the event. Optional. The default is False.
+   @summary Boolean - Whether anyone can invite themselves to the event (currently works for Google+ events only). Optional. The default is False.
    
    @variable Event.attachments
    @summary Array - File attachments for the event. Currently only Google Drive attachments are supported.
@@ -619,7 +619,7 @@ exports.acl = {
   /**
      @function acl.delete
      @summary  Deletes an access control rule.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {String} [ruleId] ACL rule identifier. **Required**
@@ -643,7 +643,7 @@ exports.acl = {
   /**
      @function acl.get
      @summary  Returns an access control rule.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {String} [ruleId] ACL rule identifier. **Required**
@@ -667,7 +667,7 @@ exports.acl = {
   /**
      @function acl.insert
      @summary  Creates an access control rule.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::AclRule} [resource] Data of [::AclRule] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -691,7 +691,7 @@ exports.acl = {
   /**
      @function acl.list
      @summary  Returns the rules in the access control list for the calendar.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {optional Integer} [maxResults] Maximum number of entries returned on one result page. By default the value is 100 entries. The page size can never be larger than 250 entries. Optional.
@@ -720,7 +720,7 @@ exports.acl = {
   /**
      @function acl.patch
      @summary  Updates an access control rule. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::AclRule} [resource] Data of [::AclRule] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -745,7 +745,7 @@ exports.acl = {
   /**
      @function acl.update
      @summary  Updates an access control rule.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::AclRule} [resource] Data of [::AclRule] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -770,7 +770,7 @@ exports.acl = {
   /**
      @function acl.watch
      @summary  Watch for changes to ACL resources.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -805,7 +805,7 @@ exports.calendarList = {
   /**
      @function calendarList.delete
      @summary  Deletes an entry on the user's calendar list.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @return {void}
@@ -828,7 +828,7 @@ exports.calendarList = {
   /**
      @function calendarList.get
      @summary  Returns an entry on the user's calendar list.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @return {::CalendarListEntry}
@@ -851,7 +851,7 @@ exports.calendarList = {
   /**
      @function calendarList.insert
      @summary  Adds an entry to the user's calendar list.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::CalendarListEntry} [resource] Data of [::CalendarListEntry] structure
      @setting {optional Boolean} [colorRgbFormat] Whether to use the foregroundColor and backgroundColor fields to write the calendar colors (RGB). If this feature is used, the index-based colorId field will be set to the best matching option automatically. Optional. The default is False.
@@ -875,7 +875,7 @@ exports.calendarList = {
   /**
      @function calendarList.list
      @summary  Returns entries on the user's calendar list.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional Integer} [maxResults] Maximum number of entries returned on one result page. By default the value is 100 entries. The page size can never be larger than 250 entries. Optional.
      @setting {optional String} [minAccessRole] The minimum access role for the user in the returned entries. Optional. The default is no restriction.
@@ -907,7 +907,7 @@ exports.calendarList = {
   /**
      @function calendarList.patch
      @summary  Updates an entry on the user's calendar list. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::CalendarListEntry} [resource] Data of [::CalendarListEntry] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -932,7 +932,7 @@ exports.calendarList = {
   /**
      @function calendarList.update
      @summary  Updates an entry on the user's calendar list.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::CalendarListEntry} [resource] Data of [::CalendarListEntry] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -957,7 +957,7 @@ exports.calendarList = {
   /**
      @function calendarList.watch
      @summary  Watch for changes to CalendarList resources.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {optional Integer} [maxResults] Maximum number of entries returned on one result page. By default the value is 100 entries. The page size can never be larger than 250 entries. Optional.
@@ -995,7 +995,7 @@ exports.calendars = {
   /**
      @function calendars.clear
      @summary  Clears a primary calendar. This operation deletes all events associated with the primary calendar of an account.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @return {void}
@@ -1018,7 +1018,7 @@ exports.calendars = {
   /**
      @function calendars.delete
      @summary  Deletes a secondary calendar. Use calendars.clear for clearing all events on primary calendars.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @return {void}
@@ -1041,7 +1041,7 @@ exports.calendars = {
   /**
      @function calendars.get
      @summary  Returns metadata for a calendar.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @return {::Calendar}
@@ -1064,7 +1064,7 @@ exports.calendars = {
   /**
      @function calendars.insert
      @summary  Creates a secondary calendar.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Calendar} [resource] Data of [::Calendar] structure
      @return {::Calendar}
@@ -1087,7 +1087,7 @@ exports.calendars = {
   /**
      @function calendars.patch
      @summary  Updates metadata for a calendar. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Calendar} [resource] Data of [::Calendar] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -1111,7 +1111,7 @@ exports.calendars = {
   /**
      @function calendars.update
      @summary  Updates metadata for a calendar.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Calendar} [resource] Data of [::Calendar] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -1139,7 +1139,7 @@ exports.channels = {
   /**
      @function channels.stop
      @summary  Stop watching resources through this channel
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Channel} [resource] Data of [::Channel] structure
      @return {void}
@@ -1167,7 +1167,7 @@ exports.colors = {
   /**
      @function colors.get
      @summary  Returns the color definitions for calendars and events.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
   
      @return {::Colors}
      @desc
@@ -1193,7 +1193,7 @@ exports.events = {
   /**
      @function events.delete
      @summary  Deletes an event.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {String} [eventId] Event identifier. **Required**
@@ -1218,7 +1218,7 @@ exports.events = {
   /**
      @function events.get
      @summary  Returns an event.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -1245,7 +1245,7 @@ exports.events = {
   /**
      @function events.import
      @summary  Imports an event. This operation is used to add a private copy of an existing event to a calendar.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Event} [resource] Data of [::Event] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -1257,7 +1257,7 @@ exports.events = {
        
         * https://www.googleapis.com/auth/calendar - Manage your calendars
   */
-  'import': function(client, params) {
+  import: function(client, params) {
     return client.performRequest({
       method: 'POST',
       url: 'https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events/import',
@@ -1270,7 +1270,7 @@ exports.events = {
   /**
      @function events.insert
      @summary  Creates an event.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Event} [resource] Data of [::Event] structure
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -1297,7 +1297,7 @@ exports.events = {
   /**
      @function events.instances
      @summary  Returns instances of the specified recurring event.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -1330,7 +1330,7 @@ exports.events = {
   /**
      @function events.list
      @summary  Returns events on the specified calendar.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
@@ -1383,7 +1383,7 @@ exports.events = {
   /**
      @function events.move
      @summary  Moves an event to another calendar, i.e. changes an event's organizer.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier of the source calendar where the event currently is on. **Required**
      @setting {String} [destination] Calendar identifier of the target calendar where the event is to be moved to. **Required**
@@ -1409,7 +1409,7 @@ exports.events = {
   /**
      @function events.patch
      @summary  Updates an event. This method supports patch semantics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Event} [resource] Data of [::Event] structure
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
@@ -1438,7 +1438,7 @@ exports.events = {
   /**
      @function events.quickAdd
      @summary  Creates an event based on a simple text string.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [calendarId] Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword. **Required**
      @setting {optional Boolean} [sendNotifications] Whether to send notifications about the creation of the event. Optional. The default is False.
@@ -1463,7 +1463,7 @@ exports.events = {
   /**
      @function events.update
      @summary  Updates an event.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Event} [resource] Data of [::Event] structure
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
@@ -1492,7 +1492,7 @@ exports.events = {
   /**
      @function events.watch
      @summary  Watch for changes to Events resources.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {optional Boolean} [alwaysIncludeEmail] Whether to always include a value in the email field for the organizer, creator and attendees, even if no real email is available (i.e. a generated, non-working value will be provided). The use of this option is discouraged and should only be used by clients which cannot handle the absence of an email address value in the mentioned places. Optional. The default is False.
@@ -1551,7 +1551,7 @@ exports.freebusy = {
   /**
      @function freebusy.query
      @summary  Returns free/busy information for a set of calendars.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::FreeBusyRequest} [resource] Data of [::FreeBusyRequest] structure
      @return {::FreeBusyResponse}
@@ -1579,7 +1579,7 @@ exports.settings = {
   /**
      @function settings.get
      @summary  Returns a single user setting.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {String} [setting] The id of the user setting. **Required**
      @return {::Setting}
@@ -1602,7 +1602,7 @@ exports.settings = {
   /**
      @function settings.list
      @summary  Returns all user settings for the authenticated user.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional Integer} [maxResults] Maximum number of entries returned on one result page. By default the value is 100 entries. The page size can never be larger than 250 entries. Optional.
      @setting {optional String} [pageToken] Token specifying which result page to return. Optional.
@@ -1630,7 +1630,7 @@ exports.settings = {
   /**
      @function settings.watch
      @summary  Watch for changes to Settings resources.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Channel} [resource] Data of [::Channel] structure
      @setting {optional Integer} [maxResults] Maximum number of entries returned on one result page. By default the value is 100 entries. The page size can never be larger than 250 entries. Optional.

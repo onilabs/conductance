@@ -1,6 +1,6 @@
 // This file was originally generated using conductance/tools/google/generate-google-api urlshortener
 
-/* (c) 2013-2014 Oni Labs, http://onilabs.com
+/* (c) 2013-2017 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *
@@ -118,7 +118,7 @@ exports.url = {
   /**
      @function url.get
      @summary  Expands a short URL or gets creation time and analytics.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional String} [projection] Additional information to return.
      @setting {String} [shortUrl] The short URL, including the protocol. **Required**
@@ -141,7 +141,7 @@ exports.url = {
   /**
      @function url.insert
      @summary  Creates a new short URL.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {::Url} [resource] Data of [::Url] structure
      @return {::Url}
@@ -164,7 +164,7 @@ exports.url = {
   /**
      @function url.list
      @summary  Retrieves a list of URLs shortened by a user.
-     @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+     @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
      @param {Object} [settings] API call parameters
      @setting {optional String} [projection] Additional information to return.
      @setting {optional String} [start-token] Token for requesting successive pages of results.
