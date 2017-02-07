@@ -46,7 +46,7 @@ if (!discovery_doc.revision || !discovery_doc.documentationLink) throw new Error
 emit("\
 // This file was originally generated using conductance/tools/google/generate-google-api #{args.API}
 
-/* (c) 2013-2014 Oni Labs, http://onilabs.com
+/* (c) 2013-2017 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *
@@ -279,7 +279,7 @@ function generateMethod(name, descriptor) {
 /**
    @function #{descriptor.id .. stripFirstObjPath}
    @summary  #{descriptor.description}
-   @param {GoogleAPIClient} [api_client] API client as obtained by [./oauth/service::OAuthService::APISession] or [./service_account::run]
+   @param {GoogleAPIClient} [api_client] API client as obtained by [../oauth/service::OAuthService::APISession] or [../service_account/service::run]
 #{descriptor .. generateParametersDocs}
    @return #{descriptor.response ? "{::#{descriptor.response['$ref']}}" : '{void}'}
    @desc
