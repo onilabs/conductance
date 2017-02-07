@@ -1232,7 +1232,7 @@
                       "type": "function"
                     }
                   },
-                  "summary": "Calendar API v3 - Lets you manipulate events and other calendar data."
+                  "summary": "Calendar API v3 - Manipulates events and other calendar data."
                 },
                 "computeV1": {
                   "type": "module",
@@ -1352,6 +1352,9 @@
                         "deviceName": {
                           "type": "variable"
                         },
+                        "diskEncryptionKey": {
+                          "type": "variable"
+                        },
                         "index": {
                           "type": "variable"
                         },
@@ -1392,6 +1395,9 @@
                         },
                         "sourceImage": {
                           "type": "variable"
+                        },
+                        "sourceImageEncryptionKey": {
+                          "type": "variable"
                         }
                       }
                     },
@@ -1414,6 +1420,9 @@
                           "type": "variable"
                         },
                         "name": {
+                          "type": "variable"
+                        },
+                        "region": {
                           "type": "variable"
                         },
                         "selfLink": {
@@ -1546,6 +1555,12 @@
                         "group": {
                           "type": "variable"
                         },
+                        "maxConnections": {
+                          "type": "variable"
+                        },
+                        "maxConnectionsPerInstance": {
+                          "type": "variable"
+                        },
                         "maxRate": {
                           "type": "variable"
                         },
@@ -1560,13 +1575,22 @@
                     "BackendService": {
                       "type": "class",
                       "children": {
+                        "affinityCookieTtlSec": {
+                          "type": "variable"
+                        },
                         "backends": {
+                          "type": "variable"
+                        },
+                        "connectionDraining": {
                           "type": "variable"
                         },
                         "creationTimestamp": {
                           "type": "variable"
                         },
                         "description": {
+                          "type": "variable"
+                        },
+                        "enableCDN": {
                           "type": "variable"
                         },
                         "fingerprint": {
@@ -1581,6 +1605,9 @@
                         "kind": {
                           "type": "variable"
                         },
+                        "loadBalancingScheme": {
+                          "type": "variable"
+                        },
                         "name": {
                           "type": "variable"
                         },
@@ -1593,10 +1620,36 @@
                         "protocol": {
                           "type": "variable"
                         },
+                        "region": {
+                          "type": "variable"
+                        },
                         "selfLink": {
                           "type": "variable"
                         },
+                        "sessionAffinity": {
+                          "type": "variable"
+                        },
                         "timeoutSec": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "BackendServiceAggregatedList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
                           "type": "variable"
                         }
                       }
@@ -1632,6 +1685,58 @@
                         }
                       }
                     },
+                    "BackendServicesScopedList": {
+                      "type": "class",
+                      "children": {
+                        "backendServices": {
+                          "type": "variable"
+                        },
+                        "warning": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "CacheInvalidationRule": {
+                      "type": "class",
+                      "children": {
+                        "host": {
+                          "type": "variable"
+                        },
+                        "path": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "ConnectionDraining": {
+                      "type": "class",
+                      "children": {
+                        "drainingTimeoutSec": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "CustomerEncryptionKey": {
+                      "type": "class",
+                      "children": {
+                        "rawKey": {
+                          "type": "variable"
+                        },
+                        "sha256": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "CustomerEncryptionKeyProtectedDisk": {
+                      "type": "class",
+                      "children": {
+                        "diskEncryptionKey": {
+                          "type": "variable"
+                        },
+                        "source": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "DeprecationStatus": {
                       "type": "class",
                       "children": {
@@ -1659,6 +1764,9 @@
                           "type": "variable"
                         },
                         "description": {
+                          "type": "variable"
+                        },
+                        "diskEncryptionKey": {
                           "type": "variable"
                         },
                         "id": {
@@ -1691,10 +1799,16 @@
                         "sourceImage": {
                           "type": "variable"
                         },
+                        "sourceImageEncryptionKey": {
+                          "type": "variable"
+                        },
                         "sourceImageId": {
                           "type": "variable"
                         },
                         "sourceSnapshot": {
+                          "type": "variable"
+                        },
+                        "sourceSnapshotEncryptionKey": {
                           "type": "variable"
                         },
                         "sourceSnapshotId": {
@@ -1851,6 +1965,14 @@
                         }
                       }
                     },
+                    "DisksResizeRequest": {
+                      "type": "class",
+                      "children": {
+                        "sizeGb": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "DisksScopedList": {
                       "type": "class",
                       "children": {
@@ -1929,6 +2051,9 @@
                         "IPProtocol": {
                           "type": "variable"
                         },
+                        "backendService": {
+                          "type": "variable"
+                        },
                         "creationTimestamp": {
                           "type": "variable"
                         },
@@ -1941,16 +2066,28 @@
                         "kind": {
                           "type": "variable"
                         },
+                        "loadBalancingScheme": {
+                          "type": "variable"
+                        },
                         "name": {
                           "type": "variable"
                         },
+                        "network": {
+                          "type": "variable"
+                        },
                         "portRange": {
+                          "type": "variable"
+                        },
+                        "ports": {
                           "type": "variable"
                         },
                         "region": {
                           "type": "variable"
                         },
                         "selfLink": {
+                          "type": "variable"
+                        },
+                        "subnetwork": {
                           "type": "variable"
                         },
                         "target": {
@@ -2005,6 +2142,124 @@
                           "type": "variable"
                         },
                         "warning": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "GuestOsFeature": {
+                      "type": "class",
+                      "children": {
+                        "type": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "HTTPHealthCheck": {
+                      "type": "class",
+                      "children": {
+                        "host": {
+                          "type": "variable"
+                        },
+                        "port": {
+                          "type": "variable"
+                        },
+                        "portName": {
+                          "type": "variable"
+                        },
+                        "proxyHeader": {
+                          "type": "variable"
+                        },
+                        "requestPath": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "HTTPSHealthCheck": {
+                      "type": "class",
+                      "children": {
+                        "host": {
+                          "type": "variable"
+                        },
+                        "port": {
+                          "type": "variable"
+                        },
+                        "portName": {
+                          "type": "variable"
+                        },
+                        "proxyHeader": {
+                          "type": "variable"
+                        },
+                        "requestPath": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "HealthCheck": {
+                      "type": "class",
+                      "children": {
+                        "checkIntervalSec": {
+                          "type": "variable"
+                        },
+                        "creationTimestamp": {
+                          "type": "variable"
+                        },
+                        "description": {
+                          "type": "variable"
+                        },
+                        "healthyThreshold": {
+                          "type": "variable"
+                        },
+                        "httpHealthCheck": {
+                          "type": "variable"
+                        },
+                        "httpsHealthCheck": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        },
+                        "sslHealthCheck": {
+                          "type": "variable"
+                        },
+                        "tcpHealthCheck": {
+                          "type": "variable"
+                        },
+                        "timeoutSec": {
+                          "type": "variable"
+                        },
+                        "type": {
+                          "type": "variable"
+                        },
+                        "unhealthyThreshold": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "HealthCheckList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
                           "type": "variable"
                         }
                       }
@@ -2112,6 +2367,70 @@
                         }
                       }
                     },
+                    "HttpsHealthCheck": {
+                      "type": "class",
+                      "children": {
+                        "checkIntervalSec": {
+                          "type": "variable"
+                        },
+                        "creationTimestamp": {
+                          "type": "variable"
+                        },
+                        "description": {
+                          "type": "variable"
+                        },
+                        "healthyThreshold": {
+                          "type": "variable"
+                        },
+                        "host": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "port": {
+                          "type": "variable"
+                        },
+                        "requestPath": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        },
+                        "timeoutSec": {
+                          "type": "variable"
+                        },
+                        "unhealthyThreshold": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "HttpsHealthCheckList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "Image": {
                       "type": "class",
                       "children": {
@@ -2130,7 +2449,16 @@
                         "diskSizeGb": {
                           "type": "variable"
                         },
+                        "family": {
+                          "type": "variable"
+                        },
+                        "guestOsFeatures": {
+                          "type": "variable"
+                        },
                         "id": {
+                          "type": "variable"
+                        },
+                        "imageEncryptionKey": {
                           "type": "variable"
                         },
                         "kind": {
@@ -2149,6 +2477,9 @@
                           "type": "variable"
                         },
                         "sourceDisk": {
+                          "type": "variable"
+                        },
+                        "sourceDiskEncryptionKey": {
                           "type": "variable"
                         },
                         "sourceDiskId": {
@@ -2288,10 +2619,16 @@
                         "network": {
                           "type": "variable"
                         },
+                        "region": {
+                          "type": "variable"
+                        },
                         "selfLink": {
                           "type": "variable"
                         },
                         "size": {
+                          "type": "variable"
+                        },
+                        "subnetwork": {
                           "type": "variable"
                         },
                         "zone": {
@@ -2372,6 +2709,12 @@
                         "name": {
                           "type": "variable"
                         },
+                        "namedPorts": {
+                          "type": "variable"
+                        },
+                        "region": {
+                          "type": "variable"
+                        },
                         "selfLink": {
                           "type": "variable"
                         },
@@ -2393,6 +2736,9 @@
                           "type": "variable"
                         },
                         "creating": {
+                          "type": "variable"
+                        },
+                        "creatingWithoutRetries": {
                           "type": "variable"
                         },
                         "deleting": {
@@ -2722,6 +3068,33 @@
                         }
                       }
                     },
+                    "InstancesSetMachineTypeRequest": {
+                      "type": "class",
+                      "children": {
+                        "machineType": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "InstancesSetServiceAccountRequest": {
+                      "type": "class",
+                      "children": {
+                        "email": {
+                          "type": "variable"
+                        },
+                        "scopes": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "InstancesStartWithEncryptionKeyRequest": {
+                      "type": "class",
+                      "children": {
+                        "disks": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "License": {
                       "type": "class",
                       "children": {
@@ -2758,6 +3131,9 @@
                           "type": "variable"
                         },
                         "imageSpaceGb": {
+                          "type": "variable"
+                        },
+                        "isSharedCpu": {
                           "type": "variable"
                         },
                         "kind": {
@@ -2896,6 +3272,9 @@
                         "IPv4Range": {
                           "type": "variable"
                         },
+                        "autoCreateSubnetworks": {
+                          "type": "variable"
+                        },
                         "creationTimestamp": {
                           "type": "variable"
                         },
@@ -2916,6 +3295,9 @@
                         },
                         "selfLink": {
                           "type": "variable"
+                        },
+                        "subnetworks": {
+                          "type": "variable"
                         }
                       }
                     },
@@ -2925,6 +3307,9 @@
                         "accessConfigs": {
                           "type": "variable"
                         },
+                        "kind": {
+                          "type": "variable"
+                        },
                         "name": {
                           "type": "variable"
                         },
@@ -2932,6 +3317,9 @@
                           "type": "variable"
                         },
                         "networkIP": {
+                          "type": "variable"
+                        },
+                        "subnetwork": {
                           "type": "variable"
                         }
                       }
@@ -2963,6 +3351,9 @@
                           "type": "variable"
                         },
                         "creationTimestamp": {
+                          "type": "variable"
+                        },
+                        "description": {
                           "type": "variable"
                         },
                         "endTime": {
@@ -3115,6 +3506,9 @@
                         "creationTimestamp": {
                           "type": "variable"
                         },
+                        "defaultServiceAccount": {
+                          "type": "variable"
+                        },
                         "description": {
                           "type": "variable"
                         },
@@ -3186,6 +3580,159 @@
                           "type": "variable"
                         },
                         "zones": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionAutoscalerList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupManagerList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupManagersAbandonInstancesRequest": {
+                      "type": "class",
+                      "children": {
+                        "instances": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupManagersDeleteInstancesRequest": {
+                      "type": "class",
+                      "children": {
+                        "instances": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupManagersListInstancesResponse": {
+                      "type": "class",
+                      "children": {
+                        "managedInstances": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupManagersRecreateRequest": {
+                      "type": "class",
+                      "children": {
+                        "instances": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupManagersSetTargetPoolsRequest": {
+                      "type": "class",
+                      "children": {
+                        "fingerprint": {
+                          "type": "variable"
+                        },
+                        "targetPools": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupManagersSetTemplateRequest": {
+                      "type": "class",
+                      "children": {
+                        "instanceTemplate": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupsListInstances": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupsListInstancesRequest": {
+                      "type": "class",
+                      "children": {
+                        "instanceState": {
+                          "type": "variable"
+                        },
+                        "portName": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RegionInstanceGroupsSetNamedPortsRequest": {
+                      "type": "class",
+                      "children": {
+                        "fingerprint": {
+                          "type": "variable"
+                        },
+                        "namedPorts": {
                           "type": "variable"
                         }
                       }
@@ -3291,6 +3838,228 @@
                         }
                       }
                     },
+                    "Router": {
+                      "type": "class",
+                      "children": {
+                        "bgp": {
+                          "type": "variable"
+                        },
+                        "bgpPeers": {
+                          "type": "variable"
+                        },
+                        "creationTimestamp": {
+                          "type": "variable"
+                        },
+                        "description": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "interfaces": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "network": {
+                          "type": "variable"
+                        },
+                        "region": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RouterAggregatedList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RouterBgp": {
+                      "type": "class",
+                      "children": {
+                        "asn": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RouterBgpPeer": {
+                      "type": "class",
+                      "children": {
+                        "advertisedRoutePriority": {
+                          "type": "variable"
+                        },
+                        "interfaceName": {
+                          "type": "variable"
+                        },
+                        "ipAddress": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "peerAsn": {
+                          "type": "variable"
+                        },
+                        "peerIpAddress": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RouterInterface": {
+                      "type": "class",
+                      "children": {
+                        "ipRange": {
+                          "type": "variable"
+                        },
+                        "linkedVpnTunnel": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RouterList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RouterStatus": {
+                      "type": "class",
+                      "children": {
+                        "bestRoutes": {
+                          "type": "variable"
+                        },
+                        "bgpPeerStatus": {
+                          "type": "variable"
+                        },
+                        "network": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RouterStatusBgpPeerStatus": {
+                      "type": "class",
+                      "children": {
+                        "advertisedRoutes": {
+                          "type": "variable"
+                        },
+                        "ipAddress": {
+                          "type": "variable"
+                        },
+                        "linkedVpnTunnel": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "numLearnedRoutes": {
+                          "type": "variable"
+                        },
+                        "peerIpAddress": {
+                          "type": "variable"
+                        },
+                        "state": {
+                          "type": "variable"
+                        },
+                        "status": {
+                          "type": "variable"
+                        },
+                        "uptime": {
+                          "type": "variable"
+                        },
+                        "uptimeSeconds": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RouterStatusResponse": {
+                      "type": "class",
+                      "children": {
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "result": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RoutersPreviewResponse": {
+                      "type": "class",
+                      "children": {
+                        "resource": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "RoutersScopedList": {
+                      "type": "class",
+                      "children": {
+                        "routers": {
+                          "type": "variable"
+                        },
+                        "warning": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SSLHealthCheck": {
+                      "type": "class",
+                      "children": {
+                        "port": {
+                          "type": "variable"
+                        },
+                        "portName": {
+                          "type": "variable"
+                        },
+                        "proxyHeader": {
+                          "type": "variable"
+                        },
+                        "request": {
+                          "type": "variable"
+                        },
+                        "response": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "Scheduling": {
                       "type": "class",
                       "children": {
@@ -3314,7 +4083,13 @@
                         "kind": {
                           "type": "variable"
                         },
+                        "next": {
+                          "type": "variable"
+                        },
                         "selfLink": {
+                          "type": "variable"
+                        },
+                        "start": {
                           "type": "variable"
                         }
                       }
@@ -3357,7 +4132,13 @@
                         "selfLink": {
                           "type": "variable"
                         },
+                        "snapshotEncryptionKey": {
+                          "type": "variable"
+                        },
                         "sourceDisk": {
+                          "type": "variable"
+                        },
+                        "sourceDiskEncryptionKey": {
                           "type": "variable"
                         },
                         "sourceDiskId": {
@@ -3390,6 +4171,169 @@
                           "type": "variable"
                         },
                         "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SslCertificate": {
+                      "type": "class",
+                      "children": {
+                        "certificate": {
+                          "type": "variable"
+                        },
+                        "creationTimestamp": {
+                          "type": "variable"
+                        },
+                        "description": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "privateKey": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SslCertificateList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "Subnetwork": {
+                      "type": "class",
+                      "children": {
+                        "creationTimestamp": {
+                          "type": "variable"
+                        },
+                        "description": {
+                          "type": "variable"
+                        },
+                        "gatewayAddress": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "ipCidrRange": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "network": {
+                          "type": "variable"
+                        },
+                        "region": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SubnetworkAggregatedList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SubnetworkList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SubnetworksExpandIpCidrRangeRequest": {
+                      "type": "class",
+                      "children": {
+                        "ipCidrRange": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SubnetworksScopedList": {
+                      "type": "class",
+                      "children": {
+                        "subnetworks": {
+                          "type": "variable"
+                        },
+                        "warning": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TCPHealthCheck": {
+                      "type": "class",
+                      "children": {
+                        "port": {
+                          "type": "variable"
+                        },
+                        "portName": {
+                          "type": "variable"
+                        },
+                        "proxyHeader": {
+                          "type": "variable"
+                        },
+                        "request": {
+                          "type": "variable"
+                        },
+                        "response": {
                           "type": "variable"
                         }
                       }
@@ -3432,6 +4376,63 @@
                       }
                     },
                     "TargetHttpProxyList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TargetHttpsProxiesSetSslCertificatesRequest": {
+                      "type": "class",
+                      "children": {
+                        "sslCertificates": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TargetHttpsProxy": {
+                      "type": "class",
+                      "children": {
+                        "creationTimestamp": {
+                          "type": "variable"
+                        },
+                        "description": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        },
+                        "sslCertificates": {
+                          "type": "variable"
+                        },
+                        "urlMap": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TargetHttpsProxyList": {
                       "type": "class",
                       "children": {
                         "id": {
@@ -3673,6 +4674,82 @@
                       "type": "class",
                       "children": {
                         "target": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TargetSslProxiesSetBackendServiceRequest": {
+                      "type": "class",
+                      "children": {
+                        "service": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TargetSslProxiesSetProxyHeaderRequest": {
+                      "type": "class",
+                      "children": {
+                        "proxyHeader": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TargetSslProxiesSetSslCertificatesRequest": {
+                      "type": "class",
+                      "children": {
+                        "sslCertificates": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TargetSslProxy": {
+                      "type": "class",
+                      "children": {
+                        "creationTimestamp": {
+                          "type": "variable"
+                        },
+                        "description": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "name": {
+                          "type": "variable"
+                        },
+                        "proxyHeader": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
+                          "type": "variable"
+                        },
+                        "service": {
+                          "type": "variable"
+                        },
+                        "sslCertificates": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "TargetSslProxyList": {
+                      "type": "class",
+                      "children": {
+                        "id": {
+                          "type": "variable"
+                        },
+                        "items": {
+                          "type": "variable"
+                        },
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "selfLink": {
                           "type": "variable"
                         }
                       }
@@ -3931,6 +5008,9 @@
                         "kind": {
                           "type": "variable"
                         },
+                        "localTrafficSelector": {
+                          "type": "variable"
+                        },
                         "name": {
                           "type": "variable"
                         },
@@ -3938,6 +5018,12 @@
                           "type": "variable"
                         },
                         "region": {
+                          "type": "variable"
+                        },
+                        "remoteTrafficSelector": {
+                          "type": "variable"
+                        },
+                        "router": {
                           "type": "variable"
                         },
                         "selfLink": {
@@ -4026,9 +5112,6 @@
                         "kind": {
                           "type": "variable"
                         },
-                        "maintenanceWindows": {
-                          "type": "variable"
-                        },
                         "name": {
                           "type": "variable"
                         },
@@ -4099,6 +5182,9 @@
                     "autoscalers.update": {
                       "type": "function"
                     },
+                    "backendServices.aggregatedList": {
+                      "type": "function"
+                    },
                     "backendServices.delete": {
                       "type": "function"
                     },
@@ -4145,6 +5231,9 @@
                       "type": "function"
                     },
                     "disks.list": {
+                      "type": "function"
+                    },
+                    "disks.resize": {
                       "type": "function"
                     },
                     "firewalls.delete": {
@@ -4222,6 +5311,24 @@
                     "globalOperations.list": {
                       "type": "function"
                     },
+                    "healthChecks.delete": {
+                      "type": "function"
+                    },
+                    "healthChecks.get": {
+                      "type": "function"
+                    },
+                    "healthChecks.insert": {
+                      "type": "function"
+                    },
+                    "healthChecks.list": {
+                      "type": "function"
+                    },
+                    "healthChecks.patch": {
+                      "type": "function"
+                    },
+                    "healthChecks.update": {
+                      "type": "function"
+                    },
                     "httpHealthChecks.delete": {
                       "type": "function"
                     },
@@ -4240,6 +5347,24 @@
                     "httpHealthChecks.update": {
                       "type": "function"
                     },
+                    "httpsHealthChecks.delete": {
+                      "type": "function"
+                    },
+                    "httpsHealthChecks.get": {
+                      "type": "function"
+                    },
+                    "httpsHealthChecks.insert": {
+                      "type": "function"
+                    },
+                    "httpsHealthChecks.list": {
+                      "type": "function"
+                    },
+                    "httpsHealthChecks.patch": {
+                      "type": "function"
+                    },
+                    "httpsHealthChecks.update": {
+                      "type": "function"
+                    },
                     "images.delete": {
                       "type": "function"
                     },
@@ -4247,6 +5372,9 @@
                       "type": "function"
                     },
                     "images.get": {
+                      "type": "function"
+                    },
+                    "images.getFromFamily": {
                       "type": "function"
                     },
                     "images.insert": {
@@ -4366,16 +5494,25 @@
                     "instances.setDiskAutoDelete": {
                       "type": "function"
                     },
+                    "instances.setMachineType": {
+                      "type": "function"
+                    },
                     "instances.setMetadata": {
                       "type": "function"
                     },
                     "instances.setScheduling": {
                       "type": "function"
                     },
+                    "instances.setServiceAccount": {
+                      "type": "function"
+                    },
                     "instances.setTags": {
                       "type": "function"
                     },
                     "instances.start": {
+                      "type": "function"
+                    },
+                    "instances.startWithEncryptionKey": {
                       "type": "function"
                     },
                     "instances.stop": {
@@ -4405,6 +5542,9 @@
                     "networks.list": {
                       "type": "function"
                     },
+                    "networks.switchToCustomMode": {
+                      "type": "function"
+                    },
                     "projects.get": {
                       "type": "function"
                     },
@@ -4420,6 +5560,90 @@
                     "projects.setUsageExportBucket": {
                       "type": "function"
                     },
+                    "regionAutoscalers.delete": {
+                      "type": "function"
+                    },
+                    "regionAutoscalers.get": {
+                      "type": "function"
+                    },
+                    "regionAutoscalers.insert": {
+                      "type": "function"
+                    },
+                    "regionAutoscalers.list": {
+                      "type": "function"
+                    },
+                    "regionAutoscalers.patch": {
+                      "type": "function"
+                    },
+                    "regionAutoscalers.update": {
+                      "type": "function"
+                    },
+                    "regionBackendServices.delete": {
+                      "type": "function"
+                    },
+                    "regionBackendServices.get": {
+                      "type": "function"
+                    },
+                    "regionBackendServices.getHealth": {
+                      "type": "function"
+                    },
+                    "regionBackendServices.insert": {
+                      "type": "function"
+                    },
+                    "regionBackendServices.list": {
+                      "type": "function"
+                    },
+                    "regionBackendServices.patch": {
+                      "type": "function"
+                    },
+                    "regionBackendServices.update": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.abandonInstances": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.delete": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.deleteInstances": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.get": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.insert": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.list": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.listManagedInstances": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.recreateInstances": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.resize": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.setInstanceTemplate": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroupManagers.setTargetPools": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroups.get": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroups.list": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroups.listInstances": {
+                      "type": "function"
+                    },
+                    "regionInstanceGroups.setNamedPorts": {
+                      "type": "function"
+                    },
                     "regionOperations.delete": {
                       "type": "function"
                     },
@@ -4433,6 +5657,33 @@
                       "type": "function"
                     },
                     "regions.list": {
+                      "type": "function"
+                    },
+                    "routers.aggregatedList": {
+                      "type": "function"
+                    },
+                    "routers.delete": {
+                      "type": "function"
+                    },
+                    "routers.get": {
+                      "type": "function"
+                    },
+                    "routers.getRouterStatus": {
+                      "type": "function"
+                    },
+                    "routers.insert": {
+                      "type": "function"
+                    },
+                    "routers.list": {
+                      "type": "function"
+                    },
+                    "routers.patch": {
+                      "type": "function"
+                    },
+                    "routers.preview": {
+                      "type": "function"
+                    },
+                    "routers.update": {
                       "type": "function"
                     },
                     "routes.delete": {
@@ -4456,6 +5707,36 @@
                     "snapshots.list": {
                       "type": "function"
                     },
+                    "sslCertificates.delete": {
+                      "type": "function"
+                    },
+                    "sslCertificates.get": {
+                      "type": "function"
+                    },
+                    "sslCertificates.insert": {
+                      "type": "function"
+                    },
+                    "sslCertificates.list": {
+                      "type": "function"
+                    },
+                    "subnetworks.aggregatedList": {
+                      "type": "function"
+                    },
+                    "subnetworks.delete": {
+                      "type": "function"
+                    },
+                    "subnetworks.expandIpCidrRange": {
+                      "type": "function"
+                    },
+                    "subnetworks.get": {
+                      "type": "function"
+                    },
+                    "subnetworks.insert": {
+                      "type": "function"
+                    },
+                    "subnetworks.list": {
+                      "type": "function"
+                    },
                     "targetHttpProxies.delete": {
                       "type": "function"
                     },
@@ -4469,6 +5750,24 @@
                       "type": "function"
                     },
                     "targetHttpProxies.setUrlMap": {
+                      "type": "function"
+                    },
+                    "targetHttpsProxies.delete": {
+                      "type": "function"
+                    },
+                    "targetHttpsProxies.get": {
+                      "type": "function"
+                    },
+                    "targetHttpsProxies.insert": {
+                      "type": "function"
+                    },
+                    "targetHttpsProxies.list": {
+                      "type": "function"
+                    },
+                    "targetHttpsProxies.setSslCertificates": {
+                      "type": "function"
+                    },
+                    "targetHttpsProxies.setUrlMap": {
                       "type": "function"
                     },
                     "targetInstances.aggregatedList": {
@@ -4519,6 +5818,27 @@
                     "targetPools.setBackup": {
                       "type": "function"
                     },
+                    "targetSslProxies.delete": {
+                      "type": "function"
+                    },
+                    "targetSslProxies.get": {
+                      "type": "function"
+                    },
+                    "targetSslProxies.insert": {
+                      "type": "function"
+                    },
+                    "targetSslProxies.list": {
+                      "type": "function"
+                    },
+                    "targetSslProxies.setBackendService": {
+                      "type": "function"
+                    },
+                    "targetSslProxies.setProxyHeader": {
+                      "type": "function"
+                    },
+                    "targetSslProxies.setSslCertificates": {
+                      "type": "function"
+                    },
                     "targetVpnGateways.aggregatedList": {
                       "type": "function"
                     },
@@ -4541,6 +5861,9 @@
                       "type": "function"
                     },
                     "urlMaps.insert": {
+                      "type": "function"
+                    },
+                    "urlMaps.invalidateCache": {
                       "type": "function"
                     },
                     "urlMaps.list": {
@@ -4586,7 +5909,7 @@
                       "type": "function"
                     }
                   },
-                  "summary": "Compute Engine API v1 - API for the Google Compute Engine service."
+                  "summary": "Compute Engine API v1 - Creates and runs virtual machines on Google Cloud Platform."
                 },
                 "dnsV1": {
                   "type": "module",
@@ -4776,27 +6099,18 @@
                       "type": "function"
                     }
                   },
-                  "summary": "Google Cloud DNS API v1 - The Google Cloud DNS API provides services for configuring and serving authoritative DNS records."
+                  "summary": "Google Cloud DNS API v1 - Configures and serves authoritative DNS records."
                 },
-                "driveV2": {
+                "driveV3": {
                   "type": "module",
                   "children": {
                     "About": {
                       "type": "class",
                       "children": {
-                        "additionalRoleInfo": {
-                          "type": "variable"
-                        },
-                        "domainSharingPolicy": {
-                          "type": "variable"
-                        },
-                        "etag": {
+                        "appInstalled": {
                           "type": "variable"
                         },
                         "exportFormats": {
-                          "type": "variable"
-                        },
-                        "features": {
                           "type": "variable"
                         },
                         "folderColorPalette": {
@@ -4805,52 +6119,16 @@
                         "importFormats": {
                           "type": "variable"
                         },
-                        "isCurrentAppInstalled": {
-                          "type": "variable"
-                        },
                         "kind": {
                           "type": "variable"
                         },
-                        "languageCode": {
+                        "maxImportSizes": {
                           "type": "variable"
                         },
-                        "largestChangeId": {
+                        "maxUploadSize": {
                           "type": "variable"
                         },
-                        "maxUploadSizes": {
-                          "type": "variable"
-                        },
-                        "name": {
-                          "type": "variable"
-                        },
-                        "permissionId": {
-                          "type": "variable"
-                        },
-                        "quotaBytesByService": {
-                          "type": "variable"
-                        },
-                        "quotaBytesTotal": {
-                          "type": "variable"
-                        },
-                        "quotaBytesUsed": {
-                          "type": "variable"
-                        },
-                        "quotaBytesUsedAggregate": {
-                          "type": "variable"
-                        },
-                        "quotaBytesUsedInTrash": {
-                          "type": "variable"
-                        },
-                        "quotaType": {
-                          "type": "variable"
-                        },
-                        "remainingChangeIds": {
-                          "type": "variable"
-                        },
-                        "rootFolderId": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
+                        "storageQuota": {
                           "type": "variable"
                         },
                         "user": {
@@ -4858,125 +6136,22 @@
                         }
                       }
                     },
-                    "App": {
-                      "type": "class",
-                      "children": {
-                        "authorized": {
-                          "type": "variable"
-                        },
-                        "createInFolderTemplate": {
-                          "type": "variable"
-                        },
-                        "createUrl": {
-                          "type": "variable"
-                        },
-                        "hasDriveWideScope": {
-                          "type": "variable"
-                        },
-                        "icons": {
-                          "type": "variable"
-                        },
-                        "id": {
-                          "type": "variable"
-                        },
-                        "installed": {
-                          "type": "variable"
-                        },
-                        "kind": {
-                          "type": "variable"
-                        },
-                        "longDescription": {
-                          "type": "variable"
-                        },
-                        "name": {
-                          "type": "variable"
-                        },
-                        "objectType": {
-                          "type": "variable"
-                        },
-                        "openUrlTemplate": {
-                          "type": "variable"
-                        },
-                        "primaryFileExtensions": {
-                          "type": "variable"
-                        },
-                        "primaryMimeTypes": {
-                          "type": "variable"
-                        },
-                        "productId": {
-                          "type": "variable"
-                        },
-                        "productUrl": {
-                          "type": "variable"
-                        },
-                        "secondaryFileExtensions": {
-                          "type": "variable"
-                        },
-                        "secondaryMimeTypes": {
-                          "type": "variable"
-                        },
-                        "shortDescription": {
-                          "type": "variable"
-                        },
-                        "supportsCreate": {
-                          "type": "variable"
-                        },
-                        "supportsImport": {
-                          "type": "variable"
-                        },
-                        "supportsMultiOpen": {
-                          "type": "variable"
-                        },
-                        "supportsOfflineCreate": {
-                          "type": "variable"
-                        },
-                        "useByDefault": {
-                          "type": "variable"
-                        }
-                      }
-                    },
-                    "AppList": {
-                      "type": "class",
-                      "children": {
-                        "defaultAppIds": {
-                          "type": "variable"
-                        },
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "items": {
-                          "type": "variable"
-                        },
-                        "kind": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
-                          "type": "variable"
-                        }
-                      }
-                    },
                     "Change": {
                       "type": "class",
                       "children": {
-                        "deleted": {
-                          "type": "variable"
-                        },
                         "file": {
                           "type": "variable"
                         },
                         "fileId": {
                           "type": "variable"
                         },
-                        "id": {
-                          "type": "variable"
-                        },
                         "kind": {
                           "type": "variable"
                         },
-                        "modificationDate": {
+                        "removed": {
                           "type": "variable"
                         },
-                        "selfLink": {
+                        "time": {
                           "type": "variable"
                         }
                       }
@@ -4984,25 +6159,16 @@
                     "ChangeList": {
                       "type": "class",
                       "children": {
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "items": {
+                        "changes": {
                           "type": "variable"
                         },
                         "kind": {
                           "type": "variable"
                         },
-                        "largestChangeId": {
-                          "type": "variable"
-                        },
-                        "nextLink": {
+                        "newStartPageToken": {
                           "type": "variable"
                         },
                         "nextPageToken": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
                           "type": "variable"
                         }
                       }
@@ -5042,46 +6208,6 @@
                         }
                       }
                     },
-                    "ChildList": {
-                      "type": "class",
-                      "children": {
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "items": {
-                          "type": "variable"
-                        },
-                        "kind": {
-                          "type": "variable"
-                        },
-                        "nextLink": {
-                          "type": "variable"
-                        },
-                        "nextPageToken": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
-                          "type": "variable"
-                        }
-                      }
-                    },
-                    "ChildReference": {
-                      "type": "class",
-                      "children": {
-                        "childLink": {
-                          "type": "variable"
-                        },
-                        "id": {
-                          "type": "variable"
-                        },
-                        "kind": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
-                          "type": "variable"
-                        }
-                      }
-                    },
                     "Comment": {
                       "type": "class",
                       "children": {
@@ -5091,43 +6217,34 @@
                         "author": {
                           "type": "variable"
                         },
-                        "commentId": {
-                          "type": "variable"
-                        },
                         "content": {
                           "type": "variable"
                         },
-                        "context": {
-                          "type": "variable"
-                        },
-                        "createdDate": {
+                        "createdTime": {
                           "type": "variable"
                         },
                         "deleted": {
                           "type": "variable"
                         },
-                        "fileId": {
-                          "type": "variable"
-                        },
-                        "fileTitle": {
-                          "type": "variable"
-                        },
                         "htmlContent": {
+                          "type": "variable"
+                        },
+                        "id": {
                           "type": "variable"
                         },
                         "kind": {
                           "type": "variable"
                         },
-                        "modifiedDate": {
+                        "modifiedTime": {
+                          "type": "variable"
+                        },
+                        "quotedFileContent": {
                           "type": "variable"
                         },
                         "replies": {
                           "type": "variable"
                         },
-                        "selfLink": {
-                          "type": "variable"
-                        },
-                        "status": {
+                        "resolved": {
                           "type": "variable"
                         }
                       }
@@ -5135,71 +6252,13 @@
                     "CommentList": {
                       "type": "class",
                       "children": {
-                        "items": {
+                        "comments": {
                           "type": "variable"
                         },
                         "kind": {
-                          "type": "variable"
-                        },
-                        "nextLink": {
                           "type": "variable"
                         },
                         "nextPageToken": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
-                          "type": "variable"
-                        }
-                      }
-                    },
-                    "CommentReply": {
-                      "type": "class",
-                      "children": {
-                        "author": {
-                          "type": "variable"
-                        },
-                        "content": {
-                          "type": "variable"
-                        },
-                        "createdDate": {
-                          "type": "variable"
-                        },
-                        "deleted": {
-                          "type": "variable"
-                        },
-                        "htmlContent": {
-                          "type": "variable"
-                        },
-                        "kind": {
-                          "type": "variable"
-                        },
-                        "modifiedDate": {
-                          "type": "variable"
-                        },
-                        "replyId": {
-                          "type": "variable"
-                        },
-                        "verb": {
-                          "type": "variable"
-                        }
-                      }
-                    },
-                    "CommentReplyList": {
-                      "type": "class",
-                      "children": {
-                        "items": {
-                          "type": "variable"
-                        },
-                        "kind": {
-                          "type": "variable"
-                        },
-                        "nextLink": {
-                          "type": "variable"
-                        },
-                        "nextPageToken": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
                           "type": "variable"
                         }
                       }
@@ -5207,55 +6266,34 @@
                     "File": {
                       "type": "class",
                       "children": {
-                        "alternateLink": {
+                        "appProperties": {
                           "type": "variable"
                         },
-                        "appDataContents": {
+                        "capabilities": {
                           "type": "variable"
                         },
-                        "canComment": {
+                        "contentHints": {
                           "type": "variable"
                         },
-                        "copyable": {
-                          "type": "variable"
-                        },
-                        "createdDate": {
-                          "type": "variable"
-                        },
-                        "defaultOpenWithLink": {
+                        "createdTime": {
                           "type": "variable"
                         },
                         "description": {
                           "type": "variable"
                         },
-                        "downloadUrl": {
-                          "type": "variable"
-                        },
-                        "editable": {
-                          "type": "variable"
-                        },
-                        "embedLink": {
-                          "type": "variable"
-                        },
-                        "etag": {
-                          "type": "variable"
-                        },
                         "explicitlyTrashed": {
                           "type": "variable"
                         },
-                        "exportLinks": {
-                          "type": "variable"
-                        },
                         "fileExtension": {
-                          "type": "variable"
-                        },
-                        "fileSize": {
                           "type": "variable"
                         },
                         "folderColorRgb": {
                           "type": "variable"
                         },
                         "fullFileExtension": {
+                          "type": "variable"
+                        },
+                        "hasThumbnail": {
                           "type": "variable"
                         },
                         "headRevisionId": {
@@ -5270,25 +6308,13 @@
                         "imageMediaMetadata": {
                           "type": "variable"
                         },
-                        "indexableText": {
+                        "isAppAuthorized": {
                           "type": "variable"
                         },
                         "kind": {
                           "type": "variable"
                         },
-                        "labels": {
-                          "type": "variable"
-                        },
                         "lastModifyingUser": {
-                          "type": "variable"
-                        },
-                        "lastModifyingUserName": {
-                          "type": "variable"
-                        },
-                        "lastViewedByMeDate": {
-                          "type": "variable"
-                        },
-                        "markedViewedByMeDate": {
                           "type": "variable"
                         },
                         "md5Checksum": {
@@ -5297,22 +6323,22 @@
                         "mimeType": {
                           "type": "variable"
                         },
-                        "modifiedByMeDate": {
+                        "modifiedByMe": {
                           "type": "variable"
                         },
-                        "modifiedDate": {
+                        "modifiedByMeTime": {
                           "type": "variable"
                         },
-                        "openWithLinks": {
+                        "modifiedTime": {
+                          "type": "variable"
+                        },
+                        "name": {
                           "type": "variable"
                         },
                         "originalFilename": {
                           "type": "variable"
                         },
                         "ownedByMe": {
-                          "type": "variable"
-                        },
-                        "ownerNames": {
                           "type": "variable"
                         },
                         "owners": {
@@ -5330,40 +6356,46 @@
                         "quotaBytesUsed": {
                           "type": "variable"
                         },
-                        "selfLink": {
-                          "type": "variable"
-                        },
-                        "shareable": {
-                          "type": "variable"
-                        },
                         "shared": {
                           "type": "variable"
                         },
-                        "sharedWithMeDate": {
+                        "sharedWithMeTime": {
                           "type": "variable"
                         },
                         "sharingUser": {
                           "type": "variable"
                         },
+                        "size": {
+                          "type": "variable"
+                        },
                         "spaces": {
                           "type": "variable"
                         },
-                        "thumbnail": {
+                        "starred": {
                           "type": "variable"
                         },
                         "thumbnailLink": {
                           "type": "variable"
                         },
-                        "title": {
+                        "thumbnailVersion": {
                           "type": "variable"
                         },
-                        "userPermission": {
+                        "trashed": {
                           "type": "variable"
                         },
                         "version": {
                           "type": "variable"
                         },
                         "videoMediaMetadata": {
+                          "type": "variable"
+                        },
+                        "viewedByMe": {
+                          "type": "variable"
+                        },
+                        "viewedByMeTime": {
+                          "type": "variable"
+                        },
+                        "viewersCanCopyContent": {
                           "type": "variable"
                         },
                         "webContentLink": {
@@ -5380,22 +6412,13 @@
                     "FileList": {
                       "type": "class",
                       "children": {
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "items": {
+                        "files": {
                           "type": "variable"
                         },
                         "kind": {
                           "type": "variable"
                         },
-                        "nextLink": {
-                          "type": "variable"
-                        },
                         "nextPageToken": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
                           "type": "variable"
                         }
                       }
@@ -5414,50 +6437,13 @@
                         }
                       }
                     },
-                    "ParentList": {
-                      "type": "class",
-                      "children": {
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "items": {
-                          "type": "variable"
-                        },
-                        "kind": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
-                          "type": "variable"
-                        }
-                      }
-                    },
-                    "ParentReference": {
-                      "type": "class",
-                      "children": {
-                        "id": {
-                          "type": "variable"
-                        },
-                        "isRoot": {
-                          "type": "variable"
-                        },
-                        "kind": {
-                          "type": "variable"
-                        },
-                        "parentLink": {
-                          "type": "variable"
-                        },
-                        "selfLink": {
-                          "type": "variable"
-                        }
-                      }
-                    },
                     "Permission": {
                       "type": "class",
                       "children": {
-                        "additionalRoles": {
+                        "allowFileDiscovery": {
                           "type": "variable"
                         },
-                        "authKey": {
+                        "displayName": {
                           "type": "variable"
                         },
                         "domain": {
@@ -5466,16 +6452,13 @@
                         "emailAddress": {
                           "type": "variable"
                         },
-                        "etag": {
+                        "expirationTime": {
                           "type": "variable"
                         },
                         "id": {
                           "type": "variable"
                         },
                         "kind": {
-                          "type": "variable"
-                        },
-                        "name": {
                           "type": "variable"
                         },
                         "photoLink": {
@@ -5484,27 +6467,7 @@
                         "role": {
                           "type": "variable"
                         },
-                        "selfLink": {
-                          "type": "variable"
-                        },
                         "type": {
-                          "type": "variable"
-                        },
-                        "value": {
-                          "type": "variable"
-                        },
-                        "withLink": {
-                          "type": "variable"
-                        }
-                      }
-                    },
-                    "PermissionId": {
-                      "type": "class",
-                      "children": {
-                        "id": {
-                          "type": "variable"
-                        },
-                        "kind": {
                           "type": "variable"
                         }
                       }
@@ -5512,56 +6475,56 @@
                     "PermissionList": {
                       "type": "class",
                       "children": {
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "items": {
-                          "type": "variable"
-                        },
                         "kind": {
                           "type": "variable"
                         },
-                        "selfLink": {
+                        "permissions": {
                           "type": "variable"
                         }
                       }
                     },
-                    "Property": {
+                    "Reply": {
                       "type": "class",
                       "children": {
-                        "etag": {
+                        "action": {
                           "type": "variable"
                         },
-                        "key": {
+                        "author": {
+                          "type": "variable"
+                        },
+                        "content": {
+                          "type": "variable"
+                        },
+                        "createdTime": {
+                          "type": "variable"
+                        },
+                        "deleted": {
+                          "type": "variable"
+                        },
+                        "htmlContent": {
+                          "type": "variable"
+                        },
+                        "id": {
                           "type": "variable"
                         },
                         "kind": {
                           "type": "variable"
                         },
-                        "selfLink": {
-                          "type": "variable"
-                        },
-                        "value": {
-                          "type": "variable"
-                        },
-                        "visibility": {
+                        "modifiedTime": {
                           "type": "variable"
                         }
                       }
                     },
-                    "PropertyList": {
+                    "ReplyList": {
                       "type": "class",
                       "children": {
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "items": {
-                          "type": "variable"
-                        },
                         "kind": {
                           "type": "variable"
                         },
-                        "selfLink": {
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "replies": {
                           "type": "variable"
                         }
                       }
@@ -5569,19 +6532,10 @@
                     "Revision": {
                       "type": "class",
                       "children": {
-                        "downloadUrl": {
-                          "type": "variable"
-                        },
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "exportLinks": {
-                          "type": "variable"
-                        },
-                        "fileSize": {
-                          "type": "variable"
-                        },
                         "id": {
+                          "type": "variable"
+                        },
+                        "keepForever": {
                           "type": "variable"
                         },
                         "kind": {
@@ -5590,22 +6544,16 @@
                         "lastModifyingUser": {
                           "type": "variable"
                         },
-                        "lastModifyingUserName": {
-                          "type": "variable"
-                        },
                         "md5Checksum": {
                           "type": "variable"
                         },
                         "mimeType": {
                           "type": "variable"
                         },
-                        "modifiedDate": {
+                        "modifiedTime": {
                           "type": "variable"
                         },
                         "originalFilename": {
-                          "type": "variable"
-                        },
-                        "pinned": {
                           "type": "variable"
                         },
                         "publishAuto": {
@@ -5614,13 +6562,10 @@
                         "published": {
                           "type": "variable"
                         },
-                        "publishedLink": {
-                          "type": "variable"
-                        },
                         "publishedOutsideDomain": {
                           "type": "variable"
                         },
-                        "selfLink": {
+                        "size": {
                           "type": "variable"
                         }
                       }
@@ -5628,16 +6573,24 @@
                     "RevisionList": {
                       "type": "class",
                       "children": {
-                        "etag": {
-                          "type": "variable"
-                        },
-                        "items": {
-                          "type": "variable"
-                        },
                         "kind": {
                           "type": "variable"
                         },
-                        "selfLink": {
+                        "nextPageToken": {
+                          "type": "variable"
+                        },
+                        "revisions": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "StartPageToken": {
+                      "type": "class",
+                      "children": {
+                        "kind": {
+                          "type": "variable"
+                        },
+                        "startPageToken": {
                           "type": "variable"
                         }
                       }
@@ -5651,16 +6604,16 @@
                         "emailAddress": {
                           "type": "variable"
                         },
-                        "isAuthenticatedUser": {
+                        "kind": {
                           "type": "variable"
                         },
-                        "kind": {
+                        "me": {
                           "type": "variable"
                         },
                         "permissionId": {
                           "type": "variable"
                         },
-                        "picture": {
+                        "photoLink": {
                           "type": "variable"
                         }
                       }
@@ -5668,13 +6621,7 @@
                     "about.get": {
                       "type": "function"
                     },
-                    "apps.get": {
-                      "type": "function"
-                    },
-                    "apps.list": {
-                      "type": "function"
-                    },
-                    "changes.get": {
+                    "changes.getStartPageToken": {
                       "type": "function"
                     },
                     "changes.list": {
@@ -5686,16 +6633,7 @@
                     "channels.stop": {
                       "type": "function"
                     },
-                    "children.delete": {
-                      "type": "function"
-                    },
-                    "children.get": {
-                      "type": "function"
-                    },
-                    "children.insert": {
-                      "type": "function"
-                    },
-                    "children.list": {
+                    "comments.create": {
                       "type": "function"
                     },
                     "comments.delete": {
@@ -5704,13 +6642,7 @@
                     "comments.get": {
                       "type": "function"
                     },
-                    "comments.insert": {
-                      "type": "function"
-                    },
                     "comments.list": {
-                      "type": "function"
-                    },
-                    "comments.patch": {
                       "type": "function"
                     },
                     "comments.update": {
@@ -5719,10 +6651,16 @@
                     "files.copy": {
                       "type": "function"
                     },
+                    "files.create": {
+                      "type": "function"
+                    },
                     "files.delete": {
                       "type": "function"
                     },
                     "files.emptyTrash": {
+                      "type": "function"
+                    },
+                    "files.export": {
                       "type": "function"
                     },
                     "files.generateIds": {
@@ -5731,22 +6669,7 @@
                     "files.get": {
                       "type": "function"
                     },
-                    "files.insert": {
-                      "type": "function"
-                    },
                     "files.list": {
-                      "type": "function"
-                    },
-                    "files.patch": {
-                      "type": "function"
-                    },
-                    "files.touch": {
-                      "type": "function"
-                    },
-                    "files.trash": {
-                      "type": "function"
-                    },
-                    "files.untrash": {
                       "type": "function"
                     },
                     "files.update": {
@@ -5755,16 +6678,7 @@
                     "files.watch": {
                       "type": "function"
                     },
-                    "parents.delete": {
-                      "type": "function"
-                    },
-                    "parents.get": {
-                      "type": "function"
-                    },
-                    "parents.insert": {
-                      "type": "function"
-                    },
-                    "parents.list": {
+                    "permissions.create": {
                       "type": "function"
                     },
                     "permissions.delete": {
@@ -5773,43 +6687,13 @@
                     "permissions.get": {
                       "type": "function"
                     },
-                    "permissions.getIdForEmail": {
-                      "type": "function"
-                    },
-                    "permissions.insert": {
-                      "type": "function"
-                    },
                     "permissions.list": {
-                      "type": "function"
-                    },
-                    "permissions.patch": {
                       "type": "function"
                     },
                     "permissions.update": {
                       "type": "function"
                     },
-                    "properties.delete": {
-                      "type": "function"
-                    },
-                    "properties.get": {
-                      "type": "function"
-                    },
-                    "properties.insert": {
-                      "type": "function"
-                    },
-                    "properties.list": {
-                      "type": "function"
-                    },
-                    "properties.patch": {
-                      "type": "function"
-                    },
-                    "properties.update": {
-                      "type": "function"
-                    },
-                    "realtime.get": {
-                      "type": "function"
-                    },
-                    "realtime.update": {
+                    "replies.create": {
                       "type": "function"
                     },
                     "replies.delete": {
@@ -5818,13 +6702,7 @@
                     "replies.get": {
                       "type": "function"
                     },
-                    "replies.insert": {
-                      "type": "function"
-                    },
                     "replies.list": {
-                      "type": "function"
-                    },
-                    "replies.patch": {
                       "type": "function"
                     },
                     "replies.update": {
@@ -5839,18 +6717,51 @@
                     "revisions.list": {
                       "type": "function"
                     },
-                    "revisions.patch": {
-                      "type": "function"
-                    },
                     "revisions.update": {
                       "type": "function"
                     }
                   },
-                  "summary": "Drive API v2 - The API to interact with Drive."
+                  "summary": "Drive API v3 - Manages files in Drive including uploading, downloading, searching, detecting changes, and updating sharing permissions."
                 },
                 "gmailV1": {
                   "type": "module",
                   "children": {
+                    "AutoForwarding": {
+                      "type": "class",
+                      "children": {
+                        "disposition": {
+                          "type": "variable"
+                        },
+                        "emailAddress": {
+                          "type": "variable"
+                        },
+                        "enabled": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "BatchDeleteMessagesRequest": {
+                      "type": "class",
+                      "children": {
+                        "ids": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "BatchModifyMessagesRequest": {
+                      "type": "class",
+                      "children": {
+                        "addLabelIds": {
+                          "type": "variable"
+                        },
+                        "ids": {
+                          "type": "variable"
+                        },
+                        "removeLabelIds": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "Draft": {
                       "type": "class",
                       "children": {
@@ -5858,6 +6769,77 @@
                           "type": "variable"
                         },
                         "message": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "Filter": {
+                      "type": "class",
+                      "children": {
+                        "action": {
+                          "type": "variable"
+                        },
+                        "criteria": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "FilterAction": {
+                      "type": "class",
+                      "children": {
+                        "addLabelIds": {
+                          "type": "variable"
+                        },
+                        "forward": {
+                          "type": "variable"
+                        },
+                        "removeLabelIds": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "FilterCriteria": {
+                      "type": "class",
+                      "children": {
+                        "excludeChats": {
+                          "type": "variable"
+                        },
+                        "from": {
+                          "type": "variable"
+                        },
+                        "hasAttachment": {
+                          "type": "variable"
+                        },
+                        "negatedQuery": {
+                          "type": "variable"
+                        },
+                        "query": {
+                          "type": "variable"
+                        },
+                        "size": {
+                          "type": "variable"
+                        },
+                        "sizeComparison": {
+                          "type": "variable"
+                        },
+                        "subject": {
+                          "type": "variable"
+                        },
+                        "to": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "ForwardingAddress": {
+                      "type": "class",
+                      "children": {
+                        "forwardingEmail": {
+                          "type": "variable"
+                        },
+                        "verificationStatus": {
                           "type": "variable"
                         }
                       }
@@ -5923,6 +6905,23 @@
                         }
                       }
                     },
+                    "ImapSettings": {
+                      "type": "class",
+                      "children": {
+                        "autoExpunge": {
+                          "type": "variable"
+                        },
+                        "enabled": {
+                          "type": "variable"
+                        },
+                        "expungeBehavior": {
+                          "type": "variable"
+                        },
+                        "maxFolderSize": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "Label": {
                       "type": "class",
                       "children": {
@@ -5969,6 +6968,22 @@
                         }
                       }
                     },
+                    "ListFiltersResponse": {
+                      "type": "class",
+                      "children": {
+                        "filter": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "ListForwardingAddressesResponse": {
+                      "type": "class",
+                      "children": {
+                        "forwardingAddresses": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "ListHistoryResponse": {
                       "type": "class",
                       "children": {
@@ -6001,6 +7016,22 @@
                           "type": "variable"
                         },
                         "resultSizeEstimate": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "ListSendAsResponse": {
+                      "type": "class",
+                      "children": {
+                        "sendAs": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "ListSmimeInfoResponse": {
+                      "type": "class",
+                      "children": {
+                        "smimeInfo": {
                           "type": "variable"
                         }
                       }
@@ -6121,6 +7152,17 @@
                         }
                       }
                     },
+                    "PopSettings": {
+                      "type": "class",
+                      "children": {
+                        "accessWindow": {
+                          "type": "variable"
+                        },
+                        "disposition": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "Profile": {
                       "type": "class",
                       "children": {
@@ -6138,6 +7180,84 @@
                         }
                       }
                     },
+                    "SendAs": {
+                      "type": "class",
+                      "children": {
+                        "displayName": {
+                          "type": "variable"
+                        },
+                        "isDefault": {
+                          "type": "variable"
+                        },
+                        "isPrimary": {
+                          "type": "variable"
+                        },
+                        "replyToAddress": {
+                          "type": "variable"
+                        },
+                        "sendAsEmail": {
+                          "type": "variable"
+                        },
+                        "signature": {
+                          "type": "variable"
+                        },
+                        "smtpMsa": {
+                          "type": "variable"
+                        },
+                        "treatAsAlias": {
+                          "type": "variable"
+                        },
+                        "verificationStatus": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SmimeInfo": {
+                      "type": "class",
+                      "children": {
+                        "encryptedKeyPassword": {
+                          "type": "variable"
+                        },
+                        "expiration": {
+                          "type": "variable"
+                        },
+                        "id": {
+                          "type": "variable"
+                        },
+                        "isDefault": {
+                          "type": "variable"
+                        },
+                        "issuerCn": {
+                          "type": "variable"
+                        },
+                        "pem": {
+                          "type": "variable"
+                        },
+                        "pkcs12": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "SmtpMsa": {
+                      "type": "class",
+                      "children": {
+                        "host": {
+                          "type": "variable"
+                        },
+                        "password": {
+                          "type": "variable"
+                        },
+                        "port": {
+                          "type": "variable"
+                        },
+                        "securityMode": {
+                          "type": "variable"
+                        },
+                        "username": {
+                          "type": "variable"
+                        }
+                      }
+                    },
                     "Thread": {
                       "type": "class",
                       "children": {
@@ -6151,6 +7271,35 @@
                           "type": "variable"
                         },
                         "snippet": {
+                          "type": "variable"
+                        }
+                      }
+                    },
+                    "VacationSettings": {
+                      "type": "class",
+                      "children": {
+                        "enableAutoReply": {
+                          "type": "variable"
+                        },
+                        "endTime": {
+                          "type": "variable"
+                        },
+                        "responseBodyHtml": {
+                          "type": "variable"
+                        },
+                        "responseBodyPlainText": {
+                          "type": "variable"
+                        },
+                        "responseSubject": {
+                          "type": "variable"
+                        },
+                        "restrictToContacts": {
+                          "type": "variable"
+                        },
+                        "restrictToDomain": {
+                          "type": "variable"
+                        },
+                        "startTime": {
                           "type": "variable"
                         }
                       }
@@ -6225,6 +7374,12 @@
                     "users.messages.attachments.get": {
                       "type": "function"
                     },
+                    "users.messages.batchDelete": {
+                      "type": "function"
+                    },
+                    "users.messages.batchModify": {
+                      "type": "function"
+                    },
                     "users.messages.delete": {
                       "type": "function"
                     },
@@ -6252,6 +7407,90 @@
                     "users.messages.untrash": {
                       "type": "function"
                     },
+                    "users.settings.filters.create": {
+                      "type": "function"
+                    },
+                    "users.settings.filters.delete": {
+                      "type": "function"
+                    },
+                    "users.settings.filters.get": {
+                      "type": "function"
+                    },
+                    "users.settings.filters.list": {
+                      "type": "function"
+                    },
+                    "users.settings.forwardingAddresses.create": {
+                      "type": "function"
+                    },
+                    "users.settings.forwardingAddresses.delete": {
+                      "type": "function"
+                    },
+                    "users.settings.forwardingAddresses.get": {
+                      "type": "function"
+                    },
+                    "users.settings.forwardingAddresses.list": {
+                      "type": "function"
+                    },
+                    "users.settings.getAutoForwarding": {
+                      "type": "function"
+                    },
+                    "users.settings.getImap": {
+                      "type": "function"
+                    },
+                    "users.settings.getPop": {
+                      "type": "function"
+                    },
+                    "users.settings.getVacation": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.create": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.delete": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.get": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.list": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.patch": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.smimeInfo.delete": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.smimeInfo.get": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.smimeInfo.insert": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.smimeInfo.list": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.smimeInfo.setDefault": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.update": {
+                      "type": "function"
+                    },
+                    "users.settings.sendAs.verify": {
+                      "type": "function"
+                    },
+                    "users.settings.updateAutoForwarding": {
+                      "type": "function"
+                    },
+                    "users.settings.updateImap": {
+                      "type": "function"
+                    },
+                    "users.settings.updatePop": {
+                      "type": "function"
+                    },
+                    "users.settings.updateVacation": {
+                      "type": "function"
+                    },
                     "users.stop": {
                       "type": "function"
                     },
@@ -6277,7 +7516,7 @@
                       "type": "function"
                     }
                   },
-                  "summary": "Gmail API v1 - The Gmail REST API."
+                  "summary": "Gmail API v1 - Access Gmail mailboxes including sending user email."
                 },
                 "picasawebV2": {
                   "type": "module",
@@ -6342,6 +7581,9 @@
                           "type": "variable"
                         },
                         "timeCreated": {
+                          "type": "variable"
+                        },
+                        "updated": {
                           "type": "variable"
                         },
                         "versioning": {
@@ -6494,6 +7736,9 @@
                         "crc32c": {
                           "type": "variable"
                         },
+                        "customerEncryption": {
+                          "type": "variable"
+                        },
                         "etag": {
                           "type": "variable"
                         },
@@ -6533,7 +7778,13 @@
                         "storageClass": {
                           "type": "variable"
                         },
+                        "timeCreated": {
+                          "type": "variable"
+                        },
                         "timeDeleted": {
+                          "type": "variable"
+                        },
+                        "timeStorageClassUpdated": {
                           "type": "variable"
                         },
                         "updated": {
@@ -6742,7 +7993,7 @@
                       "type": "function"
                     }
                   },
-                  "summary": "Cloud Storage API v1 - Lets you store and retrieve potentially-large, immutable data objects."
+                  "summary": "Cloud Storage JSON API v1 - Stores and retrieves potentially large, immutable data objects."
                 },
                 "urlshortenerV1": {
                   "type": "module",
@@ -7327,7 +8578,16 @@
         "components": {
           "type": "module",
           "children": {
+            "AppBar": {
+              "type": "function"
+            },
             "Btn": {
+              "type": "function"
+            },
+            "List": {
+              "type": "function"
+            },
+            "PermanentDrawer": {
               "type": "function"
             },
             "TextField": {
@@ -7544,6 +8804,9 @@
                   "type": "ctor"
                 }
               }
+            },
+            "Location": {
+              "type": "variable"
             },
             "Page": {
               "type": "class",

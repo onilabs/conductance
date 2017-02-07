@@ -1,4 +1,4 @@
-/* (c) 2013-2014 Oni Labs, http://onilabs.com
+/* (c) 2013-2017 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *

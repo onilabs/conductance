@@ -1,4 +1,4 @@
-/* (c) 2013-2014 Oni Labs, http://onilabs.com
+/* (c) 2013-2017 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *
@@ -414,6 +414,7 @@ module.exports = require(modules);
    - **decode**: (function [sjs:string::decode])
    - **encode**: (function [sjs:string::encode])
    - **endsWith**: (function [sjs:string::endsWith])
+   - **indent**: (function [sjs:string::indent])
    - **isString**: (function [sjs:string::isString])
    - **lstrip**: (function [sjs:string::lstrip])
    - **octetsToArrayBuffer**: (function [sjs:string::octetsToArrayBuffer])
