@@ -7,12 +7,6 @@
 
 // helpers:
 
-__js function indent(s, n) {
-  var prefix = '';
-  for (var i=0;i<n;++i) prefix += ' ';
-  return s .. @prefixLines(prefix);
-}
-
 function emit(x) { process.stdout.write(x); }
 
 
@@ -110,7 +104,7 @@ function generateSchemasDocs() {
 
   return "\
 /**
-#{rv .. @join('\n\n') .. indent(3)}
+#{rv .. @join('\n\n') .. @indent(3)}
 */\n\n";
 }
 
@@ -136,14 +130,14 @@ function walkResources(resources, level) {
       
       if (resource.methods) {
         resource.methods .. @ownPropertyPairs .. 
-          @transform([name, descriptor] -> generateMethod(name, descriptor) .. indent(0)) ..
+          @transform([name, descriptor] -> generateMethod(name, descriptor) .. @indent(0)) ..
           @join(",\n\n") .. contents.push;
       }
       
       if (resource.resources)
         walkResources(resource.resources, level+1) .. contents.push;
       
-      rv += contents .. @join(",\n\n") .. indent(2);
+      rv += contents .. @join(",\n\n") .. @indent(2);
       
       rv += "\n}";
       if (level === 0)
@@ -218,7 +212,7 @@ This API call requires authorization with (at least one of) the following scope(
     rv += descriptor.scopes .. @transform(scope -> " * #{scope} - #{discovery_doc.auth.oauth2.scopes[scope].description}") .. @join('\n');
   }
   
-  return rv .. indent(5);
+  return rv .. @indent(5);
 }
 
 __js function stripFirstObjPath(path) {
@@ -276,7 +270,7 @@ function generateRequestParameters(descriptor) {
                          @join(', ')
                       }]");
 
-  return rv .. @join(',\n') .. indent(4);
+  return rv .. @join(',\n') .. @indent(4);
 }
 
 function generateMethod(name, descriptor) {
