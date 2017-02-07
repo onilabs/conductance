@@ -1,0 +1,27 @@
+#!/usr/bin/env conductance
+
+@ = require([
+  'mho:std',
+  {id:'mho:commandline-utils', name:'commandline'}
+]);
+
+// helpers:
+
+function emit(x) { process.stdout.write(x); }
+
+
+//----------------------------------------------------------------------
+// argument parsing
+
+var args = @commandline.parseArgs(
+  {
+    summary: "List available Google API using the Google Discovery Service",
+  }
+);
+
+var api_list = @http.get(['https://www.googleapis.com/discovery/v1/apis', {preferred:true}]) .. JSON.parse;
+
+api_list.items .. @each {
+  |item|
+  emit((item.name .. @padRight(30))+item.version+'\n');
+}
