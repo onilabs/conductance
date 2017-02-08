@@ -1,0 +1,185 @@
+#!/usr/bin/env conductance
+
+@ = require([
+  'mho:std',
+  {id:'mho:commandline-utils', name:'commandline'},
+  {id:'sjs:yaml', name:'yaml'}
+]);
+
+// helpers:
+
+function emit(x) { process.stdout.write(x); }
+
+
+//----------------------------------------------------------------------
+// argument parsing
+
+var args = @commandline.parseArgs(
+  {
+    summary: "Generate an sjs API file for the Docker API from an OpenAPI file",
+    options: [{
+      name: 'version',
+      type: 'string',
+      help: 'API version (default=v1.25). The utility expects an OpenAPI (swagger) file at https://docs.docker.com/engine/api/[VERSION]/swagger.yaml'
+    }]
+  }
+);
+
+if (!args.version) args.version = 'v1.25';
+
+//----------------------------------------------------------------------
+// load OpenAPI file
+
+var doc = @http.get(`https://docs.docker.com/engine/api/${args.version}/swagger.yaml`) .. @yaml.load;
+
+//----------------------------------------------------------------------
+// header
+
+var rv = "\
+// This file was originally generated using conductance/tools/docker/generate-docker-api --version=#{args.version}
+
+/* (c) 2013-2017 Oni Labs, http://onilabs.com
+ *
+ * This file is part of Conductance, http://conductance.io/
+ *
+ * It is subject to the license terms in the LICENSE file
+ * found in the top-level directory of this distribution.
+ * No part of Conductance, including this file, may be
+ * copied, modified, propagated, or distributed except
+ * according to the terms contained in the LICENSE file.
+ */
+
+/**
+  @summary #{doc.info.title} #{doc.info.version}
+  @desc
+#{doc.info.description .. @indent(4)}
+*/
+
+@ = require([
+  'mho:std'
+]);
+
+";
+
+//----------------------------------------------------------------------
+
+var baseURL = doc.basePath;
+
+var aux_classes = [];
+var methods = [];
+
+doc.paths .. @propertyPairs .. @each {
+  |[path,path_descriptor]|
+
+  path_descriptor .. @propertyPairs .. @each {
+    |[method, method_descriptor]|
+    methods.push(generateMethod(path, method, method_descriptor, aux_classes));
+  }
+}
+rv = rv + "#{aux_classes.join('\n')}\n#{methods.join('\n')}\n";
+
+// resolve relative links:
+rv = rv.replace(/\[[^\]]+\]\(#operation\/([^\)]+)\)/g, (m,p1) -> "[::#{p1 .. @decapitalize}]");
+
+// tweak display of lists following text 'Available filters:'
+rv = rv.replace(/Available filters:\n/g, "Available filters:\n\n");
+
+emit(rv);
+
+           
+//----------------------------------------------------------------------         
+                    
+function generateMethod(path, method, method_descriptor, aux_classes) { 
+  var name = method_descriptor.operationId .. @decapitalize;
+  
+  var parameter_info = parseParameters(method, method_descriptor, aux_classes);
+
+
+  var desc = '';
+  if (method_descriptor.description) {
+    desc += method_descriptor.description + '\n';
+  }
+  parameter_info .. @each {
+    |par|
+
+    if (par.in != 'path' && par.in != 'query' && par.in != 'body' && par.in != 'header') {
+      process.stderr.write("#{name}::#{par.name} is in unhandled #{par.in}\n");
+    }
+
+    if (par.desc) 
+      desc += '\n' + par.desc + '\n';
+  }
+  if (desc.length) 
+    desc = "  @desc\n" + (desc .. @indent(4));
+
+  return "\
+/**
+  @function #{name}
+  @summary #{method_descriptor.summary}
+#{generateParameterDocs(parameter_info)}
+#{desc}
+*/
+exports.#{name} = function(client, params) {
+  return client.performRequest({
+    method: '#{method.toUpperCase()}',
+    url: '#{baseURL + path}',
+    params: params,
+    requiredParams: [#{parameter_info .. @filter(p->p.required) .. @transform(p->"'#{p.name}'") .. @join(',')}],
+    pathParams: [#{parameter_info .. @filter(p->p.in == 'path') .. @transform(p->"'#{p.name}'") .. @join(',')}],
+    queryParams: [#{parameter_info .. @filter(p->p.in == 'query') .. @transform(p->"'#{p.name}'") .. @join(',')}],
+    bodyParams: [#{parameter_info .. @filter(p->p.in == 'body') .. @transform(p->"'#{p.name}'") .. @join(',')}],
+    headerParams: [#{parameter_info .. @filter(p->p.in == 'header') .. @transform(p->"'#{p.name}'") .. @join(',')}]
+  });
+};
+
+";
+}
+
+function parseParameters(method, method_descriptor, aux_classes) {
+  var rv = [];
+  (method_descriptor.parameters || []) .. @each {
+    |par_descriptor|
+    var info = {};
+
+    var summary = '';
+    if (par_descriptor.description && par_descriptor.description.indexOf('\n') == -1) {
+      // single line description
+      summary =  par_descriptor.description;
+    }
+    else if (par_descriptor.description) {
+      summary = "See description";
+      info.desc = "#### Setting '#{par_descriptor.name}'\n#{par_descriptor.description}";
+    }
+
+    info.name = par_descriptor.name;
+    info.required = par_descriptor.required;
+    info.in = par_descriptor.in;
+
+    if (par_descriptor.type) {
+      // this is a 'simple' parameter
+
+      info.docs = "  @setting {#{info.required ? '' : 'optional '}#{par_descriptor.type .. @capitalize}} [#{info.name}#{par_descriptor['default']!==undefined? "=#{par_descriptor.default}":''}] #{summary}";
+    }
+    else {
+      // this parameter has a schema
+      process.stderr.write("#{method_descriptor.operationId .. @decapitalize}::#{par_descriptor.name} has complicated type\n");
+      info.docs = "  @setting {COMPLEX} [#{info.name}] #{par_descriptor.description ? par_descriptor.description : ''}";
+    }
+    rv.push(info);
+  }
+  return rv;
+}
+
+function generateParameterDocs(parameter_info) {
+  var parameters = [
+    "  @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]"
+  ];
+  if (parameter_info.length) {
+    parameters.push("  @param {Object} [settings] API call parameters");
+    parameter_info .. @each {
+      |par_info|
+      parameters.push(par_info.docs);
+    }
+  }
+  return parameters.join("\n");
+}
