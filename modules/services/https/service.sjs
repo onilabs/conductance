@@ -59,7 +59,7 @@
    @param {Object} [config] Configuration object, as e.g. created by [mho:services::configUI]
    @param {Function} [block] Function bounding lifetime of service; will be passed a [::HttpsService] instance.
    @desc
-      Usually implicitly run by [mho:services::run]
+      Usually implicitly run by [mho:services::withServices]
  */
 
 var WEBROOT = '/var/letsencrypt/';

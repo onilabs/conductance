@@ -25,7 +25,7 @@
    @param {Object} [config] Configuration object, as e.g. created by [mho:services::configUI]
    @param {Function} [block] Function bounding lifetime of service; will be passed a [::OAuthService] instance.
    @desc
-      Usually implicitly run by [mho:services::run]
+      Usually implicitly run by [mho:services::withServices]
  */
 exports.run = function(config, block) {
   console.log("Starting Google Web APIs OAuth client");
