@@ -34,7 +34,7 @@ __js function buildPath(path, params) {
   return @supplant(path, params, x -> x .. encodeURIComponent);
 }
 
-function request(request_inner, args) {
+function request(base_url, args) {
 
   if (!args.params)
     args.params = {};
@@ -57,7 +57,7 @@ function request(request_inner, args) {
   request_opts.throwing = false;
   request_opts.response = 'full';
 
-  var request_rv = request_inner(path, request_opts);
+  var request_rv = @http.request(base_url+path, request_opts);
   
   var rv;
 
@@ -95,16 +95,12 @@ function request(request_inner, args) {
 */
 exports.run = function(config, block) {
 
-  function request_inner(relative, request_opts) {
-    // XXX get base url from config
-    return @http.request("http://unix:/var/run/docker.sock:"+ relative, request_opts);
-  }
-
   var client = {
     toString: -> "[Docker API Client]",
     /* internal interface */
     performRequest: function(args) {
-      return request(request_inner, args);
+      // XXX get base url from config
+      return request("http://unix:/var/run/docker.sock:", args);
     }
   };
 
