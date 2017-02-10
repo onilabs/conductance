@@ -154,6 +154,7 @@ function generateMethod(path, method, method_descriptor, aux_classes) {
   var parameter_info = parseParameters(name, method_descriptor, aux_classes);
   var rv_info = parseResponses(name, method_descriptor, aux_classes);
 
+  var body;
 
   var desc = '';
   if (method_descriptor.description) {
@@ -167,7 +168,21 @@ function generateMethod(path, method, method_descriptor, aux_classes) {
     }
 
     // XXX 
-    if (par.in == 'body' || par.in == 'header') {
+    if (par.in == 'body') {
+      if (body) throw new Error("Unexpected: Multiple body parameters");
+      if (par.schema.type === 'object' || par.schema.type === 'array') {
+        body='json';
+      }
+      else if (par.schema.type === 'string') {
+        body='string';
+      }
+      else {
+        throw new Error("Unexpected body type #{par.schema.type} in #{name}::#{par.name}");
+      }
+    }
+
+    // XXX
+    if (par.in == 'header') {
       process.stderr.write("#{name}::#{par.name} of type '#{par.in}' not handled yet\n");
     }
 
@@ -201,6 +216,7 @@ exports.#{name} = function(client, params) {
     queryParams: [#{parameter_info .. @filter(p->p.in == 'query') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     bodyParams: [#{parameter_info .. @filter(p->p.in == 'body') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     headerParams: [#{parameter_info .. @filter(p->p.in == 'header') .. @transform(p->"'#{p.name}'") .. @join(',')}],
+    #{body ? "body: '#{body}',":''}
     rv: '#{rv_info.type}'
   });
 };
@@ -340,6 +356,7 @@ function parseParameters(name, method_descriptor, aux_classes) {
     }
     else {
       // this parameter has a schema
+      info.schema = par_descriptor.schema;
       info.docs = "  @setting {Object} [#{info.name}] #{par_descriptor.description ? par_descriptor.description+'. ' : ''}See description.";
       info.desc = "#### Setting '#{par_descriptor.name}'\n\n- #{schemaDescription(par_descriptor.schema)}";
     }
