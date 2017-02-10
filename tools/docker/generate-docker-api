@@ -10,6 +10,29 @@
 
 function emit(x) { process.stdout.write(x); }
 
+// helpers for traversing objects
+// XXX we should have something like this in sjs:object
+function traverse(root, isLeaf, visit) {
+  function inner(container) {
+    container .. @propertyPairs .. @each {
+      |[k,v]|
+      if (isLeaf(container, k, v))
+        visit(container, k, v);
+      else if (v && typeof v === 'object')
+        inner(v);
+    }
+  }
+  inner(root);
+}
+
+function traverseRefs(obj, visit) {
+  obj .. traverse((p,k,v) -> k === '$ref', visit);
+}
+
+function traverseAllOf(obj, visit) {
+  obj .. traverse((p,k,v) -> k === 'allOf', visit);
+}
+
 
 //----------------------------------------------------------------------
 // argument parsing
@@ -28,9 +51,41 @@ var args = @commandline.parseArgs(
 if (!args.version) args.version = 'v1.25';
 
 //----------------------------------------------------------------------
-// load OpenAPI file
+// load OpenAPI file & preprocess docs
 
 var doc = @http.get(`https://docs.docker.com/engine/api/${args.version}/swagger.yaml`) .. @yaml.load;
+
+// unravel references:
+do {
+  // make multiple passes in case referenced definitions contain references themselves
+  var replacements = 0;
+  process.stderr.write("Unravel references...\n");
+  doc .. traverseRefs {
+    |parent, name, val|
+    var ref = val.split('/');
+    if (ref[1] !== 'definitions') throw new Error("Unexpected reference #{val}");
+    delete parent['$ref'];
+    parent .. @extend(doc.definitions[ref[2]]);
+    ++replacements;
+  }
+} while (replacements);
+
+// merge 'allOf' data:
+process.stderr.write("Merge 'allOf' data...\n");
+doc .. traverseAllOf {
+  |parent, name, val|
+  var allOf = val;
+  delete parent.allOf;
+  if (allOf .. @any(item -> item.type && item.type !== 'object'))
+    throw new Error("Unexpected OpenAPI structure: non-object children in 'allOf': #{allOf .. @inspect}");
+  parent.type = 'object';
+  if (allOf .. @any(item -> item.additionalProperties))
+    throw new Error("Unexpected 'additionalProperties' in 'allOf'");
+  
+  // merge all properties into a new object:
+  parent.properties= @merge.apply(null, allOf .. @map(item -> item.properties));
+}
+
 
 //----------------------------------------------------------------------
 // header
@@ -92,7 +147,8 @@ emit(rv);
 function generateMethod(path, method, method_descriptor, aux_classes) { 
   var name = method_descriptor.operationId .. @decapitalize;
   
-  var parameter_info = parseParameters(method, method_descriptor, aux_classes);
+  var parameter_info = parseParameters(name, method_descriptor, aux_classes);
+  var rv_info = parseResponses(name, method_descriptor, aux_classes);
 
 
   var desc = '';
@@ -106,16 +162,28 @@ function generateMethod(path, method, method_descriptor, aux_classes) {
       process.stderr.write("#{name}::#{par.name} is in unhandled #{par.in}\n");
     }
 
+    // XXX 
+    if (par.in == 'body' || par.in == 'header') {
+      process.stderr.write("#{name}::#{par.name} of type '#{par.in}' not handled yet\n");
+    }
+
     if (par.desc) 
       desc += '\n' + par.desc + '\n';
   }
+
+  if (rv_info.desc)
+    desc += '\n#### Return value\n' + rv_info.desc + '\n';
+
   if (desc.length) 
     desc = "  @desc\n" + (desc .. @indent(4));
+
+
 
   return "\
 /**
   @function #{name}
   @summary #{method_descriptor.summary}
+  @return {#{rv_info.returns}}
 #{generateParameterDocs(parameter_info)}
 #{desc}
 */
@@ -128,14 +196,120 @@ exports.#{name} = function(client, params) {
     pathParams: [#{parameter_info .. @filter(p->p.in == 'path') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     queryParams: [#{parameter_info .. @filter(p->p.in == 'query') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     bodyParams: [#{parameter_info .. @filter(p->p.in == 'body') .. @transform(p->"'#{p.name}'") .. @join(',')}],
-    headerParams: [#{parameter_info .. @filter(p->p.in == 'header') .. @transform(p->"'#{p.name}'") .. @join(',')}]
+    headerParams: [#{parameter_info .. @filter(p->p.in == 'header') .. @transform(p->"'#{p.name}'") .. @join(',')}],
+    rv: '#{rv_info.type}'
   });
 };
 
 ";
 }
 
-function parseParameters(method, method_descriptor, aux_classes) {
+//----------------------------------------------------------------------
+// helpers to generate an inline textual description of a schema:
+
+function SchemaTitle(schema, type) {
+  var req = '';
+  if (schema.required)
+    req = " (Required: #{schema.required.join(', ')})";
+  if (schema.default != undefined)
+    req += " (Optional; default: '#{schema.default .. @inspect}')";
+
+  if (schema.description)
+    return '**'+type+'** ' + schema.description.replace(/\n/g,'  ') + req; // XXX this replacement is not very nice
+  else 
+    return '**'+type+'**' + req;
+}
+
+function schemaObjectProps(schema) {
+  var rv = [];
+  @propertyPairs(schema.properties) .. @each {
+    |[k,v]|
+    rv.push('- `'+k+'`: '+ schemaDescription(v));
+  }
+
+  if (schema.additionalProperties) 
+    rv.push('- `[KEY]`: '+schemaDescription(schema.additionalProperties));
+
+  return rv.join('\n') .. @indent(2);
+}
+
+function schemaDescription(schema) {
+//  process.stderr.write("SCHEMA: #{schema .. @inspect(false, 4)}\n");
+  var type = schema.type;
+  if (Array.isArray(type)) {
+    process.stderr.write("Warning, saw type '#{type}'.. taking first of those\n");
+    type = type .. @first();
+  }
+  if (type === 'string')
+    return SchemaTitle(schema,'String');
+  else if (type === 'integer')
+    return SchemaTitle(schema,'Integer');
+  else if (type === 'number')
+    return SchemaTitle(schema,'Number');
+  else if (type === 'boolean')
+    return SchemaTitle(schema,'Boolean');
+  else if (type === 'array')
+    return SchemaTitle(schema, 'Array') + '\n' + ('- Elements of type '+schemaDescription(schema.items)) .. @indent(2);
+  else if (type === 'object' || (type === undefined && schema.properties) )
+    return SchemaTitle(schema, 'Object') + '\n' + schemaObjectProps(schema);
+  else if (type === 'object' || (type === undefined && schema.enum) ) {
+    return SchemaTitle(schema,'String');
+  }
+  else if (type === undefined) {
+    process.stderr.write("Warning: schema type undefined for schema #{schema .. @inspect}\n");
+    return SchemaTitle(schema,'anything');
+  }
+  else
+    throw new Error("Unknown schema type '#{type}' (schema = #{schema .. @inspect})");
+}
+//----------------------------------------------------------------------
+
+
+function getSuccessSchema(method_descriptor) {
+  return (@propertyPairs(method_descriptor.responses) .. @filter([k,v] -> k.substring(0,1) == '2') .. @first([{},{}]))[1].schema;
+}
+
+function parseResponses(name, method_descriptor, aux_classes) {
+  try {
+    var rv = {};
+    if (method_descriptor.produces && method_descriptor.produces .. @count === 1) {
+      if (method_descriptor.produces[0] === 'application/json') {
+        var schema = getSuccessSchema(method_descriptor);
+        if (schema) {
+          rv.type = 'json';
+//          process.stderr.write((schema .. @inspect(false, 10))+'\n');
+          rv.desc = "- "+schemaDescription(schema);
+          rv.returns = 'Object';
+        }
+        else {
+          rv.type = 'string'; // XXX maybe needs its own type ('void' or something)
+          rv.returns = 'void';
+        }
+      }
+      else if (method_descriptor.produces[0] === 'text/plain') {
+        rv.type = 'string';
+        rv.returns = 'String';
+      }
+      else {
+        process.stderr.write("#{name} has unknown return type #{method_descriptor.produces[0]}\n");
+        rv.type = 'UNKNOWN';
+        rv.returns = 'UNKNOWN';
+      }
+    }
+    else {
+      // more complex return type :/
+      process.stderr.write("#{name} has complex return type\n");
+      rv.type = 'COMPLEX';
+      rv.returns = 'COMPLEX';
+    }
+    return rv;
+  }
+  catch(e) {
+    throw new Error("In #{name}: parseResponses: #{e}");
+  }
+}
+
+function parseParameters(name, method_descriptor, aux_classes) {
   var rv = [];
   (method_descriptor.parameters || []) .. @each {
     |par_descriptor|
@@ -162,8 +336,9 @@ function parseParameters(method, method_descriptor, aux_classes) {
     }
     else {
       // this parameter has a schema
-      process.stderr.write("#{method_descriptor.operationId .. @decapitalize}::#{par_descriptor.name} has complicated type\n");
-      info.docs = "  @setting {COMPLEX} [#{info.name}] #{par_descriptor.description ? par_descriptor.description : ''}";
+      process.stderr.write("#{name}::#{par_descriptor.name} has complicated type\n");
+      info.docs = "  @setting {Object} [#{info.name}] #{par_descriptor.description ? par_descriptor.description+'. ' : ''}See description.";
+      info.desc = "#### Setting '#{par_descriptor.name}'\n\n- #{schemaDescription(par_descriptor.schema)}";
     }
     rv.push(info);
   }

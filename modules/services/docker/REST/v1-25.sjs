@@ -85,6 +85,7 @@
 /**
   @function containerList
   @summary List containers
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional Boolean} [all=false] Return all containers. By default, only running containers are shown
@@ -113,6 +114,71 @@
     - `health`=(`starting`|`healthy`|`unhealthy`|`none`)
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `Id`: **String** The ID of this container
+        - `Names`: **Array** The names that this container has been given
+          - Elements of type **String**
+        - `Image`: **String** The name of the image used when creating this container
+        - `ImageID`: **String** The ID of the image that this container was created from
+        - `Command`: **String** Command to run when starting the container
+        - `Created`: **Integer** When the container was created
+        - `Ports`: **Array** The ports exposed by this container
+          - Elements of type **Object** An open port on a container (Required: PrivatePort, Type)
+            - `IP`: **String**
+            - `PrivatePort`: **Integer** Port on the container
+            - `PublicPort`: **Integer** Port exposed on the host
+            - `Type`: **String**
+        - `SizeRw`: **Integer** The size of files that have been created or changed by this container
+        - `SizeRootFs`: **Integer** The total size of all the files in this container
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `State`: **String** The state of this container (e.g. `Exited`)
+        - `Status`: **String** Additional human-readable status of this container (e.g. `Exit 0`)
+        - `HostConfig`: **Object**
+          - `NetworkMode`: **String**
+        - `NetworkSettings`: **Object** A summary of the container's network settings
+          - `Networks`: **Object**
+            - `[KEY]`: **Object** Configuration for a network endpoint.
+              - `IPAMConfig`: **Object** IPAM configurations for the endpoint
+                - `IPv4Address`: **String**
+                - `IPv6Address`: **String**
+                - `LinkLocalIPs`: **Array**
+                  - Elements of type **String**
+              - `Links`: **Array**
+                - Elements of type **String**
+              - `Aliases`: **Array**
+                - Elements of type **String**
+              - `NetworkID`: **String**
+              - `EndpointID`: **String**
+              - `Gateway`: **String**
+              - `IPAddress`: **String**
+              - `IPPrefixLen`: **Integer**
+              - `IPv6Gateway`: **String**
+              - `GlobalIPv6Address`: **String**
+              - `GlobalIPv6PrefixLen`: **Integer**
+              - `MacAddress`: **String**
+        - `Mounts`: **Array**
+          - Elements of type **Object**
+            - `Target`: **String** Container path.
+            - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+            - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+            - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+            - `BindOptions`: **Object** Optional configuration for the `bind` type.
+              - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+            - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+              - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+              - `Labels`: **Object** User-defined key/value metadata.
+                - `[KEY]`: **String**
+              - `DriverConfig`: **Object** Map of driver specific options
+                - `Name`: **String** Name of the driver to use to create the volume.
+                - `Options`: **Object** key/value map of driver specific options.
+                  - `[KEY]`: **String**
+            - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+              - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+              - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+    
 */
 exports.containerList = function(client, params) {
   return client.performRequest({
@@ -123,7 +189,8 @@ exports.containerList = function(client, params) {
     pathParams: [],
     queryParams: ['all','limit','size','filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -131,11 +198,85 @@ exports.containerList = function(client, params) {
 /**
   @function containerCreate
   @summary Create a container
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [name] Assign the specified name to the container. Must match `/?[a-zA-Z0-9_-]+`.
-  @setting {COMPLEX} [body] Container to create
-
+  @setting {Object} [body] Container to create. See description.
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object**
+      - `Hostname`: **String** The hostname to use for the container, as a valid RFC 1123 hostname.
+      - `Domainname`: **String** The domain name to use for the container.
+      - `User`: **String** The user that commands are run as inside the container.
+      - `AttachStdin`: **Boolean** Whether to attach to `stdin`. (Optional; default: 'false')
+      - `AttachStdout`: **Boolean** Whether to attach to `stdout`. (Optional; default: 'true')
+      - `AttachStderr`: **Boolean** Whether to attach to `stderr`. (Optional; default: 'true')
+      - `ExposedPorts`: **Object** An object mapping ports to an empty object in the form:    `{"<port>/<tcp|udp>": {}}`  
+        - `[KEY]`: **Object** (Optional; default: '{}')
+          
+      - `Tty`: **Boolean** Attach standard streams to a TTY, including `stdin` if it is not closed. (Optional; default: 'false')
+      - `OpenStdin`: **Boolean** Open `stdin` (Optional; default: 'false')
+      - `StdinOnce`: **Boolean** Close `stdin` after one attached client disconnects (Optional; default: 'false')
+      - `Env`: **Array** A list of environment variables to set inside the container in the form `["VAR=value", ...]`  
+        - Elements of type **String**
+      - `Cmd`: **Array** Command to run specified as a string or an array of strings.
+        - Elements of type **String**
+      - `Healthcheck`: **Object** A test to perform to check that the container is healthy.
+        - `Test`: **Array** The test to perform. Possible values are:    - `{}` inherit healthcheck from image or parent image  - `{"NONE"}` disable healthcheck  - `{"CMD", args...}` exec arguments directly  - `{"CMD-SHELL", command}` run command with system's default shell  
+          - Elements of type **String**
+        - `Interval`: **Integer** The time to wait between checks in nanoseconds. 0 means inherit.
+        - `Timeout`: **Integer** The time to wait before considering the check to have hung. 0 means inherit.
+        - `Retries`: **Integer** The number of consecutive failures needed to consider a container as unhealthy. 0 means inherit.
+      - `ArgsEscaped`: **Boolean** Command is already escaped (Windows only)
+      - `Image`: **String** The name of the image to use when creating the container
+      - `Volumes`: **Object** An object mapping mount point paths inside the container to empty objects.
+        - `additionalProperties`: **Object** (Optional; default: '{}')
+          
+      - `WorkingDir`: **String** The working directory for commands to run in.
+      - `Entrypoint`: **Array** The entry point for the container as a string or an array of strings.    If the array consists of exactly one empty string (`[""]`) then the entry point is reset to system default (i.e., the entry point used by docker when there is no `ENTRYPOINT` instruction in the `Dockerfile`).  
+        - Elements of type **String**
+      - `NetworkDisabled`: **Boolean** Disable networking for the container.
+      - `MacAddress`: **String** MAC address of the container.
+      - `OnBuild`: **Array** `ONBUILD` metadata that were defined in the image's `Dockerfile`.
+        - Elements of type **String**
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `StopSignal`: **String** Signal to stop a container as a string or unsigned integer. (Optional; default: ''SIGTERM'')
+      - `StopTimeout`: **Integer** Timeout to stop a container in seconds. (Optional; default: '10')
+      - `Shell`: **Array** Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
+        - Elements of type **String**
+      - `HostConfig`: **anything** Container configuration that depends on the host we are running on
+      - `NetworkingConfig`: **Object** This container's networking configuration.
+        - `EndpointsConfig`: **Object** A mapping of network name to endpoint configuration for that network.
+          - `[KEY]`: **Object** Configuration for a network endpoint.
+            - `IPAMConfig`: **Object** IPAM configurations for the endpoint
+              - `IPv4Address`: **String**
+              - `IPv6Address`: **String**
+              - `LinkLocalIPs`: **Array**
+                - Elements of type **String**
+            - `Links`: **Array**
+              - Elements of type **String**
+            - `Aliases`: **Array**
+              - Elements of type **String**
+            - `NetworkID`: **String**
+            - `EndpointID`: **String**
+            - `Gateway`: **String**
+            - `IPAddress`: **String**
+            - `IPPrefixLen`: **Integer**
+            - `IPv6Gateway`: **String**
+            - `GlobalIPv6Address`: **String**
+            - `GlobalIPv6PrefixLen`: **Integer**
+            - `MacAddress`: **String**
+    
+    #### Return value
+    - **Object** (Required: Id, Warnings)
+      - `Id`: **String** The ID of the created container
+      - `Warnings`: **Array** Warnings encountered when creating the container
+        - Elements of type **String**
+    
 */
 exports.containerCreate = function(client, params) {
   return client.performRequest({
@@ -146,7 +287,8 @@ exports.containerCreate = function(client, params) {
     pathParams: [],
     queryParams: ['name'],
     bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -154,12 +296,246 @@ exports.containerCreate = function(client, params) {
 /**
   @function containerInspect
   @summary Inspect a container
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {optional Boolean} [size=false] Return the size of container as fields `SizeRw` and `SizeRootFs`
   @desc
     Return low-level information about a container.
+    
+    #### Return value
+    - **Object**
+      - `Id`: **String** The ID of the container
+      - `Created`: **String** The time the container was created
+      - `Path`: **String** The path to the command being run
+      - `Args`: **Array** The arguments to the command being run
+        - Elements of type **String**
+      - `State`: **Object** The state of the container.
+        - `Status`: **String** The status of the container. For example, `running` or `exited`.
+        - `Running`: **Boolean** Whether this container is running.
+        - `Paused`: **Boolean** Whether this container is paused.
+        - `Restarting`: **Boolean** Whether this container is restarting.
+        - `OOMKilled`: **Boolean** Whether this container has been killed because it ran out of memory.
+        - `Dead`: **Boolean**
+        - `Pid`: **Integer** The process ID of this container
+        - `ExitCode`: **Integer** The last exit code of this container
+        - `Error`: **String**
+        - `StartedAt`: **String** The time when this container was last started.
+        - `FinishedAt`: **String** The time when this container last exited.
+      - `Image`: **String** The container's image
+      - `ResolvConfPath`: **String**
+      - `HostnamePath`: **String**
+      - `HostsPath`: **String**
+      - `LogPath`: **String**
+      - `Node`: **Object** TODO
+        
+      - `Name`: **String**
+      - `RestartCount`: **Integer**
+      - `Driver`: **String**
+      - `MountLabel`: **String**
+      - `ProcessLabel`: **String**
+      - `AppArmorProfile`: **String**
+      - `ExecIDs`: **String**
+      - `HostConfig`: **Object** Container configuration that depends on the host we are running on
+        - `CpuShares`: **Integer** An integer value representing this container's relative CPU weight versus other containers.
+        - `Memory`: **Integer** Memory limit in bytes. (Optional; default: '0')
+        - `CgroupParent`: **String** Path to `cgroups` under which the container's `cgroup` is created. If the path is not absolute, the path is considered to be relative to the `cgroups` path of the init process. Cgroups are created if they do not already exist.
+        - `BlkioWeight`: **Integer** Block IO weight (relative weight).
+        - `BlkioWeightDevice`: **Array** Block IO weight (relative device weight) in the form `[{"Path": "device_path", "Weight": weight}]`.  
+          - Elements of type **Object**
+            - `Path`: **String**
+            - `Weight`: **Integer**
+        - `BlkioDeviceReadBps`: **Array** Limit read rate (bytes per second) from a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+          - Elements of type **Object**
+            - `Path`: **String** Device path
+            - `Rate`: **Integer** Rate
+        - `BlkioDeviceWriteBps`: **Array** Limit write rate (bytes per second) to a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+          - Elements of type **Object**
+            - `Path`: **String** Device path
+            - `Rate`: **Integer** Rate
+        - `BlkioDeviceReadIOps`: **Array** Limit read rate (IO per second) from a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+          - Elements of type **Object**
+            - `Path`: **String** Device path
+            - `Rate`: **Integer** Rate
+        - `BlkioDeviceWriteIOps`: **Array** Limit write rate (IO per second) to a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+          - Elements of type **Object**
+            - `Path`: **String** Device path
+            - `Rate`: **Integer** Rate
+        - `CpuPeriod`: **Integer** The length of a CPU period in microseconds.
+        - `CpuQuota`: **Integer** Microseconds of CPU time that the container can get in a CPU period.
+        - `CpuRealtimePeriod`: **Integer** The length of a CPU real-time period in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
+        - `CpuRealtimeRuntime`: **Integer** The length of a CPU real-time runtime in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
+        - `CpusetCpus`: **String** CPUs in which to allow execution (e.g., `0-3`, `0,1`)
+        - `CpusetMems`: **String** Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
+        - `Devices`: **Array** A list of devices to add to the container.
+          - Elements of type **Object** A device mapping between the host and container
+            - `PathOnHost`: **String**
+            - `PathInContainer`: **String**
+            - `CgroupPermissions`: **String**
+        - `DiskQuota`: **Integer** Disk limit (in bytes).
+        - `KernelMemory`: **Integer** Kernel memory limit in bytes.
+        - `MemoryReservation`: **Integer** Memory soft limit in bytes.
+        - `MemorySwap`: **Integer** Total memory limit (memory + swap). Set as `-1` to enable unlimited swap.
+        - `MemorySwappiness`: **Integer** Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
+        - `NanoCPUs`: **Integer** CPU quota in units of 10<sup>-9</sup> CPUs.
+        - `OomKillDisable`: **Boolean** Disable OOM Killer for the container.
+        - `PidsLimit`: **Integer** Tune a container's pids limit. Set -1 for unlimited.
+        - `Ulimits`: **Array** A list of resource limits to set in the container. For example: `{"Name": "nofile", "Soft": 1024, "Hard": 2048}`"  
+          - Elements of type **Object**
+            - `Name`: **String** Name of ulimit
+            - `Soft`: **Integer** Soft limit
+            - `Hard`: **Integer** Hard limit
+        - `CpuCount`: **Integer** The number of usable CPUs (Windows only).    On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.  
+        - `CpuPercent`: **Integer** The usable percentage of the available CPUs (Windows only).    On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.  
+        - `IOMaximumIOps`: **Integer** Maximum IOps for the container system drive (Windows only)
+        - `IOMaximumBandwidth`: **Integer** Maximum IO in bytes per second for the container system drive (Windows only)
+        - `Binds`: **Array** A list of volume bindings for this container. Each volume binding is a string in one of these forms:    - `host-src:container-dest` to bind-mount a host path into the container. Both `host-src`, and `container-dest` must be an _absolute_ path.  - `host-src:container-dest:ro` to make the bind-mount read-only inside the container. Both `host-src`, and `container-dest` must be an _absolute_ path.  - `volume-name:container-dest` to bind-mount a volume managed by a volume driver into the container. `container-dest` must be an _absolute_ path.  - `volume-name:container-dest:ro` to mount the volume read-only inside the container.  `container-dest` must be an _absolute_ path.  
+          - Elements of type **String**
+        - `ContainerIDFile`: **String** Path to a file where the container ID is written
+        - `LogConfig`: **Object** The logging configuration for this container
+          - `Type`: **String**
+          - `Config`: **Object**
+            - `[KEY]`: **String**
+        - `NetworkMode`: **String** Network mode to use for this container. Supported standard values are: `bridge`, `host`, `none`, and `container:<name|id>`. Any other value is taken as a custom network's name to which this container should connect to.
+        - `PortBindings`: **Object** A map of exposed container ports and the host port they should map to.
+          - `[KEY]`: **Object**
+            - `HostIp`: **String** The host IP address
+            - `HostPort`: **String** The host port number, as a string
+        - `RestartPolicy`: **Object** The behavior to apply when the container exits. The default is not to restart.    An ever increasing delay (double the previous delay, starting at 100ms) is added before each restart to prevent flooding the server.   (Optional; default: '{}')
+          - `Name`: **String** - `always` Always restart  - `unless-stopped` Restart always except when the user has manually stopped the container  - `on-failure` Restart only when the container exit code is non-zero  
+          - `MaximumRetryCount`: **Integer** If `on-failure` is used, the number of times to retry before giving up
+        - `AutoRemove`: **Boolean** Automatically remove the container when the container's process exits. This has no effect if `RestartPolicy` is set.
+        - `VolumeDriver`: **String** Driver that this container uses to mount volumes.
+        - `VolumesFrom`: **Array** A list of volumes to inherit from another container, specified in the form `<container name>[:<ro|rw>]`.
+          - Elements of type **String**
+        - `Mounts`: **Array** Specification for mounts to be added to the container.
+          - Elements of type **Object**
+            - `Target`: **String** Container path.
+            - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+            - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+            - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+            - `BindOptions`: **Object** Optional configuration for the `bind` type.
+              - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+            - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+              - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+              - `Labels`: **Object** User-defined key/value metadata.
+                - `[KEY]`: **String**
+              - `DriverConfig`: **Object** Map of driver specific options
+                - `Name`: **String** Name of the driver to use to create the volume.
+                - `Options`: **Object** key/value map of driver specific options.
+                  - `[KEY]`: **String**
+            - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+              - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+              - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+        - `CapAdd`: **Array** A list of kernel capabilities to add to the container.
+          - Elements of type **String**
+        - `CapDrop`: **Array** A list of kernel capabilities to drop from the container.
+          - Elements of type **String**
+        - `Dns`: **Array** A list of DNS servers for the container to use.
+          - Elements of type **String**
+        - `DnsOptions`: **Array** A list of DNS options.
+          - Elements of type **String**
+        - `DnsSearch`: **Array** A list of DNS search domains.
+          - Elements of type **String**
+        - `ExtraHosts`: **Array** A list of hostnames/IP mappings to add to the container's `/etc/hosts` file. Specified in the form `["hostname:IP"]`.  
+          - Elements of type **String**
+        - `GroupAdd`: **Array** A list of additional groups that the container process will run as.
+          - Elements of type **String**
+        - `IpcMode`: **String** IPC namespace to use for the container.
+        - `Cgroup`: **String** Cgroup to use for the container.
+        - `Links`: **Array** A list of links for the container in the form `container_name:alias`.
+          - Elements of type **String**
+        - `OomScoreAdj`: **Integer** An integer value containing the score given to the container in order to tune OOM killer preferences.
+        - `PidMode`: **String** Set the PID (Process) Namespace mode for the container. It can be either:    - `"container:<name|id>"`: joins another container's PID namespace  - `"host"`: use the host's PID namespace inside the container  
+        - `Privileged`: **Boolean** Gives the container full access to the host.
+        - `PublishAllPorts`: **Boolean** Allocates a random host port for all of a container's exposed ports.
+        - `ReadonlyRootfs`: **Boolean** Mount the container's root filesystem as read only.
+        - `SecurityOpt`: **Array** A list of string values to customize labels for MLS systems, such as SELinux.
+          - Elements of type **String**
+        - `StorageOpt`: **Object** Storage driver options for this container, in the form `{"size": "120G"}`.  
+          - `[KEY]`: **String**
+        - `Tmpfs`: **Object** A map of container directories which should be replaced by tmpfs mounts, and their corresponding mount options. For example: `{ "/run": "rw,noexec,nosuid,size=65536k" }`.  
+          - `[KEY]`: **String**
+        - `UTSMode`: **String** UTS namespace to use for the container.
+        - `UsernsMode`: **String** Sets the usernamespace mode for the container when usernamespace remapping option is enabled.
+        - `ShmSize`: **Integer** Size of `/dev/shm` in bytes. If omitted, the system uses 64MB.
+        - `Sysctls`: **Object** A list of kernel parameters (sysctls) to set in the container. For example: `{"net.ipv4.ip_forward": "1"}`  
+          - `[KEY]`: **String**
+        - `Runtime`: **String** Runtime to use with this container.
+        - `ConsoleSize`: **Array** Initial console size, as an `[height, width]` array. (Windows only)
+          - Elements of type **Integer**
+        - `Isolation`: **String** Isolation technology of the container. (Windows only)
+      - `GraphDriver`: **Object** Information about this container's graph driver.
+        - `Name`: **String**
+        - `Data`: **Object**
+          - `[KEY]`: **String**
+      - `SizeRw`: **Integer** The size of files that have been created or changed by this container.
+      - `SizeRootFs`: **Integer** The total size of all the files in this container.
+      - `Mounts`: **Array**
+        - Elements of type **Object** A mount point inside a container
+          - `Type`: **String**
+          - `Name`: **String**
+          - `Source`: **String**
+          - `Destination`: **String**
+          - `Driver`: **String**
+          - `Mode`: **String**
+          - `RW`: **Boolean**
+          - `Propagation`: **String**
+      - `Config`: **Object** Configuration for a container that is portable between hosts
+        - `Hostname`: **String** The hostname to use for the container, as a valid RFC 1123 hostname.
+        - `Domainname`: **String** The domain name to use for the container.
+        - `User`: **String** The user that commands are run as inside the container.
+        - `AttachStdin`: **Boolean** Whether to attach to `stdin`. (Optional; default: 'false')
+        - `AttachStdout`: **Boolean** Whether to attach to `stdout`. (Optional; default: 'true')
+        - `AttachStderr`: **Boolean** Whether to attach to `stderr`. (Optional; default: 'true')
+        - `ExposedPorts`: **Object** An object mapping ports to an empty object in the form:    `{"<port>/<tcp|udp>": {}}`  
+          - `[KEY]`: **Object** (Optional; default: '{}')
+            
+        - `Tty`: **Boolean** Attach standard streams to a TTY, including `stdin` if it is not closed. (Optional; default: 'false')
+        - `OpenStdin`: **Boolean** Open `stdin` (Optional; default: 'false')
+        - `StdinOnce`: **Boolean** Close `stdin` after one attached client disconnects (Optional; default: 'false')
+        - `Env`: **Array** A list of environment variables to set inside the container in the form `["VAR=value", ...]`  
+          - Elements of type **String**
+        - `Cmd`: **Array** Command to run specified as a string or an array of strings.
+          - Elements of type **String**
+        - `Healthcheck`: **Object** A test to perform to check that the container is healthy.
+          - `Test`: **Array** The test to perform. Possible values are:    - `{}` inherit healthcheck from image or parent image  - `{"NONE"}` disable healthcheck  - `{"CMD", args...}` exec arguments directly  - `{"CMD-SHELL", command}` run command with system's default shell  
+            - Elements of type **String**
+          - `Interval`: **Integer** The time to wait between checks in nanoseconds. 0 means inherit.
+          - `Timeout`: **Integer** The time to wait before considering the check to have hung. 0 means inherit.
+          - `Retries`: **Integer** The number of consecutive failures needed to consider a container as unhealthy. 0 means inherit.
+        - `ArgsEscaped`: **Boolean** Command is already escaped (Windows only)
+        - `Image`: **String** The name of the image to use when creating the container
+        - `Volumes`: **Object** An object mapping mount point paths inside the container to empty objects.
+          - `additionalProperties`: **Object** (Optional; default: '{}')
+            
+        - `WorkingDir`: **String** The working directory for commands to run in.
+        - `Entrypoint`: **Array** The entry point for the container as a string or an array of strings.    If the array consists of exactly one empty string (`[""]`) then the entry point is reset to system default (i.e., the entry point used by docker when there is no `ENTRYPOINT` instruction in the `Dockerfile`).  
+          - Elements of type **String**
+        - `NetworkDisabled`: **Boolean** Disable networking for the container.
+        - `MacAddress`: **String** MAC address of the container.
+        - `OnBuild`: **Array** `ONBUILD` metadata that were defined in the image's `Dockerfile`.
+          - Elements of type **String**
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `StopSignal`: **String** Signal to stop a container as a string or unsigned integer. (Optional; default: ''SIGTERM'')
+        - `StopTimeout`: **Integer** Timeout to stop a container in seconds. (Optional; default: '10')
+        - `Shell`: **Array** Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
+          - Elements of type **String**
+      - `NetworkSettings`: **Object** TODO: check is correct
+        - `Bridge`: **String**
+        - `Gateway`: **String**
+        - `Address`: **String**
+        - `IPPrefixLen`: **Integer**
+        - `MacAddress`: **String**
+        - `PortMapping`: **String**
+        - `Ports`: **Array**
+          - Elements of type **Object** An open port on a container (Required: PrivatePort, Type)
+            - `IP`: **String**
+            - `PrivatePort`: **Integer** Port on the container
+            - `PublicPort`: **Integer** Port exposed on the host
+            - `Type`: **String**
     
 */
 exports.containerInspect = function(client, params) {
@@ -171,7 +547,8 @@ exports.containerInspect = function(client, params) {
     pathParams: ['id'],
     queryParams: ['size'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -179,6 +556,7 @@ exports.containerInspect = function(client, params) {
 /**
   @function containerTop
   @summary List processes running inside a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -196,7 +574,8 @@ exports.containerTop = function(client, params) {
     pathParams: ['id'],
     queryParams: ['ps_args'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -204,6 +583,7 @@ exports.containerTop = function(client, params) {
 /**
   @function containerLogs
   @summary Get container logs
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -235,7 +615,8 @@ exports.containerLogs = function(client, params) {
     pathParams: ['id'],
     queryParams: ['follow','stdout','stderr','since','timestamps','tail'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -243,6 +624,7 @@ exports.containerLogs = function(client, params) {
 /**
   @function containerChanges
   @summary Get changes on a container’s filesystem
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -254,6 +636,12 @@ exports.containerLogs = function(client, params) {
     - `2`: Deleted
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `Path`: **String** Path to file that has changed
+        - `Kind`: **Integer** Kind of change
+    
 */
 exports.containerChanges = function(client, params) {
   return client.performRequest({
@@ -264,7 +652,8 @@ exports.containerChanges = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -272,6 +661,7 @@ exports.containerChanges = function(client, params) {
 /**
   @function containerExport
   @summary Export a container
+  @return {UNKNOWN}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -288,7 +678,8 @@ exports.containerExport = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'UNKNOWN'
   });
 };
 
@@ -296,6 +687,7 @@ exports.containerExport = function(client, params) {
 /**
   @function containerStats
   @summary Get container stats based on resource usage
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -305,6 +697,10 @@ exports.containerExport = function(client, params) {
     
     The `precpu_stats` is the CPU statistic of last read, which is used for calculating the CPU usage percentage. It is not the same as the `cpu_stats` field.
     
+    
+    #### Return value
+    - **Object**
+      
     
 */
 exports.containerStats = function(client, params) {
@@ -316,7 +712,8 @@ exports.containerStats = function(client, params) {
     pathParams: ['id'],
     queryParams: ['stream'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -324,6 +721,7 @@ exports.containerStats = function(client, params) {
 /**
   @function containerResize
   @summary Resize a container TTY
+  @return {String}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -342,7 +740,8 @@ exports.containerResize = function(client, params) {
     pathParams: ['id'],
     queryParams: ['h','w'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'string'
   });
 };
 
@@ -350,6 +749,7 @@ exports.containerResize = function(client, params) {
 /**
   @function containerStart
   @summary Start a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -365,7 +765,8 @@ exports.containerStart = function(client, params) {
     pathParams: ['id'],
     queryParams: ['detachKeys'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -373,6 +774,7 @@ exports.containerStart = function(client, params) {
 /**
   @function containerStop
   @summary Stop a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -388,7 +790,8 @@ exports.containerStop = function(client, params) {
     pathParams: ['id'],
     queryParams: ['t'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -396,6 +799,7 @@ exports.containerStop = function(client, params) {
 /**
   @function containerRestart
   @summary Restart a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -411,7 +815,8 @@ exports.containerRestart = function(client, params) {
     pathParams: ['id'],
     queryParams: ['t'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -419,6 +824,7 @@ exports.containerRestart = function(client, params) {
 /**
   @function containerKill
   @summary Kill a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -436,7 +842,8 @@ exports.containerKill = function(client, params) {
     pathParams: ['id'],
     queryParams: ['signal'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -444,12 +851,77 @@ exports.containerKill = function(client, params) {
 /**
   @function containerUpdate
   @summary Update a container
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
-  @setting {COMPLEX} [update] 
+  @setting {Object} [update] See description.
   @desc
     Change various configuration options of a container without having to recreate it.
+    
+    #### Setting 'update'
+    
+    - **Object**
+      - `CpuShares`: **Integer** An integer value representing this container's relative CPU weight versus other containers.
+      - `Memory`: **Integer** Memory limit in bytes. (Optional; default: '0')
+      - `CgroupParent`: **String** Path to `cgroups` under which the container's `cgroup` is created. If the path is not absolute, the path is considered to be relative to the `cgroups` path of the init process. Cgroups are created if they do not already exist.
+      - `BlkioWeight`: **Integer** Block IO weight (relative weight).
+      - `BlkioWeightDevice`: **Array** Block IO weight (relative device weight) in the form `[{"Path": "device_path", "Weight": weight}]`.  
+        - Elements of type **Object**
+          - `Path`: **String**
+          - `Weight`: **Integer**
+      - `BlkioDeviceReadBps`: **Array** Limit read rate (bytes per second) from a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+        - Elements of type **Object**
+          - `Path`: **String** Device path
+          - `Rate`: **Integer** Rate
+      - `BlkioDeviceWriteBps`: **Array** Limit write rate (bytes per second) to a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+        - Elements of type **Object**
+          - `Path`: **String** Device path
+          - `Rate`: **Integer** Rate
+      - `BlkioDeviceReadIOps`: **Array** Limit read rate (IO per second) from a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+        - Elements of type **Object**
+          - `Path`: **String** Device path
+          - `Rate`: **Integer** Rate
+      - `BlkioDeviceWriteIOps`: **Array** Limit write rate (IO per second) to a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+        - Elements of type **Object**
+          - `Path`: **String** Device path
+          - `Rate`: **Integer** Rate
+      - `CpuPeriod`: **Integer** The length of a CPU period in microseconds.
+      - `CpuQuota`: **Integer** Microseconds of CPU time that the container can get in a CPU period.
+      - `CpuRealtimePeriod`: **Integer** The length of a CPU real-time period in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
+      - `CpuRealtimeRuntime`: **Integer** The length of a CPU real-time runtime in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
+      - `CpusetCpus`: **String** CPUs in which to allow execution (e.g., `0-3`, `0,1`)
+      - `CpusetMems`: **String** Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
+      - `Devices`: **Array** A list of devices to add to the container.
+        - Elements of type **Object** A device mapping between the host and container
+          - `PathOnHost`: **String**
+          - `PathInContainer`: **String**
+          - `CgroupPermissions`: **String**
+      - `DiskQuota`: **Integer** Disk limit (in bytes).
+      - `KernelMemory`: **Integer** Kernel memory limit in bytes.
+      - `MemoryReservation`: **Integer** Memory soft limit in bytes.
+      - `MemorySwap`: **Integer** Total memory limit (memory + swap). Set as `-1` to enable unlimited swap.
+      - `MemorySwappiness`: **Integer** Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
+      - `NanoCPUs`: **Integer** CPU quota in units of 10<sup>-9</sup> CPUs.
+      - `OomKillDisable`: **Boolean** Disable OOM Killer for the container.
+      - `PidsLimit`: **Integer** Tune a container's pids limit. Set -1 for unlimited.
+      - `Ulimits`: **Array** A list of resource limits to set in the container. For example: `{"Name": "nofile", "Soft": 1024, "Hard": 2048}`"  
+        - Elements of type **Object**
+          - `Name`: **String** Name of ulimit
+          - `Soft`: **Integer** Soft limit
+          - `Hard`: **Integer** Hard limit
+      - `CpuCount`: **Integer** The number of usable CPUs (Windows only).    On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.  
+      - `CpuPercent`: **Integer** The usable percentage of the available CPUs (Windows only).    On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.  
+      - `IOMaximumIOps`: **Integer** Maximum IOps for the container system drive (Windows only)
+      - `IOMaximumBandwidth`: **Integer** Maximum IO in bytes per second for the container system drive (Windows only)
+      - `RestartPolicy`: **Object** The behavior to apply when the container exits. The default is not to restart.    An ever increasing delay (double the previous delay, starting at 100ms) is added before each restart to prevent flooding the server.   (Optional; default: '{}')
+        - `Name`: **String** - `always` Always restart  - `unless-stopped` Restart always except when the user has manually stopped the container  - `on-failure` Restart only when the container exit code is non-zero  
+        - `MaximumRetryCount`: **Integer** If `on-failure` is used, the number of times to retry before giving up
+    
+    #### Return value
+    - **Object**
+      - `Warnings`: **Array**
+        - Elements of type **String**
     
 */
 exports.containerUpdate = function(client, params) {
@@ -461,7 +933,8 @@ exports.containerUpdate = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['update'],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -469,6 +942,7 @@ exports.containerUpdate = function(client, params) {
 /**
   @function containerRename
   @summary Rename a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -484,7 +958,8 @@ exports.containerRename = function(client, params) {
     pathParams: ['id'],
     queryParams: ['name'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -492,6 +967,7 @@ exports.containerRename = function(client, params) {
 /**
   @function containerPause
   @summary Pause a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -511,7 +987,8 @@ exports.containerPause = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -519,6 +996,7 @@ exports.containerPause = function(client, params) {
 /**
   @function containerUnpause
   @summary Unpause a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -535,7 +1013,8 @@ exports.containerUnpause = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -543,6 +1022,7 @@ exports.containerUnpause = function(client, params) {
 /**
   @function containerAttach
   @summary Attach to a container
+  @return {UNKNOWN}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -648,7 +1128,8 @@ exports.containerAttach = function(client, params) {
     pathParams: ['id'],
     queryParams: ['detachKeys','logs','stream','stdin','stdout','stderr'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'UNKNOWN'
   });
 };
 
@@ -656,6 +1137,7 @@ exports.containerAttach = function(client, params) {
 /**
   @function containerAttachWebsocket
   @summary Attach to a container via a websocket
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -676,7 +1158,8 @@ exports.containerAttachWebsocket = function(client, params) {
     pathParams: ['id'],
     queryParams: ['detachKeys','logs','stream','stdin','stdout','stderr'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -684,11 +1167,16 @@ exports.containerAttachWebsocket = function(client, params) {
 /**
   @function containerWait
   @summary Wait for a container
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @desc
     Block until a container stops, then returns the exit code.
+    
+    #### Return value
+    - **Object** (Required: StatusCode)
+      - `StatusCode`: **Integer** Exit code of the container
     
 */
 exports.containerWait = function(client, params) {
@@ -700,7 +1188,8 @@ exports.containerWait = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -708,6 +1197,7 @@ exports.containerWait = function(client, params) {
 /**
   @function containerDelete
   @summary Remove a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -724,7 +1214,8 @@ exports.containerDelete = function(client, params) {
     pathParams: ['id'],
     queryParams: ['v','force'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -732,6 +1223,7 @@ exports.containerDelete = function(client, params) {
 /**
   @function containerArchiveHead
   @summary Get information about files in a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -749,7 +1241,8 @@ exports.containerArchiveHead = function(client, params) {
     pathParams: ['id'],
     queryParams: ['path'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -757,6 +1250,7 @@ exports.containerArchiveHead = function(client, params) {
 /**
   @function containerGetArchive
   @summary Get an archive of a filesystem resource in a container
+  @return {UNKNOWN}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -774,7 +1268,8 @@ exports.containerGetArchive = function(client, params) {
     pathParams: ['id'],
     queryParams: ['path'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'UNKNOWN'
   });
 };
 
@@ -782,14 +1277,19 @@ exports.containerGetArchive = function(client, params) {
 /**
   @function containerPutArchive
   @summary Extract an archive of files or folders to a directory in a container
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {String} [path] Path to a directory in the container to extract the archive’s contents into. 
   @setting {optional String} [noOverwriteDirNonDir] If “1”, “true”, or “True” then it will be an error if unpacking the given content would cause an existing directory to be replaced with a non-directory and vice versa.
-  @setting {COMPLEX} [inputStream] The input stream must be a tar archive compressed with one of the following algorithms: identity (no compression), gzip, bzip2, xz.
+  @setting {Object} [inputStream] The input stream must be a tar archive compressed with one of the following algorithms: identity (no compression), gzip, bzip2, xz.. See description.
   @desc
     Upload a tar archive to be extracted to a path in the filesystem of container id.
+    
+    #### Setting 'inputStream'
+    
+    - **String**
     
 */
 exports.containerPutArchive = function(client, params) {
@@ -801,7 +1301,8 @@ exports.containerPutArchive = function(client, params) {
     pathParams: ['id'],
     queryParams: ['path','noOverwriteDirNonDir'],
     bodyParams: ['inputStream'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -809,6 +1310,7 @@ exports.containerPutArchive = function(client, params) {
 /**
   @function containerPrune
   @summary Delete stopped containers
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -821,6 +1323,12 @@ exports.containerPutArchive = function(client, params) {
 
     
     
+    #### Return value
+    - **Object**
+      - `ContainersDeleted`: **Array** Container IDs that were deleted
+        - Elements of type **String**
+      - `SpaceReclaimed`: **Integer** Disk space reclaimed in bytes
+    
 */
 exports.containerPrune = function(client, params) {
   return client.performRequest({
@@ -831,7 +1339,8 @@ exports.containerPrune = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -839,6 +1348,7 @@ exports.containerPrune = function(client, params) {
 /**
   @function imageList
   @summary List Images
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional Boolean} [all=false] Show all images. Only images from a final layer (no children) are shown by default.
@@ -859,6 +1369,23 @@ exports.containerPrune = function(client, params) {
     - `reference`=(`<image-name>[:<tag>]`)
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object** (Required: Id, ParentId, RepoTags, RepoDigests, Created, Size, SharedSize, VirtualSize, Labels, Containers)
+        - `Id`: **String**
+        - `ParentId`: **String**
+        - `RepoTags`: **Array**
+          - Elements of type **String**
+        - `RepoDigests`: **Array**
+          - Elements of type **String**
+        - `Created`: **Integer**
+        - `Size`: **Integer**
+        - `SharedSize`: **Integer**
+        - `VirtualSize`: **Integer**
+        - `Labels`: **Object**
+          - `[KEY]`: **String**
+        - `Containers`: **Integer**
+    
 */
 exports.imageList = function(client, params) {
   return client.performRequest({
@@ -869,7 +1396,8 @@ exports.imageList = function(client, params) {
     pathParams: [],
     queryParams: ['all','filters','digests'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -877,9 +1405,10 @@ exports.imageList = function(client, params) {
 /**
   @function imageBuild
   @summary Build an image
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [inputStream] A tar archive compressed with one of the following algorithms: identity (no compression), gzip, bzip2, xz.
+  @setting {Object} [inputStream] A tar archive compressed with one of the following algorithms: identity (no compression), gzip, bzip2, xz.. See description.
   @setting {optional String} [dockerfile=Dockerfile] Path within the build context to the `Dockerfile`. This is ignored if `remote` is specified and points to an external `Dockerfile`.
   @setting {optional String} [t] A name and optional tag to apply to the image in the `name:tag` format. If you omit the tag the default `latest` value is assumed. You can provide several `t` parameters.
   @setting {optional String} [remote] A Git repository URI or HTTP/HTTPS context URI. If the URI points to a single text file, the file’s contents are placed into a file called `Dockerfile` and the image is built from that file. If the URI points to a tarball, the file is downloaded by the daemon and the contents therein used as the context for the build. If the URI points to a tarball and the `dockerfile` parameter is also specified, there must be a file with the corresponding path inside the tarball.
@@ -912,6 +1441,10 @@ exports.imageList = function(client, params) {
     The build is canceled if the client drops the connection by quitting or being killed.
     
     
+    #### Setting 'inputStream'
+    
+    - **String**
+    
     #### Setting 'X-Registry-Config'
     This is a base64-encoded JSON object with auth configurations for multiple registries that a build may refer to.
     
@@ -943,7 +1476,8 @@ exports.imageBuild = function(client, params) {
     pathParams: [],
     queryParams: ['dockerfile','t','remote','q','nocache','cachefrom','pull','rm','forcerm','memory','memswap','cpushares','cpusetcpus','cpuperiod','cpuquota','buildargs','shmsize','squash','labels','networkmode'],
     bodyParams: ['inputStream'],
-    headerParams: ['Content-type','X-Registry-Config']
+    headerParams: ['Content-type','X-Registry-Config'],
+    rv: 'string'
   });
 };
 
@@ -951,16 +1485,21 @@ exports.imageBuild = function(client, params) {
 /**
   @function imageCreate
   @summary Create an image
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [fromImage] Name of the image to pull. The name may include a tag or digest. This parameter may only be used when pulling an image. The pull is cancelled if the HTTP connection is closed.
   @setting {optional String} [fromSrc] Source to import. The value may be a URL from which the image can be retrieved or `-` to read the image from the request body. This parameter may only be used when importing an image.
   @setting {optional String} [repo] Repository name given to an image when it is imported. The repo may include a tag. This parameter may only be used when importing an image.
   @setting {optional String} [tag] Tag or digest. If empty when pulling an image, this causes all tags for the given image to be pulled.
-  @setting {COMPLEX} [inputImage] Image content if the value `-` has been specified in fromSrc query parameter
+  @setting {Object} [inputImage] Image content if the value `-` has been specified in fromSrc query parameter. See description.
   @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration. [See the authentication section for details.](#section/Authentication)
   @desc
     Create an image by either pulling it from a registry or importing it.
+    
+    #### Setting 'inputImage'
+    
+    - **String**
     
 */
 exports.imageCreate = function(client, params) {
@@ -972,7 +1511,8 @@ exports.imageCreate = function(client, params) {
     pathParams: [],
     queryParams: ['fromImage','fromSrc','repo','tag'],
     bodyParams: ['inputImage'],
-    headerParams: ['X-Registry-Auth']
+    headerParams: ['X-Registry-Auth'],
+    rv: 'string'
   });
 };
 
@@ -980,11 +1520,121 @@ exports.imageCreate = function(client, params) {
 /**
   @function imageInspect
   @summary Inspect an image
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or id
   @desc
     Return low-level information about an image.
+    
+    #### Return value
+    - **Object**
+      - `Id`: **String**
+      - `RepoTags`: **Array**
+        - Elements of type **String**
+      - `RepoDigests`: **Array**
+        - Elements of type **String**
+      - `Parent`: **String**
+      - `Comment`: **String**
+      - `Created`: **String**
+      - `Container`: **String**
+      - `ContainerConfig`: **Object** Configuration for a container that is portable between hosts
+        - `Hostname`: **String** The hostname to use for the container, as a valid RFC 1123 hostname.
+        - `Domainname`: **String** The domain name to use for the container.
+        - `User`: **String** The user that commands are run as inside the container.
+        - `AttachStdin`: **Boolean** Whether to attach to `stdin`. (Optional; default: 'false')
+        - `AttachStdout`: **Boolean** Whether to attach to `stdout`. (Optional; default: 'true')
+        - `AttachStderr`: **Boolean** Whether to attach to `stderr`. (Optional; default: 'true')
+        - `ExposedPorts`: **Object** An object mapping ports to an empty object in the form:    `{"<port>/<tcp|udp>": {}}`  
+          - `[KEY]`: **Object** (Optional; default: '{}')
+            
+        - `Tty`: **Boolean** Attach standard streams to a TTY, including `stdin` if it is not closed. (Optional; default: 'false')
+        - `OpenStdin`: **Boolean** Open `stdin` (Optional; default: 'false')
+        - `StdinOnce`: **Boolean** Close `stdin` after one attached client disconnects (Optional; default: 'false')
+        - `Env`: **Array** A list of environment variables to set inside the container in the form `["VAR=value", ...]`  
+          - Elements of type **String**
+        - `Cmd`: **Array** Command to run specified as a string or an array of strings.
+          - Elements of type **String**
+        - `Healthcheck`: **Object** A test to perform to check that the container is healthy.
+          - `Test`: **Array** The test to perform. Possible values are:    - `{}` inherit healthcheck from image or parent image  - `{"NONE"}` disable healthcheck  - `{"CMD", args...}` exec arguments directly  - `{"CMD-SHELL", command}` run command with system's default shell  
+            - Elements of type **String**
+          - `Interval`: **Integer** The time to wait between checks in nanoseconds. 0 means inherit.
+          - `Timeout`: **Integer** The time to wait before considering the check to have hung. 0 means inherit.
+          - `Retries`: **Integer** The number of consecutive failures needed to consider a container as unhealthy. 0 means inherit.
+        - `ArgsEscaped`: **Boolean** Command is already escaped (Windows only)
+        - `Image`: **String** The name of the image to use when creating the container
+        - `Volumes`: **Object** An object mapping mount point paths inside the container to empty objects.
+          - `additionalProperties`: **Object** (Optional; default: '{}')
+            
+        - `WorkingDir`: **String** The working directory for commands to run in.
+        - `Entrypoint`: **Array** The entry point for the container as a string or an array of strings.    If the array consists of exactly one empty string (`[""]`) then the entry point is reset to system default (i.e., the entry point used by docker when there is no `ENTRYPOINT` instruction in the `Dockerfile`).  
+          - Elements of type **String**
+        - `NetworkDisabled`: **Boolean** Disable networking for the container.
+        - `MacAddress`: **String** MAC address of the container.
+        - `OnBuild`: **Array** `ONBUILD` metadata that were defined in the image's `Dockerfile`.
+          - Elements of type **String**
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `StopSignal`: **String** Signal to stop a container as a string or unsigned integer. (Optional; default: ''SIGTERM'')
+        - `StopTimeout`: **Integer** Timeout to stop a container in seconds. (Optional; default: '10')
+        - `Shell`: **Array** Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
+          - Elements of type **String**
+      - `DockerVersion`: **String**
+      - `Author`: **String**
+      - `Config`: **Object** Configuration for a container that is portable between hosts
+        - `Hostname`: **String** The hostname to use for the container, as a valid RFC 1123 hostname.
+        - `Domainname`: **String** The domain name to use for the container.
+        - `User`: **String** The user that commands are run as inside the container.
+        - `AttachStdin`: **Boolean** Whether to attach to `stdin`. (Optional; default: 'false')
+        - `AttachStdout`: **Boolean** Whether to attach to `stdout`. (Optional; default: 'true')
+        - `AttachStderr`: **Boolean** Whether to attach to `stderr`. (Optional; default: 'true')
+        - `ExposedPorts`: **Object** An object mapping ports to an empty object in the form:    `{"<port>/<tcp|udp>": {}}`  
+          - `[KEY]`: **Object** (Optional; default: '{}')
+            
+        - `Tty`: **Boolean** Attach standard streams to a TTY, including `stdin` if it is not closed. (Optional; default: 'false')
+        - `OpenStdin`: **Boolean** Open `stdin` (Optional; default: 'false')
+        - `StdinOnce`: **Boolean** Close `stdin` after one attached client disconnects (Optional; default: 'false')
+        - `Env`: **Array** A list of environment variables to set inside the container in the form `["VAR=value", ...]`  
+          - Elements of type **String**
+        - `Cmd`: **Array** Command to run specified as a string or an array of strings.
+          - Elements of type **String**
+        - `Healthcheck`: **Object** A test to perform to check that the container is healthy.
+          - `Test`: **Array** The test to perform. Possible values are:    - `{}` inherit healthcheck from image or parent image  - `{"NONE"}` disable healthcheck  - `{"CMD", args...}` exec arguments directly  - `{"CMD-SHELL", command}` run command with system's default shell  
+            - Elements of type **String**
+          - `Interval`: **Integer** The time to wait between checks in nanoseconds. 0 means inherit.
+          - `Timeout`: **Integer** The time to wait before considering the check to have hung. 0 means inherit.
+          - `Retries`: **Integer** The number of consecutive failures needed to consider a container as unhealthy. 0 means inherit.
+        - `ArgsEscaped`: **Boolean** Command is already escaped (Windows only)
+        - `Image`: **String** The name of the image to use when creating the container
+        - `Volumes`: **Object** An object mapping mount point paths inside the container to empty objects.
+          - `additionalProperties`: **Object** (Optional; default: '{}')
+            
+        - `WorkingDir`: **String** The working directory for commands to run in.
+        - `Entrypoint`: **Array** The entry point for the container as a string or an array of strings.    If the array consists of exactly one empty string (`[""]`) then the entry point is reset to system default (i.e., the entry point used by docker when there is no `ENTRYPOINT` instruction in the `Dockerfile`).  
+          - Elements of type **String**
+        - `NetworkDisabled`: **Boolean** Disable networking for the container.
+        - `MacAddress`: **String** MAC address of the container.
+        - `OnBuild`: **Array** `ONBUILD` metadata that were defined in the image's `Dockerfile`.
+          - Elements of type **String**
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `StopSignal`: **String** Signal to stop a container as a string or unsigned integer. (Optional; default: ''SIGTERM'')
+        - `StopTimeout`: **Integer** Timeout to stop a container in seconds. (Optional; default: '10')
+        - `Shell`: **Array** Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
+          - Elements of type **String**
+      - `Architecture`: **String**
+      - `Os`: **String**
+      - `Size`: **Integer**
+      - `VirtualSize`: **Integer**
+      - `GraphDriver`: **Object** Information about this container's graph driver.
+        - `Name`: **String**
+        - `Data`: **Object**
+          - `[KEY]`: **String**
+      - `RootFS`: **Object**
+        - `Type`: **String**
+        - `Layers`: **Array**
+          - Elements of type **String**
+        - `BaseLayer`: **String**
     
 */
 exports.imageInspect = function(client, params) {
@@ -996,7 +1646,8 @@ exports.imageInspect = function(client, params) {
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1004,11 +1655,23 @@ exports.imageInspect = function(client, params) {
 /**
   @function imageHistory
   @summary Get the history of an image
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID
   @desc
     Return parent layers of an image.
+    
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `Id`: **String**
+        - `Created`: **Integer**
+        - `CreatedBy`: **String**
+        - `Tags`: **Array**
+          - Elements of type **String**
+        - `Size`: **Integer**
+        - `Comment`: **String**
     
 */
 exports.imageHistory = function(client, params) {
@@ -1020,7 +1683,8 @@ exports.imageHistory = function(client, params) {
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1028,6 +1692,7 @@ exports.imageHistory = function(client, params) {
 /**
   @function imagePush
   @summary Push an image
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID.
@@ -1051,7 +1716,8 @@ exports.imagePush = function(client, params) {
     pathParams: ['name'],
     queryParams: ['tag'],
     bodyParams: [],
-    headerParams: ['X-Registry-Auth']
+    headerParams: ['X-Registry-Auth'],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1059,6 +1725,7 @@ exports.imagePush = function(client, params) {
 /**
   @function imageTag
   @summary Tag an image
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID to tag.
@@ -1077,7 +1744,8 @@ exports.imageTag = function(client, params) {
     pathParams: ['name'],
     queryParams: ['repo','tag'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1085,6 +1753,7 @@ exports.imageTag = function(client, params) {
 /**
   @function imageDelete
   @summary Remove an image
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID
@@ -1096,6 +1765,12 @@ exports.imageTag = function(client, params) {
     Images can't be removed if they have descendant images, are being used by a running container or are being used by a build.
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `Untagged`: **String** The image ID of an image that was untagged
+        - `Deleted`: **String** The image ID of an image that was deleted
+    
 */
 exports.imageDelete = function(client, params) {
   return client.performRequest({
@@ -1106,7 +1781,8 @@ exports.imageDelete = function(client, params) {
     pathParams: ['name'],
     queryParams: ['force','noprune'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1114,6 +1790,7 @@ exports.imageDelete = function(client, params) {
 /**
   @function imageSearch
   @summary Search images
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [term] Term to search
@@ -1131,6 +1808,15 @@ exports.imageDelete = function(client, params) {
     - `is-official=(true|false)`
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `description`: **String**
+        - `is_official`: **Boolean**
+        - `is_automated`: **Boolean**
+        - `name`: **String**
+        - `star_count`: **Integer**
+    
 */
 exports.imageSearch = function(client, params) {
   return client.performRequest({
@@ -1141,7 +1827,8 @@ exports.imageSearch = function(client, params) {
     pathParams: [],
     queryParams: ['term','limit','filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1149,6 +1836,7 @@ exports.imageSearch = function(client, params) {
 /**
   @function imagePrune
   @summary Delete unused images
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -1164,6 +1852,14 @@ exports.imageSearch = function(client, params) {
        (or `0`), all unused images are pruned.
     
     
+    #### Return value
+    - **Object**
+      - `ImagesDeleted`: **Array** Images that were deleted
+        - Elements of type **Object**
+          - `Untagged`: **String** The image ID of an image that was untagged
+          - `Deleted`: **String** The image ID of an image that was deleted
+      - `SpaceReclaimed`: **Integer** Disk space reclaimed in bytes
+    
 */
 exports.imagePrune = function(client, params) {
   return client.performRequest({
@@ -1174,7 +1870,8 @@ exports.imagePrune = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1182,11 +1879,25 @@ exports.imagePrune = function(client, params) {
 /**
   @function systemAuth
   @summary Check auth configuration
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [authConfig] Authentication to check
+  @setting {Object} [authConfig] Authentication to check. See description.
   @desc
     Validate credentials for a registry and, if available, get an identity token for accessing the registry without password.
+    
+    #### Setting 'authConfig'
+    
+    - **Object**
+      - `username`: **String**
+      - `password`: **String**
+      - `email`: **String**
+      - `serveraddress`: **String**
+    
+    #### Return value
+    - **Object** (Required: Status)
+      - `Status`: **String** The status of the authentication
+      - `IdentityToken`: **String** An opaque token used to authenticate a user after a successful login
     
 */
 exports.systemAuth = function(client, params) {
@@ -1198,7 +1909,8 @@ exports.systemAuth = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: ['authConfig'],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1206,8 +1918,72 @@ exports.systemAuth = function(client, params) {
 /**
   @function systemInfo
   @summary Get system information
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `Architecture`: **String**
+      - `Containers`: **Integer**
+      - `ContainersRunning`: **Integer**
+      - `ContainersStopped`: **Integer**
+      - `ContainersPaused`: **Integer**
+      - `CpuCfsPeriod`: **Boolean**
+      - `CpuCfsQuota`: **Boolean**
+      - `Debug`: **Boolean**
+      - `DiscoveryBackend`: **String**
+      - `DockerRootDir`: **String**
+      - `Driver`: **String**
+      - `DriverStatus`: **Array**
+        - Elements of type **Array**
+          - Elements of type **String**
+      - `SystemStatus`: **Array**
+        - Elements of type **Array**
+          - Elements of type **String**
+      - `Plugins`: **Object**
+        - `Volume`: **Array**
+          - Elements of type **String**
+        - `Network`: **Array**
+          - Elements of type **String**
+      - `ExperimentalBuild`: **Boolean**
+      - `HttpProxy`: **String**
+      - `HttpsProxy`: **String**
+      - `ID`: **String**
+      - `IPv4Forwarding`: **Boolean**
+      - `Images`: **Integer**
+      - `IndexServerAddress`: **String**
+      - `InitPath`: **String**
+      - `InitSha1`: **String**
+      - `KernelVersion`: **String**
+      - `Labels`: **Array**
+        - Elements of type **String**
+      - `MemTotal`: **Integer**
+      - `MemoryLimit`: **Boolean**
+      - `NCPU`: **Integer**
+      - `NEventsListener`: **Integer**
+      - `NFd`: **Integer**
+      - `NGoroutines`: **Integer**
+      - `Name`: **String**
+      - `NoProxy`: **String**
+      - `OomKillDisable`: **Boolean**
+      - `OSType`: **String**
+      - `OomScoreAdj`: **Integer**
+      - `OperatingSystem`: **String**
+      - `RegistryConfig`: **Object**
+        - `IndexConfigs`: **Object**
+          - `[KEY]`: **Object**
+            - `Mirrors`: **Array**
+              - Elements of type **String**
+            - `Name`: **String**
+            - `Official`: **Boolean**
+            - `Secure`: **Boolean**
+        - `InsecureRegistryCIDRs`: **Array**
+          - Elements of type **String**
+      - `SwapLimit`: **Boolean**
+      - `SystemTime`: **String**
+      - `ServerVersion`: **String**
+    
 */
 exports.systemInfo = function(client, params) {
   return client.performRequest({
@@ -1218,7 +1994,8 @@ exports.systemInfo = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1226,9 +2003,23 @@ exports.systemInfo = function(client, params) {
 /**
   @function systemVersion
   @summary Get version
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @desc
     Returns the version of Docker that is running and various information about the system that Docker is running on.
+    
+    #### Return value
+    - **Object**
+      - `Version`: **String**
+      - `ApiVersion`: **String**
+      - `MinAPIVersion`: **String**
+      - `GitCommit`: **String**
+      - `GoVersion`: **String**
+      - `Os`: **String**
+      - `Arch`: **String**
+      - `KernelVersion`: **String**
+      - `Experimental`: **Boolean**
+      - `BuildTime`: **String**
     
 */
 exports.systemVersion = function(client, params) {
@@ -1240,7 +2031,8 @@ exports.systemVersion = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1248,6 +2040,7 @@ exports.systemVersion = function(client, params) {
 /**
   @function systemPing
   @summary Ping
+  @return {String}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @desc
     This is a dummy endpoint you can use to test if the server is accessible.
@@ -1262,7 +2055,8 @@ exports.systemPing = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'string'
   });
 };
 
@@ -1270,9 +2064,10 @@ exports.systemPing = function(client, params) {
 /**
   @function imageCommit
   @summary Create a new image from a container
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [containerConfig] The container configuration
+  @setting {Object} [containerConfig] The container configuration. See description.
   @setting {optional String} [container] The ID or name of the container to commit
   @setting {optional String} [repo] Repository name for the created image
   @setting {optional String} [tag] Tag name for the create image
@@ -1280,7 +2075,56 @@ exports.systemPing = function(client, params) {
   @setting {optional String} [author] Author of the image (e.g., `John Hannibal Smith <hannibal@a-team.com>`)
   @setting {optional Boolean} [pause=true] Whether to pause the container before committing
   @setting {optional String} [changes] `Dockerfile` instructions to apply while committing
-
+  @desc
+    
+    #### Setting 'containerConfig'
+    
+    - **Object** Configuration for a container that is portable between hosts
+      - `Hostname`: **String** The hostname to use for the container, as a valid RFC 1123 hostname.
+      - `Domainname`: **String** The domain name to use for the container.
+      - `User`: **String** The user that commands are run as inside the container.
+      - `AttachStdin`: **Boolean** Whether to attach to `stdin`. (Optional; default: 'false')
+      - `AttachStdout`: **Boolean** Whether to attach to `stdout`. (Optional; default: 'true')
+      - `AttachStderr`: **Boolean** Whether to attach to `stderr`. (Optional; default: 'true')
+      - `ExposedPorts`: **Object** An object mapping ports to an empty object in the form:    `{"<port>/<tcp|udp>": {}}`  
+        - `[KEY]`: **Object** (Optional; default: '{}')
+          
+      - `Tty`: **Boolean** Attach standard streams to a TTY, including `stdin` if it is not closed. (Optional; default: 'false')
+      - `OpenStdin`: **Boolean** Open `stdin` (Optional; default: 'false')
+      - `StdinOnce`: **Boolean** Close `stdin` after one attached client disconnects (Optional; default: 'false')
+      - `Env`: **Array** A list of environment variables to set inside the container in the form `["VAR=value", ...]`  
+        - Elements of type **String**
+      - `Cmd`: **Array** Command to run specified as a string or an array of strings.
+        - Elements of type **String**
+      - `Healthcheck`: **Object** A test to perform to check that the container is healthy.
+        - `Test`: **Array** The test to perform. Possible values are:    - `{}` inherit healthcheck from image or parent image  - `{"NONE"}` disable healthcheck  - `{"CMD", args...}` exec arguments directly  - `{"CMD-SHELL", command}` run command with system's default shell  
+          - Elements of type **String**
+        - `Interval`: **Integer** The time to wait between checks in nanoseconds. 0 means inherit.
+        - `Timeout`: **Integer** The time to wait before considering the check to have hung. 0 means inherit.
+        - `Retries`: **Integer** The number of consecutive failures needed to consider a container as unhealthy. 0 means inherit.
+      - `ArgsEscaped`: **Boolean** Command is already escaped (Windows only)
+      - `Image`: **String** The name of the image to use when creating the container
+      - `Volumes`: **Object** An object mapping mount point paths inside the container to empty objects.
+        - `additionalProperties`: **Object** (Optional; default: '{}')
+          
+      - `WorkingDir`: **String** The working directory for commands to run in.
+      - `Entrypoint`: **Array** The entry point for the container as a string or an array of strings.    If the array consists of exactly one empty string (`[""]`) then the entry point is reset to system default (i.e., the entry point used by docker when there is no `ENTRYPOINT` instruction in the `Dockerfile`).  
+        - Elements of type **String**
+      - `NetworkDisabled`: **Boolean** Disable networking for the container.
+      - `MacAddress`: **String** MAC address of the container.
+      - `OnBuild`: **Array** `ONBUILD` metadata that were defined in the image's `Dockerfile`.
+        - Elements of type **String**
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `StopSignal`: **String** Signal to stop a container as a string or unsigned integer. (Optional; default: ''SIGTERM'')
+      - `StopTimeout`: **Integer** Timeout to stop a container in seconds. (Optional; default: '10')
+      - `Shell`: **Array** Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
+        - Elements of type **String**
+    
+    #### Return value
+    - **Object** Response to an API call that returns just an Id (Required: Id)
+      - `Id`: **String** The id of the newly created object.
+    
 */
 exports.imageCommit = function(client, params) {
   return client.performRequest({
@@ -1291,7 +2135,8 @@ exports.imageCommit = function(client, params) {
     pathParams: [],
     queryParams: ['container','repo','tag','comment','author','pause','changes'],
     bodyParams: ['containerConfig'],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1299,6 +2144,7 @@ exports.imageCommit = function(client, params) {
 /**
   @function systemEvents
   @summary Monitor events
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [since] Show events created since this timestamp then stream new events.
@@ -1334,6 +2180,17 @@ exports.imageCommit = function(client, params) {
     - `daemon=<string>` daemon name or ID
     
     
+    #### Return value
+    - **Object**
+      - `Type`: **String** The type of object emitting the event
+      - `Action`: **String** The type of event
+      - `Actor`: **Object**
+        - `ID`: **String** The ID of the object emitting the event
+        - `Attributes`: **Object** Various key/value attributes of the object, depending on its type
+          - `[KEY]`: **String**
+      - `time`: **Integer** Timestamp of event
+      - `timeNano`: **Integer** Timestamp of event, with nanosecond accuracy
+    
 */
 exports.systemEvents = function(client, params) {
   return client.performRequest({
@@ -1344,7 +2201,8 @@ exports.systemEvents = function(client, params) {
     pathParams: [],
     queryParams: ['since','until','filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1352,6 +2210,7 @@ exports.systemEvents = function(client, params) {
 /**
   @function systemDataUsage
   @summary Get data usage information
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
 
 */
@@ -1364,7 +2223,8 @@ exports.systemDataUsage = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1372,6 +2232,7 @@ exports.systemDataUsage = function(client, params) {
 /**
   @function imageGet
   @summary Export an image
+  @return {UNKNOWN}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID
@@ -1411,7 +2272,8 @@ exports.imageGet = function(client, params) {
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'UNKNOWN'
   });
 };
 
@@ -1419,6 +2281,7 @@ exports.imageGet = function(client, params) {
 /**
   @function imageGetAll
   @summary Export several images
+  @return {UNKNOWN}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional Array} [names] Image names to filter by
@@ -1440,7 +2303,8 @@ exports.imageGetAll = function(client, params) {
     pathParams: [],
     queryParams: ['names'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'UNKNOWN'
   });
 };
 
@@ -1448,15 +2312,20 @@ exports.imageGetAll = function(client, params) {
 /**
   @function imageLoad
   @summary Import images
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [imagesTarball] Tar archive containing images
+  @setting {Object} [imagesTarball] Tar archive containing images. See description.
   @setting {optional Boolean} [quiet=false] Suppress progress details during load.
   @desc
     Load a set of images and tags into a repository.
     
     For details on the format, see [::imageGet].
     
+    
+    #### Setting 'imagesTarball'
+    
+    - **String**
     
 */
 exports.imageLoad = function(client, params) {
@@ -1468,7 +2337,8 @@ exports.imageLoad = function(client, params) {
     pathParams: [],
     queryParams: ['quiet'],
     bodyParams: ['imagesTarball'],
-    headerParams: []
+    headerParams: [],
+    rv: 'string'
   });
 };
 
@@ -1476,12 +2346,32 @@ exports.imageLoad = function(client, params) {
 /**
   @function containerExec
   @summary Create an exec instance
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [execConfig] Exec configuration
+  @setting {Object} [execConfig] Exec configuration. See description.
   @setting {String} [id] ID or name of container
   @desc
     Run a command inside a running container.
+    
+    #### Setting 'execConfig'
+    
+    - **Object**
+      - `AttachStdin`: **Boolean** Attach to `stdin` of the exec command.
+      - `AttachStdout`: **Boolean** Attach to `stdout` of the exec command.
+      - `AttachStderr`: **Boolean** Attach to `stderr` of the exec command.
+      - `DetachKeys`: **String** Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`.
+      - `Tty`: **Boolean** Allocate a pseudo-TTY.
+      - `Env`: **Array** A list of environment variables in the form `["VAR=value", ...]`.
+        - Elements of type **String**
+      - `Cmd`: **Array** Command to run, as a string or array of strings.
+        - Elements of type **String**
+      - `Privileged`: **Boolean** Runs the exec process with extended privileges. (Optional; default: 'false')
+      - `User`: **String** The user, and optionally, group to run the exec process inside the container. Format is one of: `user`, `user:group`, `uid`, or `uid:gid`.
+    
+    #### Return value
+    - **Object** Response to an API call that returns just an Id (Required: Id)
+      - `Id`: **String** The id of the newly created object.
     
 */
 exports.containerExec = function(client, params) {
@@ -1493,7 +2383,8 @@ exports.containerExec = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['execConfig'],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1501,12 +2392,19 @@ exports.containerExec = function(client, params) {
 /**
   @function execStart
   @summary Start an exec instance
+  @return {UNKNOWN}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [execStartConfig] 
+  @setting {Object} [execStartConfig] See description.
   @setting {String} [id] Exec instance ID
   @desc
     Starts a previously set up exec instance. If detach is true, this endpoint returns immediately after starting the command. Otherwise, it sets up an interactive session with the command.
+    
+    #### Setting 'execStartConfig'
+    
+    - **Object**
+      - `Detach`: **Boolean** Detach from the command.
+      - `Tty`: **Boolean** Allocate a pseudo-TTY.
     
 */
 exports.execStart = function(client, params) {
@@ -1518,7 +2416,8 @@ exports.execStart = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['execStartConfig'],
-    headerParams: []
+    headerParams: [],
+    rv: 'UNKNOWN'
   });
 };
 
@@ -1526,6 +2425,7 @@ exports.execStart = function(client, params) {
 /**
   @function execResize
   @summary Resize an exec instance
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Exec instance ID
@@ -1544,7 +2444,8 @@ exports.execResize = function(client, params) {
     pathParams: ['id'],
     queryParams: ['h','w'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1552,11 +2453,30 @@ exports.execResize = function(client, params) {
 /**
   @function execInspect
   @summary Inspect an exec instance
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Exec instance ID
   @desc
     Return low-level information about an exec instance.
+    
+    #### Return value
+    - **Object**
+      - `ID`: **String**
+      - `Running`: **Boolean**
+      - `ExitCode`: **Integer**
+      - `ProcessConfig`: **Object**
+        - `privileged`: **Boolean**
+        - `user`: **String**
+        - `tty`: **Boolean**
+        - `entrypoint`: **String**
+        - `arguments`: **Array**
+          - Elements of type **String**
+      - `OpenStdin`: **Boolean**
+      - `OpenStderr`: **Boolean**
+      - `OpenStdout`: **Boolean**
+      - `ContainerID`: **String**
+      - `Pid`: **Integer** The system process ID for the exec process.
     
 */
 exports.execInspect = function(client, params) {
@@ -1568,7 +2488,8 @@ exports.execInspect = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1576,6 +2497,7 @@ exports.execInspect = function(client, params) {
 /**
   @function volumeList
   @summary List volumes
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -1595,6 +2517,27 @@ exports.execInspect = function(client, params) {
       driver name.
     
     
+    #### Return value
+    - **Object** (Required: Volumes, Warnings)
+      - `Volumes`: **Array** List of volumes
+        - Elements of type **Object** (Required: Name, Driver, Mountpoint, Labels, Scope, Options)
+          - `Name`: **String** Name of the volume.
+          - `Driver`: **String** Name of the volume driver used by the volume.
+          - `Mountpoint`: **String** Mount path of the volume on the host.
+          - `Status`: **Object** Low-level details about the volume, provided by the volume driver.  Details are returned as a map with key/value pairs:  `{"key":"value","key2":"value2"}`.    The `Status` field is optional, and is omitted if the volume driver  does not support this feature.  
+            - `[KEY]`: **Object**
+              
+          - `Labels`: **Object** User-defined key/value metadata.
+            - `[KEY]`: **String**
+          - `Scope`: **String** The level at which the volume exists. Either `global` for cluster-wide, or `local` for machine level. (Optional; default: ''local'')
+          - `Options`: **Object** The driver specific options used when creating the volume.
+            - `[KEY]`: **String**
+          - `UsageData`: **Object** (Required: Size, RefCount)
+            - `Size`: **Integer** The disk space used by the volume (local driver only) (Optional; default: '-1')
+            - `RefCount`: **Integer** The number of containers referencing this volume. (Optional; default: '-1')
+      - `Warnings`: **Array** Warnings that occurred when fetching the list of volumes
+        - Elements of type **String**
+    
 */
 exports.volumeList = function(client, params) {
   return client.performRequest({
@@ -1605,7 +2548,8 @@ exports.volumeList = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1613,10 +2557,39 @@ exports.volumeList = function(client, params) {
 /**
   @function volumeCreate
   @summary Create a volume
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [volumeConfig] Volume configuration
-
+  @setting {Object} [volumeConfig] Volume configuration. See description.
+  @desc
+    
+    #### Setting 'volumeConfig'
+    
+    - **Object**
+      - `Name`: **String** The new volume's name. If not specified, Docker generates a name.
+      - `Driver`: **String** Name of the volume driver to use. (Optional; default: ''local'')
+      - `DriverOpts`: **Object** A mapping of driver options and values. These options are passed directly to the driver and are driver specific.
+        - `[KEY]`: **String**
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+    
+    #### Return value
+    - **Object** (Required: Name, Driver, Mountpoint, Labels, Scope, Options)
+      - `Name`: **String** Name of the volume.
+      - `Driver`: **String** Name of the volume driver used by the volume.
+      - `Mountpoint`: **String** Mount path of the volume on the host.
+      - `Status`: **Object** Low-level details about the volume, provided by the volume driver.  Details are returned as a map with key/value pairs:  `{"key":"value","key2":"value2"}`.    The `Status` field is optional, and is omitted if the volume driver  does not support this feature.  
+        - `[KEY]`: **Object**
+          
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `Scope`: **String** The level at which the volume exists. Either `global` for cluster-wide, or `local` for machine level. (Optional; default: ''local'')
+      - `Options`: **Object** The driver specific options used when creating the volume.
+        - `[KEY]`: **String**
+      - `UsageData`: **Object** (Required: Size, RefCount)
+        - `Size`: **Integer** The disk space used by the volume (local driver only) (Optional; default: '-1')
+        - `RefCount`: **Integer** The number of containers referencing this volume. (Optional; default: '-1')
+    
 */
 exports.volumeCreate = function(client, params) {
   return client.performRequest({
@@ -1627,7 +2600,8 @@ exports.volumeCreate = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: ['volumeConfig'],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1635,10 +2609,29 @@ exports.volumeCreate = function(client, params) {
 /**
   @function volumeInspect
   @summary Inspect a volume
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Volume name or ID
-
+  @desc
+    
+    #### Return value
+    - **Object** (Required: Name, Driver, Mountpoint, Labels, Scope, Options)
+      - `Name`: **String** Name of the volume.
+      - `Driver`: **String** Name of the volume driver used by the volume.
+      - `Mountpoint`: **String** Mount path of the volume on the host.
+      - `Status`: **Object** Low-level details about the volume, provided by the volume driver.  Details are returned as a map with key/value pairs:  `{"key":"value","key2":"value2"}`.    The `Status` field is optional, and is omitted if the volume driver  does not support this feature.  
+        - `[KEY]`: **Object**
+          
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `Scope`: **String** The level at which the volume exists. Either `global` for cluster-wide, or `local` for machine level. (Optional; default: ''local'')
+      - `Options`: **Object** The driver specific options used when creating the volume.
+        - `[KEY]`: **String**
+      - `UsageData`: **Object** (Required: Size, RefCount)
+        - `Size`: **Integer** The disk space used by the volume (local driver only) (Optional; default: '-1')
+        - `RefCount`: **Integer** The number of containers referencing this volume. (Optional; default: '-1')
+    
 */
 exports.volumeInspect = function(client, params) {
   return client.performRequest({
@@ -1649,7 +2642,8 @@ exports.volumeInspect = function(client, params) {
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1657,6 +2651,7 @@ exports.volumeInspect = function(client, params) {
 /**
   @function volumeDelete
   @summary Remove a volume
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Volume name or ID
@@ -1674,7 +2669,8 @@ exports.volumeDelete = function(client, params) {
     pathParams: ['name'],
     queryParams: ['force'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1682,6 +2678,7 @@ exports.volumeDelete = function(client, params) {
 /**
   @function volumePrune
   @summary Delete unused volumes
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -1694,6 +2691,12 @@ exports.volumeDelete = function(client, params) {
 
     
     
+    #### Return value
+    - **Object**
+      - `VolumesDeleted`: **Array** Volumes that were deleted
+        - Elements of type **String**
+      - `SpaceReclaimed`: **Integer** Disk space reclaimed in bytes
+    
 */
 exports.volumePrune = function(client, params) {
   return client.performRequest({
@@ -1704,7 +2707,8 @@ exports.volumePrune = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1712,6 +2716,7 @@ exports.volumePrune = function(client, params) {
 /**
   @function networkList
   @summary List networks
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -1728,6 +2733,35 @@ exports.volumePrune = function(client, params) {
     - `type=["custom"|"builtin"]` Filters networks by type. The `custom` keyword returns all user-defined networks.
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `Name`: **String**
+        - `Id`: **String**
+        - `Created`: **String**
+        - `Scope`: **String**
+        - `Driver`: **String**
+        - `EnableIPv6`: **Boolean**
+        - `IPAM`: **Object**
+          - `Driver`: **String** Name of the IPAM driver to use. (Optional; default: ''default'')
+          - `Config`: **Array** List of IPAM configuration options, specified as a map: `{"Subnet": <CIDR>, "IPRange": <CIDR>, "Gateway": <IP address>, "AuxAddress": <device_name:IP address>}`
+            - Elements of type **Object**
+              - `[KEY]`: **String**
+          - `Options`: **Array** Driver-specific options, specified as a map.
+            - Elements of type **Object**
+              - `[KEY]`: **String**
+        - `Internal`: **Boolean**
+        - `Containers`: **Object**
+          - `[KEY]`: **Object**
+            - `EndpointID`: **String**
+            - `MacAddress`: **String**
+            - `IPv4Address`: **String**
+            - `IPv6Address`: **String**
+        - `Options`: **Object**
+          - `[KEY]`: **String**
+        - `Labels`: **Object**
+          - `[KEY]`: **String**
+    
 */
 exports.networkList = function(client, params) {
   return client.performRequest({
@@ -1738,7 +2772,8 @@ exports.networkList = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1746,10 +2781,40 @@ exports.networkList = function(client, params) {
 /**
   @function networkInspect
   @summary Inspect a network
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `Name`: **String**
+      - `Id`: **String**
+      - `Created`: **String**
+      - `Scope`: **String**
+      - `Driver`: **String**
+      - `EnableIPv6`: **Boolean**
+      - `IPAM`: **Object**
+        - `Driver`: **String** Name of the IPAM driver to use. (Optional; default: ''default'')
+        - `Config`: **Array** List of IPAM configuration options, specified as a map: `{"Subnet": <CIDR>, "IPRange": <CIDR>, "Gateway": <IP address>, "AuxAddress": <device_name:IP address>}`
+          - Elements of type **Object**
+            - `[KEY]`: **String**
+        - `Options`: **Array** Driver-specific options, specified as a map.
+          - Elements of type **Object**
+            - `[KEY]`: **String**
+      - `Internal`: **Boolean**
+      - `Containers`: **Object**
+        - `[KEY]`: **Object**
+          - `EndpointID`: **String**
+          - `MacAddress`: **String**
+          - `IPv4Address`: **String**
+          - `IPv6Address`: **String**
+      - `Options`: **Object**
+        - `[KEY]`: **String**
+      - `Labels`: **Object**
+        - `[KEY]`: **String**
+    
 */
 exports.networkInspect = function(client, params) {
   return client.performRequest({
@@ -1760,7 +2825,8 @@ exports.networkInspect = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1768,6 +2834,7 @@ exports.networkInspect = function(client, params) {
 /**
   @function networkDelete
   @summary Remove a network
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
@@ -1782,7 +2849,8 @@ exports.networkDelete = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1790,10 +2858,38 @@ exports.networkDelete = function(client, params) {
 /**
   @function networkCreate
   @summary Create a network
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [networkConfig] Network configuration
-
+  @setting {Object} [networkConfig] Network configuration. See description.
+  @desc
+    
+    #### Setting 'networkConfig'
+    
+    - **Object** (Required: Name)
+      - `Name`: **String** The network's name.
+      - `CheckDuplicate`: **Boolean** Check for networks with duplicate names.
+      - `Driver`: **String** Name of the network driver plugin to use. (Optional; default: ''bridge'')
+      - `Internal`: **Boolean** Restrict external access to the network.
+      - `IPAM`: **Object** Optional custom IP scheme for the network.
+        - `Driver`: **String** Name of the IPAM driver to use. (Optional; default: ''default'')
+        - `Config`: **Array** List of IPAM configuration options, specified as a map: `{"Subnet": <CIDR>, "IPRange": <CIDR>, "Gateway": <IP address>, "AuxAddress": <device_name:IP address>}`
+          - Elements of type **Object**
+            - `[KEY]`: **String**
+        - `Options`: **Array** Driver-specific options, specified as a map.
+          - Elements of type **Object**
+            - `[KEY]`: **String**
+      - `EnableIPv6`: **Boolean** Enable IPv6 on the network.
+      - `Options`: **Object** Network specific options to be used by the drivers.
+        - `[KEY]`: **String**
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+    
+    #### Return value
+    - **Object**
+      - `Id`: **String** The ID of the created network.
+      - `Warning`: **String**
+    
 */
 exports.networkCreate = function(client, params) {
   return client.performRequest({
@@ -1804,7 +2900,8 @@ exports.networkCreate = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: ['networkConfig'],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1812,11 +2909,37 @@ exports.networkCreate = function(client, params) {
 /**
   @function networkConnect
   @summary Connect a container to a network
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
-  @setting {COMPLEX} [container] 
-
+  @setting {Object} [container] See description.
+  @desc
+    
+    #### Setting 'container'
+    
+    - **Object**
+      - `Container`: **String** The ID or name of the container to connect to the network.
+      - `EndpointConfig`: **Object** Configuration for a network endpoint.
+        - `IPAMConfig`: **Object** IPAM configurations for the endpoint
+          - `IPv4Address`: **String**
+          - `IPv6Address`: **String**
+          - `LinkLocalIPs`: **Array**
+            - Elements of type **String**
+        - `Links`: **Array**
+          - Elements of type **String**
+        - `Aliases`: **Array**
+          - Elements of type **String**
+        - `NetworkID`: **String**
+        - `EndpointID`: **String**
+        - `Gateway`: **String**
+        - `IPAddress`: **String**
+        - `IPPrefixLen`: **Integer**
+        - `IPv6Gateway`: **String**
+        - `GlobalIPv6Address`: **String**
+        - `GlobalIPv6PrefixLen`: **Integer**
+        - `MacAddress`: **String**
+    
 */
 exports.networkConnect = function(client, params) {
   return client.performRequest({
@@ -1827,7 +2950,8 @@ exports.networkConnect = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['container'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1835,11 +2959,19 @@ exports.networkConnect = function(client, params) {
 /**
   @function networkDisconnect
   @summary Disconnect a container from a network
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
-  @setting {COMPLEX} [container] 
-
+  @setting {Object} [container] See description.
+  @desc
+    
+    #### Setting 'container'
+    
+    - **Object**
+      - `Container`: **String** The ID or name of the container to disconnect from the network.
+      - `Force`: **Boolean** Force the container to disconnect from the network.
+    
 */
 exports.networkDisconnect = function(client, params) {
   return client.performRequest({
@@ -1850,7 +2982,8 @@ exports.networkDisconnect = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['container'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1858,6 +2991,7 @@ exports.networkDisconnect = function(client, params) {
 /**
   @function networkPrune
   @summary Delete unused networks
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -1870,6 +3004,11 @@ exports.networkDisconnect = function(client, params) {
 
     
     
+    #### Return value
+    - **Object**
+      - `VolumesDeleted`: **Array** Networks that were deleted
+        - Elements of type **String**
+    
 */
 exports.networkPrune = function(client, params) {
   return client.performRequest({
@@ -1880,7 +3019,8 @@ exports.networkPrune = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1888,9 +3028,99 @@ exports.networkPrune = function(client, params) {
 /**
   @function pluginList
   @summary List plugins
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @desc
     Returns information about installed plugins.
+    
+    #### Return value
+    - **Array**
+      - Elements of type **Object** A plugin for the Engine API (Required: Settings, Enabled, Config, Name)
+        - `Id`: **String**
+        - `Name`: **String**
+        - `Enabled`: **Boolean** True when the plugin is running. False when the plugin is not running, only installed.
+        - `Settings`: **Object** Settings that can be modified by users. (Required: Args, Devices, Env, Mounts)
+          - `Mounts`: **Array**
+            - Elements of type **Object** (Required: Name, Description, Settable, Source, Destination, Type, Options)
+              - `Name`: **String**
+              - `Description`: **String**
+              - `Settable`: **Array**
+                - Elements of type **String**
+              - `Source`: **String**
+              - `Destination`: **String**
+              - `Type`: **String**
+              - `Options`: **Array**
+                - Elements of type **String**
+          - `Env`: **Array**
+            - Elements of type **String**
+          - `Args`: **Array**
+            - Elements of type **String**
+          - `Devices`: **Array**
+            - Elements of type **Object** (Required: Name, Description, Settable, Path)
+              - `Name`: **String**
+              - `Description`: **String**
+              - `Settable`: **Array**
+                - Elements of type **String**
+              - `Path`: **String**
+        - `Config`: **Object** The config of a plugin. (Required: Description, Documentation, Interface, Entrypoint, WorkDir, Network, Linux, PropagatedMount, Mounts, Env, Args)
+          - `Description`: **String**
+          - `Documentation`: **String**
+          - `Interface`: **Object** The interface between Docker and the plugin (Required: Types, Socket)
+            - `Types`: **Array**
+              - Elements of type **Object** (Required: Prefix, Capability, Version)
+                - `Prefix`: **String**
+                - `Capability`: **String**
+                - `Version`: **String**
+            - `Socket`: **String**
+          - `Entrypoint`: **Array**
+            - Elements of type **String**
+          - `WorkDir`: **String**
+          - `User`: **Object**
+            - `UID`: **Integer**
+            - `GID`: **Integer**
+          - `Network`: **Object** (Required: Type)
+            - `Type`: **String**
+          - `Linux`: **Object** (Required: Capabilities, AllowAllDevices, Devices)
+            - `Capabilities`: **Array**
+              - Elements of type **String**
+            - `AllowAllDevices`: **Boolean**
+            - `Devices`: **Array**
+              - Elements of type **Object** (Required: Name, Description, Settable, Path)
+                - `Name`: **String**
+                - `Description`: **String**
+                - `Settable`: **Array**
+                  - Elements of type **String**
+                - `Path`: **String**
+          - `PropagatedMount`: **String**
+          - `Mounts`: **Array**
+            - Elements of type **Object** (Required: Name, Description, Settable, Source, Destination, Type, Options)
+              - `Name`: **String**
+              - `Description`: **String**
+              - `Settable`: **Array**
+                - Elements of type **String**
+              - `Source`: **String**
+              - `Destination`: **String**
+              - `Type`: **String**
+              - `Options`: **Array**
+                - Elements of type **String**
+          - `Env`: **Array**
+            - Elements of type **Object** (Required: Name, Description, Settable, Value)
+              - `Name`: **String**
+              - `Description`: **String**
+              - `Settable`: **Array**
+                - Elements of type **String**
+              - `Value`: **String**
+          - `Args`: **Object** (Required: Name, Description, Settable, Value)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Value`: **Array**
+              - Elements of type **String**
+          - `rootfs`: **Object**
+            - `type`: **String**
+            - `diff_ids`: **Array**
+              - Elements of type **String**
     
 */
 exports.pluginList = function(client, params) {
@@ -1902,7 +3132,8 @@ exports.pluginList = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -1910,6 +3141,7 @@ exports.pluginList = function(client, params) {
 /**
   @function getPluginPrivileges
   @summary Get plugin privileges
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -1924,7 +3156,8 @@ exports.getPluginPrivileges = function(client, params) {
     pathParams: [],
     queryParams: ['name'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1932,12 +3165,13 @@ exports.getPluginPrivileges = function(client, params) {
 /**
   @function pluginPull
   @summary Install a plugin
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [remote] See description
   @setting {optional String} [name] See description
   @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration to use when pulling a plugin from a registry. [See the authentication section for details.](#section/Authentication)
-  @setting {COMPLEX} [body] 
+  @setting {Object} [body] See description.
   @desc
     Pulls and installs a plugin. After the plugin is installed, it can be enabled using the [::postPluginsEnable].
     
@@ -1954,6 +3188,15 @@ exports.getPluginPrivileges = function(client, params) {
     The `:latest` tag is optional, and is used as the default if omitted.
     
     
+    #### Setting 'body'
+    
+    - **Array**
+      - Elements of type **Object** Describes a permission accepted by the user upon installing the plugin.
+        - `Name`: **String**
+        - `Description`: **String**
+        - `Value`: **Array**
+          - Elements of type **String**
+    
 */
 exports.pluginPull = function(client, params) {
   return client.performRequest({
@@ -1964,7 +3207,8 @@ exports.pluginPull = function(client, params) {
     pathParams: [],
     queryParams: ['remote','name'],
     bodyParams: ['body'],
-    headerParams: ['X-Registry-Auth']
+    headerParams: ['X-Registry-Auth'],
+    rv: 'string'
   });
 };
 
@@ -1972,6 +3216,7 @@ exports.pluginPull = function(client, params) {
 /**
   @function pluginInspect
   @summary Inspect a plugin
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -1986,7 +3231,8 @@ exports.pluginInspect = function(client, params) {
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -1994,6 +3240,7 @@ exports.pluginInspect = function(client, params) {
 /**
   @function pluginDelete
   @summary Remove a plugin
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -2009,7 +3256,8 @@ exports.pluginDelete = function(client, params) {
     pathParams: ['name'],
     queryParams: ['force'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2017,6 +3265,7 @@ exports.pluginDelete = function(client, params) {
 /**
   @function pluginEnable
   @summary Enable a plugin
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -2032,7 +3281,8 @@ exports.pluginEnable = function(client, params) {
     pathParams: ['name'],
     queryParams: ['timeout'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2040,6 +3290,7 @@ exports.pluginEnable = function(client, params) {
 /**
   @function pluginDisable
   @summary Disable a plugin
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -2054,39 +3305,8 @@ exports.pluginDisable = function(client, params) {
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
-  });
-};
-
-
-/**
-  @function pluginUpgrade
-  @summary Upgrade a plugin
-  @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
-  @param {Object} [settings] API call parameters
-  @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
-  @setting {String} [remote] See description
-  @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration to use when pulling a plugin from a registry. [See the authentication section for details.](#section/Authentication)
-  @setting {COMPLEX} [body] 
-  @desc
-    
-    #### Setting 'remote'
-    Remote reference to upgrade to.
-    
-    The `:latest` tag is optional, and is used as the default if omitted.
-    
-    
-*/
-exports.pluginUpgrade = function(client, params) {
-  return client.performRequest({
-    method: 'POST',
-    url: '/v1.25/plugins/{name}/upgrade',
-    params: params,
-    requiredParams: ['name','remote'],
-    pathParams: ['name'],
-    queryParams: ['remote'],
-    bodyParams: ['body'],
-    headerParams: ['X-Registry-Auth']
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2094,11 +3314,17 @@ exports.pluginUpgrade = function(client, params) {
 /**
   @function pluginCreate
   @summary Create a plugin
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
-  @setting {COMPLEX} [tarContext] Path to tar containing plugin rootfs and manifest
-
+  @setting {Object} [tarContext] Path to tar containing plugin rootfs and manifest. See description.
+  @desc
+    
+    #### Setting 'tarContext'
+    
+    - **String**
+    
 */
 exports.pluginCreate = function(client, params) {
   return client.performRequest({
@@ -2109,7 +3335,8 @@ exports.pluginCreate = function(client, params) {
     pathParams: [],
     queryParams: ['name'],
     bodyParams: ['tarContext'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2117,6 +3344,7 @@ exports.pluginCreate = function(client, params) {
 /**
   @function pluginPush
   @summary Push a plugin
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -2134,7 +3362,8 @@ exports.pluginPush = function(client, params) {
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2142,11 +3371,18 @@ exports.pluginPush = function(client, params) {
 /**
   @function pluginSet
   @summary Configure a plugin
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
-  @setting {COMPLEX} [body] 
-
+  @setting {Object} [body] See description.
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Array**
+      - Elements of type **String**
+    
 */
 exports.pluginSet = function(client, params) {
   return client.performRequest({
@@ -2157,7 +3393,8 @@ exports.pluginSet = function(client, params) {
     pathParams: ['name'],
     queryParams: [],
     bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2165,6 +3402,7 @@ exports.pluginSet = function(client, params) {
 /**
   @function nodeList
   @summary List nodes
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -2192,7 +3430,8 @@ exports.nodeList = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2200,6 +3439,7 @@ exports.nodeList = function(client, params) {
 /**
   @function nodeInspect
   @summary Inspect a node
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] The ID or name of the node
@@ -2214,7 +3454,8 @@ exports.nodeInspect = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2222,6 +3463,7 @@ exports.nodeInspect = function(client, params) {
 /**
   @function nodeDelete
   @summary Delete a node
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] The ID or name of the node
@@ -2237,7 +3479,8 @@ exports.nodeDelete = function(client, params) {
     pathParams: ['id'],
     queryParams: ['force'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2245,12 +3488,23 @@ exports.nodeDelete = function(client, params) {
 /**
   @function nodeUpdate
   @summary Update a node
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] The ID of the node
-  @setting {COMPLEX} [body] 
+  @setting {Object} [body] See description.
   @setting {Integer} [version] The version number of the node object being updated. This is required to avoid conflicting writes.
-
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object**
+      - `Name`: **String** Name for the node.
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `Role`: **String** Role of the node.
+      - `Availability`: **String** Availability of the node.
+    
 */
 exports.nodeUpdate = function(client, params) {
   return client.performRequest({
@@ -2261,7 +3515,8 @@ exports.nodeUpdate = function(client, params) {
     pathParams: ['id'],
     queryParams: ['version'],
     bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2269,6 +3524,7 @@ exports.nodeUpdate = function(client, params) {
 /**
   @function swarmInspect
   @summary Inspect swarm
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
 
 */
@@ -2281,7 +3537,8 @@ exports.swarmInspect = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2289,10 +3546,48 @@ exports.swarmInspect = function(client, params) {
 /**
   @function swarmInit
   @summary Initialize a new swarm
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [body] 
-
+  @setting {Object} [body] See description.
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object**
+      - `ListenAddr`: **String** Listen address used for inter-manager communication, as well as determining the networking interface used for the VXLAN Tunnel Endpoint (VTEP). This can either be an address/port combination in the form `192.168.1.1:4567`, or an interface followed by a port number, like `eth0:4567`. If the port number is omitted, the default swarm listening port is used.
+      - `AdvertiseAddr`: **String** Externally reachable address advertised to other nodes. This can either be an address/port combination in the form `192.168.1.1:4567`, or an interface followed by a port number, like `eth0:4567`. If the port number is omitted, the port number from the listen address is used. If `AdvertiseAddr` is not specified, it will be automatically detected when possible.
+      - `ForceNewCluster`: **Boolean** Force creation of a new swarm.
+      - `Spec`: **Object** User modifiable swarm configuration.
+        - `Name`: **String** Name of the swarm.
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `Orchestration`: **Object** Orchestration configuration.
+          - `TaskHistoryRetentionLimit`: **Integer** The number of historic tasks to keep per instance or node. If negative, never remove completed or failed tasks.
+        - `Raft`: **Object** Raft configuration.
+          - `SnapshotInterval`: **Integer** The number of log entries between snapshots.
+          - `KeepOldSnapshots`: **Integer** The number of snapshots to keep beyond the current snapshot.
+          - `LogEntriesForSlowFollowers`: **Integer** The number of log entries to keep around to sync up slow followers after a snapshot is created.
+          - `ElectionTick`: **Integer** The number of ticks that a follower will wait for a message from the leader before becoming a candidate and starting an election. `ElectionTick` must be greater than `HeartbeatTick`.    A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.  
+          - `HeartbeatTick`: **Integer** The number of ticks between heartbeats. Every HeartbeatTick ticks, the leader will send a heartbeat to the followers.    A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.  
+        - `Dispatcher`: **Object** Dispatcher configuration.
+          - `HeartbeatPeriod`: **Integer** The delay for an agent to send a heartbeat to the dispatcher.
+        - `CAConfig`: **Object** CA configuration.
+          - `NodeCertExpiry`: **Integer** The duration node certificates are issued for.
+          - `ExternalCAs`: **Array** Configuration for forwarding signing requests to an external certificate authority.
+            - Elements of type **Object**
+              - `Protocol`: **String** Protocol for communication with the external CA (currently only `cfssl` is supported). (Optional; default: ''cfssl'')
+              - `URL`: **String** URL where certificate signing requests should be sent.
+              - `Options`: **Object** An object with key/value pairs that are interpreted as protocol-specific options for the external CA driver.
+                - `[KEY]`: **String**
+        - `EncryptionConfig`: **Object** Parameters related to encryption-at-rest.
+          - `AutoLockManagers`: **Boolean** If set, generate a key and use it to lock data stored on the managers.
+        - `TaskDefaults`: **Object** Defaults for creating tasks in this cluster.
+          - `LogDriver`: **Object** The log driver to use for tasks created in the orchestrator if unspecified by a service.    Updating this value will only have an affect on new tasks. Old tasks will continue use their previously configured log driver until recreated.  
+            - `Name`: **String**
+            - `Options`: **Object**
+              - `[KEY]`: **String**
+    
 */
 exports.swarmInit = function(client, params) {
   return client.performRequest({
@@ -2303,7 +3598,8 @@ exports.swarmInit = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2311,10 +3607,20 @@ exports.swarmInit = function(client, params) {
 /**
   @function swarmJoin
   @summary Join an existing swarm
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [body] 
-
+  @setting {Object} [body] See description.
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object**
+      - `ListenAddr`: **String** Listen address used for inter-manager communication if the node gets promoted to manager, as well as determining the networking interface used for the VXLAN Tunnel Endpoint (VTEP).
+      - `AdvertiseAddr`: **String** Externally reachable address advertised to other nodes. This can either be an address/port combination in the form `192.168.1.1:4567`, or an interface followed by a port number, like `eth0:4567`. If the port number is omitted, the port number from the listen address is used. If `AdvertiseAddr` is not specified, it will be automatically detected when possible.
+      - `RemoteAddrs`: **String** Addresses of manager nodes already participating in the swarm.
+      - `JoinToken`: **String** Secret token for joining this swarm.
+    
 */
 exports.swarmJoin = function(client, params) {
   return client.performRequest({
@@ -2325,7 +3631,8 @@ exports.swarmJoin = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2333,6 +3640,7 @@ exports.swarmJoin = function(client, params) {
 /**
   @function swarmLeave
   @summary Leave a swarm
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional Boolean} [force=false] Force leave swarm, even if this is the last manager or that it will break the cluster.
@@ -2347,7 +3655,8 @@ exports.swarmLeave = function(client, params) {
     pathParams: [],
     queryParams: ['force'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2355,14 +3664,48 @@ exports.swarmLeave = function(client, params) {
 /**
   @function swarmUpdate
   @summary Update a swarm
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [body] 
+  @setting {Object} [body] See description.
   @setting {Integer} [version] The version number of the swarm object being updated. This is required to avoid conflicting writes.
   @setting {optional Boolean} [rotateWorkerToken=false] Rotate the worker join token.
   @setting {optional Boolean} [rotateManagerToken=false] Rotate the manager join token.
   @setting {optional Boolean} [rotateManagerUnlockKey=false] Rotate the manager unlock key.
-
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object** User modifiable swarm configuration.
+      - `Name`: **String** Name of the swarm.
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `Orchestration`: **Object** Orchestration configuration.
+        - `TaskHistoryRetentionLimit`: **Integer** The number of historic tasks to keep per instance or node. If negative, never remove completed or failed tasks.
+      - `Raft`: **Object** Raft configuration.
+        - `SnapshotInterval`: **Integer** The number of log entries between snapshots.
+        - `KeepOldSnapshots`: **Integer** The number of snapshots to keep beyond the current snapshot.
+        - `LogEntriesForSlowFollowers`: **Integer** The number of log entries to keep around to sync up slow followers after a snapshot is created.
+        - `ElectionTick`: **Integer** The number of ticks that a follower will wait for a message from the leader before becoming a candidate and starting an election. `ElectionTick` must be greater than `HeartbeatTick`.    A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.  
+        - `HeartbeatTick`: **Integer** The number of ticks between heartbeats. Every HeartbeatTick ticks, the leader will send a heartbeat to the followers.    A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.  
+      - `Dispatcher`: **Object** Dispatcher configuration.
+        - `HeartbeatPeriod`: **Integer** The delay for an agent to send a heartbeat to the dispatcher.
+      - `CAConfig`: **Object** CA configuration.
+        - `NodeCertExpiry`: **Integer** The duration node certificates are issued for.
+        - `ExternalCAs`: **Array** Configuration for forwarding signing requests to an external certificate authority.
+          - Elements of type **Object**
+            - `Protocol`: **String** Protocol for communication with the external CA (currently only `cfssl` is supported). (Optional; default: ''cfssl'')
+            - `URL`: **String** URL where certificate signing requests should be sent.
+            - `Options`: **Object** An object with key/value pairs that are interpreted as protocol-specific options for the external CA driver.
+              - `[KEY]`: **String**
+      - `EncryptionConfig`: **Object** Parameters related to encryption-at-rest.
+        - `AutoLockManagers`: **Boolean** If set, generate a key and use it to lock data stored on the managers.
+      - `TaskDefaults`: **Object** Defaults for creating tasks in this cluster.
+        - `LogDriver`: **Object** The log driver to use for tasks created in the orchestrator if unspecified by a service.    Updating this value will only have an affect on new tasks. Old tasks will continue use their previously configured log driver until recreated.  
+          - `Name`: **String**
+          - `Options`: **Object**
+            - `[KEY]`: **String**
+    
 */
 exports.swarmUpdate = function(client, params) {
   return client.performRequest({
@@ -2373,7 +3716,8 @@ exports.swarmUpdate = function(client, params) {
     pathParams: [],
     queryParams: ['version','rotateWorkerToken','rotateManagerToken','rotateManagerUnlockKey'],
     bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2381,6 +3725,7 @@ exports.swarmUpdate = function(client, params) {
 /**
   @function swarmUnlockkey
   @summary Get the unlock key
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
 
 */
@@ -2393,7 +3738,8 @@ exports.swarmUnlockkey = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2401,10 +3747,17 @@ exports.swarmUnlockkey = function(client, params) {
 /**
   @function swarmUnlock
   @summary Unlock a locked manager
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [body] 
-
+  @setting {Object} [body] See description.
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object**
+      - `UnlockKey`: **String** The swarm's unlock key.
+    
 */
 exports.swarmUnlock = function(client, params) {
   return client.performRequest({
@@ -2415,7 +3768,8 @@ exports.swarmUnlock = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'string'
   });
 };
 
@@ -2423,6 +3777,7 @@ exports.swarmUnlock = function(client, params) {
 /**
   @function serviceList
   @summary List services
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -2447,7 +3802,8 @@ exports.serviceList = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2455,11 +3811,115 @@ exports.serviceList = function(client, params) {
 /**
   @function serviceCreate
   @summary Create a service
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [body] 
+  @setting {Object} [body] See description.
   @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration for pulling from private registries. [See the authentication section for details.](#section/Authentication)
-
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object**
+      - `Name`: **String** Name of the service.
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `TaskTemplate`: **Object** User modifiable task configuration.
+        - `ContainerSpec`: **Object**
+          - `Image`: **String** The image name to use for the container.
+          - `Command`: **Array** The command to be run in the image.
+            - Elements of type **String**
+          - `Args`: **Array** Arguments to the command.
+            - Elements of type **String**
+          - `Env`: **Array** A list of environment variables in the form `VAR=value`.
+            - Elements of type **String**
+          - `Dir`: **String** The working directory for commands to run in.
+          - `User`: **String** The user inside the container.
+          - `Labels`: **Object** User-defined key/value data.
+            - `[KEY]`: **String**
+          - `TTY`: **Boolean** Whether a pseudo-TTY should be allocated.
+          - `Mounts`: **Array** Specification for mounts to be added to containers created as part of the service.
+            - Elements of type **Object**
+              - `Target`: **String** Container path.
+              - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+              - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+              - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+              - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+              - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                - `Labels`: **Object** User-defined key/value metadata.
+                  - `[KEY]`: **String**
+                - `DriverConfig`: **Object** Map of driver specific options
+                  - `Name`: **String** Name of the driver to use to create the volume.
+                  - `Options`: **Object** key/value map of driver specific options.
+                    - `[KEY]`: **String**
+              - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+          - `StopGracePeriod`: **Integer** Amount of time to wait for the container to terminate before forcefully killing it.
+          - `DNSConfig`: **Object** Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
+            - `Nameservers`: **Array** The IP addresses of the name servers.
+              - Elements of type **String**
+            - `Search`: **Array** A search list for host-name lookup.
+              - Elements of type **String**
+            - `Options`: **Array** A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
+              - Elements of type **String**
+        - `Resources`: **Object** Resource requirements which apply to each individual container created as part of the service.
+          - `Limits`: **Object** Define resources limits.
+            - `NanoCPUs`: **Integer** CPU limit in units of 10<sup>-9</sup> CPU shares.
+            - `MemoryBytes`: **Integer** Memory limit in Bytes.
+          - `Reservation`: **Object** Define resources reservation.
+            - `NanoCPUs`: **Integer** CPU reservation in units of 10<sup>-9</sup> CPU shares.
+            - `MemoryBytes`: **Integer** Memory reservation in Bytes.
+        - `RestartPolicy`: **Object** Specification for the restart policy which applies to containers created as part of this service.
+          - `Condition`: **String** Condition for restart.
+          - `Delay`: **Integer** Delay between restart attempts.
+          - `MaxAttempts`: **Integer** Maximum attempts to restart a given container before giving up (default value is 0, which is ignored). (Optional; default: '0')
+          - `Window`: **Integer** Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded). (Optional; default: '0')
+        - `Placement`: **Object**
+          - `Constraints`: **Array** An array of constraints.
+            - Elements of type **String**
+        - `ForceUpdate`: **Integer** A counter that triggers an update even if no relevant parameters have been changed.
+        - `Networks`: **Array**
+          - Elements of type **Object**
+            - `Target`: **String**
+            - `Aliases`: **Array**
+              - Elements of type **String**
+        - `LogDriver`: **Object** Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
+          - `Name`: **String**
+          - `Options`: **Object**
+            - `[KEY]`: **String**
+      - `Mode`: **Object** Scheduling mode for the service.
+        - `Replicated`: **Object**
+          - `Replicas`: **Integer**
+        - `Global`: **Object**
+          
+      - `UpdateConfig`: **Object** Specification for the update strategy of the service.
+        - `Parallelism`: **Integer** Maximum number of tasks to be updated in one iteration (0 means unlimited parallelism).
+        - `Delay`: **Integer** Amount of time between updates, in nanoseconds.
+        - `FailureAction`: **String** Action to take if an updated task fails to run, or stops running during the update.
+        - `Monitor`: **Integer** Amount of time to monitor each updated task for failures, in nanoseconds.
+        - `MaxFailureRatio`: **Number** The fraction of tasks that may fail during an update before the failure action is invoked, specified as a floating point number between 0 and 1. (Optional; default: '0')
+      - `Networks`: **Array** Array of network names or IDs to attach the service to.
+        - Elements of type **Object**
+          - `Target`: **String**
+          - `Aliases`: **Array**
+            - Elements of type **String**
+      - `EndpointSpec`: **Object** Properties that can be configured to access and load balance a service.
+        - `Mode`: **String** The mode of resolution to use for internal load balancing between tasks. (Optional; default: ''vip'')
+        - `Ports`: **Array** List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
+          - Elements of type **Object**
+            - `Name`: **String**
+            - `Protocol`: **String**
+            - `TargetPort`: **Integer** The port inside the container.
+            - `PublishedPort`: **Integer** The port on the swarm hosts.
+    
+    #### Return value
+    - **Object**
+      - `ID`: **String** The ID of the created service.
+      - `Warning`: **String** Optional warning message
+    
 */
 exports.serviceCreate = function(client, params) {
   return client.performRequest({
@@ -2470,7 +3930,8 @@ exports.serviceCreate = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
-    headerParams: ['X-Registry-Auth']
+    headerParams: ['X-Registry-Auth'],
+    rv: 'json'
   });
 };
 
@@ -2478,6 +3939,7 @@ exports.serviceCreate = function(client, params) {
 /**
   @function serviceInspect
   @summary Inspect a service
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of service.
@@ -2492,7 +3954,8 @@ exports.serviceInspect = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2500,6 +3963,7 @@ exports.serviceInspect = function(client, params) {
 /**
   @function serviceDelete
   @summary Delete a service
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of service.
@@ -2514,7 +3978,8 @@ exports.serviceDelete = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2522,14 +3987,118 @@ exports.serviceDelete = function(client, params) {
 /**
   @function serviceUpdate
   @summary Update a service
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of service.
-  @setting {COMPLEX} [body] 
+  @setting {Object} [body] See description.
   @setting {Integer} [version] The version number of the service object being updated. This is required to avoid conflicting writes.
   @setting {optional String} [registryAuthFrom=spec] If the X-Registry-Auth header is not specified, this parameter indicates where to find registry authorization credentials. The valid values are `spec` and `previous-spec`.
   @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration for pulling from private registries. [See the authentication section for details.](#section/Authentication)
-
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object**
+      - `Name`: **String** Name of the service.
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `TaskTemplate`: **Object** User modifiable task configuration.
+        - `ContainerSpec`: **Object**
+          - `Image`: **String** The image name to use for the container.
+          - `Command`: **Array** The command to be run in the image.
+            - Elements of type **String**
+          - `Args`: **Array** Arguments to the command.
+            - Elements of type **String**
+          - `Env`: **Array** A list of environment variables in the form `VAR=value`.
+            - Elements of type **String**
+          - `Dir`: **String** The working directory for commands to run in.
+          - `User`: **String** The user inside the container.
+          - `Labels`: **Object** User-defined key/value data.
+            - `[KEY]`: **String**
+          - `TTY`: **Boolean** Whether a pseudo-TTY should be allocated.
+          - `Mounts`: **Array** Specification for mounts to be added to containers created as part of the service.
+            - Elements of type **Object**
+              - `Target`: **String** Container path.
+              - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+              - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+              - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+              - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+              - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                - `Labels`: **Object** User-defined key/value metadata.
+                  - `[KEY]`: **String**
+                - `DriverConfig`: **Object** Map of driver specific options
+                  - `Name`: **String** Name of the driver to use to create the volume.
+                  - `Options`: **Object** key/value map of driver specific options.
+                    - `[KEY]`: **String**
+              - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+          - `StopGracePeriod`: **Integer** Amount of time to wait for the container to terminate before forcefully killing it.
+          - `DNSConfig`: **Object** Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
+            - `Nameservers`: **Array** The IP addresses of the name servers.
+              - Elements of type **String**
+            - `Search`: **Array** A search list for host-name lookup.
+              - Elements of type **String**
+            - `Options`: **Array** A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
+              - Elements of type **String**
+        - `Resources`: **Object** Resource requirements which apply to each individual container created as part of the service.
+          - `Limits`: **Object** Define resources limits.
+            - `NanoCPUs`: **Integer** CPU limit in units of 10<sup>-9</sup> CPU shares.
+            - `MemoryBytes`: **Integer** Memory limit in Bytes.
+          - `Reservation`: **Object** Define resources reservation.
+            - `NanoCPUs`: **Integer** CPU reservation in units of 10<sup>-9</sup> CPU shares.
+            - `MemoryBytes`: **Integer** Memory reservation in Bytes.
+        - `RestartPolicy`: **Object** Specification for the restart policy which applies to containers created as part of this service.
+          - `Condition`: **String** Condition for restart.
+          - `Delay`: **Integer** Delay between restart attempts.
+          - `MaxAttempts`: **Integer** Maximum attempts to restart a given container before giving up (default value is 0, which is ignored). (Optional; default: '0')
+          - `Window`: **Integer** Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded). (Optional; default: '0')
+        - `Placement`: **Object**
+          - `Constraints`: **Array** An array of constraints.
+            - Elements of type **String**
+        - `ForceUpdate`: **Integer** A counter that triggers an update even if no relevant parameters have been changed.
+        - `Networks`: **Array**
+          - Elements of type **Object**
+            - `Target`: **String**
+            - `Aliases`: **Array**
+              - Elements of type **String**
+        - `LogDriver`: **Object** Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
+          - `Name`: **String**
+          - `Options`: **Object**
+            - `[KEY]`: **String**
+      - `Mode`: **Object** Scheduling mode for the service.
+        - `Replicated`: **Object**
+          - `Replicas`: **Integer**
+        - `Global`: **Object**
+          
+      - `UpdateConfig`: **Object** Specification for the update strategy of the service.
+        - `Parallelism`: **Integer** Maximum number of tasks to be updated in one iteration (0 means unlimited parallelism).
+        - `Delay`: **Integer** Amount of time between updates, in nanoseconds.
+        - `FailureAction`: **String** Action to take if an updated task fails to run, or stops running during the update.
+        - `Monitor`: **Integer** Amount of time to monitor each updated task for failures, in nanoseconds.
+        - `MaxFailureRatio`: **Number** The fraction of tasks that may fail during an update before the failure action is invoked, specified as a floating point number between 0 and 1. (Optional; default: '0')
+      - `Networks`: **Array** Array of network names or IDs to attach the service to.
+        - Elements of type **Object**
+          - `Target`: **String**
+          - `Aliases`: **Array**
+            - Elements of type **String**
+      - `EndpointSpec`: **Object** Properties that can be configured to access and load balance a service.
+        - `Mode`: **String** The mode of resolution to use for internal load balancing between tasks. (Optional; default: ''vip'')
+        - `Ports`: **Array** List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
+          - Elements of type **Object**
+            - `Name`: **String**
+            - `Protocol`: **String**
+            - `TargetPort`: **Integer** The port inside the container.
+            - `PublishedPort`: **Integer** The port on the swarm hosts.
+    
+    #### Return value
+    - **Object**
+      - `Untagged`: **String** The image ID of an image that was untagged
+      - `Deleted`: **String** The image ID of an image that was deleted
+    
 */
 exports.serviceUpdate = function(client, params) {
   return client.performRequest({
@@ -2540,7 +4109,8 @@ exports.serviceUpdate = function(client, params) {
     pathParams: ['id'],
     queryParams: ['version','registryAuthFrom'],
     bodyParams: ['body'],
-    headerParams: ['X-Registry-Auth']
+    headerParams: ['X-Registry-Auth'],
+    rv: 'json'
   });
 };
 
@@ -2548,6 +4118,7 @@ exports.serviceUpdate = function(client, params) {
 /**
   @function serviceLogs
   @summary Get service logs
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -2580,7 +4151,8 @@ exports.serviceLogs = function(client, params) {
     pathParams: ['id'],
     queryParams: ['details','follow','stdout','stderr','since','timestamps','tail'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'COMPLEX'
   });
 };
 
@@ -2588,6 +4160,7 @@ exports.serviceLogs = function(client, params) {
 /**
   @function taskList
   @summary List tasks
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -2605,6 +4178,97 @@ exports.serviceLogs = function(client, params) {
     - `desired-state=(running | shutdown | accepted)`
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `ID`: **String** The ID of the task.
+        - `Version`: **Object**
+          - `Index`: **Integer**
+        - `CreatedAt`: **String**
+        - `UpdatedAt`: **String**
+        - `Name`: **String** Name of the task.
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `Spec`: **Object** User modifiable task configuration.
+          - `ContainerSpec`: **Object**
+            - `Image`: **String** The image name to use for the container.
+            - `Command`: **Array** The command to be run in the image.
+              - Elements of type **String**
+            - `Args`: **Array** Arguments to the command.
+              - Elements of type **String**
+            - `Env`: **Array** A list of environment variables in the form `VAR=value`.
+              - Elements of type **String**
+            - `Dir`: **String** The working directory for commands to run in.
+            - `User`: **String** The user inside the container.
+            - `Labels`: **Object** User-defined key/value data.
+              - `[KEY]`: **String**
+            - `TTY`: **Boolean** Whether a pseudo-TTY should be allocated.
+            - `Mounts`: **Array** Specification for mounts to be added to containers created as part of the service.
+              - Elements of type **Object**
+                - `Target`: **String** Container path.
+                - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+                - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+                - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+                - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                  - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+                - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                  - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                  - `Labels`: **Object** User-defined key/value metadata.
+                    - `[KEY]`: **String**
+                  - `DriverConfig`: **Object** Map of driver specific options
+                    - `Name`: **String** Name of the driver to use to create the volume.
+                    - `Options`: **Object** key/value map of driver specific options.
+                      - `[KEY]`: **String**
+                - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                  - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                  - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+            - `StopGracePeriod`: **Integer** Amount of time to wait for the container to terminate before forcefully killing it.
+            - `DNSConfig`: **Object** Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
+              - `Nameservers`: **Array** The IP addresses of the name servers.
+                - Elements of type **String**
+              - `Search`: **Array** A search list for host-name lookup.
+                - Elements of type **String**
+              - `Options`: **Array** A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
+                - Elements of type **String**
+          - `Resources`: **Object** Resource requirements which apply to each individual container created as part of the service.
+            - `Limits`: **Object** Define resources limits.
+              - `NanoCPUs`: **Integer** CPU limit in units of 10<sup>-9</sup> CPU shares.
+              - `MemoryBytes`: **Integer** Memory limit in Bytes.
+            - `Reservation`: **Object** Define resources reservation.
+              - `NanoCPUs`: **Integer** CPU reservation in units of 10<sup>-9</sup> CPU shares.
+              - `MemoryBytes`: **Integer** Memory reservation in Bytes.
+          - `RestartPolicy`: **Object** Specification for the restart policy which applies to containers created as part of this service.
+            - `Condition`: **String** Condition for restart.
+            - `Delay`: **Integer** Delay between restart attempts.
+            - `MaxAttempts`: **Integer** Maximum attempts to restart a given container before giving up (default value is 0, which is ignored). (Optional; default: '0')
+            - `Window`: **Integer** Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded). (Optional; default: '0')
+          - `Placement`: **Object**
+            - `Constraints`: **Array** An array of constraints.
+              - Elements of type **String**
+          - `ForceUpdate`: **Integer** A counter that triggers an update even if no relevant parameters have been changed.
+          - `Networks`: **Array**
+            - Elements of type **Object**
+              - `Target`: **String**
+              - `Aliases`: **Array**
+                - Elements of type **String**
+          - `LogDriver`: **Object** Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
+            - `Name`: **String**
+            - `Options`: **Object**
+              - `[KEY]`: **String**
+        - `ServiceID`: **String** The ID of the service this task is part of.
+        - `Slot`: **Integer**
+        - `NodeID`: **String** The ID of the node that this task is on.
+        - `Status`: **Object**
+          - `Timestamp`: **String**
+          - `State`: **String**
+          - `Message`: **String**
+          - `Err`: **String**
+          - `ContainerStatus`: **Object**
+            - `ContainerID`: **String**
+            - `PID`: **Integer**
+            - `ExitCode`: **Integer**
+        - `DesiredState`: **String**
+    
 */
 exports.taskList = function(client, params) {
   return client.performRequest({
@@ -2615,7 +4279,8 @@ exports.taskList = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -2623,10 +4288,102 @@ exports.taskList = function(client, params) {
 /**
   @function taskInspect
   @summary Inspect a task
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID of the task
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `ID`: **String** The ID of the task.
+      - `Version`: **Object**
+        - `Index`: **Integer**
+      - `CreatedAt`: **String**
+      - `UpdatedAt`: **String**
+      - `Name`: **String** Name of the task.
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `Spec`: **Object** User modifiable task configuration.
+        - `ContainerSpec`: **Object**
+          - `Image`: **String** The image name to use for the container.
+          - `Command`: **Array** The command to be run in the image.
+            - Elements of type **String**
+          - `Args`: **Array** Arguments to the command.
+            - Elements of type **String**
+          - `Env`: **Array** A list of environment variables in the form `VAR=value`.
+            - Elements of type **String**
+          - `Dir`: **String** The working directory for commands to run in.
+          - `User`: **String** The user inside the container.
+          - `Labels`: **Object** User-defined key/value data.
+            - `[KEY]`: **String**
+          - `TTY`: **Boolean** Whether a pseudo-TTY should be allocated.
+          - `Mounts`: **Array** Specification for mounts to be added to containers created as part of the service.
+            - Elements of type **Object**
+              - `Target`: **String** Container path.
+              - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+              - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+              - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+              - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+              - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                - `Labels`: **Object** User-defined key/value metadata.
+                  - `[KEY]`: **String**
+                - `DriverConfig`: **Object** Map of driver specific options
+                  - `Name`: **String** Name of the driver to use to create the volume.
+                  - `Options`: **Object** key/value map of driver specific options.
+                    - `[KEY]`: **String**
+              - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+          - `StopGracePeriod`: **Integer** Amount of time to wait for the container to terminate before forcefully killing it.
+          - `DNSConfig`: **Object** Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
+            - `Nameservers`: **Array** The IP addresses of the name servers.
+              - Elements of type **String**
+            - `Search`: **Array** A search list for host-name lookup.
+              - Elements of type **String**
+            - `Options`: **Array** A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
+              - Elements of type **String**
+        - `Resources`: **Object** Resource requirements which apply to each individual container created as part of the service.
+          - `Limits`: **Object** Define resources limits.
+            - `NanoCPUs`: **Integer** CPU limit in units of 10<sup>-9</sup> CPU shares.
+            - `MemoryBytes`: **Integer** Memory limit in Bytes.
+          - `Reservation`: **Object** Define resources reservation.
+            - `NanoCPUs`: **Integer** CPU reservation in units of 10<sup>-9</sup> CPU shares.
+            - `MemoryBytes`: **Integer** Memory reservation in Bytes.
+        - `RestartPolicy`: **Object** Specification for the restart policy which applies to containers created as part of this service.
+          - `Condition`: **String** Condition for restart.
+          - `Delay`: **Integer** Delay between restart attempts.
+          - `MaxAttempts`: **Integer** Maximum attempts to restart a given container before giving up (default value is 0, which is ignored). (Optional; default: '0')
+          - `Window`: **Integer** Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded). (Optional; default: '0')
+        - `Placement`: **Object**
+          - `Constraints`: **Array** An array of constraints.
+            - Elements of type **String**
+        - `ForceUpdate`: **Integer** A counter that triggers an update even if no relevant parameters have been changed.
+        - `Networks`: **Array**
+          - Elements of type **Object**
+            - `Target`: **String**
+            - `Aliases`: **Array**
+              - Elements of type **String**
+        - `LogDriver`: **Object** Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
+          - `Name`: **String**
+          - `Options`: **Object**
+            - `[KEY]`: **String**
+      - `ServiceID`: **String** The ID of the service this task is part of.
+      - `Slot`: **Integer**
+      - `NodeID`: **String** The ID of the node that this task is on.
+      - `Status`: **Object**
+        - `Timestamp`: **String**
+        - `State`: **String**
+        - `Message`: **String**
+        - `Err`: **String**
+        - `ContainerStatus`: **Object**
+          - `ContainerID`: **String**
+          - `PID`: **Integer**
+          - `ExitCode`: **Integer**
+      - `DesiredState`: **String**
+    
 */
 exports.taskInspect = function(client, params) {
   return client.performRequest({
@@ -2637,7 +4394,8 @@ exports.taskInspect = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -2645,6 +4403,7 @@ exports.taskInspect = function(client, params) {
 /**
   @function secretList
   @summary List secrets
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -2657,6 +4416,109 @@ exports.taskInspect = function(client, params) {
     - `names=<secret name>`
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `ID`: **String**
+        - `Version`: **Object**
+          - `Index`: **Integer**
+        - `CreatedAt`: **String**
+        - `UpdatedAt`: **String**
+        - `Spec`: **Object** User modifiable configuration for a service.
+          - `Name`: **String** Name of the service.
+          - `Labels`: **Object** User-defined key/value metadata.
+            - `[KEY]`: **String**
+          - `TaskTemplate`: **Object** User modifiable task configuration.
+            - `ContainerSpec`: **Object**
+              - `Image`: **String** The image name to use for the container.
+              - `Command`: **Array** The command to be run in the image.
+                - Elements of type **String**
+              - `Args`: **Array** Arguments to the command.
+                - Elements of type **String**
+              - `Env`: **Array** A list of environment variables in the form `VAR=value`.
+                - Elements of type **String**
+              - `Dir`: **String** The working directory for commands to run in.
+              - `User`: **String** The user inside the container.
+              - `Labels`: **Object** User-defined key/value data.
+                - `[KEY]`: **String**
+              - `TTY`: **Boolean** Whether a pseudo-TTY should be allocated.
+              - `Mounts`: **Array** Specification for mounts to be added to containers created as part of the service.
+                - Elements of type **Object**
+                  - `Target`: **String** Container path.
+                  - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+                  - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+                  - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+                  - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                    - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+                  - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                    - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                    - `Labels`: **Object** User-defined key/value metadata.
+                      - `[KEY]`: **String**
+                    - `DriverConfig`: **Object** Map of driver specific options
+                      - `Name`: **String** Name of the driver to use to create the volume.
+                      - `Options`: **Object** key/value map of driver specific options.
+                        - `[KEY]`: **String**
+                  - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                    - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                    - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+              - `StopGracePeriod`: **Integer** Amount of time to wait for the container to terminate before forcefully killing it.
+              - `DNSConfig`: **Object** Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
+                - `Nameservers`: **Array** The IP addresses of the name servers.
+                  - Elements of type **String**
+                - `Search`: **Array** A search list for host-name lookup.
+                  - Elements of type **String**
+                - `Options`: **Array** A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
+                  - Elements of type **String**
+            - `Resources`: **Object** Resource requirements which apply to each individual container created as part of the service.
+              - `Limits`: **Object** Define resources limits.
+                - `NanoCPUs`: **Integer** CPU limit in units of 10<sup>-9</sup> CPU shares.
+                - `MemoryBytes`: **Integer** Memory limit in Bytes.
+              - `Reservation`: **Object** Define resources reservation.
+                - `NanoCPUs`: **Integer** CPU reservation in units of 10<sup>-9</sup> CPU shares.
+                - `MemoryBytes`: **Integer** Memory reservation in Bytes.
+            - `RestartPolicy`: **Object** Specification for the restart policy which applies to containers created as part of this service.
+              - `Condition`: **String** Condition for restart.
+              - `Delay`: **Integer** Delay between restart attempts.
+              - `MaxAttempts`: **Integer** Maximum attempts to restart a given container before giving up (default value is 0, which is ignored). (Optional; default: '0')
+              - `Window`: **Integer** Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded). (Optional; default: '0')
+            - `Placement`: **Object**
+              - `Constraints`: **Array** An array of constraints.
+                - Elements of type **String**
+            - `ForceUpdate`: **Integer** A counter that triggers an update even if no relevant parameters have been changed.
+            - `Networks`: **Array**
+              - Elements of type **Object**
+                - `Target`: **String**
+                - `Aliases`: **Array**
+                  - Elements of type **String**
+            - `LogDriver`: **Object** Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
+              - `Name`: **String**
+              - `Options`: **Object**
+                - `[KEY]`: **String**
+          - `Mode`: **Object** Scheduling mode for the service.
+            - `Replicated`: **Object**
+              - `Replicas`: **Integer**
+            - `Global`: **Object**
+              
+          - `UpdateConfig`: **Object** Specification for the update strategy of the service.
+            - `Parallelism`: **Integer** Maximum number of tasks to be updated in one iteration (0 means unlimited parallelism).
+            - `Delay`: **Integer** Amount of time between updates, in nanoseconds.
+            - `FailureAction`: **String** Action to take if an updated task fails to run, or stops running during the update.
+            - `Monitor`: **Integer** Amount of time to monitor each updated task for failures, in nanoseconds.
+            - `MaxFailureRatio`: **Number** The fraction of tasks that may fail during an update before the failure action is invoked, specified as a floating point number between 0 and 1. (Optional; default: '0')
+          - `Networks`: **Array** Array of network names or IDs to attach the service to.
+            - Elements of type **Object**
+              - `Target`: **String**
+              - `Aliases`: **Array**
+                - Elements of type **String**
+          - `EndpointSpec`: **Object** Properties that can be configured to access and load balance a service.
+            - `Mode`: **String** The mode of resolution to use for internal load balancing between tasks. (Optional; default: ''vip'')
+            - `Ports`: **Array** List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
+              - Elements of type **Object**
+                - `Name`: **String**
+                - `Protocol`: **String**
+                - `TargetPort`: **Integer** The port inside the container.
+                - `PublishedPort`: **Integer** The port on the swarm hosts.
+    
 */
 exports.secretList = function(client, params) {
   return client.performRequest({
@@ -2667,7 +4529,8 @@ exports.secretList = function(client, params) {
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -2675,10 +4538,25 @@ exports.secretList = function(client, params) {
 /**
   @function secretCreate
   @summary Create a secret
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
-  @setting {COMPLEX} [body] 
-
+  @setting {Object} [body] See description.
+  @desc
+    
+    #### Setting 'body'
+    
+    - **Object**
+      - `Name`: **String** User-defined name of the secret.
+      - `Labels`: **Object** User-defined key/value metadata.
+        - `[KEY]`: **String**
+      - `Data`: **Array** Base64-url-safe-encoded secret data
+        - Elements of type **String**
+    
+    #### Return value
+    - **Object**
+      - `ID`: **String** The ID of the created secret.
+    
 */
 exports.secretCreate = function(client, params) {
   return client.performRequest({
@@ -2689,7 +4567,8 @@ exports.secretCreate = function(client, params) {
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -2697,10 +4576,114 @@ exports.secretCreate = function(client, params) {
 /**
   @function secretInspect
   @summary Inspect a secret
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID of the secret
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `ID`: **String**
+      - `Version`: **Object**
+        - `Index`: **Integer**
+      - `CreatedAt`: **String**
+      - `UpdatedAt`: **String**
+      - `Spec`: **Object** User modifiable configuration for a service.
+        - `Name`: **String** Name of the service.
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `TaskTemplate`: **Object** User modifiable task configuration.
+          - `ContainerSpec`: **Object**
+            - `Image`: **String** The image name to use for the container.
+            - `Command`: **Array** The command to be run in the image.
+              - Elements of type **String**
+            - `Args`: **Array** Arguments to the command.
+              - Elements of type **String**
+            - `Env`: **Array** A list of environment variables in the form `VAR=value`.
+              - Elements of type **String**
+            - `Dir`: **String** The working directory for commands to run in.
+            - `User`: **String** The user inside the container.
+            - `Labels`: **Object** User-defined key/value data.
+              - `[KEY]`: **String**
+            - `TTY`: **Boolean** Whether a pseudo-TTY should be allocated.
+            - `Mounts`: **Array** Specification for mounts to be added to containers created as part of the service.
+              - Elements of type **Object**
+                - `Target`: **String** Container path.
+                - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+                - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+                - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+                - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                  - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+                - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                  - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                  - `Labels`: **Object** User-defined key/value metadata.
+                    - `[KEY]`: **String**
+                  - `DriverConfig`: **Object** Map of driver specific options
+                    - `Name`: **String** Name of the driver to use to create the volume.
+                    - `Options`: **Object** key/value map of driver specific options.
+                      - `[KEY]`: **String**
+                - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                  - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                  - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+            - `StopGracePeriod`: **Integer** Amount of time to wait for the container to terminate before forcefully killing it.
+            - `DNSConfig`: **Object** Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
+              - `Nameservers`: **Array** The IP addresses of the name servers.
+                - Elements of type **String**
+              - `Search`: **Array** A search list for host-name lookup.
+                - Elements of type **String**
+              - `Options`: **Array** A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
+                - Elements of type **String**
+          - `Resources`: **Object** Resource requirements which apply to each individual container created as part of the service.
+            - `Limits`: **Object** Define resources limits.
+              - `NanoCPUs`: **Integer** CPU limit in units of 10<sup>-9</sup> CPU shares.
+              - `MemoryBytes`: **Integer** Memory limit in Bytes.
+            - `Reservation`: **Object** Define resources reservation.
+              - `NanoCPUs`: **Integer** CPU reservation in units of 10<sup>-9</sup> CPU shares.
+              - `MemoryBytes`: **Integer** Memory reservation in Bytes.
+          - `RestartPolicy`: **Object** Specification for the restart policy which applies to containers created as part of this service.
+            - `Condition`: **String** Condition for restart.
+            - `Delay`: **Integer** Delay between restart attempts.
+            - `MaxAttempts`: **Integer** Maximum attempts to restart a given container before giving up (default value is 0, which is ignored). (Optional; default: '0')
+            - `Window`: **Integer** Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded). (Optional; default: '0')
+          - `Placement`: **Object**
+            - `Constraints`: **Array** An array of constraints.
+              - Elements of type **String**
+          - `ForceUpdate`: **Integer** A counter that triggers an update even if no relevant parameters have been changed.
+          - `Networks`: **Array**
+            - Elements of type **Object**
+              - `Target`: **String**
+              - `Aliases`: **Array**
+                - Elements of type **String**
+          - `LogDriver`: **Object** Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
+            - `Name`: **String**
+            - `Options`: **Object**
+              - `[KEY]`: **String**
+        - `Mode`: **Object** Scheduling mode for the service.
+          - `Replicated`: **Object**
+            - `Replicas`: **Integer**
+          - `Global`: **Object**
+            
+        - `UpdateConfig`: **Object** Specification for the update strategy of the service.
+          - `Parallelism`: **Integer** Maximum number of tasks to be updated in one iteration (0 means unlimited parallelism).
+          - `Delay`: **Integer** Amount of time between updates, in nanoseconds.
+          - `FailureAction`: **String** Action to take if an updated task fails to run, or stops running during the update.
+          - `Monitor`: **Integer** Amount of time to monitor each updated task for failures, in nanoseconds.
+          - `MaxFailureRatio`: **Number** The fraction of tasks that may fail during an update before the failure action is invoked, specified as a floating point number between 0 and 1. (Optional; default: '0')
+        - `Networks`: **Array** Array of network names or IDs to attach the service to.
+          - Elements of type **Object**
+            - `Target`: **String**
+            - `Aliases`: **Array**
+              - Elements of type **String**
+        - `EndpointSpec`: **Object** Properties that can be configured to access and load balance a service.
+          - `Mode`: **String** The mode of resolution to use for internal load balancing between tasks. (Optional; default: ''vip'')
+          - `Ports`: **Array** List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
+            - Elements of type **Object**
+              - `Name`: **String**
+              - `Protocol`: **String**
+              - `TargetPort`: **Integer** The port inside the container.
+              - `PublishedPort`: **Integer** The port on the swarm hosts.
+    
 */
 exports.secretInspect = function(client, params) {
   return client.performRequest({
@@ -2711,7 +4694,8 @@ exports.secretInspect = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
+    headerParams: [],
+    rv: 'json'
   });
 };
 
@@ -2719,6 +4703,7 @@ exports.secretInspect = function(client, params) {
 /**
   @function secretDelete
   @summary Delete a secret
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID of the secret
@@ -2733,31 +4718,8 @@ exports.secretDelete = function(client, params) {
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
-    headerParams: []
-  });
-};
-
-
-/**
-  @function secretUpdate
-  @summary Update a Secret
-  @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
-  @param {Object} [settings] API call parameters
-  @setting {String} [id] The ID of the secret
-  @setting {COMPLEX} [body] The spec of the secret to update. Currently, only the Labels field can be updated. All other fields must remain unchanged from the [::secretInspect] response values.
-  @setting {Integer} [version] The version number of the secret object being updated. This is required to avoid conflicting writes.
-
-*/
-exports.secretUpdate = function(client, params) {
-  return client.performRequest({
-    method: 'POST',
-    url: '/v1.25/secrets/{id}/update',
-    params: params,
-    requiredParams: ['id','version'],
-    pathParams: ['id'],
-    queryParams: ['version'],
-    bodyParams: ['body'],
-    headerParams: []
+    headerParams: [],
+    rv: 'string'
   });
 };
 

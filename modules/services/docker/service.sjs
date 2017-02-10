@@ -36,6 +36,9 @@ __js function buildPath(path, params) {
 
 function request(request_inner, args) {
 
+  if (!args.params)
+    args.params = {};
+
   var request_opts = {
     method: args.method || 'GET'
   };
@@ -51,7 +54,32 @@ function request(request_inner, args) {
     @transform(name -> [name,args.params[name]]) ..
     @pairsToObject;
 
-  var rv = request_inner(path, request_opts);
+  request_opts.throwing = false;
+  request_opts.response = 'full';
+
+  var request_rv = request_inner(path, request_opts);
+  
+  var rv;
+
+  if (args.rv === 'json') {
+    try {
+      rv = JSON.parse(request_rv.content);
+    }
+    catch (e) {
+      throw new Error(request_rv.status);
+    }
+
+    if (request_rv.status > 299)
+      throw new Error(rv.message || request_rv.status);
+  }
+  else if (args.rv === 'string') {
+    if (request_rv.status > 299) {
+      throw new Error("#{request_rv.status}#{request_rv.content ? ' ('+request_rv.content+')'}");
+    }
+    rv = request_rv.content;
+  }
+  else 
+    throw new Error("Unknown return type '#{args.rv}'");
 
   return rv;
 }
