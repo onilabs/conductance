@@ -56,6 +56,21 @@ function request(base_url, args) {
 
   request_opts.throwing = false;
   request_opts.response = 'full';
+  request_opts.headers = {};
+
+  if (args.bodyParams.length) {
+    // exactly one body parameter is implied
+    var bodyParam = args.params[args.bodyParams[0]];
+    if (bodyParam !== undefined) {
+      if (args.body === 'json') {
+        request_opts.headers['Content-Type'] = 'application/json';
+        request_opts.body = bodyParam .. JSON.stringify;
+      }
+      else {
+        throw new Error("Don't know how to handle body of type '#{args.body}' yet. XXX write me");
+      }
+    }
+  }
 
   var request_rv = @http.request(base_url+path, request_opts);
   
