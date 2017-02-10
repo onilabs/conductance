@@ -71,21 +71,25 @@ do {
 } while (replacements);
 
 // merge 'allOf' data:
-process.stderr.write("Merge 'allOf' data...\n");
-doc .. traverseAllOf {
-  |parent, name, val|
-  var allOf = val;
-  delete parent.allOf;
-  if (allOf .. @any(item -> item.type && item.type !== 'object'))
-    throw new Error("Unexpected OpenAPI structure: non-object children in 'allOf': #{allOf .. @inspect}");
-  parent.type = 'object';
-  if (allOf .. @any(item -> item.additionalProperties))
-    throw new Error("Unexpected 'additionalProperties' in 'allOf'");
-  
-  // merge all properties into a new object:
-  parent.properties= @merge.apply(null, allOf .. @map(item -> item.properties));
-}
-
+do {
+  // make multiple passes in case allOf contains allOf data itself:
+  var replacements = 0;
+  process.stderr.write("Merge 'allOf' data...\n");
+  doc .. traverseAllOf {
+    |parent, name, val|
+    var allOf = val;
+    delete parent.allOf;
+    if (allOf .. @any(item -> item.type && item.type !== 'object'))
+      throw new Error("Unexpected OpenAPI structure: non-object children in 'allOf': #{allOf .. @inspect}");
+    parent.type = 'object';
+    if (allOf .. @any(item -> item.additionalProperties))
+      throw new Error("Unexpected 'additionalProperties' in 'allOf'");
+    
+    // merge all properties into a new object:
+    parent.properties= @merge.apply(null, allOf .. @map(item -> item.properties));
+    ++replacements;
+  }
+} while (replacements);
 
 //----------------------------------------------------------------------
 // header
@@ -336,7 +340,6 @@ function parseParameters(name, method_descriptor, aux_classes) {
     }
     else {
       // this parameter has a schema
-      process.stderr.write("#{name}::#{par_descriptor.name} has complicated type\n");
       info.docs = "  @setting {Object} [#{info.name}] #{par_descriptor.description ? par_descriptor.description+'. ' : ''}See description.";
       info.desc = "#### Setting '#{par_descriptor.name}'\n\n- #{schemaDescription(par_descriptor.schema)}";
     }
