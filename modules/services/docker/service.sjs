@@ -59,6 +59,22 @@ function request(base_url, args) {
 
   var request_rv = @http.request(base_url+path, request_opts);
   
+  // handle request errors:
+
+  if (request_rv.status > 299) {
+    var error;
+    // try to extract a JSON error message:
+    try {
+      error = JSON.parse(request_rv.content).message;
+    }
+    catch(e) { /* ignore */ }
+    if (!error)
+      error = request_rv.status;
+    throw new Error(error);      
+  }
+
+  // process successful request return value:
+
   var rv;
 
   if (args.rv === 'json') {
@@ -66,16 +82,10 @@ function request(base_url, args) {
       rv = JSON.parse(request_rv.content);
     }
     catch (e) {
-      throw new Error(request_rv.status);
+      throw new Error(" (Error parsing return value '#{request_rv.content}')");
     }
-
-    if (request_rv.status > 299)
-      throw new Error(rv.message || request_rv.status);
   }
   else if (args.rv === 'string') {
-    if (request_rv.status > 299) {
-      throw new Error("#{request_rv.status}#{request_rv.content ? ' ('+request_rv.content+')'}");
-    }
     rv = request_rv.content;
   }
   else 
