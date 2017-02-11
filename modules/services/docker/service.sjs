@@ -73,39 +73,34 @@ function request(base_url, args) {
   }
 
   var request_rv = @http.request(base_url+path, request_opts);
-  
-  // handle request errors:
 
-  if (request_rv.status > 299) {
-    var error;
-    // try to extract a JSON error message:
-    try {
-      error = JSON.parse(request_rv.content).message;
+  var contentType = request_rv.getHeader("Content-Type");
+
+  // parse return body
+  var rv;
+  if (contentType !== undefined) {
+    if (contentType === 'application/json') {
+      try {
+        rv = JSON.parse(request_rv.content);
+      }
+      catch(e) {
+        throw new Error("Error parsing API response '#{request_rv.content}'");
+      }
     }
-    catch(e) { /* ignore */ }
-    if (!error)
-      error = request_rv.status;
-    throw new Error(error);      
+    else if (contentType.indexOf('text/plain') !== -1) {
+      rv = request_rv.content;
+    }
+    else {
+      throw new Error("Unknown content type '#{contentType}'");
+    }
+  }
+
+  // handle request errors:
+  if (request_rv.status > 299) {
+    throw new Error((rv && rv.message) || request_rv.status);
   }
 
   // process successful request return value:
-
-  var rv;
-
-  if (args.rv === 'json') {
-    try {
-      rv = JSON.parse(request_rv.content);
-    }
-    catch (e) {
-      throw new Error(" (Error parsing return value '#{request_rv.content}')");
-    }
-  }
-  else if (args.rv === 'string') {
-    rv = request_rv.content;
-  }
-  else 
-    throw new Error("Unknown return type '#{args.rv}'");
-
   return rv;
 }
 

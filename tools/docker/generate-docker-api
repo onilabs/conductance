@@ -211,13 +211,12 @@ exports.#{name} = function(client, params) {
     method: '#{method.toUpperCase()}',
     url: '#{baseURL + path}',
     params: params,
+    #{body ? "body: '#{body}',":''}
     requiredParams: [#{parameter_info .. @filter(p->p.required) .. @transform(p->"'#{p.name}'") .. @join(',')}],
     pathParams: [#{parameter_info .. @filter(p->p.in == 'path') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     queryParams: [#{parameter_info .. @filter(p->p.in == 'query') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     bodyParams: [#{parameter_info .. @filter(p->p.in == 'body') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     headerParams: [#{parameter_info .. @filter(p->p.in == 'header') .. @transform(p->"'#{p.name}'") .. @join(',')}],
-    #{body ? "body: '#{body}',":''}
-    rv: '#{rv_info.type}'
   });
 };
 
@@ -292,35 +291,39 @@ function getSuccessSchema(method_descriptor) {
 function parseResponses(name, method_descriptor, aux_classes) {
   try {
     var rv = {};
-    if (method_descriptor.produces && method_descriptor.produces .. @count === 1) {
+    if (method_descriptor.produces /*&& method_descriptor.produces .. @count === 1*/) {
+      if (method_descriptor.produces.length > 1)
+        process.stderr.write("Warning: #{name} has multiple response types (#{method_descriptor.produces.join(', ')}). Assuming the first one is the main one\n");
       if (method_descriptor.produces[0] === 'application/json') {
         var schema = getSuccessSchema(method_descriptor);
         if (schema) {
-          rv.type = 'json';
-//          process.stderr.write((schema .. @inspect(false, 10))+'\n');
           rv.desc = "- "+schemaDescription(schema);
           rv.returns = 'Object';
         }
         else {
-          rv.type = 'string'; // XXX maybe needs its own type ('void' or something)
           rv.returns = 'void';
         }
       }
       else if (method_descriptor.produces[0] === 'text/plain') {
-        rv.type = 'string';
         rv.returns = 'String';
       }
       else {
-        process.stderr.write("#{name} has unknown return type #{method_descriptor.produces[0]}\n");
-        rv.type = 'UNKNOWN';
-        rv.returns = 'UNKNOWN';
+        process.stderr.write("#{name} has complex return type #{method_descriptor.produces[0]}\n");
+        rv.returns = 'COMPLEX';
       }
     }
     else {
       // more complex return type :/
-      process.stderr.write("#{name} has complex return type\n");
-      rv.type = 'COMPLEX';
-      rv.returns = 'COMPLEX';
+      var schema = getSuccessSchema(method_descriptor);
+      if (schema) {
+        // we've got a schema
+        rv.desc = '- '+schemaDescription(schema);
+        rv.returns = 'Object';
+      }
+      else {
+        //process.stderr.write("#{name}: void reply assumed\n");
+        rv.returns = 'void';
+      }
     }
     return rv;
   }

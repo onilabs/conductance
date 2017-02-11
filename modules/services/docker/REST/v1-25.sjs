@@ -11,6 +11,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
+
 /**
   @summary Docker Engine API 1.25
   @desc
@@ -185,12 +186,12 @@ exports.containerList = function(client, params) {
     method: 'GET',
     url: '/v1.25/containers/json',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['all','limit','size','filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -248,7 +249,135 @@ exports.containerList = function(client, params) {
       - `StopTimeout`: **Integer** Timeout to stop a container in seconds. (Optional; default: '10')
       - `Shell`: **Array** Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
         - Elements of type **String**
-      - `HostConfig`: **anything** Container configuration that depends on the host we are running on
+      - `HostConfig`: **Object** Container configuration that depends on the host we are running on
+        - `CpuShares`: **Integer** An integer value representing this container's relative CPU weight versus other containers.
+        - `Memory`: **Integer** Memory limit in bytes. (Optional; default: '0')
+        - `CgroupParent`: **String** Path to `cgroups` under which the container's `cgroup` is created. If the path is not absolute, the path is considered to be relative to the `cgroups` path of the init process. Cgroups are created if they do not already exist.
+        - `BlkioWeight`: **Integer** Block IO weight (relative weight).
+        - `BlkioWeightDevice`: **Array** Block IO weight (relative device weight) in the form `[{"Path": "device_path", "Weight": weight}]`.  
+          - Elements of type **Object**
+            - `Path`: **String**
+            - `Weight`: **Integer**
+        - `BlkioDeviceReadBps`: **Array** Limit read rate (bytes per second) from a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+          - Elements of type **Object**
+            - `Path`: **String** Device path
+            - `Rate`: **Integer** Rate
+        - `BlkioDeviceWriteBps`: **Array** Limit write rate (bytes per second) to a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+          - Elements of type **Object**
+            - `Path`: **String** Device path
+            - `Rate`: **Integer** Rate
+        - `BlkioDeviceReadIOps`: **Array** Limit read rate (IO per second) from a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+          - Elements of type **Object**
+            - `Path`: **String** Device path
+            - `Rate`: **Integer** Rate
+        - `BlkioDeviceWriteIOps`: **Array** Limit write rate (IO per second) to a device, in the form `[{"Path": "device_path", "Rate": rate}]`.  
+          - Elements of type **Object**
+            - `Path`: **String** Device path
+            - `Rate`: **Integer** Rate
+        - `CpuPeriod`: **Integer** The length of a CPU period in microseconds.
+        - `CpuQuota`: **Integer** Microseconds of CPU time that the container can get in a CPU period.
+        - `CpuRealtimePeriod`: **Integer** The length of a CPU real-time period in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
+        - `CpuRealtimeRuntime`: **Integer** The length of a CPU real-time runtime in microseconds. Set to 0 to allocate no time allocated to real-time tasks.
+        - `CpusetCpus`: **String** CPUs in which to allow execution (e.g., `0-3`, `0,1`)
+        - `CpusetMems`: **String** Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
+        - `Devices`: **Array** A list of devices to add to the container.
+          - Elements of type **Object** A device mapping between the host and container
+            - `PathOnHost`: **String**
+            - `PathInContainer`: **String**
+            - `CgroupPermissions`: **String**
+        - `DiskQuota`: **Integer** Disk limit (in bytes).
+        - `KernelMemory`: **Integer** Kernel memory limit in bytes.
+        - `MemoryReservation`: **Integer** Memory soft limit in bytes.
+        - `MemorySwap`: **Integer** Total memory limit (memory + swap). Set as `-1` to enable unlimited swap.
+        - `MemorySwappiness`: **Integer** Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
+        - `NanoCPUs`: **Integer** CPU quota in units of 10<sup>-9</sup> CPUs.
+        - `OomKillDisable`: **Boolean** Disable OOM Killer for the container.
+        - `PidsLimit`: **Integer** Tune a container's pids limit. Set -1 for unlimited.
+        - `Ulimits`: **Array** A list of resource limits to set in the container. For example: `{"Name": "nofile", "Soft": 1024, "Hard": 2048}`"  
+          - Elements of type **Object**
+            - `Name`: **String** Name of ulimit
+            - `Soft`: **Integer** Soft limit
+            - `Hard`: **Integer** Hard limit
+        - `CpuCount`: **Integer** The number of usable CPUs (Windows only).    On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.  
+        - `CpuPercent`: **Integer** The usable percentage of the available CPUs (Windows only).    On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.  
+        - `IOMaximumIOps`: **Integer** Maximum IOps for the container system drive (Windows only)
+        - `IOMaximumBandwidth`: **Integer** Maximum IO in bytes per second for the container system drive (Windows only)
+        - `Binds`: **Array** A list of volume bindings for this container. Each volume binding is a string in one of these forms:    - `host-src:container-dest` to bind-mount a host path into the container. Both `host-src`, and `container-dest` must be an _absolute_ path.  - `host-src:container-dest:ro` to make the bind-mount read-only inside the container. Both `host-src`, and `container-dest` must be an _absolute_ path.  - `volume-name:container-dest` to bind-mount a volume managed by a volume driver into the container. `container-dest` must be an _absolute_ path.  - `volume-name:container-dest:ro` to mount the volume read-only inside the container.  `container-dest` must be an _absolute_ path.  
+          - Elements of type **String**
+        - `ContainerIDFile`: **String** Path to a file where the container ID is written
+        - `LogConfig`: **Object** The logging configuration for this container
+          - `Type`: **String**
+          - `Config`: **Object**
+            - `[KEY]`: **String**
+        - `NetworkMode`: **String** Network mode to use for this container. Supported standard values are: `bridge`, `host`, `none`, and `container:<name|id>`. Any other value is taken as a custom network's name to which this container should connect to.
+        - `PortBindings`: **Object** A map of exposed container ports and the host port they should map to.
+          - `[KEY]`: **Object**
+            - `HostIp`: **String** The host IP address
+            - `HostPort`: **String** The host port number, as a string
+        - `RestartPolicy`: **Object** The behavior to apply when the container exits. The default is not to restart.    An ever increasing delay (double the previous delay, starting at 100ms) is added before each restart to prevent flooding the server.   (Optional; default: '{}')
+          - `Name`: **String** - `always` Always restart  - `unless-stopped` Restart always except when the user has manually stopped the container  - `on-failure` Restart only when the container exit code is non-zero  
+          - `MaximumRetryCount`: **Integer** If `on-failure` is used, the number of times to retry before giving up
+        - `AutoRemove`: **Boolean** Automatically remove the container when the container's process exits. This has no effect if `RestartPolicy` is set.
+        - `VolumeDriver`: **String** Driver that this container uses to mount volumes.
+        - `VolumesFrom`: **Array** A list of volumes to inherit from another container, specified in the form `<container name>[:<ro|rw>]`.
+          - Elements of type **String**
+        - `Mounts`: **Array** Specification for mounts to be added to the container.
+          - Elements of type **Object**
+            - `Target`: **String** Container path.
+            - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+            - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+            - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+            - `BindOptions`: **Object** Optional configuration for the `bind` type.
+              - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+            - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+              - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+              - `Labels`: **Object** User-defined key/value metadata.
+                - `[KEY]`: **String**
+              - `DriverConfig`: **Object** Map of driver specific options
+                - `Name`: **String** Name of the driver to use to create the volume.
+                - `Options`: **Object** key/value map of driver specific options.
+                  - `[KEY]`: **String**
+            - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+              - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+              - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+        - `CapAdd`: **Array** A list of kernel capabilities to add to the container.
+          - Elements of type **String**
+        - `CapDrop`: **Array** A list of kernel capabilities to drop from the container.
+          - Elements of type **String**
+        - `Dns`: **Array** A list of DNS servers for the container to use.
+          - Elements of type **String**
+        - `DnsOptions`: **Array** A list of DNS options.
+          - Elements of type **String**
+        - `DnsSearch`: **Array** A list of DNS search domains.
+          - Elements of type **String**
+        - `ExtraHosts`: **Array** A list of hostnames/IP mappings to add to the container's `/etc/hosts` file. Specified in the form `["hostname:IP"]`.  
+          - Elements of type **String**
+        - `GroupAdd`: **Array** A list of additional groups that the container process will run as.
+          - Elements of type **String**
+        - `IpcMode`: **String** IPC namespace to use for the container.
+        - `Cgroup`: **String** Cgroup to use for the container.
+        - `Links`: **Array** A list of links for the container in the form `container_name:alias`.
+          - Elements of type **String**
+        - `OomScoreAdj`: **Integer** An integer value containing the score given to the container in order to tune OOM killer preferences.
+        - `PidMode`: **String** Set the PID (Process) Namespace mode for the container. It can be either:    - `"container:<name|id>"`: joins another container's PID namespace  - `"host"`: use the host's PID namespace inside the container  
+        - `Privileged`: **Boolean** Gives the container full access to the host.
+        - `PublishAllPorts`: **Boolean** Allocates a random host port for all of a container's exposed ports.
+        - `ReadonlyRootfs`: **Boolean** Mount the container's root filesystem as read only.
+        - `SecurityOpt`: **Array** A list of string values to customize labels for MLS systems, such as SELinux.
+          - Elements of type **String**
+        - `StorageOpt`: **Object** Storage driver options for this container, in the form `{"size": "120G"}`.  
+          - `[KEY]`: **String**
+        - `Tmpfs`: **Object** A map of container directories which should be replaced by tmpfs mounts, and their corresponding mount options. For example: `{ "/run": "rw,noexec,nosuid,size=65536k" }`.  
+          - `[KEY]`: **String**
+        - `UTSMode`: **String** UTS namespace to use for the container.
+        - `UsernsMode`: **String** Sets the usernamespace mode for the container when usernamespace remapping option is enabled.
+        - `ShmSize`: **Integer** Size of `/dev/shm` in bytes. If omitted, the system uses 64MB.
+        - `Sysctls`: **Object** A list of kernel parameters (sysctls) to set in the container. For example: `{"net.ipv4.ip_forward": "1"}`  
+          - `[KEY]`: **String**
+        - `Runtime`: **String** Runtime to use with this container.
+        - `ConsoleSize`: **Array** Initial console size, as an `[height, width]` array. (Windows only)
+          - Elements of type **Integer**
+        - `Isolation`: **String** Isolation technology of the container. (Windows only)
       - `NetworkingConfig`: **Object** This container's networking configuration.
         - `EndpointsConfig`: **Object** A mapping of network name to endpoint configuration for that network.
           - `[KEY]`: **Object** Configuration for a network endpoint.
@@ -283,12 +412,12 @@ exports.containerCreate = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/create',
     params: params,
+    body: 'json',
     requiredParams: ['body'],
     pathParams: [],
     queryParams: ['name'],
     bodyParams: ['body'],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -543,12 +672,12 @@ exports.containerInspect = function(client, params) {
     method: 'GET',
     url: '/v1.25/containers/{id}/json',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['size'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -556,7 +685,7 @@ exports.containerInspect = function(client, params) {
 /**
   @function containerTop
   @summary List processes running inside a container
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -564,18 +693,26 @@ exports.containerInspect = function(client, params) {
   @desc
     On Unix systems, this is done by running the `ps` command. This endpoint is not supported on Windows.
     
+    #### Return value
+    - **Object**
+      - `Titles`: **Array** The ps column titles
+        - Elements of type **String**
+      - `Processes`: **Array** Each process running in the container, where each is process is an array of values corresponding to the titles
+        - Elements of type **Array**
+          - Elements of type **String**
+    
 */
 exports.containerTop = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/top',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['ps_args'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -583,7 +720,7 @@ exports.containerTop = function(client, params) {
 /**
   @function containerLogs
   @summary Get container logs
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -605,18 +742,21 @@ exports.containerTop = function(client, params) {
     This will return a `101` HTTP response with a `Connection: upgrade` header, then hijack the HTTP connection to send raw output. For more information about hijacking and the stream format, [::containerAttach].
     
     
+    #### Return value
+    - **String**
+    
 */
 exports.containerLogs = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/logs',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['follow','stdout','stderr','since','timestamps','tail'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -648,12 +788,12 @@ exports.containerChanges = function(client, params) {
     method: 'GET',
     url: '/v1.25/containers/{id}/changes',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -661,7 +801,7 @@ exports.containerChanges = function(client, params) {
 /**
   @function containerExport
   @summary Export a container
-  @return {UNKNOWN}
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -674,12 +814,12 @@ exports.containerExport = function(client, params) {
     method: 'GET',
     url: '/v1.25/containers/{id}/export',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'UNKNOWN'
   });
 };
 
@@ -708,12 +848,12 @@ exports.containerStats = function(client, params) {
     method: 'GET',
     url: '/v1.25/containers/{id}/stats',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['stream'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -736,12 +876,12 @@ exports.containerResize = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/resize',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['h','w'],
     bodyParams: [],
     headerParams: [],
-    rv: 'string'
   });
 };
 
@@ -749,7 +889,7 @@ exports.containerResize = function(client, params) {
 /**
   @function containerStart
   @summary Start a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -761,12 +901,12 @@ exports.containerStart = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/start',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['detachKeys'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -774,7 +914,7 @@ exports.containerStart = function(client, params) {
 /**
   @function containerStop
   @summary Stop a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -786,12 +926,12 @@ exports.containerStop = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/stop',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['t'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -799,7 +939,7 @@ exports.containerStop = function(client, params) {
 /**
   @function containerRestart
   @summary Restart a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -811,12 +951,12 @@ exports.containerRestart = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/restart',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['t'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -824,7 +964,7 @@ exports.containerRestart = function(client, params) {
 /**
   @function containerKill
   @summary Kill a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -838,12 +978,12 @@ exports.containerKill = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/kill',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['signal'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -929,12 +1069,12 @@ exports.containerUpdate = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/update',
     params: params,
+    body: 'json',
     requiredParams: ['id','update'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['update'],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -942,7 +1082,7 @@ exports.containerUpdate = function(client, params) {
 /**
   @function containerRename
   @summary Rename a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -954,12 +1094,12 @@ exports.containerRename = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/rename',
     params: params,
+    
     requiredParams: ['id','name'],
     pathParams: ['id'],
     queryParams: ['name'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -967,7 +1107,7 @@ exports.containerRename = function(client, params) {
 /**
   @function containerPause
   @summary Pause a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -983,12 +1123,12 @@ exports.containerPause = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/pause',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -996,7 +1136,7 @@ exports.containerPause = function(client, params) {
 /**
   @function containerUnpause
   @summary Unpause a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -1009,12 +1149,12 @@ exports.containerUnpause = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/unpause',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -1022,7 +1162,7 @@ exports.containerUnpause = function(client, params) {
 /**
   @function containerAttach
   @summary Attach to a container
-  @return {UNKNOWN}
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -1124,12 +1264,12 @@ exports.containerAttach = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/attach',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['detachKeys','logs','stream','stdin','stdout','stderr'],
     bodyParams: [],
     headerParams: [],
-    rv: 'UNKNOWN'
   });
 };
 
@@ -1137,7 +1277,7 @@ exports.containerAttach = function(client, params) {
 /**
   @function containerAttachWebsocket
   @summary Attach to a container via a websocket
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -1154,12 +1294,12 @@ exports.containerAttachWebsocket = function(client, params) {
     method: 'GET',
     url: '/v1.25/containers/{id}/attach/ws',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['detachKeys','logs','stream','stdin','stdout','stderr'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -1184,12 +1324,12 @@ exports.containerWait = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/wait',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1197,7 +1337,7 @@ exports.containerWait = function(client, params) {
 /**
   @function containerDelete
   @summary Remove a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -1210,12 +1350,12 @@ exports.containerDelete = function(client, params) {
     method: 'DELETE',
     url: '/v1.25/containers/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['v','force'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -1223,7 +1363,7 @@ exports.containerDelete = function(client, params) {
 /**
   @function containerArchiveHead
   @summary Get information about files in a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -1237,12 +1377,12 @@ exports.containerArchiveHead = function(client, params) {
     method: 'HEAD',
     url: '/v1.25/containers/{id}/archive',
     params: params,
+    
     requiredParams: ['id','path'],
     pathParams: ['id'],
     queryParams: ['path'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -1250,7 +1390,7 @@ exports.containerArchiveHead = function(client, params) {
 /**
   @function containerGetArchive
   @summary Get an archive of a filesystem resource in a container
-  @return {UNKNOWN}
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -1264,12 +1404,12 @@ exports.containerGetArchive = function(client, params) {
     method: 'GET',
     url: '/v1.25/containers/{id}/archive',
     params: params,
+    
     requiredParams: ['id','path'],
     pathParams: ['id'],
     queryParams: ['path'],
     bodyParams: [],
     headerParams: [],
-    rv: 'UNKNOWN'
   });
 };
 
@@ -1277,7 +1417,7 @@ exports.containerGetArchive = function(client, params) {
 /**
   @function containerPutArchive
   @summary Extract an archive of files or folders to a directory in a container
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
@@ -1297,12 +1437,12 @@ exports.containerPutArchive = function(client, params) {
     method: 'PUT',
     url: '/v1.25/containers/{id}/archive',
     params: params,
+    body: 'string',
     requiredParams: ['id','path','inputStream'],
     pathParams: ['id'],
     queryParams: ['path','noOverwriteDirNonDir'],
     bodyParams: ['inputStream'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -1335,12 +1475,12 @@ exports.containerPrune = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/prune',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1392,12 +1532,12 @@ exports.imageList = function(client, params) {
     method: 'GET',
     url: '/v1.25/images/json',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['all','filters','digests'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1472,12 +1612,12 @@ exports.imageBuild = function(client, params) {
     method: 'POST',
     url: '/v1.25/build',
     params: params,
+    body: 'string',
     requiredParams: [],
     pathParams: [],
     queryParams: ['dockerfile','t','remote','q','nocache','cachefrom','pull','rm','forcerm','memory','memswap','cpushares','cpusetcpus','cpuperiod','cpuquota','buildargs','shmsize','squash','labels','networkmode'],
     bodyParams: ['inputStream'],
     headerParams: ['Content-type','X-Registry-Config'],
-    rv: 'string'
   });
 };
 
@@ -1507,12 +1647,12 @@ exports.imageCreate = function(client, params) {
     method: 'POST',
     url: '/v1.25/images/create',
     params: params,
+    body: 'string',
     requiredParams: [],
     pathParams: [],
     queryParams: ['fromImage','fromSrc','repo','tag'],
     bodyParams: ['inputImage'],
     headerParams: ['X-Registry-Auth'],
-    rv: 'string'
   });
 };
 
@@ -1642,12 +1782,12 @@ exports.imageInspect = function(client, params) {
     method: 'GET',
     url: '/v1.25/images/{name}/json',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1679,12 +1819,12 @@ exports.imageHistory = function(client, params) {
     method: 'GET',
     url: '/v1.25/images/{name}/history',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1692,7 +1832,7 @@ exports.imageHistory = function(client, params) {
 /**
   @function imagePush
   @summary Push an image
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID.
@@ -1712,12 +1852,12 @@ exports.imagePush = function(client, params) {
     method: 'POST',
     url: '/v1.25/images/{name}/push',
     params: params,
+    
     requiredParams: ['name','X-Registry-Auth'],
     pathParams: ['name'],
     queryParams: ['tag'],
     bodyParams: [],
     headerParams: ['X-Registry-Auth'],
-    rv: 'COMPLEX'
   });
 };
 
@@ -1725,7 +1865,7 @@ exports.imagePush = function(client, params) {
 /**
   @function imageTag
   @summary Tag an image
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID to tag.
@@ -1740,12 +1880,12 @@ exports.imageTag = function(client, params) {
     method: 'POST',
     url: '/v1.25/images/{name}/tag',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: ['repo','tag'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -1777,12 +1917,12 @@ exports.imageDelete = function(client, params) {
     method: 'DELETE',
     url: '/v1.25/images/{name}',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: ['force','noprune'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1823,12 +1963,12 @@ exports.imageSearch = function(client, params) {
     method: 'GET',
     url: '/v1.25/images/search',
     params: params,
+    
     requiredParams: ['term'],
     pathParams: [],
     queryParams: ['term','limit','filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1866,12 +2006,12 @@ exports.imagePrune = function(client, params) {
     method: 'POST',
     url: '/v1.25/images/prune',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1905,12 +2045,12 @@ exports.systemAuth = function(client, params) {
     method: 'POST',
     url: '/v1.25/auth',
     params: params,
+    body: 'json',
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: ['authConfig'],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -1990,12 +2130,12 @@ exports.systemInfo = function(client, params) {
     method: 'GET',
     url: '/v1.25/info',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2027,12 +2167,12 @@ exports.systemVersion = function(client, params) {
     method: 'GET',
     url: '/v1.25/version',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2051,12 +2191,12 @@ exports.systemPing = function(client, params) {
     method: 'GET',
     url: '/v1.25/_ping',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'string'
   });
 };
 
@@ -2131,12 +2271,12 @@ exports.imageCommit = function(client, params) {
     method: 'POST',
     url: '/v1.25/commit',
     params: params,
+    body: 'json',
     requiredParams: [],
     pathParams: [],
     queryParams: ['container','repo','tag','comment','author','pause','changes'],
     bodyParams: ['containerConfig'],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2197,12 +2337,12 @@ exports.systemEvents = function(client, params) {
     method: 'GET',
     url: '/v1.25/events',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['since','until','filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2210,21 +2350,121 @@ exports.systemEvents = function(client, params) {
 /**
   @function systemDataUsage
   @summary Get data usage information
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `LayersSize`: **Integer**
+      - `Images`: **Array**
+        - Elements of type **Object** (Required: Id, ParentId, RepoTags, RepoDigests, Created, Size, SharedSize, VirtualSize, Labels, Containers)
+          - `Id`: **String**
+          - `ParentId`: **String**
+          - `RepoTags`: **Array**
+            - Elements of type **String**
+          - `RepoDigests`: **Array**
+            - Elements of type **String**
+          - `Created`: **Integer**
+          - `Size`: **Integer**
+          - `SharedSize`: **Integer**
+          - `VirtualSize`: **Integer**
+          - `Labels`: **Object**
+            - `[KEY]`: **String**
+          - `Containers`: **Integer**
+      - `Containers`: **Array**
+        - Elements of type **Array**
+          - Elements of type **Object**
+            - `Id`: **String** The ID of this container
+            - `Names`: **Array** The names that this container has been given
+              - Elements of type **String**
+            - `Image`: **String** The name of the image used when creating this container
+            - `ImageID`: **String** The ID of the image that this container was created from
+            - `Command`: **String** Command to run when starting the container
+            - `Created`: **Integer** When the container was created
+            - `Ports`: **Array** The ports exposed by this container
+              - Elements of type **Object** An open port on a container (Required: PrivatePort, Type)
+                - `IP`: **String**
+                - `PrivatePort`: **Integer** Port on the container
+                - `PublicPort`: **Integer** Port exposed on the host
+                - `Type`: **String**
+            - `SizeRw`: **Integer** The size of files that have been created or changed by this container
+            - `SizeRootFs`: **Integer** The total size of all the files in this container
+            - `Labels`: **Object** User-defined key/value metadata.
+              - `[KEY]`: **String**
+            - `State`: **String** The state of this container (e.g. `Exited`)
+            - `Status`: **String** Additional human-readable status of this container (e.g. `Exit 0`)
+            - `HostConfig`: **Object**
+              - `NetworkMode`: **String**
+            - `NetworkSettings`: **Object** A summary of the container's network settings
+              - `Networks`: **Object**
+                - `[KEY]`: **Object** Configuration for a network endpoint.
+                  - `IPAMConfig`: **Object** IPAM configurations for the endpoint
+                    - `IPv4Address`: **String**
+                    - `IPv6Address`: **String**
+                    - `LinkLocalIPs`: **Array**
+                      - Elements of type **String**
+                  - `Links`: **Array**
+                    - Elements of type **String**
+                  - `Aliases`: **Array**
+                    - Elements of type **String**
+                  - `NetworkID`: **String**
+                  - `EndpointID`: **String**
+                  - `Gateway`: **String**
+                  - `IPAddress`: **String**
+                  - `IPPrefixLen`: **Integer**
+                  - `IPv6Gateway`: **String**
+                  - `GlobalIPv6Address`: **String**
+                  - `GlobalIPv6PrefixLen`: **Integer**
+                  - `MacAddress`: **String**
+            - `Mounts`: **Array**
+              - Elements of type **Object**
+                - `Target`: **String** Container path.
+                - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+                - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+                - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+                - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                  - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+                - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                  - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                  - `Labels`: **Object** User-defined key/value metadata.
+                    - `[KEY]`: **String**
+                  - `DriverConfig`: **Object** Map of driver specific options
+                    - `Name`: **String** Name of the driver to use to create the volume.
+                    - `Options`: **Object** key/value map of driver specific options.
+                      - `[KEY]`: **String**
+                - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                  - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                  - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+      - `Volumes`: **Array**
+        - Elements of type **Object** (Required: Name, Driver, Mountpoint, Labels, Scope, Options)
+          - `Name`: **String** Name of the volume.
+          - `Driver`: **String** Name of the volume driver used by the volume.
+          - `Mountpoint`: **String** Mount path of the volume on the host.
+          - `Status`: **Object** Low-level details about the volume, provided by the volume driver.  Details are returned as a map with key/value pairs:  `{"key":"value","key2":"value2"}`.    The `Status` field is optional, and is omitted if the volume driver  does not support this feature.  
+            - `[KEY]`: **Object**
+              
+          - `Labels`: **Object** User-defined key/value metadata.
+            - `[KEY]`: **String**
+          - `Scope`: **String** The level at which the volume exists. Either `global` for cluster-wide, or `local` for machine level. (Optional; default: ''local'')
+          - `Options`: **Object** The driver specific options used when creating the volume.
+            - `[KEY]`: **String**
+          - `UsageData`: **Object** (Required: Size, RefCount)
+            - `Size`: **Integer** The disk space used by the volume (local driver only) (Optional; default: '-1')
+            - `RefCount`: **Integer** The number of containers referencing this volume. (Optional; default: '-1')
+    
 */
 exports.systemDataUsage = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/system/df',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -2232,7 +2472,7 @@ exports.systemDataUsage = function(client, params) {
 /**
   @function imageGet
   @summary Export an image
-  @return {UNKNOWN}
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID
@@ -2268,12 +2508,12 @@ exports.imageGet = function(client, params) {
     method: 'GET',
     url: '/v1.25/images/{name}/get',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'UNKNOWN'
   });
 };
 
@@ -2281,7 +2521,7 @@ exports.imageGet = function(client, params) {
 /**
   @function imageGetAll
   @summary Export several images
-  @return {UNKNOWN}
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional Array} [names] Image names to filter by
@@ -2299,12 +2539,12 @@ exports.imageGetAll = function(client, params) {
     method: 'GET',
     url: '/v1.25/images/get',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['names'],
     bodyParams: [],
     headerParams: [],
-    rv: 'UNKNOWN'
   });
 };
 
@@ -2333,12 +2573,12 @@ exports.imageLoad = function(client, params) {
     method: 'POST',
     url: '/v1.25/images/load',
     params: params,
+    body: 'string',
     requiredParams: [],
     pathParams: [],
     queryParams: ['quiet'],
     bodyParams: ['imagesTarball'],
     headerParams: [],
-    rv: 'string'
   });
 };
 
@@ -2379,12 +2619,12 @@ exports.containerExec = function(client, params) {
     method: 'POST',
     url: '/v1.25/containers/{id}/exec',
     params: params,
+    body: 'json',
     requiredParams: ['execConfig','id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['execConfig'],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2392,7 +2632,7 @@ exports.containerExec = function(client, params) {
 /**
   @function execStart
   @summary Start an exec instance
-  @return {UNKNOWN}
+  @return {COMPLEX}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [execStartConfig] See description.
@@ -2412,12 +2652,12 @@ exports.execStart = function(client, params) {
     method: 'POST',
     url: '/v1.25/exec/{id}/start',
     params: params,
+    body: 'json',
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['execStartConfig'],
     headerParams: [],
-    rv: 'UNKNOWN'
   });
 };
 
@@ -2425,7 +2665,7 @@ exports.execStart = function(client, params) {
 /**
   @function execResize
   @summary Resize an exec instance
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Exec instance ID
@@ -2440,12 +2680,12 @@ exports.execResize = function(client, params) {
     method: 'POST',
     url: '/v1.25/exec/{id}/resize',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['h','w'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -2484,12 +2724,12 @@ exports.execInspect = function(client, params) {
     method: 'GET',
     url: '/v1.25/exec/{id}/json',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2544,12 +2784,12 @@ exports.volumeList = function(client, params) {
     method: 'GET',
     url: '/v1.25/volumes',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2596,12 +2836,12 @@ exports.volumeCreate = function(client, params) {
     method: 'POST',
     url: '/v1.25/volumes/create',
     params: params,
+    body: 'json',
     requiredParams: ['volumeConfig'],
     pathParams: [],
     queryParams: [],
     bodyParams: ['volumeConfig'],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2638,12 +2878,12 @@ exports.volumeInspect = function(client, params) {
     method: 'GET',
     url: '/v1.25/volumes/{name}',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2651,7 +2891,7 @@ exports.volumeInspect = function(client, params) {
 /**
   @function volumeDelete
   @summary Remove a volume
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Volume name or ID
@@ -2665,12 +2905,12 @@ exports.volumeDelete = function(client, params) {
     method: 'DELETE',
     url: '/v1.25/volumes/{name}',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: ['force'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -2703,12 +2943,12 @@ exports.volumePrune = function(client, params) {
     method: 'POST',
     url: '/v1.25/volumes/prune',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2768,12 +3008,12 @@ exports.networkList = function(client, params) {
     method: 'GET',
     url: '/v1.25/networks',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2821,12 +3061,12 @@ exports.networkInspect = function(client, params) {
     method: 'GET',
     url: '/v1.25/networks/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2834,7 +3074,7 @@ exports.networkInspect = function(client, params) {
 /**
   @function networkDelete
   @summary Remove a network
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
@@ -2845,12 +3085,12 @@ exports.networkDelete = function(client, params) {
     method: 'DELETE',
     url: '/v1.25/networks/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -2896,12 +3136,12 @@ exports.networkCreate = function(client, params) {
     method: 'POST',
     url: '/v1.25/networks/create',
     params: params,
+    body: 'json',
     requiredParams: ['networkConfig'],
     pathParams: [],
     queryParams: [],
     bodyParams: ['networkConfig'],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -2909,7 +3149,7 @@ exports.networkCreate = function(client, params) {
 /**
   @function networkConnect
   @summary Connect a container to a network
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
@@ -2946,12 +3186,12 @@ exports.networkConnect = function(client, params) {
     method: 'POST',
     url: '/v1.25/networks/{id}/connect',
     params: params,
+    body: 'json',
     requiredParams: ['id','container'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['container'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -2959,7 +3199,7 @@ exports.networkConnect = function(client, params) {
 /**
   @function networkDisconnect
   @summary Disconnect a container from a network
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
@@ -2978,12 +3218,12 @@ exports.networkDisconnect = function(client, params) {
     method: 'POST',
     url: '/v1.25/networks/{id}/disconnect',
     params: params,
+    body: 'json',
     requiredParams: ['id','container'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: ['container'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3015,12 +3255,12 @@ exports.networkPrune = function(client, params) {
     method: 'POST',
     url: '/v1.25/networks/prune',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -3128,12 +3368,12 @@ exports.pluginList = function(client, params) {
     method: 'GET',
     url: '/v1.25/plugins',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -3141,23 +3381,32 @@ exports.pluginList = function(client, params) {
 /**
   @function getPluginPrivileges
   @summary Get plugin privileges
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
-
+  @desc
+    
+    #### Return value
+    - **Array**
+      - Elements of type **Object** Describes a permission the user has to accept upon installing the plugin.
+        - `Name`: **String**
+        - `Description`: **String**
+        - `Value`: **Array**
+          - Elements of type **String**
+    
 */
 exports.getPluginPrivileges = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/plugins/privileges',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: [],
     queryParams: ['name'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3203,12 +3452,12 @@ exports.pluginPull = function(client, params) {
     method: 'POST',
     url: '/v1.25/plugins/pull',
     params: params,
+    body: 'json',
     requiredParams: ['remote'],
     pathParams: [],
     queryParams: ['remote','name'],
     bodyParams: ['body'],
     headerParams: ['X-Registry-Auth'],
-    rv: 'string'
   });
 };
 
@@ -3216,23 +3465,112 @@ exports.pluginPull = function(client, params) {
 /**
   @function pluginInspect
   @summary Inspect a plugin
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
-
+  @desc
+    
+    #### Return value
+    - **Object** A plugin for the Engine API (Required: Settings, Enabled, Config, Name)
+      - `Id`: **String**
+      - `Name`: **String**
+      - `Enabled`: **Boolean** True when the plugin is running. False when the plugin is not running, only installed.
+      - `Settings`: **Object** Settings that can be modified by users. (Required: Args, Devices, Env, Mounts)
+        - `Mounts`: **Array**
+          - Elements of type **Object** (Required: Name, Description, Settable, Source, Destination, Type, Options)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Source`: **String**
+            - `Destination`: **String**
+            - `Type`: **String**
+            - `Options`: **Array**
+              - Elements of type **String**
+        - `Env`: **Array**
+          - Elements of type **String**
+        - `Args`: **Array**
+          - Elements of type **String**
+        - `Devices`: **Array**
+          - Elements of type **Object** (Required: Name, Description, Settable, Path)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Path`: **String**
+      - `Config`: **Object** The config of a plugin. (Required: Description, Documentation, Interface, Entrypoint, WorkDir, Network, Linux, PropagatedMount, Mounts, Env, Args)
+        - `Description`: **String**
+        - `Documentation`: **String**
+        - `Interface`: **Object** The interface between Docker and the plugin (Required: Types, Socket)
+          - `Types`: **Array**
+            - Elements of type **Object** (Required: Prefix, Capability, Version)
+              - `Prefix`: **String**
+              - `Capability`: **String**
+              - `Version`: **String**
+          - `Socket`: **String**
+        - `Entrypoint`: **Array**
+          - Elements of type **String**
+        - `WorkDir`: **String**
+        - `User`: **Object**
+          - `UID`: **Integer**
+          - `GID`: **Integer**
+        - `Network`: **Object** (Required: Type)
+          - `Type`: **String**
+        - `Linux`: **Object** (Required: Capabilities, AllowAllDevices, Devices)
+          - `Capabilities`: **Array**
+            - Elements of type **String**
+          - `AllowAllDevices`: **Boolean**
+          - `Devices`: **Array**
+            - Elements of type **Object** (Required: Name, Description, Settable, Path)
+              - `Name`: **String**
+              - `Description`: **String**
+              - `Settable`: **Array**
+                - Elements of type **String**
+              - `Path`: **String**
+        - `PropagatedMount`: **String**
+        - `Mounts`: **Array**
+          - Elements of type **Object** (Required: Name, Description, Settable, Source, Destination, Type, Options)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Source`: **String**
+            - `Destination`: **String**
+            - `Type`: **String**
+            - `Options`: **Array**
+              - Elements of type **String**
+        - `Env`: **Array**
+          - Elements of type **Object** (Required: Name, Description, Settable, Value)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Value`: **String**
+        - `Args`: **Object** (Required: Name, Description, Settable, Value)
+          - `Name`: **String**
+          - `Description`: **String**
+          - `Settable`: **Array**
+            - Elements of type **String**
+          - `Value`: **Array**
+            - Elements of type **String**
+        - `rootfs`: **Object**
+          - `type`: **String**
+          - `diff_ids`: **Array**
+            - Elements of type **String**
+    
 */
 exports.pluginInspect = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/plugins/{name}/json',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3240,24 +3578,113 @@ exports.pluginInspect = function(client, params) {
 /**
   @function pluginDelete
   @summary Remove a plugin
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
   @setting {optional Boolean} [force=false] Disable the plugin before removing. This may result in issues if the plugin is in use by a container.
-
+  @desc
+    
+    #### Return value
+    - **Object** A plugin for the Engine API (Required: Settings, Enabled, Config, Name)
+      - `Id`: **String**
+      - `Name`: **String**
+      - `Enabled`: **Boolean** True when the plugin is running. False when the plugin is not running, only installed.
+      - `Settings`: **Object** Settings that can be modified by users. (Required: Args, Devices, Env, Mounts)
+        - `Mounts`: **Array**
+          - Elements of type **Object** (Required: Name, Description, Settable, Source, Destination, Type, Options)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Source`: **String**
+            - `Destination`: **String**
+            - `Type`: **String**
+            - `Options`: **Array**
+              - Elements of type **String**
+        - `Env`: **Array**
+          - Elements of type **String**
+        - `Args`: **Array**
+          - Elements of type **String**
+        - `Devices`: **Array**
+          - Elements of type **Object** (Required: Name, Description, Settable, Path)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Path`: **String**
+      - `Config`: **Object** The config of a plugin. (Required: Description, Documentation, Interface, Entrypoint, WorkDir, Network, Linux, PropagatedMount, Mounts, Env, Args)
+        - `Description`: **String**
+        - `Documentation`: **String**
+        - `Interface`: **Object** The interface between Docker and the plugin (Required: Types, Socket)
+          - `Types`: **Array**
+            - Elements of type **Object** (Required: Prefix, Capability, Version)
+              - `Prefix`: **String**
+              - `Capability`: **String**
+              - `Version`: **String**
+          - `Socket`: **String**
+        - `Entrypoint`: **Array**
+          - Elements of type **String**
+        - `WorkDir`: **String**
+        - `User`: **Object**
+          - `UID`: **Integer**
+          - `GID`: **Integer**
+        - `Network`: **Object** (Required: Type)
+          - `Type`: **String**
+        - `Linux`: **Object** (Required: Capabilities, AllowAllDevices, Devices)
+          - `Capabilities`: **Array**
+            - Elements of type **String**
+          - `AllowAllDevices`: **Boolean**
+          - `Devices`: **Array**
+            - Elements of type **Object** (Required: Name, Description, Settable, Path)
+              - `Name`: **String**
+              - `Description`: **String**
+              - `Settable`: **Array**
+                - Elements of type **String**
+              - `Path`: **String**
+        - `PropagatedMount`: **String**
+        - `Mounts`: **Array**
+          - Elements of type **Object** (Required: Name, Description, Settable, Source, Destination, Type, Options)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Source`: **String**
+            - `Destination`: **String**
+            - `Type`: **String**
+            - `Options`: **Array**
+              - Elements of type **String**
+        - `Env`: **Array**
+          - Elements of type **Object** (Required: Name, Description, Settable, Value)
+            - `Name`: **String**
+            - `Description`: **String**
+            - `Settable`: **Array**
+              - Elements of type **String**
+            - `Value`: **String**
+        - `Args`: **Object** (Required: Name, Description, Settable, Value)
+          - `Name`: **String**
+          - `Description`: **String**
+          - `Settable`: **Array**
+            - Elements of type **String**
+          - `Value`: **Array**
+            - Elements of type **String**
+        - `rootfs`: **Object**
+          - `type`: **String**
+          - `diff_ids`: **Array**
+            - Elements of type **String**
+    
 */
 exports.pluginDelete = function(client, params) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/plugins/{name}',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: ['force'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3265,7 +3692,7 @@ exports.pluginDelete = function(client, params) {
 /**
   @function pluginEnable
   @summary Enable a plugin
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -3277,12 +3704,12 @@ exports.pluginEnable = function(client, params) {
     method: 'POST',
     url: '/v1.25/plugins/{name}/enable',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: ['timeout'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3290,7 +3717,7 @@ exports.pluginEnable = function(client, params) {
 /**
   @function pluginDisable
   @summary Disable a plugin
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -3301,12 +3728,12 @@ exports.pluginDisable = function(client, params) {
     method: 'POST',
     url: '/v1.25/plugins/{name}/disable',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3314,7 +3741,7 @@ exports.pluginDisable = function(client, params) {
 /**
   @function pluginCreate
   @summary Create a plugin
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -3331,12 +3758,12 @@ exports.pluginCreate = function(client, params) {
     method: 'POST',
     url: '/v1.25/plugins/create',
     params: params,
+    body: 'string',
     requiredParams: ['name'],
     pathParams: [],
     queryParams: ['name'],
     bodyParams: ['tarContext'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3344,7 +3771,7 @@ exports.pluginCreate = function(client, params) {
 /**
   @function pluginPush
   @summary Push a plugin
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -3358,12 +3785,12 @@ exports.pluginPush = function(client, params) {
     method: 'POST',
     url: '/v1.25/plugins/{name}/push',
     params: params,
+    
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3371,7 +3798,7 @@ exports.pluginPush = function(client, params) {
 /**
   @function pluginSet
   @summary Configure a plugin
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
@@ -3389,12 +3816,12 @@ exports.pluginSet = function(client, params) {
     method: 'POST',
     url: '/v1.25/plugins/{name}/set',
     params: params,
+    body: 'json',
     requiredParams: ['name'],
     pathParams: ['name'],
     queryParams: [],
     bodyParams: ['body'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3402,7 +3829,7 @@ exports.pluginSet = function(client, params) {
 /**
   @function nodeList
   @summary List nodes
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -3420,18 +3847,49 @@ exports.pluginSet = function(client, params) {
     - `role=`(`manager`|`worker`)`
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `ID`: **String**
+        - `Version`: **Object**
+          - `Index`: **Integer**
+        - `CreatedAt`: **String**
+        - `UpdatedAt`: **String**
+        - `Spec`: **Object**
+          - `Name`: **String** Name for the node.
+          - `Labels`: **Object** User-defined key/value metadata.
+            - `[KEY]`: **String**
+          - `Role`: **String** Role of the node.
+          - `Availability`: **String** Availability of the node.
+        - `Description`: **Object**
+          - `Hostname`: **String**
+          - `Platform`: **Object**
+            - `Architecture`: **String**
+            - `OS`: **String**
+          - `Resources`: **Object**
+            - `NanoCPUs`: **Integer**
+            - `MemoryBytes`: **Integer**
+          - `Engine`: **Object**
+            - `EngineVersion`: **String**
+            - `Labels`: **Object**
+              - `[KEY]`: **String**
+            - `Plugins`: **Array**
+              - Elements of type **Object**
+                - `Type`: **String**
+                - `Name`: **String**
+    
 */
 exports.nodeList = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/nodes',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3439,23 +3897,54 @@ exports.nodeList = function(client, params) {
 /**
   @function nodeInspect
   @summary Inspect a node
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] The ID or name of the node
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `ID`: **String**
+      - `Version`: **Object**
+        - `Index`: **Integer**
+      - `CreatedAt`: **String**
+      - `UpdatedAt`: **String**
+      - `Spec`: **Object**
+        - `Name`: **String** Name for the node.
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `Role`: **String** Role of the node.
+        - `Availability`: **String** Availability of the node.
+      - `Description`: **Object**
+        - `Hostname`: **String**
+        - `Platform`: **Object**
+          - `Architecture`: **String**
+          - `OS`: **String**
+        - `Resources`: **Object**
+          - `NanoCPUs`: **Integer**
+          - `MemoryBytes`: **Integer**
+        - `Engine`: **Object**
+          - `EngineVersion`: **String**
+          - `Labels`: **Object**
+            - `[KEY]`: **String**
+          - `Plugins`: **Array**
+            - Elements of type **Object**
+              - `Type`: **String**
+              - `Name`: **String**
+    
 */
 exports.nodeInspect = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/nodes/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3463,7 +3952,7 @@ exports.nodeInspect = function(client, params) {
 /**
   @function nodeDelete
   @summary Delete a node
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] The ID or name of the node
@@ -3475,12 +3964,12 @@ exports.nodeDelete = function(client, params) {
     method: 'DELETE',
     url: '/v1.25/nodes/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['force'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3488,7 +3977,7 @@ exports.nodeDelete = function(client, params) {
 /**
   @function nodeUpdate
   @summary Update a node
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] The ID of the node
@@ -3511,12 +4000,12 @@ exports.nodeUpdate = function(client, params) {
     method: 'POST',
     url: '/v1.25/nodes/{id}/update',
     params: params,
+    body: 'json',
     requiredParams: ['id','version'],
     pathParams: ['id'],
     queryParams: ['version'],
     bodyParams: ['body'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3524,21 +4013,62 @@ exports.nodeUpdate = function(client, params) {
 /**
   @function swarmInspect
   @summary Inspect swarm
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `ID`: **String** The ID of the swarm.
+      - `Version`: **Object**
+        - `Index`: **Integer**
+      - `CreatedAt`: **String**
+      - `UpdatedAt`: **String**
+      - `Spec`: **Object** User modifiable swarm configuration.
+        - `Name`: **String** Name of the swarm.
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `Orchestration`: **Object** Orchestration configuration.
+          - `TaskHistoryRetentionLimit`: **Integer** The number of historic tasks to keep per instance or node. If negative, never remove completed or failed tasks.
+        - `Raft`: **Object** Raft configuration.
+          - `SnapshotInterval`: **Integer** The number of log entries between snapshots.
+          - `KeepOldSnapshots`: **Integer** The number of snapshots to keep beyond the current snapshot.
+          - `LogEntriesForSlowFollowers`: **Integer** The number of log entries to keep around to sync up slow followers after a snapshot is created.
+          - `ElectionTick`: **Integer** The number of ticks that a follower will wait for a message from the leader before becoming a candidate and starting an election. `ElectionTick` must be greater than `HeartbeatTick`.    A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.  
+          - `HeartbeatTick`: **Integer** The number of ticks between heartbeats. Every HeartbeatTick ticks, the leader will send a heartbeat to the followers.    A tick currently defaults to one second, so these translate directly to seconds currently, but this is NOT guaranteed.  
+        - `Dispatcher`: **Object** Dispatcher configuration.
+          - `HeartbeatPeriod`: **Integer** The delay for an agent to send a heartbeat to the dispatcher.
+        - `CAConfig`: **Object** CA configuration.
+          - `NodeCertExpiry`: **Integer** The duration node certificates are issued for.
+          - `ExternalCAs`: **Array** Configuration for forwarding signing requests to an external certificate authority.
+            - Elements of type **Object**
+              - `Protocol`: **String** Protocol for communication with the external CA (currently only `cfssl` is supported). (Optional; default: ''cfssl'')
+              - `URL`: **String** URL where certificate signing requests should be sent.
+              - `Options`: **Object** An object with key/value pairs that are interpreted as protocol-specific options for the external CA driver.
+                - `[KEY]`: **String**
+        - `EncryptionConfig`: **Object** Parameters related to encryption-at-rest.
+          - `AutoLockManagers`: **Boolean** If set, generate a key and use it to lock data stored on the managers.
+        - `TaskDefaults`: **Object** Defaults for creating tasks in this cluster.
+          - `LogDriver`: **Object** The log driver to use for tasks created in the orchestrator if unspecified by a service.    Updating this value will only have an affect on new tasks. Old tasks will continue use their previously configured log driver until recreated.  
+            - `Name`: **String**
+            - `Options`: **Object**
+              - `[KEY]`: **String**
+      - `JoinTokens`: **Object** The tokens workers and managers need to join the swarm.
+        - `Worker`: **String** The token workers can use to join the swarm.
+        - `Manager`: **String** The token managers can use to join the swarm.
+    
 */
 exports.swarmInspect = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/swarm',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3546,7 +4076,7 @@ exports.swarmInspect = function(client, params) {
 /**
   @function swarmInit
   @summary Initialize a new swarm
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
@@ -3588,18 +4118,21 @@ exports.swarmInspect = function(client, params) {
             - `Options`: **Object**
               - `[KEY]`: **String**
     
+    #### Return value
+    - **String** The node ID
+    
 */
 exports.swarmInit = function(client, params) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/swarm/init',
     params: params,
+    body: 'json',
     requiredParams: ['body'],
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3607,7 +4140,7 @@ exports.swarmInit = function(client, params) {
 /**
   @function swarmJoin
   @summary Join an existing swarm
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
@@ -3627,12 +4160,12 @@ exports.swarmJoin = function(client, params) {
     method: 'POST',
     url: '/v1.25/swarm/join',
     params: params,
+    body: 'json',
     requiredParams: ['body'],
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3640,7 +4173,7 @@ exports.swarmJoin = function(client, params) {
 /**
   @function swarmLeave
   @summary Leave a swarm
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional Boolean} [force=false] Force leave swarm, even if this is the last manager or that it will break the cluster.
@@ -3651,12 +4184,12 @@ exports.swarmLeave = function(client, params) {
     method: 'POST',
     url: '/v1.25/swarm/leave',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['force'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3664,7 +4197,7 @@ exports.swarmLeave = function(client, params) {
 /**
   @function swarmUpdate
   @summary Update a swarm
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
@@ -3712,12 +4245,12 @@ exports.swarmUpdate = function(client, params) {
     method: 'POST',
     url: '/v1.25/swarm/update',
     params: params,
+    body: 'json',
     requiredParams: ['body','version'],
     pathParams: [],
     queryParams: ['version','rotateWorkerToken','rotateManagerToken','rotateManagerUnlockKey'],
     bodyParams: ['body'],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3725,21 +4258,26 @@ exports.swarmUpdate = function(client, params) {
 /**
   @function swarmUnlockkey
   @summary Get the unlock key
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `UnlockKey`: **String** The swarm's unlock key.
+    
 */
 exports.swarmUnlockkey = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/swarm/unlockkey',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3764,12 +4302,12 @@ exports.swarmUnlock = function(client, params) {
     method: 'POST',
     url: '/v1.25/swarm/unlock',
     params: params,
+    body: 'json',
     requiredParams: ['body'],
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
     headerParams: [],
-    rv: 'string'
   });
 };
 
@@ -3777,7 +4315,7 @@ exports.swarmUnlock = function(client, params) {
 /**
   @function serviceList
   @summary List services
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
@@ -3792,18 +4330,145 @@ exports.swarmUnlock = function(client, params) {
     - `label=<service label>`
     
     
+    #### Return value
+    - **Array**
+      - Elements of type **Object**
+        - `ID`: **String**
+        - `Version`: **Object**
+          - `Index`: **Integer**
+        - `CreatedAt`: **String**
+        - `UpdatedAt`: **String**
+        - `Spec`: **Object** User modifiable configuration for a service.
+          - `Name`: **String** Name of the service.
+          - `Labels`: **Object** User-defined key/value metadata.
+            - `[KEY]`: **String**
+          - `TaskTemplate`: **Object** User modifiable task configuration.
+            - `ContainerSpec`: **Object**
+              - `Image`: **String** The image name to use for the container.
+              - `Command`: **Array** The command to be run in the image.
+                - Elements of type **String**
+              - `Args`: **Array** Arguments to the command.
+                - Elements of type **String**
+              - `Env`: **Array** A list of environment variables in the form `VAR=value`.
+                - Elements of type **String**
+              - `Dir`: **String** The working directory for commands to run in.
+              - `User`: **String** The user inside the container.
+              - `Labels`: **Object** User-defined key/value data.
+                - `[KEY]`: **String**
+              - `TTY`: **Boolean** Whether a pseudo-TTY should be allocated.
+              - `Mounts`: **Array** Specification for mounts to be added to containers created as part of the service.
+                - Elements of type **Object**
+                  - `Target`: **String** Container path.
+                  - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+                  - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+                  - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+                  - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                    - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+                  - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                    - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                    - `Labels`: **Object** User-defined key/value metadata.
+                      - `[KEY]`: **String**
+                    - `DriverConfig`: **Object** Map of driver specific options
+                      - `Name`: **String** Name of the driver to use to create the volume.
+                      - `Options`: **Object** key/value map of driver specific options.
+                        - `[KEY]`: **String**
+                  - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                    - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                    - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+              - `StopGracePeriod`: **Integer** Amount of time to wait for the container to terminate before forcefully killing it.
+              - `DNSConfig`: **Object** Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
+                - `Nameservers`: **Array** The IP addresses of the name servers.
+                  - Elements of type **String**
+                - `Search`: **Array** A search list for host-name lookup.
+                  - Elements of type **String**
+                - `Options`: **Array** A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
+                  - Elements of type **String**
+            - `Resources`: **Object** Resource requirements which apply to each individual container created as part of the service.
+              - `Limits`: **Object** Define resources limits.
+                - `NanoCPUs`: **Integer** CPU limit in units of 10<sup>-9</sup> CPU shares.
+                - `MemoryBytes`: **Integer** Memory limit in Bytes.
+              - `Reservation`: **Object** Define resources reservation.
+                - `NanoCPUs`: **Integer** CPU reservation in units of 10<sup>-9</sup> CPU shares.
+                - `MemoryBytes`: **Integer** Memory reservation in Bytes.
+            - `RestartPolicy`: **Object** Specification for the restart policy which applies to containers created as part of this service.
+              - `Condition`: **String** Condition for restart.
+              - `Delay`: **Integer** Delay between restart attempts.
+              - `MaxAttempts`: **Integer** Maximum attempts to restart a given container before giving up (default value is 0, which is ignored). (Optional; default: '0')
+              - `Window`: **Integer** Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded). (Optional; default: '0')
+            - `Placement`: **Object**
+              - `Constraints`: **Array** An array of constraints.
+                - Elements of type **String**
+            - `ForceUpdate`: **Integer** A counter that triggers an update even if no relevant parameters have been changed.
+            - `Networks`: **Array**
+              - Elements of type **Object**
+                - `Target`: **String**
+                - `Aliases`: **Array**
+                  - Elements of type **String**
+            - `LogDriver`: **Object** Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
+              - `Name`: **String**
+              - `Options`: **Object**
+                - `[KEY]`: **String**
+          - `Mode`: **Object** Scheduling mode for the service.
+            - `Replicated`: **Object**
+              - `Replicas`: **Integer**
+            - `Global`: **Object**
+              
+          - `UpdateConfig`: **Object** Specification for the update strategy of the service.
+            - `Parallelism`: **Integer** Maximum number of tasks to be updated in one iteration (0 means unlimited parallelism).
+            - `Delay`: **Integer** Amount of time between updates, in nanoseconds.
+            - `FailureAction`: **String** Action to take if an updated task fails to run, or stops running during the update.
+            - `Monitor`: **Integer** Amount of time to monitor each updated task for failures, in nanoseconds.
+            - `MaxFailureRatio`: **Number** The fraction of tasks that may fail during an update before the failure action is invoked, specified as a floating point number between 0 and 1. (Optional; default: '0')
+          - `Networks`: **Array** Array of network names or IDs to attach the service to.
+            - Elements of type **Object**
+              - `Target`: **String**
+              - `Aliases`: **Array**
+                - Elements of type **String**
+          - `EndpointSpec`: **Object** Properties that can be configured to access and load balance a service.
+            - `Mode`: **String** The mode of resolution to use for internal load balancing between tasks. (Optional; default: ''vip'')
+            - `Ports`: **Array** List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
+              - Elements of type **Object**
+                - `Name`: **String**
+                - `Protocol`: **String**
+                - `TargetPort`: **Integer** The port inside the container.
+                - `PublishedPort`: **Integer** The port on the swarm hosts.
+        - `Endpoint`: **Object**
+          - `Spec`: **Object** Properties that can be configured to access and load balance a service.
+            - `Mode`: **String** The mode of resolution to use for internal load balancing between tasks. (Optional; default: ''vip'')
+            - `Ports`: **Array** List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
+              - Elements of type **Object**
+                - `Name`: **String**
+                - `Protocol`: **String**
+                - `TargetPort`: **Integer** The port inside the container.
+                - `PublishedPort`: **Integer** The port on the swarm hosts.
+          - `Ports`: **Array**
+            - Elements of type **Object**
+              - `Name`: **String**
+              - `Protocol`: **String**
+              - `TargetPort`: **Integer** The port inside the container.
+              - `PublishedPort`: **Integer** The port on the swarm hosts.
+          - `VirtualIPs`: **Array**
+            - Elements of type **Object**
+              - `NetworkID`: **String**
+              - `Addr`: **String**
+        - `UpdateStatus`: **Object** The status of a service update.
+          - `State`: **String**
+          - `StartedAt`: **String**
+          - `CompletedAt`: **String**
+          - `Message`: **String**
+    
 */
 exports.serviceList = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/services',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3926,12 +4591,12 @@ exports.serviceCreate = function(client, params) {
     method: 'POST',
     url: '/v1.25/services/create',
     params: params,
+    body: 'json',
     requiredParams: ['body'],
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
     headerParams: ['X-Registry-Auth'],
-    rv: 'json'
   });
 };
 
@@ -3939,23 +4604,150 @@ exports.serviceCreate = function(client, params) {
 /**
   @function serviceInspect
   @summary Inspect a service
-  @return {COMPLEX}
+  @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of service.
-
+  @desc
+    
+    #### Return value
+    - **Object**
+      - `ID`: **String**
+      - `Version`: **Object**
+        - `Index`: **Integer**
+      - `CreatedAt`: **String**
+      - `UpdatedAt`: **String**
+      - `Spec`: **Object** User modifiable configuration for a service.
+        - `Name`: **String** Name of the service.
+        - `Labels`: **Object** User-defined key/value metadata.
+          - `[KEY]`: **String**
+        - `TaskTemplate`: **Object** User modifiable task configuration.
+          - `ContainerSpec`: **Object**
+            - `Image`: **String** The image name to use for the container.
+            - `Command`: **Array** The command to be run in the image.
+              - Elements of type **String**
+            - `Args`: **Array** Arguments to the command.
+              - Elements of type **String**
+            - `Env`: **Array** A list of environment variables in the form `VAR=value`.
+              - Elements of type **String**
+            - `Dir`: **String** The working directory for commands to run in.
+            - `User`: **String** The user inside the container.
+            - `Labels`: **Object** User-defined key/value data.
+              - `[KEY]`: **String**
+            - `TTY`: **Boolean** Whether a pseudo-TTY should be allocated.
+            - `Mounts`: **Array** Specification for mounts to be added to containers created as part of the service.
+              - Elements of type **Object**
+                - `Target`: **String** Container path.
+                - `Source`: **anything** Mount source (e.g. a volume name, a host path).
+                - `Type`: **String** The mount type. Available types:    - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container.  - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed.  - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.  
+                - `ReadOnly`: **Boolean** Whether the mount should be read-only.
+                - `BindOptions`: **Object** Optional configuration for the `bind` type.
+                  - `Propagation`: **String** A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
+                - `VolumeOptions`: **Object** Optional configuration for the `volume` type.
+                  - `NoCopy`: **Boolean** Populate volume with data from the target. (Optional; default: 'false')
+                  - `Labels`: **Object** User-defined key/value metadata.
+                    - `[KEY]`: **String**
+                  - `DriverConfig`: **Object** Map of driver specific options
+                    - `Name`: **String** Name of the driver to use to create the volume.
+                    - `Options`: **Object** key/value map of driver specific options.
+                      - `[KEY]`: **String**
+                - `TmpfsOptions`: **Object** Optional configuration for the `tmpfs` type.
+                  - `SizeBytes`: **Integer** The size for the tmpfs mount in bytes.
+                  - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
+            - `StopGracePeriod`: **Integer** Amount of time to wait for the container to terminate before forcefully killing it.
+            - `DNSConfig`: **Object** Specification for DNS related configurations in resolver configuration file (`resolv.conf`).
+              - `Nameservers`: **Array** The IP addresses of the name servers.
+                - Elements of type **String**
+              - `Search`: **Array** A search list for host-name lookup.
+                - Elements of type **String**
+              - `Options`: **Array** A list of internal resolver variables to be modified (e.g., `debug`, `ndots:3`, etc.).
+                - Elements of type **String**
+          - `Resources`: **Object** Resource requirements which apply to each individual container created as part of the service.
+            - `Limits`: **Object** Define resources limits.
+              - `NanoCPUs`: **Integer** CPU limit in units of 10<sup>-9</sup> CPU shares.
+              - `MemoryBytes`: **Integer** Memory limit in Bytes.
+            - `Reservation`: **Object** Define resources reservation.
+              - `NanoCPUs`: **Integer** CPU reservation in units of 10<sup>-9</sup> CPU shares.
+              - `MemoryBytes`: **Integer** Memory reservation in Bytes.
+          - `RestartPolicy`: **Object** Specification for the restart policy which applies to containers created as part of this service.
+            - `Condition`: **String** Condition for restart.
+            - `Delay`: **Integer** Delay between restart attempts.
+            - `MaxAttempts`: **Integer** Maximum attempts to restart a given container before giving up (default value is 0, which is ignored). (Optional; default: '0')
+            - `Window`: **Integer** Windows is the time window used to evaluate the restart policy (default value is 0, which is unbounded). (Optional; default: '0')
+          - `Placement`: **Object**
+            - `Constraints`: **Array** An array of constraints.
+              - Elements of type **String**
+          - `ForceUpdate`: **Integer** A counter that triggers an update even if no relevant parameters have been changed.
+          - `Networks`: **Array**
+            - Elements of type **Object**
+              - `Target`: **String**
+              - `Aliases`: **Array**
+                - Elements of type **String**
+          - `LogDriver`: **Object** Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
+            - `Name`: **String**
+            - `Options`: **Object**
+              - `[KEY]`: **String**
+        - `Mode`: **Object** Scheduling mode for the service.
+          - `Replicated`: **Object**
+            - `Replicas`: **Integer**
+          - `Global`: **Object**
+            
+        - `UpdateConfig`: **Object** Specification for the update strategy of the service.
+          - `Parallelism`: **Integer** Maximum number of tasks to be updated in one iteration (0 means unlimited parallelism).
+          - `Delay`: **Integer** Amount of time between updates, in nanoseconds.
+          - `FailureAction`: **String** Action to take if an updated task fails to run, or stops running during the update.
+          - `Monitor`: **Integer** Amount of time to monitor each updated task for failures, in nanoseconds.
+          - `MaxFailureRatio`: **Number** The fraction of tasks that may fail during an update before the failure action is invoked, specified as a floating point number between 0 and 1. (Optional; default: '0')
+        - `Networks`: **Array** Array of network names or IDs to attach the service to.
+          - Elements of type **Object**
+            - `Target`: **String**
+            - `Aliases`: **Array**
+              - Elements of type **String**
+        - `EndpointSpec`: **Object** Properties that can be configured to access and load balance a service.
+          - `Mode`: **String** The mode of resolution to use for internal load balancing between tasks. (Optional; default: ''vip'')
+          - `Ports`: **Array** List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
+            - Elements of type **Object**
+              - `Name`: **String**
+              - `Protocol`: **String**
+              - `TargetPort`: **Integer** The port inside the container.
+              - `PublishedPort`: **Integer** The port on the swarm hosts.
+      - `Endpoint`: **Object**
+        - `Spec`: **Object** Properties that can be configured to access and load balance a service.
+          - `Mode`: **String** The mode of resolution to use for internal load balancing between tasks. (Optional; default: ''vip'')
+          - `Ports`: **Array** List of exposed ports that this service is accessible on from the outside. Ports can only be provided if `vip` resolution mode is used.
+            - Elements of type **Object**
+              - `Name`: **String**
+              - `Protocol`: **String**
+              - `TargetPort`: **Integer** The port inside the container.
+              - `PublishedPort`: **Integer** The port on the swarm hosts.
+        - `Ports`: **Array**
+          - Elements of type **Object**
+            - `Name`: **String**
+            - `Protocol`: **String**
+            - `TargetPort`: **Integer** The port inside the container.
+            - `PublishedPort`: **Integer** The port on the swarm hosts.
+        - `VirtualIPs`: **Array**
+          - Elements of type **Object**
+            - `NetworkID`: **String**
+            - `Addr`: **String**
+      - `UpdateStatus`: **Object** The status of a service update.
+        - `State`: **String**
+        - `StartedAt`: **String**
+        - `CompletedAt`: **String**
+        - `Message`: **String**
+    
 */
 exports.serviceInspect = function(client, params) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/services/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -3963,7 +4755,7 @@ exports.serviceInspect = function(client, params) {
 /**
   @function serviceDelete
   @summary Delete a service
-  @return {COMPLEX}
+  @return {void}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of service.
@@ -3974,12 +4766,12 @@ exports.serviceDelete = function(client, params) {
     method: 'DELETE',
     url: '/v1.25/services/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -4105,12 +4897,12 @@ exports.serviceUpdate = function(client, params) {
     method: 'POST',
     url: '/v1.25/services/{id}/update',
     params: params,
+    body: 'json',
     requiredParams: ['id','body','version'],
     pathParams: ['id'],
     queryParams: ['version','registryAuthFrom'],
     bodyParams: ['body'],
     headerParams: ['X-Registry-Auth'],
-    rv: 'json'
   });
 };
 
@@ -4147,12 +4939,12 @@ exports.serviceLogs = function(client, params) {
     method: 'GET',
     url: '/v1.25/services/{id}/logs',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: ['details','follow','stdout','stderr','since','timestamps','tail'],
     bodyParams: [],
     headerParams: [],
-    rv: 'COMPLEX'
   });
 };
 
@@ -4275,12 +5067,12 @@ exports.taskList = function(client, params) {
     method: 'GET',
     url: '/v1.25/tasks',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -4390,12 +5182,12 @@ exports.taskInspect = function(client, params) {
     method: 'GET',
     url: '/v1.25/tasks/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -4525,12 +5317,12 @@ exports.secretList = function(client, params) {
     method: 'GET',
     url: '/v1.25/secrets',
     params: params,
+    
     requiredParams: [],
     pathParams: [],
     queryParams: ['filters'],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -4563,12 +5355,12 @@ exports.secretCreate = function(client, params) {
     method: 'POST',
     url: '/v1.25/secrets/create',
     params: params,
+    body: 'json',
     requiredParams: [],
     pathParams: [],
     queryParams: [],
     bodyParams: ['body'],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -4690,12 +5482,12 @@ exports.secretInspect = function(client, params) {
     method: 'GET',
     url: '/v1.25/secrets/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'json'
   });
 };
 
@@ -4714,12 +5506,12 @@ exports.secretDelete = function(client, params) {
     method: 'DELETE',
     url: '/v1.25/secrets/{id}',
     params: params,
+    
     requiredParams: ['id'],
     pathParams: ['id'],
     queryParams: [],
     bodyParams: [],
     headerParams: [],
-    rv: 'string'
   });
 };
 

@@ -526,6 +526,319 @@
     "services/": {
       "type": "lib",
       "children": {
+        "docker/": {
+          "type": "lib",
+          "children": {
+            "REST/": {
+              "type": "lib",
+              "children": {
+                "v1-25": {
+                  "type": "module",
+                  "children": {
+                    "containerArchiveHead": {
+                      "type": "function"
+                    },
+                    "containerAttach": {
+                      "type": "function"
+                    },
+                    "containerAttachWebsocket": {
+                      "type": "function"
+                    },
+                    "containerChanges": {
+                      "type": "function"
+                    },
+                    "containerCreate": {
+                      "type": "function"
+                    },
+                    "containerDelete": {
+                      "type": "function"
+                    },
+                    "containerExec": {
+                      "type": "function"
+                    },
+                    "containerExport": {
+                      "type": "function"
+                    },
+                    "containerGetArchive": {
+                      "type": "function"
+                    },
+                    "containerInspect": {
+                      "type": "function"
+                    },
+                    "containerKill": {
+                      "type": "function"
+                    },
+                    "containerList": {
+                      "type": "function"
+                    },
+                    "containerLogs": {
+                      "type": "function"
+                    },
+                    "containerPause": {
+                      "type": "function"
+                    },
+                    "containerPrune": {
+                      "type": "function"
+                    },
+                    "containerPutArchive": {
+                      "type": "function"
+                    },
+                    "containerRename": {
+                      "type": "function"
+                    },
+                    "containerResize": {
+                      "type": "function"
+                    },
+                    "containerRestart": {
+                      "type": "function"
+                    },
+                    "containerStart": {
+                      "type": "function"
+                    },
+                    "containerStats": {
+                      "type": "function"
+                    },
+                    "containerStop": {
+                      "type": "function"
+                    },
+                    "containerTop": {
+                      "type": "function"
+                    },
+                    "containerUnpause": {
+                      "type": "function"
+                    },
+                    "containerUpdate": {
+                      "type": "function"
+                    },
+                    "containerWait": {
+                      "type": "function"
+                    },
+                    "execInspect": {
+                      "type": "function"
+                    },
+                    "execResize": {
+                      "type": "function"
+                    },
+                    "execStart": {
+                      "type": "function"
+                    },
+                    "getPluginPrivileges": {
+                      "type": "function"
+                    },
+                    "imageBuild": {
+                      "type": "function"
+                    },
+                    "imageCommit": {
+                      "type": "function"
+                    },
+                    "imageCreate": {
+                      "type": "function"
+                    },
+                    "imageDelete": {
+                      "type": "function"
+                    },
+                    "imageGet": {
+                      "type": "function"
+                    },
+                    "imageGetAll": {
+                      "type": "function"
+                    },
+                    "imageHistory": {
+                      "type": "function"
+                    },
+                    "imageInspect": {
+                      "type": "function"
+                    },
+                    "imageList": {
+                      "type": "function"
+                    },
+                    "imageLoad": {
+                      "type": "function"
+                    },
+                    "imagePrune": {
+                      "type": "function"
+                    },
+                    "imagePush": {
+                      "type": "function"
+                    },
+                    "imageSearch": {
+                      "type": "function"
+                    },
+                    "imageTag": {
+                      "type": "function"
+                    },
+                    "networkConnect": {
+                      "type": "function"
+                    },
+                    "networkCreate": {
+                      "type": "function"
+                    },
+                    "networkDelete": {
+                      "type": "function"
+                    },
+                    "networkDisconnect": {
+                      "type": "function"
+                    },
+                    "networkInspect": {
+                      "type": "function"
+                    },
+                    "networkList": {
+                      "type": "function"
+                    },
+                    "networkPrune": {
+                      "type": "function"
+                    },
+                    "nodeDelete": {
+                      "type": "function"
+                    },
+                    "nodeInspect": {
+                      "type": "function"
+                    },
+                    "nodeList": {
+                      "type": "function"
+                    },
+                    "nodeUpdate": {
+                      "type": "function"
+                    },
+                    "pluginCreate": {
+                      "type": "function"
+                    },
+                    "pluginDelete": {
+                      "type": "function"
+                    },
+                    "pluginDisable": {
+                      "type": "function"
+                    },
+                    "pluginEnable": {
+                      "type": "function"
+                    },
+                    "pluginInspect": {
+                      "type": "function"
+                    },
+                    "pluginList": {
+                      "type": "function"
+                    },
+                    "pluginPull": {
+                      "type": "function"
+                    },
+                    "pluginPush": {
+                      "type": "function"
+                    },
+                    "pluginSet": {
+                      "type": "function"
+                    },
+                    "secretCreate": {
+                      "type": "function"
+                    },
+                    "secretDelete": {
+                      "type": "function"
+                    },
+                    "secretInspect": {
+                      "type": "function"
+                    },
+                    "secretList": {
+                      "type": "function"
+                    },
+                    "serviceCreate": {
+                      "type": "function"
+                    },
+                    "serviceDelete": {
+                      "type": "function"
+                    },
+                    "serviceInspect": {
+                      "type": "function"
+                    },
+                    "serviceList": {
+                      "type": "function"
+                    },
+                    "serviceLogs": {
+                      "type": "function"
+                    },
+                    "serviceUpdate": {
+                      "type": "function"
+                    },
+                    "swarmInit": {
+                      "type": "function"
+                    },
+                    "swarmInspect": {
+                      "type": "function"
+                    },
+                    "swarmJoin": {
+                      "type": "function"
+                    },
+                    "swarmLeave": {
+                      "type": "function"
+                    },
+                    "swarmUnlock": {
+                      "type": "function"
+                    },
+                    "swarmUnlockkey": {
+                      "type": "function"
+                    },
+                    "swarmUpdate": {
+                      "type": "function"
+                    },
+                    "systemAuth": {
+                      "type": "function"
+                    },
+                    "systemDataUsage": {
+                      "type": "function"
+                    },
+                    "systemEvents": {
+                      "type": "function"
+                    },
+                    "systemInfo": {
+                      "type": "function"
+                    },
+                    "systemPing": {
+                      "type": "function"
+                    },
+                    "systemVersion": {
+                      "type": "function"
+                    },
+                    "taskInspect": {
+                      "type": "function"
+                    },
+                    "taskList": {
+                      "type": "function"
+                    },
+                    "volumeCreate": {
+                      "type": "function"
+                    },
+                    "volumeDelete": {
+                      "type": "function"
+                    },
+                    "volumeInspect": {
+                      "type": "function"
+                    },
+                    "volumeList": {
+                      "type": "function"
+                    },
+                    "volumePrune": {
+                      "type": "function"
+                    }
+                  },
+                  "summary": "Docker Engine API 1.25"
+                }
+              },
+              "summary": "Docker REST API"
+            },
+            "service": {
+              "type": "module",
+              "children": {
+                "DockerServiceConfig": {
+                  "type": "class",
+                  "children": {}
+                },
+                "run": {
+                  "type": "function"
+                }
+              },
+              "summary": "Docker API access"
+            }
+          },
+          "summary": "Docker API"
+        },
         "google_api/": {
           "type": "lib",
           "children": {
