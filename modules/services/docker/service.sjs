@@ -55,7 +55,6 @@ function request(base_url, args) {
     @pairsToObject;
 
   request_opts.throwing = false;
-  request_opts.response = 'full';
   request_opts.headers = {};
 
   if (args.bodyParams.length) {
@@ -72,7 +71,35 @@ function request(base_url, args) {
     }
   }
 
+  if (args.block) {
+    request_opts.response = 'raw';
+  }
+  else {
+    request_opts.response = 'full';
+  }
+
   var request_rv = @http.request(base_url+path, request_opts);
+
+  if (args.block) {
+    if (request_rv.statusCode < 299) {
+      try {
+        args.block(request_rv);
+        return;
+      }
+      finally {
+        request_rv.destroy();
+      }
+    }
+    else {
+      // construct a parsed request_rv object, and latch onto the error handling below
+      var original_rv = request_rv; console.log(@stream.contents);
+      request_rv = {
+        status: original_rv.statusCode,
+        content: (original_rv .. @stream.contents('utf8')) .. @join(''),
+        getHeader: name -> original_rv.headers[name.toLowerCase()]
+      };
+    }
+  }
 
   var contentType = request_rv.getHeader("Content-Type");
 

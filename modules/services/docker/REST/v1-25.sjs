@@ -11,7 +11,6 @@
  * according to the terms contained in the LICENSE file.
  */
 
-
 /**
   @summary Docker Engine API 1.25
   @desc
@@ -93,6 +92,7 @@
   @setting {optional Integer} [limit] Return this number of most recently created containers, including non-running ones.
   @setting {optional Boolean} [size=false] Return the size of container as fields `SizeRw` and `SizeRootFs`.
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -181,11 +181,12 @@
               - `Mode`: **Integer** The permission mode for the tmpfs mount in an integer.
     
 */
-exports.containerList = function(client, params) {
+exports.containerList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/json',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -204,6 +205,7 @@ exports.containerList = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {optional String} [name] Assign the specified name to the container. Must match `/?[a-zA-Z0-9_-]+`.
   @setting {Object} [body] Container to create. See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -407,11 +409,12 @@ exports.containerList = function(client, params) {
         - Elements of type **String**
     
 */
-exports.containerCreate = function(client, params) {
+exports.containerCreate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/create',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['body'],
     pathParams: [],
@@ -430,6 +433,7 @@ exports.containerCreate = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {optional Boolean} [size=false] Return the size of container as fields `SizeRw` and `SizeRootFs`
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Return low-level information about a container.
     
@@ -667,11 +671,12 @@ exports.containerCreate = function(client, params) {
             - `Type`: **String**
     
 */
-exports.containerInspect = function(client, params) {
+exports.containerInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/json',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -690,6 +695,7 @@ exports.containerInspect = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {optional String} [ps_args=-ef] The arguments to pass to `ps`. For example, `aux`
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     On Unix systems, this is done by running the `ps` command. This endpoint is not supported on Windows.
     
@@ -702,11 +708,12 @@ exports.containerInspect = function(client, params) {
           - Elements of type **String**
     
 */
-exports.containerTop = function(client, params) {
+exports.containerTop = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/top',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -730,6 +737,7 @@ exports.containerTop = function(client, params) {
   @setting {optional Integer} [since=0] Only return logs since this time, as a UNIX timestamp
   @setting {optional Boolean} [timestamps=false] Add timestamps to every log line
   @setting {optional String} [tail=all] Only return this number of log lines from the end of the logs. Specify as an integer or `all` to output all log lines.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Get `stdout` and `stderr` logs from a container.
     
@@ -746,11 +754,12 @@ exports.containerTop = function(client, params) {
     - **String**
     
 */
-exports.containerLogs = function(client, params) {
+exports.containerLogs = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/logs',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -768,6 +777,7 @@ exports.containerLogs = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Returns which files in a container's filesystem have been added, deleted, or modified. The `Kind` of modification can be one of:
     
@@ -783,11 +793,12 @@ exports.containerLogs = function(client, params) {
         - `Kind`: **Integer** Kind of change
     
 */
-exports.containerChanges = function(client, params) {
+exports.containerChanges = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/changes',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -805,15 +816,17 @@ exports.containerChanges = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Export the contents of a container as a tarball.
     
 */
-exports.containerExport = function(client, params) {
+exports.containerExport = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/export',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -832,6 +845,7 @@ exports.containerExport = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {optional Boolean} [stream=true] Stream the output. If false, the stats will be output once and then it will disconnect.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     This endpoint returns a live stream of a container’s resource usage statistics.
     
@@ -843,11 +857,12 @@ exports.containerExport = function(client, params) {
       
     
 */
-exports.containerStats = function(client, params) {
+exports.containerStats = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/stats',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -867,15 +882,17 @@ exports.containerStats = function(client, params) {
   @setting {String} [id] ID or name of the container
   @setting {optional Integer} [h] Height of the tty session in characters
   @setting {optional Integer} [w] Width of the tty session in characters
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Resize the TTY for a container. You must restart the container for the resize to take effect.
     
 */
-exports.containerResize = function(client, params) {
+exports.containerResize = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/resize',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -894,13 +911,15 @@ exports.containerResize = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {optional String} [detachKeys] Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.containerStart = function(client, params) {
+exports.containerStart = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/start',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -919,13 +938,15 @@ exports.containerStart = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {optional Integer} [t] Number of seconds to wait before killing the container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.containerStop = function(client, params) {
+exports.containerStop = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/stop',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -944,13 +965,15 @@ exports.containerStop = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {optional Integer} [t] Number of seconds to wait before killing the container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.containerRestart = function(client, params) {
+exports.containerRestart = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/restart',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -969,15 +992,17 @@ exports.containerRestart = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {optional String} [signal=SIGKILL] Signal to send to the container as an integer or string (e.g. `SIGINT`)
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Send a POSIX signal to a container, defaulting to killing to the container.
     
 */
-exports.containerKill = function(client, params) {
+exports.containerKill = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/kill',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -996,6 +1021,7 @@ exports.containerKill = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {Object} [update] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Change various configuration options of a container without having to recreate it.
     
@@ -1064,11 +1090,12 @@ exports.containerKill = function(client, params) {
         - Elements of type **String**
     
 */
-exports.containerUpdate = function(client, params) {
+exports.containerUpdate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/update',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['id','update'],
     pathParams: ['id'],
@@ -1087,13 +1114,15 @@ exports.containerUpdate = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {String} [name] New name for the container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.containerRename = function(client, params) {
+exports.containerRename = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/rename',
     params: params,
+    block: block,
     
     requiredParams: ['id','name'],
     pathParams: ['id'],
@@ -1111,6 +1140,7 @@ exports.containerRename = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Use the cgroups freezer to suspend all processes in a container.
     
@@ -1118,11 +1148,12 @@ exports.containerRename = function(client, params) {
     
     
 */
-exports.containerPause = function(client, params) {
+exports.containerPause = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/pause',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -1140,15 +1171,17 @@ exports.containerPause = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Resume a container which has been paused.
     
 */
-exports.containerUnpause = function(client, params) {
+exports.containerUnpause = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/unpause',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -1172,6 +1205,7 @@ exports.containerUnpause = function(client, params) {
   @setting {optional Boolean} [stdin=false] Attach to `stdin`
   @setting {optional Boolean} [stdout=false] Attach to `stdout`
   @setting {optional Boolean} [stderr=false] Attach to `stderr`
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Attach to a container to read its output or send it input. You can attach to the same container multiple times and you can reattach to containers that have been detached.
     
@@ -1259,11 +1293,12 @@ exports.containerUnpause = function(client, params) {
     
     
 */
-exports.containerAttach = function(client, params) {
+exports.containerAttach = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/attach',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -1287,13 +1322,15 @@ exports.containerAttach = function(client, params) {
   @setting {optional Boolean} [stdin=false] Attach to `stdin`
   @setting {optional Boolean} [stdout=false] Attach to `stdout`
   @setting {optional Boolean} [stderr=false] Attach to `stderr`
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.containerAttachWebsocket = function(client, params) {
+exports.containerAttachWebsocket = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/attach/ws',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -1311,6 +1348,7 @@ exports.containerAttachWebsocket = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Block until a container stops, then returns the exit code.
     
@@ -1319,11 +1357,12 @@ exports.containerAttachWebsocket = function(client, params) {
       - `StatusCode`: **Integer** Exit code of the container
     
 */
-exports.containerWait = function(client, params) {
+exports.containerWait = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/wait',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -1343,13 +1382,15 @@ exports.containerWait = function(client, params) {
   @setting {String} [id] ID or name of the container
   @setting {optional Boolean} [v=false] Remove the volumes associated with the container.
   @setting {optional Boolean} [force=false] If the container is running, kill it before removing it.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.containerDelete = function(client, params) {
+exports.containerDelete = function(client, params, block) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/containers/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -1368,15 +1409,17 @@ exports.containerDelete = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {String} [path] Resource in the container’s filesystem to archive.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     A response header `X-Docker-Container-Path-Stat` is return containing a base64 - encoded JSON object with some filesystem header information about the path.
     
 */
-exports.containerArchiveHead = function(client, params) {
+exports.containerArchiveHead = function(client, params, block) {
   return client.performRequest({
     method: 'HEAD',
     url: '/v1.25/containers/{id}/archive',
     params: params,
+    block: block,
     
     requiredParams: ['id','path'],
     pathParams: ['id'],
@@ -1395,15 +1438,17 @@ exports.containerArchiveHead = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of the container
   @setting {String} [path] Resource in the container’s filesystem to archive.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Get an tar archive of a resource in the filesystem of container id.
     
 */
-exports.containerGetArchive = function(client, params) {
+exports.containerGetArchive = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/containers/{id}/archive',
     params: params,
+    block: block,
     
     requiredParams: ['id','path'],
     pathParams: ['id'],
@@ -1424,6 +1469,7 @@ exports.containerGetArchive = function(client, params) {
   @setting {String} [path] Path to a directory in the container to extract the archive’s contents into. 
   @setting {optional String} [noOverwriteDirNonDir] If “1”, “true”, or “True” then it will be an error if unpacking the given content would cause an existing directory to be replaced with a non-directory and vice versa.
   @setting {Object} [inputStream] The input stream must be a tar archive compressed with one of the following algorithms: identity (no compression), gzip, bzip2, xz.. See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Upload a tar archive to be extracted to a path in the filesystem of container id.
     
@@ -1432,11 +1478,12 @@ exports.containerGetArchive = function(client, params) {
     - **String**
     
 */
-exports.containerPutArchive = function(client, params) {
+exports.containerPutArchive = function(client, params, block) {
   return client.performRequest({
     method: 'PUT',
     url: '/v1.25/containers/{id}/archive',
     params: params,
+    block: block,
     body: 'string',
     requiredParams: ['id','path','inputStream'],
     pathParams: ['id'],
@@ -1454,6 +1501,7 @@ exports.containerPutArchive = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -1470,11 +1518,12 @@ exports.containerPutArchive = function(client, params) {
       - `SpaceReclaimed`: **Integer** Disk space reclaimed in bytes
     
 */
-exports.containerPrune = function(client, params) {
+exports.containerPrune = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/prune',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -1494,6 +1543,7 @@ exports.containerPrune = function(client, params) {
   @setting {optional Boolean} [all=false] Show all images. Only images from a final layer (no children) are shown by default.
   @setting {optional String} [filters] See description
   @setting {optional Boolean} [digests=false] Show digest information as a `RepoDigests` field on each image.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Returns a list of images on the server. Note that it uses a different, smaller representation of an image than inspecting a single image.
     
@@ -1527,11 +1577,12 @@ exports.containerPrune = function(client, params) {
         - `Containers`: **Integer**
     
 */
-exports.imageList = function(client, params) {
+exports.imageList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/images/json',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -1571,6 +1622,7 @@ exports.imageList = function(client, params) {
   @setting {optional String} [networkmode] Sets the networking mode for the run commands during build. Supported standard values are: `bridge`, `host`, `none`, and `container:<name|id>`. Any other value is taken as a custom network's name to which this container should connect to.
   @setting {optional String} [Content-type=application/tar] 
   @setting {optional String} [X-Registry-Config] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Build an image from a tar archive with a `Dockerfile` in it.
     
@@ -1607,11 +1659,12 @@ exports.imageList = function(client, params) {
     
     
 */
-exports.imageBuild = function(client, params) {
+exports.imageBuild = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/build',
     params: params,
+    block: block,
     body: 'string',
     requiredParams: [],
     pathParams: [],
@@ -1634,6 +1687,7 @@ exports.imageBuild = function(client, params) {
   @setting {optional String} [tag] Tag or digest. If empty when pulling an image, this causes all tags for the given image to be pulled.
   @setting {Object} [inputImage] Image content if the value `-` has been specified in fromSrc query parameter. See description.
   @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration. [See the authentication section for details.](#section/Authentication)
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Create an image by either pulling it from a registry or importing it.
     
@@ -1642,11 +1696,12 @@ exports.imageBuild = function(client, params) {
     - **String**
     
 */
-exports.imageCreate = function(client, params) {
+exports.imageCreate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/images/create',
     params: params,
+    block: block,
     body: 'string',
     requiredParams: [],
     pathParams: [],
@@ -1664,6 +1719,7 @@ exports.imageCreate = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or id
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Return low-level information about an image.
     
@@ -1777,11 +1833,12 @@ exports.imageCreate = function(client, params) {
         - `BaseLayer`: **String**
     
 */
-exports.imageInspect = function(client, params) {
+exports.imageInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/images/{name}/json',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -1799,6 +1856,7 @@ exports.imageInspect = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Return parent layers of an image.
     
@@ -1814,11 +1872,12 @@ exports.imageInspect = function(client, params) {
         - `Comment`: **String**
     
 */
-exports.imageHistory = function(client, params) {
+exports.imageHistory = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/images/{name}/history',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -1838,6 +1897,7 @@ exports.imageHistory = function(client, params) {
   @setting {String} [name] Image name or ID.
   @setting {optional String} [tag] The tag to associate with the image on the registry.
   @setting {String} [X-Registry-Auth] A base64-encoded auth configuration. [See the authentication section for details.](#section/Authentication)
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Push an image to a registry.
     
@@ -1847,11 +1907,12 @@ exports.imageHistory = function(client, params) {
     
     
 */
-exports.imagePush = function(client, params) {
+exports.imagePush = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/images/{name}/push',
     params: params,
+    block: block,
     
     requiredParams: ['name','X-Registry-Auth'],
     pathParams: ['name'],
@@ -1871,15 +1932,17 @@ exports.imagePush = function(client, params) {
   @setting {String} [name] Image name or ID to tag.
   @setting {optional String} [repo] The repository to tag in. For example, `someuser/someimage`.
   @setting {optional String} [tag] The name of the new tag.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Tag an image so that it becomes part of a repository.
     
 */
-exports.imageTag = function(client, params) {
+exports.imageTag = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/images/{name}/tag',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -1899,6 +1962,7 @@ exports.imageTag = function(client, params) {
   @setting {String} [name] Image name or ID
   @setting {optional Boolean} [force=false] Remove the image even if it is being used by stopped containers or has other tags
   @setting {optional Boolean} [noprune=false] Do not delete untagged parent images
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Remove an image, along with any untagged parent images that were referenced by that image.
     
@@ -1912,11 +1976,12 @@ exports.imageTag = function(client, params) {
         - `Deleted`: **String** The image ID of an image that was deleted
     
 */
-exports.imageDelete = function(client, params) {
+exports.imageDelete = function(client, params, block) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/images/{name}',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -1936,6 +2001,7 @@ exports.imageDelete = function(client, params) {
   @setting {String} [term] Term to search
   @setting {optional Integer} [limit] Maximum number of results to return
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Search for an image on Docker Hub.
     
@@ -1958,11 +2024,12 @@ exports.imageDelete = function(client, params) {
         - `star_count`: **Integer**
     
 */
-exports.imageSearch = function(client, params) {
+exports.imageSearch = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/images/search',
     params: params,
+    block: block,
     
     requiredParams: ['term'],
     pathParams: [],
@@ -1980,6 +2047,7 @@ exports.imageSearch = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -2001,11 +2069,12 @@ exports.imageSearch = function(client, params) {
       - `SpaceReclaimed`: **Integer** Disk space reclaimed in bytes
     
 */
-exports.imagePrune = function(client, params) {
+exports.imagePrune = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/images/prune',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2023,6 +2092,7 @@ exports.imagePrune = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [authConfig] Authentication to check. See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Validate credentials for a registry and, if available, get an identity token for accessing the registry without password.
     
@@ -2040,11 +2110,12 @@ exports.imagePrune = function(client, params) {
       - `IdentityToken`: **String** An opaque token used to authenticate a user after a successful login
     
 */
-exports.systemAuth = function(client, params) {
+exports.systemAuth = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/auth',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: [],
     pathParams: [],
@@ -2060,6 +2131,7 @@ exports.systemAuth = function(client, params) {
   @summary Get system information
   @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -2125,11 +2197,12 @@ exports.systemAuth = function(client, params) {
       - `ServerVersion`: **String**
     
 */
-exports.systemInfo = function(client, params) {
+exports.systemInfo = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/info',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2145,6 +2218,7 @@ exports.systemInfo = function(client, params) {
   @summary Get version
   @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Returns the version of Docker that is running and various information about the system that Docker is running on.
     
@@ -2162,11 +2236,12 @@ exports.systemInfo = function(client, params) {
       - `BuildTime`: **String**
     
 */
-exports.systemVersion = function(client, params) {
+exports.systemVersion = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/version',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2182,15 +2257,17 @@ exports.systemVersion = function(client, params) {
   @summary Ping
   @return {String}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     This is a dummy endpoint you can use to test if the server is accessible.
     
 */
-exports.systemPing = function(client, params) {
+exports.systemPing = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/_ping',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2215,6 +2292,7 @@ exports.systemPing = function(client, params) {
   @setting {optional String} [author] Author of the image (e.g., `John Hannibal Smith <hannibal@a-team.com>`)
   @setting {optional Boolean} [pause=true] Whether to pause the container before committing
   @setting {optional String} [changes] `Dockerfile` instructions to apply while committing
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'containerConfig'
@@ -2266,11 +2344,12 @@ exports.systemPing = function(client, params) {
       - `Id`: **String** The id of the newly created object.
     
 */
-exports.imageCommit = function(client, params) {
+exports.imageCommit = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/commit',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: [],
     pathParams: [],
@@ -2290,6 +2369,7 @@ exports.imageCommit = function(client, params) {
   @setting {optional String} [since] Show events created since this timestamp then stream new events.
   @setting {optional String} [until] Show events created until this timestamp then stop streaming.
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Stream real-time events from the server.
     
@@ -2332,11 +2412,12 @@ exports.imageCommit = function(client, params) {
       - `timeNano`: **Integer** Timestamp of event, with nanosecond accuracy
     
 */
-exports.systemEvents = function(client, params) {
+exports.systemEvents = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/events',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2352,6 +2433,7 @@ exports.systemEvents = function(client, params) {
   @summary Get data usage information
   @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -2454,11 +2536,12 @@ exports.systemEvents = function(client, params) {
             - `RefCount`: **Integer** The number of containers referencing this volume. (Optional; default: '-1')
     
 */
-exports.systemDataUsage = function(client, params) {
+exports.systemDataUsage = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/system/df',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2476,6 +2559,7 @@ exports.systemDataUsage = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Image name or ID
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Get a tarball containing all images and metadata for a repository.
     
@@ -2503,11 +2587,12 @@ exports.systemDataUsage = function(client, params) {
     
     
 */
-exports.imageGet = function(client, params) {
+exports.imageGet = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/images/{name}/get',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -2525,6 +2610,7 @@ exports.imageGet = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional Array} [names] Image names to filter by
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Get a tarball containing all images and metadata for several image repositories.
     
@@ -2534,11 +2620,12 @@ exports.imageGet = function(client, params) {
     
     
 */
-exports.imageGetAll = function(client, params) {
+exports.imageGetAll = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/images/get',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2557,6 +2644,7 @@ exports.imageGetAll = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {Object} [imagesTarball] Tar archive containing images. See description.
   @setting {optional Boolean} [quiet=false] Suppress progress details during load.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Load a set of images and tags into a repository.
     
@@ -2568,11 +2656,12 @@ exports.imageGetAll = function(client, params) {
     - **String**
     
 */
-exports.imageLoad = function(client, params) {
+exports.imageLoad = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/images/load',
     params: params,
+    block: block,
     body: 'string',
     requiredParams: [],
     pathParams: [],
@@ -2591,6 +2680,7 @@ exports.imageLoad = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {Object} [execConfig] Exec configuration. See description.
   @setting {String} [id] ID or name of container
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Run a command inside a running container.
     
@@ -2614,11 +2704,12 @@ exports.imageLoad = function(client, params) {
       - `Id`: **String** The id of the newly created object.
     
 */
-exports.containerExec = function(client, params) {
+exports.containerExec = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/containers/{id}/exec',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['execConfig','id'],
     pathParams: ['id'],
@@ -2637,6 +2728,7 @@ exports.containerExec = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {Object} [execStartConfig] See description.
   @setting {String} [id] Exec instance ID
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Starts a previously set up exec instance. If detach is true, this endpoint returns immediately after starting the command. Otherwise, it sets up an interactive session with the command.
     
@@ -2647,11 +2739,12 @@ exports.containerExec = function(client, params) {
       - `Tty`: **Boolean** Allocate a pseudo-TTY.
     
 */
-exports.execStart = function(client, params) {
+exports.execStart = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/exec/{id}/start',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -2671,15 +2764,17 @@ exports.execStart = function(client, params) {
   @setting {String} [id] Exec instance ID
   @setting {optional Integer} [h] Height of the TTY session in characters
   @setting {optional Integer} [w] Width of the TTY session in characters
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Resize the TTY session used by an exec instance. This endpoint only works if `tty` was specified as part of creating and starting the exec instance.
     
 */
-exports.execResize = function(client, params) {
+exports.execResize = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/exec/{id}/resize',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -2697,6 +2792,7 @@ exports.execResize = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Exec instance ID
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Return low-level information about an exec instance.
     
@@ -2719,11 +2815,12 @@ exports.execResize = function(client, params) {
       - `Pid`: **Integer** The system process ID for the exec process.
     
 */
-exports.execInspect = function(client, params) {
+exports.execInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/exec/{id}/json',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -2741,6 +2838,7 @@ exports.execInspect = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -2779,11 +2877,12 @@ exports.execInspect = function(client, params) {
         - Elements of type **String**
     
 */
-exports.volumeList = function(client, params) {
+exports.volumeList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/volumes',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2801,6 +2900,7 @@ exports.volumeList = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [volumeConfig] Volume configuration. See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'volumeConfig'
@@ -2831,11 +2931,12 @@ exports.volumeList = function(client, params) {
         - `RefCount`: **Integer** The number of containers referencing this volume. (Optional; default: '-1')
     
 */
-exports.volumeCreate = function(client, params) {
+exports.volumeCreate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/volumes/create',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['volumeConfig'],
     pathParams: [],
@@ -2853,6 +2954,7 @@ exports.volumeCreate = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] Volume name or ID
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -2873,11 +2975,12 @@ exports.volumeCreate = function(client, params) {
         - `RefCount`: **Integer** The number of containers referencing this volume. (Optional; default: '-1')
     
 */
-exports.volumeInspect = function(client, params) {
+exports.volumeInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/volumes/{name}',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -2896,15 +2999,17 @@ exports.volumeInspect = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [name] Volume name or ID
   @setting {optional Boolean} [force=false] Force the removal of the volume
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Instruct the driver to remove the volume.
     
 */
-exports.volumeDelete = function(client, params) {
+exports.volumeDelete = function(client, params, block) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/volumes/{name}',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -2922,6 +3027,7 @@ exports.volumeDelete = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -2938,11 +3044,12 @@ exports.volumeDelete = function(client, params) {
       - `SpaceReclaimed`: **Integer** Disk space reclaimed in bytes
     
 */
-exports.volumePrune = function(client, params) {
+exports.volumePrune = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/volumes/prune',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -2960,6 +3067,7 @@ exports.volumePrune = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -3003,11 +3111,12 @@ exports.volumePrune = function(client, params) {
           - `[KEY]`: **String**
     
 */
-exports.networkList = function(client, params) {
+exports.networkList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/networks',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -3025,6 +3134,7 @@ exports.networkList = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -3056,11 +3166,12 @@ exports.networkList = function(client, params) {
         - `[KEY]`: **String**
     
 */
-exports.networkInspect = function(client, params) {
+exports.networkInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/networks/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -3078,13 +3189,15 @@ exports.networkInspect = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.networkDelete = function(client, params) {
+exports.networkDelete = function(client, params, block) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/networks/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -3102,6 +3215,7 @@ exports.networkDelete = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [networkConfig] Network configuration. See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'networkConfig'
@@ -3131,11 +3245,12 @@ exports.networkDelete = function(client, params) {
       - `Warning`: **String**
     
 */
-exports.networkCreate = function(client, params) {
+exports.networkCreate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/networks/create',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['networkConfig'],
     pathParams: [],
@@ -3154,6 +3269,7 @@ exports.networkCreate = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
   @setting {Object} [container] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'container'
@@ -3181,11 +3297,12 @@ exports.networkCreate = function(client, params) {
         - `MacAddress`: **String**
     
 */
-exports.networkConnect = function(client, params) {
+exports.networkConnect = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/networks/{id}/connect',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['id','container'],
     pathParams: ['id'],
@@ -3204,6 +3321,7 @@ exports.networkConnect = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] Network ID or name
   @setting {Object} [container] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'container'
@@ -3213,11 +3331,12 @@ exports.networkConnect = function(client, params) {
       - `Force`: **Boolean** Force the container to disconnect from the network.
     
 */
-exports.networkDisconnect = function(client, params) {
+exports.networkDisconnect = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/networks/{id}/disconnect',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['id','container'],
     pathParams: ['id'],
@@ -3235,6 +3354,7 @@ exports.networkDisconnect = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -3250,11 +3370,12 @@ exports.networkDisconnect = function(client, params) {
         - Elements of type **String**
     
 */
-exports.networkPrune = function(client, params) {
+exports.networkPrune = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/networks/prune',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -3270,6 +3391,7 @@ exports.networkPrune = function(client, params) {
   @summary List plugins
   @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Returns information about installed plugins.
     
@@ -3363,11 +3485,12 @@ exports.networkPrune = function(client, params) {
               - Elements of type **String**
     
 */
-exports.pluginList = function(client, params) {
+exports.pluginList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/plugins',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -3385,6 +3508,7 @@ exports.pluginList = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -3396,11 +3520,12 @@ exports.pluginList = function(client, params) {
           - Elements of type **String**
     
 */
-exports.getPluginPrivileges = function(client, params) {
+exports.getPluginPrivileges = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/plugins/privileges',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: [],
@@ -3421,6 +3546,7 @@ exports.getPluginPrivileges = function(client, params) {
   @setting {optional String} [name] See description
   @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration to use when pulling a plugin from a registry. [See the authentication section for details.](#section/Authentication)
   @setting {Object} [body] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Pulls and installs a plugin. After the plugin is installed, it can be enabled using the [::postPluginsEnable].
     
@@ -3447,11 +3573,12 @@ exports.getPluginPrivileges = function(client, params) {
           - Elements of type **String**
     
 */
-exports.pluginPull = function(client, params) {
+exports.pluginPull = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/plugins/pull',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['remote'],
     pathParams: [],
@@ -3469,6 +3596,7 @@ exports.pluginPull = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -3560,11 +3688,12 @@ exports.pluginPull = function(client, params) {
             - Elements of type **String**
     
 */
-exports.pluginInspect = function(client, params) {
+exports.pluginInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/plugins/{name}/json',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -3583,6 +3712,7 @@ exports.pluginInspect = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
   @setting {optional Boolean} [force=false] Disable the plugin before removing. This may result in issues if the plugin is in use by a container.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -3674,11 +3804,12 @@ exports.pluginInspect = function(client, params) {
             - Elements of type **String**
     
 */
-exports.pluginDelete = function(client, params) {
+exports.pluginDelete = function(client, params, block) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/plugins/{name}',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -3697,13 +3828,15 @@ exports.pluginDelete = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
   @setting {optional Integer} [timeout=0] Set the HTTP client timeout (in seconds)
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.pluginEnable = function(client, params) {
+exports.pluginEnable = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/plugins/{name}/enable',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -3721,13 +3854,15 @@ exports.pluginEnable = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.pluginDisable = function(client, params) {
+exports.pluginDisable = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/plugins/{name}/disable',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -3746,6 +3881,7 @@ exports.pluginDisable = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
   @setting {Object} [tarContext] Path to tar containing plugin rootfs and manifest. See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'tarContext'
@@ -3753,11 +3889,12 @@ exports.pluginDisable = function(client, params) {
     - **String**
     
 */
-exports.pluginCreate = function(client, params) {
+exports.pluginCreate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/plugins/create',
     params: params,
+    block: block,
     body: 'string',
     requiredParams: ['name'],
     pathParams: [],
@@ -3775,16 +3912,18 @@ exports.pluginCreate = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Push a plugin to the registry.
     
     
 */
-exports.pluginPush = function(client, params) {
+exports.pluginPush = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/plugins/{name}/push',
     params: params,
+    block: block,
     
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -3803,6 +3942,7 @@ exports.pluginPush = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [name] The name of the plugin. The `:latest` tag is optional, and is the default if omitted.
   @setting {Object} [body] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -3811,11 +3951,12 @@ exports.pluginPush = function(client, params) {
       - Elements of type **String**
     
 */
-exports.pluginSet = function(client, params) {
+exports.pluginSet = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/plugins/{name}/set',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['name'],
     pathParams: ['name'],
@@ -3833,6 +3974,7 @@ exports.pluginSet = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -3879,11 +4021,12 @@ exports.pluginSet = function(client, params) {
                 - `Name`: **String**
     
 */
-exports.nodeList = function(client, params) {
+exports.nodeList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/nodes',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -3901,6 +4044,7 @@ exports.nodeList = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] The ID or name of the node
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -3934,11 +4078,12 @@ exports.nodeList = function(client, params) {
               - `Name`: **String**
     
 */
-exports.nodeInspect = function(client, params) {
+exports.nodeInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/nodes/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -3957,13 +4102,15 @@ exports.nodeInspect = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {String} [id] The ID or name of the node
   @setting {optional Boolean} [force=false] Force remove a node from the swarm
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.nodeDelete = function(client, params) {
+exports.nodeDelete = function(client, params, block) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/nodes/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -3983,6 +4130,7 @@ exports.nodeDelete = function(client, params) {
   @setting {String} [id] The ID of the node
   @setting {Object} [body] See description.
   @setting {Integer} [version] The version number of the node object being updated. This is required to avoid conflicting writes.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -3995,11 +4143,12 @@ exports.nodeDelete = function(client, params) {
       - `Availability`: **String** Availability of the node.
     
 */
-exports.nodeUpdate = function(client, params) {
+exports.nodeUpdate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/nodes/{id}/update',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['id','version'],
     pathParams: ['id'],
@@ -4015,6 +4164,7 @@ exports.nodeUpdate = function(client, params) {
   @summary Inspect swarm
   @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -4058,11 +4208,12 @@ exports.nodeUpdate = function(client, params) {
         - `Manager`: **String** The token managers can use to join the swarm.
     
 */
-exports.swarmInspect = function(client, params) {
+exports.swarmInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/swarm',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -4080,6 +4231,7 @@ exports.swarmInspect = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -4122,11 +4274,12 @@ exports.swarmInspect = function(client, params) {
     - **String** The node ID
     
 */
-exports.swarmInit = function(client, params) {
+exports.swarmInit = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/swarm/init',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['body'],
     pathParams: [],
@@ -4144,6 +4297,7 @@ exports.swarmInit = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -4155,11 +4309,12 @@ exports.swarmInit = function(client, params) {
       - `JoinToken`: **String** Secret token for joining this swarm.
     
 */
-exports.swarmJoin = function(client, params) {
+exports.swarmJoin = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/swarm/join',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['body'],
     pathParams: [],
@@ -4177,13 +4332,15 @@ exports.swarmJoin = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional Boolean} [force=false] Force leave swarm, even if this is the last manager or that it will break the cluster.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.swarmLeave = function(client, params) {
+exports.swarmLeave = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/swarm/leave',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -4205,6 +4362,7 @@ exports.swarmLeave = function(client, params) {
   @setting {optional Boolean} [rotateWorkerToken=false] Rotate the worker join token.
   @setting {optional Boolean} [rotateManagerToken=false] Rotate the manager join token.
   @setting {optional Boolean} [rotateManagerUnlockKey=false] Rotate the manager unlock key.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -4240,11 +4398,12 @@ exports.swarmLeave = function(client, params) {
             - `[KEY]`: **String**
     
 */
-exports.swarmUpdate = function(client, params) {
+exports.swarmUpdate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/swarm/update',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['body','version'],
     pathParams: [],
@@ -4260,6 +4419,7 @@ exports.swarmUpdate = function(client, params) {
   @summary Get the unlock key
   @return {Object}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -4267,11 +4427,12 @@ exports.swarmUpdate = function(client, params) {
       - `UnlockKey`: **String** The swarm's unlock key.
     
 */
-exports.swarmUnlockkey = function(client, params) {
+exports.swarmUnlockkey = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/swarm/unlockkey',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -4289,6 +4450,7 @@ exports.swarmUnlockkey = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -4297,11 +4459,12 @@ exports.swarmUnlockkey = function(client, params) {
       - `UnlockKey`: **String** The swarm's unlock key.
     
 */
-exports.swarmUnlock = function(client, params) {
+exports.swarmUnlock = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/swarm/unlock',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['body'],
     pathParams: [],
@@ -4319,6 +4482,7 @@ exports.swarmUnlock = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -4458,11 +4622,12 @@ exports.swarmUnlock = function(client, params) {
           - `Message`: **String**
     
 */
-exports.serviceList = function(client, params) {
+exports.serviceList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/services',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -4481,6 +4646,7 @@ exports.serviceList = function(client, params) {
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
   @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration for pulling from private registries. [See the authentication section for details.](#section/Authentication)
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -4586,11 +4752,12 @@ exports.serviceList = function(client, params) {
       - `Warning`: **String** Optional warning message
     
 */
-exports.serviceCreate = function(client, params) {
+exports.serviceCreate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/services/create',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['body'],
     pathParams: [],
@@ -4608,6 +4775,7 @@ exports.serviceCreate = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of service.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -4737,11 +4905,12 @@ exports.serviceCreate = function(client, params) {
         - `Message`: **String**
     
 */
-exports.serviceInspect = function(client, params) {
+exports.serviceInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/services/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -4759,13 +4928,15 @@ exports.serviceInspect = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID or name of service.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.serviceDelete = function(client, params) {
+exports.serviceDelete = function(client, params, block) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/services/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -4787,6 +4958,7 @@ exports.serviceDelete = function(client, params) {
   @setting {Integer} [version] The version number of the service object being updated. This is required to avoid conflicting writes.
   @setting {optional String} [registryAuthFrom=spec] If the X-Registry-Auth header is not specified, this parameter indicates where to find registry authorization credentials. The valid values are `spec` and `previous-spec`.
   @setting {optional String} [X-Registry-Auth] A base64-encoded auth configuration for pulling from private registries. [See the authentication section for details.](#section/Authentication)
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -4892,11 +5064,12 @@ exports.serviceDelete = function(client, params) {
       - `Deleted`: **String** The image ID of an image that was deleted
     
 */
-exports.serviceUpdate = function(client, params) {
+exports.serviceUpdate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/services/{id}/update',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: ['id','body','version'],
     pathParams: ['id'],
@@ -4921,6 +5094,7 @@ exports.serviceUpdate = function(client, params) {
   @setting {optional Integer} [since=0] Only return logs since this time, as a UNIX timestamp
   @setting {optional Boolean} [timestamps=false] Add timestamps to every log line
   @setting {optional String} [tail=all] Only return this number of log lines from the end of the logs. Specify as an integer or `all` to output all log lines.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     Get `stdout` and `stderr` logs from a service.
     
@@ -4934,11 +5108,12 @@ exports.serviceUpdate = function(client, params) {
     
     
 */
-exports.serviceLogs = function(client, params) {
+exports.serviceLogs = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/services/{id}/logs',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -4956,6 +5131,7 @@ exports.serviceLogs = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -5062,11 +5238,12 @@ exports.serviceLogs = function(client, params) {
         - `DesiredState`: **String**
     
 */
-exports.taskList = function(client, params) {
+exports.taskList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/tasks',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -5084,6 +5261,7 @@ exports.taskList = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID of the task
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -5177,11 +5355,12 @@ exports.taskList = function(client, params) {
       - `DesiredState`: **String**
     
 */
-exports.taskInspect = function(client, params) {
+exports.taskInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/tasks/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -5199,6 +5378,7 @@ exports.taskInspect = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [filters] See description
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'filters'
@@ -5312,11 +5492,12 @@ exports.taskInspect = function(client, params) {
                 - `PublishedPort`: **Integer** The port on the swarm hosts.
     
 */
-exports.secretList = function(client, params) {
+exports.secretList = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/secrets',
     params: params,
+    block: block,
     
     requiredParams: [],
     pathParams: [],
@@ -5334,6 +5515,7 @@ exports.secretList = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Setting 'body'
@@ -5350,11 +5532,12 @@ exports.secretList = function(client, params) {
       - `ID`: **String** The ID of the created secret.
     
 */
-exports.secretCreate = function(client, params) {
+exports.secretCreate = function(client, params, block) {
   return client.performRequest({
     method: 'POST',
     url: '/v1.25/secrets/create',
     params: params,
+    block: block,
     body: 'json',
     requiredParams: [],
     pathParams: [],
@@ -5372,6 +5555,7 @@ exports.secretCreate = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID of the secret
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
     
     #### Return value
@@ -5477,11 +5661,12 @@ exports.secretCreate = function(client, params) {
               - `PublishedPort`: **Integer** The port on the swarm hosts.
     
 */
-exports.secretInspect = function(client, params) {
+exports.secretInspect = function(client, params, block) {
   return client.performRequest({
     method: 'GET',
     url: '/v1.25/secrets/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],
@@ -5499,13 +5684,15 @@ exports.secretInspect = function(client, params) {
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID of the secret
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 
 */
-exports.secretDelete = function(client, params) {
+exports.secretDelete = function(client, params, block) {
   return client.performRequest({
     method: 'DELETE',
     url: '/v1.25/secrets/{id}',
     params: params,
+    block: block,
     
     requiredParams: ['id'],
     pathParams: ['id'],

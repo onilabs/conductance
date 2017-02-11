@@ -204,13 +204,15 @@ function generateMethod(path, method, method_descriptor, aux_classes) {
   @summary #{method_descriptor.summary}
   @return {#{rv_info.returns}}
 #{generateParameterDocs(parameter_info)}
+  @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
 #{desc}
 */
-exports.#{name} = function(client, params) {
+exports.#{name} = function(client, params, block) {
   return client.performRequest({
     method: '#{method.toUpperCase()}',
     url: '#{baseURL + path}',
     params: params,
+    block: block,
     #{body ? "body: '#{body}',":''}
     requiredParams: [#{parameter_info .. @filter(p->p.required) .. @transform(p->"'#{p.name}'") .. @join(',')}],
     pathParams: [#{parameter_info .. @filter(p->p.in == 'path') .. @transform(p->"'#{p.name}'") .. @join(',')}],
