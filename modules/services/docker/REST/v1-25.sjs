@@ -1596,7 +1596,7 @@ exports.imageList = function(client, params, block) {
 /**
   @function imageBuild
   @summary Build an image
-  @return {void}
+  @return {UNDOCUMENTED}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [inputStream] A tar archive compressed with one of the following algorithms: identity (no compression), gzip, bzip2, xz.. See description.
@@ -1678,7 +1678,7 @@ exports.imageBuild = function(client, params, block) {
 /**
   @function imageCreate
   @summary Create an image
-  @return {void}
+  @return {UNDOCUMENTED}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {optional String} [fromImage] Name of the image to pull. The name may include a tag or digest. This parameter may only be used when pulling an image. The pull is cancelled if the HTTP connection is closed.
@@ -2639,7 +2639,7 @@ exports.imageGetAll = function(client, params, block) {
 /**
   @function imageLoad
   @summary Import images
-  @return {void}
+  @return {UNDOCUMENTED}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [imagesTarball] Tar archive containing images. See description.
@@ -3539,7 +3539,7 @@ exports.getPluginPrivileges = function(client, params, block) {
 /**
   @function pluginPull
   @summary Install a plugin
-  @return {void}
+  @return {UNDOCUMENTED}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [remote] See description
@@ -4446,7 +4446,7 @@ exports.swarmUnlockkey = function(client, params, block) {
 /**
   @function swarmUnlock
   @summary Unlock a locked manager
-  @return {void}
+  @return {UNDOCUMENTED}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {Object} [body] See description.
@@ -5680,7 +5680,7 @@ exports.secretInspect = function(client, params, block) {
 /**
   @function secretDelete
   @summary Delete a secret
-  @return {void}
+  @return {UNDOCUMENTED}
   @param {DockerAPIClient} [api_client] API client as obtained by [../service::run]
   @param {Object} [settings] API call parameters
   @setting {String} [id] ID of the secret

@@ -303,7 +303,7 @@ function parseResponses(name, method_descriptor, aux_classes) {
           rv.returns = 'Object';
         }
         else {
-          rv.returns = 'void';
+          rv.returns = 'UNDOCUMENTED';
         }
       }
       else if (method_descriptor.produces[0] === 'text/plain') {
