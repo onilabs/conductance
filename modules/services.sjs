@@ -272,7 +272,7 @@ function withServices(settings, block) {
       |[instance_name, val]|
       if (val === null) continue;
       if (--gRunningInstances[instance_name].ref_count <= 0) {
-        console.log("Terminating service instance #{instance_name}");
+        //console.log("Terminating service instance #{instance_name}");
         gRunningInstances[instance_name].stratum.abort();
         delete gRunningInstances[instance_name];
       }
