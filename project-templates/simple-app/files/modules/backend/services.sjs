@@ -25,8 +25,8 @@ var SERVICE_INSTANCES = {
 //----------------------------------------------------------------------
 // helpers
 
-// create an encrypted localdb for storing config data
-function ConfigDB(file, pw, block) {
+// create an encrypted localdb for storing provisioning data
+function ProvisioningDB(file, pw, block) {
   @kv.LocalDB({file:file}) {
     |db|
     db .. @kv.Encrypted({password:pw}) {
@@ -44,22 +44,22 @@ function ConfigDB(file, pw, block) {
 exports.run = function(block) {
 
   //----------------------------------------------------------------------
-  // retrieve key for config.db either from config.key file, or by
+  // retrieve key for provisioning.db either from provisioning.key file, or by
   // prompting user
 
-  var config_key = '';
+  var provisioning_key = '';
 
-  var config_key_file = require.url('../../config.key') .. @url.toPath;
-  if (@fs.isFile(config_key_file)) {
-    config_key = @fs.readFile(config_key_file, 'utf8');
+  var provisioning_key_file = require.url('../../provisioning.key') .. @url.toPath;
+  if (@fs.isFile(provisioning_key_file)) {
+    provisioning_key = @fs.readFile(provisioning_key_file, 'utf8');
   }
   else {
     @terminal = require('sjs:nodejs/terminal');
     @terminal.color({foreground:'black', background:'green'}).write(
-      "No 'config.key' file found. Please enter key for config.db: ").reset();
+      "No 'provisioning.key' file found. Please enter key for provisioning.db: ").reset();
     try {
       @terminal.color({foreground:'green', background:'green', attribute:'hidden'});
-      config_key = (process.stdin .. @stream.lines .. @first).toString();
+      provisioning_key = (process.stdin .. @stream.lines .. @first).toString();
     }
     finally {
       @terminal.reset();
@@ -67,18 +67,19 @@ exports.run = function(block) {
   }
 
   // strip trailing CR-LF
-  config_key = config_key.replace(/([\r\n]+)$/, '');
+  provisioning_key = provisioning_key.replace(/([\r\n]+)$/, '');
 
 
   //----------------------------------------------------------------------
 
 
-  ConfigDB(require.url('../../config.db') .. @url.toPath, config_key) {
-    |configDB|
+  ProvisioningDB(require.url('../../provisioning.db') .. @url.toPath, provisioning_key) {
+    |provisioningDB|
   
     // Application Services
-    var registry = @services.ServicesRegistry(configDB .. @kv.Subspace('services'),
-                                              SERVICE_INSTANCES);
+    var registry = @services.ServicesRegistry(SERVICE_INSTANCES,
+                                              provisioningDB .. @kv.Subspace('services')
+                                             );
 
     @services.initGlobalRegistry(registry);
 

@@ -22,7 +22,7 @@
 /**
    @function run
    @summary Run the service
-   @param {Object} [config] Configuration object, as e.g. created by [mho:services::configUI]
+   @param {Object} [config] Configuration object, as e.g. created by [mho:services::provisioningUI]
    @param {Function} [block] Function bounding lifetime of service; will be passed a [::OAuthService] instance.
    @desc
       Usually implicitly run by [mho:services::withServices]

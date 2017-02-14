@@ -20,7 +20,12 @@ var modules = ['mho:std',
               ];
 
 if (require('sjs:sys').hostenv === 'xbrowser') {
-  modules = modules.concat({id:'mho:surface/field', name: 'field'}, 'mho:surface/components', 'mho:surface/html', {id:'sjs:marked', name:'marked'});
+  modules = modules.concat(
+    {id:'mho:surface/field', name: 'field'}, 
+    'mho:surface/components', 
+    'mho:surface/html', 
+    {id:'sjs:marked', name:'marked'}
+  );
 }
 
 @ = require(modules);
@@ -33,7 +38,7 @@ if (require('sjs:sys').hostenv === 'xbrowser') {
    @desc
       There is a well-known global services registry which is used by [::withServices] and [::withService]. It needs to be initialized before use with [::initGlobalRegistry].
    @variable ServicesRegistry.kvstore
-   @summary [./flux/kv::KVStore] Key-Value store holding configuration data for registered services
+   @summary [./flux/kv::KVStore] Key-Value store holding provisioning data for registered services
    @variable ServicesRegistry.instances 
    @summary Hash of `instance_name: service_descriptor`.
 */
@@ -43,45 +48,50 @@ var gRunningInstances = {};
 
 /**
    @function ServicesRegistry
-   @param {./flux/kv::KVStore} [config_store] Key-value store for holding configuration data
    @param {Object} [service_instances] Hash of services to register
+   @param {optional ./flux/kv::KVStore} [provisioning_store] Key-value store for holding provisioning data
    @desc
-      `config_store` will typically be a persistent [./flux/kv::LocalDB] configuration database that is encrypted ([./flux/kv::Encrypted]).
+      `provisioning_store` will typically be a persistent [./flux/kv::LocalDB] configuration database that is encrypted ([./flux/kv::Encrypted]).
 
       `service_instances` is a hash of `instance_name: service_descriptor`, where a service descriptor is an object:
 
           {
-            name:          Service name (String),
-            description:   Description of service in markdown format (String, optional),
-            service:       Id of the service module (String),
-            admin:         Id of an associated admin module (String, optional),
-            instance_params: Parameter object to pass to service instance upon creation (Object, optional)
+            name:                Service name (String),
+            description:         Description of service in markdown format (String, optional),
+            service:             Id of the service module (String),
+            admin:               Id of an associated admin module (String, optional),
+            provisioning_data:   Provisioning data used upon creation (Object|Function, optional)
           }
 
-      Registered services instances get an entry in the registry's associated key-value store, where they
-      can be configured and enabled/disabled using e.g. [::configUI].
-
-      A 'service' consists of a 'service module' and an 'admin module' - both are just normal 
+      A 'service' consists of a 'service module' and an optional 'admin module' - both are just normal 
       sjs modules (and they can point to the same module).
 
       The service module is expected to export a `run` function that takes two arguments:
-      a 'config' argument that will receive the current service configuration merged with the
-      instance_params object (if any) and a 
-      'block' argument which is a function bounding the lifetime of the service. `run` 
+      
+      - A 'config' argument that will receive service provisioning data, and a 
+      - 'block' argument which is a function bounding the lifetime of the service. `run` 
       is expected to pass the service instance to 'block'.
 
-      The (optional) admin module is expected to export a `configui` function that needs
+      The service provisioning data is given by `provisioning_data` - either a plain
+      object or a function returning a plain object. If this field is not
+      provided, the data will be taken from the service registry's associated `provisioning_store` under the key `'modules/[SERVICE_INSTANCE_NAME]@[SERVICE_NAME]'`.
+      
+      The (optional) admin module serves the purpose of creating UI for editing the services data in the provisioning store. It is expected to export a `configui` function that needs
       to be executable in an 'xbrowser' environment, and should return a [mho:surface::Element] 
       that defines a [mho:surface/field::] based configuration ui. 
       The [mho:surface::Element] will be instantiated in the context of 
       a [mho:surface/field::FieldMap].
 
+      The provisioning store contains the provisioning data for each of registered service instance for which no `provisioning_data` field is specified. 
+      UI for editing the store can be created using [::provisioningUI] which automatically assembles a UI based on the non-provisioned service modules' admin::configui functions.
+
+
      Usually an application will only use the well-known global services registry initialized with [::initGlobalRegistry]. To facilitate
-     configuration of other registries (with [::configUI]), this function can be used to initialize auxilliary registaries.
+     configuration of other registries (with [::provisioningUI]), the `ServicesRegistry` function can also be used to initialize auxilliary registaries.
 */
-function ServicesRegistry(config_store, service_instances) {
+function ServicesRegistry(service_instances, provisioning_store) {
   return {
-    kvstore: config_store,
+    kvstore: provisioning_store,
     instances: service_instances
   };
 }
@@ -116,7 +126,7 @@ function initGlobalRegistry(registry) {
 exports.initGlobalRegistry = initGlobalRegistry;
 
 
-var modulesConfigDB = registry -> registry.kvstore .. @kv.Subspace('modules');
+var modulesProvisioningDB = registry -> registry.kvstore .. @kv.Subspace('modules');
 
 
 /**
@@ -202,8 +212,7 @@ exports.withService = withService;
            ...
          }
 
-    If a particular **optional** requested service instance is disabled, a warning will be
-    written to the console and the corresponding `instance_name` in the services
+    If a particular **optional** requested service instance is set as disabled in the provisioning store, a warning will be written to the console and the corresponding `instance_name` in the services
     object will be set to `null`.
 
 
@@ -238,21 +247,46 @@ function withServices(settings, block) {
               continue;
             }
           }
-          var service_config = getGlobalRegistry() .. modulesConfigDB .. @kv.get("#{instance_name}@#{instance_info.service}", undefined);
-          if (!service_config || !service_config.enabled) {
-          if (required)
-            throw new Error("Required service instance #{instance_name}@#{instance_info.service} not enabled");
-            else {
-              console.log("Optional service instance #{instance_name}@#{instance_info.service} not enabled. Ignoring.");
-              instances[instance_name] = null;
-              continue;
-            }
-          }
           
           gRunningInstances[instance_name] = run_info = { 
             ref_count: 0,
             api: @Condition(),
-            stratum: spawn (function() { try { hold(0); require(instance_info.service).run(service_config.config .. @merge(instance_info.instance_params)) { |api| console.log("Started service instance #{instance_name}@#{instance_info.service}"); run_info.api.set(api); hold(); }; } catch(e) { run_info.api.set(new Error(e)); } })()
+            stratum: spawn (function() { 
+              try { 
+                hold(0); 
+
+                var service_provisioning;
+                if (instance_info.provisioning_data !== undefined) {
+                  // provisioning is provided statically
+                  service_provisioning = instance_info.provisioning_data;
+                  if (typeof service_provisioning === 'function')
+                    service_provisioning = service_provisioning();
+                }
+                else {
+                  // take provisioning data from registry
+                  service_provisioning = getGlobalRegistry() .. modulesProvisioningDB .. @kv.get("#{instance_name}@#{instance_info.service}", undefined);
+                  if (!service_provisioning || !service_provisioning.enabled) {
+                    if (required)
+                      throw new Error("Required service instance #{instance_name}@#{instance_info.service} not enabled");
+                    else {
+                      console.log("Optional service instance #{instance_name}@#{instance_info.service} not enabled. Ignoring.");
+                      run_info.api.set(null); return;
+                    }
+                  }
+                  service_provisioning = service_provisioning.config;
+                }
+
+                require(instance_info.service).run(service_provisioning) { 
+                  |api| 
+                  console.log("Started service instance #{instance_name}@#{instance_info.service}"); 
+                  run_info.api.set(api); 
+                  hold(); 
+                }; 
+              } 
+              catch(e) { 
+                run_info.api.set(new Error(e)); 
+              } 
+            })()
           };
         }
         // so far the block has been synchronous. we have a hold(0) in the stratum above, so that reentrant calls to withServices from 
@@ -282,19 +316,19 @@ function withServices(settings, block) {
 exports.withServices = withServices;
 
 //----------------------------------------------------------------------
-// Config UI (client-side only)
+// Provisioning UI (client-side only)
 
 /**
-   @function configUI
+   @function provisioningUI
    @param {::ServicesRegistry} [registry]
    @param {optional mho:surface::HtmlFragment} [title]
    @hostenv xbrowser
-   @summary Generate html for configuring the services registered in `registry`
-   @return {mho:surface::Element} Configuration HTML
+   @summary Generate html for configuring provisioning data for the services registered in `registry` that don't have static provisioning data
+   @return {mho:surface::Element} Provisioning configuration HTML
 */
-exports.configUI = function(registry, title) {
+exports.provisioningUI = function(registry, title) {
 
-  var CommittedConfig = @ObservableVar(registry .. modulesConfigDB .. 
+  var CommittedConfig = @ObservableVar(registry .. modulesProvisioningDB .. 
                                        @kv.query(@kv.RANGE_ALL) ..
                                        @filter(function([[key]]) {
                                          var [name, service] = key.split('@');
@@ -317,7 +351,7 @@ exports.configUI = function(registry, title) {
     // XXX we only really need to write *changed* services here
     Config .. @current .. @ownPropertyPairs .. @each.par {
       |[name,val]|
-      registry .. modulesConfigDB .. @kv.set(name, val);
+      registry .. modulesProvisioningDB .. @kv.set(name, val);
     }
     ChangesCommitted.set(true);
   }
@@ -353,10 +387,10 @@ exports.configUI = function(registry, title) {
 
   var ui = @field.Field({Value: Config}) :: 
              @field.FieldMap :: 
-               @Div('mho-services-ui') .. ConfigUICSS ::
+               @Div('mho-services-ui') .. ProvisioningUICSS ::
                  [
                    @Div('mho-services-ui__heading') :: [
-                     title || @H3 :: "Services Configuration",
+                     title || @H3 :: "Services Provisioning",
                      @Btn('raised accent') .. 
                        @OnClick(applyChanges) ..
                        @Enabled(havePendingChanges) :: "Apply Changes"
@@ -376,7 +410,7 @@ exports.configUI = function(registry, title) {
 };
 
 
-var ConfigUICSS = @CSS(
+var ProvisioningUICSS = @CSS(
   `
   .mho-services-ui__heading { 
     display:flex; 

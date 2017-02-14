@@ -19,7 +19,7 @@
 
 /**
    @class DockerServiceConfig
-   @summary Docker service configuration object, as e.g. created by [mho:services::configUI]
+   @summary Docker service configuration object, as e.g. created by [mho:services::provisioningUI]
 */
 
 //----------------------------------------------------------------------
