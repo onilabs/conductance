@@ -8577,13 +8577,13 @@
         "builtinServices": {
           "type": "variable"
         },
-        "configUI": {
-          "type": "function"
-        },
         "getGlobalRegistry": {
           "type": "function"
         },
         "initGlobalRegistry": {
+          "type": "function"
+        },
+        "provisioningUI": {
           "type": "function"
         },
         "withService": {
