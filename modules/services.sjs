@@ -374,7 +374,7 @@ exports.provisioningUI = function(registry, title) {
                       ' Enabled'
                     ],
               ],
-            @P('mho-services-ui__instance-desc') :: @RawHTML :: descriptor.description .. @marked.convert,
+            @P('mho-services-ui__instance-desc') :: @RawHTML :: (descriptor.description||'') .. @marked.convert,
 
             @field.Field('config') ::
               @field.FieldMap ::
@@ -400,7 +400,9 @@ exports.provisioningUI = function(registry, title) {
                               committed ? 
                               @P('mho-services-ui__alert') :: 'Committed Changes will become effective when server is restarted!'
                              ),
-                   registry.instances .. @ownPropertyPairs .. @map.par(makeConfigPanel)
+                   registry.instances .. @ownPropertyPairs .. 
+                     @filter([k,v] -> v.provisioning_data === undefined && v.admin) .. 
+                     @map.par(makeConfigPanel)
                    /*,@ContentGenerator((append) ->
                                      append(@Div(Config .. @project(@inspect)))) */
                  ];
