@@ -97,6 +97,24 @@ function ServicesRegistry(service_instances, provisioning_store) {
 }
 exports.ServicesRegistry = ServicesRegistry;
 
+/**
+   @function registerServiceInstances
+   @summary Add (additional) service instance to a registry
+   @param {::ServiceRegistry} [service_registry]
+   @param {Object} [service_instances] Service instance hash as described at [::ServiceRegistry]
+   @desc
+      - Throws an error if the registry already contains any service instance with the same name as one of those
+        provided in `service_instances`.
+*/
+function registerServiceInstances(registry, service_instances) {
+  service_instances .. @propertyPairs .. @each {
+    |[instance_name, descriptor]|
+    if (registry.instances[instance_name]) throw new Errror("Registry already has a service instance #{instance_name}");
+    registry.instances[instance_name] = descriptor;
+  }
+}
+exports.registerServiceInstances = registerServiceInstances;
+
 //----------------------------------------------------------------------
 
 /**
@@ -175,6 +193,13 @@ exports.builtinServices = {
         description: 'Automatic HTTPS certificates via [certbot](https://certbot.eff.org/)',
         service:     'mho:services/https/service',
         admin:       'mho:services/https/admin'
+      },
+  'docker':
+      {
+        name:        'docker',
+        description: 'Docker API',
+        service:     'mho:services/docker/service'
+        // no admin module (yet)
       }
 };
 
