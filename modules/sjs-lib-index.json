@@ -823,6 +823,15 @@
               },
               "summary": "Docker REST API"
             },
+            "highlevel": {
+              "type": "module",
+              "children": {
+                "parseMultiplexedStdOutErr": {
+                  "type": "function"
+                }
+              },
+              "summary": "High-level Docker Engine API"
+            },
             "service": {
               "type": "module",
               "children": {
@@ -8584,6 +8593,9 @@
           "type": "function"
         },
         "provisioningUI": {
+          "type": "function"
+        },
+        "registerServiceInstances": {
           "type": "function"
         },
         "withService": {
