@@ -80,6 +80,8 @@ function request(base_url, args) {
 
   var request_rv = @http.request(base_url+path, request_opts);
 
+  if (request_rv.status == 0) throw new Error("Fatal request error");
+
   if (args.block) {
     if (request_rv.statusCode < 299) {
       try {
@@ -92,7 +94,7 @@ function request(base_url, args) {
     }
     else {
       // construct a parsed request_rv object, and latch onto the error handling below
-      var original_rv = request_rv; console.log(@stream.contents);
+      var original_rv = request_rv; 
       request_rv = {
         status: original_rv.statusCode,
         content: (original_rv .. @stream.contents('utf8')) .. @join(''),
