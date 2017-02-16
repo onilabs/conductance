@@ -303,7 +303,7 @@ function withServices(settings, block) {
 
                 require(instance_info.service).run(service_provisioning) { 
                   |api| 
-                  console.log("Started service instance #{instance_name}@#{instance_info.service}"); 
+//                  console.log("Started service instance #{instance_name}@#{instance_info.service}"); 
                   run_info.api.set(api); 
                   hold(); 
                 }; 
