@@ -71,6 +71,14 @@ function request(base_url, args) {
     }
   }
 
+  args.headerParams ..
+    @filter(name -> args.params[name] !== undefined) ..
+    @transform(name -> [name,args.params[name]]) ..
+    @each {
+      |[name,val]|
+      request_opts.headers[name] = val;
+    }
+
   if (args.block) {
     request_opts.response = 'raw';
   }

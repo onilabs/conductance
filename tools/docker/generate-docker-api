@@ -181,11 +181,6 @@ function generateMethod(path, method, method_descriptor, aux_classes) {
       }
     }
 
-    // XXX
-    if (par.in == 'header') {
-      process.stderr.write("#{name}::#{par.name} of type '#{par.in}' not handled yet\n");
-    }
-
     if (par.desc) 
       desc += '\n' + par.desc + '\n';
   }
@@ -218,7 +213,7 @@ exports.#{name} = function(client, params, block) {
     pathParams: [#{parameter_info .. @filter(p->p.in == 'path') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     queryParams: [#{parameter_info .. @filter(p->p.in == 'query') .. @transform(p->"'#{p.name}'") .. @join(',')}],
     bodyParams: [#{parameter_info .. @filter(p->p.in == 'body') .. @transform(p->"'#{p.name}'") .. @join(',')}],
-    headerParams: [#{parameter_info .. @filter(p->p.in == 'header') .. @transform(p->"'#{p.name}'") .. @join(',')}],
+    headerParams: [#{parameter_info .. @filter(p->p.in == 'header') .. @transform(p->"'#{p.name}'") .. @join(',')}]
   });
 };
 
