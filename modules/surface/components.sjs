@@ -107,6 +107,8 @@ function TextField(settings) {
     innerHtml.push(@P(help_classes.join(" ")) :: settings.help);
   }
 
+//  innerHtml.push(@P(help
+
   var outer_classes = ['mho-textfield'];
   if (settings.type === 'multiline') outer_classes.push('mho-textfield--multiline');
 

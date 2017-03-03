@@ -100,13 +100,25 @@ exports.ServicesRegistry = ServicesRegistry;
 /**
    @function registerServiceInstances
    @summary Add (additional) service instance to a registry
-   @param {::ServiceRegistry} [service_registry]
+   @param {optional ::ServiceRegistry} [service_registry] Registry to add service instances to. (Default: global services registry)
    @param {Object} [service_instances] Service instance hash as described at [::ServiceRegistry]
    @desc
       - Throws an error if the registry already contains any service instance with the same name as one of those
         provided in `service_instances`.
 */
-function registerServiceInstances(registry, service_instances) {
+function registerServiceInstances(/*registry, service_instances*/) {
+  var registry, service_instances;
+  if (arguments.length === 1) {
+    registry = getGlobalRegistry();
+    service_instances = arguments[0];
+  }
+  else if (arguments.length === 2) {
+    registry = arguments[0];
+    service_instances = arguments[1];
+  }
+  else
+    throw new Error("registerServiceInstances: unexpected number of parameters");
+
   service_instances .. @propertyPairs .. @each {
     |[instance_name, descriptor]|
     if (registry.instances[instance_name]) throw new Errror("Registry already has a service instance #{instance_name}");
