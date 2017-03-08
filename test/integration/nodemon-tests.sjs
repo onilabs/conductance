@@ -54,7 +54,8 @@
       }
     }
     : function(src, dest) {
-      @childProcess.run('cp', ['-a', src, dest]);
+      // XXX -L is important here, so that we copy any 'npm link'ed source
+      @childProcess.run('cp', ['-aL', src, dest]);
     };
 
   @test("supports conductance installed in a path with special characters") {|s|
@@ -68,17 +69,12 @@
       }
       @fs.mkdir(newBase);
       ;[
-        // just copy minimal stuff required to run, notably not all of node_modules
         'conductance',
         'conductance.cmd',
         'modules',
         'hub.sjs',
         'package.json',
-        'node_modules/stratifiedjs/sjs',
-        'node_modules/stratifiedjs/package.json',
-        'node_modules/stratifiedjs/stratified-node.js',
-        'node_modules/stratifiedjs/modules',
-        'node_modules/nodemon',
+        'node_modules'
         ] .. @each {|f|
         var src = @path.join(@env.conductanceRoot, f) .. @fs.realpath;
         var dest = @path.join(newBase, f);
@@ -185,7 +181,7 @@
         [@env.executable, 'serve', '-r', '--port', '7099'],
         {
           stdio: ['ignore', 'pipe', 'pipe'],
-          cwd: base,
+          cwd: base
         });
     }
 
