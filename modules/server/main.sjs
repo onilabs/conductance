@@ -135,7 +135,7 @@ exports.serve = function(args) {
     var opts = {
       ext: 'api sjs mho gen js',
       ignore: 'frontend/',
-      exec: '"'+process.execPath.replace(/\"/g, '\\"')+'"',
+      exec: 'exec "'+process.execPath.replace(/\"/g, '\\"')+'"',
       args: [env.executable, 'serve'].concat(args),
       legacyWatch: true
     };
