@@ -1,4 +1,4 @@
-FROM node:argon
+FROM node:6.10
 MAINTAINER alex@onilabs.com
 
 # install certbot (letsencrypt.org support) - see modules/services/https
