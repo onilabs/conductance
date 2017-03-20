@@ -13,6 +13,6 @@ WORKDIR /usr/src/conductance
 COPY . /usr/src/conductance
 RUN make && ln -s /usr/src/conductance/conductance /usr/local/bin/conductance
 
-# VOLUME [ "/etc/letsencrypt" ]
+# VOLUME [ "/etc/conductance/certs/" ]
 
 ENTRYPOINT [ "conductance" ]

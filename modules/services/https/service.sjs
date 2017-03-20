@@ -28,20 +28,20 @@
    @class HttpsService
    @summary HttpsService instance
    @variable HttpsService.credentials
-   @summary An [sjs:observable::Observable] containing automatically-renewing HTTPS credentials that can be passed to [sjs:nodejs/http::withServer] or [mho:server::Port::ssl]. If credentials are not available (yet) at the expected location (/etc/letsencrypt/live/), the observable yields a test certificate for 'localhost'.
+   @summary An [sjs:observable::Observable] containing automatically-renewing HTTPS credentials that can be passed to [sjs:nodejs/http::withServer] or [mho:server::Port::ssl]. If credentials are not available (yet) at the expected location (/etc/conductance/certs/letsencrypt/live/), the observable yields a test certificate for 'localhost'.
 */
 
 /**
    @function HttpsService.updateCredentials
    @param {Boolean} [run_server] Whether `updateCredentials` should run a webserver - see description. 
-   @summary Obtain new or updated credentials from certbot and install at /etc/letsencrypt/live/.
+   @summary Obtain new or updated credentials from certbot and install at /etc/conductance/certs/letsencrypt/live/.
    @desc
 
      ### Basic Operation
 
      * This function should only be called once on application startup. After that, credentials will automatically renew in the background (via crontab at an interval of 12h). 
 
-     * Credentials will be persisted in /etc/letsencrypt/.
+     * Credentials will be persisted in /etc/conductance/certs/letsencrypt/.
 
      * If `run_server` is `false`, the caller needs to arrange for a webserver at port 80 that reachable via the configured domains and serves
        the directory `/var/letsencrypt/.well-known/` under the URL `/.well-known/`. Conversely, if `run_server` is `true`, `updateCredentials` will
@@ -71,7 +71,8 @@ exports.run = function(config, block) {
   
   var email = config.email;
   var domains = config.domains.split(/[ ,]+/);
-  var cert_root = '/etc/letsencrypt/live/';
+  var config_root = '/etc/conductance/certs/letsencrypt';
+  var cert_root = config_root + '/live/';
   var cert_dir = cert_root + domains[0];
 
   @mkdirp(cert_root);
@@ -95,6 +96,7 @@ exports.run = function(config, block) {
                                       '--agree-tos',
                                       '--expand',
                                       //'--staging',
+                                      '--config-dir', config_root,
                                       '-m', email,
                                       '--webroot',
                                       '-w', WEBROOT,
