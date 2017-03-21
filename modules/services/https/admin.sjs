@@ -20,14 +20,26 @@
 @ = require([
   'mho:std',
   'mho:surface/html',
-  'mho:surface/components'
+  'mho:surface/components',
+  {id:'mho:surface/field', name: 'field'}
 ]);
 
 exports.configui = function() {
 
   return [
     @P ::
-      `Enabling this service implies that you agree to the ACME Subscriber Agreement - for details please see the <a href='https://certbot.eff.org/'>certbot docs</a>.`,
+      `Place certificate and key files (fullchain.pem & privkey.pem) into /etc/conductance/certs/ or enable automatic certificates and fill in the details below.`,
+
+    @P ::
+      `Not that enabling automatic certificates via certbot/letsencrypt implies that you agree to the ACME Subscriber Agreement - for details please see the <a href='https://certbot.eff.org/'>certbot docs</a>.`,
+
+
+    @field.Field('use_certbot') ::
+      @Label :: 
+        [
+          @Checkbox(),
+          'Enable automatic certificates via certbot/letsencrypt'
+        ],
 
     @Div :: @TextField({
       name: 'email',

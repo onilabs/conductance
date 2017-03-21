@@ -202,7 +202,7 @@ exports.builtinServices = {
   'https':
       {
         name:        'https',
-        description: 'Automatic HTTPS certificates via [certbot](https://certbot.eff.org/)',
+        description: 'HTTPS certificates',
         service:     'mho:services/https/service',
         admin:       'mho:services/https/admin'
       },

@@ -68,11 +68,50 @@ var CHALLENGE_DIR = WEBROOT + '/.well-known/';
 
 exports.run = function(config, block) {
   console.log("Starting Https Service: ");
-  
+
+  var use_certbot = config.use_certbot;
+
+  if (use_certbot)
+    return run_with_certbot(config, block);
+  else
+    return run_with_static_certs(config, block);
+};
+
+function run_with_static_certs(config, block) {
+  var credentials;
+  try {
+    credentials = @constantObservable({
+      key:  @fs.readFile('/etc/conductance/certs/privkey.pem').toString(),
+      cert: @fs.readFile('/etc/conductance/certs/fullchain.pem').toString()
+    });
+  }
+  catch (e) {
+    console.log("Https Service: No privkey.pem/fullchain.pem found at /etc/conductance/certs/. Using dummy test certificates");
+    credentials = @constantObservable({
+      key: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.key"),
+      cert: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.crt")
+    });
+  }
+
+  try {
+    block(
+      {
+        credentials: credentials,
+        updateCredentials: () -> true
+      }
+    );
+  }
+  finally {
+    console.log("Shutting down Https Service");
+  }
+}
+
+function run_with_certbot(config, block) {
   var email = config.email;
   var domains = config.domains.split(/[ ,]+/);
-  var config_root = '/etc/conductance/certs/letsencrypt';
-  var cert_root = config_root + '/live/';
+
+  var certbot_config_root = '/etc/conductance/certs/letsencrypt';
+  var cert_root = certbot_config_root + '/live/';
   var cert_dir = cert_root + domains[0];
 
   @mkdirp(cert_root);
@@ -96,7 +135,7 @@ exports.run = function(config, block) {
                                       '--agree-tos',
                                       '--expand',
                                       //'--staging',
-                                      '--config-dir', config_root,
+                                      '--config-dir', certbot_config_root,
                                       '-m', email,
                                       '--webroot',
                                       '-w', WEBROOT,
@@ -141,7 +180,7 @@ exports.run = function(config, block) {
   finally {
     console.log("Shutting down Https Service");
   }
-};
+}
 
 //----------------------------------------------------------------------
 /**
