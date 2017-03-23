@@ -275,12 +275,17 @@ exports.StaticFormatMap = {
   api  : { none : { mime: "text/plain", compress: true } },
   md   : { none : { mime: "text/plain", compress: true } },
 
-  ttf  : { none : { mime: "application/x-font-ttf",
+  ttf  : { none : { mime: "application/font-ttf",
                     // give fonts an expiry of access + 1 month:
                     expires: -> new Date(Date.now() + 1000*60*60*24*30)
                   }
          },
   woff : { none : { mime: "application/font-woff",
+                    // give fonts an expiry of access + 1 month:
+                    expires: -> new Date(Date.now() + 1000*60*60*24*30)
+                  }
+         },
+  woff2 : { none : { mime: "application/font-woff2",
                     // give fonts an expiry of access + 1 month:
                     expires: -> new Date(Date.now() + 1000*60*60*24*30)
                   }
