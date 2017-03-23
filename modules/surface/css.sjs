@@ -173,7 +173,7 @@ __js var scope = (function() {
     if (parent_class)
       parent = toplevel .. addBlock([".#{parent_class}"]);
 
-    function processBlock(block, parent, root) {
+    function processBlock(block, parent, scope) {
       // parent is the logical parent block or scope
       // (in terms of the source), while
       // scope is the actual resulting CSS scope
@@ -186,17 +186,28 @@ __js var scope = (function() {
         } else {
           if (elem[0].charAt(0) != '@') {
             var selectors = elem[0] .. prefixWith(parent.selectors)
-            if (!selectors.length) throw new Error("unscoped CSS block");
-            processBlock(elem[1], root .. addBlock(selectors), root);
+            if (!selectors.length) throw new Error("Unscoped CSS block '#{elem[0]}'");
+            processBlock(elem[1], scope .. addBlock(selectors), scope);
           }
           else if (elem[0].indexOf('@global') === 0) {
-            // apply style globally (i.e. don't include parent selectors
-            processBlock(elem[1], toplevel, root);
+            // apply style globally (i.e. don't include parent selectors)
+            processBlock(elem[1], toplevel, scope);
+          }
+          else if (elem[0].indexOf('@font-face') === 0 ||
+                   elem[0].indexOf('@viewport') === 0 ||
+                   elem[0].indexOf('@page') === 0 ||
+                   elem[0].indexOf('@counter-style') === 0) {
+            // @-rules that take css *declarations* as children
+            // don't include parent selectors)
+            var selectors = elem[0] .. prefixWith([]);
+            if (!selectors.length) throw new Error("Unscoped CSS block '#{elem[0]}'");
+            processBlock(elem[1], scope .. addBlock(selectors), scope);
           }
           else {
-            // @keyframes or generic '@'-rule (maybe a media query)
+            // @-rules that take css *rules* as children
+            // @keyframes, @media, etc
             // don't modify selectors, just scope it:
-            var childScope = root .. addScope(elem[0]);
+            var childScope = scope .. addScope(elem[0]);
             processBlock(elem[1], parent, childScope);
           }
         }
