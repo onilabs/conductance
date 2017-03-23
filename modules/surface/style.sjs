@@ -25,7 +25,8 @@
   './style/color',
   './style/list',
   './style/drawer',
-  './style/toolbar'
+  './style/toolbar',
+  {id:'./style/fonts', name: 'fonts'}
 ]);
 
 
@@ -45,6 +46,7 @@ var CSSSurfaceDefault = [
     -webkit-font-smoothing: antialiased;
   }     
 
+  ${@fonts.Roboto({styles:['400', '500']})}
   $@Color
   $@Typography
   $@Button
