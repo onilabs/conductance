@@ -815,7 +815,7 @@ exports.GlobalCSS = function(content) {
   var id = ++gCSSCounter;
   if (isQuasi(content))
     content = content .. recursiveQuasiToString;
-  var cssdef = InternalCSSDef(scope(content));
+  var cssdef = InternalCSSDef(content);
   f._init();
   f.css[id] = [1, cssdef];
   return f;
