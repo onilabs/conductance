@@ -1,5 +1,5 @@
 **/*~
 **/.git
-**/.gup
+# **/.gup - see https://github.com/docker/hub-feedback/issues/1026
 **/.DS_Store
 node_modules
