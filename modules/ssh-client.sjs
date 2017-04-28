@@ -16,7 +16,7 @@
 
 @ = require([
   'sjs:std',
-  {id:'ssh2', name: 'Connection'}, 'sjs:shell-quote',
+  {id:'ssh2', name: 'ssh2'}, 'sjs:shell-quote',
   {id:'sjs:nodejs/stream', name:'stream'},
   {id:'sjs:nodejs/child-process', name:'childProcess'},
 ]);
@@ -74,23 +74,29 @@ function swallowAndThrowErrors(source) {
    @return {void}
    @setting {String} [host='localhost'] Hostname or IP address of server.
    @setting {Integer} [port=22] Port number of server.
+   @setting {Boolean} [forceIPv4=false] Only connect via resolved IPv4 address for host.
+   @setting {Boolean} [forceIPv6=false] Only connect via resolved IPv4 address for host.
    @setting {String} [hostHash]  'md5' or 'sha1'. The host's key is hashed using this method and passed to the `hostVerifier` function. 
    @setting {Function} [hostVerifier] Function that is passed a string hex hash of the host's key for verification purposes. Return true to continue with the connection, false to reject and disconnect. 
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for password-based user authentication.
    @setting {String} [agent] Path to ssh-agent's UNIX socket for ssh-agent-based user authentication.
+   @setting {Boolean} [agentForward=false] Whether to use OpenSSH agent forwarding (auth-agent@openssh.com) for the life of the connection. `agent` must also be set to use this feature.
    @setting {String|Buffer} [privateKey] Private key for for key-based user authentication (OpenSSH format).
    @setting {String} [passphrase]  Passphrase to decrypt an encrypted private key. 
    @setting {String} [tryKeyboard=false] Try keyboard-interactive user authentication if primary user authentication method fails.
-   @setting {Integer} [pingInterval=60000] How often (in milliseconds) to send keepalive packets to server.
-   @setting {Integer} [readyTimeout=10000] How long (in milliseconds) to wait for the SSH handshake to complete.
+   @setting {Integer} [keepaliveInterval=0] How often (in milliseconds) to send keepalive packets to server. Set 0 to disable.
+   @setting {Integer} [keepaliveCountMax=3] How many consecutive unanswered SSH-level keepalive packets to send before disconnecting.
+   @setting {Integer} [readyTimeout=20000] How long (in milliseconds) to wait for the SSH handshake to complete.
    @setting {ReadableStream} [sock] A nodejs `ReadableStream` to use for communicating with the server instead of creating a new TCP connection (useful for connection hopping).
-   @setting {Boolean} [agentForward=false] Whether to use OpenSSH agent forwarding.
+   @setting {Object} [algorithms] This option allows you to explicitly override the default transport layer algorithms used for the connection. Each value must be an array of valid algorithms for that category. The order of the algorithms in the arrays are important, with the most favorable being first. For a list of valid and default algorithm names, please review the documentation for the version of ssh2-streams used by this module (https://github.com/mscdex/ssh2-streams#ssh2stream-methods). Valid keys (all arrays): `kex` (key exchange algos), `cipher`, `serverHostKey` (server host key formats), `hmac` (HMAC algos), `compress` (compression algos).
+   @setting {Boolean|String} [compress=true] Set to true to enable compression if server supports it, 'force' to force compression (disconnecting if server does not support it), or false to explicitly opt out of compression all of the time. Note: this setting is overridden when explicitly setting a compression algorithm in the algorithms configuration option.
+   @setting {Function} [debug] Set this to a function that receives a single string argument to get detailed (local) debug information. 
    @desc
      Establishes an SSH connection to the given host and calls `block` with a [::Connection] object.
      When `block` exits (normally, by exception, or retraction), the connection will automatically be closed.
 
-     See https://github.com/onilabs/ssh2 for more information on configuation paramters.
+     See https://github.com/mscdex/ssh2 for more information on configuation paramters.
 
      #### Authentication method priorities:
 
@@ -98,7 +104,7 @@ function swallowAndThrowErrors(source) {
    
 */
 function connect(parameters, block) {
-  var connection = new @Connection();
+  var connection = new @ssh2.Client();
   
   // each `exec` call adds a `close` listener, which can cause spurious warnings
   // if the default max is left at 10
