@@ -527,7 +527,7 @@ function getSFTSession(conn) {
     session = conn;
   else if (!(session = conn.__oni_sftpsession)) {
     session = conn.__oni_sftpsession = conn .. sftp();
-    session.on('error') = logAndIgnoreError;
+    session.on('error', logAndIgnoreError);
   }
 
   return session;
