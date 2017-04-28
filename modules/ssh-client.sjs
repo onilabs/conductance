@@ -38,7 +38,8 @@ function delayed_retract(uninterrupted_acquire, delayed_retract) {
   }
 }
 
-var ignore = -> null;
+function logAndIgnoreError(err) { console.log("ssh-client error: "+err); }
+
 function swallowAndThrowErrors(source) {
   // In plenty of failure cases, an error might be emitted
   // while attempting to finalize after a previous error
@@ -51,7 +52,7 @@ function swallowAndThrowErrors(source) {
   // NOTE: ignoring errors in general is bad - you should only
   // use this function on a single-shot object which
   // will be discarded afterwards.
-  source.on('error', ignore);
+  source.on('error', logAndIgnoreError);
   throw source .. @wait('error');
 }
 
@@ -136,9 +137,9 @@ function connect(parameters, block) {
   or {
     connection.connect(parameters);
     // The ssh2 library can often emit more than one error. We catch the first
-    // error (and throw it), so supporess any unhandled errors which would
+    // error (and throw it), so suppress any unhandled errors which would
     // otherwise kill the process.
-    connection._sock.on('error', ignore);
+    connection._sock.on('error', logAndIgnoreError);
     hold();
   } or {
     connection .. @wait('timeout');
@@ -524,8 +525,10 @@ function getSFTSession(conn) {
   var session;
   if (isSFTSession(conn))
     session = conn;
-  else if (!(session = conn.__oni_sftpsession))
+  else if (!(session = conn.__oni_sftpsession)) {
     session = conn.__oni_sftpsession = conn .. sftp();
+    session.on('error') = logAndIgnoreError;
+  }
 
   return session;
 }
