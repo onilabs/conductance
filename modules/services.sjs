@@ -156,7 +156,7 @@ function initGlobalRegistry(registry) {
 exports.initGlobalRegistry = initGlobalRegistry;
 
 
-var modulesProvisioningDB = registry -> registry.kvstore .. @kv.Subspace('modules');
+var modulesProvisioningDB = registry -> registry.kvstore ? registry.kvstore .. @kv.Subspace('modules');
 
 
 /**
@@ -301,12 +301,14 @@ function withServices(settings, block) {
                 }
                 else {
                   // take provisioning data from registry
-                  service_provisioning = getGlobalRegistry() .. modulesProvisioningDB .. @kv.get("#{instance_name}@#{instance_info.service}", undefined);
+                  var provisioning_db = getGlobalRegistry() .. modulesProvisioningDB;
+                  if (provisioning_db)
+                    service_provisioning =  provisioning_db .. @kv.get("#{instance_name}@#{instance_info.service}", undefined);
                   if (!service_provisioning || !service_provisioning.enabled) {
                     if (required)
-                      throw new Error("Required service instance #{instance_name}@#{instance_info.service} not enabled");
+                      throw new Error("Required service instance #{instance_name}@#{instance_info.service} not configured or enabled");
                     else {
-                      console.log("Optional service instance #{instance_name}@#{instance_info.service} not enabled. Ignoring.");
+                      console.log("Optional service instance #{instance_name}@#{instance_info.service} not configured or enabled. Ignoring.");
                       run_info.api.set(null); return;
                     }
                   }
