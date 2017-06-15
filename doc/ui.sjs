@@ -202,9 +202,17 @@ exports.renderer = function(libraries, rootSymbol) {
 
   function makeDemo(docs) {
     if (!docs.demo) return undefined;
+
+    // determine type of demo
+    var type = docs.demo.match(/^\/\/\s*([^\s]+)/);
+    if (type) 
+      type = '-'+type[1];
+    else
+      type = '';
+
     return Element("div", [
       `<h3>Demonstration</h3>`,
-      Element("iframe", undefined, {src: "demo-eval.app" .. normalizeUrl(module.id)}) ..
+      Element("iframe", undefined, {src: "demo-eval#{type}.app" .. normalizeUrl(module.id)}) ..
       Mechanism(function(elem) {
         elem.contentWindow.resize = function() { hold(0); elem.height = elem.contentWindow.document.body.scrollHeight + 'px'; };
         while (!elem.contentWindow.run) 
