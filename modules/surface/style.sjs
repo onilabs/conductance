@@ -33,6 +33,26 @@
 //----------------------------------------------------------------------
 // Surface Default Theme; heavily inspired by https://getmdl.io & https://material.io
 
+/**
+   @variable CSSSurfaceDefault
+   @summary Surface Material Design CSS default style
+   @desc
+     This is a set of Material Design styles heavily drawing upon https://material.io.
+     It is used by the components in [mho:surface/components::].
+
+     To include these styles in a project explicitly use code like:
+
+         document.body .. @appendContent(require('mho:surface/style').CSSSurfaceDefault);
+
+     ### CSS Customization
+
+         // set these variables to change the color scheme:
+         --mho-theme-primary
+         --mho-theme-accent
+         --mho-theme-background
+
+
+*/
 var CSSSurfaceDefault = [
   @CSSNormalize,
   @GlobalCSS(`
