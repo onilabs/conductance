@@ -31,7 +31,7 @@ exports.configui = function() {
       `Place certificate and key files (fullchain.pem & privkey.pem) into /etc/conductance/certs/ or enable automatic certificates and fill in the details below.`,
 
     @P ::
-      `Not that enabling automatic certificates via certbot/letsencrypt implies that you agree to the ACME Subscriber Agreement - for details please see the <a href='https://certbot.eff.org/'>certbot docs</a>.`,
+      `Note that enabling automatic certificates via certbot/letsencrypt implies that you agree to the ACME Subscriber Agreement - for details please see the <a href='https://certbot.eff.org/'>certbot docs</a>.`,
 
 
     @field.Field('use_certbot') ::
