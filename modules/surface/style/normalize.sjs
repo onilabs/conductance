@@ -19,13 +19,32 @@
 ]);
 
 
-// Taken (and slightly modified) from getmdl.io's _h5bp.css (Apache license):
+// Taken (and slightly modified) from getmdl.io's _h5bp.css (Apache license) and
+// normalize.css v7.0.0 (MIT License | github.com/necolas/normalize.css)
 var CSSNormalize = @GlobalCSS(`
 html {
     color: rgba(0,0,0,0.87);
     font-size: 1em;
-    line-height: 1.4;
+    /*line-height: 1.4; <- _h5bp */
+    line-height: 1.15;
 }
+
+/* From normalize.css: */
+/**
+ * 1. Change the font styles in all browsers (opinionated).
+ * 2. Remove the margin in Firefox and Safari.
+ */
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: sans-serif; /* 1 */
+  font-size: 100%; /* 1 */
+  line-height: 1.15; /* 1 */
+  margin: 0; /* 2 */
+}
+
 
 /*
  * Remove text-shadow in selection highlight:
