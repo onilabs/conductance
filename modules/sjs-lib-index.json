@@ -8912,13 +8912,23 @@
             "List": {
               "type": "function"
             },
+            "List.A": {
+              "type": "function"
+            },
+            "List.Item": {
+              "type": "function"
+            },
             "PermanentDrawer": {
+              "type": "function"
+            },
+            "SelectField": {
               "type": "function"
             },
             "TextField": {
               "type": "function"
             }
-          }
+          },
+          "summary": "Standard Material Design HTML Components"
         },
         "doc-fragment": {
           "type": "module",
@@ -9166,7 +9176,11 @@
         },
         "style": {
           "type": "module",
-          "children": {},
+          "children": {
+            "CSSSurfaceDefault": {
+              "type": "variable"
+            }
+          },
           "summary": "Common CSS Style definitions"
         },
         "widgets": {

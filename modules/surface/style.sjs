@@ -37,7 +37,7 @@
    @variable CSSSurfaceDefault
    @summary Surface Material Design CSS default style
    @desc
-     This is a set of Material Design styles heavily drawing upon https://material.io.
+     This is a set of Material Design styles heavily drawing on https://material.io.
      It is used by the components in [mho:surface/components::].
 
      To include these styles in a project explicitly use code like:

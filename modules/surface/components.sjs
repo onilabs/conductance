@@ -8,6 +8,7 @@
  * copied, modified, propagated, or distributed except
  * according to the terms contained in the LICENSE file.
  */
+
 /**
    @summary Standard Material Design HTML Components
    @desc
@@ -36,7 +37,7 @@
    @desc
       Note: Expects that the default CSS Surface styles are applied - see [surface/style::CSSSurfaceDefault].
 
-      See also http://material-components-web.appspot.com/button.html.
+      See also https://material.io/components/web/catalog/buttons/.
    @demo
      // plain
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, {id:'mho:surface/components', name:'components'}]);
@@ -75,7 +76,7 @@ exports.Btn = Btn;
    @desc
       Note: Expects that the default CSS Surface styles are applied - see [surface/style::CSSSurfaceDefault].
 
-      See also http://material-components-web.appspot.com/textfield.html
+      See also https://material.io/components/web/catalog/input-controls/text-fields/.
 
       XXX Todo: document field binding; implement validation markup; fix baseline
    @demo
@@ -185,7 +186,7 @@ exports.TextField = TextField;
    @desc
       Note: Expects that the default CSS Surface styles are applied - see [surface/style::CSSSurfaceDefault].
 
-      See also XXX
+      See also https://material.io/components/web/catalog/drawers/.
    @demo
      // plain
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, {id:'mho:surface/components', name:'components'}]);
@@ -205,19 +206,57 @@ exports.PermanentDrawer = PermanentDrawer;
 //----------------------------------------------------------------------
 /**
    @function List
-   @summary XXX document me
+   @summary Material Design List widget
+   @param {surface::HtmlFragment} [content] List content
    @desc
+      List content should be wrapped in [::List.A] or [::List.Item] for appropriate styling.
+
       Note: Expects that the default CSS Surface styles are applied - see [surface/style::CSSSurfaceDefault].
 
-      See also XXX
+      See also https://material.io/components/web/catalog/lists/.
    @demo
      // plain
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, {id:'mho:surface/components', name:'components'}]);
      @mainContent .. @appendContent([
        require('mho:surface/style').CSSSurfaceDefault,
-       @GlobalCSS(``),
-       `write me`
+       @GlobalCSS(`
+       .section { display: flex; }
+       .code { margin-right: 20px; }
+       .result { border: 1px solid #aaa; }
+       `),
+       @Div('section') :: [
+         @Pre('code') :: "\
+     List ::
+       [
+         List.Item :: 'Apples',
+         List.Item :: 'Pears',
+         List.Item :: 'Oranges'
+       ]",
+         @Div('result') ::
+           @components.List ::
+             [
+               @components.List.Item :: 'Apples',
+               @components.List.Item :: 'Pears',
+               @components.List.Item :: 'Oranges'
+             ]
+       ]
      ]);
+
+   @function List.A
+   @summary An `A` wrapper for List content
+   @param {surface::HtmlFragment} [content] List content
+   @param {String} [address] Href attribute
+   @desc
+     Note: If the List is in a [::PermanentDrawer], List.A's will be marked up as selected if their 
+     href attribute matches the currently navigated URL.
+
+     See [::List].
+
+   @function List.Item
+   @summary A `Li` wrapper for List content
+   @param {surface::HtmlFragment} [content] List content
+   @desc
+     See [::List].
 */
 
 // helper that should go elsewhere:
@@ -236,7 +275,7 @@ var IsURLSelected = url -> @Observable(function(r) {
     }
 });
 
-function List(content, settings) {
+function List(content) {
   return @Ul('mho-list') :: content
 }
 
@@ -259,7 +298,7 @@ exports.List = List;
    @desc
       Note: Expects that the default CSS Surface styles are applied - see [surface/style::CSSSurfaceDefault].
 
-      See also XXX
+      See also https://material.io/components/web/catalog/toolbar/.
    @demo
      // plain
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, {id:'mho:surface/components', name:'components'}]);
@@ -293,3 +332,24 @@ function AppBar(settings) {
   ]
 }
 exports.AppBar = AppBar;
+
+//----------------------------------------------------------------------
+/**
+   @function SelectField
+   @summary xxx write me
+   @desc
+      Note: Expects that the default CSS Surface styles are applied - see [surface/style::CSSSurfaceDefault].
+
+      See also https://material.io/components/web/catalog/input-controls/select-menus/.
+   @demo
+     // plain
+     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, {id:'mho:surface/components', name:'components'}]);
+     @mainContent .. @appendContent([
+       require('mho:surface/style').CSSSurfaceDefault,
+       @GlobalCSS(``),
+       `write me`
+     ]);
+*/
+function SelectField(settings) {
+}
+exports.SelectField = SelectField;
