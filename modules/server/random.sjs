@@ -12,15 +12,28 @@
 /**
   @summary Cryptographically strong random number utilities
   @hostenv nodejs
-  @deprecated Use module sjs:crypto
 */
 
 var sjcl   = require('sjs:sjcl');
-var crypto = require('sjs:crypto');
+var crypto = require('nodejs:crypto');
+
+while (!sjcl.random.isReady()) {
+  //console.log(new Date() + ' adding entropy to random number generator');
+  waitfor(var err, buf) {
+    crypto.randomBytes(128, resume);
+  }
+  if (err) {
+    // Rarely fails, but the docs say it can
+    // when there is insufficient entropy.
+    console.warn("Error seeding RNG: #{err.message}");
+    hold(1000);
+  } else {
+    sjcl.random.addEntropy(buf.toString('hex'), 1024);
+  }
+}
 
 /**
    @function createID
-   @deprecated Use sjs:crypto::randomID
    @summary Create a cryptographically strong ID
    @param {optional Integer} [words=4] Number of 32bit random words to use for constructing the id 
    @return {String}
@@ -28,5 +41,8 @@ var crypto = require('sjs:crypto');
      * The returned string is the base64 encoding of `words` 32bit random numbers.
      * The character set used for the encoding is `A`-`Z`, `a`-`z`, `0`-`9`, `-`, `_`.
 */
-exports.createID = crypto.randomID;
+exports.createID = function(words) {
+  words = words || 4;
+  return sjcl.codec.base64.fromBits(sjcl.random.randomWords(words), true).replace(/\//g,'_').replace(/\+/g, '-');
+};
 
