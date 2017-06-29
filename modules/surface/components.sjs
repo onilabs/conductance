@@ -182,21 +182,77 @@ exports.TextField = TextField;
 //----------------------------------------------------------------------
 /**
    @function PermanentDrawer
-   @summary XXX document me
+   @summary HTML Drawer component
+   @param {surface::HtmlFragment} [content] List content
    @desc
+      A permanent drawer is always open and sits to the side of the main content. It is appropriate for any 
+      display size larger than mobile.
+
+      A drawer will typically contain a [::List] of [::List.A] elements. If the href of [::List.A] element 
+      in a drawer matches the currently navigated URL, it will be displayed in a highlighed style.
+
       Note: Expects that the default CSS Surface styles are applied - see [surface/style::CSSSurfaceDefault].
 
       See also https://material.io/components/web/catalog/drawers/.
    @demo
      // plain
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, {id:'mho:surface/components', name:'components'}]);
+     
+     var CSS = @CSS(`
+       {
+         border: 1px solid #000;
+         display: flex;
+         min-height: 100%;
+       }
+       > *:first-child {
+         flex: 0 0 auto;
+       }
+
+       > *:last-child {
+         flex: 1 1 auto;
+         margin-left: 20px;
+       }
+     `);
+
      @mainContent .. @appendContent([
        require('mho:surface/style').CSSSurfaceDefault,
-       @GlobalCSS(``),
-       `write me`
+       @Div .. CSS :: [
+         @components.PermanentDrawer :: 
+           @components.List :: [
+             @components.List.A('#inbox') :: 'Inbox',
+             @components.List.A('#outbox') :: 'Outbox',
+             @components.List.A('#trash') :: 'Trash'
+           ],
+         @Div :: @Pre :: "
+     var CSS = @CSS(`
+       {
+         display: flex;
+         min-height: 100%;
+       }
+       > *:first-child {
+         flex: 0 0 auto;
+       }
+       > *:last-child {
+         flex: 1 1 auto;
+       }
+     `);
+
+     @mainContent .. @appendContent([
+       require('mho:surface/style').CSSSurfaceDefault,
+       @Div .. CSS :: [
+         @PermanentDrawer :: 
+           @List :: [
+             @List.A('#inbox') :: 'Inbox',
+             @List.A('#outbox') :: 'Outbox',
+             @List.A('#trash') :: 'Trash'
+           ],
+         @Div :: CONTENT
+       ]
+     "
+       ]
      ]);
 */
-function PermanentDrawer(content, settings) {
+function PermanentDrawer(content) {
   return @Nav("mho-permanent-drawer") :: 
            @Div("mho-permanent-drawer__content") :: [@Div::content];
 }
@@ -206,7 +262,7 @@ exports.PermanentDrawer = PermanentDrawer;
 //----------------------------------------------------------------------
 /**
    @function List
-   @summary Material Design List widget
+   @summary HTML List component
    @param {surface::HtmlFragment} [content] List content
    @desc
       List content should be wrapped in [::List.A] or [::List.Item] for appropriate styling.
@@ -247,7 +303,7 @@ exports.PermanentDrawer = PermanentDrawer;
    @param {surface::HtmlFragment} [content] List content
    @param {String} [address] Href attribute
    @desc
-     Note: If the List is in a [::PermanentDrawer], List.A's will be marked up as selected if their 
+     Note: If the List is in a [::PermanentDrawer], List.A's will be displayed in a highlighed style if their 
      href attribute matches the currently navigated URL.
 
      See [::List].
