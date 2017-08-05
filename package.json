@@ -1,7 +1,7 @@
 { "name": "conductance"
 , "description": "Conductance Web Framework"
 , "author" : "Oni Labs <maintainers@onilabs.com>"
-, "version" : "0.6.0-development"
+, "version" : "0.6.2-development"
 , "homepage" : "https://conductance.io/"
 , "private" : true
 , "repository":
@@ -11,7 +11,7 @@
 , "main": "conductance"
 , "bin": { "conductance": "conductance" }
 , "dependencies":
-  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#0298ebd62d8e80f7be7bd208e6fde80b10e5d883"
+  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#770d9c30ef703aeb79b13e96b7d4a667b997b81f"
   , "nodemon": "~1.11.0"
   , "google-oauth-jwt": "~0.0.7"
   , "ssh2": "~0.5.4"
