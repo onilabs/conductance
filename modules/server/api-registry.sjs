@@ -15,7 +15,6 @@
 
 var { createID } = require('./random');
 var { merge } = require('sjs:object');
-var { API } = require('mho:rpc/bridge');
 
 var api_by_apiid = exports._registry = {};
 
