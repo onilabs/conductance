@@ -65,6 +65,9 @@ function request(base_url, args) {
         request_opts.headers['Content-Type'] = 'application/json';
         request_opts.body = bodyParam .. JSON.stringify;
       }
+      else if (args.body === 'string') {
+        request_opts.body = bodyParam;
+      }
       else {
         throw new Error("Don't know how to handle body of type '#{args.body}' yet. XXX write me");
       }

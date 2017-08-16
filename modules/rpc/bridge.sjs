@@ -230,16 +230,26 @@ exports.defaultMarshallers = defaultMarshallers;
 
 /**
    @class API
-   @summary Remotable
+   @summary Unfortunate legacy name for [::BoundObject].
+   @deprecated Use [::BoundObject]
+*/
+
+/**
+   @class BoundObject
+   @summary Remotable object with bound methods
    @desc
-    The API class is a (transparent) wrapper around a module's exports,
-    for the purpose of remoting.
+    The `BoundObject` class is a (transparent) wrapper that can be applied to 
+    an object for the purpose of remoting. It ensures that the object's 
+    remoted methods will be executed with a `this` pointer set to the 
+    object. When an object is remoted _without_ wrapping it with `BoundObject`, 
+    then any remoted methods will be executed with `this` set to null.
 
-    It is used internally by conductance to provide remote API
-    access (see [#features/api-file::]).
+    `BoundObject` is used internally by conductance to provide remote
+    access for modules' `exports` (see [#features/api-file::]).
 
-   @function API
-   @summary Wrap an object into a remotable API
+
+   @function BoundObject
+   @summary Mark an object as having bound methods for the purpose of remoting
    @param {Object} [obj] 
    @return {Object} 
 */
@@ -252,7 +262,7 @@ function API(obj, isBaseAPI) {
          };
 }  
 exports.API = API;
-
+exports.BoundObject = API;
 
 __js {
   var coerceBinary, isNodeJSBuffer, nodejs = @sys.hostenv === 'nodejs';

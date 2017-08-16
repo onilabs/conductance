@@ -223,8 +223,12 @@
           "children": {
             "API": {
               "type": "class",
+              "children": {}
+            },
+            "BoundObject": {
+              "type": "class",
               "children": {
-                "API": {
+                "BoundObject": {
                   "type": "ctor"
                 }
               }
