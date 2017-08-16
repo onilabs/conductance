@@ -110,19 +110,19 @@
 /*
 Protocol:
 
-  ['call', call#, dynvar_call_ctx, 0, [API_ID]] // to retrieve initial API
+  ['C', call#, dynvar_call_ctx, 0, [API_ID]] // call to retrieve initial API
 
-  ['call', call#, dynvar_call_ctx, FUNCTION_ID, [ARG1, ARG2, ARG3, ...]]
+  ['C', call#, dynvar_call_ctx, FUNCTION_ID, [ARG1, ARG2, ARG3, ...]] // generic call
 
-  ['return', call#, RV ]
+  ['R', call#, RV ] // return
 
-  ['return_exception', call#, RV]
+  ['E', call#, RV] // return exception
 
-  ['abort', call# ]
+  ['A', call# ] // abort
 
-  ['signal', FUNCTION_ID, [ARG1, ARG2, ARG3, ...]]
+  ['S', FUNCTION_ID, [ARG1, ARG2, ARG3, ...]] // signalled call
 
-  ['unpublish', id]
+  ['U', id] // unpublish a function (garbage collection across bridge
 
   Marshalling: values are being serialized as JSON
   special objects get an __oni_bridge_type attribute
@@ -533,10 +533,10 @@ function BridgeConnection(transport, opts) {
       return id;
     },
     makeSignalledCall: function(function_id, args) {
-      send(['signal', function_id, @toArray(args)])
+      send(['S', function_id, @toArray(args)])
     },
     unpublish: function(id) {
-      var args = marshall(['unpublish', id], connection);
+      var args = marshall(['U', id], connection);
       if (transport) transport.enqueue({msg: args});
     },
     makeCall: function(function_id, args) {
@@ -551,7 +551,7 @@ function BridgeConnection(transport, opts) {
           pending_calls[call_no] = [resume, @sys.getCurrentDynVarContext()];
         }
         retract {
-          send(['abort', call_no]);
+          send(['A', call_no]);
         }
         finally {
           //@logging.debug("deleting call responder #{call_no} (#{function_id})");
@@ -565,7 +565,7 @@ function BridgeConnection(transport, opts) {
         // check if the current stratum originates from a call from the other side of the bridge, and
         // if yes, tell the other side about any dynamic variable context it needs to restore:
         var dynvar_call_ctx = @sys.getDynVar("__mho_bridge_#{bridge_id}_dynvarctx", 0); // default 0 == no context to restore
-        send(['call', call_no, dynvar_call_ctx, function_id, @toArray(args)]);
+        send(['C', call_no, dynvar_call_ctx, function_id, @toArray(args)]);
       }
       if (isException) throw rv;
       return rv;
@@ -710,9 +710,9 @@ function BridgeConnection(transport, opts) {
           return;
         }
 
-        return ['return_exception', call_no, e];
+        return ['E', call_no, e];
       }
-      return ['return', call_no, rv];
+      return ['R', call_no, rv];
     }
   }
 
@@ -732,7 +732,7 @@ function BridgeConnection(transport, opts) {
         // changes, we need to change this code
         if (cb.ef.parent.parent.parent.parent.env.blscope === cfx.ef) {
           // handle the other bridge side:
-          send(['abort', call_no]);
+          send(['A', call_no]);
           // and let the resume callback handle our side:
           cb(cfx);
           return;
@@ -750,23 +750,23 @@ function BridgeConnection(transport, opts) {
     var message = unmarshall(message, connection);
 
     switch (message[0]) {
-    case 'return':
+    case 'R': // return
       var cb = pending_calls[message[1]];
       if (cb)
         cb[0](message[2], false);
       break;
-    case 'return_exception':
+    case 'E': // exception
       var cb = pending_calls[message[1]];
       if (cb)
         cb[0](message[2], true);
       break;
-    case 'signal':
+    case 'S': // signalled call
       published_funcs[message[1] /*function_id*/] .. @signal(null, message[2] /*args*/);
       break;
-    case 'unpublish':
+    case 'U': // unpublish a function
       delete published_funcs[message[1]];
       break;
-    case 'call':
+    case 'C': // call
 
       if (executing_calls[message[1]]) break; // duplicate call
       
@@ -803,7 +803,7 @@ function BridgeConnection(transport, opts) {
           tear down 'r'.
 
 
-          XXX Unfortunately tearing down 'r' causes a needless 'abort' to be sent to the client 
+          XXX Unfortunately tearing down 'r' causes a needless 'A' to be sent to the client 
           atm, so maybe we should revisit this at some point.
 
        */
@@ -858,11 +858,11 @@ function BridgeConnection(transport, opts) {
                     }
                   }
                   else {
-                    rv = ['return_exception', call_id, e[0]];
+                    rv = ['E', call_id, e[0]];
                   }
                 }
                 else {
-                  rv = ['return', call_id, e[0]];
+                  rv = ['R', call_id, e[0]];
                 }
                 
               }
@@ -878,7 +878,7 @@ function BridgeConnection(transport, opts) {
       } /* @sys.withDynVarContext */
       break;
 
-    case 'abort': 
+    case 'A': // abort
       var executing_call = executing_calls[message[1]];
       if (executing_call) {
         executing_call.abort();
@@ -889,11 +889,11 @@ function BridgeConnection(transport, opts) {
       message = message[1];
       var id = message[1];
       switch(message[0]) {
-        case 'call':
-          send(["return_exception", id, e]);
+        case 'C': // a call
+          send(["E", id, e]);
           break;
-        case 'return':
-          // turn it into return_exception
+        case 'R': // a return call
+          // turn it into an exception
           var cb = pending_calls[id];
           if (cb) cb[0](e, true);
           break;
