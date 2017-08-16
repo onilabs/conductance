@@ -32,7 +32,6 @@
      - Object
      - Function, including streams and observables
      - Error
-     - [::API]
 
      - For all types apart from Error, "own" properties are serialized (but no inherited properties)
      - the prototype chain is *not* preserved
@@ -58,8 +57,6 @@
     `spawn foo(x,y,z)`. The latter calls both cause the other end of the bridge connection to send
     out a return value when the call has finished there, whereas the signalled call does not.
     
-
-
     ### Custom types:
 
     For custom object types where the default `Object` serialization does
@@ -113,7 +110,9 @@
 /*
 Protocol:
 
-  ['call', call#, dynvar_call_ctx, API, METHOD, [ARG1, ARG2, ARG3, ...]]
+  ['call', call#, dynvar_call_ctx, 0, [API_ID]] // to retrieve initial API
+
+  ['call', call#, dynvar_call_ctx, FUNCTION_ID, [ARG1, ARG2, ARG3, ...]]
 
   ['return', call#, RV ]
 
@@ -121,8 +120,9 @@ Protocol:
 
   ['abort', call# ]
 
-  ['signal', API, METHOD, [ARG1, ARG2, ARG3, ...]]
+  ['signal', FUNCTION_ID, [ARG1, ARG2, ARG3, ...]]
 
+  ['unpublish', id]
 
   Marshalling: values are being serialized as JSON
   special objects get an __oni_bridge_type attribute
@@ -145,7 +145,7 @@ if (@sys.hostenv !== 'xbrowser') {
   }
   function unpublishFunction(id, conn) {
     return function(obj) {
-      conn.del('function', id);
+      conn.unpublish(id);
     };
   };
 }
@@ -450,10 +450,10 @@ __js {
 function unmarshallFunction(obj, connection) {
   // make a proxy for the function:
   var f = function() { 
-    return connection.makeCall(-1, obj.id, arguments);
+    return connection.makeCall(obj.id, arguments);
   };
   f[@fn.ITF_SIGNAL] = function(this_obj, args) {
-    return connection.makeSignalledCall(-1, obj.id, args);
+    return connection.makeSignalledCall(obj.id, args);
   };
   if(weak) {
     weak(f, unpublishFunction(obj.id, connection));
@@ -532,19 +532,19 @@ function BridgeConnection(transport, opts) {
       transport.sendData({id: id, t:t}, obj .. toIterableBytes);
       return id;
     },
-    makeSignalledCall: function(api, method, args) {
-      send(['signal', api, method, @toArray(args)])
+    makeSignalledCall: function(function_id, args) {
+      send(['signal', function_id, @toArray(args)])
     },
-    del: function(type, id) {
-      var args = marshall(['del', type, id], connection);
+    unpublish: function(id) {
+      var args = marshall(['unpublish', id], connection);
       if (transport) transport.enqueue({msg: args});
     },
-    makeCall: function(api, method, args) {
+    makeCall: function(function_id, args) {
       var call_no = ++call_counter;
       waitfor {
         // initiate waiting for return value:
         waitfor (var rv, isException) {
-          //@logging.debug("awaiting result for call #{call_no} (#{method})");
+          //@logging.debug("awaiting result for call #{call_no} (#{function_id})");
 
           // in addition to `resume`, we store the current dyn var context, so that it can be restored when
           // we get reentrant callback calls from the other side of the bridge:
@@ -554,7 +554,7 @@ function BridgeConnection(transport, opts) {
           send(['abort', call_no]);
         }
         finally {
-          //@logging.debug("deleting call responder #{call_no} (#{method})");
+          //@logging.debug("deleting call responder #{call_no} (#{function_id})");
           delete pending_calls[call_no];
         }
         //@logging.debug("got result for call #{call_no} - #{rv}");
@@ -565,7 +565,7 @@ function BridgeConnection(transport, opts) {
         // check if the current stratum originates from a call from the other side of the bridge, and
         // if yes, tell the other side about any dynamic variable context it needs to restore:
         var dynvar_call_ctx = @sys.getDynVar("__mho_bridge_#{bridge_id}_dynvarctx", 0); // default 0 == no context to restore
-        send(['call', call_no, dynvar_call_ctx, api, method, @toArray(args)]);
+        send(['call', call_no, dynvar_call_ctx, function_id, @toArray(args)]);
       }
       if (isException) throw rv;
       return rv;
@@ -693,10 +693,10 @@ function BridgeConnection(transport, opts) {
 
 
   __js {
-    function performReceivedCallSync(call_no, api_id, method, args) {
+    function performReceivedCallSync(call_no, function_id, args) {
       var rv;
       try {
-        rv = published_funcs[method].apply(null, args);
+        rv = published_funcs[function_id].apply(null, args);
       }
       catch (e) { 
         if (e && e.__oni_cfx) {
@@ -761,16 +761,10 @@ function BridgeConnection(transport, opts) {
         cb[0](message[2], true);
       break;
     case 'signal':
-      if (message[1] /*api_id*/ == -1) {
-        published_funcs[message[2] /*method*/] .. @signal(null, message[3] /*args*/);
-      }
+      published_funcs[message[1] /*function_id*/] .. @signal(null, message[2] /*args*/);
       break;
-    case 'del':
-      switch(message[1]) {
-        case 'function':
-          delete published_funcs[message[2]];
-          break;
-      }
+    case 'unpublish':
+      delete published_funcs[message[1]];
       break;
     case 'call':
 
@@ -834,9 +828,8 @@ function BridgeConnection(transport, opts) {
         @sys.setDynVar("__mho_bridge_#{bridge_id}_dynvarctx", message[1]);
 
         __js var call_rv = performReceivedCallSync(message[1], //call_no
-                                                   message[3], // api_id
-                                                   message[4], // method
-                                                   message[5] // args
+                                                   message[3], // function_id
+                                                   message[4] // args
                                                   );
 
         if (call_rv === undefined) break;
@@ -911,7 +904,7 @@ function BridgeConnection(transport, opts) {
 
   // XXX we want the api_name to be relative to the current app's base; not
   // sure how that's going to work from the server-side (sys:resolve??)
-  var getAPI = -> connection.makeCall(-1, 0, [opts.api]);
+  var getAPI = -> connection.makeCall(0, [opts.api]);
 
   connection.stratum = spawn receiver();
   waitfor {
