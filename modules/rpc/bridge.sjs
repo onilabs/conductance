@@ -228,42 +228,6 @@ var defaultMarshallers = [];
 
 exports.defaultMarshallers = defaultMarshallers;
 
-/**
-   @class API
-   @summary Unfortunate legacy name for [::BoundObject].
-   @deprecated Use [::BoundObject]
-*/
-
-/**
-   @class BoundObject
-   @summary Remotable object with bound methods
-   @desc
-    The `BoundObject` class is a (transparent) wrapper that can be applied to 
-    an object for the purpose of remoting. It ensures that the object's 
-    remoted methods will be executed with a `this` pointer set to the 
-    object. When an object is remoted _without_ wrapping it with `BoundObject`, 
-    then any remoted methods will be executed with `this` set to null.
-
-    `BoundObject` is used internally by conductance to provide remote
-    access for modules' `exports` (see [#features/api-file::]).
-
-
-   @function BoundObject
-   @summary Mark an object as having bound methods for the purpose of remoting
-   @param {Object} [obj] 
-   @return {Object} 
-*/
-
-var api_counter = 1;
-function API(obj, isBaseAPI) {
-  return { __oni_bridge_type: 'api', 
-           id : isBaseAPI ? 0 : api_counter++,
-           obj:obj 
-         };
-}  
-exports.API = API;
-exports.BoundObject = API;
-
 __js {
   var coerceBinary, isNodeJSBuffer, nodejs = @sys.hostenv === 'nodejs';
   var toIterableBytes = @fn.identity;
@@ -356,15 +320,6 @@ function marshall(value, connection) {
             rv.props[k] = value[k];
           };
         }
-        else if (value.__oni_bridge_type == 'api') {
-          // publish on the connection:
-          connection.publishAPI(value);
-          // serialize as "{ __oni_bridge_type:'api', methods: ['m1', 'm2', ...] }"
-          var methods = @allKeys(value.obj) .. 
-            @filter(name -> typeof value.obj[name] === 'function') ..
-            @toArray;
-          rv = { __oni_bridge_type:'api', id: value.id, methods: methods};
-        }
         else {
           // a normal object -> traverse it
           rv = processProperties(value) .. @pairsToObject;
@@ -409,9 +364,6 @@ function unmarshallComplexTypes(obj, connection) {
 
   if (obj.__oni_bridge_type == 'func') {
     rv = unmarshallFunction(obj, connection); //__js
-  }
-  else if (obj.__oni_bridge_type == 'api') {
-    rv = unmarshallAPI(obj, connection); // can be called __js
   }
   else if (obj.__oni_bridge_type == 'date') { // __js
     rv = new Date(obj.val);
@@ -494,26 +446,6 @@ __js function unmarshallError(props, connection) {
   return err;
 }
 
-function unmarshallAPI(obj, connection) {
-  // make a proxy for the api:
-  var proxy = { };
-
-  obj.methods .. @each {
-    |m| 
-    __js {
-      var f = function() { 
-        return connection.makeCall(obj.id, m, arguments);
-      };
-      f[@fn.ITF_SIGNAL] = function(this_obj, args) {
-        return connection.makeSignalledCall(obj.id, m, args);
-      };
-      proxy[m] = f;
-    }
-  }
-
-  return proxy;
-}
-
 __js {
 function unmarshallFunction(obj, connection) {
   // make a proxy for the function:
@@ -556,7 +488,6 @@ function BridgeConnection(transport, opts) {
   var pending_calls  = {}; // calls in progress, made to the other side
   var executing_calls = {}; // calls in progress, made to our side; call_no -> stratum
   var call_counter   = 0;
-  var published_apis = {};
   var published_funcs = {};
   var published_func_counter = 0;
   var closed = false;
@@ -568,8 +499,10 @@ function BridgeConnection(transport, opts) {
   // see note under `unmarshallBlob` for details
   var dataReceived = @Emitter(); 
 
-  if (opts.publish)
-    published_apis[0] = opts.publish;
+  if (opts.api_getter)
+    published_funcs[0] = opts.api_getter;
+  else
+    published_funcs[0] = function() { throw new Error("This end of the bridge does not expose an API"); }
 
   function send(data) {
     if (closed) throw @TransportError('session lost');
@@ -636,10 +569,6 @@ function BridgeConnection(transport, opts) {
       }
       if (isException) throw rv;
       return rv;
-    },
-    publishAPI: function(api) {
-      if (published_apis[api.id]) return; // already published
-      published_apis[api.id] = api.obj;
     },
     publishFunction: function(f) {
       var id = ++published_func_counter;
@@ -767,10 +696,7 @@ function BridgeConnection(transport, opts) {
     function performReceivedCallSync(call_no, api_id, method, args) {
       var rv;
       try {
-        if (api_id === -1) 
-          rv = published_funcs[method].apply(null, args);
-        else
-          rv = published_apis[api_id][method].apply(published_apis[api_id], args);
+        rv = published_funcs[method].apply(null, args);
       }
       catch (e) { 
         if (e && e.__oni_cfx) {
@@ -837,10 +763,6 @@ function BridgeConnection(transport, opts) {
     case 'signal':
       if (message[1] /*api_id*/ == -1) {
         published_funcs[message[2] /*method*/] .. @signal(null, message[3] /*args*/);
-      }
-      else {
-        published_apis[message[1] /*api_id*/][message[2] /*method*/] .. 
-          @signal(published_apis[message[1]], message[3] /*args*/);
       }
       break;
     case 'del':
@@ -989,7 +911,7 @@ function BridgeConnection(transport, opts) {
 
   // XXX we want the api_name to be relative to the current app's base; not
   // sure how that's going to work from the server-side (sys:resolve??)
-  var getAPI = -> connection.makeCall(0, 'getAPI', [opts.api]);
+  var getAPI = -> connection.makeCall(-1, 0, [opts.api]);
 
   connection.stratum = spawn receiver();
   waitfor {
@@ -1132,7 +1054,7 @@ exports.connect = function(apiinfo, opts, block) {
   @return {::BridgeConnection}
 */
 exports.accept = function(getAPI, transport) {
-  var connection = BridgeConnection(transport, {publish: {getAPI:getAPI}, throwing:false, localWrappers: false});
+  var connection = BridgeConnection(transport, {api_getter: getAPI, throwing:false, localWrappers: false});
   return connection;
 };
 

@@ -221,18 +221,6 @@
         "bridge": {
           "type": "module",
           "children": {
-            "API": {
-              "type": "class",
-              "children": {}
-            },
-            "BoundObject": {
-              "type": "class",
-              "children": {
-                "BoundObject": {
-                  "type": "ctor"
-                }
-              }
-            },
             "BridgeConnection": {
               "type": "class",
               "children": {
