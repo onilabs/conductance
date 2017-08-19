@@ -85,7 +85,8 @@ function swallowAndThrowErrors(source) {
    @setting {Boolean} [agentForward=false] Whether to use OpenSSH agent forwarding (auth-agent@openssh.com) for the life of the connection. `agent` must also be set to use this feature.
    @setting {String|Buffer} [privateKey] Private key for for key-based user authentication (OpenSSH format).
    @setting {String} [passphrase]  Passphrase to decrypt an encrypted private key. 
-   @setting {String} [tryKeyboard=false] Try keyboard-interactive user authentication if primary user authentication method fails.
+   @setting {String} [tryKeyboard=false] Try keyboard-interactive user authentication if primary user authentication method fails. See description below.
+   @setting {Function} [keyboardInteractive] Function to handle keyboard interactive prompts. See description below.
    @setting {Integer} [keepaliveInterval=0] How often (in milliseconds) to send keepalive packets to server. Set 0 to disable.
    @setting {Integer} [keepaliveCountMax=3] How many consecutive unanswered SSH-level keepalive packets to send before disconnecting.
    @setting {Integer} [readyTimeout=20000] How long (in milliseconds) to wait for the SSH handshake to complete.
@@ -102,10 +103,27 @@ function swallowAndThrowErrors(source) {
      #### Authentication method priorities:
 
          Password -> Private Key -> Agent -> Keyboard-interactive -> None
-   
+
+     #### Keyboard-interactive authentication
+     
+     If `tryKeyboard` is set to true, and the server is asking for 
+     interactive replies to prompts, the function `keyboardInteractive`
+     will be invoked with parameters 
+     
+         parameters:       parameters with which connect was called (Object)
+         name:             String, 
+         instructions:     String, 
+         instructionsLang: String, 
+         prompts:          Array of {prompt: String, echo: Boolean }
+
+     `keyboardInteractive` should respond with an array of Strings 
+     (one for each prompt).
 */
 function connect(parameters, block) {
   var connection = new @ssh2.Client();
+
+  if (parameters.tryKeyboard && !parameters.keyboardInteractive)
+    throw new Error("Need to specify `keyboardInteractive` parameter when `tryKeyboard` is true");
   
   // each `exec` call adds a `close` listener, which can cause spurious warnings
   // if the default max is left at 10
@@ -120,7 +138,20 @@ function connect(parameters, block) {
       waitfor {
         connection .. @wait('end');
         throw new Error("Socket terminated");
-      } or {
+      }
+      or {
+        if (parameters.tryKeyboard) {
+          connection .. @events('keyboard-interactive') .. @each {
+            |ev|
+            var args = Array.prototype.slice.call(ev);
+            args.unshift(parameters);
+            var continuation = args.pop();
+            continuation(parameters.keyboardInteractive.apply(null, args));
+          }
+        }
+        hold();
+      }
+      or {
         connection .. @wait('ready');
       }
       block(connection);
