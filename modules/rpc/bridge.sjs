@@ -372,9 +372,6 @@ function unmarshallComplexTypes(obj, connection) {
   else if (obj.__oni_bridge_type == 'date') { // __js
     rv = new Date(obj.val);
   }
-  else if (obj.__oni_bridge_type == 'quasi') { // __js
-    rv = @Quasi(obj.val);
-  }
   else if (obj.__oni_bridge_type == 'error') { // __js
     rv = unmarshallError(obj, connection);
   }
@@ -391,6 +388,9 @@ function unmarshallComplexTypes(obj, connection) {
 
     if (obj.__oni_bridge_type == 'blob') {
       rv = unmarshallBlob(obj, connection); // NOT __JS
+    }
+    else if (obj.__oni_bridge_type == 'quasi') {
+      rv = @Quasi(obj.val .. @map(v -> unmarshallComplexTypes(v, connection)));
     }
     else if (obj.__oni_bridge_type == 'set') {
       rv = @Set(obj.val .. @map(v -> unmarshallComplexTypes(v, connection)));
