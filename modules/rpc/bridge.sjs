@@ -30,6 +30,7 @@
 
      - Array (containing serializable types)
      - Object
+     - Set
      - Function, including streams and observables
      - Error
 
@@ -320,8 +321,11 @@ function marshall(value, connection) {
             rv.props[k] = value[k];
           };
         }
+        else if (@isSet(value)) {
+          rv = { __oni_bridge_type: 'set', val: value .. @map(prepare) }
+        }
         else {
-          // a normal object -> traverse it
+          // a generic object -> traverse it
           rv = processProperties(value) .. @pairsToObject;
         }
       }
@@ -387,6 +391,9 @@ function unmarshallComplexTypes(obj, connection) {
 
     if (obj.__oni_bridge_type == 'blob') {
       rv = unmarshallBlob(obj, connection); // NOT __JS
+    }
+    else if (obj.__oni_bridge_type == 'set') {
+      rv = @Set(obj.val .. @map(v -> unmarshallComplexTypes(v, connection)));
     }
     else if (obj.__oni_bridge_type == 'custom_marshalled') {
       var mod;
