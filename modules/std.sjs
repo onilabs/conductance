@@ -26,6 +26,7 @@
   // metadata for sjs:bundle:
   @require sjs:object
   @require sjs:array
+  @require sjs:set
   @require sjs:sequence
   @require sjs:string
   @require sjs:compare
@@ -47,6 +48,7 @@ var hostenv = require('builtin:apollo-sys').hostenv;
 var modules = [
   'sjs:object',
   'sjs:array',
+  'sjs:set',
   'sjs:sequence',
   'sjs:string',
   'sjs:compare',
@@ -307,8 +309,10 @@ module.exports = require(modules);
   ### Symbols from the [sjs:observable](#sjs%3Aobservable) module:
   
    - **changes**: (function [sjs:observable::changes])
+   - **ConstantObservable**: (function [sjs:observable::ConstantObservable])
    - **constantObservable**: (function [sjs:observable::constantObservable])
    - **current**: (function [sjs:observable::current])
+   - **DelayedObservable**: (function [sjs:observable::DelayedObservable])
    - **eventStreamToObservable**: (function [sjs:observable::eventStreamToObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])
    - **isObservable**: (function [sjs:observable::isObservable])
@@ -403,6 +407,12 @@ module.exports = require(modules);
    - **unpack**: (function [sjs:sequence::unpack])
    - **zip**: (function [sjs:sequence::zip])
    - **zipLongest**: (function [sjs:sequence::zipLongest])
+  
+  
+  ### Symbols from the [sjs:set](#sjs%3Aset) module:
+  
+   - **isSet**: (function [sjs:set::isSet])
+   - **Set**: (class [sjs:set::Set])
   
   
   ### Symbols from the [sjs:string](#sjs%3Astring) module:
