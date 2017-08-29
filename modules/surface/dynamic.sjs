@@ -93,8 +93,8 @@ var resourceRegistry = {
         delete desc.elem.__oni_mech;
       }
       // XXX might actually want to cache this for a while
-      desc.elem.parentNode.removeChild(desc.elem);
-      delete cssInstalled[id];
+      __js desc.elem.parentNode.removeChild(desc.elem);
+      __js delete cssInstalled[id];
     }
   },
   // XXX no real need to go through the whole use/unuse machinery for
@@ -331,7 +331,7 @@ exports.replaceContent = replaceContent;
 function appendContent(parent_element, html, block) {
   var inserted_nodes = nodes(parent_element, parent_element.lastChild, null);
   
-  return insertHtml(html, block, function(html) {
+  return insertHtml(html, block, __js function(html) {
     parent_element.insertAdjacentHTML('beforeend', html.getHtml());
     return inserted_nodes;
   });
@@ -354,7 +354,7 @@ exports.appendContent = appendContent;
 function prependContent(parent_element, html, block) {
   var inserted_nodes = nodes(parent_element, null, parent_element.firstChild);
 
-  return insertHtml(html, block, function(html) {
+  return insertHtml(html, block, __js function(html) {
     parent_element.insertAdjacentHTML('afterbegin', html.getHtml());
     return inserted_nodes;
   });
@@ -377,7 +377,7 @@ exports.prependContent = prependContent;
 function insertBefore(sibling, html, block) {
   var inserted_nodes = nodes(sibling.parentNode, sibling.previousSibling, sibling);
 
-  return insertHtml(html, block, function(html) {
+  return insertHtml(html, block, __js function(html) {
     if (sibling.insertAdjacentHTML)
       sibling.insertAdjacentHTML('beforebegin', html.getHtml());
     else {
@@ -413,7 +413,7 @@ exports.insertBefore = insertBefore;
 function insertAfter(sibling, html, block) {
   var inserted_nodes = nodes(sibling.parentNode, sibling, sibling.nextSibling);
 
-  return insertHtml(html, block, function(html) {
+  return insertHtml(html, block, __js function(html) {
     if (sibling.insertAdjacentHTML)
       sibling.insertAdjacentHTML('afterend', html.getHtml());
     else {
@@ -455,7 +455,7 @@ exports.insertAfter = insertAfter;
 function removeNode(node) {
   // stop our mechanism and all mechanisms below us
   stopMechanisms(node, true);
-  if (node.parentNode)
+  __js if (node.parentNode)
     node.parentNode.removeChild(node);
   
   // if node is an element, unuse our CSS and all CSS used below us
