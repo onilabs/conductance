@@ -1,4 +1,4 @@
-FROM node:6.10
+FROM node:8.4
 MAINTAINER alex@onilabs.com
 
 # install certbot (letsencrypt.org support) - see modules/services/https
