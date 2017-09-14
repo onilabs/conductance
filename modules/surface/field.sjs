@@ -910,6 +910,9 @@ var FieldMap = (elem) ->
         fieldcontainer_itf._field.value .. @changes .. @each {
           |x| 
           if (x === current_value) continue; 
+          current_value = x; // current_value will also be set from the first branch of the waitfor/and
+                             // but we want to make sure that extraneous properties on the fieldcontainer
+                             // are not lost.
           CollectNotifications.synchronize { ||
             @ownPropertyPairs(x) .. @each {
               |[key,val]|
@@ -918,7 +921,6 @@ var FieldMap = (elem) ->
               subfield[ITF_FIELD].value.set(val);
             }
           }
-          // the 'current_value' var will be updated from the 1st branch of the waitfor/and
         }
       }
     },
