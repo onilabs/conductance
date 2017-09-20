@@ -772,7 +772,7 @@ var FieldMap = (elem) ->
   @Mechanism(
     function(node) {
 
-      var fieldcontainer_itf = node[ITF_FIELDCONTAINER] = {
+      var fieldcontainer_itf = {
         getField: function(name) { return this._fieldmap[name]; },
         addField: function(name, field_node) {
           if (!name) {
@@ -807,57 +807,75 @@ var FieldMap = (elem) ->
         _fieldmap: {},
         _field_mutation_emitter: @Emitter()
         // _field: our bound field; will be set below
-      };
+      }; /* fieldcontainer_itf */
 
-      // override some methods on our containing field.
-      // xxx if the containing field is defined on the same dom node,
-      // this code requires that the field api is always installed
-      // _before_ us. we currently ensure that by setting the
-      // 'prepend' flag on the field api install
-      // mechanism. alternatively, we could run the code below in
-      // another mechanism with priority between
-      // MECH_PRIORITY_FIELD_API and MECH_PRIORITY_FIELD_SYNC
-      var field_node = node .. @getDOMITFNode(ITF_FIELD);
-      if (!field_node) throw new Error("FieldMap must be contained in a Field");
-      fieldcontainer_itf._field = field_node[ITF_FIELD];
 
-      // override field.set_display_validation, so that our subfields are also turned on:
-      fieldcontainer_itf._field.set_display_validation = @fn.seq(fieldcontainer_itf._field.set_display_validation,
-                                             function(bool) {
-                                               @ownPropertyPairs(fieldcontainer_itf._fieldmap) ..
-                                                 @each {
-                                                   |[key, subfield]|
-                                                   subfield[ITF_FIELD].set_display_validation(bool)
-                                                 }
-                                             });
-      
-      // XXX these two do too much work; we don't need to rerun *all* validators when the child
-      // validations change. What we should do is to aggregate child validations separately.
-      
-      // add validator to the field that aggregates the validation state of our subfields. xxx don't do this as a validator
-      fieldcontainer_itf._field.validators.push(-> @ownPropertyPairs(fieldcontainer_itf._fieldmap) .. aggregateSubfieldValidations); 
-      
-      // override field.validation_loop to trigger on child validation changes:
-      fieldcontainer_itf._field.validation_loop = function() {
-        // XXX allows deps like in validate_field_loop
-        if(fieldcontainer_itf._field.validators_deps .. @ownKeys .. @count > 0) 
-          throw new Error("Validator dependencies not implemented for field maps yet"); 
+      // install api, and, in finally{}, code to deinstall, so that we can dynamically add/remove a map under a field
+      try {
+        node[ITF_FIELDCONTAINER] = fieldcontainer_itf;
         
-        // XXX effectively this does validations twice, because a value change goes 
-        // hand in hand with a change in children's validation states
-        var args = @ownPropertyPairs(fieldcontainer_itf._fieldmap) .. @map([,subfield] -> subfield[ITF_FIELD].validation_state);
-        args.push(fieldcontainer_itf._field.value);
-        args.push(->0);
-        @observe.apply(null, args) .. @each.track {
-          ||
-          //console.log("VALIDATING MAP #{fieldcontainer_itf._field.id}");
-          validate_field_iteration(field_node);
-        }
-      };
+        // override some methods on our containing field.
+        // xxx if the containing field is defined on the same dom node,
+        // this code requires that the field api is always installed
+        // _before_ us. we currently ensure that by setting the
+        // 'prepend' flag on the field api install
+        // mechanism. alternatively, we could run the code below in
+        // another mechanism with priority between
+        // MECH_PRIORITY_FIELD_API and MECH_PRIORITY_FIELD_SYNC
+        var field_node = node .. @getDOMITFNode(ITF_FIELD);
+        if (!field_node) throw new Error("FieldMap must be contained in a Field");
+        fieldcontainer_itf._field = field_node[ITF_FIELD];
 
-      if (typeof fieldcontainer_itf._field.value .. @current !== 'object')
-        fieldcontainer_itf._field.value.set({});
+        // override field.set_display_validation, so that our subfields are also turned on:
+        var old_set_display_validation = fieldcontainer_itf._field.set_display_validation;
+        fieldcontainer_itf._field.set_display_validation = @fn.seq(old_set_display_validation,
+                                                                   function(bool) {
+                                                                     @ownPropertyPairs(fieldcontainer_itf._fieldmap) ..
+                                                                       @each {
+                                                                         |[key, subfield]|
+                                                                         subfield[ITF_FIELD].set_display_validation(bool)
+                                                                       }
+                                                                   });
+      
+        // XXX these two do too much work; we don't need to rerun *all* validators when the child
+        // validations change. What we should do is to aggregate child validations separately.
+        
+        // override field.validation_loop to trigger on child validation changes:
+        var old_validation_loop = fieldcontainer_itf._field.validation_loop;
+        fieldcontainer_itf._field.validation_loop = function() {
+          // XXX allows deps like in validate_field_loop
+          if(fieldcontainer_itf._field.validators_deps .. @ownKeys .. @count > 0) 
+            throw new Error("Validator dependencies not implemented for field maps yet"); 
+          
+          // XXX effectively this does validations twice, because a value change goes 
+          // hand in hand with a change in children's validation states
+          var args = @ownPropertyPairs(fieldcontainer_itf._fieldmap) .. @map([,subfield] -> subfield[ITF_FIELD].validation_state);
+          args.push(fieldcontainer_itf._field.value);
+          args.push(->0);
+          @observe.apply(null, args) .. @each.track {
+            ||
+            //console.log("VALIDATING MAP #{fieldcontainer_itf._field.id}");
+            validate_field_iteration(field_node);
+          }
+        }; /* validation_loop */
 
+        // add validator to the field that aggregates the validation state of our subfields. xxx don't do this as a validator
+        var aggregator_validator = -> @ownPropertyPairs(fieldcontainer_itf._fieldmap) .. aggregateSubfieldValidations;
+        fieldcontainer_itf._field.addValidator(aggregator_validator); 
+        
+        if (typeof fieldcontainer_itf._field.value .. @current !== 'object')
+          fieldcontainer_itf._field.value.set({});
+
+        // hold until retracted:
+        hold();
+      }
+      finally {
+        // de-install:
+        fieldcontainer_itf._field.validation_loop = old_validation_loop;
+        fieldcontainer_itf._field.removeValidator(aggregator_validator);
+        fieldcontainer_itf._field.set_display_validation = old_set_display_validation;
+        delete node[ITF_FIELDCONTAINER];
+      }
     },
     {
       priority: MECH_PRIORITY_FIELD_CONTAINER_API
@@ -1026,7 +1044,7 @@ function FieldArray(elem, settings) {
       function(node) {
         
         // fieldcontainer for our array items
-        var fieldcontainer_itf = node[ITF_FIELDCONTAINER] = {
+        var fieldcontainer_itf = {
           getField: function(name) { /* XXX */ },
           addField: function(name, field_node) { 
             // sanity check:
@@ -1051,52 +1069,70 @@ function FieldArray(elem, settings) {
           _array_mutation_emitter: @Emitter(),
           _array_length: @ObservableVar(0),
           // _field: out bound field; will be set below
-        };
+        }; /* fieldcontainer_itf */
 
-        // see notes in equivalent FieldMap code
-        var field_node = node .. @getDOMITFNode(ITF_FIELD);
-        if (!field_node) throw new Error("FieldArray must be contained in a Field");
-        fieldcontainer_itf._field = field_node[ITF_FIELD];
+        // install api, and, in finally{}, code to deinstall, so that we can dynamically add/remove an array under a field
+        try {
+          node[ITF_FIELDCONTAINER] = fieldcontainer_itf;
+
+          // see notes in equivalent FieldMap code
+          var field_node = node .. @getDOMITFNode(ITF_FIELD);
+          if (!field_node) throw new Error("FieldArray must be contained in a Field");
+          fieldcontainer_itf._field = field_node[ITF_FIELD];
 
       
-        // override field.set_display_validation, so that our subfields are also turned on:
-        fieldcontainer_itf._field.set_display_validation = @fn.seq(fieldcontainer_itf._field.set_display_validation,
-                                                                   function(bool) {
-                                                                     fieldcontainer_itf._fieldarray ..
-                                                                       @each {
-                                                                         |{node}|
-                                                                         node[ITF_FIELD].set_display_validation(bool)
-                                                                       }
-                                                                   });
-      
-        // XXX these two do too much work; we don't need to rerun *all* validators when
-        // the child validations change. What we should do is to aggregate child validations separately.
-      
-        // add validator to the field that aggreates the validation state of our subfields. XXX don't do this as a validator
-        fieldcontainer_itf._field.validators.push(-> fieldcontainer_itf._fieldarray .. @transform({node} -> node) ..
-                                                  @indexed .. aggregateSubfieldValidations);
-      
-      
-        // override field.validation_loop to trigger on child validation changes:
-        fieldcontainer_itf._field.validation_loop = function() {
-          // XXX allows deps like in validate_field_loop
-          if(fieldcontainer_itf._field.validators_deps .. @ownKeys .. @count > 0) 
-            throw new Error("Validator dependencies not implemented for field maps yet"); 
+          // override field.set_display_validation, so that our subfields are also turned on:
+          var old_set_display_validation = fieldcontainer_itf._field.set_display_validation;
+          fieldcontainer_itf._field.set_display_validation = @fn.seq(old_set_display_validation,
+                                                                     function(bool) {
+                                                                       fieldcontainer_itf._fieldarray ..
+                                                                         @each {
+                                                                           |{node}|
+                                                                           node[ITF_FIELD].set_display_validation(bool)
+                                                                         }
+                                                                     });
+          
+          // XXX these two do too much work; we don't need to rerun *all* validators when
+          // the child validations change. What we should do is to aggregate child validations separately.
+                    
+          // override field.validation_loop to trigger on child validation changes:
+          var old_validation_loop = fieldcontainer_itf._field.validation_loop;
+          fieldcontainer_itf._field.validation_loop = function() {
+            // XXX allows deps like in validate_field_loop
+            if(fieldcontainer_itf._field.validators_deps .. @ownKeys .. @count > 0) 
+              throw new Error("Validator dependencies not implemented for field arrays yet"); 
         
-          @eventStreamToObservable(fieldcontainer_itf._array_mutation_emitter,->0) .. @each.track {
-            ||
-            // XXX effectively this does validations twice, because a value change goes 
-            // hand in hand with a change in children's validation states
-            var args = fieldcontainer_itf._fieldarray .. @map(field -> field.node[ITF_FIELD].validation_state);
-            args.push(fieldcontainer_itf._field.value);
-            args.push(->0);
-            @observe.apply(null, args) .. @each.track {
+            @eventStreamToObservable(fieldcontainer_itf._array_mutation_emitter,->0) .. @each.track {
               ||
-              //console.log("VALIDATING ARRAY #{fieldcontainer_itf._field.id}");
-              validate_field_iteration(field_node);
+              // XXX effectively this does validations twice, because a value change goes 
+              // hand in hand with a change in children's validation states
+              var args = fieldcontainer_itf._fieldarray .. @map(field -> field.node[ITF_FIELD].validation_state);
+              args.push(fieldcontainer_itf._field.value);
+              args.push(->0);
+              @observe.apply(null, args) .. @each.track {
+                ||
+                //console.log("VALIDATING ARRAY #{fieldcontainer_itf._field.id}");
+                validate_field_iteration(field_node);
+              }
             }
-          }
-        };
+          }; /* validation_loop */
+
+          // add validator to the field that aggreates the validation state of our subfields. XXX don't do this as a validator
+          var aggregator_validator = -> fieldcontainer_itf._fieldarray .. @transform({node} -> node) ..
+                                                    @indexed .. aggregateSubfieldValidations;
+          fieldcontainer_itf._field.addValidator(aggregator_validator);
+
+          // hold until retracted:
+          hold();
+          
+        } 
+        finally {
+          // de-install:
+          fieldcontainer_itf._field.validation_loop = old_validation_loop;
+          fieldcontainer_itf._field.removeValidator(aggregator_validator);
+          fieldcontainer_itf._field.set_display_validation = old_set_display_validation;
+          delete node[ITF_FIELDCONTAINER];
+        }
       },
       {
         priority: MECH_PRIORITY_FIELD_CONTAINER_API
