@@ -1189,10 +1189,11 @@ function FieldArray(elem, settings) {
                                       fieldcontainer_itf._array_mutation_emitter.emit();
                                     }
                                   }) ..
-                                               Field()));
+                                               Field({initval:val})));
                 fieldcontainer_itf._fieldarray[i] = {node: inserted[0], Index: Index};
               }
-              fieldcontainer_itf._fieldarray[i].node[ITF_FIELD].value.set(val);
+              else
+                fieldcontainer_itf._fieldarray[i].node[ITF_FIELD].value.set(val);
             }
             while ( fieldcontainer_itf._fieldarray.length > x.length) {
               array_mutation = true;
