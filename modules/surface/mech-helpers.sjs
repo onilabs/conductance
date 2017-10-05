@@ -136,7 +136,7 @@ function runMechanisms(elems, mechanismsInstalled, await) {
     }
   }
 
-  // add this point 'mechs' contains all of our mechanisms sorted by priority.
+  // at this point 'mechs' contains all of our mechanisms sorted by priority.
   // let's start them:
   mechs .. PrioritySet_stream .. @each {
     |[elem, mech]|
