@@ -396,7 +396,21 @@ __js ElementProto._init = func.seq(ElementProto._init, function(tag, content, at
     if (content != null) throw new Error("#{tag} tag cannot contain content");
   }
   if (typeof attribs === 'string') attribs = { 'class': attribs};
-  this.attribs = attribs ? attribs : {};
+
+  this.attribs = {};
+  var the_elem = this; // we can't use 'this' in the blocklambda below, because we're in __js
+  if (attribs) {
+    attribs .. @allPropertyPairs .. @each {
+      |[key,val]|
+      if (@isStream(val)) {
+        the_elem .. StreamAttribMechanism(key,val, { clone_element: false});
+      }
+      else {
+        the_elem.attribs[key] = val;
+      }
+    }
+  }
+    
   this.content = content;
 });
 
@@ -458,7 +472,7 @@ ElementProto.createElement = function() {
   @function Element
   @param {String} [tag]
   @param {::HtmlFragment} [content] Content to set on DOM element
-  @param {optional Object|String} [attributes_or_class] Object with {name: string} attributes to set on DOM element, or a string of class names to apply to the element.
+  @param {optional Object|String} [attributes_or_class] Object with {name: string|Stream} attributes to set on DOM element, or a string of class names to apply to the element.
   @return {::Element}
   @desc 
     ### Notes
@@ -899,12 +913,13 @@ __js {
     
     var settings = {
       priority: MECH_PRIORITY_NORMAL,
-      prepend: false
+      prepend: false,
+      clone_element: true // undocumented: for internal use in ElementProto._init
     };
 
     function setMechanism(ft) {
       if (code == null) throw new Error("null mechanism");
-      ft = cloneElement(ft);
+      if (settings.clone_element) ft = cloneElement(ft);
       ft.mechanisms[id] = code;
       
       if(!ft.attribs['data-oni-mechs'])
@@ -963,7 +978,7 @@ __js function setAttribValue(element, name, v) {
   }
 }
 
-function StreamAttribMechanism(ft, name, obs) {
+function StreamAttribMechanism(ft, name, obs, mechanism_settings) {
   return ft .. Mechanism(function(node) {
     obs .. each {
       |v|
@@ -977,7 +992,7 @@ function StreamAttribMechanism(ft, name, obs) {
         node.setAttribute(name, v);
       }
     }
-  });
+  }, mechanism_settings);
 }
 
 /**
