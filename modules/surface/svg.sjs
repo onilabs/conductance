@@ -157,3 +157,13 @@ __js exports.ClipPath = @ElementConstructor :: function(/*content,attribs*/) {
   var content_attribs = parseOptionalContentAndAttribs(arguments);
   return @Element('clipPath', content_attribs[0], content_attribs[1]);
 }
+
+/**
+   @function Image
+   @summary Create an [image](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/image) element
+   @param {optional Object} [attributes] Attributes to set on the element
+   @return {surface::Element}
+   @desc
+     This function is an [surface::ElementConstructor], i.e. it can be used as a [surface::HtmlFragment] with or without function application.
+*/
+__js exports.Image = @ElementConstructor :: (attribs) -> @Element('image', null, attribs);
