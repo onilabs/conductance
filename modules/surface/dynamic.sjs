@@ -154,32 +154,23 @@ function unuseCSS(elems) {
   }
 }
 
-__js {
-  // it's important that this function is __js, because we don't want abort loops when 
-  // a mechanism aborts itself (e.g. OnClick -> Delete my node).
-  // Alternatively to making the whole function __js we could spawn the individual aborts 
-  // (or use the equivalent `__js (stratum.abort(),null)`, `null` being important here)
-
-  function stopMechanisms(parent, include_parent) {
-    var nodes = @helpers.StreamNodes(parent);
-    if (parent.querySelectorAll)
-      nodes = @concat(parent.querySelectorAll('._oni_mech_'), nodes);
-    if (include_parent)
-      nodes = @concat([parent], nodes);
-    
-    nodes .. @each {
-      |node|
-      if (!node.__oni_mechs) continue;
-      node.__oni_mechs .. @each {
-        |stratum|
-        stratum.abort();
-      }
-      delete node.__oni_mechs;
+function stopMechanisms(parent, include_parent) {
+  var nodes = @helpers.StreamNodes(parent);
+  if (parent.querySelectorAll)
+    nodes = @concat(parent.querySelectorAll('._oni_mech_'), nodes);
+  if (include_parent)
+    nodes = @concat([parent], nodes);
+  
+  nodes .. @each {
+    |node|
+    if (!node.__oni_mechs) continue;
+    node.__oni_mechs .. @each.par {
+      |stratum|
+      stratum.abort();
     }
+    delete node.__oni_mechs;
   }
 }
-
-
 
 function insertHtml(html, block, doInsertHtml) {
   html = collapseHtmlFragment(html);
@@ -453,15 +444,18 @@ exports.insertAfter = insertAfter;
        released. This might change in future versions of the library.
 */
 function removeNode(node) {
-  // stop our mechanism and all mechanisms below us
-  stopMechanisms(node, true);
-  __js if (node.parentNode)
-    node.parentNode.removeChild(node);
-  
-  // if node is an element, unuse our CSS and all CSS used below us
-  if (node.querySelectorAll)
-    concat([node], node.querySelectorAll('._oni_css_')) ..
-    unuseCSS();
+  // make unabortable:
+  try {} finally {
+    // stop our mechanism and all mechanisms below us
+    stopMechanisms(node, true);
+    __js if (node.parentNode)
+      node.parentNode.removeChild(node);
+    
+    // if node is an element, unuse our CSS and all CSS used below us
+    if (node.querySelectorAll)
+      concat([node], node.querySelectorAll('._oni_css_')) ..
+      unuseCSS();
+  }
 }
 exports.removeNode = removeNode;
 
@@ -554,7 +548,11 @@ exports.Enabled = (html, obs) -> html .. Attrib('disabled', obs .. transform(x->
     `event_handler` will be passed the DOM event object (possibly amended by the provided `settings` - see [sjs:event::events]), and executed with an implicit [::DynamicDOMContext] set to `element`s DOM node.
 
     Note that no buffering of events takes place: any events emitted
-    while `event_handler` is blocked will have no effect.     
+    while `event_handler` is blocked will have no effect.
+
+    Also note that `event_handler` will be aborted if `element` is removed from the DOM while `event_handler` is running.
+    See also the 'Reentrant abortion' section under [::Mechanism].
+
   @demo
      @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
      @mainContent .. @appendContent(
@@ -588,20 +586,34 @@ exports.On = On;
   @hostenv xbrowser
   @desc
     See also [::On].
+
+    Note that, as for [::On], no buffering of events takes place: any events emitted
+    while `event_handler` is blocked will have no effect.     
+
+    Also note that `OnClick` has a different abort behavior than mechanisms or [::On]:
+    Once the event handler is triggered it will NOT be aborted when `element` is removed from the DOM.
+    See also the 'Reentrant abortion' section under [::Mechanism].
+
   @demo
      @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
      @mainContent .. @appendContent(
        @demo.CodeResult(
          "@Button('click me') ..
        @OnClick({handle: @stopEvent},
-          ev -> @mainContent .. @appendContent(ev))",
+          ev -> @mainContent .. @appendContent(String(ev)))",
         @Button('click me') ..
           @OnClick({handle: @stopEvent},
           ev -> @mainContent ..
-                          @appendContent(ev))
+                          @appendContent(String(ev)))
        ));
 */
-var OnClick = (html, opts, f) -> html .. On('click', opts, f);
+function OnClick(html, opts, f) {
+  if (f === undefined) {
+    f = opts;
+    opts = undefined;
+  }
+  return html .. On('click', opts, function(ev) { var S = spawn f(ev); return S.value();});
+}
 exports.OnClick = OnClick;
 
 /**
