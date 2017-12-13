@@ -150,7 +150,7 @@ function runMechanisms(elems, mechanismsInstalled, await) {
         @waitforAll(awaitStratumError, rv);
         hold();
       } finally { 
-        rv .. @each(s -> s.abort());
+        rv .. @each.par(s -> s.abort());
       }
     }());
   }
