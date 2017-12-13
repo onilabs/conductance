@@ -888,6 +888,24 @@ console.log(content);
     front of the queue. It guarantees that - given same `priority` - on a particular 
     element, a given mechanism will be executed before all mechanisms 
     that have `prepend`=`false`.
+
+    *** Reentrant abortion ***
+
+    Removing the element to which a mechanism is attached causes the mechanism to be aborted. If the element is removed by the running mechanism itself, 
+    then this will cause the mechanism to be reentrantly aborted as soon as it suspends
+
+        document.body .. appendContent(html_elem .. 
+                                         Mechanism(function(dom_elem) {
+                                           hold(1000);
+                                           removeNode(dom_elem);
+                                           console.log('this will be executed');
+                                           hold(0); // <-- mechanism is aborted here
+                                           console.log('not reached');
+                                         }));
+
+    This behavior is consistent with how abortion/cancellation works in SJS in general, and is usually what is wanted.
+    `spawn` can be used in situations where an action initiated by a mechanism should complete even if the underlying dom element has been removed. This is e.g. done in [::OnClick], as aborting an initiated event handler is - in most circumstances - not desired.
+    
 */
 __js {
 
