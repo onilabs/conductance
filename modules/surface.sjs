@@ -297,6 +297,24 @@ module.exports = require(modules);
   element, a given mechanism will be executed before all mechanisms 
   that have `prepend`=`false`.
 
+  *** Reentrant abortion ***
+
+  Removing the element to which a mechanism is attached causes the mechanism to be aborted. If the element is removed by the running mechanism itself, 
+  then this will cause the mechanism to be reentrantly aborted as soon as it suspends
+
+      document.body .. appendContent(html_elem .. 
+                                       Mechanism(function(dom_elem) {
+                                         hold(1000);
+                                         removeNode(dom_elem);
+                                         console.log('this will be executed');
+                                         hold(0); // <-- mechanism is aborted here
+                                         console.log('not reached');
+                                       }));
+
+  This behavior is consistent with how abortion/cancellation works in SJS in general, and is usually what is wanted.
+  `spawn` can be used in situations where an action initiated by a mechanism should complete even if the underlying dom element has been removed. This is e.g. done in [::OnClick], as aborting an initiated event handler is - in most circumstances - not desired.
+  
+
 @variable MECH_PRIORITY_API
 @summary Priority at which API-injecting mechanisms should be executed to ensure that they are available for streams and other mechanisms (100). See [::Mechanism]
    
@@ -700,7 +718,11 @@ module.exports = require(modules);
   `event_handler` will be passed the DOM event object (possibly amended by the provided `settings` - see [sjs:event::events]), and executed with an implicit [::DynamicDOMContext] set to `element`s DOM node.
 
   Note that no buffering of events takes place: any events emitted
-  while `event_handler` is blocked will have no effect.     
+  while `event_handler` is blocked will have no effect.
+
+  Also note that `event_handler` will be aborted if `element` is removed from the DOM while `event_handler` is running.
+  See also the 'Reentrant abortion' section under [::Mechanism].
+
 @demo
    @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
    @mainContent .. @appendContent(
@@ -723,17 +745,25 @@ module.exports = require(modules);
 @hostenv xbrowser
 @desc
   See also [::On].
+
+  Note that, as for [::On], no buffering of events takes place: any events emitted
+  while `event_handler` is blocked will have no effect.     
+
+  Also note that `OnClick` has a different abort behavior than mechanisms or [::On]:
+  Once the event handler is triggered it will NOT be aborted when `element` is removed from the DOM.
+  See also the 'Reentrant abortion' section under [::Mechanism].
+
 @demo
    @ = require(['mho:std','mho:app',{id:'./demo-util', name:'demo'}]);
    @mainContent .. @appendContent(
      @demo.CodeResult(
        "@Button('click me') ..
      @OnClick({handle: @stopEvent},
-        ev -> @mainContent .. @appendContent(ev))",
+        ev -> @mainContent .. @appendContent(String(ev)))",
       @Button('click me') ..
         @OnClick({handle: @stopEvent},
         ev -> @mainContent ..
-                        @appendContent(ev))
+                        @appendContent(String(ev)))
      ));
 
 @function ContentGenerator
