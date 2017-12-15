@@ -88,6 +88,7 @@ context('bridge error handling') {||
               s.push(connection.api .. destroy());
             }
             catch(e) {
+              console.log(e);
               // should be retracted by virtue of block exiting
               s.push('not reached');
             }
@@ -379,6 +380,113 @@ context() {||
         }
       }.skipIf(noBlobSupport || isPhantomJS /* PhantomJS Blob implementation is busted */)
     }
+  }
+
+  context('returns_and_breaks') {||
+    test('blocklambda_return') {||
+      var rv = '';
+      function foo(api) { 
+        api.integer_stream { |x|
+          rv += x;
+          if (x === 10) return 'done';
+        }
+        return 'not reached';
+      }
+      require(url).connect() {|api|
+        rv += foo(api);
+      }
+      assert.eq(rv, '012345678910done');
+    }
+
+    test('blocklambda_return_async') {||
+      var rv = '';
+      function foo(api) { 
+        api.integer_stream { |x|
+          rv += x;
+          if (x === 10) {
+            hold(0);
+            return 'done';
+          }
+        }
+        return 'not reached';
+      }
+      require(url).connect() {|api|
+        rv += foo(api);
+      }
+      assert.eq(rv, '012345678910done');
+    }
+
+
+    test('blocklambda_return_slow') {||
+      var rv = '';
+      function foo(api) { 
+        (api.slowIntegers(0)) { |x|
+          rv += x;
+          if (x === 10) return 'done';
+        }
+        return 'not reached';
+      }
+      require(url).connect() {|api|
+        rv += foo(api);
+      }
+      assert.eq(rv, '012345678910done');
+    }
+
+    test('blocklambda_break_1') {||
+      var rv = '';
+      function foo(api) { 
+        api.integer_stream { |x|
+          rv += x;
+          if (x === 10) break;
+        }
+        return 'done';
+      }
+      require(url).connect() {|api|
+        rv += foo(api);
+      }
+      assert.eq(rv, '012345678910done');
+    }
+
+    test('blocklambda_break_2') {||
+      var rv = '';
+      function foo(api) { 
+        api.integer_stream { |x|
+          rv += x;
+          if (x === 10) break;
+        }
+        return 'done';
+      }
+      require(url).connect() {|api|
+        api.integer_stream { |x|
+          rv += x;
+          if (x === 10) break;
+        }
+        rv += 'done';
+      }
+      assert.eq(rv, '012345678910done');
+    }
+
+    test('blocklambda_break_async') {||
+      var rv = '';
+      function foo(api) { 
+        api.integer_stream { |x|
+          rv += x;
+          if (x === 10) break;
+        }
+        return 'done';
+      }
+      require(url).connect() {|api|
+        api.integer_stream { |x|
+          rv += x;
+          hold(0);
+          if (x === 10) break;
+        }
+        rv += 'done';
+      }
+      assert.eq(rv, '012345678910done');
+    }
+
+
   }
 
   context('api modules') {||

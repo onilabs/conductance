@@ -135,3 +135,8 @@ exports.slowIntegers = function(waitTime) {
     }
   });
 }
+
+exports.integer_stream = Stream(function(r) {
+  var i=0;
+  while (1) { r(i++); }
+});

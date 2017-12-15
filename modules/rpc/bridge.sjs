@@ -734,10 +734,10 @@ function BridgeConnection(transport, opts) {
       var cb = pending_calls[call_no][0];
       try { 
         // XXX FRAGILE
-        // cb.ef.parent.parent.parent.parent traverses up the execution frame structure
+        // cb.ef.parent.parent.parent traverses up the execution frame structure
         // of makeCall. This is somewhat fragile; if makeCall, or the encoding of functions
         // changes, we need to change this code
-        if (cb.ef.parent.parent.parent.parent.env.blscope === cfx.ef) {
+        if (cb.ef.parent.parent.parent.env.blscope === cfx.ef) {
           // handle the other bridge side:
           send(['A', call_no]);
           // and let the resume callback handle our side:
