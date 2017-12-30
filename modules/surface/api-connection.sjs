@@ -50,6 +50,7 @@
 function proxyObj(obj, Beta, key_path) {
   var rv;
   if (Array.isArray(obj)) {
+    //var rv = obj .. @indexed .. @map([key, val] -> proxyObj(val, Beta, key_path.concat(key))); 
     rv = [];
     obj .. @indexed .. @each {
       |[key, val]|
@@ -152,7 +153,7 @@ function ProxyAPI() {
         dest[key].proxiedFunc = val;
       }
       else if (typeof val === 'object') {
-        dest[key] = {};
+        dest[key] = Array.isArray(val) ? [] : {};
         mirrorAPIProps(src[key], dest[key], path.concat(key));
       }
       else { // static strings, numbers
