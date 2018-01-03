@@ -614,7 +614,7 @@ exports.renderer = function(libraries, rootSymbol) {
 					var library = symbol.library;
 					var root = library.root;
 					var path = symbol.relativeModulePath .. join();
-					if (!path .. endsWith('/') && !/.*\..*/.test(path)) path += '.sjs';
+					if (path.length && !path .. endsWith('/') && !/.*\..*/.test(path)) path += '.sjs';
 					var pathURI = path .. encodeNonSlashes();
 
 					view = [view, Element("div", [
