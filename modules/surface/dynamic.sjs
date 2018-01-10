@@ -375,7 +375,7 @@ function insertBefore(sibling, html, block) {
       // we're inserting before a non-element node (or on an old
       // browser without `insertAdjacentHTML` support) 
       var parent = sibling.parentNode;
-      var container = document.createElement(parent.nodeName);
+      var container = document.createElementNS(parent.namespaceURI, parent.nodeName);
       container.innerHTML = html.getHtml();
       var node;
       while ((node = container.firstChild)) {
@@ -411,7 +411,7 @@ function insertAfter(sibling, html, block) {
       // we're inserting before a non-element node (or on an old
       // browser without `insertAdjacentHTML` support) 
       var parent = sibling.parentNode;
-      var container = document.createElement(parent.nodeName);
+      var container = document.createElementNS(parent.namespaceURI, parent.nodeName);
       container.innerHTML = html.getHtml();
       var ref = sibling.nextSibling;
       var node;
