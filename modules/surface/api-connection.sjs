@@ -144,7 +144,11 @@ function ProxyAPI() {
         dest[key] = @BatchedStream(proxyFunc(-> base.wait(), path.concat(key)));
         dest[key].proxiedFunc = val;
       }
-      if (val .. @isStream) {
+      else if (val .. @isObservable) {
+        dest[key] = @Observable(proxyFunc(-> base.wait(), path.concat(key)));
+        dest[key].proxiedFunc = val;
+      }
+      else if (val .. @isStream) {
         dest[key] = @Stream(proxyFunc(-> base.wait(), path.concat(key)));
         dest[key].proxiedFunc = val;
       }
