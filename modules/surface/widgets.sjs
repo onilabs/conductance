@@ -623,7 +623,7 @@ exports.overlay = overlay;
 
      `block` is called with a [mho:surface::DynamicDOMContext] set to the same list of nodes as block's arguments.
      This means that certain operations within `block` do not require an explicit context. E.g. [mho:surface/field::Field]s contained 
-     in the first top-level content DOM node can be implicitly resolved. Similarly, any commands emitted by [mho:surface/cmd::On] on
+     in the top-level content DOM nodes can be implicitly resolved. Similarly, any commands emitted by [mho:surface/cmd::On] on
      *any* of the content nodes or the backdrop node can be bound to using [mho:surface/cmd::stream].
 
      Clicks on the background generate command 'dialog-close'. If 'dialog-close' is active (i.e. being listened for), a 
