@@ -28,7 +28,7 @@ if (hostenv !== 'xbrowser')
   {id:'./base', include: ['Mechanism', 'MECH_PRIORITY_API', 'MECH_PRIORITY_STREAM', 'MECH_PRIORITY_NORMAL']},
   {id:'./dynamic', include: ['appendContent', 'removeNode']},
   {id:'sjs:type', include: ['Interface']},
-  {id:'./nodes', include: ['getDOMNode', 'getDOMITF', 'getDOMITFNode']}
+  {id:'./nodes', include: ['getDOMNodes', 'getDOMITF', 'getDOMITFNode']}
 ]);
 
 var MECH_PRIORITY_FIELD_API = @MECH_PRIORITY_API;
@@ -278,7 +278,7 @@ exports.Valid = function(/*[node], [path]*/) {
 /**
    @function getField
    @summary Find a DOM node bound to a Field 
-   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
+   @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext], trying to resolve the field in all root nodes of the context.
    @param {optional String} [path] Address of the field in a container hierarchy
    @desc
      If `path` is undefined, `getField` returns the closest parent that has a [::Field] attached.
@@ -317,7 +317,15 @@ function getField(/*[node], [path]*/) {
       throw new Error("Invalid argument to getField(); DOM node expected, #{node} given");
   }
   else {
-    node = @getDOMNode();
+    // try each node in the implicit DOM context:
+    @getDOMNodes() .. @each { 
+      |node|
+      try {
+        return getField(node, path);
+      }
+      catch(e) { /* ignore */ }
+    }
+    throw new Error("Cannot resolve field '#{path?path:''}' in implicit DOM context");
   }
     
   if (!path && node[ITF_FIELD]) return node;
