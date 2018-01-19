@@ -888,7 +888,7 @@ function BridgeConnection(transport, opts) {
     case 'A': // abort
       var executing_call = executing_calls[message[1]];
       if (executing_call) {
-        executing_call.abort();
+        spawn executing_call.abort();
       }
       break;
     case 'unserializable':
