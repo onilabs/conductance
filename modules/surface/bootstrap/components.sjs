@@ -1588,7 +1588,14 @@ function SelectInput(settings) {
                       function({node}) {
                         TextValue.set(node.txt);
                       }
-                     )
+                     ) ..
+                    @On('keydown', {
+                      filter: ev -> ev.key === 'ArrowDown' || ev.key === 'ArrowUp'
+                    }, function(ev) {
+                      if (ev.key === 'ArrowDown') var newFocus = ev.target.parentNode.nextSibling;
+                      if (ev.key === 'ArrowUp') var newFocus = ev.target.parentNode.previousSibling;
+                      if (newFocus && newFocus.nodeName != '#comment') newFocus.querySelector('a').focus();
+                    })
                  );
  
   // bootstrap doesn't correctly style segmented buttons that have
@@ -1628,7 +1635,14 @@ function SelectInput(settings) {
 
   var Input = @html.Input({value:TextValue}) ..
     @On('input', 
-        ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open'));
+        ev -> ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')) ..
+    @On('keydown', {
+          filter: ev -> ev.key === 'ArrowDown'
+      }, function(ev) {
+      var newFocus = ev.target.parentNode.querySelector('ul.dropdown-menu :first-child')
+      ev.target.parentNode.querySelector('.input-group-btn').classList.add('open')
+      if (newFocus) newFocus.querySelector('a').focus();
+    });
 
   if (settings.placeholder)
     Input = Input .. @Attrib('placeholder', settings.placeholder);
