@@ -747,6 +747,23 @@ function readFile(conn, path, options){
 }
 exports.readFile = readFile;
 
+/**
+   @function fastGet
+   @summary copy a file from the source sftp server to a local destination
+   @param {::Connection|::SFTPSession} [connection] Connection or SFTP session
+   @param {String} [src] Path to the source file on the remote SFTP server
+   @param {String} [dest] Path to the destination locally
+   @param {optional Function} [stepFunction] Function that is called for each chunk transferred
+*/
+function fastGet(conn, src, dest, stepFunction) {
+  var session = conn .. getSFTSession();
+  waitfor (var err) { 
+    session.fastGet(src, dest, {step: stepFunction}, resume);
+  }
+  if (err) throw err;
+}
+exports.fastGet = fastGet;
+
 /** 
     @function mkdir
     @summary XXX document me
