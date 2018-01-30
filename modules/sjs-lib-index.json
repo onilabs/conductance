@@ -8683,6 +8683,9 @@
         "exec": {
           "type": "function"
         },
+        "fastGet": {
+          "type": "function"
+        },
         "fileStream": {
           "type": "function"
         },
@@ -9360,5 +9363,5 @@
     }
   },
   "summary": "The Conductance web application framework",
-  "version": "0.6.6-development"
+  "version": "0.6.7-development"
 }
