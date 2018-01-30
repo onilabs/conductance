@@ -165,7 +165,9 @@ function LevelDB(location, options) {
        @function LevelDB.query
        @param {optional Object} [options] See https://github.com/rvagg/node-leveldown#leveldowniteratoroptions
        @return {sjs:sequence::Stream} Stream of [key, value] query results
-       @summary  Low-level LevelDB function reading a contiguous range of keys.
+       @summary  Low-level LevelDB function reading a contiguous range of keys
+       @desc
+         The returned stream will be based on a stable view of the database content as of the time that iteration starts.
     */
     query: function(options) {
       return @Stream(function(receiver) {

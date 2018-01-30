@@ -202,6 +202,30 @@ function test_reverse_range_query(db) {
   db .. @kv.query(@kv.RANGE_ALL, {reverse: true}) .. @toArray .. @assert.eq(kv_pairs .. @clone .. @reverse);
 }
 
+// Test that range queries are 'snapshotted' to the time that they are executed:
+function test_concurrent_mod_and_query(db) {
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+
+  db .. @kv.query(@kv.RANGE_ALL) .. @toArray .. @assert.eq([]);
+
+  var EOF = {};
+  db ..@kv.query(@kv.RANGE_ALL) .. @consume(EOF, function (next) {
+    db .. @kv.clearRange(@kv.RANGE_ALL);
+
+    @integers(1) .. @take(500) .. @each { |i| db .. @kv.set(i, i) }
+
+    next() ..@assert.eq([[1], 1]);
+
+    @integers(1) .. @take(100) .. @each { |i| db .. @kv.set(i+400, i+400) }
+
+    @integers(1) .. @take(499) .. @each { |i| next() .. @assert.eq([[i+1], i+1]) }
+
+    next() ..@assert.is(EOF);
+  });
+
+
+}
+
 function test_child_query(db) {
   db .. @kv.clearRange(@kv.RANGE_ALL);
 
@@ -479,6 +503,7 @@ function test_all(new_db) {
       @test("clear")       { |s| s .. wrap(test_clear)       }
       @test("get")         { |s| s .. wrap(test_get)         }
       @test("range_query") { |s| s .. wrap(test_range_query) }
+      @test("concurrent_mod_and_query") { |s| s .. wrap(test_concurrent_mod_and_query) }
       @test("reverse_range_query") { |s| s .. wrap(test_reverse_range_query) }
       @test("child_query") { |s| s .. wrap(test_child_query) }
       @test("nested transactions") { |s| s .. wrap(test_nested_transactions) }.skip("TODO")
