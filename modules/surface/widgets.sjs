@@ -619,7 +619,8 @@ exports.overlay = overlay;
      The dialog will be displayed for the duration of `block`, a function which will be called with
      an argument list consisting of the top-level page content DOM nodes and, as last parameter, the backdrop DOM node:
      
-         block(page_content_node1, page_content_node2, ..., backdrop_node)
+         block(page_content_node1, page_content_node2, ..., 
+               dialog_close_button_node, backdrop_node)
 
      `block` is called with a [mho:surface::DynamicDOMContext] set to the same list of nodes as block's arguments.
      This means that certain operations within `block` do not require an explicit context. E.g. [mho:surface/field::Field]s contained 
