@@ -100,8 +100,8 @@ exports.ServicesRegistry = ServicesRegistry;
 /**
    @function registerServiceInstances
    @summary Add (additional) service instance to a registry
-   @param {optional ::ServiceRegistry} [service_registry] Registry to add service instances to. (Default: global services registry)
-   @param {Object} [service_instances] Service instance hash as described at [::ServiceRegistry]
+   @param {optional ::ServicesRegistry} [service_registry] Registry to add service instances to. (Default: global services registry)
+   @param {Object} [service_instances] Service instance hash as described at [::ServicesRegistry]
    @desc
       - Throws an error if the registry already contains any service instance with the same name as one of those
         provided in `service_instances`.
