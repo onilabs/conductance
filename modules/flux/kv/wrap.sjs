@@ -22,7 +22,9 @@
 // TODO move all the @encoding stuff into itf
 function wrapDB(base) {
 
-  function kv_query(range, options) {
+  var MutationMutex = @Semaphore(1, true);
+
+  __js function kv_query(range, options) {
     var query_opts = {
       limit: -1,
       reverse: false,
@@ -42,17 +44,19 @@ function wrapDB(base) {
 
   var kvstore_interface = {
     get: function(key) {
-      key = @encoding.encodeKey(base.encoding_backend, key);
+      __js key = @encoding.encodeKey(base.encoding_backend, key);
       return base.decodeValue(base.get(key));
     },
     // XXX collect multiple temporally adjacent calls
     put: function(key, value) {
-      key = @encoding.encodeKey(base.encoding_backend, key);
-      if (value === undefined) {
-        return base.batch([{ type: 'del', key: key }]);
-      } else {
-        value = base.encodeValue(value);
-        return base.batch([{ type: 'put', key: key, value: value }]);
+      __js key = @encoding.encodeKey(base.encoding_backend, key);
+      MutationMutex.synchronize { ||
+        if (value === undefined) {
+          return base.batch([{ type: 'del', key: key }]);
+        } else {
+          __js value = base.encodeValue(value);
+          return base.batch([{ type: 'put', key: key, value: value }]);
+        }
       }
     },
     query: function(range, options) {
@@ -92,37 +96,39 @@ function wrapDB(base) {
         ourselves:
        */
 
-      // pending puts indexed by key in hex representation:
-      var pendingPuts = {};
+      __js {
+        // pending puts indexed by key in hex representation:
+        var pendingPuts = {};
+        
+        // level-down doesn't have support for snapshots yet, so we
+        // need to make sure that we get consistent reads:
+        var reads = {};
+        var queries = [];
+        var T = {};
+      }
 
-      // level-down doesn't have support for snapshots yet, so we
-      // need to make sure that we get consistent reads:
-      var reads = {};
-      var queries = [];
-
-      var conflict = false;
-
-      var T = {};
       T[@kv.ITF_KVSTORE] = {
         get: function(key) {
-          key = @encoding.encodeKey(base.encoding_backend, key);
-
-          var hex_key = @util.bytesToHexString(key);
-
-          // check if we've written this key:
-          var kv = pendingPuts[hex_key];
-          if (kv) return base.decodeValue(kv[1]);
-
+          __js {
+            key = @encoding.encodeKey(base.encoding_backend, key);
+          
+            var hex_key = @util.bytesToHexString(key);
+            
+            // check if we've written this key:
+            var kv = pendingPuts[hex_key];
+          }
+          if (kv) return __js base.decodeValue(kv[1]);
+          
           // else, check if we've already read it:
-          var v = reads[hex_key];
-          if (v) return base.decodeValue(v);
+          __js var v = reads[hex_key];
+          if (v) return __js base.decodeValue(v);
 
           // else read from db:
           var val = base.get(key);
-          reads[hex_key] = val;
-          return base.decodeValue(val);
+          __js reads[hex_key] = val;
+          return __js base.decodeValue(val);
         },
-        put: function(key, value) {
+        put: __js function(key, value) {
           key = @encoding.encodeKey(base.encoding_backend, key);
           if (value !== undefined) {
             value = base.encodeValue(value);
@@ -130,9 +136,10 @@ function wrapDB(base) {
           pendingPuts[@util.bytesToHexString(key)] = [key, value];
         },
         query: function(range, options) {
-          range = @encoding.encodeKeyRange(base.encoding_backend, range);
-          queries.push([range.begin,range.end]);
-
+          __js {
+            range = @encoding.encodeKeyRange(base.encoding_backend, range);
+            queries.push([range.begin,range.end]);
+          }
           return @transform(decodeKV) ::
             @Stream(function(r) {
               var limit = options.limit;
@@ -220,11 +227,19 @@ function wrapDB(base) {
       };
 
       // retry transactions until they succeed:
-      var rv;
       while (true) {
-        rv = undefined;
         waitfor {
-          rv = block(T);
+          var rv = block(T);
+          __js var ops = pendingPuts .. @ownValues .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value});
+          MutationMutex.acquire();
+          collapse;
+          try {
+            base.batch(ops);
+            return rv;
+          }
+          finally {
+            MutationMutex.release();
+          }
         }
         or {
           // We are stricter than required here. All we need to
@@ -233,29 +248,33 @@ function wrapDB(base) {
           // for multiple reads/writes, so not much is gained by finer granularity.
           (base.changes) .. @unpack .. @each {
             |{key}|
-            var hex_key = @util.bytesToHexString(key);
-            if (pendingPuts[hex_key] ||
-                reads[hex_key] ||
-                queries .. @any([b,e] -> key .. @encoding.encodedKeyInRange(b,e)))
+            __js {
+              var hex_key = @util.bytesToHexString(key);
+              var conflict = pendingPuts[hex_key] ||
+                             reads[hex_key] ||
+                             queries .. @any([b,e] -> key .. @encoding.encodedKeyInRange(b,e));
+            }
+            if (conflict) {
+              console.log("DB transaction conflict on #{@encoding.decodeKey(base.encoding_backend, key)}");
+              /* 
+                 try {} finally {
+                   console.log("Value in DB is #{@encoding.decodeValue(base.get(key))}");
+                   console.log('queries: '+queries .. @transform([b,e] -> @encoding.decodeKey(base.encoding_backend, b) +' -> '+@encoding.decodeKey(base.encoding_backend, e)) .. @join('\n'));
+                   console.log("reads:\n"+reads .. @propertyPairs .. @transform([k,v] -> @encoding.decodeKey(base.encoding_backend, k) + '='+@encoding.decodeValue(v)) .. @join('\n'));
+                   console.log("pendingPuts:\n"+pendingPuts .. @propertyPairs .. @transform([k,v] -> @encoding.decodeKey(base.encoding_backend, k) + '='+@encoding.decodeValue(v)) .. @join('\n'));
+                 }
+              */
               break;
+            }
           }
-          conflict = true;
-          hold();
-        }
-
-        // XXX we could maybe check conflicts earlier in ITF_KVSTORE
-        // calls and throw a transaction exception. That might make
-        // implementation of client code more complicated though.
-        if (!conflict) {
-          // we can commit our pending reads:
-          base.batch(pendingPuts .. @ownValues .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value}));
-          return rv;
+          // there is a conflict -> retry 
         }
         // go round loop and retry:
         pendingPuts = {};
         reads = {};
         conflict = false;
-      }
+        console.log("conductance/modules/flux/kv/wrap.sjs: RETRY TRANSACTION");
+      } /* while(true) */
     }
   };
 
