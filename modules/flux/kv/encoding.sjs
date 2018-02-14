@@ -280,6 +280,12 @@ __js {
   exports.decodeKey = decodeKey;
 
 
+  // helper for encodeKeyRange:
+  function encodeEndKey(backend, key) {
+    var packed = encodeKey(backend, key.slice(0,key.length-1));
+    return backend.concat([packed, single(backend, 0xff)], packed.length + 1);
+  }
+
   /**
      @function encodeKeyRange
      @summary XXX write me
@@ -289,7 +295,7 @@ __js {
     if (typeof arr === 'object' && !Array.isArray(arr)) {
       return {
         begin: encodeKey(backend, arr.begin),
-        end: (arr.end !== undefined ? encodeKey(backend, arr.end) : single(backend, 0xff))
+        end: (arr.end !== undefined ? encodeKey(backend, arr.end) : encodeEndKey(backend, arr.begin)/*single(backend, 0xff)*/)
       };
     }
     else {

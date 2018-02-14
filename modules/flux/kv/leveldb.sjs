@@ -38,9 +38,16 @@ __js function annotateError(err, orig) {
    @altsyntax LevelDB(location, [options]) { |itf| ... }
    @param {String} [location] Location of DB on disk
    @param {Object} [options] See https://github.com/rvagg/node-leveldown#leveldownopenoptions-callback
+   @setting {optional String} [leveldown='leveldown'] Name of alternative leveldown module to use (e.g. 'rocksdb/leveldown')
 */
 function LevelDB(location, options) {
-  var db = require('leveldown')(location);
+  var leveldown = 'leveldown';
+  if (options && options.leveldown) {
+    leveldown = options.leveldown;
+    options = options .. @clone;
+    delete options['leveldown'];
+  }
+  var db = require(leveldown)(location);
 
   // slightly round-about way of opening to gracefully handle closing
   // of the db if we are being retracted while opening
@@ -69,7 +76,7 @@ function LevelDB(location, options) {
    */
   var MutationEmitter = @Emitter();
 
-  var encoding_backend = {
+  __js var encoding_backend = {
     makeEncodingBuffer: Buffer,
     
     encodeString: function (str) {
@@ -93,22 +100,22 @@ function LevelDB(location, options) {
     encoding_backend : encoding_backend,
 
 
-    encodeValue: function (value) {
+    encodeValue: __js function (value) {
       return @encoding.encodeValue(encoding_backend, value);
     },
 
-    decodeValue: function (value) {
+    decodeValue: __js function (value) {
       return @encoding.decodeValue(encoding_backend, value);
     },
 
 
-    /**
+    /* ---- not part of interface: use batch
        @function LevelDB.put
        @param {String|Buffer} [key]
        @param {String|Buffer} [value]
        @param {optional Object} [options] See https://github.com/rvagg/node-leveldown#leveldownputkey-value-options-callback.
        @summary  Low-level LevelDB function to create or overwrite an entry.
-    */
+
     put: function(key, value, options) {
       waitfor (var err) {
         db.put(key, value, options || {}, resume);
@@ -116,6 +123,7 @@ function LevelDB(location, options) {
       if (err) throw new Error(err) .. annotateError(err);
       MutationEmitter.emit([{type:'put', key:key, value:value}]);
     },
+    */
     /**
        @function LevelDB.get
        @param {String|Buffer} [key]
@@ -127,7 +135,7 @@ function LevelDB(location, options) {
     */
     get: function(key, options) {
       waitfor (var err, val) {
-        db.get(key, options || {}, resume);
+        __js db.get(key, options || {}, resume);
       }
       if (err) {
         if (/NotFound/.test(err.message)) return undefined;
@@ -135,12 +143,12 @@ function LevelDB(location, options) {
       }
       return val;
     },
-    /**
+    /* ---- not part of interface: use batch
        @function LevelDB.del
        @param {String|Buffer} [key]
        @param {optional Object} [options] See https://github.com/rvagg/node-leveldown#leveldowndelkey-options-callback
        @summary  Low-level LevelDB function to delete an entry.
-    */
+    
     del: function(key, options) {
       waitfor (var err) {
         db.del(key, options || {}, resume);
@@ -148,6 +156,7 @@ function LevelDB(location, options) {
       if (err) throw new Error("Error deleting '#{key}' from database at #{location}: #{err}") .. annotateError(err);
       MutationEmitter.emit([{type:'del', key:key}]);
     },
+    */
     /**
        @function LevelDB.batch
        @param {Array} [ops] See https://github.com/rvagg/node-leveldown#leveldownbatchoperations-options-callback.
@@ -156,7 +165,7 @@ function LevelDB(location, options) {
     */
     batch: function(ops, options) {
       waitfor (var err) {
-        db.batch(ops, options || {}, resume);
+        __js db.batch(ops, options || {}, resume);
       }
       if (err) throw new Error("Error in batch operation for database at #{location}: #{err}") .. annotateError(err);
       MutationEmitter.emit(ops);
@@ -207,6 +216,7 @@ function LevelDB(location, options) {
 
   var itf = @wrap.wrapDB(base);
   itf.close = base.close;
+  itf.db = db;
   return itf;
 }
 exports.LevelDB = LevelDB;

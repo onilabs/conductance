@@ -36,21 +36,22 @@ __js {
     }
   }
   exports.normalizeKey = normalizeKey;
-}
 
-function transformKeyRange(range, f) {
-  if (typeof range === 'object' && !Array.isArray(range)) {
-    return {
-      begin: f(range.begin),
-      end: (range.end !== undefined ? f(range.end) : range.end)
-    };
-  } else {
-    return f(range);
+
+  function transformKeyRange(range, f) {
+    if (typeof range === 'object' && !Array.isArray(range)) {
+      return {
+        begin: f(range.begin),
+        end: (range.end !== undefined ? f(range.end) : range.end)
+      };
+    } else {
+      return f(range);
+    }
   }
-}
-exports.transformKeyRange = transformKeyRange;
-
-function normalizeKeyRange(range) {
-  return transformKeyRange(range, normalizeKey);
-};
-exports.normalizeKeyRange = normalizeKeyRange;
+  exports.transformKeyRange = transformKeyRange;
+  
+  function normalizeKeyRange(range) {
+    return transformKeyRange(range, normalizeKey);
+  };
+  exports.normalizeKeyRange = normalizeKeyRange;
+} // __js

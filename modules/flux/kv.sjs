@@ -118,8 +118,9 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
       datastore greater than or equal to `begin` and ends with the last key
       less than `end`.
 
-      The `end` property can be omitted, in which case the range consists of all keys greater
-      than or equal to `begin`.
+      The `end` property can be omitted, in which case the range begins with the first key
+      in the datastore greater than or equal to `begin` and ends with the last child of the
+      subspace spanned by the key `begin.slice(0,begin.length-1)` (where `begin` is assumed to be a flattened array key).
 
 */
 
@@ -152,7 +153,8 @@ exports.RANGE_ALL = RANGE_ALL;
       Otherwise, a [::NotFound] error will be thrown.
 */
 function get(store, key, dfl) {
-  var rv = store[ITF_KVSTORE].get(@util.normalizeKey(key));
+  __js key = @util.normalizeKey(key);
+  var rv = store[ITF_KVSTORE].get(key);
   if(rv === undefined) {
     if(arguments.length > 2) return dfl;
     throwError(NOT_FOUND);
@@ -168,9 +170,10 @@ exports.get = get;
    @param {::Value} [value]
    @summary Sets key to the given value.
 */
-function set(store, key, value) {
+__js function set(store, key, value) {
+  key = @util.normalizeKey(key);
   // assert value !== undefined; that would be a 'clear' operation
-  return store[ITF_KVSTORE].put(@util.normalizeKey(key), value);
+  return store[ITF_KVSTORE].put(key, value);
 }
 exports.set = set;
 
@@ -180,8 +183,9 @@ exports.set = set;
    @param {::Key} [key]
    @summary Clears any value currently associated with key.
 */
-function clear(store, key) {
-  return store[ITF_KVSTORE].put(@util.normalizeKey(key), undefined);
+__js function clear(store, key) {
+  key = @util.normalizeKey(key);
+  return store[ITF_KVSTORE].put(key, undefined);
 }
 exports.clear = clear;
 
@@ -202,8 +206,9 @@ exports.clear = clear;
      it will first reverse the sequence, and will then limit it starting
      from the first element of the reversed sequence.
 */
-function query(store, range, options) {
-  return store[ITF_KVSTORE].query(@util.normalizeKeyRange(range), options || {});
+__js function query(store, range, options) {
+  range = @util.normalizeKeyRange(range);
+  return store[ITF_KVSTORE].query(range, options || {});
 }
 exports.query = query;
 
@@ -232,8 +237,9 @@ exports.clearRange = clearRange;
    @summary Return an [sjs:observable::Observable] of the value associated with key.
 
 */
-function observe(store, key) {
-  return store[ITF_KVSTORE].observe(@util.normalizeKey(key));
+__js function observe(store, key) {
+  key = @util.normalizeKey(key);
+  return store[ITF_KVSTORE].observe(key);
 }
 exports.observe = observe;
 
@@ -249,7 +255,7 @@ exports.observe = observe;
    @summary Return an [sjs:observable::Observable] of the [sjs:sequence::Stream] of `[key, value]` pairs in the given range.
 
 */
-function observeQuery(store, range, options) {
+__js function observeQuery(store, range, options) {
   return store[ITF_KVSTORE].observeQuery(@util.normalizeKeyRange(range), options || {});
 }
 exports.observeQuery = observeQuery;
@@ -290,7 +296,7 @@ exports.observeQuery = observeQuery;
      future mutations applied in the same transaction (before they are
      committed to the database).
 */
-function withTransaction(store, options, block) {
+__js function withTransaction(store, options, block) {
   if (arguments.length === 2) {
     block = options;
     options = undefined;
@@ -311,6 +317,7 @@ exports.withTransaction = withTransaction;
   @altsyntax LevelDB(location, [options]) { |kvstore| ... }
   @param {String} [location] Location of DB on disk
   @param {optional Object} [options] See https://github.com/rvagg/node-leveldown#leveldownopenoptions-callback
+  @setting {optional String} [leveldown='leveldown'] Name of alternative leveldown module to use (e.g. 'rocksdb/leveldown')
   @param {optional Function} [block] Lexical block to scope the LevelDB object to
 
   @function LevelDB.close

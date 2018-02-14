@@ -18,47 +18,51 @@
              { id: '../kv', name: 'kv' }]);
 
 function Subspace(input, prefix) {
-  prefix = @util.normalizeKey(prefix);
-
-  function prefixKey(key) {
-    return prefix.concat(key);
-  }
-
-  function unprefixKey(key) {
-    if (!Array.isArray(key)) {
-      throw new Error("Invalid key");
+  __js {
+    prefix = @util.normalizeKey(prefix);
+    
+    function prefixKey(key) {
+      return prefix.concat(key);
     }
-
-    for (var i = 0; i < prefix.length; ++i) {
-      // TODO better equality check
-      if (key[i] !== prefix[i]) {
-        throw new Error("Invalid prefix");
+    
+    function unprefixKey(key) {
+      if (!Array.isArray(key)) {
+        throw new Error("Invalid key");
       }
+      
+      for (var i = 0; i < prefix.length; ++i) {
+        // TODO better equality check
+        if (key[i] !== prefix[i]) {
+          throw new Error("Invalid prefix");
+        }
+      }
+      
+      return key.slice(i);
     }
 
-    return key.slice(i);
-  }
-
-  function unprefixKV([key, value]) {
-    return [unprefixKey(key), value];
-  }
+    function unprefixKV([key, value]) {
+      return [unprefixKey(key), value];
+    }
+  } // __js
 
   function wrap(input, in_transaction) {
-    var db = input[@kv.ITF_KVSTORE];
-
-    var out = {};
+    __js {
+      var db = input[@kv.ITF_KVSTORE];
+      
+      var out = {};
+    } // __js
 
     out[@kv.ITF_KVSTORE] = {
-      get: function(key) {
+      get: __js function(key) {
         return db.get(prefixKey(key));
       },
-      put: function(key, value) {
+      put: __js function(key, value) {
         return db.put(prefixKey(key), value);
       },
       query: function(range, options) {
         return db.query(@util.transformKeyRange(range, prefixKey), options) .. @transform(unprefixKV);
       },
-      observe: function(key) {
+      observe: __js function(key) {
         return db.observe(prefixKey(key));
       },
       observeQuery: function(range, options) {
@@ -70,7 +74,7 @@ function Subspace(input, prefix) {
           return block(out);
 
         } else {
-          return db.withTransaction(options, function (input) {
+          return db.withTransaction(options, __js function (input) {
             return block(wrap(input, true));
           });
         }
