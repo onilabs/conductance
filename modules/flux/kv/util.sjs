@@ -15,7 +15,12 @@
 @ = require('sjs:std');
 
 __js {
-  function bytesToHexString(x) {
+  function bytesToString(x) {
+
+    if (@isBuffer(x)) { 
+      return x.toString('binary'); }
+    // else ... old hex string method:
+
     var out = new Array(x.length);
     for (var i = 0; i < x.length; ++i) {
       var s = x[i].toString(16);
@@ -26,7 +31,7 @@ __js {
     }
     return out.join('');
   }
-  exports.bytesToHexString = bytesToHexString;
+  exports.bytesToString = bytesToString;
 
   function normalizeKey(key) {
     if (Array.isArray(key)) {

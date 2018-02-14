@@ -112,20 +112,20 @@ function wrapDB(base) {
           __js {
             key = @encoding.encodeKey(base.encoding_backend, key);
           
-            var hex_key = @util.bytesToHexString(key);
+            var string_key = @util.bytesToString(key);
             
             // check if we've written this key:
-            var kv = pendingPuts[hex_key];
+            var kv = pendingPuts[string_key];
           }
           if (kv) return __js base.decodeValue(kv[1]);
           
           // else, check if we've already read it:
-          __js var v = reads[hex_key];
+          __js var v = reads[string_key];
           if (v) return __js base.decodeValue(v);
 
           // else read from db:
           var val = base.get(key);
-          __js reads[hex_key] = val;
+          __js reads[string_key] = val;
           return __js base.decodeValue(val);
         },
         put: __js function(key, value) {
@@ -133,7 +133,7 @@ function wrapDB(base) {
           if (value !== undefined) {
             value = base.encodeValue(value);
           }
-          pendingPuts[@util.bytesToHexString(key)] = [key, value];
+          pendingPuts[@util.bytesToString(key)] = [key, value];
         },
         query: function(range, options) {
           __js {
@@ -249,21 +249,13 @@ function wrapDB(base) {
           (base.changes) .. @unpack .. @each {
             |{key}|
             __js {
-              var hex_key = @util.bytesToHexString(key);
-              var conflict = pendingPuts[hex_key] ||
-                             reads[hex_key] ||
+              var string_key = @util.bytesToString(key);
+              var conflict = pendingPuts[string_key] ||
+                             reads[string_key] ||
                              queries .. @any([b,e] -> key .. @encoding.encodedKeyInRange(b,e));
             }
             if (conflict) {
               console.log("DB transaction conflict on #{@encoding.decodeKey(base.encoding_backend, key)}");
-              /* 
-                 try {} finally {
-                   console.log("Value in DB is #{@encoding.decodeValue(base.get(key))}");
-                   console.log('queries: '+queries .. @transform([b,e] -> @encoding.decodeKey(base.encoding_backend, b) +' -> '+@encoding.decodeKey(base.encoding_backend, e)) .. @join('\n'));
-                   console.log("reads:\n"+reads .. @propertyPairs .. @transform([k,v] -> @encoding.decodeKey(base.encoding_backend, k) + '='+@encoding.decodeValue(v)) .. @join('\n'));
-                   console.log("pendingPuts:\n"+pendingPuts .. @propertyPairs .. @transform([k,v] -> @encoding.decodeKey(base.encoding_backend, k) + '='+@encoding.decodeValue(v)) .. @join('\n'));
-                 }
-              */
               break;
             }
           }
