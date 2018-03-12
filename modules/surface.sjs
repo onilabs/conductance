@@ -810,7 +810,11 @@ module.exports = require(modules);
   If a `post_append` function is provided, it will be called with an array of the top DOM nodes of each appended element. If `post_append` returns a truthy value, no overflow check will be made, and the next element from `stream` will be appended.
 
 @function focus
-@summary XXX write me
+@param {DOMNode} [node] DOM node to focus
+@summary Focus given node or, if node is not focussable, first focussable child thereof
+@desc
+  `focus(node)` will attempt to focus `node`, or, if that doesn't succeed, the first
+  child of `node` that matches the selector `input, a[href], area[href], iframe`.
 
 @function Document
 @hostenv nodejs
