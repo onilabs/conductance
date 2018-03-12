@@ -285,6 +285,7 @@ function waitforClosingClick(elem) {
    @setting {DOMNode} [anchor] DOM element relative to which dropdown will be positioned
    @setting {sjs:sequence::Sequence|sjs:observable::Observable} [items] Sequence of menu items as outlined in the description below, or Observable thereof.
    @setting {Boolean} [keyboard=false] If `true`, UP, DOWN, and ENTER interactions will be enabled.
+   @setting {Boolean} [focus=true] If `true`, focusable content in the dropdown will be focused when selected; otherwise focusing (and consequently bluring of currently focused content) will be disabled.
    @setting {Integer} [top=1] Top position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
    @setting {Integer} [left=0] Left position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
    @setting {Integer} [bottom=undefined] Bottom position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
@@ -356,7 +357,8 @@ function doDropdown(/* anchor, items, [settings] */) {
   var anchor;
   var settings = {
     items: undefined,
-    keyboard: false
+    keyboard: false,
+    focus: false
   };
   
   anchor = arguments[0];
@@ -448,6 +450,7 @@ function doDropdown(/* anchor, items, [settings] */) {
       waitforClosingClick(dropdownDOMElement);
     }
     or {
+      if (settings.focus) hold();
       dropdownDOMElement .. @events('!mousedown') .. @each {
         |ev|
         // prevent mousedowns from initiating blur events
@@ -461,6 +464,8 @@ function doDropdown(/* anchor, items, [settings] */) {
         var selected = dropdownDOMElement.querySelector('li');
         if (!selected) continue;
         selected.classList.add('selected');
+        if (settings.focus)
+          selected .. @focus();
 
         document .. @events('!keydown') .. @each {
           |ev|
@@ -482,6 +487,8 @@ function doDropdown(/* anchor, items, [settings] */) {
                 selected.classList.remove('selected');
                 selected = new_selected;
                 selected.classList.add('selected');
+                if (settings.focus)
+                  selected .. @focus();
               }
             }
           }

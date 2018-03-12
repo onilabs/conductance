@@ -754,3 +754,17 @@ var ScrollStream = (stream,settings) -> ContentGenerator ::
   };
 exports.ScrollStream = ScrollStream;
 
+//----------------------------------------------------------------------
+
+/**
+   @function focus
+   @summary XXX write me
+*/
+exports.focus = function(node) {
+  node.focus();
+  if (document.activeElement !== node) {
+    var focusable = node.querySelector('input, a[href], area[href], iframe');
+    if (focusable)
+      focusable.focus();
+  }
+};

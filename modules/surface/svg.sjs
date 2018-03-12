@@ -10,9 +10,9 @@
  */
 
 /**
-   @nodoc
-   @noindex
-   (to be documented)
+  @summary Basic SVG elements
+  @desc
+    This module defines basic SVG building blocks.
 */
 
 var { hostenv } = require('builtin:apollo-sys');

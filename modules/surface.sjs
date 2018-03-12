@@ -809,6 +809,9 @@ module.exports = require(modules);
 
   If a `post_append` function is provided, it will be called with an array of the top DOM nodes of each appended element. If `post_append` returns a truthy value, no overflow check will be made, and the next element from `stream` will be appended.
 
+@function focus
+@summary XXX write me
+
 @function Document
 @hostenv nodejs
 @summary Generate a static document

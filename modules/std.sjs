@@ -177,6 +177,7 @@ module.exports = require(modules);
    - **ElementConstructor**: (function [mho:surface::ElementConstructor])
    - **Enabled**: (function [mho:surface::Enabled])
    - **ensureElement**: (function [mho:surface::ensureElement])
+   - **focus**: (function [mho:surface::focus])
    - **getDOMNode**: (function [mho:surface::getDOMNode])
    - **getDOMNodes**: (function [mho:surface::getDOMNodes])
    - **GlobalCSS**: (function [mho:surface::GlobalCSS])

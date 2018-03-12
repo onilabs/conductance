@@ -9178,6 +9178,36 @@
           },
           "summary": "Common CSS Style definitions"
         },
+        "svg": {
+          "type": "module",
+          "children": {
+            "Circle": {
+              "type": "function"
+            },
+            "ClipPath": {
+              "type": "function"
+            },
+            "G": {
+              "type": "function"
+            },
+            "Image": {
+              "type": "function"
+            },
+            "Path": {
+              "type": "function"
+            },
+            "Rect": {
+              "type": "function"
+            },
+            "Text": {
+              "type": "function"
+            },
+            "eventToSvgCoords": {
+              "type": "function"
+            }
+          },
+          "summary": "Basic SVG building blocks"
+        },
         "widgets": {
           "type": "module",
           "children": {
@@ -9314,6 +9344,9 @@
           "type": "function"
         },
         "ensureElement": {
+          "type": "function"
+        },
+        "focus": {
           "type": "function"
         },
         "getDOMNode": {
