@@ -9193,6 +9193,9 @@
             "Image": {
               "type": "function"
             },
+            "Line": {
+              "type": "function"
+            },
             "Path": {
               "type": "function"
             },

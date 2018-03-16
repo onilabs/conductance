@@ -135,6 +135,21 @@ __js exports.Text = @ElementConstructor :: function(/*content,attribs*/) {
 __js exports.Circle = @ElementConstructor :: (attribs) -> @Element('circle', null, attribs);
 
 /**
+   @function Line
+   @summary Create a [line](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/line) element
+   @param {optional Object} [attributes] Attributes to set on the element
+   @return {surface::Element}
+   @desc
+     This function is an [surface::ElementConstructor], i.e. it can be used as a [surface::HtmlFragment] with or without function application.
+     
+     ### Example
+
+         @Line({x1:20, y1:100, x2:100, y2:20, 'stroke-width':2, stroke:'black'})
+
+*/
+__js exports.Line = @ElementConstructor :: (attribs) -> @Element('line', null, attribs);
+
+/**
    @function Rect
    @summary Create a [rect](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/rect) element
    @param {optional Object} [attributes] Attributes to set on the element
@@ -143,6 +158,8 @@ __js exports.Circle = @ElementConstructor :: (attribs) -> @Element('circle', nul
      This function is an [surface::ElementConstructor], i.e. it can be used as a [surface::HtmlFragment] with or without function application.
 */
 __js exports.Rect = @ElementConstructor :: (attribs) -> @Element('rect', null, attribs);
+
+
 
 /**
    @function ClipPath
