@@ -1,28 +1,30 @@
-{ "name": "conductance"
-, "description": "Conductance Web Framework"
-, "author" : "Oni Labs <maintainers@onilabs.com>"
-, "version" : "0.6.7-development"
-, "homepage" : "https://conductance.io/"
-, "private" : true
-, "repository":
-  { "type": "git"
-  , "url": "git://github.com/onilabs/conductance.git"
-  }
-, "main": "conductance"
-, "bin": { "conductance": "conductance" }
-, "dependencies":
-  { "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#aed239c8da5ea187dbc155b423f412b16955b90d"
-  , "nodemon": "~1.11.0"
-  , "google-oauth-jwt": "~0.0.7"
-  , "ssh2": "~0.5.4"
-  , "leveldown": "~3.0.0"
-  }
-, "optionalDependencies":
-  { 
-    "weak": "~1.0.1"
-  }
-, "scripts":
-  { "test": "./conductance test/run.mho"
-  , "build": "./tools/gup all"
+{
+  "name": "conductance",
+  "description": "Conductance Web Framework",
+  "author": "Oni Labs <maintainers@onilabs.com>",
+  "version": "0.6.8-development",
+  "homepage": "https://conductance.io/",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/onilabs/conductance.git"
+  },
+  "main": "conductance",
+  "bin": {
+    "conductance": "conductance"
+  },
+  "dependencies": {
+    "google-oauth-jwt": "0.0.7",
+    "leveldown": "^3.0.0",
+    "nodemon": "^1.17.3",
+    "ssh2": "^0.5.5",
+    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#e7e7ffd1ad9dc7fe4b8835d3743237d590d1067a"
+  },
+  "optionalDependencies": {
+    "weak": "^1.0.1"
+  },
+  "scripts": {
+    "test": "./conductance test/run.mho",
+    "build": "./tools/gup all"
   }
 }
