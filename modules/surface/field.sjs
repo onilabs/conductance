@@ -207,7 +207,7 @@ function ValidationState(/*[node], [path]*/) {
 
   var args = arguments;
   
-  return @Stream(function(r) {
+  return @Observable(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::ValidationState: Cannot resolve Field");
     field_node[ITF_FIELD].validation_state .. @each(r);
@@ -227,7 +227,7 @@ function ValidationDisplayFlag(/*[node], [path]*/) {
 
   var args = arguments;
   
-  return @Stream(function(r) {
+  return @Observable(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::ValidationDisplayFlag: Cannot resolve Field");
     field_node[ITF_FIELD].display_validation .. @each(r);
