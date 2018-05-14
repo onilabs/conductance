@@ -210,14 +210,14 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:array](#sjs%3Aarray) module:
   
+   - **array_difference**: (function [sjs:array::array_difference])
+   - **array_union**: (function [sjs:array::array_union])
    - **cmp**: (function [sjs:array::cmp])
    - **cycle**: (function [sjs:array::cycle])
-   - **difference**: (function [sjs:array::difference])
    - **flatten**: (function [sjs:array::flatten])
    - **haveCommonElements**: (function [sjs:array::haveCommonElements])
    - **isArrayLike**: (function [sjs:array::isArrayLike])
    - **remove**: (function [sjs:array::remove])
-   - **union**: (function [sjs:array::union])
   
   
   ### Symbols from the [sjs:bytes](#sjs%3Abytes) module:
@@ -416,8 +416,12 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:set](#sjs%3Aset) module:
   
+   - **difference**: (function [sjs:set::difference])
+   - **intersection**: (function [sjs:set::intersection])
    - **isSet**: (function [sjs:set::isSet])
    - **Set**: (class [sjs:set::Set])
+   - **toSet**: (function [sjs:set::toSet])
+   - **union**: (function [sjs:set::union])
   
   
   ### Symbols from the [sjs:string](#sjs%3Astring) module:
