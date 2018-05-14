@@ -547,7 +547,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 		var btn = Button("Add", function(e) {
 			var service = selected.get().service;
 			if(service === null) return;
-			enabledServiceKeys.value.set(enabledServiceKeys.value.get() .. @union([service.id]));
+			enabledServiceKeys.value.set(enabledServiceKeys.value.get() .. @array_union([service.id]));
 		}, {'class':'btn btn-success pull-right add-service' }
 		) .. @Attrib('disabled', selected .. @transform(sel -> !(sel && sel.service)));
 
@@ -578,7 +578,7 @@ var appConfigEditor = exports.appConfigEditor = function(parent, api, conf, extr
 						@P([
 							@A(@Icon("remove"), {'class':'pull-right'})
 								.. @OnClick({handle:@stopEvent}, -> enabledServiceKeys.value.set(
-									enabledServiceKeys.value.get() .. @difference([i.id])
+									enabledServiceKeys.value.get() .. @array_difference([i.id])
 								)
 							),
 							i.info,

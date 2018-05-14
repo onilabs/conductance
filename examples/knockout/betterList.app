@@ -2,7 +2,7 @@
 
 var { ObservableVar, observe } = require('sjs:observable');
 var { appendContent, Attrib, Prop, CSS, OnClick } = require('mho:surface');
-var { difference } = require('sjs:array');
+var { array_difference } = require('sjs:array');
 var { Button, Form, Input, Select } = require('mho:surface/html');
 
 
@@ -26,7 +26,7 @@ function addItem(ev) {
 }
 
 function removeSelected() {
-  allItems.set(difference(allItems.get(), selectedItems.get()));
+  allItems.set(array_difference(allItems.get(), selectedItems.get()));
   selectedItems.set([]);
 }
 
