@@ -99,9 +99,11 @@ var ITF_FIELDCONTAINER = exports.ITF_FIELDCONTAINER = @Interface(module, "itf_fi
 
 /**
    @function Value
-   @summary Return the 'Value' [sjs:observable::ObservableVar] for a field
+   @summary Return the dynamically resolved 'Value' [sjs:observable::ObservableVar] for a field
    @param {optional DOMNode} [node] DOM node with attached [::Field] or a child thereof; if `undefined`: use the implicit [../surface::DynamicDOMContext]
    @param {optional String} [path] Address of the field in a container hierarchy; see [::getField]
+   @desc
+     Note: The field will only be resolved when the `Value` stream is being iterated or its `set` or `modify` functions are called.
    @demo
        @ =  require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'},
        {id:'mho:surface/field', name:'field'}]);
