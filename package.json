@@ -18,7 +18,7 @@
     "leveldown": "^3.0.0",
     "nodemon": "^1.17.3",
     "ssh2": "^0.5.5",
-    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#79014d6c6b66264fa2b8bc1a42b501586d1ca996"
+    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#f2552306c0117187fb48d3d5a256507d0e521408"
   },
   "optionalDependencies": {
     "weak": "^1.0.1"
