@@ -728,16 +728,29 @@ function BridgeConnection(transport, opts) {
     spawn(function() { return e; })();
   }
 
-  __js function handleBlockLambdaBreak(cfx) {
-    // we have to find the proper execution frame to abort among our pending_calls:
+  __js function handleBlockLambdaBreak(cfx) { 
+    // Note that we cannot handle blocklambda breaks how we handle blocklambda returns.
+    // The latter always target a particular frame, whereas for the former we need to  
+    // resolve the return frame by traversing the callstack to find the highest frame that
+    // has the right blscope.
+
+   // We have to find the proper execution frame to abort among our pending_calls:
     for (var call_no in pending_calls) {
       var cb = pending_calls[call_no][0];
       try { 
         // XXX FRAGILE
         // cb.ef.parent.parent.parent traverses up the execution frame structure
         // of makeCall. This is somewhat fragile; if makeCall, or the encoding of functions
-        // changes, we need to change this code
-        if (cb.ef.parent.parent.parent.env.blscope === cfx.ef) {
+        // changes, we need to change this code.
+        // Other problems with this code:
+        // - It can't resolve breaks that target frames deeper in the hierarchy (e.g. if the 
+        //   function calling 'break' is invoked via a helper function)
+        // - It might resolve the wrong frame, if there are multiple concurrent pending calls
+        //   rooted in the same break scope.
+        console.log('our blscope: '+cfx.ef);
+        console.log('parent: '+cb.ef.parent.parent.parent.parent);
+        console.log('parent blscope: '+cb.ef.parent.parent.parent.parent.parent.env.blbref);
+        if (cb.ef.parent.parent.parent.env.blbref === cfx.ef) {
           // handle the other bridge side:
           send(['A', call_no]);
           // and let the resume callback handle our side:
@@ -750,7 +763,10 @@ function BridgeConnection(transport, opts) {
       }
     }
     // we failed to find the frame to return to; 
-    throw new Error("Unexpected blocklambda break");
+    var err = "Unresolvable blocklambda break across conductance bridge";
+    if (cfx.ef.callstack && cfx.ef.callstack.length)
+      err += " in call initiated from #{cfx.ef.callstack .. @transform([file,line]-> "#{file}:#{line}") .. @join('\n')}";
+    throw new Error(err);
   }
 
   function receiveMessage(message) {
