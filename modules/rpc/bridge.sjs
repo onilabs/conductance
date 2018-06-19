@@ -747,9 +747,9 @@ function BridgeConnection(transport, opts) {
         //   function calling 'break' is invoked via a helper function)
         // - It might resolve the wrong frame, if there are multiple concurrent pending calls
         //   rooted in the same break scope.
-        console.log('our blscope: '+cfx.ef);
-        console.log('parent: '+cb.ef.parent.parent.parent.parent);
-        console.log('parent blscope: '+cb.ef.parent.parent.parent.parent.parent.env.blbref);
+        //console.log('our blscope: '+cfx.ef);
+        //console.log('parent: '+cb.ef.parent.parent.parent.parent);
+        //console.log('parent blscope: '+cb.ef.parent.parent.parent.parent.parent.env.blbref);
         if (cb.ef.parent.parent.parent.env.blbref === cfx.ef) {
           // handle the other bridge side:
           send(['A', call_no]);
