@@ -269,7 +269,8 @@ function marshall(value, connection) {
     function processProperties(value) {
       __js var k = @ownKeys(value) .. @filter(name ->
                                               name !== 'toString' && 
-                                              name !== @fn.ITF_SIGNAL  
+                                              name !== @fn.ITF_SIGNAL &&
+                                              !__oni_rt.is_ef(value[name])
                                              );
       return k .. /*@monitor(k -> k .. @startsWith('__oni') ? console.log(k)) ..*/ @transform(name -> [name, prepare(value[name])]);
     }
