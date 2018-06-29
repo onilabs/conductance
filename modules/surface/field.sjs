@@ -1058,7 +1058,7 @@ function FieldArray(elem, settings) {
           getField: function(name) { /* XXX */ },
           addField: function(name, field_node) { 
             // sanity check:
-            if (name !== undefined) throw new Error("A FieldArray template must not contain a named Field");
+            if (name !== undefined) throw new Error("FieldArray template contains a named Field that is not nested in a FieldMap");
           },
           removeField: function(name, field_node) {
             for (var i=0; i<this._fieldarray.length; ++i) {
