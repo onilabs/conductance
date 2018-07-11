@@ -1127,7 +1127,7 @@ function FieldArray(elem, settings) {
             }
           }; /* validation_loop */
 
-          // add validator to the field that aggreates the validation state of our subfields. XXX don't do this as a validator
+          // add validator to the field that aggregates the validation state of our subfields. XXX don't do this as a validator
           var aggregator_validator = -> fieldcontainer_itf._fieldarray .. @transform({node} -> node) ..
                                                     @indexed .. aggregateSubfieldValidations;
           fieldcontainer_itf._field.addValidator(aggregator_validator);
@@ -1240,7 +1240,11 @@ function FieldArray(elem, settings) {
                   x = settings.arrToVal(x);
                 
                 current_value = x;
-                //console.log("SETTING FIELD VALUE OF ARRAY #{field.id} TO", current_value);
+
+                // prevent our field to be set for non-modifications:
+                if (fieldcontainer_itf._field.value.get() .. @equals(current_value, false)) continue;
+
+                //console.log("SETTING FIELD VALUE OF ARRAY #{fieldcontainer_itf._field.id} TO", current_value);
                 fieldcontainer_itf._field.value.set(current_value);
               }
             }
