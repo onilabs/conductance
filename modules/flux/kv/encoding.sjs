@@ -14,6 +14,24 @@
    @summary Helpers for mapping between tuple key and values and ordered binary representation
 
    // XXX TODO: document; recode so that it works with ArrayBuffers too (for client-side use)
+
+
+
+    keys are encoded as follows:
+
+    buffer: <1> + <byte stream> + <0x00>
+            <0x00> in <byte stream> is encoded as <0x00> + <0xFF>
+
+    string: <2> + <utf8 byte stream> + <0x00>
+            <0x00> in <utf 8 byte stream> is encoded as <0x00> + <0xFF>
+
+    64 bit integer: (limited to [-Math.pow(2,53), Math.pow(2,53)-1] in JS)
+            <prefix> + <MSB first byte stream>
+            <prefix> in range [13,27] depending on sign & magnitude
+            
+
+    Terminator <0x00> in strings ensures that child keys sort directly after parent
+
 */
 
 @ = require('sjs:std');
@@ -173,7 +191,7 @@ __js {
    */
   function encodeKey(backend, arr) {
     var totalLength = 0;
-
+    if (arr.length === 0) throw new TypeError('Key cannot be empty');
     var outArr = new Array(arr.length);
     for (var i = 0; i < arr.length; ++i) {
       outArr[i] = encode(backend, arr[i]);
@@ -296,6 +314,13 @@ __js {
       return {
         begin: encodeKey(backend, arr.begin),
         end: (arr.end !== undefined ? encodeKey(backend, arr.end) : encodeEndKey(backend, arr.begin)/*single(backend, 0xff)*/)
+      };
+    }
+    else if (arr.length === 0) {
+      // RANGE_ALL
+      return {
+        begin: single(backend, 0x00),
+        end: single(backend, 0xff)
       };
     }
     else {
