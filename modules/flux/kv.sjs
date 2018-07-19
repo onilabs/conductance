@@ -90,7 +90,7 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
    @class Key
    @summary Structure serving as a key into a [::KVStore].
    @desc
-      A `Key` is either a String or Integer, or a tuple of Strings and Integers
+      A `Key` is either `null`, a String, an Integer, or a tuple thereof,
       represented by an (abitrarily nested) Array.
 
       Nested Array keys such as `['employee', ['name', 'alex']]` are equivalent
@@ -99,9 +99,18 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
       API functions that return keys will always return the canonical flattened
       array representation.
 
-      Keys are sorted in a way that preserves the ordering of the
-      individual elements of a tuple key from left to right. This makes it possible to
-      efficiently query [::KVStore]s for all children with a common prefix.
+      Keys are sorted in the following way:
+
+      - `null` < String
+      - String < Integer
+      - Strings sorted according to UTF8 representation
+      - Integers sorted according to magnitude
+      - `x` < `[x, ...]`
+      - `[x, ...]` < `[y]` if `x` < `y`
+
+      Note how the last two rules imply that any tuple `[x,c]` is sorted right after its prefix `x` 
+      and before any `y` > `x`. This property makes it possible to
+      efficiently query [::KVStore]s for all children with a common prefix, and to span [::Subspace]s.
 
 */
 
@@ -109,10 +118,14 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
    @class Range
    @summary Structure serving as a range of keys into a [::KVStore].
    @desc
-      A `Range` is either a [::Key], or an object `{ begin: Key, end: Key }`.
+      A `Range` is either a [::Key], an object `{ begin: Key, end: Key }`, or  [::RANGE_ALL].
+
+      ### Single-Key Range
 
       In the first case, the range denotes all children with the given key as
       prefix.
+
+      ### [begin, end[ Range
 
       In the second case, the range begins with the first key in the
       datastore greater than or equal to `begin` and ends with the last key
@@ -120,7 +133,7 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
 
       The `end` property can be omitted, in which case the range begins with the first key
       in the datastore greater than or equal to `begin` and ends with the last child of the
-      subspace spanned by the key `begin.slice(0,begin.length-1)` (where `begin` is assumed to be a flattened array key).
+      subspace spanned by the key `begin.slice(0,begin.length-1)` (where `begin` is assumed to be a flattened array key). E.g. `{begin: ['a', 'b']}` denotes all tuples `['a', X+]` beginning with `['a', 'b']`. (`X+` denotes one or more tuple elements).
 
 */
 
