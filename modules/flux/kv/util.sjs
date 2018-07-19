@@ -46,8 +46,9 @@ __js {
   function transformKeyRange(range, f) {
     if (typeof range === 'object' && !Array.isArray(range)) {
       return {
-        begin: f(range.begin),
-        end: (range.end !== undefined ? f(range.end) : range.end)
+        begin: range.begin !== undefined ? f(range.begin),
+        end: range.end !== undefined ? f(range.end),
+        after: range.after !== undefined ? f(range.after)
       };
     } else {
       return f(range);

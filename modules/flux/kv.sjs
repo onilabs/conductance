@@ -118,7 +118,9 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
    @class Range
    @summary Structure serving as a range of keys into a [::KVStore].
    @desc
-      A `Range` is either a [::Key], an object `{ begin: Key, end: Key }`, or  [::RANGE_ALL].
+      A `Range` is either a [::Key], an object `{ begin: Key, end: Key }`, 
+      an object `{ after: Key }`,
+      or  [::RANGE_ALL].
 
       ### Single-Key Range
 
@@ -133,7 +135,13 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
 
       The `end` property can be omitted, in which case the range begins with the first key
       in the datastore greater than or equal to `begin` and ends with the last child of the
-      subspace spanned by the key `begin.slice(0,begin.length-1)` (where `begin` is assumed to be a flattened array key). E.g. `{begin: ['a', 'b']}` denotes all tuples `['a', X+]` beginning with `['a', 'b']`. (`X+` denotes one or more tuple elements).
+      subspace spanned by the key `begin.slice(0,begin.length-1)` (where `begin` is assumed to be a flattened array key). E.g. `{begin: ['a', 'b']}` denotes all tuples with the prefix `a`, beginning with `['a', 'b']`. (`X+` denotes one or more tuple elements).
+
+      ### after Range
+
+      In the third case, the range begins with the first key greater than `[after, X...]` for any `X...`, i.e. `after`'s children. E.g. if the datastore contains `['a', 1]`, `['a', 2, 3]`, `['b', 5, 6]`, then the range 
+      `{after: ['a']}` would start with `['b', 5, 6]`.
+      The range ends with the last child of the subspace spanned by the key `after.slice(0,after.length-1)`.
 
 */
 

@@ -140,6 +140,10 @@ function test_range_query(db) {
 
   db .. @kv.query(@kv.RANGE_ALL) .. @toArray .. @assert.eq(kv_pairs);
 
+  db .. @kv.query({begin: 'a'}) .. @toArray .. @assert.eq(kv_pairs);
+
+  db .. @kv.query({after: 1}) .. @toArray .. @assert.eq(kv_pairs.slice(5,8));
+
   var EOF = {};
 
   db ..@kv.query(@kv.RANGE_ALL) .. @consume(EOF, function (next) {

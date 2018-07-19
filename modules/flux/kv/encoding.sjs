@@ -300,8 +300,13 @@ __js {
 
   // helper for encodeKeyRange:
   function encodeEndKey(backend, key) {
-    var packed = encodeKey(backend, key.slice(0,key.length-1));
-    return backend.concat([packed, single(backend, 0xff)], packed.length + 1);
+    if (key.length === 1) {
+      return single(backend, 0xff);
+    }
+    else {
+      var packed = encodeKey(backend, key.slice(0,key.length-1));
+      return backend.concat([packed, single(backend, 0xff)], packed.length + 1);
+    }
   }
 
   /**
@@ -311,10 +316,21 @@ __js {
   function encodeKeyRange(backend, arr) {
     // TODO code duplication with util.transformKeyRange
     if (typeof arr === 'object' && !Array.isArray(arr)) {
-      return {
-        begin: encodeKey(backend, arr.begin),
-        end: (arr.end !== undefined ? encodeKey(backend, arr.end) : encodeEndKey(backend, arr.begin)/*single(backend, 0xff)*/)
-      };
+      if (arr.begin) {
+        // [begin,end[
+        return {
+          begin: encodeKey(backend, arr.begin),
+          end: (arr.end !== undefined ? encodeKey(backend, arr.end) : encodeEndKey(backend, arr.begin)/*single(backend, 0xff)*/)
+        };
+      }
+      else {
+        // after
+        var packed = encodeKey(backend, arr.after);
+        return {
+          begin: backend.concat([packed, single(backend, 0xff)], packed.length + 1),
+          end: encodeEndKey(backend, arr.after)
+        };
+      }
     }
     else if (arr.length === 0) {
       // RANGE_ALL
@@ -324,6 +340,7 @@ __js {
       };
     }
     else {
+      // children:
       var packed = encodeKey(backend, arr);
       return {
         // TODO a specialized push function can be faster than this
