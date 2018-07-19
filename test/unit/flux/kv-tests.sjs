@@ -28,13 +28,21 @@ function test_key_types(db) {
   var objs = [1, 100, 'test string',
               [1,2,3],
               [1,2, 'foo'],
-              [1, [2, ['foo', 3]]]
+              [1, [2, ['foo', 3]]],
+              null,
+              0,
+              [0,1],
+              'null',
+              [null, 1]
              ];
 
-  objs .. @each {
-    |obj|
-    db .. @kv.set(obj, 'foo');
-    db .. @kv.get(obj) .. @assert.eq('foo');
+  objs .. @indexed .. @each {
+    |[i,obj]|
+    db .. @kv.set(obj, i);
+  }
+  objs .. @indexed .. @each {
+    |[i,obj]|
+    db .. @kv.get(obj) .. @assert.eq(i);
   }
 }
 
@@ -491,7 +499,7 @@ function test_all(new_db) {
   // For all these tests, we run them both inside & outside
   // of a transaction block
   ;[
-    [null, (s, block) -> block(s.db)],
+    ["outside of transaction", (s, block) -> block(s.db)],
     ["withTransaction", (s, block) -> s.db .. @kv.withTransaction(block)],
     ["withTransaction^2", (s, block) -> s.db ..@kv.withTransaction(db -> db ..@kv.withTransaction(block))]
   ] .. @each {|[desc, wrap]|
