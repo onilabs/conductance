@@ -575,7 +575,10 @@ function BridgeConnection(transport, opts) {
         var dynvar_call_ctx = @sys.getDynVar("__mho_bridge_#{bridge_id}_dynvarctx", 0); // default 0 == no context to restore
         send(['C', call_no, dynvar_call_ctx, function_id, @toArray(args)]);
       }
-      if (isException) throw rv;
+      if (isException) {
+        console.log("Error on bridge call #{call_no} to #{function_id} with #{String(args[0])}");
+        throw rv;
+      }
       return rv;
     },
     publishFunction: function(f) {
@@ -735,33 +738,40 @@ function BridgeConnection(transport, opts) {
     // resolve the return frame by traversing the callstack to find the highest frame that
     // has the right blscope.
 
-   // We have to find the proper execution frame to abort among our pending_calls:
-    for (var call_no in pending_calls) {
-      var cb = pending_calls[call_no][0];
-      try { 
-        // XXX FRAGILE
-        // cb.ef.parent.parent.parent traverses up the execution frame structure
-        // of makeCall. This is somewhat fragile; if makeCall, or the encoding of functions
-        // changes, we need to change this code.
-        // Other problems with this code:
-        // - It can't resolve breaks that target frames deeper in the hierarchy (e.g. if the 
-        //   function calling 'break' is invoked via a helper function)
-        // - It might resolve the wrong frame, if there are multiple concurrent pending calls
-        //   rooted in the same break scope.
+    try { 
+      // We have to find the proper execution frame to abort among our pending_calls:
+      // XXX FRAGILE
+      // cb.ef.parent.parent.parent traverses up the execution frame structure
+      // of makeCall. This is somewhat fragile; if makeCall, or the encoding of functions
+      // changes, we need to change this code.
+      // Other problems with this code:
+      // - It can't resolve breaks that target frames deeper in the hierarchy (e.g. if the 
+      //   function calling 'break' is invoked via multiple intermediate functions with own blbscope)
+      // - It might resolve the wrong frame, if there are multiple concurrent pending calls
+      //   rooted in the same break scope. (Is that possible? TBD)
+      // XXX We should probably do this as a breadth-first search to minimize risk of finding a wrong frame (TBD) and for performance reasons (in most cases target frame will be shallow).
+      for (var call_no in pending_calls) {
+        var cb = pending_calls[call_no][0];
         //console.log('our blscope: '+cfx.ef);
         //console.log('parent: '+cb.ef.parent.parent.parent.parent);
         //console.log('parent blscope: '+cb.ef.parent.parent.parent.parent.parent.env.blbref);
-        if (cb.ef.parent.parent.parent.env.blbref === cfx.ef) {
-          // handle the other bridge side:
-          send(['A', call_no]);
-          // and let the resume callback handle our side:
-          cb(cfx);
-          return;
+        
+        var max_levels = 15;
+        var p = cb.ef.parent.parent.parent;
+        while (max_levels--) {
+          if (p.env.blbref === cfx.ef) {
+            // handle the other bridge side:
+            send(['A', call_no]);
+            // and let the resume callback handle our side:
+            cb(cfx);
+            return;
+          }
+          if (!(p = p.parent)) break;
         }
       }
-      catch (e) {
-        throw new Error("bridge.sjs: Unexpected callback frame structure in pending_call #{call_no}");
-      }
+    }
+    catch (e) {
+      throw new Error("bridge.sjs: Unexpected callback frame structure in pending_call #{call_no}");
     }
     // we failed to find the frame to return to; 
     var err = "Unresolvable blocklambda break across conductance bridge";
