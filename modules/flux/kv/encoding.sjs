@@ -451,7 +451,10 @@ __js {
      @summary XXX write me
    */
   function decodeValue(backend, encoded) {
-    if (encoded == null) return undefined;
+    // The length check is to catch the case where a query to leveldb is being executed with 
+    // `values: false`. This returns a value with an empty buffer 
+    // (and not `undefined` as per specs, which would be caught by the `== null`):
+    if (encoded == null || encoded.length===0) return undefined;
     if (encoded[0] !== VALUE_TYPE_JSON)
       throw new Error("Unknown data type '#{encoded[0]}' in DB value");
     var decoded = backend.decodeString(encoded, 1, encoded.length);

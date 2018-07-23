@@ -218,6 +218,7 @@ exports.clear = clear;
    @return {sjs:sequence::Stream}
    @setting {Boolean} [reverse=false] Reverse direction of range
    @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
+   @setting {Boolean} [values=true] If this is `false`, the kv may emit `undefined` instead of the real values (currently only the leveldb backend honors this).
    @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs in the given [::Range].
    @desc
      The returned stream will be based on a stable view of the database content as of the time that iteration starts.
