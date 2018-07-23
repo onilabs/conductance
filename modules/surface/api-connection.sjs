@@ -59,10 +59,9 @@ function proxyObj(obj, Beta, key_path) {
   }
   else if (typeof obj === 'function') {
     rv = proxyFunc(Beta, key_path);
-    if (obj .. @isBatchedStream)
-      rv = @BatchedStream(rv);
-    else if (obj .. @isStream)
-      rv = @Stream(rv);
+    if (obj .. @isStream) {
+      rv .. @extend(obj);
+    }
     rv.proxiedFunc = obj;
   }
   else if (obj && typeof obj == 'object') {
@@ -117,7 +116,7 @@ function proxyFunc(Beta, key_path) {
             //if (e.__oni_stack) console.log(e.__oni_stack);
             throw e;
           }
-          console.log(key_path + ': '+e);
+          console.log("api-connection: caught resumable transport error at key path [#{key_path}]" + ': '+e);
           /* else go round loop again */
         }
       }
@@ -139,21 +138,11 @@ function ProxyAPI() {
   function mirrorAPIProps(src, dest, path) {
     src .. @ownPropertyPairs .. @each {
       |[key, val]|
-      // XXX it sucks that we have to treat streams different to normal functions here
-      if (val .. @isBatchedStream) {
-        dest[key] = @BatchedStream(proxyFunc(-> base.wait(), path.concat(key)));
-        dest[key].proxiedFunc = val;
-      }
-      else if (val .. @isObservable) {
-        dest[key] = @Observable(proxyFunc(-> base.wait(), path.concat(key)));
-        dest[key].proxiedFunc = val;
-      }
-      else if (val .. @isStream) {
-        dest[key] = @Stream(proxyFunc(-> base.wait(), path.concat(key)));
-        dest[key].proxiedFunc = val;
-      }
-      else if (typeof val === 'function') {
+      if (typeof val === 'function') {
         dest[key] = proxyFunc(-> base.wait(), path.concat(key));
+        if (val .. @isStream) // XXX this is needed to get the stream tags & interfaces
+                              // maybe we should do this for *all* functions
+          dest[key] .. @extend(val);
         dest[key].proxiedFunc = val;
       }
       else if (typeof val === 'object') {
