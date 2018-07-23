@@ -32,6 +32,7 @@ var COMMENT_NODE = 8;
 
 //----------------------------------------------------------------------
 
+__js {
 // XXX DOM module backfill?
 // returns a stream of comment nodes:
 function CommentNodes(node) {
@@ -50,6 +51,7 @@ function StreamNodes(elem) {
     @filter({nodeValue} -> nodeValue.indexOf('surface_stream')!== -1);
 }
 exports.StreamNodes = StreamNodes;
+} // __js
 
 //----------------------------------------------------------------------
 
