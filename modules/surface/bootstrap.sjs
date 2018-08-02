@@ -1435,6 +1435,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @summary An [::Input] that provides a dropdown with selectable suggestions
 @param {Object} [settings]
 @setting {optional sjs:observable::ObservableVar} [value=undefined]
+@setting {optional Array} [actions] Array of actions items to be shown in dropdown menu
 @setting {sjs:sequence::Sequence|Function} [suggestions] function search_term_stream -> suggestions_stream
 @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.)
 @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.)
@@ -1442,7 +1443,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 @setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
 @setting {optional String|sjs:observable::Observable} [placeholder] Placeholder text
 @desc
-  suggestions can be one of the following:
+  `suggestions` can be one of the following:
   
   - A concrete [sjs:sequence::Sequence] (such as a static array) of suggestion items
   - An [sjs:observable::Observable] yielding a [sjs:sequence::Sequence] of suggestion items
@@ -1455,6 +1456,10 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
         text: String, 
         highlight: Boolean 
       }
+
+  `actions`, if provided, is an array of elements `{title: string, action: function}`.
+  The action items will be shown at the top of the dropdown menu. If clicked, 
+  `action(TextValue)` will be called,  with `TextValue` being an [sjs:observable::ObservableVar] of the input's textual value.
 
   ##### Binding to fields
 

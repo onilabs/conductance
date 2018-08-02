@@ -1410,6 +1410,7 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
    @summary An [::Input] that provides a dropdown with selectable suggestions
    @param {Object} [settings]
    @setting {optional sjs:observable::ObservableVar} [value=undefined]
+   @setting {optional Array} [actions] Array of actions items to be shown in dropdown menu
    @setting {sjs:sequence::Sequence|Function} [suggestions] function search_term_stream -> suggestions_stream
    @setting {optional Function} [valToTxt] Transformer yielding control's text from value (only used for field-bound Inputs; see description below.)
    @setting {optional Function} [txtToVal] Transformer yielding value for text (only used for field-bound Inputs; see description below.)
@@ -1417,7 +1418,7 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
    @setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
    @setting {optional String|sjs:observable::Observable} [placeholder] Placeholder text
    @desc
-     suggestions can be one of the following:
+     `suggestions` can be one of the following:
      
      - A concrete [sjs:sequence::Sequence] (such as a static array) of suggestion items
      - An [sjs:observable::Observable] yielding a [sjs:sequence::Sequence] of suggestion items
@@ -1430,6 +1431,10 @@ exports.ControlLabel = (content) -> @html.Label(content, {'class':'control-label
            text: String, 
            highlight: Boolean 
          }
+
+     `actions`, if provided, is an array of elements `{title: string, action: function}`.
+     The action items will be shown at the top of the dropdown menu. If clicked, 
+     `action(TextValue)` will be called,  with `TextValue` being an [sjs:observable::ObservableVar] of the input's textual value.
 
      ##### Binding to fields
 
@@ -1503,6 +1508,16 @@ __js function format_suggestion(s, filter_term) {
   };
 }
 
+// helper to format action links in dropdown menu:
+// returns a stream of html elements
+__js function format_actions(actions) {
+  if (!actions || actions.length === 0) return [];
+  return @concat(actions .. 
+                 @transform({title, action} ->
+                            @html.Li :: @html.A({href:'#'}) .. @Prop('action', action) :: title),
+                 [@html.Li('divider') ::'']);
+}
+
 // helper to put matching suggestions (as returned by format_suggestion) up front
 var sort_suggestions = upstream -> @Stream(function(receiver) {
   var non_matching = [];
@@ -1529,6 +1544,7 @@ function SelectInput(settings) {
     settings = 
       { 
         value: undefined,
+        actions: [],
         suggestions : [],
         txtToVal: null,
         valToTxt: null,
@@ -1560,9 +1576,10 @@ function SelectInput(settings) {
                                      hold(50);
                                      if (!@isSequence(suggestions))
                                        suggestions = [suggestions];
-                                     return suggestions .. 
-                                       @transform(s -> format_suggestion(s,text)) .. 
-                                       sort_suggestions .. @toArray;
+                                     return @concat(format_actions(settings.actions),
+                                                    suggestions .. 
+                                                    @transform(s -> format_suggestion(s,text)) .. 
+                                                    sort_suggestions) .. @toArray;
                                    })) { 
                           || hold() }
                       }
@@ -1571,9 +1588,10 @@ function SelectInput(settings) {
                           @observe(TextValue,
                                    function(text) {
                                      hold(50);
-                                     return suggestions .. 
-                                       @transform(s -> format_suggestion(s,text)) ..
-                                       sort_suggestions .. @toArray;
+                                     return @concat(format_actions(settings.actions),
+                                                    suggestions .. 
+                                                    @transform(s -> format_suggestion(s,text)) ..
+                                                    sort_suggestions) .. @toArray;
                                    })) {
                           || hold() }
                       }
@@ -1586,15 +1604,22 @@ function SelectInput(settings) {
                         handle: {ev} -> @dom.preventDefault(ev)
                       },
                       function({node}) {
-                        TextValue.set(node.txt);
+                        if (!node.action)
+                          TextValue.set(node.txt);
+                        else
+                          node.action(TextValue);
                       }
                      ) ..
                     @On('keydown', {
                       filter: ev -> ev.key === 'ArrowDown' || ev.key === 'ArrowUp'
                     }, function(ev) {
-                      if (ev.key === 'ArrowDown') var newFocus = ev.target.parentNode.nextSibling;
-                      if (ev.key === 'ArrowUp') var newFocus = ev.target.parentNode.previousSibling;
-                      if (newFocus && newFocus.nodeName != '#comment') newFocus.querySelector('a').focus();
+                      var target = ev.target.parentNode;
+                      while (1) {
+                        var target = ev.key === 'ArrowUp' ? target.previousSibling : target.nextSibling;
+                        if (!target || target.nodeName === '#comment') return;
+                        var A = target.querySelector('a');
+                        if (A) { A.focus(); return; }
+                      }
                     })
                  );
  
