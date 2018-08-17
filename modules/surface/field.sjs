@@ -149,6 +149,11 @@ function Value(/*[node], [path]*/) {
     if (!field_node) throw new Error("field::Value: Cannot resolve Field");
     return field_node[ITF_FIELD].value.modify(f);
   };
+  stream.get = function() { 
+    var field_node = getField.apply(null, args);
+    if (!field_node) throw new Error("field::Value: Cannot resolve Field");
+    return field_node[ITF_FIELD].value.get();
+  };
   stream.__oni_is_ObservableVar = true;
 
   return stream;
