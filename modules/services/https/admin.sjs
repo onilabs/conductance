@@ -41,6 +41,15 @@ exports.configui = function() {
           'Enable automatic certificates via certbot/letsencrypt'
         ],
 
+    @field.Field('no_autorenew') ::
+      @Label ::
+        [
+          @Checkbox(),
+          "Prevent automatic periodic (12h interval) renewal of certbot/letsencrypt certificates. Note
+           that periodic renewal requires a webserver to be runnining - see the 
+           conductance documentation for 'updateCredentials'."
+        ],
+
     @Div :: @TextField({
       name: 'email',
       label: 'Email',
