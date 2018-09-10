@@ -266,6 +266,8 @@ function withServices(settings, block) {
 
   var instances = {};
 
+  var ServiceThrewCondition = @Condition();
+
   try {
     @concat(settings.required .. @transform(name -> [name, true]),
             settings.optional .. @transform(name -> [name, false])) ..
@@ -323,7 +325,8 @@ function withServices(settings, block) {
                 }; 
               } 
               catch(e) { 
-                run_info.api.set(new Error(e)); 
+                run_info.api.set(new Error(e));
+                ServiceThrewCondition.set(e);
               } 
             })()
           };
@@ -337,7 +340,13 @@ function withServices(settings, block) {
       }
     
     // now run our caller's block:
-    block(instances);
+    waitfor {
+      var except = ServiceThrewCondition.wait();
+      throw(except);
+    }
+    or {
+      block(instances);
+    }
   }
   finally {
     // de-ref & potentially stop services
