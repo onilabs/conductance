@@ -39,9 +39,9 @@
 
      ### Basic Operation
 
-     * This function should only be called once on application startup. After that, credentials will automatically renew in the background (via crontab at an interval of 12h). 
+     * This function should only be called once on application startup. After that, credentials will automatically renew in the background (at an interval of 12h). 
 
-     * Credentials will be persisted in /etc/conductance/certs/letsencrypt/.
+     * Credentials will be persisted in /etc/conductance/certs/letsencrypt/ as 'conductuctance-cert'. Any existing certificate under this name will be replaced/updated to match the domains passed to the service.
 
      * If `run_server` is `false`, the caller needs to arrange for a webserver at port 80 that reachable via the configured domains and serves
        the directory `/var/letsencrypt/.well-known/` under the URL `/.well-known/`. Conversely, if `run_server` is `true`, `updateCredentials` will
@@ -49,8 +49,10 @@
 
      ### Automatic Renewal
 
-     * For periodic automated background renewal (every 12h via crontab) to work, the project using the service needs to run a 
-       webserver on port 80 that serves the directory `/var/letsencrypt/.well-known/` under the URL `/.well-known/` - see [::ChallengeDirectory] for a ready-made [mho:server::Route] that can be used in a [mho:server::run] configuration.
+     * For periodic automated background renewal (every 12h) to work, the project using the service needs to run a 
+       webserver on port 80 that serves the directory `/var/letsencrypt/.well-known/` under the URL `/.well-known/` - see [::ChallengeDirectory] for a ready-made [mho:server::Route] that can be used in a [mho:server::run] configuration. Note that automatic renewal renews all certificates that are present 
+       under /etc/conductance/certs/letsencrypt/, whether they were installed by `updateCredentials` (in
+       the current run of the application or a prior run), or by invoking letsencrypt by other means.
 */
 
 /**
@@ -112,7 +114,7 @@ function run_with_certbot(config, block) {
 
   var certbot_config_root = '/etc/conductance/certs/letsencrypt';
   var cert_root = certbot_config_root + '/live/';
-  var cert_dir = cert_root + domains[0];
+  var cert_dir = cert_root + 'conductance-cert';
 
   @mkdirp(cert_root);
 
@@ -132,8 +134,9 @@ function run_with_certbot(config, block) {
                                     [
                                       'certonly', 
                                       '-n',
+                                      '--cert-name', 'conductance-cert',
                                       '--agree-tos',
-                                      '--expand',
+                                      //'--expand',
                                       //'--staging',
                                       '--config-dir', certbot_config_root,
                                       '-m', email,
@@ -141,7 +144,7 @@ function run_with_certbot(config, block) {
                                       '-w', WEBROOT,
                                       domains .. @map(d -> ['-d', d])
                                     ]);
-    console.log(process.stdout + '\n' + process.stderr);
+    console.log(process.stderr + '\n' + process.stdout);
   }
     
   var credentials = @Observable(function(r) {
@@ -170,12 +173,34 @@ function run_with_certbot(config, block) {
   });
 
   try {
-    block(
-      {
-        credentials: credentials,
-        updateCredentials: updateCredentials
+    waitfor {
+      block(
+        {
+          credentials: credentials,
+          updateCredentials: updateCredentials
+        }
+      );
+    }
+    or {
+      if (config.no_autorenew) hold();
+      while (1) {
+        hold(1000*10*60*12); // 12h
+
+        console.log("Https service: Obtaining/Updating certificates");
+        try {
+          var process = @childProcess.run('certbot', @flatten :: 
+                                          [
+                                            '--config-dir', certbot_config_root,
+                                            'renew'
+                                          ]);
+          console.log(process.stderr + '\n' + process.stdout);
+        }
+        catch (e) {
+          console.log("Https Service: Error on renewing https certificate: "+e);
+          console.log("Https Service: Will retry renewal in 12h");
+        }
       }
-    );
+    }
   }
   finally {
     console.log("Shutting down Https Service");
