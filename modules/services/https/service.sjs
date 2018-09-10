@@ -184,7 +184,7 @@ function run_with_certbot(config, block) {
     or {
       if (config.no_autorenew) hold();
       while (1) {
-        hold(1000*10*60*12); // 12h
+        hold(1000*60*60*12); // 12h
 
         console.log("Https service: Obtaining/Updating certificates");
         try {
