@@ -13,6 +13,7 @@
   @nodoc
 */
 
+@ = require('sjs:std');
 var { createID } = require('./random');
 var logging = require('sjs:logging');
 var { NotFound } = require('./response');
@@ -45,6 +46,8 @@ function createKeyholeHandler() {
     var descriptor;
     var keyhole_id, keyhole_path;
     [,keyhole_id, keyhole_path] = matches;
+    keyhole_id = @url.decode(keyhole_id);
+    keyhole_path = @url.decode(keyhole_path);
     logging.verbose("accessing keyhole #{keyhole_id} -- #{keyhole_path}");
     var keyhole = keyholes[keyhole_id];
 
