@@ -628,7 +628,7 @@ exports.OnClick = OnClick;
 
      The `append` parameter is a function that `generator` can use to insert content into the DOM. 
      `node` is the (comment) node that anchors the ContentGenerator in the DOM and next to which the 
-     generated content will be inserted.
+     generated content will be inserted. `append` returns an array of inserted DOM nodes.
 */
 exports.ContentGenerator = ContentGenerator; // from ./base.sjs
 
@@ -637,6 +637,8 @@ exports.ContentGenerator = ContentGenerator; // from ./base.sjs
    @hostenv xbrowser
    @summary A [::HtmlFragment] for inserting all elements of a stream into the DOM
    @param {sjs:sequence::Stream} [stream]
+   @param {optional Object} [settings]
+   @setting {optional Function} [post_append] Function to execute for each appended item. Will be called with the inserted DOM (an array) as first argument
    @return {::HtmlFragment}
    @desc
      `stream` will be iterated when the CollectStream is inserted into the DOM (directly or indirectly via a 
@@ -644,13 +646,15 @@ exports.ContentGenerator = ContentGenerator; // from ./base.sjs
 
      Elements of `stream` will be appended to the DOM as they are produced.
 */
-var CollectStream = stream -> ContentGenerator ::
+var CollectStream = (stream, settings) -> ContentGenerator ::
                           function(append) {
                             var appended = [];
                             try {
                               stream .. each {
                                 |item|
-                                appended = appended.concat(append(item));
+                                var dom = append(item);
+                                appended = appended.concat(dom);
+                                if (settings && settings.post_append) settings.post_append(dom);
                               }
                               hold();
                             }

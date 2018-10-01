@@ -777,12 +777,14 @@ module.exports = require(modules);
 
   The `append` parameter is a function that `generator` can use to insert content into the DOM. 
   `node` is the (comment) node that anchors the ContentGenerator in the DOM and next to which the 
-  generated content will be inserted.
+  generated content will be inserted. `append` returns an array of inserted DOM nodes.
 
 @function CollectStream
 @hostenv xbrowser
 @summary A [::HtmlFragment] for inserting all elements of a stream into the DOM
 @param {sjs:sequence::Stream} [stream]
+@param {optional Object} [settings]
+@setting {optional Function} [post_append] Function to execute for each appended item. Will be called with the inserted DOM (an array) as first argument
 @return {::HtmlFragment}
 @desc
   `stream` will be iterated when the CollectStream is inserted into the DOM (directly or indirectly via a 
