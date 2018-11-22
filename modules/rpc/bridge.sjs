@@ -759,7 +759,7 @@ function BridgeConnection(transport, opts) {
         var max_levels = 15;
         var p = cb.ef.parent.parent.parent;
         while (max_levels--) {
-          if (p.env.blbref === cfx.ef) {
+          if (p.env.blscope === cfx.ef) {
             // handle the other bridge side:
             send(['A', call_no]);
             // and let the resume callback handle our side:
