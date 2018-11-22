@@ -449,13 +449,6 @@ context() {||
 
     test('blocklambda_break_2') {||
       var rv = '';
-      function foo(api) { 
-        api.integer_stream { |x|
-          rv += x;
-          if (x === 10) break;
-        }
-        return 'done';
-      }
       require(url).connect() {|api|
         api.integer_stream { |x|
           rv += x;
@@ -468,13 +461,6 @@ context() {||
 
     test('blocklambda_break_async') {||
       var rv = '';
-      function foo(api) { 
-        api.integer_stream { |x|
-          rv += x;
-          if (x === 10) break;
-        }
-        return 'done';
-      }
       require(url).connect() {|api|
         api.integer_stream { |x|
           rv += x;
