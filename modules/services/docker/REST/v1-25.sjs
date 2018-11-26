@@ -3549,7 +3549,7 @@ exports.getPluginPrivileges = function(client, params, block) {
   @setting {Object} [body] See description.
   @param {optional Function} [block] If this function is provided, it will receive the raw [IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage). The connection will automatically be destroyed when `block` exits.
   @desc
-    Pulls and installs a plugin. After the plugin is installed, it can be enabled using the [::postPluginsEnable].
+    Pulls and installs a plugin. After the plugin is installed, it can be enabled using the `postPluginsEnable` (missing documentation).
     
     
     #### Setting 'remote'
