@@ -24,7 +24,7 @@
     See also the [server/response::] module, which provides utilities
     for use in `.REST` files.
 
-    For serving generated content see also [#features::gen-file::]. For serving conductance-specific APIs see [#features::api-file::].
+    For serving generated content see also [#features/gen-file::]. For serving conductance-specific APIs see [#features/api-file::].
 
     ### Configuring .REST files
 
