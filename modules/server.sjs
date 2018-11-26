@@ -269,7 +269,14 @@ var Responder = {
   addFilter: function(f) {
     this.filters.push(f);
   },
-  handle: function(req) {
+  handle: __js function(req,matches) {
+    if (this.filters.length === 0)
+      return this._handle(req,matches);
+    else
+      return this._handleComplex(req, matches);
+  },
+  _handleComplex: function(req) {
+    // XXX do we really need to build the handler dynamically *every time* here???
     var args = arguments;
     var self = this;
     // each concrete class defines _handle
@@ -278,7 +285,7 @@ var Responder = {
       // `b` alias avoids closing over `blk` (infinite loop)
       blk = (function(b) { return -> filter(req, b);})(blk);
     };
-    return blk(args[0]);
+    return blk();
   },
   _initClone: function(source) {
     this.filters = source.filters.slice();
