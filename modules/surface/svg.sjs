@@ -56,14 +56,6 @@ __js {
 
 
 //----------------------------------------------------------------------
-
-/**
-   @summary Basic SVG building blocks
-   @desc
-     This module defined basic SVG elements and supporting functions
-*/
-
-//----------------------------------------------------------------------
 // Supporting functions
 
 /**
