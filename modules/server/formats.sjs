@@ -332,8 +332,8 @@ var withFormats = exports.withFormats = function(map, extensions) {
 
     You should never use these filters for locations containing untrusted or
     user-submitted code.
-    Certain module directives (e.g. [#features/app-file::@bundle]) could be used to expose sensitive
-    content from the server in some circumstances.
+    Certain module features (e.g. app-file bundling - see [#features/app-file::@no-bundle]) could be used 
+    to expose sensitive content from the server in some circumstances.
 
 */
 var conductanceVersionEtag = "#{@env.conductanceVersion()}-#{@env.compilerStamp()}";
