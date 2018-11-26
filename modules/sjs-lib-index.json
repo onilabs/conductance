@@ -262,7 +262,27 @@
       "children": {
         "formats": {
           "type": "module",
-          "children": {},
+          "children": {
+            "Code": {
+              "type": "function"
+            },
+            "Executable": {
+              "type": "function"
+            },
+            "FormatMap": {
+              "type": "class",
+              "children": {}
+            },
+            "Routed": {
+              "type": "function"
+            },
+            "StaticFormatMap": {
+              "type": "variable"
+            },
+            "withFormats": {
+              "type": "function"
+            }
+          },
           "summary": "File-format configuration for the conductance server"
         },
         "generator": {
@@ -9209,7 +9229,7 @@
               "type": "function"
             }
           },
-          "summary": "Basic SVG building blocks"
+          "summary": "Basic SVG elements"
         },
         "widgets": {
           "type": "module",
@@ -9329,6 +9349,9 @@
           "type": "function"
         },
         "RawHTML": {
+          "type": "function"
+        },
+        "ReplaceStream": {
           "type": "function"
         },
         "RequireExternalCSS": {

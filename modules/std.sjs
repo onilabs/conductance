@@ -201,6 +201,7 @@ module.exports = require(modules);
    - **RawHTML**: (function [mho:surface::RawHTML])
    - **removeNode**: (function [mho:surface::removeNode])
    - **replaceContent**: (function [mho:surface::replaceContent])
+   - **ReplaceStream**: (function [mho:surface::ReplaceStream])
    - **RequireExternalCSS**: (function [mho:surface::RequireExternalCSS])
    - **RequireExternalScript**: (function [mho:surface::RequireExternalScript])
    - **ScrollStream**: (function [mho:surface::ScrollStream])
