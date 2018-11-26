@@ -872,7 +872,7 @@ exports.GlobalCSS = function(content) {
 
     *** Coordinating execution order ***
 
-    When a [::HTMLFragment] is inserted into the document using [::appendContent] (or one
+    When a [::HtmlFragment] is inserted into the document using [::appendContent] (or one
     of the surface module's other content insertion functions) and there are multiple 
     mechanisms to be executed, their execution order can be coordinated using the 
     `priority` setting: Mechanisms with a lower numerical `priority` value will be 
