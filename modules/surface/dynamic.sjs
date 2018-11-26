@@ -666,6 +666,38 @@ var CollectStream = (stream, settings) -> ContentGenerator ::
 exports.CollectStream = CollectStream;
 
 /**
+   @function ReplaceStream
+   @hostenv xbrowser
+   @summary A [::HtmlFragment] for inserting the most recent element of a stream into the DOM, replacing the previous element
+   @param {sjs:sequence::Stream} [stream]
+   @param {optional Object} [settings]
+   @setting {optional Function} [post_update] Function to execute after each time a stream element has been inserted into the DOM. Will be called with the inserted DOM (an array) as first argument
+   @return {::HtmlFragment}
+   @desc
+     `stream` will be iterated when the ReplaceStream is inserted into the DOM (directly or indirectly via a 
+     parent of the CollectStream being inserted into the DOM).
+
+     Elements of `stream` will be inserted into the DOM as they are produced.
+*/
+var ReplaceStream = (stream, settings) -> ContentGenerator ::
+                          function(append) {
+                            stream .. each.track {
+                              |item|
+                              try {
+                                var dom = append(item);
+                                if (settings && settings.post_update) settings.post_update(dom);
+                                hold();
+                              }
+                              finally {
+                                if (dom.length)
+                                  dom .. each(removeNode);
+                              }
+                            }
+                            hold();
+                          };
+exports.ReplaceStream = ReplaceStream;
+
+/**
    @function ScrollStream
    @hostenv xbrowser
    @summary A [::HtmlFragment] for inserting elements of a stream into the DOM as the user scrolls vertically
