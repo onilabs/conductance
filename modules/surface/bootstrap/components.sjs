@@ -1707,7 +1707,7 @@ exports.SelectInput = SelectInput;
    @param {optional Object} [settings]
    @setting {optional Function} [dateToVal]
    @setting {optional Function} [valToDate]
-   @setting {optional surface::HTMLFragment} [extra_buttons] 
+   @setting {optional surface::HtmlFragment} [extra_buttons] 
    @setting {optional Boolean} [left_dropdown=false] Whether to align the dropdown to the left edge of the control (default is right edge) 
    @setting {optional String|sjs:observable::Observable} [placeholder] Placeholder text
    @desc
