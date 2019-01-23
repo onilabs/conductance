@@ -1,11 +1,23 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
+## Version 0.7.6:
+
+ * Bug fixes / Behavioral changes:
+
+   * `sjs:sequence::each.track`: Make the implementation robust against a (fatal) stack overflow occuring when an 
+     each.track loop with fast producer and slow consumer was exited via blocklambda break or blocklambda return.
+
+   * Fix various edge cases where blocklambda breaks or returns would not be propagated properly in the case of
+     blocking finally clauses, potentially altering control flow (e.g. causing loops not to be exited).
+     Fortunately there are no known cases in existing code where any of these edge cases were hit.
+
+
 ## Version 0.7.5:
 
  * New functionality:
 
    * `sjs:sequence::scan` now takes an optional 'initial' argument.
-   
+
    * Various API methods have been added to `sjs:observable::ObservableArrayVar`:
      - `reset`
      - `push`
@@ -14,7 +26,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `sjs:sys::withEvalContext`:
      - An `imports` parameter for importing symbols into the context has been added.
      - The `eval` function now takes an optional `file_name` parameter, to customize the name appearing in stack traces.
- 	
+
    * `mho:surface::CollectStream` now takes an optional `post_append` function argument.
 
    * A new function `mho:surface::ReplaceStream` has been added. In contrast to `mho:surface::CollectStream`, 
