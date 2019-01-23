@@ -573,7 +573,7 @@ __js {
   @function ensureElement
   @param {::HtmlFragment} [html]
   @return {::Element}
-  @summary Return `html` unmodified if it is an [::Element]; otherwise return `html`  wrapped in an [::Element] with tag name `<surface-ui>`.
+  @summary Return `html` unmodified if it is an [::Element]; resolve to [::Element] if it is an [::ElementConstructor]; otherwise return `html` wrapped in an [::Element] with tag name `<surface-ui>`.
 */
 __js {
   function ensureElement(ft) {
