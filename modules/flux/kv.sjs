@@ -190,10 +190,12 @@ exports.get = get;
    @param {::Key} [key]
    @param {::Value} [value]
    @summary Sets key to the given value.
+   @desc
+      Note: `value` must not be `undefined`. To unset a key-value pair, use [::clear] instead.
 */
 __js function set(store, key, value) {
   key = @util.normalizeKey(key);
-  // assert value !== undefined; that would be a 'clear' operation
+  if (value === undefined) throw new Error("mho:flux/kv::set: 'undefined' is not a valid value");
   return store[ITF_KVSTORE].put(key, value);
 }
 exports.set = set;
