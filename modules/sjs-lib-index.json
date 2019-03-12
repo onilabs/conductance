@@ -9419,6 +9419,26 @@
         }
       },
       "summary": "Conductance sub-system for constructing static and dynamic client-side UI"
+    },
+    "websocket-client": {
+      "type": "module",
+      "children": {
+        "WebSocketClient": {
+          "type": "class",
+          "children": {
+            "receive": {
+              "type": "function"
+            },
+            "send": {
+              "type": "function"
+            }
+          }
+        },
+        "withWebSocketClient": {
+          "type": "function"
+        }
+      },
+      "summary": "websocket client"
     }
   },
   "summary": "The Conductance web application framework",
