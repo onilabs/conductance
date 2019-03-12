@@ -2,6 +2,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.7.6:
 
+ * New functionality:
+
+   * Websocket client implementation (module 'mho:websocket-client')
+
+
  * Bug fixes / Behavioral changes:
 
    * `sjs:sequence::each.track`: Make the implementation robust against a (fatal) stack overflow occuring when an 
@@ -11,6 +16,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
      blocking finally clauses, potentially altering control flow (e.g. causing loops not to be exited).
      Fortunately there are no known cases in existing code where any of these edge cases were hit.
 
+   * Add missing mho:surface/cmd::On export.
+	
 
 ## Version 0.7.5:
 
