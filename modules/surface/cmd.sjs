@@ -224,7 +224,7 @@ function On(/*element, settings*/) {
 
   return rv;
 };
-exports.Click = Click;
+exports.On = On;
 
 ////////////////////////////////////////////////////////////////////////
 /**
