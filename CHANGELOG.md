@@ -17,7 +17,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
      Fortunately there are no known cases in existing code where any of these edge cases were hit.
 
    * Add missing mho:surface/cmd::On export.
-	
+
+   * mho:flux/kv::set: Prevent accidental deletion of keys by disallowing 'undefined' values
+
 
 ## Version 0.7.5:
 
