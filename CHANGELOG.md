@@ -6,10 +6,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * Websocket client implementation (module 'mho:websocket-client')
 
-
  * Bug fixes / Behavioral changes:
 
-   * `sjs:sequence::each.track`: Make the implementation robust against a (fatal) stack overflow occuring when an 
+   * `sjs:sequence::each.track`: Make the implementation robust against a (fatal) stack overflow occuring when an
      each.track loop with fast producer and slow consumer was exited via blocklambda break or blocklambda return.
 
    * Fix various edge cases where blocklambda breaks or returns would not be propagated properly in the case of
@@ -20,8 +19,17 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * mho:flux/kv::set: Prevent accidental deletion of keys by disallowing 'undefined' values
 
-   * mho:surface: Fix bug where top-level strings containing the literal text 'surface_stream'          would cause spurious Mechanisms to be run upon insertion of such a string into the DOM with 
+   * mho:surface: Fix bug where top-level strings containing the literal text 'surface_stream'          would cause spurious Mechanisms to be run upon insertion of such a string into the DOM with
      one of the surface insertion functions (appendContent, etc).
+
+   * `require()` now injects a module-specific `require` function into plain JavaScript
+     modules, which allows CommonJS-style JS modules to load other files by URL relative to the
+     JS module (or via hubs). Note that any files loaded from JS modules in this way need to
+     be synchronously available (e.g. preloaded with a prior `require` call from an SJS module).
+     Furthermore, the default extension for files `require`d from JS modules is '.js'.
+     Prior to this change, JS modules would see the global `require` function, which would
+     break resolution of relative URLs, and would default to loading files with '.sjs'
+     extension.
 
 
 ## Version 0.7.5:
