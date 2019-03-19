@@ -20,6 +20,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * mho:flux/kv::set: Prevent accidental deletion of keys by disallowing 'undefined' values
 
+   * mho:surface: Fix bug where top-level strings containing the literal text 'surface_stream'          would cause spurious Mechanisms to be run upon insertion of such a string into the DOM with 
+     one of the surface insertion functions (appendContent, etc).
+
 
 ## Version 0.7.5:
 

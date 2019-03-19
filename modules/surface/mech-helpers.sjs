@@ -130,8 +130,8 @@ function runMechanisms(elems, mechanismsInstalled, await) {
         node .. addMech([mech, MECH_PRIORITY_STREAM]);
       }
     }
-    else if (elem.nodeValue.indexOf('surface_stream') !== -1) {
-      // we assume nodetype == COMMENT_NODE
+    else if (elem.nodeType === COMMENT_NODE &&
+             elem.nodeValue.indexOf('surface_stream') !== -1) {
       var [,mech] = elem.nodeValue.split("|");
       elem.__oni_mechs = [];
       elem .. addMech([mech, MECH_PRIORITY_STREAM]);
