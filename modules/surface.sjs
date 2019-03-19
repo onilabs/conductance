@@ -459,8 +459,8 @@ module.exports = require(modules);
 
   You should use this for widgets which depend on some javascript library being
   globally available - that way, the script is automatically loaded when your
-  widget is used. For SJS-based dependencies, this function is unnecessary
-  (just use `require`).
+  widget is used. For SJS-based or CommonJS-compliant JS dependencies, this function 
+  is unnecessary (just use [sjs:#language/builtins::require]).
 
 @function RequireExternalCSS
 @summary Declare a dependency on an external `.css` file

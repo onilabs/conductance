@@ -1257,8 +1257,8 @@ exports.Markdown = (str, settings) -> exports.RawHTML(require('sjs:marked').conv
 
     You should use this for widgets which depend on some javascript library being
     globally available - that way, the script is automatically loaded when your
-    widget is used. For SJS-based dependencies, this function is unnecessary
-    (just use `require`).
+    widget is used. For SJS-based or CommonJS-compliant JS dependencies, this function 
+    is unnecessary (just use [sjs:#language/builtins::require]).
 */
 exports.RequireExternalScript = function(url) {
   var rv = CollapsedFragment();

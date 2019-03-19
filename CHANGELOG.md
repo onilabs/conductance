@@ -15,11 +15,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
      blocking finally clauses, potentially altering control flow (e.g. causing loops not to be exited).
      Fortunately there are no known cases in existing code where any of these edge cases were hit.
 
-   * Add missing mho:surface/cmd::On export.
+   * Add missing `mho:surface/cmd::On` export.
 
-   * mho:flux/kv::set: Prevent accidental deletion of keys by disallowing 'undefined' values
+   * `mho:flux/kv::set`: Prevent accidental deletion of keys by disallowing 'undefined' values
 
-   * mho:surface: Fix bug where top-level strings containing the literal text 'surface_stream'          would cause spurious Mechanisms to be run upon insertion of such a string into the DOM with
+   * mho:surface: Fix bug where top-level strings containing the literal text 'surface_stream'       would cause spurious Mechanisms to be run upon insertion of such a string into the DOM with
      one of the surface insertion functions (appendContent, etc).
 
    * `require()` now injects a module-specific `require` function into plain JavaScript
@@ -30,6 +30,16 @@ This changelog lists the most prominent, developer-visible changes in each relea
      Prior to this change, JS modules would see the global `require` function, which would
      break resolution of relative URLs, and would default to loading files with '.sjs'
      extension.
+
+   * `sjs:xbrowser/dom::script`: Throw proper `Error` object (and not just a string) if script
+     can't be loaded.
+
+   * `sjs:xbrowser/dom::css`: Block until stylesheet is loaded; throw error if it can't be
+     loaded. Don't reload stylesheets if previously loaded in this way.
+
+   * `mho:surface::RequireExternalScript`: Fix error handling (see `sjs:xbrowser/dom::script` above).
+
+   * `mho:surface::RequireExternalCSS`: Fix semantics (see `sjs:xbrowser/dom::css` above).
 
 
 ## Version 0.7.5:
