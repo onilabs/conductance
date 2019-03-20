@@ -215,6 +215,15 @@
       },
       "summary": "Flux database framework"
     },
+    "module-compiler": {
+      "type": "module",
+      "children": {
+        "compile": {
+          "type": "function"
+        }
+      },
+      "summary": "SJS Module Compiler"
+    },
     "rpc/": {
       "type": "lib",
       "children": {

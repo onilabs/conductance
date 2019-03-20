@@ -493,13 +493,24 @@ exports.renderer = function(libraries, rootSymbol) {
 
 		var executable = docs.executable;
 		if (executable) {
-			rv.push(`
-			<h3>This module is executable</h3>
-			<p>
-			You can run it directly from the command-line, using either:
-<code class="mb-commandline">sjs <strong>${symbol.fullModulePath .. join('')}</strong> [...]</code>
-<code class="mb-commandline">conductance exec <strong>${symbol.fullModulePath .. join('')}</strong> [...]</code>
-			</p>`);
+      console.log(symbol);
+      if (symbol.fullModulePath[0] === 'sjs:') {
+			  rv.push(`
+			          <h3>This module is executable</h3>
+			          <p>
+			          You can run it directly from the command-line, using either:
+                <code class="mb-commandline">sjs <strong>${symbol.fullModulePath .. join('')}</strong> [...]</code>
+                <code class="mb-commandline">conductance exec <strong>${symbol.fullModulePath .. join('')}</strong> [...]</code>
+			          </p>`);
+      }
+      else if (symbol.fullModulePath[0] === 'mho:') {
+			  rv.push(`
+			          <h3>This module is executable</h3>
+			          <p>
+			          You can run it directly from the command-line, using:
+                <code class="mb-commandline">conductance exec <strong>${symbol.fullModulePath .. join('')}</strong> [...]</code>
+			          </p>`);        
+      }
 		}
 
 	

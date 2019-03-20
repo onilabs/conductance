@@ -32,12 +32,14 @@ var bundleCache = @lruCache.makeCache(10*1000*1000); // 10MB
 
 //----------------------------------------------------------------------
 // filter that compiles sjs into '__oni_compiled_sjs_1' format:
+var COMPILED_SRC_TAG = "/*__oni_compiled_sjs_1*/";
+var COMPILED_SRC_TAG_REGEX = /^\/\*\__oni_compiled_sjs_1\*\//;
+
 function sjscompile(src, aux) {
-  // TODO what if src is a Buffer ?
-  if (typeof src !== 'string') src = src .. @join('');
-  __js {
+  if (typeof src !== 'string') src = String(src .. @join());
+  __js if (!COMPILED_SRC_TAG_REGEX.exec(src)) {
     try {
-      src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
+      src = COMPILED_SRC_TAG + __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
     }
     catch (e) {
       @error("sjscompiler: #{aux.request.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
@@ -46,10 +48,13 @@ function sjscompile(src, aux) {
       // our compile error as an exception on execution
       var error_message =
         "'SJS syntax error in \\''+__onimodulename+'\\' at line #{e.compileError.line}: #{e.compileError.message.toString().replace(/\'/g, '\\\'')}'";
-      src = __oni_rt.c1.compile("throw new Error(#{error_message});", {globalReturn:true, filename:"'compilation@rocket_server'"});
+      src = COMPILED_SRC_TAG + __oni_rt.c1.compile("throw new Error(#{error_message});", {globalReturn:true, filename:"'compilation@rocket_server'"});
     }
   }
-  return ["/*__oni_compiled_sjs_1*/" + src];
+//  else {
+//    console.log("#{aux.request.url} already compiled:", src);
+//  }
+  return [src];
 }
 
 //----------------------------------------------------------------------

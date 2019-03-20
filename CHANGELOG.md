@@ -6,6 +6,18 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * Websocket client implementation (module 'mho:websocket-client')
 
+   * Support for compiled SJS modules: `mho:module-compiler` can be used (from sjs code or as
+     a stand-alone utility) to compile SJS modules into an SJS VM-compatible representation.
+     As far as the SJS VM and the Conductance code bundling mechanisms are concerned,
+     compiled SJS module files are drop-in replacements for uncompiled files (you can replace any
+     sjs module 'foo.sjs' with its compiled version, also stored under 'foo.sjs').
+     There is a (slight) performance advantage to using compiled module files (the VM can
+     skip a compilation step when loading already-compiled modules).
+     Also, compiled modules are stripped of comments (so no module documentation can be
+     generated from them) and the generated code is *a lot* harder (but not impossible) to
+     read/understand than the corresponding uncompiled source. This means that compilation
+     can serve as a code obfuscation technique to discourage casual inspection of source code.
+
  * Bug fixes / Behavioral changes:
 
    * `sjs:sequence::each.track`: Make the implementation robust against a (fatal) stack overflow occuring when an
