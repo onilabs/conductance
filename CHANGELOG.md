@@ -89,9 +89,6 @@ This changelog lists the most prominent, developer-visible changes in each relea
      any longer, `CompoundObservable` will now throw an exception when fed with structured
      observables that haven't been passed through `reconstitute`.
 
-   * mho:surface: Structured streams (such as ObservableArray streams) will NOT be
-     automatically reconstituted when rendered as (part of) a HtmlFragment any longer.
-
    * `project` and `dereference` have been moved into a new `sjs:projection` module.
 
    * `project` no longer performs inner projection on `ObservableArray`. Instead 

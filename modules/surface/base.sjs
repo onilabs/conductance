@@ -213,7 +213,7 @@ function StreamingContent(stream) {
   var dyn = require('./dynamic');
   
   function mechanism(node) {
-    stream .. each.track {
+    stream .. @reconstitute .. each.track {
       |val|
       var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
 
