@@ -2,6 +2,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.7.6:
 
+ * General:
+
+   * nodejs dependency has been updated to the active LTS release v10.15.3-stretch.
+
+
  * New functionality:
 
    * Websocket client implementation (module 'mho:websocket-client')

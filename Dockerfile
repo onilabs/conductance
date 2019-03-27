@@ -1,11 +1,10 @@
-FROM node:8.9.4
+FROM node:10.15.3-stretch
 MAINTAINER alex@onilabs.com
 
 # install certbot (letsencrypt.org support) - see modules/services/https
-RUN echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list \
-    && apt-get update \
-    && apt-get -t jessie-backports install -y --no-install-recommends python-ndg-httpsclient \
-    && apt-get -t jessie-backports install -y --no-install-recommends certbot \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python-ndg-httpsclient \
+    && apt-get install -y --no-install-recommends certbot \
     && rm -rf /var/lib/apt/lists/*
 
 # install conductance
