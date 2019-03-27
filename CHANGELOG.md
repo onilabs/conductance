@@ -18,6 +18,24 @@ This changelog lists the most prominent, developer-visible changes in each relea
      read/understand than the corresponding uncompiled source. This means that compilation
      can serve as a code obfuscation technique to discourage casual inspection of source code.
 
+   * A new class `sjs:structured-observable::StructuredObservable` (with eponymous constructor)
+     has been added. It inherits from `sjs:sequence::Stream`, forming a separate hierarchy 
+     next to `sjs:observable::Observable`. The new module `sjs:structured-observable` will
+     be the home for structured observables (such as `ObservableArray`).
+
+   * Predicates `sjs:structured-observable::isStructuredObservable` and 
+     `isObservableArray` have been added.
+
+   * A new module `sjs:projection` has been added. This will be the home for type-preserving
+     stream transformation functions.
+
+   * A new function `sjs:projection::projectInner` equivalent to 
+     seq .. project(elems -> elems .. project(f))
+     has been added. The idea is that inner projections can be efficiently special-cased
+     for structured observables. E.g. for `ObservableArray` streams, instead of projecting
+     each array element for every mutation, only new items have to be projected.
+
+
  * Bug fixes / Behavioral changes:
 
    * `sjs:sequence::each.track`: Make the implementation robust against a (fatal) stack overflow occuring when an
@@ -52,6 +70,36 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `mho:surface::RequireExternalScript`: Fix error handling (see `sjs:xbrowser/dom::script` above).
 
    * `mho:surface::RequireExternalCSS`: Fix semantics (see `sjs:xbrowser/dom::css` above).
+
+   * Structured observables (symbols `ObservableArray`, `ObservableArrayVar`) and 
+     supporting functions (`reconstitute`) have been moved into their own module 
+     `sjs:structured-observable`.
+
+   * Structured observables (`ObservableArray`, `ObservableArrayVar`) no longer inherit
+     from `Observable`, but from `StructuredObservable`, which in turn inherits from
+     `Stream`. 
+
+   * `CompoundObservable` and `DelayedObservable` no longer automatically
+     reconstitute their inputs. Since structured observables don't inherit from `Observable`
+     any longer, `CompoundObservable` will now throw an exception when fed with structured
+     observables that haven't been passed through `reconstitute`.
+
+   * mho:surface: Structured streams (such as ObservableArray streams) will NOT be
+     automatically reconstituted when rendered as (part of) a HtmlFragment any longer.
+
+   * `project` and `dereference` have been moved into a new `sjs:projection` module.
+
+   * `project` no longer performs inner projection on `ObservableArray`. Instead 
+     it calls its transformation function with the full array on every mutation
+     (i.e. like `project` for other stream types, it now performs *outer* projection).
+     For inner projection, we now have a function `projectInner`.
+
+   * `ObservableArray`: The format of the mutation stream has been changed. Instead of
+     'reset' mutation events, the stream now contains a copy of the array.
+
+   * The (undocumented) interface machinery for adding new types into `reconstitute` 
+     and `project` has been removed. The intention is to add a similar functionality 
+     in a future version of stratifiedjs.
 
 
 ## Version 0.7.5:

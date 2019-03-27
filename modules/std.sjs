@@ -42,6 +42,8 @@
   @require sjs:regexp
   @require sjs:url
   @require sjs:observable
+  @require sjs:structured-observable
+  @require sjs:projection
 */
 
 var hostenv = require('builtin:apollo-sys').hostenv;
@@ -64,7 +66,9 @@ var modules = [
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
-  'sjs:observable'
+  'sjs:observable',
+  'sjs:structured-observable',
+  'sjs:projection'
 ];
 
 if (hostenv === 'nodejs') {
@@ -323,11 +327,16 @@ module.exports = require(modules);
    - **isObservable**: (function [sjs:observable::isObservable])
    - **isObservableVar**: (function [sjs:observable::isObservableVar])
    - **Observable**: (class [sjs:observable::Observable])
-   - **ObservableArrayVar**: (class [sjs:observable::ObservableArrayVar])
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
    - **observe**: (function [sjs:observable::observe])
-   - **reconstitute**: (function [sjs:observable::reconstitute])
    - **synchronize**: (function [sjs:observable::synchronize])
+  
+  
+  ### Symbols from the [sjs:projection](#sjs%3Aprojection) module:
+  
+   - **dereference**: (function [sjs:projection::dereference])
+   - **project**: (function [sjs:projection::project])
+   - **projectInner**: (function [sjs:projection::projectInner])
   
   
   ### Symbols from the [sjs:quasi](#sjs%3Aquasi) module:
@@ -356,7 +365,6 @@ module.exports = require(modules);
    - **consumeMultiple**: (function [sjs:sequence::consumeMultiple])
    - **count**: (function [sjs:sequence::count])
    - **dedupe**: (function [sjs:sequence::dedupe])
-   - **dereference**: (function [sjs:sequence::dereference])
    - **each**: (function [sjs:sequence::each])
    - **each.par**: (function [sjs:sequence::each.par])
    - **each.track**: (function [sjs:sequence::each.track])
@@ -388,7 +396,6 @@ module.exports = require(modules);
    - **PACK_OMIT**: (variable [sjs:sequence::PACK_OMIT])
    - **partition**: (function [sjs:sequence::partition])
    - **product**: (function [sjs:sequence::product])
-   - **project**: (function [sjs:sequence::project])
    - **reduce**: (function [sjs:sequence::reduce])
    - **reduce1**: (function [sjs:sequence::reduce1])
    - **reverse**: (function [sjs:sequence::reverse])
@@ -459,10 +466,19 @@ module.exports = require(modules);
    - **utf8ToString**: (function [sjs:string::utf8ToString])
   
   
+  ### Symbols from the [sjs:structured-observable](#sjs%3Astructured-observable) module:
+  
+   - **isObservableArray**: (function [sjs:structured-observable::isObservableArray])
+   - **isStructuredObservable**: (function [sjs:structured-observable::isStructuredObservable])
+   - **ObservableArrayVar**: (class [sjs:structured-observable::ObservableArrayVar])
+   - **reconstitute**: (function [sjs:structured-observable::reconstitute])
+   - **StructuredObservable**: (class [sjs:structured-observable::StructuredObservable])
+  
+  
   ### Symbols from the [sjs:sys](#sjs%3Asys) module:
   
-   - **eval**: (function [sjs:sys::eval])
    - **argv**: (function [sjs:sys::argv])
+   - **eval**: (function [sjs:sys::eval])
   
   
   ### Symbols from the [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom) module:
