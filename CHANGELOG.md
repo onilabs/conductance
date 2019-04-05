@@ -1,5 +1,13 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
+## Version 0.7.7:
+
+ * Bug fixes:
+
+   * Fix implementation of `sjs:projection::project` for arguments of 
+     type `BatchedStream`, which was broken in 0.7.6.
+
+
 ## Version 0.7.6:
 
  * General:
