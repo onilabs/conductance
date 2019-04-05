@@ -1,0 +1,4 @@
+sut:
+  build: .
+  entrypoint: /bin/bash
+  command: -c "/usr/src/conductance/node_modules/stratifiedjs/test/run && /usr/src/conductance/test/run"
