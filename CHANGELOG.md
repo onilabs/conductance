@@ -1,5 +1,14 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
+## Version 0.7.8:
+
+ * Bug fixes:
+
+   * `child-process::run`: Fix error handling for changes introduced in node v10 which
+     caused child-process::run to throw cryptic errors when trying to run 
+     non-executables.
+
+
 ## Version 0.7.7:
 
  * Bug fixes:
