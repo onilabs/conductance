@@ -2,11 +2,13 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.7.8:
 
- * Bug fixes:
+ * Bug fixes / Behavioral changes:
 
    * `child-process::run`: Fix error handling for changes introduced in node v10 which
      caused child-process::run to throw cryptic errors when trying to run 
      non-executables.
+
+   * removed obsolete (and broken) symbol `surface/bootstrap/html::Submit`
 
 
 ## Version 0.7.7:

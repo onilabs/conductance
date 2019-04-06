@@ -8870,9 +8870,6 @@
             "SelectInput": {
               "type": "function"
             },
-            "Submit": {
-              "type": "function"
-            },
             "Table": {
               "type": "function"
             },

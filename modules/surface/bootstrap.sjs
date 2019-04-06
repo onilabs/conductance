@@ -62,24 +62,6 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
 
 
 
-@function Submit
-@param {surface::HtmlFragment} [content]
-@param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
-@summary Bootstrap-styled submit button (`<input type="submit" class="btn btn-default">`)
-@return {surface::Element}
-@desc
-  * See also [::Btn] for creating buttons with more style choices.
-@demo
-  @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);
-
-  @mainContent .. @appendContent([
-    @demo.CodeResult("\
-  @Submit('Click me')",
-      @Submit('Click me')
-    )]);
-
-
-
 @function Table
 @param {surface::HtmlFragment} [content]
 @param {optional Object} [attrs] Hash of additional DOM attributes to set on the element
