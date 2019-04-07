@@ -518,5 +518,5 @@ if (require.main === module) {
     .skipIf(!(process.env.FUZZ_TEST && @fs.exists(@path.join(libfiuBuild))),
       "set $FUZZ_TEST=1 and build #{libfiuBase}/all to enable");
 
-  }.serverOnly();
+  }.serverOnly().skip("Needs rewriting for dockerhub");
 }
