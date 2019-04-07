@@ -29,8 +29,8 @@ context("serving files") {||
 	}
 
 	test("Accessing a path containing encoded slashes") {||
-		assert.raises({filter: e -> e.status === 400}, -> http.get(rel('%2f')));
-		assert.raises({filter: e -> e.status === 400}, -> http.get(rel('%2F')));
+		assert.raises({filter: e -> e.status === 404}, -> http.get(rel('%2f')));
+		assert.raises({filter: e -> e.status === 404}, -> http.get(rel('%2F')));
 	}.skipIf(isBrowser);
 
 	test("Accessing a file outside the document root (encoded path components)") {||
