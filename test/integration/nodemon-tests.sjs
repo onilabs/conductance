@@ -22,7 +22,8 @@
         try {
           proc .. @childProcess.wait();
         } catch(e) {
-          if (!e.signal) throw e;
+          // node processes send signal + 128
+          if (!e.signal && e.code < 128) throw e;
         }
       } or {
         proc .. @childProcess.kill({wait: false});
@@ -79,7 +80,7 @@
         var src = @path.join(@env.conductanceRoot, f) .. @fs.realpath;
         var dest = @path.join(newBase, f);
         @mkdirp(@path.dirname(dest));
-        @info("copying #{src} into #{dest}");
+        console.log("copying #{src} into #{dest}");
         if(@fs.stat(src).isDirectory()) {
           cp_r(src, dest);
         } else {
@@ -106,7 +107,7 @@
       var args = [
         //'/usr/bin/strace', '-f','-eexecve',  // XXX debug
         nodePath, @path.join(newBase, 'conductance'), 'serve', '-r', mho];
-      @info("launching ", args);
+      console.log("launching ", args);
 
       try {
         var proc = s.proc = @childProcess.launch(args[0], args.slice(1),
@@ -120,7 +121,7 @@
         waitfor {
           var data;
           proc.stderr .. @stream.contents('utf-8') .. @each {|data|
-            @info("got data: #{data}");
+            console.log("got data: #{data}");
             if (data .. @contains('APP RUN WITH:')) {
               output = data;
               break;
