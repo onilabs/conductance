@@ -725,7 +725,11 @@ exports.writeFile = writeFile;
 
 /**
    @function readFile
-   @summary XXX document me
+   @summary Read a file
+   @return {String}
+   @param {::Connection|::SFTPSession} [connection] Connection or SFTP session
+   @param {String} [path] Path to the file
+   @param {optional Object} [settings]
 */
 function readFile(conn, path, options){
   var session = conn..getSFTSession();
