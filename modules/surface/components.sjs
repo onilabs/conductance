@@ -11,6 +11,7 @@
 
 /**
    @summary Standard Material Design HTML Components
+   @hostenv xbrowser
    @desc
      This module defines standard Material Design components drawing heavily on
      https://material.io.
@@ -78,7 +79,6 @@ exports.Btn = Btn;
 
       See also https://material.io/components/web/catalog/input-controls/text-fields/.
 
-      XXX Todo: document field binding; implement validation markup; fix baseline
    @demo
      // plain
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, {id:'mho:surface/components', name:'components'}, {id:'mho:surface/field', name: 'field'}]);

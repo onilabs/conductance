@@ -15,6 +15,12 @@
 
 */
 
+/**
+  @nodoc
+  @noindex
+*/
+
+
 @ = require([
   'sjs:cutil',
   'sjs:sequence'

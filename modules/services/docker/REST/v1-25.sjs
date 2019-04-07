@@ -462,7 +462,7 @@ exports.containerCreate = function(client, params, block) {
       - `HostnamePath`: **String**
       - `HostsPath`: **String**
       - `LogPath`: **String**
-      - `Node`: **Object** TODO
+      - `Node`: **Object** 
         
       - `Name`: **String**
       - `RestartCount`: **Integer**
@@ -657,7 +657,7 @@ exports.containerCreate = function(client, params, block) {
         - `StopTimeout`: **Integer** Timeout to stop a container in seconds. (Optional; default: '10')
         - `Shell`: **Array** Shell for when `RUN`, `CMD`, and `ENTRYPOINT` uses a shell.
           - Elements of type **String**
-      - `NetworkSettings`: **Object** TODO: check is correct
+      - `NetworkSettings`: **Object** 
         - `Bridge`: **String**
         - `Gateway`: **String**
         - `Address`: **String**

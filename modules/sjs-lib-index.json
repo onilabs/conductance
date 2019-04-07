@@ -8538,7 +8538,8 @@
               },
               "summary": "HTTPS Certificate Service"
             }
-          }
+          },
+          "summary": "HTTPS Certificate Service"
         },
         "leveldb/": {
           "type": "lib",

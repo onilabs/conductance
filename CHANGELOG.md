@@ -10,6 +10,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * removed obsolete (and broken) symbol `surface/bootstrap/html::Submit`
 
+   * `surface/cmd::stream` now properly untangles its arguments if called with a 
+     single array of DOM nodes (previously these would have been interpreted as an
+     array of commands).
+
 
 ## Version 0.7.7:
 

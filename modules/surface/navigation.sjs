@@ -11,7 +11,7 @@
 
 /**
    @summary Client-side URL routing and navigation
-   @hostenv nodejs
+   @hostenv xbrowser
  */
 
 @ = require(['sjs:std', './dynamic']);
@@ -494,10 +494,10 @@ exports.route = route;
 
 /**
    @class Container
+   @summary A [::RoutingTable] element for content common to sub routes
    @function Container
    @param {::PathPattern} [path] Path of this route 
    @param {Function} [content] Content function
-   @summary A [::RoutingTable] element for content common to sub routes
    @desc
      Containers form a nesting structure along the active route path for defining common content that stays in the DOM
      when navigating between sub routes. 
@@ -531,10 +531,10 @@ exports.Container = (path, content) -> [path, { container: { content: content } 
 
 /**
    @class Page
+   @summary A [::RoutingTable] element that defines the page content for the given path
    @function Page
    @param {::PathPattern} [path] Path of this route 
    @param {Function} [content] Content function
-   @summary A [::RoutingTable] element that defines the page content for the given path
    @desc
 
      A Page's `content` function is called with a `context` argument:

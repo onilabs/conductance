@@ -10,7 +10,13 @@
  */
 
 /**
-   legacy widgets which will over time be replaced by components.sjs
+   
+*/
+/**
+   @summary Legacy widgets 
+   @hostenv xbrowser
+   @desc
+     Will be replace over time by [./components::]
 */
 
 @ = require([
@@ -505,6 +511,7 @@ exports.doDropdown = doDropdown;
 
 /**
    @function DropdownMenu
+   @summary Dropdown Menu widget
    @deprecated Use [::doDropdown]
 */
 function DropdownMenu(anchor, items, settings) {

@@ -15,6 +15,7 @@
 
 /**
    @function listAlbums
+   @summary Return a list of albums
    @desc
      #### Scopes
      This API call requires authorization with (at least one of) the following scope(s):

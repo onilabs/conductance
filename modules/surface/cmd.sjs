@@ -67,7 +67,11 @@ function findCmdProcessor(node, cmd) {
 
 /**
    @function emit
-   @summary XXX write me
+   @summary Emit a command
+   @param {Object} [settings]
+   @setting {String} [cmd] Command to be emitted
+   @setting {Object} [param] optional value to be passed to command handler
+   @setting {optional DOMNode} [node] DOM node at which to emit the command. If `undefined`: use the implicit [mho:surface::DynamicDOMContext]
 */
 function emit(settings /*{[node], cmd, [param]}*/) {
   settings = {
@@ -306,7 +310,10 @@ exports.Active = Active;
 ////////////////////////////////////////////////////////////////////////
 /**
    @function stream
-   @summary XXX write me
+   @summary Listen for emitted commands under the given DOM node(s)
+   @return {sjs:sequence::Stream}
+   @param {optional DOMNode|Array} [dom_root] DOM node or array thereof (overrides use of [mho:surface::DynamicDOMContext])
+   @param {optional Array} [commands] Array of commands to listen for (default: listen for all commands).
 */
 function stream(/*[dom_root], [commands]*/) {
 
@@ -317,7 +324,7 @@ function stream(/*[dom_root], [commands]*/) {
     // untangle arguments:
     var root, bound_commands;
     if (args.length === 1) {
-      if (Array.isArray(args[0]))
+      if (Array.isArray(args[0]) && typeof(args[0][0]) === 'string')
         bound_commands = args[0];
     }
     else if (args.length === 2) {
