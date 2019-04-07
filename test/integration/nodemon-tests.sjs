@@ -80,7 +80,7 @@
         var src = @path.join(@env.conductanceRoot, f) .. @fs.realpath;
         var dest = @path.join(newBase, f);
         @mkdirp(@path.dirname(dest));
-        console.log("copying #{src} into #{dest}");
+        //console.log("copying #{src} into #{dest}");
         if(@fs.stat(src).isDirectory()) {
           cp_r(src, dest);
         } else {
@@ -107,7 +107,7 @@
       var args = [
         //'/usr/bin/strace', '-f','-eexecve',  // XXX debug
         nodePath, @path.join(newBase, 'conductance'), 'serve', '-r', mho];
-      console.log("launching ", args);
+      //console.log("launching ", args);
 
       try {
         var proc = s.proc = @childProcess.launch(args[0], args.slice(1),
@@ -121,7 +121,7 @@
         waitfor {
           var data;
           proc.stderr .. @stream.contents('utf-8') .. @each {|data|
-            console.log("got data: #{data}");
+            //console.log("got data: #{data}");
             if (data .. @contains('APP RUN WITH:')) {
               output = data;
               break;
