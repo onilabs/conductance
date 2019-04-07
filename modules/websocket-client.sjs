@@ -68,7 +68,12 @@ else { // xbrowser implied
              }
            }
            and {
-             ws.send(JSON.stringify:: {event:'subscribe', pair: ['BTC/USD'], subscription: { name: 'spread'}});
+             ws.send(JSON.stringify:: 
+                       {
+                         event:'subscribe', 
+                         pair: ['BTC/USD'], 
+                         subscription: { name: 'spread'}
+                       });
            }
            and {
              process.stdin .. @stream.lines .. @each {

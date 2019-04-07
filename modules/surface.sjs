@@ -827,6 +827,7 @@ module.exports = require(modules);
 @function focus
 @param {DOMNode} [node] DOM node to focus
 @summary Focus given node or, if node is not focussable, first focussable child thereof
+@hostenv xbrowser
 @desc
   `focus(node)` will attempt to focus `node`, or, if that doesn't succeed, the first
   child of `node` that matches the selector `input, a[href], area[href], iframe`.
