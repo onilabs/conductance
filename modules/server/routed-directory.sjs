@@ -30,7 +30,53 @@
    @feature RoutedFrontendDirectory
    @summary Experimental 'routed frontend directories' feature
    @desc
-     - XXX document me
+     The 'routed frontend directory' can be used to serve on-disk 
+     hierarchical collections of `index.container` and `*.page` files.
+     
+     A directory 'frontend' is served by conductance as a routed directory
+     by adding a [./route::RoutedDirectory] to a [mho:#features/mho-file::]:
+
+         @server.run([
+           {
+             address: @Port(8000),
+             routes: [
+               ...
+               @route.RoutedDirectory(/^/\?/, require.url('./frontend/'));
+             ]
+           }
+         ])
+
+     Conductance will parse the directory into a hierarchical 
+     [mho:surface/navigation::RoutingTable], mapping all 'index.container' and '*.page' 
+     files into corresponding [mho:surface/navigation::Container] and 
+     [mho:surface/navigation::Page] objects.
+
+     When a client requests a file under the frontend directory, Conductance
+     will serve a html file with some bootstrapping code that navigates to the 
+     requested url with a (client-side) 
+     call to [mho:surface/navigation::route]. The container/page hierarchy is served
+     as described under [mho:surface/navigation::Container].
+
+     Once any page under the frontend directory is served to the client, all 
+     navigation within the directory (via e.g. [mho:surface/navigation::navigate] or
+     [mho:surface/navigation::back]/[mho:surface/navigation::forward]) is performed
+     on the client-side. Going forward, only sources that have not yet been loaded 
+     will be requested from the server.
+
+     #### frontend-config.yaml
+
+     When parsing a routed directory, Conductance will look at the top level for a file
+     `frontend-config.yaml` with the following optional settings:
+
+     * `title`: Initial title to be displayed in browser tab (STRING)
+     * `head`: Additional static html for the header (e.g. to load a font stylesheet) (STRING)
+     * `init`: Additional code to execute on initial loading, and before starting
+       the  routing process (e.g. code to map hubs) (STRING) 
+     * `main`: Additional code to execute after starting the routing process (STRING)
+     * `api`: Id of a backend module whose exported methods will be served as an api (as module '/api') (STRING)
+     * `bundle`: Modules to parse for bundle dependencies - by default only the conductance 
+       standard lib will be bundled (ARRAY OF STRINGS).
+
 */
 
 //----------------------------------------------------------------------
