@@ -8583,7 +8583,8 @@
               },
               "summary": "Mixpanel Analytics Service"
             }
-          }
+          },
+          "summary": "Mixpanel API"
         }
       },
       "summary": "Common application services"
@@ -9147,10 +9148,6 @@
           },
           "summary": "Basic HTML elements"
         },
-        "mech-helpers": {
-          "type": "module",
-          "children": {}
-        },
         "navigation": {
           "type": "module",
           "children": {
@@ -9271,7 +9268,8 @@
             "popover": {
               "type": "function"
             }
-          }
+          },
+          "summary": "Legacy widgets"
         }
       },
       "summary": "Client-side UI module"
