@@ -14,6 +14,14 @@ This changelog lists the most prominent, developer-visible changes in each relea
      single array of DOM nodes (previously these would have been interpreted as an
      array of commands).
 
+   * `sequence::batchN` is now deprecated. `@pack(n) .. @BatchedStream` offers the same
+     functionality.
+
+   * Calling `abort` on a spawned stratum used to fail to propagate exceptions synchronously 
+     thrown in `finally` or `retract` clauses from the stratum to the `abort` call.
+     This edgecase has now been fixed. 
+     (See stratifiedjs/tests/unit/sjs-2-tests::'exception in finally clause in stratum - synchronous').
+
 
 ## Version 0.7.7:
 
