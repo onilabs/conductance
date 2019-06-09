@@ -2,6 +2,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.8.0:
 
+ * General:
+
+   * The ssh2 dependency has been updated from 0.5.5 to 0.8.4, which should fix some
+     protocol negotiation issues encountered in conjunction with node v10.15.3-stretch.
+
+
  * New functionality:
 
    * New functions `sjs:array::kCombinations` and `sjs:array::permutations` have 
