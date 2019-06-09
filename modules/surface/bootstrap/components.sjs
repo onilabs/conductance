@@ -2050,7 +2050,7 @@ exports.DateInput = DateInput;
   @setting {optional Boolean} [keyboard=true] Close the modal when Escape key is pressed.
   @summary Execute function `block` while showing a modal dialogbox
   @desc
-    * "Close events", such as a click on the `close_button`, or a press of the Escape key, will abort `block`, and can be handled inside `block` with a [sjs:#language/syntax::try-retract] construct.
+    * "Close events", such as a click on the `close_button`, or a press of the Escape key, will abort `block`, and can be handled inside `block` with a `retract` construct (see [sjs:#language/syntax::try-catch-retract-finally]).
   @hostenv xbrowser
   @demo
     @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}]);

@@ -1,6 +1,22 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
-## Version 0.7.8:
+## Version 0.8.0:
+
+ * New functionality:
+
+   * New functions `sjs:array::kCombinations` and `sjs:array::permutations` have 
+     been added.
+
+   * `stratum.abort()` now takes an optional `omit_retract` flag which, when `true`,
+     will cause `retract` clauses to NOT be executed.
+	
+   * A new experimental `_adopt` method has been added to the 'Stratum' interface. 
+     It is used for advanced controlflow manipulation to allow blocklamda returns from 
+     within a spawned stratum to find their target via a different return path. 
+     As this is an experimental feature, and will probably be exposed in a different way
+     in future versions of SJS, it is undocumented at the moment. (In the SJS source code see
+     test/unit/sjs-3-tests:'return via different scope with _adopt').
+
 
  * Bug fixes / Behavioral changes:
 
@@ -8,7 +24,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
      caused child-process::run to throw cryptic errors when trying to run 
      non-executables.
 
-   * removed obsolete (and broken) symbol `surface/bootstrap/html::Submit`
+   * removed obsolete (and broken) symbol `surface/bootstrap/html::Submit`.
 
    * `surface/cmd::stream` now properly untangles its arguments if called with a 
      single array of DOM nodes (previously these would have been interpreted as an
@@ -20,7 +36,44 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Calling `abort` on a spawned stratum used to fail to propagate exceptions synchronously 
      thrown in `finally` or `retract` clauses from the stratum to the `abort` call.
      This edgecase has now been fixed. 
-     (See stratifiedjs/tests/unit/sjs-2-tests::'exception in finally clause in stratum - synchronous').
+     (In the SJS source code see 
+     test/unit/sjs-2-tests:'exception in finally clause in stratum - synchronous').
+
+   * `rpc/bridge`: Abortion over the bridge is now synchronous. This is to better support
+     call patterns that rely on proper sequencing of blocking abort code. 
+     Also, various edge cases where blocklambda breaks and returns 
+      would not function correctly across the bridge have been fixed.
+     See the section on Abortion in the `mho:rpc/bridge` documentation and the testcases 
+     under test/integration/bridge-tests.sjs:'synchronous_aborting'.
+
+   * The undocumented `try{}catchall(c){}` construct has been replaced by an
+     'augmented finally clause' `try{}finally(e){}`. This is only for use in the
+     conductance bridge code, and not intended for general user code.
+
+   * Blocklambda breaks and returns can now be routed across nested spawned 
+     strata (in the SJS source code see the testcases starting with
+     test/unit/sjs-2-tests.sjs:'blocklambda breaks across nested spawned strata').
+     Previously these testcases would have generated runtime errors (in the case of
+     `break`) or failed to call all `finally` clauses (in the case of `return`). 
+
+   * Under some circumstances, blocklambda returns from within spawned strata would
+     erroneously set the value of reified strata along the return path. This be
+     behavior has been corrected: all strata along the return path will get `undefined`
+     as their return value. Only the final target of the `return` will see the returned
+     value. (In the SJS source code see 
+     test/unit/sjs-tests.sjs:'detached blocklambda return with value pickup')
+
+   * Under some circumstances, blocklamda returns across inactive scopes would fail to
+     emit a 'Blocklambda return from spawned stratum to inactive scope' error. This has
+     been fixed. (In the SJS source code see
+     test/unit/sjs-3-tests.sjs:'return via inactive scope edgecase').
+
+   * For HTML content inserted into a document in the context of a `block` function
+     (e.g. `@appendContent(X) { || ... }`), blocklambda returns initiated from the
+     HTML content (such as e.g. `@Button .. @OnClick({|| return;})`) would not 
+     honor all `finally` blocks along the return path under certain circumstances. This
+     behavior has been fixed.
+
 
 
 ## Version 0.7.7:

@@ -26,7 +26,7 @@
    @nodoc
 */
 
-@ = require(['sjs:string', 'sjs:object', 'sjs:sequence', 'sjs:event']);
+@ = require('sjs:std');
 var http = require('sjs:http');
 var url  = require('sjs:url');
 var func = require('sjs:function');
@@ -290,13 +290,11 @@ function openTransport(server, requestOpts) {
 
   var transport = {
     active: true,
-
+    client: true,
     send: TemporalBatcher(function(messages) { 
-/*      if (messages.length === 1) {
-        console.log(messages[0]);
+/*      messages .. @each { |m|
+        console.log('SEND> ',m .. @inspect());
       }
-      else
-        console.log('>> sending '+messages.length);
 */
       sendCommand.call(transport,
         [server, SERVER_PATH, AAT_VERSION,
@@ -309,12 +307,6 @@ function openTransport(server, requestOpts) {
           body: JSON.stringify(collectPending(messages))
         });
     }),
-
-    enqueue: function(message) {
-      // add a non-timely message to be sent out with the next
-      // poll / command (or never, if the connection ends before then)
-      pendingMessages.push(message);
-    },
 
     sendData: function(header, data) {
       sendCommand.call(this,
@@ -342,7 +334,9 @@ function openTransport(server, requestOpts) {
           resume_receive = undefined;
         }
       }
-      return receive_q.shift();
+      var rv = receive_q.shift();
+//      console.log("<<< RECV: ", rv.data .. @inspect());
+      return rv;
     }),
 
     close: function() {

@@ -13,6 +13,25 @@
 
   Helpers for mechanisms that are used both in a static and dynamic context
 
+  XXX This file is now deprecated. 
+
+  It is still being used by static.sjs which will be retired at some point.
+
+  It is not used any longer by dynamic.sjs. The code from `runMechanisms` has
+  been folded into `insertHtml`, because in the case where `insertHtml` is 
+  called with a `block` argument, the mechanisms did not have a return path
+  to the caller of `insertHtml`: This information was lost because 
+  `runMechanisms` was not active any longer by the time mechanisms executed.
+  Because of this lack of return path, blocklambda return calls from mechanisms
+  would not work correctly (and not at all anymore since the blocklambda logic
+  had been changed for 0.8.0).
+  This concerns e.g. the following scenario:
+  function dialog() {
+    parent .. @appendContent(@Button .. @OnClick({|| return; })) {
+      ||
+      hold();
+    }
+  }
 */
 
 /**
@@ -100,6 +119,7 @@ function awaitStratumError(s) {
 };
 
 
+// XXX see note at top of this file
 function runMechanisms(elems, mechanismsInstalled, await) {
   var rv = await ? [] : fakeArray;
 

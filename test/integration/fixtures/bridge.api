@@ -70,7 +70,7 @@ exports.withSharedVariable = function(block) {
 exports.sharedVariable = -> sharedVariable;
 exports.integers = integers;
 
-exports.ping = -> "pong";
+exports.ping = -> (console.log('server ping'),"pong");
 exports.hostenv = -> require('sjs:sys').hostenv;
 
 
@@ -140,3 +140,16 @@ exports.integer_stream = Stream(function(r) {
   var i=0;
   while (1) { r(i++); }
 });
+
+exports.blocking_finally = function(finalizer, block) { 
+  try {
+    block();
+  }
+  retract {
+    throw new Error('THIS RETRACT ON THE SERVER SHOULD NOT BE CALLED');
+  }
+  finally {
+    hold(10);
+    finalizer();
+  }
+};

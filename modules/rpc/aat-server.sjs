@@ -132,7 +132,7 @@ function createTransport(finish) {
                 out_messages.push(send_q.shift());
               break;
             }
-            out_messages.unshift(send_q.shift());
+            out_messages.push(send_q.shift());
             // accumulate 'hold(0)-adjacent calls' (see also TemporalBatcher in aat-client):
             if (send_q.length === 0) {
               hold(0);
@@ -174,7 +174,7 @@ function createTransport(finish) {
         return 'poll_in_progress';
       }
       if (in_messages.length) {
-        in_messages .. each(m -> receive_q.push(m));
+        __js in_messages .. each(m -> receive_q.push(m));
         if(resume_receive) resume_receive();
       }
 
@@ -195,12 +195,8 @@ function createTransport(finish) {
     // external API:
     send: function(message) {
       if (!this.active) return; // receive() will throw, don't need to do anything here
-      send_q.unshift(message);
-      if (resume_poll && !exchange_in_progress) resume_poll();
-    },
-
-    enqueue: function(message) {
       send_q.push(message);
+      if (resume_poll && !exchange_in_progress) resume_poll();
     },
 
     sendData: function(header, data) {

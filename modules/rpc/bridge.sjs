@@ -117,13 +117,19 @@ Protocol:
 
   ['R', call#, RV ] // return
 
+  ['Q', call#, eid ] // blocklambda return; eid prefixed with bridge-id for remote
+
+  ['B', call#, eid ] // blocklambda break; eid prefixed with bridge-id for remote
+
   ['E', call#, RV] // return exception
 
   ['A', call# ] // abort
 
+  ['P', call# ] // pseudo-abort (abort that doesn't call `retract`)
+
   ['S', FUNCTION_ID, [ARG1, ARG2, ARG3, ...]] // signalled call
 
-  ['U', id] // unpublish a function (garbage collection across bridge
+  ['U', id] // unpublish a function (garbage collection across bridge)
 
   Marshalling: values are being serialized as JSON
   special objects get an __oni_bridge_type attribute
@@ -133,6 +139,7 @@ Protocol:
 @ = require([
   'sjs:std',
   {id:'sjs:bytes', name:'bytes'},
+  {id:'sjs:crypto', name:'crypto'},
   {id:'./error', include: ['isTransportError', 'TransportError']}
 ]);
 
@@ -173,6 +180,36 @@ var MAX_MSG_REORDER_BUFFER = 10000;
 exports.isTransportError = @isTransportError;
 
 exports.TransportError = @TransportError;
+
+//----------------------------------------------------------------------
+// blocklambda controlflow
+
+__js {
+
+  function ReceivedControlFlowException() {};
+
+  function isReceivedControlFlowException(obj) { return (obj instanceof ReceivedControlFlowException) }
+
+  function makeBlocklambdaReturnControlFlowException(eid, val) {
+    var rv = Object.create(ReceivedControlFlowException.prototype);
+    rv.postLocally = function() {
+      var cfx = __oni_rt.Return(val);
+      cfx.eid = eid;
+      return cfx;
+    };
+    return rv;
+  }
+
+  function makeBlocklambdaBreakControlFlowException(eid) {
+    var rv = Object.create(ReceivedControlFlowException.prototype);
+    rv.postLocally = function() {
+      var cfx = __oni_rt.BlBreak({blbref:{sid:eid}});
+      return cfx;
+    };
+    return rv;
+  }
+
+} // __js
 
 //----------------------------------------------------------------------
 // marshalling
@@ -489,12 +526,26 @@ function unmarshallFunction(obj, connection) {
   @function BridgeConnection.__finally__
   @summary Terminate and clean up this connection
 */
-var bridge_id_counter = 0;
 function BridgeConnection(transport, opts) {
   // bridge_id to uniquely identify this connection
-  var bridge_id = ++bridge_id_counter;
+  /*
+    Among other things, the bridge_id is used to route blocklambda breaks/returns.
+    In most cases, there will only be one bridge connection across which these 
+    controlflows are routed, but it is conceivable that we have complicated 
+    multi-server scenarios where a blocklambda return/break is routed across multiple
+    bridges that don't know of each other. Therefore bridge_id needs to be GLOBALLY
+    unique.
+    As the number of bridges participating in any such controlflow is likely to be very
+    small (2 most of the time), 64bit random bridge ids should be plenty big enough.
+    As per birthday problem, if we assume 100 bridges participating in routing a 
+    single blocklambda break/return, we would get a collision probability on the order
+    of 10^-16
+    
+   */
+  var bridge_id = @crypto.randomID(2); // 64 bits, see above
   var pending_calls  = {}; // calls in progress, made to the other side
   var executing_calls = {}; // calls in progress, made to our side; call_no -> stratum
+  var pending_returns = {}; // target_frame_id -> return value
   var call_counter   = 0;
   var published_funcs = {};
   var published_func_counter = 0;
@@ -513,7 +564,10 @@ function BridgeConnection(transport, opts) {
     published_funcs[0] = function() { throw new Error("This end of the bridge does not expose an API"); }
 
   function send(data) {
-    if (closed) throw @TransportError('session lost');
+    if (closed || transport.closed) {
+      //console.log("session lost trying to send #{data .. @inspect(false, 4)}");
+      throw @TransportError('Bridge connection lost');
+    }
 
     var args = marshall(data, connection);
 
@@ -545,7 +599,7 @@ function BridgeConnection(transport, opts) {
     },
     unpublish: function(id) {
       var args = marshall(['U', id], connection);
-      if (transport) transport.enqueue({msg: args});
+      if (transport) transport.send({msg: args});
     },
     makeCall: function(function_id, args) {
       var call_no = ++call_counter;
@@ -558,12 +612,34 @@ function BridgeConnection(transport, opts) {
           // we get reentrant callback calls from the other side of the bridge:
           pending_calls[call_no] = [resume, @sys.getCurrentDynVarContext()];
         }
-        retract {
-          send(['A', call_no]);
-        }
-        finally {
+        finally (e) {
           //@logging.debug("deleting call responder #{call_no} (#{function_id})");
           delete pending_calls[call_no];
+          
+          if (e[2]) {
+          // We have an abort.
+          // Wait for other side to be retracted.
+          // If the bridge gets torn down before the other side answers, our finalization
+          // code will generate a 'session lost' error that will resume the waitfor/resume
+            // but note that this can take a looooong time if bridge communication is interrupted
+            waitfor (var abort_rv, abort_isException) {
+              pending_calls[call_no] = [resume, @sys.getCurrentDynVarContext()];
+              var is_pseudo = e[3];
+              send([is_pseudo ? 'P' : 'A', call_no]);
+            }
+            catch(e) {
+              if (!@isTransportError(e)) throw e;
+              // ... else we couldn't send, because of a transport error.
+              // -> ignore
+            }
+            finally {
+              delete pending_calls[call_no];
+            }
+            if (__js abort_isException && !@isTransportError(abort_rv)) {
+              throw abort_rv;
+            }
+          } 
+          throw e;
         }
         //@logging.debug("got result for call #{call_no} - #{rv}");
       }
@@ -576,7 +652,10 @@ function BridgeConnection(transport, opts) {
         send(['C', call_no, dynvar_call_ctx, function_id, @toArray(args)]);
       }
       if (isException) {
-        console.log("Error on bridge call #{call_no} to #{function_id} with #{String(args[0])}");
+        if (isReceivedControlFlowException(rv)) {
+          rv.postLocally();
+          throw new Error('not reached');
+        }
         throw rv;
       }
       return rv;
@@ -592,7 +671,7 @@ function BridgeConnection(transport, opts) {
         return;
       }
       closed = true;
-
+//      console.log(">>>>>>>>>> CLOSING BRIDGE #{bridge_id} <<<<<<<<<<<<<<<<<");
       spawn this.stratum.abort();
 
       if (transport) {
@@ -611,16 +690,47 @@ function BridgeConnection(transport, opts) {
       }
       executing_calls = {};
 
-      pending_calls .. @ownValues .. @each {|[r]|
+      pending_calls .. @ownPropertyPairs .. @each {|[id,[r]]|
         spawn(function() {
           try {
+//            console.log("Abort pending call #{id} with session lost...");
             r(@TransportError('session lost'), true);
           } catch(e) {
             @logging.warn("Error while aborting pending call: #{e}");
           }
         }());
       }
-      executing_calls = {};
+      pending_calls = {};
+
+      /* XXX we could clear up pending returns by executing clearOrphanedBLR 
+         every time a pending_call gets aborted or excepted:
+         If we want to enable this, we need to edit vm1.js.in to reflect 'ef' onto the
+         resume function - grep for 'clearOrphanedBLR' in vm1.js.in.
+         __js function clearOrphanedBLR(pending_call) {
+           var p = pending_call[0].ef.parent;
+           var max_levels = 15;
+           while (max_levels--) {
+             if (p.env.blscope) {
+               var sid = p.env.blscope.sid;
+               for (eid in pending_returns) {
+                 if (sid == eid) {
+                   delete pending_returns[eid];
+                   return;
+                 }
+               }
+             }
+             if (!(p = (p.parent||p.env.blrref))) break;
+           }
+         }
+           //
+         }
+      */
+      pending_returns .. @ownPropertyPairs .. @each {
+        |[id,val]|
+        console.log("Warning: Undelivered blocklambda return value for frame #{id}. Val='#{val}'");
+      }
+      pending_returns = {};
+
     },
   };
 
@@ -642,6 +752,7 @@ function BridgeConnection(transport, opts) {
           else if (data.seq !== expected_msg_seq) {
             msg_reorder_buffer[data.seq] = data.msg;
             ++queued_msg_count;
+//            console.log("QUEUED MESSAGE FOR REORDERING (expect=#{expected_msg_seq} found=#{data.seq}");
             if (queued_msg_count > MAX_MSG_REORDER_BUFFER)
               throw @TransportError("Message reorder buffer exhausted"); 
           }
@@ -660,8 +771,9 @@ function BridgeConnection(transport, opts) {
         }
         else if (packet.type === 'data')
           receiveData(packet);
-        else if (packet.type === 'error')
+        else if (packet.type === 'error') {
           throw(packet.data);
+        }
         else {
           @logging.warn("Unknown packet '#{packet.type}' received");
         }
@@ -713,10 +825,15 @@ function BridgeConnection(transport, opts) {
         if (e && e.__oni_cfx) {
           // a control-flow exception
           if (e.type === 'blb') {
-            handleBlockLambdaBreak(e);
+            return makeBlocklambdaBreakMessage(e.eid, call_no);
           }
-          else { // blocklambda return
-            handleBlocklambdaReturn(e);
+          else if (e.type === 'r' && e.eid) { // blocklambda return
+            return makeBlocklambdaReturnMessage(e.eid, e.val, call_no);
+          }
+          else {
+            // Can this ever happen??
+            console.log("Unexpected controlflow in conductance bridge");
+            throw new Error("Unexpected controlflow in conductance bridge");
           }
           return;
         }
@@ -727,57 +844,30 @@ function BridgeConnection(transport, opts) {
     }
   }
 
-  function handleBlocklambdaReturn(e) {
-    // we have special logic in sjs's vm1 to have spawn handle disjointed synchronous blambda returns:
-    spawn(function() { return e; })();
+  __js function makeBlocklambdaBreakMessage(eid, call_id) {
+    var rv;
+    if (typeof eid === 'number') {
+      rv = ['B', call_id, "#{bridge_id}/#{eid}"];
+    }
+    else {
+      // this is a remote eid
+      rv = ['B', call_id, eid];
+    }
+    return rv;
   }
 
-  __js function handleBlockLambdaBreak(cfx) { 
-    // Note that we cannot handle blocklambda breaks how we handle blocklambda returns.
-    // The latter always target a particular frame, whereas for the former we need to  
-    // resolve the return frame by traversing the callstack to find the highest frame that
-    // has the right blscope.
-
-    try { 
-      // We have to find the proper execution frame to abort among our pending_calls:
-      // XXX FRAGILE
-      // cb.ef.parent.parent.parent traverses up the execution frame structure
-      // of makeCall. This is somewhat fragile; if makeCall, or the encoding of functions
-      // changes, we need to change this code.
-      // Other problems with this code:
-      // - It can't resolve breaks that target frames deeper in the hierarchy (e.g. if the 
-      //   function calling 'break' is invoked via multiple intermediate functions with own blbscope)
-      // - It might resolve the wrong frame, if there are multiple concurrent pending calls
-      //   rooted in the same break scope. (Is that possible? TBD)
-      // XXX We should probably do this as a breadth-first search to minimize risk of finding a wrong frame (TBD) and for performance reasons (in most cases target frame will be shallow).
-      for (var call_no in pending_calls) {
-        var cb = pending_calls[call_no][0];
-        //console.log('our blscope: '+cfx.ef);
-        //console.log('parent: '+cb.ef.parent.parent.parent.parent);
-        //console.log('parent blscope: '+cb.ef.parent.parent.parent.parent.parent.env.blbref);
-        
-        var max_levels = 15;
-        var p = cb.ef.parent.parent.parent;
-        while (max_levels--) {
-          if (p.env.blscope === cfx.ef) {
-            // handle the other bridge side:
-            send(['A', call_no]);
-            // and let the resume callback handle our side:
-            cb(cfx);
-            return;
-          }
-          if (!(p = p.parent)) break;
-        }
-      }
+  __js function makeBlocklambdaReturnMessage(eid, val, call_id) {
+    var rv;
+    if (typeof eid === 'number') {
+      // this is a local eid
+      pending_returns[eid] = val;
+      rv = ['Q', call_id, "#{bridge_id}/#{eid}"];
     }
-    catch (e) {
-      throw new Error("bridge.sjs: Unexpected callback frame structure in pending_call #{call_no}");
+    else {
+      // this is a remote eid
+      rv = ['Q', call_id, eid];
     }
-    // we failed to find the frame to return to; 
-    var err = "Unresolvable blocklambda break across conductance bridge";
-    if (cfx.ef.callstack && cfx.ef.callstack.length)
-      err += " in call initiated from #{cfx.ef.callstack .. @transform([file,line]-> "#{file}:#{line}") .. @join('\n')}";
-    throw new Error(err);
+    return rv;
   }
 
   function receiveMessage(message) {
@@ -788,6 +878,40 @@ function BridgeConnection(transport, opts) {
       var cb = pending_calls[message[1]];
       if (cb)
         cb[0](message[2], false);
+      // XXX log if not found?
+      break;
+    case 'Q': // blocklambda return
+      // inject a blocklambda return into pending call
+      __js {
+        var cb = pending_calls[message[1]];
+        if (cb) {
+          var eid = message[2];
+          var val = undefined;
+          if (eid.split('/')[0] == bridge_id) {
+            // resolve local blocklambda return
+            eid = Number(eid.split('/')[1]);
+            val = pending_returns[eid];
+            delete pending_returns[eid];
+          }
+//          console.log("INJECT blocklambda return with eid=#{eid} into pending call #{message[1]}");
+          cb[0](makeBlocklambdaReturnControlFlowException(eid,val), true);
+        }
+      } // __js
+      break;
+    case 'B': // blocklambda break
+      // inject a blocklambda break into pending call
+      __js {
+        var cb = pending_calls[message[1]];
+        if (cb) {
+          var eid = message[2];
+          if (eid.split('/')[0] == bridge_id) {
+            // resolve local blocklambda break
+            eid = Number(eid.split('/')[1]);
+          }
+//          console.log("INJECT blocklambda break with eid=#{eid} into pending call #{message[1]}");
+          cb[0](makeBlocklambdaBreakControlFlowException(eid), true);
+        }
+      } // __js
       break;
     case 'E': // exception
       var cb = pending_calls[message[1]];
@@ -807,41 +931,6 @@ function BridgeConnection(transport, opts) {
       // we'll attempt to perform the call synchronously. this will return
       // an execution frame if the call went async. in that case we spawn a
       // stratum to manage the call.
-
-      // blocklambda returns & breaks are both handled on the side of the 
-      // bridge connection where they happen. The other side will not receive
-      // a special retract signal, but this shouldn't matter in all (apart from pathological?) 
-      // cases because there should be a wrapper tearing everything down, e.g.:
-      /*
-
-          CLIENT:
-
-            api.S { |x|
-              console.log(x);
-              if (x === 10) break;
-            }
-
-          SERVER:
-
-            exports.S = @Stream(function(r) {
-              try {
-                var i=0;
-                while (1) { r(++i); }
-              }
-              finally {
-                console.log("Done with stream");
-              }
-            });
-
-          Here, S on the server will be aborted by the blambda break, which will in turn
-          tear down 'r'.
-
-
-          XXX Unfortunately tearing down 'r' causes a needless 'A' to be sent to the client 
-          atm, so maybe we should revisit this at some point.
-
-       */
-
 
       // If this is a reentrant bridge call, restore dynvar context of the original call we made to the other side:
       var dynvar_proto;
@@ -865,7 +954,6 @@ function BridgeConnection(transport, opts) {
                                                    message[3], // function_id
                                                    message[4] // args
                                                   );
-
         if (call_rv === undefined) break;
 
         if (__oni_rt.is_ef(call_rv[2])) {
@@ -876,34 +964,43 @@ function BridgeConnection(transport, opts) {
               try {
                 ef.wait();
               }
-              catchall (e) {
+              finally (e) { 
+                delete executing_calls[call_id];
                 if (e[1]) { // exception
-                  if (e[0] && e[0].__oni_cfx) {
-                    if (e[0].type === 'blb') {
-                      return handleBlockLambdaBreak(e[0]);
-                    }
-                    else {
-                      // blocklambda return
-                      // we're already in a spawn, so no reason to call
-                      // handleBlocklambdaReturn. just returning the exception will
-                      // make sure that the current spawn stratum will handle the return
-                      // correctly
-                      return e[0]; 
-                    }
+                  if (e[0].type === 'blb') {
+                    __js rv = makeBlocklambdaBreakMessage(e[0].eid, call_id);
+                    // prevent further blocklambda break handling:
+                    e = [undefined];
+                  }
+                  else if (e[0].type === 'r' && e[0].eid) {
+                    __js rv = makeBlocklambdaReturnMessage(e[0].eid, e[0].val, call_id);
+                    // prevent further blocklambda return handling:
+                    e = [undefined];
+                  }
+                  else if (e[0].type === 't') {
+                    // report exception to other side, but don't return it from this
+                    // executing call on our side.
+                    // XXX maybe log it?
+                    rv = ['E', call_id, e[0].val];
+                    e = [undefined];
                   }
                   else {
-                    rv = ['E', call_id, e[0]];
+                    // abort or similar. this is either in response to an 'a' or 'p'
+                    // message from the other side, or because we're aborted as part
+                    // of bridge shutdown.
+                    // The acknowledgements to be sent out are handled elsewhere
+                    // (see `case 'A':`)
                   }
-                }
-                else {
+                } // exception
+                else { // no exception
                   rv = ['R', call_id, e[0]];
+                  // no need to return the rv to our side:
+                  e = [undefined];
                 }
-                
+                throw e;
               }
-              finally {
-                delete executing_calls[call_id];
-              }
-              send(rv);
+              if (rv)
+                send(rv);
             })(call_rv[2], message[1])
         }
         else {
@@ -913,9 +1010,23 @@ function BridgeConnection(transport, opts) {
       break;
 
     case 'A': // abort
+    case 'P': // pseudo-abort
       var executing_call = executing_calls[message[1]];
       if (executing_call) {
-        spawn executing_call.abort();
+        // XXX should try aborting synchronously first - see the code for case 'C', above
+        spawn (function(call_id) {
+          try {
+            executing_call.abort(message[0] === 'P');
+            send(['R', call_id, 'abort-ok']); // rv doesn't matter - just using this particular value for debugging
+          }
+          catch(e) {
+            @logging.warn("Error while aborting active bridge call: #{e}");
+            send(['E', call_id, e]);
+          }
+        })(message[1]);
+      }
+      else {
+        send(['E', message[1], new Error("Didn't find bridge call to abort")]);
       }
       break;
     case 'unserializable':
@@ -1058,8 +1169,14 @@ exports.connect = function(apiinfo, opts, block) {
         connection.stratum.waitforValue();
       }
       catch (e) {
+        //console.log("BRIDGE CONNECTION LOST IN CONNECT(BLOCK)");
         @logging.verbose("Bridge connection lost: #{e}");
       }
+
+      // xxx if there are unretractable active calls in `block`
+      // (i.e. something like try{}finally{api.call()}, we will end
+      // up with deadlock here, unless we clean up those calls right here:
+      //XXX
 
       throw @TransportError("Bridge connection lost");
     } or {
