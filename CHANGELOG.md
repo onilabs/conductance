@@ -26,6 +26,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `sjs:nodejs/stream::contents` and related: Work around a nodejs bug that causes
+     the process to stall when reading from stdin.
+
    * `child-process::run`: Fix error handling for changes introduced in node v10 which
      caused child-process::run to throw cryptic errors when trying to run 
      non-executables.
