@@ -83,6 +83,26 @@ This changelog lists the most prominent, developer-visible changes in each relea
      honor all `finally` blocks along the return path under certain circumstances. This
      behavior has been fixed.
 
+   * Exceptions of type `Error` emitted from spawned strata and picked up via `Stratum::value()` 
+     calls had callstacks with missing or jumbled frames. This has been fixed and the callstacks
+     now correctly contain all frames starting with the the frame where the exception was thrown
+     up to the site of the `spawn` call and continuing with the callsite of the `Stratum::value()`
+     call up to the point where the exception was caught.
+     As part of this fix, each `Stratum::value()` call emits a cloned exception, which could break
+     some (pathological) code that depends on strict equality checks of exceptions.
+     Note that (a) exceptions are being cloned such that the prototype chain stays intact, 
+     so checks like `e instanceof SomeErrorPrototype` will still work, and (b) this only affect exceptions
+     that are `instanceof Error` (as those are the only ones being annotated with stackframes by the SJS
+     engine).
+
+   * Similarly to the bug above, Errors emitted from spawned strata during `Stratum::abort()` calls
+     had callstacks with missing or jumbled frames. This has been fixed in the same way as for
+     `Stratum::value()`.
+
+   * `each.track`: A bug has been fixed which caused asynchronously thrown exceptions during abortion
+     to be silently swallowed. 
+     (In the SJS source code see
+      test/unit/sequence-tests.sjs:'async exception during each.track abortion').
 
 
 ## Version 0.7.7:
