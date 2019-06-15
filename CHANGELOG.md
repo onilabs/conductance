@@ -104,6 +104,14 @@ This changelog lists the most prominent, developer-visible changes in each relea
      (In the SJS source code see
       test/unit/sequence-tests.sjs:'async exception during each.track abortion').
 
+   * Callstacks of TypeErrors thrown during function parameter destructuring were missing information 
+     about the location of the initial throw site. This has been fixed.
+
+   * Function call stackframes were previously annotated with the line number of the end token of the
+     call (and sometimes - especially in the case of blocklambda calls - with the line number of the
+     token following the call). Now, function call stackframes are annotated with the line number of 
+     the first token of the argument list.
+
 
 ## Version 0.7.7:
 
