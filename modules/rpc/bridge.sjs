@@ -635,7 +635,8 @@ function BridgeConnection(transport, opts) {
             finally {
               delete pending_calls[call_no];
             }
-            if (__js abort_isException && !@isTransportError(abort_rv)) {
+            if (__js abort_isException && !@isTransportError(abort_rv) && 
+                !isReceivedControlFlowException(abort_rv)) {
               throw abort_rv;
             }
           } 
