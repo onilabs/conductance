@@ -112,6 +112,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
      token following the call). Now, function call stackframes are annotated with the line number of 
      the first token of the argument list.
 
+   * mho:websocket-client: Prevent errors from going uncaught when the socket
+     is closed before the connection is established.
+
 
 ## Version 0.7.7:
 

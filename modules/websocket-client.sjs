@@ -84,12 +84,24 @@ else { // xbrowser implied
          }
 
 */
+
+__js function ignore() {}
+
 function withWebSocketClient(url, block) {
   __js var socket = new @WebSocket(url);
   try {
     waitfor {
-      var error = socket .. @wait('error');
-      throw new Error(error);
+      try {
+        var error = socket .. @wait('error');
+        throw new Error(error);
+      }
+      finally {
+        // ignore errors, so that we don't get things like
+        // "WebSocket was closed before the connection was
+        //  establised" on performing the socket.close() 
+        //  below.
+        __js socket.on('error', ignore);
+      }
     }
     or {
       socket .. @wait('close');
