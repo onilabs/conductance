@@ -10,6 +10,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality:
 
+   * A new module `mho:surface/binding` has been added with constructs for naming and 
+     retrieving nodes (or values derived thereof) in DOM trees.
+
    * New functions `sjs:array::kCombinations` and `sjs:array::permutations` have 
      been added.
 
