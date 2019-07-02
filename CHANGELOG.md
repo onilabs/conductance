@@ -121,6 +121,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `sjs:xbrowser/dom::traverseDOM`: fix implementation for blocking 
      traversal functions
 
+   * `sjs:regexp::matches` is now robust for blocking consumers. If the regexp is 
+     used elsewhere while the consumer is blocking, the index at which matching 
+     resumes will be restored.
+
 
 ## Version 0.7.7:
 
