@@ -8761,6 +8761,21 @@
           },
           "summary": "API connection utility"
         },
+        "binding": {
+          "type": "module",
+          "children": {
+            "Bind": {
+              "type": "function"
+            },
+            "Binding": {
+              "type": "function"
+            },
+            "BindingContext": {
+              "type": "function"
+            }
+          },
+          "summary": "HTML 'Binding' abstraction"
+        },
         "bootstrap/": {
           "type": "lib",
           "children": {
@@ -9447,5 +9462,5 @@
     }
   },
   "summary": "The Conductance web application framework",
-  "version": "0.7.7"
+  "version": "0.8.0"
 }

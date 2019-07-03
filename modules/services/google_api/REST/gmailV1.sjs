@@ -1,6 +1,6 @@
 // This file was originally generated using conductance/tools/google/generate-google-api gmail
 
-/* (c) 2013-2017 Oni Labs, http://onilabs.com
+/* (c) 2013-2019 Oni Labs, http://onilabs.com
  *
  * This file is part of Conductance, http://conductance.io/
  *
