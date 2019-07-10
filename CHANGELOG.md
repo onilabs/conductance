@@ -1,5 +1,14 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
+## Version 0.8.1:
+
+ * Bug fixes / Behavioral changes:
+
+   * An incorrect reference in the conductance bridge code has been fixed. This would lead
+     to an error "ReferenceError: isTransportError is not defined" under certain disconnect
+     scenarios.
+
+	
 ## Version 0.8.0:
 
  * General:

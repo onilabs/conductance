@@ -1022,12 +1022,12 @@ function BridgeConnection(transport, opts) {
           }
           catch(e) {
             @logging.warn("Error while aborting active bridge call: #{e}");
-            if (!isTransportError(e)) {
+            if (!@isTransportError(e)) {
               try {
                 send(['E', call_id, e]);
               }
               catch(e) {
-                if (!isTransportError(e)) throw e;
+                if (!@isTransportError(e)) throw e;
                 // else swallow transport error
               }
             }
