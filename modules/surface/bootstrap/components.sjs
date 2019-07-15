@@ -2165,12 +2165,17 @@ function doModal() {
     |dialog|
     
     $(dialog).modal(bs_options);
-    // the dialog starts off hidden; this messes up any DOM
-    // measurements performed in mechanisms. Therefore we wait with
-    // appending content until here:
-    dialog.querySelector('.modal-content') .. @appendContent(content);
 
     waitfor {
+      // the dialog starts off hidden; this messes up any DOM
+      // measurements performed in mechanisms. Therefore we wait with
+      // appending content until here:
+      dialog.querySelector('.modal-content') .. @appendContent(content) {
+        ||
+        hold();
+      }
+    }
+    or {
       return block(dialog);
     }
     or {
