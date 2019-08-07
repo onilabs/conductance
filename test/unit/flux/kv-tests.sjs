@@ -224,13 +224,13 @@ function test_concurrent_mod_and_query(db) {
   db ..@kv.query(@kv.RANGE_ALL) .. @consume(EOF, function (next) {
     db .. @kv.clearRange(@kv.RANGE_ALL);
 
-    @integers(1) .. @take(500) .. @each { |i| db .. @kv.set(i, i) }
+    @integers(1) .. @take(50) .. @each { |i| db .. @kv.set(i, i) }
 
     next() ..@assert.eq([[1], 1]);
 
-    @integers(1) .. @take(100) .. @each { |i| db .. @kv.set(i+400, i+400) }
+    @integers(1) .. @take(10) .. @each { |i| db .. @kv.set(i+40, i+40) }
 
-    @integers(1) .. @take(499) .. @each { |i| next() .. @assert.eq([[i+1], i+1]) }
+    @integers(1) .. @take(49) .. @each { |i| next() .. @assert.eq([[i+1], i+1]) }
 
     next() ..@assert.is(EOF);
   });
