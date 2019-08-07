@@ -779,6 +779,8 @@ module.exports = require(modules);
   `node` is the (comment) node that anchors the ContentGenerator in the DOM and next to which the 
   generated content will be inserted. `append` returns an array of inserted DOM nodes.
 
+  The generator function will be executed at priority [::MECH_PRIORITY_STREAM].
+
 @function CollectStream
 @hostenv xbrowser
 @summary A [::HtmlFragment] for inserting all elements of a stream into the DOM

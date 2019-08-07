@@ -2,6 +2,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.8.1:
 
+ * General:
+
+   * Some performance improvements in `mho:surface` code.
+
+
  * Bug fixes / Behavioral changes:
 
    * An incorrect reference in the conductance bridge code has been fixed. This would lead

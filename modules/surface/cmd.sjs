@@ -47,11 +47,11 @@ var ITF_CMD_PROCESSORS = exports.ITF_CMD_PROCESSORS = @Interface(module, "itf_cm
 //----------------------------------------------------------------------
 // helpers
 
-function findCmdProcessor(node, cmd) {
+__js function findCmdProcessor(node, cmd) {
   do {
     if (node[ITF_CMD_PROCESSORS]) {
-      node[ITF_CMD_PROCESSORS] .. @each {
-        |proc|
+      for (var i=0; i<node[ITF_CMD_PROCESSORS].length; ++i) {
+        var proc = node[ITF_CMD_PROCESSORS][i];
         if (proc.bound_commands && proc.bound_commands.indexOf(cmd) === -1)
           continue;
         return proc;

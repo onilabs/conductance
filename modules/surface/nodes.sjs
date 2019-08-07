@@ -94,25 +94,23 @@ exports.withDOMContext = withDOMContext;
    @desc
       Retrieves the first DOM node in the current [::DynamicDOMContext] (or the explicit `context`, if provided) that matches `selector`. If no `selector` is given, the first node in the context will be returned.
 */
-function getDOMNode(/* [root], [selector] */) {
+__js function getDOMNode(/* [root], [selector] */) {
 
   // untangle arguments:
   var root, selector;
   var args = arguments;
-  __js {
-    if (args.length === 1) {
-      if (typeof args[0] === 'string')
-        selector = args[0];
-      else
-        root = args[0];
-    }
-    else if (args.length === 2) {
+  if (args.length === 1) {
+    if (typeof args[0] === 'string')
+      selector = args[0];
+    else
       root = args[0];
-      selector = args[1];
-    }
-    else if (args.length !== 0)
-      throw new Error("Surplus arguments supplied to Node()");
   }
+  else if (args.length === 2) {
+    root = args[0];
+    selector = args[1];
+  }
+  else if (args.length !== 0)
+    throw new Error("Surplus arguments supplied to Node()");
 
   // if we don't have a dom context, try to obtain it from the environment:
   if (root === undefined) {
@@ -130,13 +128,14 @@ function getDOMNode(/* [root], [selector] */) {
     return root .. @first();
   }
   else {
-    root .. @each {
-      |node|
+    for (var i=0; i<root.length; ++i) {
+      var node = root[i];
       if (node .. @dom.matchesSelector(selector))
         return node;
       var match = node.querySelector(selector);
       if (match) return match;
     }
+
     throw new Error("Selector '#{selector}' not found in DOM root context");
   }
 };
@@ -267,7 +266,7 @@ exports.getDOMITF = getDOMITF;
 
 /* not documented for now
 */
-function makeDOMITFMethodAPI(itf_name, method_name, settings) {
+__js function makeDOMITFMethodAPI(itf_name, method_name, settings) {
   
   settings = {
     dom_node_passthrough: true
@@ -296,7 +295,7 @@ exports.makeDOMITFMethodAPI = makeDOMITFMethodAPI;
 
 /* not documented for now
 */
-function makeDOMITFVarAPI(itf_name, var_name) {
+__js function makeDOMITFVarAPI(itf_name, var_name) {
   return function(node) {
     return (node .. getDOMITF(itf_name))[var_name];
   }

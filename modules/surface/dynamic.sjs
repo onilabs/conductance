@@ -736,6 +736,8 @@ exports.OnClick = OnClick;
      The `append` parameter is a function that `generator` can use to insert content into the DOM. 
      `node` is the (comment) node that anchors the ContentGenerator in the DOM and next to which the 
      generated content will be inserted. `append` returns an array of inserted DOM nodes.
+
+     The generator function will be executed at priority [::MECH_PRIORITY_STREAM].
 */
 exports.ContentGenerator = ContentGenerator; // from ./base.sjs
 
