@@ -7,6 +7,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Some performance improvements in `mho:surface` code.
 
 
+ * New functionality:
+
+   * `sjs:sequence::reduce1`: Added optional function argument that will be applied to 
+     the first sequence element to compute the initial accumulator value.
+
+
  * Bug fixes / Behavioral changes:
 
    * An incorrect reference in the conductance bridge code has been fixed. This would lead
