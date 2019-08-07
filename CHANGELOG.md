@@ -8,6 +8,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
      to an error "ReferenceError: isTransportError is not defined" under certain disconnect
      scenarios.
 
+   * `mho:surface/bootstrap::doModal`: Modal content is now appended in a nested manner.
+     This fixes blocklambda controlflow (like `{|| return}`) from Mechanisms, click-handlers, 
+     etc in the appended content.
+
 	
 ## Version 0.8.0:
 
