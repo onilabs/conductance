@@ -1,5 +1,28 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
+## Version 0.8.2:
+
+ * Bug fixes / Behavioral changes:
+
+   * The SJS VM now patches the global console's output functions 
+     (log, info, warn, error) to better support exception reporting.
+     Recent versions of chrome and nodejs log an exception's `stack` 
+     property instead of the exception itself. As this property is 
+     empty for SJS exceptions, only 'Error' (or even just an empty 
+     string!) would be shown on these platforms.
+
+   * Exceptions originating from *.js files and caught in SJS code will now include
+     stack frames from the *.js file in all host environments. 
+     Previously the JS stack frames were included only in the 'nodejs' host environment
+     but not the 'xbrowser' host environment.
+     Note that JS stack frames will only be included for exceptions *thrown* from *.js 
+     files, not exceptions thrown from code within `__js{}` code, or exceptions that 
+     pass through js functions. 
+     This new functionality works for *.js files loaded either via SJS's `require` 
+     function (i.e. something like: `require('./mylib.js')`) or by being included
+     in the HTML code (e.g. via `sjs:xbrowser/dom::script`).
+
+
 ## Version 0.8.1:
 
  * General:
