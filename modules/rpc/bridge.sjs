@@ -563,9 +563,11 @@ function BridgeConnection(transport, opts) {
   else
     published_funcs[0] = function() { throw new Error("This end of the bridge does not expose an API"); }
 
-  function send(data) {
+  function send(data, dont_throw) {
     if (closed || transport.closed) {
       //console.log("session lost trying to send #{data .. @inspect(false, 4)}");
+      if (dont_throw)
+        return;
       throw @TransportError('Bridge connection lost');
     }
 
@@ -1001,7 +1003,7 @@ function BridgeConnection(transport, opts) {
                 throw e;
               }
               if (rv)
-                send(rv);
+                send(rv, true);
             })(call_rv[2], message[1])
         }
         else {
