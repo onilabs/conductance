@@ -286,9 +286,14 @@ var navigate = non_cancelable_exclusive :: function(url, settings) {
   }
 
   // case 1(b) or (2) (b): we're currently at a different path than we should be
-
-  if (!settings.omit_state_push)
+  if (!settings.omit_state_push) {
     history.pushState(null, '', url);
+  }
+  else if (url.source !== location.href) {
+    // this normalizes the url shown in the URL bar
+    // e.g. localhost/foo/// -> localhost/foo/
+    history.replaceState(null, '', url);
+  }
 
   // possibly amend the url depending on whether we expect a '/' or not:
   if (expect_slash != url.path .. @endsWith('/')) {
