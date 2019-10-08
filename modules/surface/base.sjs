@@ -22,6 +22,7 @@
 var { isQuasi, Quasi, mapQuasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
 var { each, indexed, reduce, map, join, isStream, first, toArray } = require('sjs:sequence');
+var { isObservable } = require('sjs:observable');
 var { clone, ownPropertyPairs, extend, hasOwn } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
@@ -202,14 +203,33 @@ __js function isCollapsedFragment(obj) { return CollapsedFragmentProto.isPrototy
 __js function isFragment(obj) { return FragmentBase.isPrototypeOf(obj); }
 exports.isFragment = isFragment;
 
-/* NOT PART OF DOCUMENTED API
-  @function collapseHtmlFragment
-  @param {::HtmlFragment} [ft]
-  @return {::CollapsedFragment}
+/*
+function StreamingCollectingContent(stream) {
+  var dyn = require('./dynamic');
+  
+  function mechanism(node) {
+    var appended = [];
+    try {
+      var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
+      stream .. @reconstitute .. each {
+        |val|
+        anchor .. dyn.insertBefore(val);
+      }
+      hold();
+    }
+    finally {
+      if (appended.length)
+        appended .. each(dyn.removeNode);
+    }
+  }
+  var ft = CollapsedFragment(), id = ++gMechanismCounter;
+  ft.content = "<!-- surface_stream |#{id}| --><!-- surface_end_stream |#{id}| -->";
+  ft.mechanisms[id] = mechanism;
+  return ft;
+}
 */
 
-
-function StreamingContent(stream) {
+function StreamingReplacingContent(stream) {
   var dyn = require('./dynamic');
   
   function mechanism(node) {
@@ -287,11 +307,22 @@ function appendFragmentTo(target, ft, tag) {
   else if (isElementConstructor(ft)) {
     return ft().appendTo(target, tag);
   }
+  else if (isObservable(ft)) {
+    // streams are only allowed in the dynamic world; if the user
+    // tries to use the generated content with e.g. static::Document,
+    // an error will be thrown.
+    ft = StreamingReplacingContent(ft);
+    ft.appendTo(target, tag);
+  }
   else if (isStream(ft)) { 
     // streams are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
-    ft = StreamingContent(ft);
+
+    // XXX in an ideal world we'd now use StreamingCollectingContent,
+    // but for historical reasons we use StreamingReplacingContent
+    ft = StreamingReplacingContent(ft);
+    //ft = StreamingCollectingContent(ft);
     ft.appendTo(target, tag);
   }
   else if (isContentGenerator(ft)) {
@@ -331,6 +362,12 @@ __js {
   }
   exports.escapeForTag = escapeForTag;
 }
+
+/* NOT PART OF DOCUMENTED API
+  @function collapseHtmlFragment
+  @param {::HtmlFragment} [ft]
+  @return {::CollapsedFragment}
+*/
 
 function collapseHtmlFragment(ft, tag) {
   if (isCollapsedFragment(ft)) return ft;
