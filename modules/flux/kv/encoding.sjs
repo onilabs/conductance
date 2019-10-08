@@ -122,7 +122,7 @@ __js {
 
     //byte string or unicode
     // TODO better isArrayLike test
-    else if(typeof item.length === "number") {
+    else if(typeof item === 'string' || @isArrayLike(item)) {
       var unicode = typeof item === 'string';
 
       if (unicode) {
@@ -182,7 +182,7 @@ __js {
     }
 
     else
-      throw new TypeError('Key components must either be a string, a buffer, an integer, or null');
+      throw new TypeError("Invalid key component of type '#{typeof(item)}'. Key components must either be a string, a buffer, an integer, or null");
   }
 
   /**
