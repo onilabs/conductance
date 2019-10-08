@@ -784,7 +784,7 @@ exports.CollectStream = CollectStream;
    @return {::HtmlFragment}
    @desc
      `stream` will be iterated when the ReplaceStream is inserted into the DOM (directly or indirectly via a 
-     parent of the CollectStream being inserted into the DOM).
+     parent of the ReplaceStream being inserted into the DOM).
 
      Elements of `stream` will be inserted into the DOM as they are produced.
 */
