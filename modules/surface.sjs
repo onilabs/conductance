@@ -248,6 +248,52 @@ module.exports = require(modules);
   adds the given `style` CSS rules. Unlike [::CSS], the attached style
   will not be scoped to any particular widget.
 
+  Note that the lifetime of the inserted CSS will not be bounded by any
+  lifetime bounding functions in surface. E.g. for the following code:
+  
+      root .. @appendContent(@GlobalCSS(`...`)) { || hold(0) }
+
+  the CSS will NOT be removed after the `hold(0)`.
+
+  Also note that to prevent from inserting the same global css multiple times in 
+  the document, you should store the GlobalCSS style in a global variable. To
+  illustrate, imagine you have a page in your application that periodically gets
+  navigated to and executes the following code:
+
+      function showPage(container) {
+        container .. @appendContent([
+          @GlobalCSS(SOME_CSS_STYLES),
+          ...
+          ]) {
+          ||
+          hold_page_alive_until_navigated_away()
+        }
+      }
+
+  Here, because `@GlobalCSS(SOME_CSS_STYLES)` will be called whenever `showPage`
+  is called, a NEW GlobalCSS widget will be created every time, and duplicate
+  styles will be inserted into the document.
+  To circumvent this, define a global widget:
+
+      var MyPageStyle = @GlobalCSS(SOME_CSS_STYLES);
+
+      function showPage(container) {
+        container .. @appendContent([
+          MyPageStyle,
+          ...
+          ]) {
+          ||
+          hold_page_alive_until_navigated_away()
+        }
+      }
+
+  In this version of the code, SOME_CSS_STYLES will only be added to the document
+  the first time the widget is encountered.
+
+  Alternatively, you can use a `@global` section in [::CSS] to insert global styles
+  that have their lifetime bound to a particular node in the document.
+
+
 @function Mechanism
 @altsyntax element .. Mechanism(mechanism, [settings])
 @param {optional ::Element} [element]
@@ -462,6 +508,14 @@ module.exports = require(modules);
   widget is used. For SJS-based or CommonJS-compliant JS dependencies, this function 
   is unnecessary (just use [sjs:#language/builtins::require]).
 
+  Note that the lifetime of the inserted script will not be bounded by any
+  lifetime bounding functions in surface. E.g. for the following code:
+  
+      root .. @appendContent(@RequireExternalScript('foo.js')) { || hold(0) }
+
+  `foo.js` will NOT be removed after the `hold(0)`.
+
+
 @function RequireExternalCSS
 @summary Declare a dependency on an external `.css` file
 @param {String} [url]
@@ -472,10 +526,16 @@ module.exports = require(modules);
   external script will be loaded and executed. If the url specified has already been
   loaded in this way, it will not be reloaded or re-executed.
 
-  Note that unlike [::CSS], external stylesheets
+  Unlike [::CSS], external stylesheets
   will not be scoped to any particular element -
   they will be applied globally.
 
+  Note that the lifetime of the inserted CSS file will not be bounded by any
+  lifetime bounding functions in surface. E.g. for the following code:
+  
+      root .. @appendContent(@RequireExternalCSS('foo.css')) { || hold(0) }
+
+  `foo.css` will NOT be removed after the `hold(0)`.
 
 @feature DynamicDOMContext
 @summary An implicitly defined dynamic DOM context
@@ -803,7 +863,7 @@ module.exports = require(modules);
 @return {::HtmlFragment}
 @desc
   `stream` will be iterated when the ReplaceStream is inserted into the DOM (directly or indirectly via a 
-  parent of the CollectStream being inserted into the DOM).
+  parent of the ReplaceStream being inserted into the DOM).
 
   Elements of `stream` will be inserted into the DOM as they are produced.
 
