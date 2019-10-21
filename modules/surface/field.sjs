@@ -133,7 +133,7 @@ function Value(/*[node], [path]*/) {
 
   var args = arguments;
   
-  var stream = @Observable(function(r) {
+  var stream = @Stream(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::Value: Cannot resolve Field");
     field_node[ITF_FIELD].value .. @each(r);
@@ -214,7 +214,7 @@ function ValidationState(/*[node], [path]*/) {
 
   var args = arguments;
   
-  return @Observable(function(r) {
+  return @Stream(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::ValidationState: Cannot resolve Field");
     field_node[ITF_FIELD].validation_state .. @each(r);
@@ -234,7 +234,7 @@ function ValidationDisplayFlag(/*[node], [path]*/) {
 
   var args = arguments;
   
-  return @Observable(function(r) {
+  return @Stream(function(r) {
     var field_node = getField.apply(null, args);
     if (!field_node) throw new Error("field::ValidationDisplayFlag: Cannot resolve Field");
     field_node[ITF_FIELD].display_validation .. @each(r);
@@ -1117,7 +1117,7 @@ function FieldArray(elem, settings) {
             if(fieldcontainer_itf._field.validators_deps .. @ownKeys .. @count > 0) 
               throw new Error("Validator dependencies not implemented for field arrays yet"); 
         
-            @eventStreamToObservable(fieldcontainer_itf._array_mutation_emitter,->0) .. @each.track {
+            @updatesToObservable(fieldcontainer_itf._array_mutation_emitter,->0) .. @each.track {
               ||
               // XXX effectively this does validations twice, because a value change goes 
               // hand in hand with a change in children's validation states

@@ -289,7 +289,7 @@ function waitforClosingClick(elem) {
    @summary Display a dropdown menu and handle mouse/keyboard interactions
    @param {Object} [settings] 
    @setting {DOMNode} [anchor] DOM element relative to which dropdown will be positioned
-   @setting {sjs:sequence::Sequence|sjs:observable::Observable} [items] Sequence of menu items as outlined in the description below, or Observable thereof.
+   @setting {sjs:sequence::MaterialSequence|sjs:observable::Observable} [items] Sequence of menu items as outlined in the description below, or Observable thereof.
    @setting {Boolean} [keyboard=false] If `true`, UP, DOWN, and ENTER interactions will be enabled.
    @setting {Boolean} [focus=true] If `true`, focusable content in the dropdown will be focused when selected; otherwise focusing (and consequently bluring of currently focused content) will be disabled.
    @setting {Integer} [top=1] Top position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
@@ -382,7 +382,7 @@ function doDropdown(/* anchor, items, [settings] */) {
   else
     throw new Error("Unexpected number of arguments");
 
-  if (!@isObservable(settings.items)) {
+  if (!@isStream(settings.items)) {
     settings.items = @constantObservable(settings.items);
   }
   var action;
@@ -426,7 +426,7 @@ function doDropdown(/* anchor, items, [settings] */) {
 
   var DropdownUpdatedEmitter = @Emitter();
 
-  var DropdownContent = @Observable(function(r) {
+  var DropdownContent = @Stream(function(r) {
     settings.items .. @each.track {
       |items| 
 

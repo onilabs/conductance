@@ -1,8 +1,126 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
-## Version 0.8.2:
+## Version 0.9.0:
+
+ This version introduces some big architectural changes to SJS's 
+ sequence/stream/observable functionality.
+
+
+ Some breaking changes to watch out for:
+
+   * `sjs:sequence::BatchedStream` and `sjs:sequence::isBatchedStream` have
+     been removed. You can use the alternatives 
+     `@StructuredStream('batched') :: SEQ` and 
+     `@isStructuredStream('batched') :: SEQ`. 
+     Alternatively, if you are currently using `@BatchedStream` in conjunction 
+     with `@pack` to generate a batched stream, switch to 
+     `sjs:sequence::batch`.
+
+   * The `sjs:structured-observable` module has been removed. 
+     In many cases `sjs:observable:ObservableWindowVar` can be used as a 
+     replacement for the removed `ObservableArrayVar`. A full replacement is 
+     planned for a future release.
+
+   * The introduction of structured streams means that not all streams can be 
+     iterated by treating them as functions.
+     E.g. `my_stream(console.log)` will not work if `my_stream` is a 
+     structured stream. You need to use `my_stream .. @each(console.log)`.
+
+   * SJS doesn't type-tag Observables any longer; they are now just Streams. The
+     Observable typing functions (Observable, isObservable) have been removed. In most
+     cases, code can be changed to just accept streams instead of observables (i.e.
+     change any `@Observable` calls to `@Stream` and any `@isObservable` calls to
+     `@isStream`). Where code relies on distinguishing streams 
+     from observables, the logic can usually be changed to distinguish between 
+     material sequences (i.e. array-like sequences) and observables instead.
+
+   * `sjs:observable::eventStreamToObservable` has been renamed to 
+     `sjs:observable::updatesToObservable`.
+
+   * Because of the removal of Observable type-tagging, calling (the now deprecated)
+     `project` or `projectInner` on an Observable will not automatically call
+     `dedupe` on the resultant.
+
+
+ * New functionality
+
+   * New 'structured stream' functionality has been added to the `sjs:sequence` 
+     library. Structured streams are streams where the individual elements are
+     encoded in some way to make their transmission and/or processing more 
+     efficient. They operate (mostly) invisible to the user in the background.
+     For more details see the documentation for `sjs:sequence::StructuredStream`.
+     As part of this new functionality, the following primitives have been added:
+     * `sjs:sequence::StructuredStream`
+     * `sjs:sequence::isStructuredStream`
+     * `sjs:sequence::batch`
+     * `sjs:sequence::rollingWindow`
+     * `sjs:sequence::transform.map`
+     * `sjs:sequence::monitor.raw`
+     * `sjs:observable::sample`
+     * `sjs:observable::ObservableWindowVar`
+     * `sjs:observable::isObservableWindowVar`
+
+   * Added a function `sjs:sequence::withOpenStream` which allows successive partial
+     iterations of a stream without iterating manually using `sjs:sequence::consume`.
+
+   * The concept of 'material sequences' (= sequences that are not streams) has 
+     been introduced. Documented under `sjs:sequence::MaterialSequence`.
+
+   * SJS now has support for rest parameter syntax (`...args`), with the limitation that 
+     rest parameters cannot (yet) appear in destructuring patterns.
+     Also, spread syntax is not yet supported. Full rest/spread support is scheduled
+     for a future release.
+
 
  * Bug fixes / Behavioral changes:
+
+   * `sjs:observable::eventStreamToObservable` has been renamed to 
+     `sjs:observable::updatesToObservable` to better indicate the 
+     intended use case.
+
+   * Observable streams are not type tagged as 'Observables' any longer; they are now just
+     Streams. Library functions that would previously accept only observables as arguments 
+     (e.g. CompoundObservable) now accept any Streams - it is the responsibiliy of the user
+     to ensure that those streams have Observable-compatible semantics.
+
+   * The `sjs:structured-observable` module with all of its functions 
+     (`isObservableArray`, `isStructuredObservable`, `reconstitute`, `ObservableArray`,
+      `ObservableArrayVar`, and `StructuredObservable`) has been removed. 
+      Structured stream functionality is now built into sequences directly and there is
+      an `ObservableWindowVar` function in the `sjs:observable` module that caters for 
+      some use cases of `ObservableArrayVar`.
+      In future, a new version of `ObservableArrayVar` is planned (and it will live in the 
+      `sjs:observable` module).
+
+   * `sjs:sequence::transform` will now keep any batched stream structure.
+
+   * The `sjs:projection` module (functions `sjs:projection::projectInner`,
+     `sjs:projection::project` and `sjs:projection::dereference`) is now deprecated.
+     Use alternatives the corresponding alternatives from the `sjs:sequence` module.
+
+   * `sjs:sequence::map` is back to being un-deprecated. It is the right primitive
+     to use when you want to create an array by transforming a sequence.
+
+   * `sjs:sequence::BatchedStream` and `sjs:sequence::isBatchedStream` have been removed. 
+
+   * `sjs:cutil::Queue`: For queues of capacity 0, the sync flag will now be ignored and
+     implicitly set to `true`. This is to prevent an undesirable situation where such a 
+     queue would behave like a stateful queue with capacity 1 under some circumstances.
+     For more details, see the documentation for `sjs:cutil:Queue`.
+	
+   * The iteration interface `sjs:sequence::ITF_EACH` has been removed, as this was only
+     used in the (also removed) sjs collection utility library.
+
+   * The sjs collection utilities library has been removed, as it duplicated 
+     functionality found elsewhere and didn't align well with ideomatic SJS usage.
+
+   * `mho:surface/navigation::navigate`: Normalize URL on navigation to prevent trailing
+     slashes in address bar.
+
+   * `mho:rpc/bridge`: An edge case has been fixed where the bridge would shut down when 
+      attempting to send a function return value across a closed connection. 
+
+   * `mho:flux/kv`: Key type-checking and error reporting has been improved.
 
    * The SJS VM now patches the global console's output functions 
      (log, info, warn, error) to better support exception reporting.

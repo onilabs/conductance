@@ -318,7 +318,7 @@ exports.PermanentDrawer = PermanentDrawer;
 // helper that should go elsewhere:
 var Href = (elem, address) -> elem .. @Attrib('href', @url.build(address));
 
-var IsURLSelected = url -> @Observable(function(r) {
+var IsURLSelected = url -> @Stream(function(r) {
   url = @url.normalize(url, location.href) .. @url.canonicalize;
   var {Location} = require('mho:surface/navigation');
   Location ..

@@ -46,9 +46,7 @@ function proxyObj(obj, Beta, key_path) {
   }
   else if (typeof obj === 'function') {
     rv = proxyFunc(Beta, key_path);
-    if (obj .. @isBatchedStream)
-      rv = @BatchedStream(rv);
-    else if (obj .. @isStream)
+    if (obj .. @isStream)
       rv = @Stream(rv);
     rv.proxiedFunc = obj;
   }
@@ -124,10 +122,6 @@ function ProxyAPI() {
     src .. @ownPropertyPairs .. @each {
       |[key, val]|
       // XXX it sucks that we have to treat streams different to normal functions here
-      if (val .. @isBatchedStream) {
-        dest[key] = @BatchedStream(proxyFunc(-> base.wait(), path.concat(key)));
-        dest[key].proxiedFunc = val;
-      }
       if (val .. @isStream) {
         dest[key] = @Stream(proxyFunc(-> base.wait(), path.concat(key)));
         dest[key].proxiedFunc = val;

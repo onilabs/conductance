@@ -21,8 +21,7 @@
 
 var { isQuasi, Quasi, mapQuasi } = require('sjs:quasi');
 var { isString, sanitize } = require('sjs:string');
-var { each, indexed, reduce, map, join, isStream, first, toArray } = require('sjs:sequence');
-var { isObservable } = require('sjs:observable');
+var { each, indexed, reduce, map, join, first, toArray } = require('sjs:sequence');
 var { clone, ownPropertyPairs, extend, hasOwn } = require('sjs:object');
 var { scope } = require('./css');
 var { build: buildUrl } = require('sjs:url');
@@ -135,7 +134,7 @@ __js {
             typeof obj === 'string' ||
             typeof obj === 'number' ||
             Array.isArray(obj) ||
-            isStream(obj) ||
+            @isStream(obj) ||
             isContentGenerator(obj) ||
             (@sys.hostenv === 'nodejs' && Buffer.isBuffer(obj))
            );
@@ -211,7 +210,7 @@ function StreamingCollectingContent(stream) {
     var appended = [];
     try {
       var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
-      stream .. @reconstitute .. each {
+      stream .. each {
         |val|
         anchor .. dyn.insertBefore(val);
       }
@@ -233,7 +232,7 @@ function StreamingReplacingContent(stream) {
   var dyn = require('./dynamic');
   
   function mechanism(node) {
-    stream .. @reconstitute .. each.track {
+    stream .. each.track {
       |val|
       var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
 
@@ -307,20 +306,10 @@ function appendFragmentTo(target, ft, tag) {
   else if (isElementConstructor(ft)) {
     return ft().appendTo(target, tag);
   }
-  else if (isObservable(ft)) {
+  else if (@isStream(ft)) { 
     // streams are only allowed in the dynamic world; if the user
     // tries to use the generated content with e.g. static::Document,
     // an error will be thrown.
-    ft = StreamingReplacingContent(ft);
-    ft.appendTo(target, tag);
-  }
-  else if (isStream(ft)) { 
-    // streams are only allowed in the dynamic world; if the user
-    // tries to use the generated content with e.g. static::Document,
-    // an error will be thrown.
-
-    // XXX in an ideal world we'd now use StreamingCollectingContent,
-    // but for historical reasons we use StreamingReplacingContent
     ft = StreamingReplacingContent(ft);
     //ft = StreamingCollectingContent(ft);
     ft.appendTo(target, tag);
@@ -800,7 +789,7 @@ __js {
         for (var i=0; i<q.parts.length; i++) {
           var p = q.parts[i];
           if (i%2) {
-            if (isStream(p)) {
+            if (@isStream(p)) {
               if(collectObservables) collectObservables.push(p);
               // XXX: are there general escaping rules we can use for CSS attribs?
               else rv += String(values[obsIdx++]);
@@ -1123,7 +1112,7 @@ function StreamAttribMechanism(ft, name, obs, mechanism_settings) {
     See also [::Prop].
 */
 function Attrib(element, name, value) {
-  if (isStream(value)) {
+  if (@isStream(value)) {
     return element .. StreamAttribMechanism(name, value);
   }
   __js {
@@ -1213,7 +1202,7 @@ __js {
 function Class(element, clsname, val) {
   __js  var element = cloneElement(element);
   __js  var classes = element._normalizeClasses();
-  if (isStream(clsname)) {
+  if (@isStream(clsname)) {
     __js    if (arguments.length > 2)
       throw new Error('Class(.) argument error: Cannot have a boolean toggle in combination with an observable class name');
     element = element .. StreamClassMechanism(clsname);
@@ -1222,7 +1211,7 @@ function Class(element, clsname, val) {
     // !isStream(clsname)
     if (arguments.length > 2) {
       // val is provided, treat it as a boolean toggle
-      if (isStream(val)) {
+      if (@isStream(val)) {
         element = element .. Mechanism {
           |elem|
           var cl = elem.classList;

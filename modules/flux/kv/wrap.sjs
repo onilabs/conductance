@@ -64,7 +64,7 @@ function wrapDB(base) {
     },
     observe: function(key) {
       key = @encoding.encodeKey(base.encoding_backend, key);
-      return @eventStreamToObservable(
+      return @updatesToObservable(
         (base.changes) ..
           @unpack ..
           @filter(kv -> kv.key .. @encoding.encodedKeyEquals(key)) ..
@@ -79,7 +79,7 @@ function wrapDB(base) {
       var encoded_range = @encoding.encodeKeyRange(base.encoding_backend, 
                                                    range);
 
-      return @eventStreamToObservable(
+      return @updatesToObservable(
         base.changes ..
           @filter(kvs -> kvs .. @any(kv -> kv.key .. @encoding.encodedKeyInRange(encoded_range.begin, encoded_range.end))) ..
           @transform(-> kv_query(encoded_range, options) .. @transform(decodeKV) .. @toArray),

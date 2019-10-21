@@ -61,7 +61,7 @@ var CachedBundle = exports.CachedBundle = function(settings) {
       var curr = { generated: new Date() };
       @logging.verbose("bundle.findDependencies: ", settings);
       var sources = settings.sources;
-      if (sources .. @isObservable) sources = sources .. @current;
+      if (sources .. @isStream) sources = sources .. @current;
       var deps = curr.deps = @bundle.findDependencies(sources, settings);
       curr.etag_sources = deps.modules
         .. @ownValues

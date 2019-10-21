@@ -42,7 +42,6 @@
   @require sjs:regexp
   @require sjs:url
   @require sjs:observable
-  @require sjs:structured-observable
   @require sjs:projection
 */
 
@@ -67,7 +66,6 @@ var modules = [
   {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
   'sjs:observable',
-  'sjs:structured-observable',
   'sjs:projection'
 ];
 
@@ -324,14 +322,15 @@ module.exports = require(modules);
    - **constantObservable**: (function [sjs:observable::constantObservable])
    - **current**: (function [sjs:observable::current])
    - **DelayedObservable**: (function [sjs:observable::DelayedObservable])
-   - **eventStreamToObservable**: (function [sjs:observable::eventStreamToObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])
-   - **isObservable**: (function [sjs:observable::isObservable])
    - **isObservableVar**: (function [sjs:observable::isObservableVar])
-   - **Observable**: (class [sjs:observable::Observable])
+   - **isObservableWindowVar**: (function [sjs:observable::isObservableWindowVar])
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
+   - **ObservableWindowVar**: (class [sjs:observable::ObservableWindowVar])
    - **observe**: (function [sjs:observable::observe])
+   - **sample**: (function [sjs:observable::sample])
    - **synchronize**: (function [sjs:observable::synchronize])
+   - **updatesToObservable**: (function [sjs:observable::updatesToObservable])
   
   
   ### Symbols from the [sjs:projection](#sjs%3Aprojection) module:
@@ -357,7 +356,7 @@ module.exports = require(modules);
    - **any**: (function [sjs:sequence::any])
    - **any.par**: (function [sjs:sequence::any.par])
    - **at**: (function [sjs:sequence::at])
-   - **BatchedStream**: (class [sjs:sequence::BatchedStream])
+   - **batch**: (function [sjs:sequence::batch])
    - **batchN**: (function [sjs:sequence::batchN])
    - **buffer**: (function [sjs:sequence::buffer])
    - **combine**: (function [sjs:sequence::combine])
@@ -383,10 +382,10 @@ module.exports = require(modules);
    - **integers**: (function [sjs:sequence::integers])
    - **intersperse**: (function [sjs:sequence::intersperse])
    - **intersperse_n_1**: (function [sjs:sequence::intersperse_n_1])
-   - **isBatchedStream**: (function [sjs:sequence::isBatchedStream])
    - **isConcreteSequence**: (function [sjs:sequence::isConcreteSequence])
    - **isSequence**: (function [sjs:sequence::isSequence])
    - **isStream**: (function [sjs:sequence::isStream])
+   - **isStructuredStream**: (function [sjs:sequence::isStructuredStream])
    - **join**: (function [sjs:sequence::join])
    - **last**: (function [sjs:sequence::last])
    - **map**: (function [sjs:sequence::map])
@@ -394,6 +393,7 @@ module.exports = require(modules);
    - **map.par**: (function [sjs:sequence::map.par])
    - **mirror**: (function [sjs:sequence::mirror])
    - **monitor**: (function [sjs:sequence::monitor])
+   - **monitor.raw**: (function [sjs:sequence::monitor.raw])
    - **pack**: (function [sjs:sequence::pack])
    - **PACK_OMIT**: (variable [sjs:sequence::PACK_OMIT])
    - **partition**: (function [sjs:sequence::partition])
@@ -401,6 +401,7 @@ module.exports = require(modules);
    - **reduce**: (function [sjs:sequence::reduce])
    - **reduce1**: (function [sjs:sequence::reduce1])
    - **reverse**: (function [sjs:sequence::reverse])
+   - **rollingWindow**: (function [sjs:sequence::rollingWindow])
    - **scan**: (function [sjs:sequence::scan])
    - **skip**: (function [sjs:sequence::skip])
    - **skipWhile**: (function [sjs:sequence::skipWhile])
@@ -408,6 +409,7 @@ module.exports = require(modules);
    - **sort**: (function [sjs:sequence::sort])
    - **sortBy**: (function [sjs:sequence::sortBy])
    - **Stream**: (class [sjs:sequence::Stream])
+   - **StructuredStream**: (class [sjs:sequence::StructuredStream])
    - **tailbuffer**: (function [sjs:sequence::tailbuffer])
    - **take**: (function [sjs:sequence::take])
    - **takeWhile**: (function [sjs:sequence::takeWhile])
@@ -415,11 +417,13 @@ module.exports = require(modules);
    - **toStream**: (function [sjs:sequence::toStream])
    - **transform**: (function [sjs:sequence::transform])
    - **transform.filter**: (function [sjs:sequence::transform.filter])
+   - **transform.map**: (function [sjs:sequence::transform.map])
    - **transform.par**: (function [sjs:sequence::transform.par])
    - **transform.par.unordered**: (function [sjs:sequence::transform.par.unordered])
    - **unique**: (function [sjs:sequence::unique])
    - **uniqueBy**: (function [sjs:sequence::uniqueBy])
    - **unpack**: (function [sjs:sequence::unpack])
+   - **withOpenStream**: (function [sjs:sequence::withOpenStream])
    - **zip**: (function [sjs:sequence::zip])
    - **zipLongest**: (function [sjs:sequence::zipLongest])
   
@@ -468,19 +472,10 @@ module.exports = require(modules);
    - **utf8ToString**: (function [sjs:string::utf8ToString])
   
   
-  ### Symbols from the [sjs:structured-observable](#sjs%3Astructured-observable) module:
-  
-   - **isObservableArray**: (function [sjs:structured-observable::isObservableArray])
-   - **isStructuredObservable**: (function [sjs:structured-observable::isStructuredObservable])
-   - **ObservableArrayVar**: (class [sjs:structured-observable::ObservableArrayVar])
-   - **reconstitute**: (function [sjs:structured-observable::reconstitute])
-   - **StructuredObservable**: (class [sjs:structured-observable::StructuredObservable])
-  
-  
   ### Symbols from the [sjs:sys](#sjs%3Asys) module:
   
-   - **argv**: (function [sjs:sys::argv])
    - **eval**: (function [sjs:sys::eval])
+   - **argv**: (function [sjs:sys::argv])
   
   
   ### Symbols from the [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom) module:

@@ -147,7 +147,7 @@ function run_with_certbot(config, block) {
     console.log(process.stderr + '\n' + process.stdout);
   }
     
-  var credentials = @Observable(function(r) {
+  var credentials = @Stream(function(r) {
     while (1) {
 
       if (!@fs.exists(cert_dir)) {

@@ -328,7 +328,7 @@ exports.gen_routed_page = function(src, aux) {
           {id: 'mho:surface/api-connection', name: 'api_connection'}
         ]);
         var api = @breaking { |brk| 
-          @api_connection.withResumingAPI({ id: '${mapping.config.api}' }, brk);
+          @api_connection.withAPI({ id: '${mapping.config.api}' }, brk);
         }
       
         api.value .. @ownPropertyPairs .. @each { |[key, val]|
@@ -423,7 +423,7 @@ function getBundleSettings(path, url, directoryMapping) {
   // date enters into the bundle's etag creation (see 'configFile: path .. @url.coerceToPath' above) and we 
   // need to make sure that the bundle's internal refresh mechanism sees the sources as specified in the current 
   // config file. To ensure the latter, we pass the sources in as an observable (the bundle code - or rather generator.js::refresh) knows how to deal with this: 
-  var sources = @Observable(function(r) {
+  var sources = @Stream(function(r) {
     var config = directoryMapping().config;
     var deps = config.bundle;
     if (config.api) {
