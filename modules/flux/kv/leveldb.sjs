@@ -77,10 +77,10 @@ function LevelDB(location, options) {
   var MutationEmitter = @Emitter();
 
   __js var encoding_backend = {
-    makeEncodingBuffer: Buffer,
+    makeEncodingBuffer: Buffer.allocUnsafe,
     
     encodeString: function (str) {
-      return new Buffer(str, 'utf8');
+      return Buffer.from(str, 'utf8');
     },
     
     decodeString: function (buf, start, end) {

@@ -82,8 +82,8 @@ function wrapDB(base) {
       return @updatesToObservable(
         base.changes ..
           @filter(kvs -> kvs .. @any(kv -> kv.key .. @encoding.encodedKeyInRange(encoded_range.begin, encoded_range.end))) ..
-          @transform(-> kv_query(encoded_range, options) .. @transform(decodeKV) .. @toArray),
-        -> kv_query(encoded_range, options) .. @transform(decodeKV) .. @toArray
+          @transform(-> kv_query(encoded_range, options) .. @transform(decodeKV)),
+        -> kv_query(encoded_range, options) .. @transform(decodeKV)
       );
     },
 

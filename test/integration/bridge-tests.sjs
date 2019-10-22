@@ -359,7 +359,7 @@ context() {||
       var payload = 'ßɩnɑʀʏ';
 
       test('Buffer') {||
-        var buf = new Buffer(payload);
+        var buf = Buffer.from(payload);
         var rv = api.identity(buf);
         rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
         rv .. @assert.eq(buf);
@@ -391,7 +391,7 @@ context() {||
           rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
         } else {
           rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
-          rv .. @assert.eq(new Buffer(payload));
+          rv .. @assert.eq(Buffer.from(payload));
         }
       }.skipIf(noBlobSupport || isPhantomJS /* PhantomJS Blob implementation is busted */)
     }

@@ -94,7 +94,7 @@ context("Server only") {||
 				response: 'raw',
 			});
 
-			var buffer = new Buffer(expected);
+			var buffer = Buffer.from(expected);
 			@assert.eq(rv ..contents ..@join(), buffer);
 			@assert.eq(rv.headers['content-length'], "" + buffer.length);
 			@assert.eq(rv.statusCode, 206);

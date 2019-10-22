@@ -90,7 +90,7 @@ var hashPassword = function(password, opts) {
 	if (password.length == 0) throw new Error("blank password");
 	var { salt, iterations, keylen } = opts;
 	@assert.string(salt);
-	var saltBuf = new Buffer(salt, "base64");
+	var saltBuf = Buffer.from(salt, "base64");
 	@assert.number(iterations);
 	@assert.number(keylen);
 	waitfor(var err, rv) {

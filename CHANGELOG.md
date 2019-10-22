@@ -5,7 +5,6 @@ This changelog lists the most prominent, developer-visible changes in each relea
  This version introduces some big architectural changes to SJS's 
  sequence/stream/observable functionality.
 
-
  Some breaking changes to watch out for:
 
    * `sjs:sequence::BatchedStream` and `sjs:sequence::isBatchedStream` have
@@ -20,6 +19,15 @@ This changelog lists the most prominent, developer-visible changes in each relea
      In many cases `sjs:observable:ObservableWindowVar` can be used as a 
      replacement for the removed `ObservableArrayVar`. A full replacement is 
      planned for a future release.
+
+   * The `sjs:projection` module (functions `sjs:projection::projectInner`,
+     `sjs:projection::project` and `sjs:projection::dereference`) has been removed.
+     Use the following alternatives, amending with `@toArray` or `@dedupe` as 
+     appropriate:
+     - `dereference`: `@transform(p->obj[p])`
+     - `project`: `@transform`
+     - `projectInner`: `@transform.map` if inner values are arrays, nested `@transform` 
+        otherwise.
 
    * The introduction of structured streams means that not all streams can be 
      iterated by treating them as functions.
@@ -40,6 +48,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Because of the removal of Observable type-tagging, calling (the now deprecated)
      `project` or `projectInner` on an Observable will not automatically call
      `dedupe` on the resultant.
+
+ * General
+
+   * Various performance improvements
 
 
  * New functionality
@@ -74,6 +86,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * Deprecated `node::Buffer` constructor usage has been replaced with appropriate
+     alternatives (Buffer.from/Buffer.alloc) throughout.
+
    * `sjs:observable::eventStreamToObservable` has been renamed to 
      `sjs:observable::updatesToObservable` to better indicate the 
      intended use case.
@@ -95,8 +110,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `sjs:sequence::transform` will now keep any batched stream structure.
 
    * The `sjs:projection` module (functions `sjs:projection::projectInner`,
-     `sjs:projection::project` and `sjs:projection::dereference`) is now deprecated.
-     Use alternatives the corresponding alternatives from the `sjs:sequence` module.
+     `sjs:projection::project` and `sjs:projection::dereference`) has been removed.
 
    * `sjs:sequence::map` is back to being un-deprecated. It is the right primitive
      to use when you want to create an array by transforming a sequence.

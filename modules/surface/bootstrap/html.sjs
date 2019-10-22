@@ -129,7 +129,7 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
     var greet = 
       `<p>$@Input({value:Name, addOnLeft: `<b>Your name:</b>`})</p>
        <p>Hello, <b>$Name</b>, your name is
-          ${ Name .. @project(x -> x.length) }
+          ${ Name .. @transform(x -> x.length) }
           characters long!</p>`;
 
     @mainContent .. @appendContent([
@@ -148,7 +148,7 @@ exports.Table = wrapWithClass(base_html.Table, 'table');
        </p>
        <p>
           Hello, <b>$Name</b>, your name is
-            ${ Name .. @project(x -> x.length) }
+            ${ Name .. @transform(x -> x.length) }
           characters long!
        </p>`;
 
@@ -232,7 +232,7 @@ exports.Input = Input;
       $@TextArea(Text)
       <h3>Output</h3>
       $@Div(Text ..
-      @project(txt -> txt .. convert() .. @RawHTML()))
+      @transform(txt -> txt .. convert() .. @RawHTML()))
       `;
     }
 
@@ -250,7 +250,7 @@ exports.Input = Input;
         $@TextArea(Text)
         <h3>Output</h3>
         $@Div(Text ..
-                @project(txt -> txt .. convert() .. @RawHTML()))
+                @transform(txt -> txt .. convert() .. @RawHTML()))
       `;
     }
     
@@ -326,7 +326,7 @@ exports.Select = wrapWithClass(base_html.Select, 'form-control');
     var percent = @ObservableVar(0);
     var animate = @ObservableVar(true);
 
-    var style = percent ..@project(function (x) {
+    var style = percent ..@transform(function (x) {
       if (x < 20) {
         return 'danger';
       } else if (x < 40) {
@@ -361,7 +361,7 @@ exports.Select = wrapWithClass(base_html.Select, 'form-control');
     var percent = @ObservableVar(0);
     var animate = @ObservableVar(true);
 
-    var style = percent ..@project(function (x) {
+    var style = percent ..@transform(function (x) {
       if (x < 20) {
         return 'danger';
       } else if (x < 40) {

@@ -166,7 +166,7 @@ exports.run = function(command, args, options) {
 
   var input = null;
   if (options && options.stdio && options.stdio[0]) {
-    input = new Buffer(options.stdio[0], 'utf-8');
+    input = Buffer.from(options.stdio[0], 'utf-8');
     options.stdio[0] = 'pipe';
   }
   var child = childProcess.launch(command, args, options);

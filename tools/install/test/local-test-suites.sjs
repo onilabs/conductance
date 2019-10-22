@@ -21,7 +21,7 @@ systems .. @each {|system|
 				hostUtil.serveProxy {|proxy|
 					proxy.fake([
 						[manifest.data.conductance.href, @util.conductanceHead],
-						[manifest.manifest_url, new Buffer(manifestContents)],
+						[manifest.manifest_url, Buffer.from(manifestContents)],
 					]) {||
 						hostUtil.ensureClean();
 						hostUtil.manualInstall('n');

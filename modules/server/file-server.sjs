@@ -225,7 +225,7 @@ function formatResponse(req, item, settings) {
 
     /*if (isFiniteResponse(output)) {
       output = compress(req, formatdesc, output);
-      output = new Buffer(output ..join(''));
+      output = Buffer.from(output ..join(''));
       req .. setHeader("Content-Length", output.length);
       req .. setHeader("Accept-Ranges", "bytes");
       output = [output];
@@ -239,7 +239,7 @@ function formatResponse(req, item, settings) {
 
     // TODO what about HEAD requests?
     if (req.request.headers["range"]) {
-      var buffer = new Buffer(output .. join(''));
+      var buffer = Buffer.from(output .. join(''));
 
       // We only handle simple ranges
       var range = /^bytes=(\d*)-(\d*)$/.exec(req.request.headers["range"]);

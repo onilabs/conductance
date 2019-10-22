@@ -17,7 +17,7 @@ exports.getConfig = function(key) {
 
 exports.agent = function(config) {
 	return new @https.Agent(@https.globalAgent.options .. @merge({
-		ca: new Buffer(config .. @get('ca'), 'base64')
+		ca: Buffer.from(config .. @get('ca'), 'base64')
 	}));
 };
 

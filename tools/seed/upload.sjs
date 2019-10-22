@@ -73,7 +73,7 @@ require('http://localhost:7079/deploy.api').connect {|api|
       @info("Using SSH key:", identity);
 
 
-      var serverDhKey = new Buffer(opts.dhKey);
+      var serverDhKey = Buffer.from(opts.dhKey);
       if (expectedKey !== null) {
         @assert.fail("TODO: validate expected host key");
       } else {

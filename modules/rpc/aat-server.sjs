@@ -204,8 +204,8 @@ function createTransport(finish) {
         throw new Error("inactive transport");
       data = data .. toBuffer();
       
-      header = new Buffer(JSON.stringify(header));
-      var pre = new Buffer(3);
+      header = Buffer.from(JSON.stringify(header));
+      var pre = Buffer.allocUnsafe(3);
       pre.writeUInt8(100, 0); // 100 = 'd'
       pre.writeUInt16BE(header.length, 1);
       send_q.unshift(Buffer.concat([pre, header, data]));

@@ -92,9 +92,9 @@ exports.doLoginDialog = function(api) {
   var Credentials = @ObservableVar({});
 
   var CredentialsFilledIn = Credentials ..
-    @project({username,password} ->
+    @transform({username,password} ->
              username && username.length >= 4 &&
-             password && password.length >= 8);
+             password && password.length >= 8) .. @dedupe;
 
   var Notice = @ObservableVar(undefined);
 

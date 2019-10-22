@@ -444,15 +444,15 @@ exports.provisioningUI = function(registry, title) {
                        @Enabled(havePendingChanges) :: "Apply Changes"
                    ],
                    ChangesCommitted .. 
-                     @project(committed ->
-                              committed ? 
+                     @transform(committed ->
+                                committed ? 
                               @P('mho-services-ui__alert') :: 'Committed Changes will become effective when server is restarted!'
                              ),
                    registry.instances .. @ownPropertyPairs .. 
                      @filter([k,v] -> v.provisioning_data === undefined && v.admin) .. 
                      @map.par(makeConfigPanel)
                    /*,@ContentGenerator((append) ->
-                                     append(@Div(Config .. @project(@inspect)))) */
+                                     append(@Div(Config .. @transform(@inspect)))) */
                  ];
 
 

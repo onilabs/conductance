@@ -274,7 +274,7 @@ if (require.main === module) {
                 //console.warn(line.SYSLOG_IDENTIFIER, line.SYSLOG_PID);
                 line = line.MESSAGE;
                 if (Array.isArray(line)) {
-                  line = new Buffer(line).toString('utf-8');
+                  line = Buffer.from(line).toString('utf-8');
                 }
                 if (line .. @startsWith('__EXIT__')) {
                   rv = parseInt(line.split(' ')[1], 10);

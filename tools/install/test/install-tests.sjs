@@ -43,7 +43,7 @@ if (require.main === module) {
 		proxy.fake([
 			[conductanceUrl, conductanceHead],
 			[installScript, localInstallScript],
-			[manifest.manifest_url, new Buffer(manifestContents)],
+			[manifest.manifest_url, Buffer.from(manifestContents)],
 			[installArchive, bundle],
 		], -> hold());
 	}
@@ -82,7 +82,7 @@ hosts.systems .. each {|system|
 					proxy.fake([
 						[conductanceUrl, conductanceHead],
 						[installScript, localInstallScript],
-						[manifest.manifest_url, new Buffer(manifestContents)],
+						[manifest.manifest_url, Buffer.from(manifestContents)],
 						[installArchive, bundle],
 					], brk);
 				}
@@ -174,7 +174,7 @@ hosts.systems .. each {|system|
 
 			var withManifest = function(manifest, block) {
 				proxyStrata.value.fake([
-					[manifest.manifest_url, new Buffer(JSON.stringify(manifest))]
+					[manifest.manifest_url, Buffer.from(JSON.stringify(manifest))]
 				], block);
 			};
 
@@ -279,7 +279,7 @@ hosts.systems .. each {|system|
 				}
 
 				proxyStrata.value.fake([
-					[manifest.manifest_url, new Buffer(JSON.stringify(manifest))]
+					[manifest.manifest_url, Buffer.from(JSON.stringify(manifest))]
 				]) {||
 					var output = selfUpdate();
 					assert.ok(output .. str.contains('Updated. Restart conductance for the new version to take effect.'));
@@ -351,9 +351,9 @@ hosts.systems .. each {|system|
 						modifyTar(tmp2, 'share/self-update.js', data -> data.replace(/var FORMATS = .*/, 'var FORMATS = [' + secondUpdate.format + '];'));
 
 						proxyStrata.value.fake([
-							[manifest.manifest_url, new Buffer(JSON.stringify(firstUpdate))],
-							[firstUpdate.manifest_url, new Buffer(JSON.stringify(secondUpdate))],
-							[secondUpdate.manifest_url, new Buffer(JSON.stringify(thirdUpdate))],
+							[manifest.manifest_url, Buffer.from(JSON.stringify(firstUpdate))],
+							[firstUpdate.manifest_url, Buffer.from(JSON.stringify(secondUpdate))],
+							[secondUpdate.manifest_url, Buffer.from(JSON.stringify(thirdUpdate))],
 							[conductanceUrl(2), tmp],
 							[conductanceUrl(3), tmp2],
 							]) {||
@@ -434,7 +434,7 @@ hosts.systems .. each {|system|
 						mf.version++;
 					}
 					withManifest(manifest) {||
-						proxyStrata.value.fake([[fakeHref, new Buffer("hardly a tar")]]) {||
+						proxyStrata.value.fake([[fakeHref, Buffer.from("hardly a tar")]]) {||
 							assert.raises({filter: e -> e.output.match(/^ERROR: incorrect header check$/m)}, selfUpdate);
 						}
 					}
@@ -754,8 +754,8 @@ hosts.systems .. each {|system|
 				proxyStrata = cutil.breaking {|brk|
 					hostUtil.serveProxy() {|proxy|
 						proxy.fake([
-							[oldManifest.manifest_url, new Buffer(manifestContents)],
-							[newManifest.manifest_url, new Buffer(newManifestContents)],
+							[oldManifest.manifest_url, Buffer.from(manifestContents)],
+							[newManifest.manifest_url, Buffer.from(newManifestContents)],
 							[conductanceUrl, util.conductanceHead],
 						], brk);
 					}

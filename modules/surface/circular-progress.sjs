@@ -49,7 +49,7 @@ function CircularProgress(settings) {
   var circumference = Math.PI * 2 * radius;
   var path = "M 50,50 m 0,-#{radius} a #{radius},#{radius} 0 1 1 0,#{2*radius} a #{radius},#{radius} 0 1 1 0,-#{2*radius}";
 
-  var DynamicStyle = settings.Percentage .. @project(
+  var DynamicStyle = settings.Percentage .. @transform(
     percentage -> "stroke-dasharray: #{circumference}px #{circumference}px; stroke-dashoffset: #{(100-percentage)/100*circumference}px");
 
   return @Svg({viewBox:"0 0 100 100"}) .. CSS_CircularProgress :: [

@@ -151,7 +151,7 @@ if (require.main === module) {
 	//	username: "tim",
 	//	password: {
 	//		iterations: 100,
-	//		salt: new Buffer([0]),
+	//		salt: Buffer.from([0]),
 	//		keylen: 20,
 	//	}
 	//}).. console.log;
@@ -164,7 +164,7 @@ if (require.main === module) {
 	//}) .. @unpack .. @map.par(db.read) .. @each {|result|
 	//	result.data .. @assert.ok();
 	//	console.log(result);
-	//	console.log(new Buffer(result.data.password.salt));
+	//	console.log(Buffer.from(result.data.password.salt));
 	//}
 	//exports.get('user:#5629499534213120') .. console.log();
 

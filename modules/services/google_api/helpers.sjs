@@ -89,13 +89,13 @@ exports.performRequest = function(_request, parameters) {
 
       parts = parts .. @map(function([header, body]) {
         return Buffer.concat([
-          new Buffer('\r\n--'+boundary+'\r\n'),
-          new Buffer(header+'\r\n\r\n'),
-          body .. Buffer.isBuffer ? body : new Buffer(body)
+          Buffer.from('\r\n--'+boundary+'\r\n'),
+          Buffer.from(header+'\r\n\r\n'),
+          body .. Buffer.isBuffer ? body : Buffer.from(body)
         ]);
                              
       });
-      parts.push(new Buffer('\r\n--'+boundary+'--'));
+      parts.push(Buffer.from('\r\n--'+boundary+'--'));
 
       request_opts.body = Buffer.concat(parts);
     } else {

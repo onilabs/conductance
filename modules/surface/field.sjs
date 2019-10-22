@@ -439,7 +439,7 @@ exports.getField = getField;
                      @Input()
                    ],
                    
-                 @field.ValidationState() .. @project(@inspect)
+                 @field.ValidationState() .. @transform(@inspect)
                ]
        ",
          @field.Field() .. 
@@ -453,7 +453,7 @@ exports.getField = getField;
                      @Input()
                    ],
                    
-                   @field.ValidationState() .. @project(@inspect)
+                   @field.ValidationState() .. @transform(@inspect)
                ]
        );
        
@@ -717,7 +717,7 @@ exports.Field = Field;
                        ' Check this'
                      ],
 
-               @field.Value() .. @project(@inspect),
+               @field.Value() .. @transform(@inspect),
 
                @Button('Set to {foo:\'ABC\', bar:\'XYZ\', check:false, baz:\'123\'}') .. 
                  @OnClick(-> @field.Value().set(
@@ -751,7 +751,7 @@ exports.Field = Field;
                      ],
                @Br(),
 
-               @field.Value() .. @project(@inspect),
+               @field.Value() .. @transform(@inspect),
 
                @Br(),@Br(),
                @Button('Set to {foo:\'ABC\', bar:\'XYZ\', check:false, baz:\'123\'}') .. 
@@ -1029,7 +1029,7 @@ exports.FieldMap = FieldMap;
              @Button('Add new') .. 
                @OnClick(-> @field.Value().modify(x->x.concat(['new']))),
 
-             @field.Value() .. @project(@inspect)
+             @field.Value() .. @transform(@inspect)
            ]
        ",
        @field.Field({initval:['foo', 'bar', 'baz']}) ::
@@ -1037,7 +1037,7 @@ exports.FieldMap = FieldMap;
            [
              @Div() .. @field.FieldArray(template), @Br(),
              @Button('Add new') .. @OnClick(-> @field.Value().modify(x->x.concat(['new']))), @Br(), @Br(),
-             @field.Value() .. @project(@inspect)
+             @field.Value() .. @transform(@inspect)
            ]
        );
        
