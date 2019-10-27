@@ -429,7 +429,7 @@ __js ElementProto._init = func.seq(ElementProto._init, function(tag, content, at
     attribs .. @allPropertyPairs .. @each {
       |[key,val]|
       if (@isStream(val)) {
-        the_elem .. StreamAttribMechanism(key,val, { clone_element: false});
+        the_elem .. StreamAttribMechanism(key,val, true);
       }
       else {
         the_elem.attribs[key] = val;
@@ -985,6 +985,13 @@ __js {
      @summary Priority at which API-injecting mechanisms should be executed to ensure that they are available for streams and other mechanisms (100). See [::Mechanism]
    */
   var MECH_PRIORITY_API = exports.MECH_PRIORITY_API = 100;
+
+  /**
+     @variable MECH_PRIORITY_PROP
+     @summary Priority at which [::Prop] and [sjs:sequence::Observable]-based [::Attrib]s are executed. See [::Mechanism].
+  */
+  var MECH_PRIORITY_PROP = exports.MECH_PRIORITY_PROP = 250;
+
   /**
      @variable MECH_PRIORITY_STREAM
      @summary Priority at which streams are executed (500). See [::Mechanism]
@@ -1067,7 +1074,7 @@ __js function setAttribValue(element, name, v) {
   }
 }
 
-function StreamAttribMechanism(ft, name, obs, mechanism_settings) {
+function StreamAttribMechanism(ft, name, obs, prevent_element_clone) {
   return ft .. Mechanism(function(node) {
     obs .. each {
       |v|
@@ -1081,7 +1088,7 @@ function StreamAttribMechanism(ft, name, obs, mechanism_settings) {
         node.setAttribute(name, v);
       }
     }
-  }, mechanism_settings);
+  }, {clone_element: !prevent_element_clone, priority: MECH_PRIORITY_PROP});
 }
 
 /**
@@ -1108,6 +1115,10 @@ function StreamAttribMechanism(ft, name, obs, mechanism_settings) {
     If `value` is not boolean, then it will be cast to a string. This means that
     `Div() .. Attrib('foo', undefined)` yields `<div foo='undefined'></div>` and not
     `<div foo></div>` or `<div></div>` as one might expect. 
+
+    Streaming values will be set (and updated) after the element is inserted
+    in the DOM. The corresponding [::Mechanism] will be executed at 
+    [::MECH_PRIORITY_PROP].
 
     See also [::Prop].
 */

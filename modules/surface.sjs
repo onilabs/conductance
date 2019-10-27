@@ -364,6 +364,9 @@ module.exports = require(modules);
 @variable MECH_PRIORITY_API
 @summary Priority at which API-injecting mechanisms should be executed to ensure that they are available for streams and other mechanisms (100). See [::Mechanism]
    
+@variable MECH_PRIORITY_PROP
+@summary Priority at which [::Prop] and [sjs:sequence::Observable]-based [::Attrib]s are executed. See [::Mechanism].
+  
 @variable MECH_PRIORITY_STREAM
 @summary Priority at which streams are executed (500). See [::Mechanism]
    
@@ -393,6 +396,10 @@ module.exports = require(modules);
   If `value` is not boolean, then it will be cast to a string. This means that
   `Div() .. Attrib('foo', undefined)` yields `<div foo='undefined'></div>` and not
   `<div foo></div>` or `<div></div>` as one might expect. 
+
+  Streaming values will be set (and updated) after the element is inserted
+  in the DOM. The corresponding [::Mechanism] will be executed at 
+  [::MECH_PRIORITY_PROP].
 
   See also [::Prop].
 
@@ -720,6 +727,7 @@ module.exports = require(modules);
 @desc
   Sets a javascript property
   on the element's DOM node once it is inserted into the document.
+  Executes at the priority [::MECH_PRIORITY_PROP].
 
   See also [::Attrib].
 

@@ -9353,6 +9353,9 @@
         "MECH_PRIORITY_NORMAL": {
           "type": "variable"
         },
+        "MECH_PRIORITY_PROP": {
+          "type": "variable"
+        },
         "MECH_PRIORITY_STREAM": {
           "type": "variable"
         },

@@ -22,7 +22,7 @@
 @ = require([
   'sjs:std'
 ]);
-var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator, MECH_PRIORITY_STREAM } = require('./base');
+var { ensureElement, Mechanism, collapseHtmlFragment, Class, Attrib, ContentGenerator, MECH_PRIORITY_STREAM, MECH_PRIORITY_PROP } = require('./base');
 var { withDOMContext } = require('./nodes');
 var { ownPropertyPairs, ownKeys, merge } = require('sjs:object');
 var { isStream, Stream, toArray, map, filter, each, reverse, concat, first, take, indexed, takeWhile, transform } = require('sjs:sequence');
@@ -581,13 +581,15 @@ exports.removeNode = removeNode;
   @desc
     Sets a javascript property
     on the element's DOM node once it is inserted into the document.
+    Executes at the priority [::MECH_PRIORITY_PROP].
 
     See also [::Attrib].
 */
 function Prop(html, name, value) {
   return html .. Mechanism(function(node) {
       node[name] = value;
-  });
+  },
+                          {priority: MECH_PRIORITY_PROP});
 }
 exports.Prop = Prop;
 

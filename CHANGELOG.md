@@ -56,6 +56,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * Added new function `sjs:sequence::takeUntil`.
+
    * New 'structured stream' functionality has been added to the `sjs:sequence` 
      library. Structured streams are streams where the individual elements are
      encoded in some way to make their transmission and/or processing more 
@@ -85,6 +87,14 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * Bug fixes / Behavioral changes:
+
+   * `mho:surface::Prop` and observable-based `mho:surface::Attrib` now execute
+     at a higher priority 'MECH_PRIORITY_PROP' to ensure that DOM properties
+     and attributes can be referenced from enclosing 'normal'-level Mechanisms.
+     
+
+   * `sjs:string::padRight` and `sjs:string::padLeft` are now deprecated - use builtin
+     alternatives `String.padEnd` and `String.padRight`.
 
    * Deprecated `node::Buffer` constructor usage has been replaced with appropriate
      alternatives (Buffer.from/Buffer.alloc) throughout.
