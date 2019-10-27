@@ -988,7 +988,7 @@ __js {
 
   /**
      @variable MECH_PRIORITY_PROP
-     @summary Priority at which [::Prop] and [sjs:sequence::Observable]-based [::Attrib]s are executed. See [::Mechanism].
+     @summary Priority at which [::Prop] and [sjs:observable::Observable]-based [::Attrib]s are executed. See [::Mechanism].
   */
   var MECH_PRIORITY_PROP = exports.MECH_PRIORITY_PROP = 250;
 
