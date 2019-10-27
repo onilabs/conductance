@@ -365,7 +365,7 @@ module.exports = require(modules);
 @summary Priority at which API-injecting mechanisms should be executed to ensure that they are available for streams and other mechanisms (100). See [::Mechanism]
    
 @variable MECH_PRIORITY_PROP
-@summary Priority at which [::Prop] and [sjs:sequence::Observable]-based [::Attrib]s are executed. See [::Mechanism].
+@summary Priority at which [::Prop] and [sjs:observable::Observable]-based [::Attrib]s are executed. See [::Mechanism].
   
 @variable MECH_PRIORITY_STREAM
 @summary Priority at which streams are executed (500). See [::Mechanism]
