@@ -77,6 +77,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Added a function `sjs:sequence::withOpenStream` which allows successive partial
      iterations of a stream without iterating manually using `sjs:sequence::consume`.
 
+   * Added a function `sjs:sequence::monitor.start` which executes a function once
+     every time before a sequence is being iterated.
+
    * The concept of 'material sequences' (= sequences that are not streams) has 
      been introduced. Documented under `sjs:sequence::MaterialSequence`.
 
