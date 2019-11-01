@@ -105,7 +105,7 @@ function withWebSocketClient(url, block) {
     }
     or {
       socket .. @wait('close');
-      throw new Error("websocket to ${url} closed");
+      throw new Error("websocket to '#{url}' closed");
     }
     or {
       socket .. @wait('open');
