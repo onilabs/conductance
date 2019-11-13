@@ -91,10 +91,13 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `mho:server/route::SystemRoutes` will now be served with an 'X-Robots-Tag:noindex' header
+     to prevent search engines from indexing anything under the conductance system routes 
+     (/__sjs/, /__mho/, /__aat_bridge/, /__keyhole/ and /__oauthcallback/).
+
    * `mho:surface::Prop` and observable-based `mho:surface::Attrib` now execute
      at a higher priority 'MECH_PRIORITY_PROP' to ensure that DOM properties
      and attributes can be referenced from enclosing 'normal'-level Mechanisms.
-     
 
    * `sjs:string::padRight` and `sjs:string::padLeft` are now deprecated - use builtin
      alternatives `String.padEnd` and `String.padRight`.

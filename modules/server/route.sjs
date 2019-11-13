@@ -447,7 +447,8 @@ exports.RoutedDirectory = -> require('./routed-directory').RoutedDirectory.apply
     SystemRoutes is composed of [::SystemCodeRoutes], [::SystemBridgeRoutes], and [::SystemAuxRoutes]
 */
 function SystemRoutes() {
-  return exports.SystemCodeRoutes().concat(exports.SystemBridgeRoutes()).concat(exports.SystemAuxRoutes());
+  return [exports.SystemCodeRoutes().concat(exports.SystemBridgeRoutes()).concat(exports.SystemAuxRoutes())] ..
+    exports.SetHeaders({"X-Robots-Tag": "noindex"});
 }
 exports.SystemRoutes = SystemRoutes;
 
