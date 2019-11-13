@@ -26,7 +26,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
      appropriate:
      - `dereference`: `@transform(p->obj[p])`
      - `project`: `@transform`
-     - `projectInner`: `@transform.map` if inner values are arrays, nested `@transform` 
+     - `projectInner`: `@transform$map` if inner values are arrays, nested `@transform` 
         otherwise.
 
    * The introduction of structured streams means that not all streams can be 
@@ -68,7 +68,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
      * `sjs:sequence::isStructuredStream`
      * `sjs:sequence::batch`
      * `sjs:sequence::rollingWindow`
-     * `sjs:sequence::transform.map`
+     * `sjs:sequence::transform$map`
      * `sjs:sequence::monitor.raw`
      * `sjs:observable::sample`
      * `sjs:observable::ObservableWindowVar`
