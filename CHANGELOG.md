@@ -123,7 +123,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
       In future, a new version of `ObservableArrayVar` is planned (and it will live in the 
       `sjs:observable` module).
 
-   * `sjs:sequence::transform` will now keep any batched stream structure.
+   * `sjs:sequence::transform` and `sjs:sequence::filter` will now keep any batched stream structure.
 
    * The `sjs:projection` module (functions `sjs:projection::projectInner`,
      `sjs:projection::project` and `sjs:projection::dereference`) has been removed.
