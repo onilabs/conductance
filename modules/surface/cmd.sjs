@@ -311,7 +311,7 @@ exports.Active = Active;
 /**
    @function stream
    @summary Listen for emitted commands under the given DOM node(s)
-   @return {sjs:sequence::Stream}
+   @return {sjs:sequence::Stream} Sequence of `[cmd,param]` elements
    @param {optional DOMNode|Array} [dom_root] DOM node or array thereof (overrides use of [mho:surface::DynamicDOMContext])
    @param {optional Array} [commands] Array of commands to listen for (default: listen for all commands).
 */

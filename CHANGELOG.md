@@ -172,6 +172,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
      function (i.e. something like: `require('./mylib.js')`) or by being included
      in the HTML code (e.g. via `sjs:xbrowser/dom::script`).
 
+   * `mho:surface/widgets::dialog`: The height of the 'small' and 'large' layouts are now 
+     constrained to the page height (plus an appropriate margin). Overflowing content will
+     be hidden. Use 'height:100%;overflow:scroll' on content as appropriate.
+   
 
 ## Version 0.8.1:
 

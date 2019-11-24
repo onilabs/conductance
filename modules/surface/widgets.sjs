@@ -716,23 +716,32 @@ var DialogCSS = @CSS([
     }
 
     .mho-dialog {
-      position:relative;
+      display:flex;
       background-color: var(--mho-theme-background, #fff);
       ${@style_helpers.Elevation(24)}
       border-radius: 2px;
-      overflow:auto;
+      overflow:hidden;
+    }
+
+    .mho-dialog > div {
+      display: flex;
+      flex:1;
+      overflow:hidden;
+      flex-direction: column;
     }
 
     .mho-dialog--type_small {
       width: ${SMALL_DIALOG_WIDTH}px;
       margin: ${SMALL_DIALOG_MARGIN_TOP}px auto;
-      min-height: ${SMALL_DIALOG_MIN_HEIGHT}px;      
+      min-height: ${SMALL_DIALOG_MIN_HEIGHT}px;
+      max-height: calc(100vh - ${SMALL_DIALOG_MARGIN_TOP*2}px)!important;
     }
 
     .mho-dialog--type_large {
       width: ${LARGE_DIALOG_WIDTH}px;
       margin: ${LARGE_DIALOG_MARGIN_TOP}px auto;
       min-height: ${LARGE_DIALOG_MIN_HEIGHT}px;      
+      max-height: calc(100vh - ${LARGE_DIALOG_MARGIN_TOP*2}px)!important;
     }
 
     .mho-dialog--type_page {
@@ -742,6 +751,8 @@ var DialogCSS = @CSS([
     }
 
     .mho-dialog__content {
+      flex: 1;
+      height: 100%;
       margin: 24px 24px 8px 24px;
     }
 
