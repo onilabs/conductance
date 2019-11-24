@@ -221,35 +221,39 @@ exports.popover = popover;
 
 //----------------------------------------------------------------------
 
-var DropdownMenu_CSS = @CSS('
-  {
-    box-shadow:
-      0px 0px 2px 0px rgba(0,0,0,0.15),
-      0px 6px 7px 0px rgba(0,0,0,0.15);
-    border-radius: 3px;
-    padding: 5px 0;
-    margin: 0;
-    background-color: #fff;
-    list-style-type: none;
-    min-width: 170px;
-    overflow: hidden;
-  }
-  & > li  {
-    display: block;
-    text-decoration: none;
-    color: #445;
-    padding: 3px 20px;
-    cursor: pointer;
-  }
+var DropdownMenu_CSS = @CSS([
+  { prepend: true},
+  '
+  @global {
+    .mho-dropdown {
+      box-shadow:
+        0px 0px 2px 0px rgba(0,0,0,0.15),
+        0px 6px 7px 0px rgba(0,0,0,0.15);
+      border-radius: 3px;
+      padding: 5px 0;
+      margin: 0;
+      background-color: #fff;
+      list-style-type: none;
+      min-width: 170px;
+      overflow: hidden;
+    }
+    .mho-dropdown > li  {
+      display: block;
+      text-decoration: none;
+      color: #445;
+      padding: 3px 20px;
+      cursor: pointer;
+    }
 
-  & > li:hover {
-    background: #fafafa;
-  }
+    .mho-dropdown > li:hover {
+      background: #fafafa;
+    }
 
-  & > li.selected {
-    background: #f0f0f0;
+    .mho-dropdown > li.selected {
+      background: #f0f0f0;
+    }
   }
-');
+']);
 
 function waitforClosingClick(elem) {
   waitfor {
@@ -296,6 +300,7 @@ function waitforClosingClick(elem) {
    @setting {Integer} [left=0] Left position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
    @setting {Integer} [bottom=undefined] Bottom position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
    @setting {Integer} [right=undefined] Right position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
+   @setting {mho:surface::CSS} [css] CSS overrides
    @return {Object} 
    @desc
      Members of `items` can either be [surface::HtmlFragment] content or objects
@@ -313,6 +318,15 @@ function waitforClosingClick(elem) {
 
      If neither `left` nor `right` are specified the dropdown will be horizontally aligned to the
      edge closest to the viewport border.
+
+     ### CSS Customization
+
+         // (use '&.mho-dropdown' when applying as `css` parameter to `doDropdown`; 
+         //  '.mho-dropdown' otherwise):
+
+         .mho-dropdown
+         .mho-dropdown > li
+
 
    @demo
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, 'mho:surface/widgets']);
@@ -364,7 +378,8 @@ function doDropdown(/* anchor, items, [settings] */) {
   var settings = {
     items: undefined,
     keyboard: false,
-    focus: false
+    focus: false,
+    css: undefined
   };
   
   anchor = arguments[0];
@@ -381,6 +396,12 @@ function doDropdown(/* anchor, items, [settings] */) {
   }
   else
     throw new Error("Unexpected number of arguments");
+
+  var css;
+  if (settings.css)
+    css = x -> x .. DropdownMenu_CSS .. settings.css;
+  else
+    css = DropdownMenu_CSS;
 
   if (!@isStream(settings.items)) {
     settings.items = @constantObservable(settings.items);
@@ -447,7 +468,7 @@ function doDropdown(/* anchor, items, [settings] */) {
   });
 
   anchor .. popover(
-    NakedUl .. DropdownMenu_CSS ::
+    NakedUl({'class':'mho-dropdown'}) .. css ::
       DropdownContent,
     settings
   ) {

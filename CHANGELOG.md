@@ -88,6 +88,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
      Also, spread syntax is not yet supported. Full rest/spread support is scheduled
      for a future release.
 
+   * `mho:surface/widgets::doDropdown` now exposes hooks for CSS customizations.
+
 
  * Bug fixes / Behavioral changes:
 
