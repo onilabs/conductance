@@ -295,17 +295,26 @@ exports.observeQuery = observeQuery;
      and can be used with all the [./kv::] API functions ([::get],
      [::set], etc).
 
-     The transaction will be committed when `block` exits normally
-     (and aborted when e.g. code within `block` throws an Error).
+     During the execution of `block`, withTransaction will check if there are
+     any conflicts: If any of the keys read or written to within the
+     transaction are being concurrently modified from outside of the 
+     transaction, `block` will be aborted and called again; indefinitely until no
+     conflicts are detected. 
 
-     On committing, the transaction ascertains if there are any
-     conflicts: If any of the keys read or written to within the
-     transaction have been concurrently modified from outside of the
-     transaction, `block` will be called again; indefinitely until no
-     conflicts are detected. Then all mutations performed in `block`
+     Transactions will be aborted, and `withTransaction` will return immediately, 
+     if `block` throws an exception or (if block is
+     a blocklambda) exits via a blocklambda return or blocklambda break.
+
+     When `block` exits normally (i.e. not
+     by throwing an exception, via a blocklambda return or blocklambda break),
+     `withTransaction` will again check for conflicts while obtaining a global
+     lock on the db. If a conflict is detected, `block` will be rerun. Otherwise
+     all mutations performed in `block`
      will be applied to the underlying database and `withTransaction`
-     returns. This guarantees that after a `withTransaction` call
-     returns, all reads and writes have been performed atomically,
+     returns.
+
+     After a completed successful `withTransaction` call
+     returns, all reads and writes will have been performed atomically,
      consistently, in isolation and durably.
 
      Transactions can be nested. The transaction will be committed
