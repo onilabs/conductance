@@ -96,6 +96,7 @@ function test_transaction(db) {
   set(v2) .. @assert.eq(returnVal);
   db .. @kv.get(key) .. @assert.eq(v2);
 
+  // this should abort the transaction, since we're exiting via a blocklambda return
   function setAbort(v) {
     db .. @kv.withTransaction {|db|
       db .. @kv.set(key, v);
@@ -116,6 +117,103 @@ function test_transaction(db) {
       });
     });
   });
+}
+
+
+
+/*
+  NOTE: This function is a candidate for inclusion in the kv interface, if we find that it is useful.
+  We could expand the normal `query` api by passing to `tx_query` when `range` is a function.
+  
+*/
+function tx_query(db, range_f) {
+  return @Stream(function(r) {
+
+    var ctx;
+
+    db .. @kv.withTransaction(function(tx) {
+      if (ctx) {
+        // the transaction has failed and we're being called again.
+        // clean up the old open stream:
+        ctx.resume();
+        //console.log("CTX RESUMED");
+        ctx = undefined;
+      }
+      var range = range_f(tx);
+      //console.log('got range:', range .. @inspect);
+
+      // use 'breaking' to get the open stream out of the transaction:
+      ctx = @breaking { |brk|
+        @withOpenStream(db .. @kv.query(range)) { |stream| brk(stream); }
+      };
+    });
+
+    // if we end up here, we have a transactional open stream:
+    waitfor {
+      // iterate the stream:
+      ctx.value .. @each(r);
+    }
+    or {
+      // wait for external abortion:
+      ctx.wait();
+    }
+    finally {
+      // let the context die:
+      ctx.resume();
+    }
+      
+  });
+}
+
+function test_transactional_query(db) {
+  // test a query that is snapshotted to a particular consistent view of the db, not just
+  // a snapshot at the time.
+
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+
+  @integers(1) .. @take(12) .. @each { |x| db .. @kv.set(x, x); }
+  db .. @kv.set('start', 1); db .. @kv.set('end', 20);
+
+  var transaction_pass = 0;
+
+  var Q = db .. tx_query(function(tx) {
+    ++transaction_pass;
+    
+    var start = tx .. @kv.get('start');
+    var end = tx .. @kv.get('end');
+    
+    if (transaction_pass == 1) {
+      // mimick an outside modification:
+      // note that we're using 'db' here, and not 'tx':
+      db .. @kv.set('end', 25);
+      hold(100); // transaction will be retried here
+    }
+    else if (transaction_pass == 2) {
+      db .. @kv.set('end', 11);
+      // no `hold(0)`... tx will be retried after this function returns and after actual query in
+      // tx_query has already been initialized (it will be closed, though, and a new one started).
+    }
+    
+    return {begin:start, end:end};
+  });
+  
+  Q .. @withOpenStream { |q|
+    
+    q .. @first .. @assert.eq([[1],1]);
+
+    // some more 'outside' modifications, to check that these don't affect our stable 
+    // snapshot:
+    db .. @kv.set('start', 28);
+    db .. @kv.set('end', 30);
+    @integers(1) .. @take(10) .. @each { |x| db .. @kv.set(x, x+42); }
+    
+    // now test that we get what we expect:
+    q .. @toArray .. @assert.eq(@integers(2) .. @take(9) .. @map(x->[[x],x]));
+    q .. @toArray .. @assert.eq([]);
+  }
+
+  @assert.eq(transaction_pass, 3);
+
 }
 
 function test_range_query(db) {
@@ -499,6 +597,7 @@ function test_encryption() {
 function test_all(new_db) {
   @test("withTransaction") { |s| s.db .. test_transaction }
   @test("equal")           { |s| s.db .. test_equal(new_db(s)) }
+  @test("transactionalquery") { |s| s.db .. test_transactional_query }
 
   // For all these tests, we run them both inside & outside
   // of a transaction block

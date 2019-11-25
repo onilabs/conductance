@@ -175,6 +175,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `mho:surface/widgets::dialog`: The height of the 'small' and 'large' layouts are now 
      constrained to the page height (plus an appropriate margin). Overflowing content will
      be hidden. Use 'height:100%;overflow:scroll' on content as appropriate.
+
+   * `mho:flux/kv::withTransaction`: Leakage of global symbol 'conflict' has been fixed.
+
+   * `mho:flux/kv::withTransaction`: The internal logic has been rearranged to fix a pathological
+     edge case where synchronous modifications to an underlying in-memory db initiated from within a 
+     transaction would not correctly trigger the transaction to be rerun. 
    
 
 ## Version 0.8.1:

@@ -229,19 +229,6 @@ function wrapDB(base) {
       // retry transactions until they succeed:
       while (true) {
         waitfor {
-          var rv = block(T);
-          __js var ops = pendingPuts .. @ownValues .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value});
-          MutationMutex.acquire();
-          collapse;
-          try {
-            base.batch(ops);
-            return rv;
-          }
-          finally {
-            MutationMutex.release();
-          }
-        }
-        or {
           // We are stricter than required here. All we need to
           // guarantee is that *multiple* reads/writes are consistent
           // with each other. But commonly a transaction would be used
@@ -261,10 +248,22 @@ function wrapDB(base) {
           }
           // there is a conflict -> retry 
         }
+        or {
+          var rv = block(T);
+          __js var ops = pendingPuts .. @ownValues .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value});
+          MutationMutex.acquire();
+          collapse;
+          try {
+            base.batch(ops);
+            return rv;
+          }
+          finally {
+            MutationMutex.release();
+          }
+        }
         // go round loop and retry:
         pendingPuts = {};
         reads = {};
-        conflict = false;
         console.log("conductance/modules/flux/kv/wrap.sjs: RETRY TRANSACTION");
       } /* while(true) */
     }
