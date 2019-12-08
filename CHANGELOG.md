@@ -181,7 +181,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `mho:flux/kv::withTransaction`: The internal logic has been rearranged to fix a pathological
      edge case where synchronous modifications to an underlying in-memory db initiated from within a 
      transaction would not correctly trigger the transaction to be rerun. 
-   
+
+   * A race condition in the https service has been fixed. Previously conductance would sometimes not 
+     update its https certificates immediately when first obtained from letsencrypt, and instead continue
+     to use the initial dummy localhost certificates.
+    
 
 ## Version 0.8.1:
 

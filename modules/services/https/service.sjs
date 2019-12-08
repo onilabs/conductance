@@ -155,9 +155,9 @@ function run_with_certbot(config, block) {
           key: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.key"),
           cert: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.crt"),
         });
-        do { 
+        while (!@fs.exists(cert_dir)) { 
           @fs.watch(cert_root) .. @wait();
-        } while (!@fs.exists(cert_dir));
+        }
         hold(2000);
       }
 
