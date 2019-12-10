@@ -150,23 +150,38 @@ function run_with_certbot(config, block) {
   var credentials = @Stream(function(r) {
     while (1) {
 
+      if (!@fs.exists(cert_dir + '/privkey.pem')) {
+        // give letsencrypt a little bit of time to install certificates before we default to dummy certs:
+        console.log("HTTPS service: Waiting 5s for letsencrypt");
+        hold(5000);
+      }
+
       if (!@fs.exists(cert_dir)) {
+        console.log("HTTPS service: Using dummy certificates");
         r({
           key: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.key"),
           cert: @fs.readFile("#{@env.conductanceRoot}ssl/insecure-localhost.crt"),
         });
-        while (!@fs.exists(cert_dir)) { 
+        waitfor {
           @fs.watch(cert_root) .. @wait();
         }
+        or {
+          if (!@fs.exists(cert_dir)) {
+            console.log("HTTPS service: Waiting on letsencrypt certs");
+              hold();
+          }
+        }
+        // wait a few seconds, to make sure all files are updated:
         hold(2000);
       }
 
+      console.log("HTTPS service: Using letsencrypt-supplied certificates");
       r({
         key:  @fs.readFile(cert_dir + '/privkey.pem').toString(),
         cert: @fs.readFile(cert_dir + '/fullchain.pem').toString()
       });
       @fs.watch(cert_dir) .. @wait();
-      console.log('Https service: certificate change detected');
+      console.log('HTTPS service: certificate change detected');
       // wait a few seconds, to make sure all files are updated:
       hold(2000);
     }
