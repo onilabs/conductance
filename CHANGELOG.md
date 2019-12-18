@@ -49,6 +49,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
      `project` or `projectInner` on an Observable will not automatically call
      `dedupe` on the resultant.
 
+
  * General
 
    * Various performance improvements
@@ -85,13 +86,26 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * SJS now has support for rest parameter syntax (`...args`), with the limitation that 
      rest parameters cannot (yet) appear in destructuring patterns.
-     Also, spread syntax is not yet supported. Full rest/spread support is scheduled
-     for a future release.
+     Also, spread syntax is only supported within `__js` blocks. Full rest/spread support 
+     is scheduled for a future release.
 
    * `mho:surface/widgets::doDropdown` now exposes hooks for CSS customizations.
 
+   * `require.hubs`: The hubs resolution process now also works with
+     regular expressions instead of just prefix matches. For details see the documentation for
+     `sjs:#language/builtins::require.hubs`.
+
 
  * Bug fixes / Behavioral changes:
+
+   * Compatibility and performance of traditional (`new Foo()`-style) constructors have 
+     been improved. Previously the VM had some fragile logic that caused run-time errors with
+     some constructors from certain external JS libraries.
+
+   * `sjs:url::parse`: A bug has been fixed that would parse URLs with '@' characters in an 
+     incorrect way (interpreting too much of the URL as the 'authority' part).
+     A ripple effect of this bug was that conductance would not properly serve URLs such as
+     'localhost:8000/__node_modules/@mylib/foo'.
 
    * `mho:server/route::SystemRoutes` will now be served with an 'X-Robots-Tag:noindex' header
      to prevent search engines from indexing anything under the conductance system routes 
