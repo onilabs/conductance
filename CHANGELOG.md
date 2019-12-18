@@ -53,6 +53,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
  * General
 
    * Various performance improvements
+   * The docker image is now based on node:10.15-stretch-slim, making it around 700MB
+     smaller (245MB vs 965MB).
 
 
  * New functionality
