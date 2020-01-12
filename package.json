@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "google-oauth-jwt": "0.0.7",
-    "leveldown": "^3.0.2",
+    "leveldown": "^5.4.1",
     "nodemon": "^1.19.1",
     "ssh2": "^0.8.4",
     "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#f37257711e66de7f5e56c3bdda2c145811be6507",

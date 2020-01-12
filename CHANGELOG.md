@@ -53,6 +53,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
  * General
 
    * Various performance improvements
+   * leveldb dependency is updated to version 5.4.1.
    * The docker image is now based on node:10.15-stretch-slim, making it around 700MB
      smaller (245MB vs 965MB).
 
