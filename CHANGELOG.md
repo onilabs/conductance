@@ -54,8 +54,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * Various performance improvements
    * leveldb dependency is updated to version 5.4.1.
-   * The docker image is now based on node:10.15-stretch-slim, making it around 700MB
-     smaller (245MB vs 965MB).
+   * nodejs dependency is updated to version 10.18.0.
+   * container OS dependency is updated from Debian Stretch to Debian Buster.
+   * The docker image is now based on node:10.18.0-buster-slim, making it around 700MB
+     smaller (~250MB vs ~950MB).
 
 
  * New functionality
