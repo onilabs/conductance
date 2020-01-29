@@ -204,7 +204,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * A race condition in the https service has been fixed. Previously conductance would sometimes not 
      update its https certificates immediately when first obtained from letsencrypt, and instead continue
      to use the initial dummy localhost certificates.
-    
+
+   * The obsolete `mho:systemd` module has been removed.
+
+   * The obsolete datadog integration (conductance/tools/monitoring) has been removed.
+
 
 ## Version 0.8.1:
 

@@ -65,9 +65,6 @@
           "children": {
             "exports.serve": {
               "type": "function"
-            },
-            "exports.systemd": {
-              "type": "variable"
             }
           },
           "summary": "Documentation for the .mho file format"
@@ -445,55 +442,6 @@
             }
           },
           "summary": "Internal support for serving routed frontend directories"
-        },
-        "systemd": {
-          "type": "module",
-          "children": {
-            "ConductanceArgs": {
-              "type": "variable"
-            },
-            "Group": {
-              "type": "class",
-              "children": {
-                "Group": {
-                  "type": "ctor"
-                }
-              }
-            },
-            "Service": {
-              "type": "class",
-              "children": {
-                "Service": {
-                  "type": "ctor"
-                }
-              }
-            },
-            "Socket": {
-              "type": "class",
-              "children": {
-                "Socket": {
-                  "type": "ctor"
-                }
-              }
-            },
-            "Timer": {
-              "type": "class",
-              "children": {
-                "Timer": {
-                  "type": "ctor"
-                }
-              }
-            },
-            "Unit": {
-              "type": "class",
-              "children": {
-                "Unit": {
-                  "type": "ctor"
-                }
-              }
-            }
-          },
-          "summary": "Utilities for defining systemd units"
         }
       },
       "summary": "Conductance server modules"

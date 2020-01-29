@@ -244,14 +244,6 @@ var actions = [
     fn: exports.printVersion,
   },
   {
-    name: 'systemd',
-    args: '<command> ...',
-    desc: 'Conductance systemd integration',
-    fn: function(args) {
-      require('./systemd')._run(args);
-    }
-  },
-  {
     name: 'init',
     args: '<template>',
     desc: 'Initialize a new Conductance project in the current directory',

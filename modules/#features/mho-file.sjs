@@ -37,18 +37,4 @@
 
   Typically, your `serve` function will call [server::run],
   which runs a conductance HTTP server until it is cancelled.
-
-@variable exports.systemd
-@summary sytemd configuration for your application
-@desc
-  `exports.systemd` may be a [server/systemd::Group] object, or a function which (when
-  invoked with no arguments) returns a [server/systemd::Group] object.
-
-  The various subcommands of `conductance systemd` will use this object
-  to determine the systemd name of your application its the units, etc.
-
-  If you use systemd to install multiple applications on the same machine,
-  each of their `systemd` export objects should be a group with a unique group
-  name. If you use the same group name for multiple .mho files, they will be
-  treated as a single application by the `conductance systemd` commands.
 */
