@@ -735,9 +735,10 @@ exports.OnClick = OnClick;
      is inserted into the DOM (directly or indirectly via a parent of the ContentGenerator 
      being inserted into the DOM).
 
-     The `append` parameter is a function that `generator` can use to insert content into the DOM. 
+     The `append` parameter is a function that `generator` can use to insert content into the DOM. Its signature is `append(dom_node, [block])`, and it functions similar to [::appendContent], but appending a DOM node instead of a [::HtmlFragment].
+
      `node` is the (comment) node that anchors the ContentGenerator in the DOM and next to which the 
-     generated content will be inserted. `append` returns an array of inserted DOM nodes.
+     generated content will be inserted. 
 
      The generator function will be executed at priority [::MECH_PRIORITY_STREAM].
 */
