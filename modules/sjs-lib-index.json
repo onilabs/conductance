@@ -88,6 +88,9 @@
     "env": {
       "type": "module",
       "children": {
+        "clearCached": {
+          "type": "function"
+        },
         "compilerStamp": {
           "type": "function"
         },
@@ -106,8 +109,29 @@
         "executable": {
           "type": "variable"
         },
+        "factory": {
+          "type": "function"
+        },
+        "get": {
+          "type": "function"
+        },
+        "has": {
+          "type": "function"
+        },
+        "hasCached": {
+          "type": "function"
+        },
+        "lazy": {
+          "type": "function"
+        },
+        "set": {
+          "type": "function"
+        },
         "sjsRoot": {
           "type": "variable"
+        },
+        "value": {
+          "type": "function"
         }
       },
       "summary": "Application environment"

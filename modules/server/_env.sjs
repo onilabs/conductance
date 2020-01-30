@@ -21,7 +21,6 @@ var sys = require("sjs:sys");
 var path = require("nodejs:path");
 var url = require("sjs:url");
 var { stat, readFile } = require('sjs:nodejs/fs');
-var { Registry } = require('sjs:service');
 var { ownPropertyPairs } = require("sjs:object");
 var { each } = require("sjs:sequence");
 
@@ -33,25 +32,27 @@ var conductanceVersion = packageInfo.version;
 
 var sjsVersionStamp = (new Date(stat(require.resolve('sjs:../stratified-node.js').path .. url.toPath(7)).mtime)).getTime();
 
-var e = module.exports = Registry();
-var predefined = {
-  executable         : path.join(conductanceRoot, 'conductance'),
-  conductanceRoot    : conductanceRoot,
-  sjsRoot            : sjsRoot,
-  conductanceVersion : -> conductanceVersion,
-  compilerStamp      : -> sjsVersionStamp,
-  configPath         : -> e.get('config', {}).path, // TODO: remove?
-  configRoot         : function() { var p = e.configPath(); return p ? url.normalize('./', p); }, // TODO: remove?
-};
+exports.fillEnv = function(e) {
 
-predefined .. ownPropertyPairs .. each {|[key, val]|
-  if (e[val]) throw new Error("Duplicate: #{key}");
-  e[key] = val;
-  if (typeof(val) === 'function') {
-    e.factory(key, val);
-  } else {
-    e.value(key, val);
+  var predefined = {
+    executable         : path.join(conductanceRoot, 'conductance'),
+    conductanceRoot    : conductanceRoot,
+    sjsRoot            : sjsRoot,
+    conductanceVersion : -> conductanceVersion,
+    compilerStamp      : -> sjsVersionStamp,
+    configPath         : -> e.get('config', {}).path, // TODO: remove?
+    configRoot         : function() { var p = e.configPath(); return p ? url.normalize('./', p); }, // TODO: remove?
+  };
+  
+  predefined .. ownPropertyPairs .. each {|[key, val]|
+    if (e[val]) throw new Error("Duplicate: #{key}");
+    e[key] = val;
+    if (typeof(val) === 'function') {
+      e.factory(key, val);
+    } else {
+      e.value(key, val);
+    }
   }
-}
-// 'config' is set from ./_config.sjs
-e.config = -> e.get('config', undefined);
+  // 'config' is set from ./_config.sjs
+  e.config = -> e.get('config', undefined);
+};

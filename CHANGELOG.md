@@ -2,7 +2,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.9.1:
 
+ * Bug fixes / Behavioral changes:
 
+   * `sjs:services::Registry` has been removed. The registry functionality needed for `mho:env` is now
+     implemented and documented directly in that module.
 
 	
 ## Version 0.9.0:

@@ -21,7 +21,7 @@ var { each, find } = require('sjs:sequence');
 var fs = require('sjs:nodejs/fs');
 var logging = require('sjs:logging');
 var _config = require('./_config');
-var env = require('./env');
+var env = require('../env');
 
 
 __js var banner = "

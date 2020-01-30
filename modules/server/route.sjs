@@ -18,7 +18,7 @@
     on configuring and running the Conductance web server.
 */
 
-var { conductanceRoot, sjsRoot } = require('./env');
+var { conductanceRoot, sjsRoot } = require('../env');
 var { setStatus, setHeader, writeRedirectResponse, writeErrorResponse, isHttpError, HttpError, ServerError } = require('./response');
 var { flatten } = require('sjs:array');
 var { isString, sanitize, endsWith, rstrip } = require('sjs:string');

@@ -13,7 +13,7 @@
 var url = require('sjs:url');
 var pathMod = require('nodejs:path');
 var fs = require('sjs:nodejs/fs');
-var env = require('./env');
+var env = require('../env');
 var logging = require('sjs:logging');
 var url = require('sjs:url');
 

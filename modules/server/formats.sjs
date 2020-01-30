@@ -16,7 +16,7 @@
 
 @ = require([
   'sjs:std', 
-  {id:'./env', name: 'env'},
+  {id:'../env', name: 'env'},
   {id:'./generator', include: ['CachedBundle']},
   {id:'sjs:lru-cache', name:'lruCache'},
   {id:'./routed-directory', name: 'routed_directory'}
