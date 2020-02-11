@@ -2,12 +2,41 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.9.1:
 
+ * New functionality
+
+   * Added a new function `sjs:cutil::withSpawnScope` for executing strata within the 
+     bounds of a scoping block.
+
+   * Introduced the concept of 'functions-as-services'. 
+     See documentation under `sjs:service::Service`.
+
+   * Added a new function `sjs:service::withServiceScope` for detaching the lifetime of services
+     from their 'use' scope.
+
+   * Added a new function `sjs:service::isServiceOutOfScopeError`.
+
+
  * Bug fixes / Behavioral changes:
 
-   * `sjs:services::Registry` has been removed. The registry functionality needed for `mho:env` is now
-     implemented and documented directly in that module.
+   * `sjs:services::Registry` has been removed. The registry functionality needed for `mho:env` 
+     is now implemented and documented directly in that module.
 
+   * `sjs:sequence::each.par` has been rewritten for more predictable
+     behavior when fed with a non-blocking stream: The previous 
+     recursive implementation would yield control back (with a `hold(0)`) after every 10th 
+     input stream item. I.e. iteration of the input stream would block at every 10th iteration.
+     The new implementation fixes this pathologic behavior. Now non-blocking
+     input streams will be consumed in a temporally contiguous manner (up to any potential 
+     concurrency limit set on the each.par call).
+     Code that depends on the pathological behavior might break with the new implementation.
+     E.g. `@integers() .. @each.par { |x| hold(0); if(x===10) break; }` will now start 
+     parallel strata without yielding control until all memory is exhausted. This is the
+     expected behavior (for more discussion see the documentation for `each.par`).
 	
+   * `sjs:cutil::waitforAll` and `sjs:cutil::waitforFirst` have been deprecated. 
+     `sjs:sequence::each.par` can be used instead.
+
+
 ## Version 0.9.0:
 
  This version introduces some big architectural changes to SJS's 

@@ -42,6 +42,7 @@
   @require sjs:regexp
   @require sjs:url
   @require sjs:observable
+  @require sjs:service
 */
 
 var hostenv = require('builtin:apollo-sys').hostenv;
@@ -64,7 +65,8 @@ var modules = [
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
-  'sjs:observable'
+  'sjs:observable',
+  'sjs:service'
 ];
 
 if (hostenv === 'nodejs') {
@@ -255,6 +257,7 @@ module.exports = require(modules);
    - **StratumAborted**: (variable [sjs:cutil::StratumAborted])
    - **waitforAll**: (function [sjs:cutil::waitforAll])
    - **waitforFirst**: (function [sjs:cutil::waitforFirst])
+   - **withSpawnScope**: (function [sjs:cutil::withSpawnScope])
   
   
   ### Symbols from the [sjs:debug](#sjs%3Adebug) module:
@@ -420,6 +423,12 @@ module.exports = require(modules);
    - **withOpenStream**: (function [sjs:sequence::withOpenStream])
    - **zip**: (function [sjs:sequence::zip])
    - **zipLongest**: (function [sjs:sequence::zipLongest])
+  
+  
+  ### Symbols from the [sjs:service](#sjs%3Aservice) module:
+  
+   - **isServiceUnavailableError**: (function [sjs:service::isServiceUnavailableError])
+   - **withServiceScope**: (function [sjs:service::withServiceScope])
   
   
   ### Symbols from the [sjs:set](#sjs%3Aset) module:
