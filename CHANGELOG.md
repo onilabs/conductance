@@ -36,6 +36,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `sjs:cutil::waitforAll` and `sjs:cutil::waitforFirst` have been deprecated. 
      `sjs:sequence::each.par` can be used instead.
 
+   * Cyclic `Stratum::abort` calls can now be resolved across strata. Also, abort cycles are
+     now resolved within the same stratum processing slice. Previously other strata might
+     have gotten a chance to run before an abort cycle was resolved. 
+     See 'synchronous reentrant stratum abort' in the sjs-2-tests testsuite.
+ 
 
 ## Version 0.9.0:
 
