@@ -18,8 +18,19 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
-   * `sjs:services::Registry` has been removed. The registry functionality needed for `mho:env` 
-     is now implemented and documented directly in that module.
+   * Various unused (or very rarely used) modules and functions have been removed:
+     - `sjs:function::chain`
+     - `sjs:function::deferred`
+     - `sjs:function::trycatch`
+     - `sjs:crypto/store`
+     - `sjs:pool` (largely subsumed into `sjs:service`)
+     - `sjs:object::tap`
+     - `sjs:services::Registry` (largely subsumed into `mho:env`)
+
+   * Various rarely used functions have been moved into a new `sjs:legacy` module:
+     - `sjs:function::par` is now `sjs:legacy::fn.par`
+     - `sjs:function::tryfinally` is now `sjs:legacy::fn.tryfinally`
+     - `sjs:sequence::partition` is now `sjs:legacy::partition`
 
    * `sjs:sequence::each.par` has been rewritten for more predictable
      behavior when fed with a non-blocking stream: The previous 

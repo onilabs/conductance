@@ -6,6 +6,7 @@
  */
 
 @ = require('sjs:std');
+@legacy = require('sjs:legacy');
 @g = require('mho:server/googleapis');
 @ssh = require('mho:ssh-client');
 @logging.setLevel(@logging.DEBUG);
@@ -193,7 +194,7 @@ function setupGlobalResources(client) {
 		}];
 	};
 
-	var [toKeep, toDelete] = firewalls .. @partition(function(fw) {
+	var [toKeep, toDelete] = firewalls .. @legacy.partition(function(fw) {
 		var [id, rule] = essence(fw);
 		return networkSpec.rules[id] .. @eq(rule);
 	}) .. @map(@toArray);
