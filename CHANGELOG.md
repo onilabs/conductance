@@ -52,6 +52,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
      have gotten a chance to run before an abort cycle was resolved. 
      See 'synchronous reentrant stratum abort' in the sjs-2-tests testsuite.
  
+   * An edgecase has been fixed whereby certain synchronous reentrant aborts in waitfor-and or
+     waitfor-or clauses would not correctly abort hold(...) calls. See 'reentrant quench' in
+     the sjs-3-test testsuite.
+
 
 ## Version 0.9.0:
 
