@@ -1,5 +1,6 @@
 @ = require('sjs:test/std');
 @kv = require('mho:flux/kv');
+@withServiceScope = require('sjs:service').withServiceScope;
 
 // helper function to get all the keys/values from a db
 function all(db) {
@@ -129,39 +130,65 @@ function test_transaction(db) {
 function tx_query(db, range_f) {
   return @Stream(function(r) {
 
-    var ctx;
+    var OpenStream;
 
-    db .. @kv.withTransaction(function(tx) {
-      if (ctx) {
-        // the transaction has failed and we're being called again.
-        // clean up the old open stream:
-        ctx.resume();
-        //console.log("CTX RESUMED");
-        ctx = undefined;
+    @withServiceScope {
+      |service_scope|
+      db .. @kv.withTransaction(function(tx) {
+        if (OpenStream) {
+          // the transaction has failed and we're being called again.
+          // clean up the old open stream:
+          OpenStream.stop();
+        }
+        var range = range_f(tx);
+        OpenStream = service_scope.attach(@withOpenStream, db .. @kv.query(range));
+        // it is important that we USE the open stream here, instead of just initializing,
+        // to ensure that it is actually 'running':
+        OpenStream.use({||});
+      });
+      // if we end up here, we have a transactional open stream:
+      OpenStream.use {
+        |open_stream|
+        open_stream .. @each(r);
       }
-      var range = range_f(tx);
-      //console.log('got range:', range .. @inspect);
+    }
+  });
+}
 
-      // use 'breaking' to get the open stream out of the transaction:
-      ctx = @breaking { |brk|
-        @withOpenStream(db .. @kv.query(range)) { |stream| brk(stream); }
-      };
-    });
+function tx_query_tweaked(db, range_f) {
+  return @Stream(function(r) {
 
-    // if we end up here, we have a transactional open stream:
-    waitfor {
-      // iterate the stream:
-      ctx.value .. @each(r);
-    }
-    or {
-      // wait for external abortion:
-      ctx.wait();
-    }
-    finally {
-      // let the context die:
-      ctx.resume();
-    }
+    var OpenStream;
+
+    @withServiceScope {
+      |service_scope|
+      db .. @kv.withTransaction(function(tx) {
+        if (OpenStream) {
+          // the transaction has failed and we're being called again.
+          // clean up the old open stream:
+          OpenStream.stop();
+        }
+        var range = range_f(tx);
+        //console.log('got range:', range .. @inspect);
+        OpenStream = service_scope.attach(@withOpenStream, db .. @kv.query(range));
+        hold(10);
+        OpenStream.use({||});
+        hold(10);
+      });
+
+      // mimick some outside modifications here; these should not affect the open query:
+      db .. @kv.set('start', 10);
+      db .. @kv.set('end', 33);
+      @integers(1) .. @take(20) .. @each { |x| db .. @kv.set(x, x+55); }  
       
+      hold(100);
+      
+      // if we end up here, we have a transactional open stream:
+      OpenStream.use {
+        |open_stream|
+        open_stream .. @each(r);
+      }
+    }
   });
 }
 
@@ -176,37 +203,34 @@ function test_transactional_query(db) {
 
   var transaction_pass = 0;
 
-  var Q = db .. tx_query(function(tx) {
-    ++transaction_pass;
-    
-    var start = tx .. @kv.get('start');
-    var end = tx .. @kv.get('end');
-    
-    if (transaction_pass == 1) {
-      // mimick an outside modification:
-      // note that we're using 'db' here, and not 'tx':
-      db .. @kv.set('end', 25);
-      hold(100); // transaction will be retried here
-    }
-    else if (transaction_pass == 2) {
-      db .. @kv.set('end', 11);
-      // no `hold(0)`... tx will be retried after this function returns and after actual query in
-      // tx_query has already been initialized (it will be closed, though, and a new one started).
-    }
-    
-    return {begin:start, end:end};
+  var Q = db .. tx_query_tweaked(function(tx) {
+      ++transaction_pass;
+
+      var start = tx .. @kv.get('start');
+      var end = tx .. @kv.get('end');
+      
+      if (transaction_pass == 1) {
+        // mimick an outside modification:
+        // note that we're using 'db' here, and not 'tx':
+        db .. @kv.set('end', 25);
+        hold(100); // transaction will be retried here
+      }
+      else if (transaction_pass == 2) {
+        db .. @kv.set('end', 11);
+        // no `hold(0)`... tx will be retried after this function returns and after actual query in
+        // tx_query has already been initialized (it will be closed, though, and a new one started).
+      }
+      
+      return {begin:start, end:end};
   });
   
   Q .. @withOpenStream { |q|
-    
     q .. @first .. @assert.eq([[1],1]);
-
     // some more 'outside' modifications, to check that these don't affect our stable 
     // snapshot:
     db .. @kv.set('start', 28);
     db .. @kv.set('end', 30);
-    @integers(1) .. @take(10) .. @each { |x| db .. @kv.set(x, x+42); }
-    
+    @integers(1) .. @take(20) .. @each { |x| db .. @kv.set(x, x+42); }
     // now test that we get what we expect:
     q .. @toArray .. @assert.eq(@integers(2) .. @take(9) .. @map(x->[[x],x]));
     q .. @toArray .. @assert.eq([]);
