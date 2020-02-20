@@ -12,7 +12,7 @@
 /**
    @nodoc
  */
-@ = require('sjs:std');
+@ = require(['sjs:std','sjs:bytes']);
 
 __js {
   function bytesToString(x) {

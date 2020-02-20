@@ -56,6 +56,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
      waitfor-or clauses would not correctly abort hold(...) calls. See 'reentrant quench' in
      the sjs-3-test testsuite.
 
+   * `sjs:bytes::isBuffer` is now exported by `sjs:bytes` on platforms other than 'nodejs', too.
+     It will always return `false` on those platforms.
+
+   * A regression which broke most of the `mho:flux/kv` module functionality on the client-side 
+     has been fixed (missing import).
+
 
 ## Version 0.9.0:
 
