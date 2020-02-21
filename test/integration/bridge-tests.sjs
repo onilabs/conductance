@@ -5,8 +5,6 @@ var helper = @helper = require('../helper');
 var bridge = @bridge = require('mho:rpc/bridge');
 var { isTransportError } = bridge;
 var http = require('sjs:http');
-var { Emitter } = require('sjs:event');
-var { Condition, breaking } = require('sjs:cutil');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
 var { each, at, all, map, hasElem, indexed } = require('sjs:sequence');
@@ -349,52 +347,56 @@ context() {||
       var noTypedArraySupport = isPhantomJS;
       var noBlobSupport = typeof(Blob) === 'undefined';
       var api;
-      test.beforeAll {|s|
-        s.ctx = @breaking {|brk|
-          bridge.connect(apiUrl(), {server: helper.getRoot()}, brk)
+      @withServiceScope {
+        |service_scope|
+        var bridge_service; 
+        test.beforeAll {|s|
+          bridge_service = service_scope.attach(bridge.connect, apiUrl(), {server:helper.getRoot()});
+          bridge_service.use { |_api|
+            api = _api.api;
+          }
         }
-        api = s.ctx.value.api;
-      }
-      test.afterAll {|s| s.ctx.resume(); }
-      var payload = 'ßɩnɑʀʏ';
-
-      test('Buffer') {||
-        var buf = Buffer.from(payload);
-        var rv = api.identity(buf);
-        rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
-        rv .. @assert.eq(buf);
-      }.serverOnly()
-
-      test('Uint8Array') {||
-        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
-        var rv = api.identity(buf);
-        (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
-        rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
-        rv .. @assert.eq(buf);
-      }.skipIf(noTypedArraySupport)
-
-      test('ArrayBuffer ends up as Uint8Array') {||
-        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8)).buffer;
-        (buf instanceof ArrayBuffer) .. @assert.ok();
-        var rv = api.identity(buf);
-        (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
-        rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
-      }.skipIf(noTypedArraySupport)
-
-      test('Blob ends up in the platform\'s preferred format') {||
-        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
-        buf = new Blob([buf]);
-        (buf instanceof Blob) .. @assert.ok();
-        var rv = api.identity(buf);
-        if(@isBrowser) {
+        test.afterAll {|s| bridge_service.stop(true) }
+        var payload = 'ßɩnɑʀʏ';
+        
+        test('Buffer') {||
+          var buf = Buffer.from(payload);
+          var rv = api.identity(buf);
+          rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
+          rv .. @assert.eq(buf);
+        }.serverOnly()
+        
+        test('Uint8Array') {||
+          var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
+          var rv = api.identity(buf);
           (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
           rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
-        } else {
-          rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
-          rv .. @assert.eq(Buffer.from(payload));
-        }
-      }.skipIf(noBlobSupport || isPhantomJS /* PhantomJS Blob implementation is busted */)
-    }
+          rv .. @assert.eq(buf);
+        }.skipIf(noTypedArraySupport)
+        
+        test('ArrayBuffer ends up as Uint8Array') {||
+          var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8)).buffer;
+          (buf instanceof ArrayBuffer) .. @assert.ok();
+          var rv = api.identity(buf);
+          (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+          rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
+        }.skipIf(noTypedArraySupport)
+        
+        test('Blob ends up in the platform\'s preferred format') {||
+          var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
+          buf = new Blob([buf]);
+          (buf instanceof Blob) .. @assert.ok();
+          var rv = api.identity(buf);
+          if(@isBrowser) {
+            (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+            rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
+          } else {
+            rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
+            rv .. @assert.eq(Buffer.from(payload));
+          }
+        }.skipIf(noBlobSupport || isPhantomJS /* PhantomJS Blob implementation is busted */)
+      }
+    } // service_scope
   }
 
   context('returns_and_breaks') {||
@@ -1110,61 +1112,67 @@ context() {||
 }
 
 context("non-root locations") {||
-  test.beforeAll {|s|
-    var ready = Condition();
-    s.server = breaking {|brk|
-      waitfor {
-        require('./fixtures/bridge-proxy.mho').serve([], ready);
-        throw new Error("server ended prematurely");
-      } or {
-        s.ports = ready.wait();
-        brk();
+  @withServiceScope {
+    |service_scope|
+
+    test.beforeAll {|s|
+      s.server = service_scope.attach(function(scope) {
+        var ready = @Condition();
+        waitfor {
+          require('./fixtures/bridge-proxy.mho').serve([], ready);
+          throw new Error("server ended prematurely");
+        }
+        or {
+          s.ports = ready.wait();
+          scope();
+        }
+      });
+      s.server.start(true);
+    }
+    
+    test.afterAll {|s|
+      s.server.stop(true);
+    }
+    
+    var testResolve = function(dest, path, expectedRelative) {
+      return test(dest + path) {|s|
+        var port = s.ports[0];
+        var url = "http://localhost:#{port}#{dest}#{path}bridge.api";
+        logging.info("Resolving: #{url}");
+        var resolved = bridge.resolve(url);
+        resolved.server .. assert.eq("http://localhost:#{port}#{dest}");
+        
+        var expected = "http://localhost:#{port}#{dest}";
+        @url.normalize(resolved.root, url) .. @assert.eq(expected);
+        resolved.root .. assert.eq(expectedRelative);
       }
     }
-  }
-
-  test.afterAll {|s|
-    s.server.resume();
-  }
-
-  var testResolve = function(dest, path, expectedRelative) {
-    return test(dest + path) {|s|
-      var port = s.ports[0];
-      var url = "http://localhost:#{port}#{dest}#{path}bridge.api";
+    
+    context("proxied API maintains relative address") {||
+      testResolve('/proxy/', '', './');
+      testResolve('/proxy/', 'double/prefix/', '../../');
+      testResolve('/proxy/', 'nested/prefix/', '../../');
+      testResolve('/proxy/', 'nested-prefix-', './');
+      testResolve('/proxy/', 'nested-dir-prefix/', '../');
+      testResolve('/proxy/', 'parent/fixtures/', '../../');
+      
+      // non-canonical URLs are unlikely, but can probably happen:
+      testResolve('/proxy/', 'parent/fixtures/../fixtures/', '../../');
+      testResolve('/proxy/', 'parent//fixtures/../fixtures/', '../../');
+    }
+    
+    context("redirected API maintains relative address") {||
+      testResolve('/redirect/', 'double/prefix/', '../../');
+    }
+    
+    test("custom bridgeRoot") {|s|
+      var [proxyPort, canonicalPort] = s.ports;
+      var url = "http://localhost:#{proxyPort}/canonicalize/bridge.api";
       logging.info("Resolving: #{url}");
       var resolved = bridge.resolve(url);
-      resolved.server .. assert.eq("http://localhost:#{port}#{dest}");
-
-      var expected = "http://localhost:#{port}#{dest}";
-      @url.normalize(resolved.root, url) .. @assert.eq(expected);
-      resolved.root .. assert.eq(expectedRelative);
+      resolved.server .. assert.eq("http://example.com/rpc/");
     }
-  }
-
-  context("proxied API maintains relative address") {||
-    testResolve('/proxy/', '', './');
-    testResolve('/proxy/', 'double/prefix/', '../../');
-    testResolve('/proxy/', 'nested/prefix/', '../../');
-    testResolve('/proxy/', 'nested-prefix-', './');
-    testResolve('/proxy/', 'nested-dir-prefix/', '../');
-    testResolve('/proxy/', 'parent/fixtures/', '../../');
-    
-    // non-canonical URLs are unlikely, but can probably happen:
-    testResolve('/proxy/', 'parent/fixtures/../fixtures/', '../../');
-    testResolve('/proxy/', 'parent//fixtures/../fixtures/', '../../');
-  }
-
-  context("redirected API maintains relative address") {||
-    testResolve('/redirect/', 'double/prefix/', '../../');
-  }
-
-  test("custom bridgeRoot") {|s|
-    var [proxyPort, canonicalPort] = s.ports;
-    var url = "http://localhost:#{proxyPort}/canonicalize/bridge.api";
-    logging.info("Resolving: #{url}");
-    var resolved = bridge.resolve(url);
-    resolved.server .. assert.eq("http://example.com/rpc/");
-  }
+  } // service_scope
 }.serverOnly();
 
 context("garbage collection") {||

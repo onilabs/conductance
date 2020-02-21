@@ -17,6 +17,7 @@ var path = require('nodejs:path');
 var string = require('sjs:string');
 var assert = require('sjs:assert');
 var { map, hasElem, at, concat, toArray } = require('sjs:sequence');
+var withServiceScope = require('sjs:service').withServiceScope;
 var root = url.normalize('../', module.id) .. url.toPath;
 process.chdir(root);
 
@@ -190,32 +191,32 @@ if (require.main === module) {
     return exports.serve();
   } else {
     // serve while running tests
-    var cutil = require('sjs:cutil');
     var string = require('sjs:string');
     var func = require('sjs:function');
 
     // integration tests expect a server to be running
-    var serverRunning = false, cleanup = -> null;
-    var startServer = function() {
-      serverRunning = true;
-      var ctx = cutil.breaking(brk -> helper.serve(serverConfig, brk));
-      cleanup = ctx.resume;
-    };
+    withServiceScope {
+      |service_scope|
 
-    var init = function(runner) {
-      // inherit from runner.reporter, and amend its reporting
-      // functions with hooks to start/stop server as necessary
-      var reporter = runner.reporter = Object.create(runner.reporter);
-      reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
-        if (!serverRunning && ctx.module() .. string.startsWith('integration/')) {
-          startServer();
-        }
+      var server_process = service_scope.attach(helper.serve, serverConfig);
+
+
+      var init = function(runner) {
+        // inherit from runner.reporter, and amend its reporting
+        // functions with hooks to start/stop server as necessary
+        var reporter = runner.reporter = Object.create(runner.reporter);
+        reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
+          if (ctx.module() .. string.startsWith('integration/')) {
+            // synchronously start server, if not running yet:
+            server_process.start(true);
+          }
+        });
+      reporter.suiteEnd = func.seq(-> server_process.stop(), reporter.suiteEnd);
+      }
+
+      require('./run.html').run({
+        init: init,
       });
-      reporter.suiteEnd = func.seq(-> cleanup(), reporter.suiteEnd);
-    }
-
-    require('./run.html').run({
-      init: init,
-    });
+    } // service scope
   }
 }
