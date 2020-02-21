@@ -142,9 +142,9 @@ function tx_query(db, range_f) {
         }
         var range = range_f(tx);
         OpenStream = service_scope.attach(@withOpenStream, db .. @kv.query(range));
-        // it is important that we USE the open stream here, instead of just initializing,
-        // to ensure that it is actually 'running':
-        OpenStream.use({||});
+        // the 'sync' flag is important here, to ensure that the query has 
+        // actually started before we leave the transaction:
+        OpenStream.start(true);
       });
       // if we end up here, we have a transactional open stream:
       OpenStream.use {
