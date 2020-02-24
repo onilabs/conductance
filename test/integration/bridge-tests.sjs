@@ -347,11 +347,11 @@ context() {||
       var noTypedArraySupport = isPhantomJS;
       var noBlobSupport = typeof(Blob) === 'undefined';
       var api;
-      @withServiceScope {
-        |service_scope|
+      @withBackgroundServices {
+        |background_session|
         var bridge_service; 
         test.beforeAll {|s|
-          bridge_service = service_scope.attach(bridge.connect, apiUrl(), {server:helper.getRoot()});
+          bridge_service = background_session.attach(bridge.connect, apiUrl(), {server:helper.getRoot()});
           bridge_service.use { |_api|
             api = _api.api;
           }
@@ -396,7 +396,7 @@ context() {||
           }
         }.skipIf(noBlobSupport || isPhantomJS /* PhantomJS Blob implementation is busted */)
       }
-    } // service_scope
+    } // background_session
   }
 
   context('returns_and_breaks') {||
@@ -1112,11 +1112,11 @@ context() {||
 }
 
 context("non-root locations") {||
-  @withServiceScope {
-    |service_scope|
+  @withBackgroundServices {
+    |background_session|
 
     test.beforeAll {|s|
-      s.server = service_scope.attach(function(scope) {
+      s.server = background_session.attach(function(scope) {
         var ready = @Condition();
         waitfor {
           require('./fixtures/bridge-proxy.mho').serve([], ready);
@@ -1172,7 +1172,7 @@ context("non-root locations") {||
       var resolved = bridge.resolve(url);
       resolved.server .. assert.eq("http://example.com/rpc/");
     }
-  } // service_scope
+  } // background_session
 }.serverOnly();
 
 context("garbage collection") {||

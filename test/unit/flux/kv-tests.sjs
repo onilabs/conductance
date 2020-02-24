@@ -1,6 +1,6 @@
 @ = require('sjs:test/std');
 @kv = require('mho:flux/kv');
-@withServiceScope = require('sjs:service').withServiceScope;
+@withBackgroundServices = require('sjs:service').withBackgroundServices;
 
 // helper function to get all the keys/values from a db
 function all(db) {
@@ -132,8 +132,8 @@ function tx_query(db, range_f) {
 
     var OpenStream;
 
-    @withServiceScope {
-      |service_scope|
+    @withBackgroundServices {
+      |background_session|
       db .. @kv.withTransaction(function(tx) {
         if (OpenStream) {
           // the transaction has failed and we're being called again.
@@ -141,7 +141,7 @@ function tx_query(db, range_f) {
           OpenStream.stop();
         }
         var range = range_f(tx);
-        OpenStream = service_scope.attach(@withOpenStream, db .. @kv.query(range));
+        OpenStream = background_session.attach(@withOpenStream, db .. @kv.query(range));
         // the 'sync' flag is important here, to ensure that the query has 
         // actually started before we leave the transaction:
         OpenStream.start(true);
@@ -160,8 +160,8 @@ function tx_query_tweaked(db, range_f) {
 
     var OpenStream;
 
-    @withServiceScope {
-      |service_scope|
+    @withBackgroundServices {
+      |background_session|
       db .. @kv.withTransaction(function(tx) {
         if (OpenStream) {
           // the transaction has failed and we're being called again.
@@ -170,7 +170,7 @@ function tx_query_tweaked(db, range_f) {
         }
         var range = range_f(tx);
         //console.log('got range:', range .. @inspect);
-        OpenStream = service_scope.attach(@withOpenStream, db .. @kv.query(range));
+        OpenStream = background_session.attach(@withOpenStream, db .. @kv.query(range));
         hold(10);
         OpenStream.use({||});
         hold(10);

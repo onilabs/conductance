@@ -4,16 +4,15 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
-   * Added a new function `sjs:cutil::withSpawnScope` for executing strata within the 
-     bounds of a scoping block.
+   * Added a new function `sjs:cutil::withBackgroundStrata` for executing strata within the 
+     bounds of a session.
 
    * Introduced the concept of 'functions-as-services'. 
      See documentation under `sjs:service::Service`.
 
-   * Added a new function `sjs:service::withServiceScope` for detaching the lifetime of services
-     from their 'use' scope.
+   * Added a new function `sjs:service::withBackgroundServices` for running services in the background.
 
-   * Added a new function `sjs:service::isServiceOutOfScopeError`.
+   * Added a new function `sjs:service::isServiceUnavailableError`.
 
 
  * Bug fixes / Behavioral changes:

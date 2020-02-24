@@ -17,7 +17,7 @@ var path = require('nodejs:path');
 var string = require('sjs:string');
 var assert = require('sjs:assert');
 var { map, hasElem, at, concat, toArray } = require('sjs:sequence');
-var withServiceScope = require('sjs:service').withServiceScope;
+var withBackgroundServices = require('sjs:service').withBackgroundServices;
 var root = url.normalize('../', module.id) .. url.toPath;
 process.chdir(root);
 
@@ -195,10 +195,10 @@ if (require.main === module) {
     var func = require('sjs:function');
 
     // integration tests expect a server to be running
-    withServiceScope {
-      |service_scope|
+    withBackgroundServices {
+      |background_session|
 
-      var server_process = service_scope.attach(helper.serve, serverConfig);
+      var server_process = background_session.attach(helper.serve, serverConfig);
 
 
       var init = function(runner) {
@@ -217,6 +217,6 @@ if (require.main === module) {
       require('./run.html').run({
         init: init,
       });
-    } // service scope
+    } // background_session
   }
 }
