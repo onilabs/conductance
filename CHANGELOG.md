@@ -14,6 +14,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * Added a new function `sjs:service::isServiceUnavailableError`.
 
+   * Frontends served via the `mho:server/routed-directory::RoutedFrontendDirectory` feature will now see
+     a global symbol 'GLOBAL_SERVICE_SESSION' - see the documentation for 'RoutedFrontendDirectory' 
+     for more details.
+
 
  * Bug fixes / Behavioral changes:
 

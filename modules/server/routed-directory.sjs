@@ -63,6 +63,17 @@
      on the client-side. Going forward, only sources that have not yet been loaded 
      will be requested from the server.
 
+     #### Global symbols
+     
+     Routed frontend directories inject the following symbols into the frontend's global scope (i.e. onto the
+     'window' object):
+
+       * GLOBAL_SERVICE_SESSION: This is a background services session created with 
+         [sjs:service::withBackgroundServices] which stays open until the browser navigates 
+         away from the routed directory. Note that, because of limitations of the browser environment, 
+         services running attached to this session will NOT be cleanly shut down when the browser
+         navigates away.
+
      #### frontend-config.yaml
 
      When parsing a routed directory, Conductance will look at the top level for a file
@@ -327,13 +338,14 @@ exports.gen_routed_page = function(src, aux) {
           'sjs:std',
           {id: 'mho:surface/api-connection', name: 'api_connection'}
         ]);
-        var api = @breaking { |brk| 
-          @api_connection.withAPI({ id: '${mapping.config.api}' }, brk);
-        }
-      
-        api.value .. @ownPropertyPairs .. @each { |[key, val]|
-          exports[key] = val;
-        }
+        GLOBAL_SERVICE_SESSION.attach(@api_connection.withAPI,
+                                    {id: '${mapping.config.api}'}).use {
+                                      |api|
+                                      @ownPropertyPairs(api) .. @each {
+                                        |[key,val]|
+                                        exports[key] = val;
+                                      }
+                                    };
 
         `
     );
@@ -341,6 +353,16 @@ exports.gen_routed_page = function(src, aux) {
 
   var initCode = [
     mapping.config.main || mapping.config.init ? `require.hubs.push(['frontend-config.yaml:', '${yaml_url_root}']);`,
+    `
+    waitfor() {
+      spawn require('sjs:service').withBackgroundServices {
+        |background_session|
+        window.GLOBAL_SERVICE_SESSION = background_session;
+        resume();
+        hold();
+      }
+    }
+    `,
     mapping.config.init ? `require('frontend-config.yaml:__inline_init__');`,
     `
     @ = require(['mho:surface/navigation']);
