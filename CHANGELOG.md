@@ -65,6 +65,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * A regression which broke most of the `mho:flux/kv` module functionality on the client-side 
      has been fixed (missing import).
 
+   * `mho:surface::ContentGenerator`: Content appended during execution of the generator will now
+     be removed from the DOM when the ContentGenerator is removed from the DOM.
+
+
 
 ## Version 0.9.0:
 

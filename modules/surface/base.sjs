@@ -263,7 +263,17 @@ function GeneratedContent(generator) {
     var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
     var appendFunc = (content,block) -> anchor .. dyn.insertBefore(content,block);
 
-    generator(appendFunc, node);
+    try {
+      generator(appendFunc, node);
+      hold();
+    }
+    finally {
+      while (1) {
+        __js var removal_candidate = node.nextSibling;
+        if (!removal_candidate || removal_candidate === anchor) break;
+        dyn.removeNode(removal_candidate);
+      }
+    }
   }
 
   var ft = CollapsedFragment(), id = ++gMechanismCounter;
