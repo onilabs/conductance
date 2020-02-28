@@ -609,7 +609,7 @@ __js {
   @function ensureElement
   @param {::HtmlFragment} [html]
   @return {::Element}
-  @summary Return `html` unmodified if it is an [::Element]; resolve to [::Element] if it is an [::ElementConstructor]; otherwise return `html` wrapped in an [::Element] with tag name `<surface-ui>`.
+  @summary Return `html` unmodified if it is an [::Element]; resolve to [::Element] if it is an [::ElementConstructor]; otherwise return `html` wrapped in an [::Element] `<surface-ui style='display:contents;'>`.
 */
 __js {
   function ensureElement(ft) {
@@ -618,8 +618,8 @@ __js {
         ft = ft();
       }
       else {
-        console.log("Warning: wrapping #{ft} with a <surface-ui> element. In future this might throw");
-        ft = Element('surface-ui', ft);
+        console.log("Warning: wrapping #{ft} with a <surface-ui> element.");
+        ft = Element('surface-ui', ft, {style:'display:contents;'});
       }
     }
     return ft;

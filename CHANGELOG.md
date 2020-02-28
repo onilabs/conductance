@@ -68,7 +68,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `mho:surface::ContentGenerator`: Content appended during execution of the generator will now
      be removed from the DOM when the ContentGenerator is removed from the DOM.
 
-
+   * `mho:surface::ensureElement` now applies "display:contents;" styling to its
+     <surface-ui> element wrapper. For modern browsers, this should make wrapped content 
+     better behaved (e.g. display styling of wrapped content will feed through better).
+     
 
 ## Version 0.9.0:
 
