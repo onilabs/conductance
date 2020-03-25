@@ -76,6 +76,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
      <surface-ui> element wrapper. For modern browsers, this should make wrapped content 
      better behaved (e.g. display styling of wrapped content will feed through better).
      
+   * Fixed reporting of certain errors thrown by JS code that would previously log as 
+     'illegal invocations' (a regression probably introduced in 0.8.0).
+     
 
 ## Version 0.9.0:
 
