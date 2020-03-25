@@ -8,6 +8,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * `sjs:nodejs/http::withServer`: new 'upgradable' flag to switch on special-casing of 
+     requests with 'Upgrade' headers. `sjs:nodejs/http::ServerRequest` has new fields to
+     accomodate this case.
+
    * Added a new function `sjs:cutil::withBackgroundStrata` for executing strata within the 
      bounds of a session.
 
