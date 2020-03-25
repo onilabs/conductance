@@ -2,6 +2,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.9.1:
 
+ * General
+
+   * nodejs/container OS dependency is updated to node:12.16.1-buster-slim
+
  * New functionality
 
    * Added a new function `sjs:cutil::withBackgroundStrata` for executing strata within the 
