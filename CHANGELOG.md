@@ -8,6 +8,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * `mho:websocket::withWebSocketClient` (formerly in module `mho:websocket-client`): 
+     Now accepts various settings & throws exceptions that can be identified with
+     `mho:websocket::isWebSocketError`.
+
    * `sjs:nodejs/http::withServer`: new 'upgradable' flag to switch on special-casing of 
      requests with 'Upgrade' headers. `sjs:nodejs/http::ServerRequest` has new fields to
      accomodate this case.
@@ -86,6 +90,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Fixed reporting of certain errors thrown by JS code that would previously log as 
      'illegal invocations' (a regression probably introduced in 0.8.0).
      
+   * The `mho:websocket-client` module has been moved to `mho:websocket`.
+
 
 ## Version 0.9.0:
 
