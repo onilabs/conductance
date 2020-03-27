@@ -78,17 +78,23 @@ function AllowCORS(route, allow, settings) {
   }
   return route
     .. Filter(function(req, block) {
-      setAllow(req);
-      if (req.request.method === 'OPTIONS') {
-        // preflight requests should be preventable by giving POST
-        // requests a text/plain mime type
-        logging.verbose('Performance warning: preflight OPTIONS request.');
-        req.response.setHeader("Access-Control-Allow-Methods", allowedMethods),
-        req.response.setHeader("Access-Control-Allow-Headers", allowedHeaders),
-        req .. setStatus(200);
-        req.response.end();
-      } else {
+      if (req.upgrade) {
+        // nothing to be done for 'upgrade' requests
         block();
+      }
+      else {
+        setAllow(req);
+        if (req.request.method === 'OPTIONS') {
+          // preflight requests should be preventable by giving POST
+          // requests a text/plain mime type
+          logging.verbose('Performance warning: preflight OPTIONS request.');
+          req.response.setHeader("Access-Control-Allow-Methods", allowedMethods),
+          req.response.setHeader("Access-Control-Allow-Headers", allowedHeaders),
+          req .. setStatus(200);
+          req.response.end();
+        } else {
+          block();
+        }
       }
     });
 }
@@ -166,10 +172,15 @@ exports.ErrorFilter = function(responder, handler_function) {
     try {
       block();
     } catch(e) {
-      if (req.response.headersSent) {
+      if (req.upgrade) {
+        logging.warn("ErrorFilter:: Cannot generate error response for 'upgrade' requests");
+        throw e;
+      }
+      else if (req.response.headersSent) {
         logging.warn("Couldn't handle error response in ErrorFilter - headers already sent");
         throw e;
       }
+      // ... else
       var originalError = e;
       if (!isHttpError(e)) {
         e = ServerError(e.message);
@@ -515,6 +526,8 @@ exports.SystemAuxRoutes = SystemAuxRoutes;
   @summary Set multiple response headers
   @return {../server::Responder|Array} A copy of `responder` which sets the given headers for every request.
   @desc
+    Note: Headers will not be set for 'upgrade' requests (see "'UPGRADE' handler" section at [mho:server::Route]).
+
     ### Example:
     
         routes .. SetHeaders({
@@ -524,8 +537,10 @@ exports.SystemAuxRoutes = SystemAuxRoutes;
 */
 exports.SetHeaders = function(responder, headers) {
   return responder .. Filter(function(req, blk) {
-    headers .. ownPropertyPairs .. each { |[k,v]|
-      req.response.setHeader(k,v);
+    if (!req.upgrade) {
+      headers .. ownPropertyPairs .. each { |[k,v]|
+        req.response.setHeader(k,v);
+      }
     }
     blk();
   });
@@ -540,11 +555,14 @@ exports.SetHeaders = function(responder, headers) {
   @summary Set a single response header
   @return {../server::Responder|Array} A copy of `responder` which sets the given header for every request.
   @desc
+    Note: Header will not be set for 'upgrade' requests (see "'UPGRADE' handler" section at [mho:server::Route]).
+
     See also [::SetHeaders]
 */
 exports.SetHeader = function(responder, k, v) {
   return responder .. Filter(function(req, blk) {
-    req.response.setHeader(k,v);
+    if (!req.upgrade)
+      req.response.setHeader(k,v);
     blk();
   });
 };
@@ -576,6 +594,9 @@ exports.DeveloperMode = function(responder) {
         e = ServerError();
       } else {
         additional = e.description;
+      }
+      if (req.upgrade) {
+        logging.warn("DeveloperMode: Cannot send stacktrace response for 'upgrade' requests");
       }
       if (req.response.headersSent) {
         logging.warn("Couldn't send stacktrace response - headers already sent:\n#{additional || e}");

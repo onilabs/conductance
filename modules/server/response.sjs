@@ -71,7 +71,7 @@ exports.NotFound = (msg, desc) -> HttpError(404, msg || "File not found", desc);
   @param {optional String} [statusText]
   @param {optional String} [description]
   @return {::HttpError}
-  @summary Shotrcut for constructing a [::HttpError] with status code `500`.
+  @summary Shortcut for constructing a [::HttpError] with status code `500`.
 */
 exports.ServerError = (msg, desc) -> HttpError(500, msg || "Internal Server Error", desc);
 // TODO: add more of these

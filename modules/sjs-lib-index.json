@@ -487,6 +487,9 @@
             "Port": {
               "type": "ctor"
             },
+            "config": {
+              "type": "function"
+            },
             "getAddress": {
               "type": "function"
             },

@@ -175,8 +175,9 @@ exports.run = function(config, block) {
           |req|
           logging.verbose("#{req.request.method} #{req.url.path}");
 
-          // set standard headers:
-          req.response.setHeader("server", "Conductance/#{conductanceVersion}");
+          // set standard headers (but only on non-upgrade requests):
+          if (!req.upgrade)
+            req.response.setHeader("server", "Conductance/#{conductanceVersion}");
 
           // execute handler function:
           try {
@@ -186,7 +187,8 @@ exports.run = function(config, block) {
             route.handle(req, matchResult);
           }
           catch(e) {
-            if (isHttpError(e)) {
+            // XXX we only support error replies for non-upgrade requests atm
+            if (isHttpError(e) && !req.upgrade) {
               if(!req.response.finished) {
                 if(!req.response.headersSent) {
                   e.writeTo(req);
@@ -439,10 +441,19 @@ RouteProto._handleNested = function(req, pathMatches) {
 
 RouteProto._handleDirect = function(req, pathMatches) {
   // check if there's a handler function for the given method:
-  var handler = this.handlers[req.request.method] || this.handlers['*'];
+  var handler = req.upgrade ? this.handlers.UPGRADE : (this.handlers[req.request.method] || this.handlers['*']);
   if (!handler) {
-    req.response.setHeader('Allow', ownKeys(this.handlers) .. join(', '));
-    throw HttpError(405, 'Method not allowed');
+    if (!req.upgrade) {
+      req.response.setHeader('Allow', ownKeys(this.handlers) .. join(', '));
+      throw HttpError(405, 'Method not allowed');
+    }
+    else {
+      console.log("invalid upgrade request to #{req.url}; closing socket");
+      req.socket.write('HTTP/1.1 400 Bad Request\r\n\r\nUpgrade requests not supported to this URL\r\n');
+      req.socket.destroy();
+      req.socket = null;
+      return;
+    }
   }
   handler.call(this.handlers, req, pathMatches);
 };
@@ -482,7 +493,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
     path will be used to find the appropriate sub-route.
 
     If `handlers` is not an Array, it should be an object with a property for each
-    supported HTTP request type. The `"*"` property may be used to handle methods
+    supported HTTP request type (`GET`, `POST`, etc). The `"*"` property may be used to handle methods
     that aren't explicitly mentioned.
 
     Each property value of `handlers` should be a function which will be called with
@@ -490,6 +501,29 @@ RouteProto._handleDirect = function(req, pathMatches) {
     when `matcher` is a regular expression. If `matcher` is a string, then `match` is
     the match object you would get if `matcher` were `new RegExp(/^#{regexp.escape(matcher)}$/)`
     (i.e a RegExp matching the exact `matcher` string).
+
+    ##### 'UPGRADE' handler
+    
+    When a [::Port] has been configured (via [::Port::config]) with the `'upgradable'` flag,
+    requests that contain an 'Upgrade' header will be handled differently to 'normal' requests:
+
+    * Such 'Upgrade' requests will not trigger execution of `GET`, `POST`, `*` etc, handlers, 
+      even if the request method matches a configured handler. Instead, the server logic looks for a 
+      handler called `UPGRADE`.
+
+    * If no `UPGRADE` handler is found for an 'Upgrade' request, the server will reply with a 400 error.
+
+    * When a `UPGRADE` request handler throws a [server/response::HttpError], the server will not 
+      translate this exception into a corresponding html response (as it would for 'normal' request handlers).
+      A 500 error will be generated instead.
+
+    * The request object passed into the `UPGRADE` handler will be an 'upgrade' [sjs:nodejs/http::ServerRequest] 
+      object which contains some different fields than a 'normal' request (in particular the 'response' field is
+      missing, and there is a 'socket' field instead).
+
+    * Some filters, such as [./server/route::ErrorFilter], only operate on 'normal' requests.
+
+
 
     #### Example:
 
@@ -540,10 +574,11 @@ PortProto._init = function(port, address) {
 
 /**
  @function Port.ssl
- @param {Settings} [settings]
- @summary enable SSL with the given settings
+ @param {Object} [ssl_parameters]
+ @return {::Port}
+ @summary Enable SSL with the given ssl parameters
  @desc
-  Settings provided here are passed to the underlying [sjs:nodejs/http::withServer] method under the `ssl` key
+   * Parameters provided here are passed to the underlying [sjs:nodejs/http::withServer] method under the `ssl` key
  */
 PortProto.ssl = function(opts) {
   assert.is(this.sslConfig, null, "SSL already set");
@@ -556,6 +591,14 @@ PortProto.useOpenFileDescriptor = function(fd) {
   return this;
 };
 
+/**
+   @function Port.config
+   @param {Object} [settings]
+   @summary Configure settings of the given port
+   @return {::Port}
+   @desc
+     Settings provided here are passed to the underlying [sjs:nodejs/http::withServer] method.
+*/
 PortProto.config = function(conf) {
   this._config .. extend(conf);
   return this;
