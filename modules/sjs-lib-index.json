@@ -9436,6 +9436,17 @@
           "type": "class",
           "children": {}
         },
+        "WebSocketServer": {
+          "type": "class",
+          "children": {
+            "WebSocketServer": {
+              "type": "ctor"
+            },
+            "runWebSocketSession": {
+              "type": "function"
+            }
+          }
+        },
         "isWebSocketError": {
           "type": "function"
         },

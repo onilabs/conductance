@@ -54,7 +54,7 @@ __js {
    @class IWebSocketSession
    @summary [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) session interface
    @desc
-     Session interface as created by [::withWebSocketClient].
+     Session interface as created by [::withWebSocketClient] or [::WebSocketServer::runWebSocketSession]
 
    @function IWebSocketSession.receive
    @summary Returns an unbuffered and unmirrored [sjs:sequence::Stream] of received data
@@ -89,7 +89,7 @@ __js {
 
          @ = require([
            'mho:std',
-           'mho:websocket-client'
+           'mho:websocket'
          ]);
 
          @withWebSocketClient('wss:ws.kraken.com') {
@@ -185,3 +185,92 @@ function withWebSocketClient(settings, session_f) {
   }
 }
 exports.withWebSocketClient = withWebSocketClient;
+
+//----------------------------------------------------------------------
+
+if (@sys.hostenv === 'nodejs') {
+
+/**
+   @class WebSocketServer
+   @hostenv nodejs
+   @function WebSocketServer
+   @summary [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) server abstraction
+   @param {optional Object} [settings] Settings that will be passed to the underlying [https://github.com/websockets/ws] `WebSocket.Server` implementation. (Note: settings must be consistent with 'noServer' option)
+*/
+exports.WebSocketServer = function(config) {
+  config = {
+    noServer: true
+  } .. @merge(config);
+
+  var wss = new @WebSocket.Server(config);
+
+  return {
+    /**
+       @function WebSocketServer.runWebSocketSession
+       @altsyntax WebSocketServer.runWebSocketSession(req) { |itf| ... }
+       @summary Run a web socket session off a [sjs:nodejs/http::ServerRequest]
+       @param {sjs:nodejs/http::ServerRequest} [req] Initiating request; must be an 'upgrade' request
+       @param {Function} [session_func] Function which will be executed with a [::IWebSocketSession]
+       @desc
+         `runWebSocketSession` is intended to be called on 'upgrade' requests. These will only 
+         be created by a suitably configured web server. See **'Upgrade' handler** at [mho:server::Route] and **'upgradable' flag** at [sjs:nodejs/http::withServer].
+
+         ### Example
+
+             // config.mho:
+             @ = require(['mho:std','mho:websocket']);
+
+             var WSS = @WebSocketServer();
+
+             exports.serve = function() {
+               @server.run([
+                 {
+                   address: @Port(6060).config({upgradable:true}),
+                   routes: [
+                     @Route('some/path', {
+                              UPGRADE: function(req) {
+                                WSS.runWebSocketSession(req) {
+                                  |ws|
+                                  // use websocket ws here
+                                }
+                              }
+                            })
+                   ]
+                 }
+               ]);
+             };
+     */
+    runWebSocketSession: function(req, session_f) {
+      if (!req.upgrade)
+        throw new Error("WebSocketServer::runWebSocketSession needs to be run off an 'upgrade' request");
+      var { request, head, socket} = req;
+      // prevent server logic from cleaning up the socket:
+      // XXX maybe we should use a separate flag to indicate that requests have been handled;
+      // overloading 'req.socket' in this way could be problematic if we do anything fancy
+      // with requests before running sessions off them
+      req.socket = null;
+      try {
+        waitfor (var ws) {
+          waitfor {
+            socket .. @wait('close');
+            resume();
+          }
+          and {
+            wss.handleUpgrade(request, socket, head, resume);
+          }
+        }
+        if (ws)
+          withWebSocketClient({websocket:ws}, session_f);
+        else
+          throw WebSocketError("socket closed before connection established");
+      }
+      finally {
+        // just in case of retraction; all other cases should be covered:
+        if (!ws)
+          socket.destroy();
+      }
+    }
+  }
+};
+
+} // @sys.hostenv === 'nodejs'

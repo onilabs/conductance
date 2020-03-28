@@ -6,11 +6,16 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * nodejs/container OS dependency is updated to node:12.16.1-buster-slim
 
+
  * New functionality
 
-   * `mho:websocket::withWebSocketClient` (formerly in module `mho:websocket-client`): 
-     Now accepts various settings & throws exceptions that can be identified with
-     `mho:websocket::isWebSocketError`.
+   * Added `mho:websocket::WebSocketServer` for running websocket servers.
+
+   * `mho:websocket::withWebSocketClient` (formerly in module `mho:websocket-client`) now 
+     accepts various settings besides just the uri to connect to. 
+
+   * Added `mho:websocket::isWebSocketError` for identifying connection errors thrown
+     by websockets.
 
    * `sjs:nodejs/http::withServer`: new 'upgradable' flag to switch on special-casing of 
      requests with 'Upgrade' headers. `sjs:nodejs/http::ServerRequest` has new fields to
@@ -25,13 +30,14 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Introduced the concept of 'functions-as-services'. 
      See documentation under `sjs:service::Service`.
 
-   * Added a new function `sjs:service::withBackgroundServices` for running services in the background.
+   * Added a new function `sjs:service::withBackgroundServices` for running services in the 
+     background.
 
    * Added a new function `sjs:service::isServiceUnavailableError`.
 
-   * Frontends served via the `mho:server/routed-directory::RoutedFrontendDirectory` feature will now see
-     a global symbol 'GLOBAL_SERVICE_SESSION' - see the documentation for 'RoutedFrontendDirectory' 
-     for more details.
+   * Frontends served via the `mho:server/routed-directory::RoutedFrontendDirectory` feature will 
+     now see a global symbol 'GLOBAL_SERVICE_SESSION' - see the documentation for 
+     'RoutedFrontendDirectory' for more details.
 
 
  * Bug fixes / Behavioral changes:
