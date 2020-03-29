@@ -192,9 +192,9 @@ if (@sys.hostenv === 'nodejs') {
 
 /**
    @class WebSocketServer
+   @summary [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) server abstraction
    @hostenv nodejs
    @function WebSocketServer
-   @summary [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) server abstraction
    @param {optional Object} [settings] Settings that will be passed to the underlying [https://github.com/websockets/ws] `WebSocket.Server` implementation. (Note: settings must be consistent with 'noServer' option)
 */
 exports.WebSocketServer = function(config) {
