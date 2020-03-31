@@ -79,12 +79,11 @@
        remote versions of that object. If you have an object with properties that
        may change, you should expose them as methods (i.e `getFoo()` and `setFoo(newVal)`).
 
-     - abortion across the bridge is asynchronous
+     - abortion across the bridge is synchronous
 
-       Retracting a pending call does not wait for the abortion on the other end of the bridge
-       to return. For almost all sensible use cases of bridge communication this behavior is
-       desirable and leads to quicker and more robust code, but in pathological code it could
-       introduce race conditions.
+       Retracting a pending call waits for the abortion on the other end of the bridge
+       to return or the bridge connection to terminate/time out.
+
 
     ### Ordering guarantees
 
@@ -637,9 +636,15 @@ function BridgeConnection(transport, opts) {
             finally {
               delete pending_calls[call_no];
             }
-            if (__js abort_isException && !@isTransportError(abort_rv) && 
-                !isReceivedControlFlowException(abort_rv)) {
-              throw abort_rv;
+            if (__js abort_isException) {
+              if (isReceivedControlFlowException(abort_rv)) {
+                // retraction of the other side yielded a blk-lambda break/return. post it:
+                abort_rv.postLocally();
+                throw new Error('not reached');
+              }
+              else if (!@isTransportError(abort_rv)) {
+                throw abort_rv;
+              }
             }
           } 
           throw e;
@@ -991,8 +996,7 @@ function BridgeConnection(transport, opts) {
                     // abort or similar. this is either in response to an 'a' or 'p'
                     // message from the other side, or because we're aborted as part
                     // of bridge shutdown.
-                    // The acknowledgements to be sent out are handled elsewhere
-                    // (see `case 'A':`)
+                    rv = ['R', call_id, 'abort-ok'];
                   }
                 } // exception
                 else { // no exception
@@ -1000,10 +1004,11 @@ function BridgeConnection(transport, opts) {
                   // no need to return the rv to our side:
                   e = [undefined];
                 }
+                if (rv) {
+                  send(rv, true);
+                }
                 throw e;
               }
-              if (rv)
-                send(rv, true);
             })(call_rv[2], message[1])
         }
         else {
@@ -1020,7 +1025,6 @@ function BridgeConnection(transport, opts) {
         spawn (function(call_id) {
           try {
             executing_call.abort(message[0] === 'P');
-            send(['R', call_id, 'abort-ok']); // rv doesn't matter - just using this particular value for debugging
           }
           catch(e) {
             @logging.warn("Error while aborting active bridge call: #{e}");

@@ -1034,8 +1034,71 @@ context() {||
       assert.eq(rv, 'abcCfyd');
     }
 
+    //----------------------------------------------------------------------
+    test('blklambda break in abort-finally') {||
+      // This test used to hang
+      require(url).connect() { |api|
+        // have the other side call and abort f, but not return itself...
+        // only the 'break' will abort the outer call
+        api.callAbortHold { ||
+          try { 
+            hold();
+          }
+          finally {
+            // this `break` should bail out of the callAbortHold
+            break; 
+          }
+        }
+      }
+    }
 
+    test('blklambda return in abort-finally') {||
+      // This test used to hang
+      function foo() {
+        require(url).connect() { |api|
+          // have the other side call and abort f, but not return itself...
+          // only the 'break' will abort the outer call
+          api.callAbortHold { ||
+            try { 
+              hold();
+            }
+            finally {
+              // this `return` should bail out of the callAbortHold
+              return 'xxx'; 
+            }
+          }
+          return 'yyy';
+        }
+        return 'zzz';
+      }
+      assert.eq(foo(), 'xxx');
+    }
 
+    test('exception in abort-finally') {||
+      // This test used to hang
+      function foo() {
+        require(url).connect() { |api|
+          // have the other side call and abort f, but not return itself...
+          // only the 'break' will abort the outer call
+          api.callAbortHold { ||
+            try { 
+              hold();
+            }
+            finally {
+              // this exception should bail out of the callAbortHold
+              throw 'xxx';
+            }
+          }
+          return 'yyy';
+        }
+        return 'zzz';
+      }
+      var rv;
+      try { rv = foo() } catch(e) { 
+        rv = e;
+      }
+      assert.eq(rv, 'xxx');
+    }
   }
 
   context('api modules') {||

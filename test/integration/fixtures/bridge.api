@@ -153,3 +153,13 @@ exports.blocking_finally = function(finalizer, block) {
     finalizer();
   }
 };
+
+exports.callAbortHold = function(f) { 
+  waitfor {
+    f();
+  }
+  or {
+    hold(10);
+  }
+  hold();
+};

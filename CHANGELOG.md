@@ -98,6 +98,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
      
    * The `mho:websocket-client` module has been moved to `mho:websocket`.
 
+   * `mho:rpc/bridge`: Propagation of blocklambda breaks/returns and exceptions from
+     aborted finally clauses has been fixed. (See `test/integration/bridge-tests.sjs:abort-finally`)
+
+
 
 ## Version 0.9.0:
 
