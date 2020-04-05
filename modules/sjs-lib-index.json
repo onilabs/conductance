@@ -9424,6 +9424,15 @@
         "IWebSocketSession": {
           "type": "class",
           "children": {
+            "Pings": {
+              "type": "variable"
+            },
+            "Pongs": {
+              "type": "variable"
+            },
+            "ping": {
+              "type": "function"
+            },
             "receive": {
               "type": "function"
             },

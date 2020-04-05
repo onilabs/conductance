@@ -62,6 +62,18 @@ __js {
      The stream items will either be Strings or ArrayBuffers, depending on the sent item.
    @return {sjs:sequence::Stream}
 
+   @variable IWebSocketSession.Pings
+   @hostenv nodejs
+   @summary [sjs:sequence::Stream] of pings received by the websocket
+
+   @variable IWebSocketSession.Pongs
+   @hostenv nodejs
+   @summary [sjs:sequence::Stream] of pongs received by the websocket
+
+   @function IWebSocketSession.ping
+   @hostenv nodejs
+   @summary Send a ping
+
    @function IWebSocketSession.send
    @param {String|Buffer|ArrayBuffer} [data]
    @summary Send the given data
@@ -174,10 +186,18 @@ function withWebSocketClient(settings, session_f) {
       if (@sys.hostenv !== 'nodejs')
         receive_stream = receive_stream .. @transform(__js x->x.data);
 
-      session_f({
+      var itf = {
         receive: -> receive_stream,
         send: data -> socket.send(data)
-      });
+      };
+
+      if (@sys.hostenv === 'nodejs') {
+        itf.Pings = socket .. @events('ping');
+        itf.Pongs = socket .. @events('pong');
+        itf.ping = -> socket.ping();
+      }
+
+      session_f(itf);
     }
   }
   finally {

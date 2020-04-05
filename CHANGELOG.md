@@ -12,7 +12,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Added `mho:websocket::WebSocketServer` for running websocket servers.
 
    * `mho:websocket::withWebSocketClient` (formerly in module `mho:websocket-client`) now 
-     accepts various settings besides just the uri to connect to. 
+     accepts various settings besides just the target uri. The session interface has also been
+     expanded with functions/streams for sending/listening to pings (nodejs hostenv only).
 
    * Added `mho:websocket::isWebSocketError` for identifying connection errors thrown
      by websockets.
