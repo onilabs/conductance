@@ -10,7 +10,7 @@
  */
 
 /**
-   @module  server/rpc/aat-server
+   @module  rpc/aat-server
    @summary Asymmetric AJAX Transport Server
    @hostenv nodejs
    @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
@@ -273,7 +273,7 @@ function createTransport(finish) {
 
 /**
    @function createTransportHandler
-   @summary create an AAT transport handler for use by the Rocket server.
+   @summary create an AAT transport handler for use in a [server::Route].
    @param {Function} [transportSink] Function to pass  accepted [aat-client::Transport] objects to
 */
 function createTransportHandler(transportSink) {

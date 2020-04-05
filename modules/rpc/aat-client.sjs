@@ -10,7 +10,7 @@
  */
 
 /**
-   @module  server/rpc/aat-client
+   @module  rpc/aat-client
    @summary Asymmetric AJAX Transport Client v2 for modern browsers
    @desc    
      AAT is an efficient bi-directional message exchange protocol over HTTP
@@ -49,20 +49,22 @@ var MAX_CALL_BATCH = 200;
 
 /* 
   NB
-  Why we use two hold(0)'s in TemporalBatcher
+  Why we used to have two hold(0)'s in TemporalBatcher
 
   With one hold(0), only 'temporally adjacent' calls
   will batched into a single request, i.e. calls that don't have a
   hold(0) (or longer) in between them. 
 
-  Several library functions, such as each.par/transform.par, etc, have
+  Several library functions, such as each.par/transform.par, etc, used to have
   hold(0)'s built-in to limit recursion depth. We say they produce "hold(0)-adjacent results".
   In a call such as
 
     data .. @transform.par(50, datum -> server.foo(datum)) .. ...
 
-  there will be a built-in hold(0) for every 10's concurrent invocation of 
-  server.foo.
+  there used to be a built-in hold(0) for every 10's concurrent invocation of 
+  server.foo. 
+  The code for (most) of these functions has been rewritten for conductance 0.9.1, so we
+  don't need the double hold any longer.
 */
 function TemporalBatcher(flush) {
   var batch;
@@ -77,8 +79,8 @@ function TemporalBatcher(flush) {
           break;
       }
       or {
-        // see comment above on why there are two holds here
-        hold(0);
+        // see comment above on why there used to be two holds here
+        // hold(0);
         hold(0);
         break;
       }
