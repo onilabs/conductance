@@ -22,7 +22,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
      accomodate this case.
 
    * `mho:server::Route` accepts a new 'UPGRADE' handler for handling requests with 'Upgrade' 
-     handler.
+     handler. This functionality is enabled when the `mho:server::Port` containing the 
+     route is configured to special-case these types of requests, which by default it is.
 
    * Added a new function `sjs:cutil::withBackgroundStrata` for executing strata within the 
      bounds of a session.

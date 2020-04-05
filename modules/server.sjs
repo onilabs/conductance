@@ -504,7 +504,7 @@ RouteProto._handleDirect = function(req, pathMatches) {
 
     ##### 'UPGRADE' handler
     
-    When a [::Port] has been configured (via [::Port::config]) with the `'upgradable'` flag,
+    When a [::Port] has been configured as `'upgradable'` (the default, which can be changed via [::Port::config]),
     requests that contain an 'Upgrade' header will be handled differently to 'normal' requests:
 
     * Such 'Upgrade' requests will not trigger execution of `GET`, `POST`, `*` etc, handlers, 
@@ -555,6 +555,9 @@ exports.Route = Constructor(RouteProto);
 
     If `port` is not given, or is falsy, a random available port will be used.
 
+    By default, ports are configured to be 'upgradable' - see the "UPGRADE handler" section
+    in the [::Route] documentation for details. This default can be changed via [::Port::config].
+
   @variable Port.port
   @type Number
 */
@@ -563,6 +566,7 @@ var PortProto = {};
 PortProto.defaultConfig = {
   capacity: 100,
   max_connections: 1000,
+  upgradable: true
 };
 PortProto._init = function(port, address) {
   this.address = address || null;
