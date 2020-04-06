@@ -486,6 +486,16 @@ exports.SystemCodeRoutes = SystemCodeRoutes;
 function SystemBridgeRoutes() {
   return [
     Route(
+      /^__wst_bridge\/(1)$/,
+      require('mho:rpc/wst-server').createTransportHandler(
+        function(transport) {
+          require('mho:rpc/bridge').accept(
+            require('./api-registry').getAPIbyAPIID,
+            transport);
+        }
+      )
+    )
+/*    ,Route(
       /^__aat_bridge\/(2)$/,
       require('mho:rpc/aat-server').createTransportHandler(
         function(transport) {
@@ -495,6 +505,7 @@ function SystemBridgeRoutes() {
         }
       )
     )
+*/
   ];
 }
 exports.SystemBridgeRoutes = SystemBridgeRoutes;

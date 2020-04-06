@@ -9,6 +9,13 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * `mho:rpc/bridge`: Added a new websocket-based transport 
+     (rpc/wst-client.sjs & rpc/wst-server.sjs) which is now used by default by the 
+     conductance bridge. It is a drop-in replacement for the old asymmetric AJAX transport
+     (rpc/aat-client.sjs & rpc/aat-server.sjs). The main behavioral difference of the new 
+     transport is that it implements a more intelligent keepalive mechanism which notices 
+     certain disconnection scenarios (e.g. internet down) much quicker than the old transport.
+
    * Added `mho:websocket::WebSocketServer` for running websocket servers.
 
    * `mho:websocket::withWebSocketClient` (formerly in module `mho:websocket-client`) now 

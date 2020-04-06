@@ -44,7 +44,6 @@ var serverConfig = {
   routes: [
     /* So that .api modules can:
      *  - shutdown the current bridge transport
-     *  - send HTTP errors for the current polling request
      *
      * We override the default bridge routes, and inject
      * the relevant objects into each loaded API.
@@ -52,8 +51,8 @@ var serverConfig = {
     (function() {
       var currentApiModule;
       return Route(
-        /^__aat_bridge\/(2)$/,
-        require('mho:rpc/aat-server').createTransportHandler(
+        /^__wst_bridge\/(1)$/,
+        require('mho:rpc/wst-server').createTransportHandler(
           function(transport) {
             var connection = require('mho:rpc/bridge').accept(
               function(apiid) {
@@ -75,19 +74,7 @@ var serverConfig = {
               transport);
           }
         )
-      ) .. Filter(function(req, block) {
-        var cmd = req.url.params()['cmd'];
-        logging.info("config.mho filter saw command: #{cmd}");
-        if (!currentApiModule || cmd.indexOf("poll_") != 0) return block();
-        logging.info("config.mho filter setting currentApiModule._poll_request");
-        currentApiModule._poll_request = req;
-        try {
-          block();
-        } finally {
-          logging.info("config.mho filter clearing currentApiModule._poll_request");
-          if(currentApiModule) currentApiModule._poll_request = null;
-        }
-      });
+      );
     })(),
     SystemRoutes(),
 

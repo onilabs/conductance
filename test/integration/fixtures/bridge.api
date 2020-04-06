@@ -27,34 +27,12 @@ var transport = function() {
   return exports._transport;
 }
 
-var pollRequest = function() {
-  // _poll_request gets unset temporarily between polls - wait up to 1s
-  waitfor {
-    while(!exports._poll_request) {
-      hold(200);
-    }
-    return exports._poll_request;
-  } or {
-    hold(1000);
-    throw new Error("Test harness error: exports._poll_request not set by server config");
-  }
-}
-
 exports.destroyConnection = function(timeout) {
   var t = transport();
   spawn(function() {
     hold(timeout);
     logging.info("bridge.api: destroying connection");
     t.__finally__();
-  }());
-}
-
-exports.breakConnection = function(timeout) {
-  spawn(function() {
-    hold(timeout);
-    logging.info("bridge.api: breaking connection");
-    pollRequest() .. setStatus(500);
-    pollRequest().response.end("this request intentionally left broken");
   }());
 }
 
@@ -70,7 +48,7 @@ exports.withSharedVariable = function(block) {
 exports.sharedVariable = -> sharedVariable;
 exports.integers = integers;
 
-exports.ping = -> (console.log('server ping'),"pong");
+exports.ping = -> "pong";
 exports.hostenv = -> require('sjs:sys').hostenv;
 
 

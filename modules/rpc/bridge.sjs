@@ -12,7 +12,7 @@
 /**
   @module  server/rpc/bridge
   @summary API bridge: High-level API remoting
-  @require ./aat-client
+  @require ./wst-client
   @desc
     The RPC bridge is used for bidirectional communication between client
     and server.
@@ -132,6 +132,27 @@ Protocol:
 
   Marshalling: values are being serialized as JSON
   special objects get an __oni_bridge_type attribute
+
+*/
+
+/*
+BRIDGE-TRANSPORT INTERFACE
+==========================
+
+We have 2 low-level transports: aat (asymmetric AJAX), 
+which has now been superseded by wst (websocket). 
+Both implement the same interface:
+
+Errors:
+- TransportError
+- isTransportError
+
+Transport:
+- closed (bool flag)
+- send: function(json message)
+- sendData: function(json header, binary data)
+- __finally__: close transport
+- receive: function() -> {type:'message|data', data: json|binary, header: json(data only)}
 
 */
 
@@ -471,6 +492,9 @@ function unmarshallBlob(obj, connection) {
   var id = obj.id;
   var blob;
   while ((blob = connection.received_blobs[id]) === undefined) {
+
+    // XXX Now that we use wst-transport, we can review this logic:
+
     // data received by aat-server will always arrive before it is
     // being referenced (because we send it as a request and wait for
     // the response before sending the referencing call. data received
@@ -758,9 +782,12 @@ function BridgeConnection(transport, opts) {
             receiveMessage(data.msg);
           }
           else if (data.seq !== expected_msg_seq) {
+
+            // XXX wst-transport guarantees ordering, so we shouldn't hit this anymore:
+
             msg_reorder_buffer[data.seq] = data.msg;
             ++queued_msg_count;
-//            console.log("QUEUED MESSAGE FOR REORDERING (expect=#{expected_msg_seq} found=#{data.seq}");
+            console.log("QUEUED MESSAGE FOR REORDERING (expect=#{expected_msg_seq} found=#{data.seq}");
             if (queued_msg_count > MAX_MSG_REORDER_BUFFER)
               throw @TransportError("Message reorder buffer exhausted"); 
           }
@@ -1160,7 +1187,7 @@ exports.connect = function(apiinfo, opts, block) {
   waitfor {
     if (!transport) {
       var server = opts.server || apiinfo.server;
-      transport = require('./aat-client').openTransport(server);
+      transport = require('./wst-client').openTransport(server);
     }
     var marshallers = defaultMarshallers.concat(opts.localWrappers || []);
     var connection = BridgeConnection(transport, opts .. @merge({

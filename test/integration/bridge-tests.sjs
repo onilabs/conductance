@@ -61,7 +61,7 @@ context('bridge error handling') {||
     };
   }
 
-  var destroyMethods = ['destroyConnection', 'breakConnection'];
+  var destroyMethods = ['destroyConnection'/*, 'breakConnection'*/];
   destroyMethods .. each {|method|
     var destroy = function(api, log) {
       api[method](50);
@@ -87,23 +87,11 @@ context('bridge error handling') {||
               s.push("not reached");
             }
             catch(e) {
-              // Only 'destroyConnection' hits this catch, because it errors
-              // before 'api[method]()' returns.
-              // This error is generated during retraction, so we *also* hit 
-              // the 'retract' path.
-//              assert.eq(method, 'destroyConnection');
-              s.push('1');
-              // should be retacted by virtue of block exiting
-              s.push("not reached");
+              s.push('not reached');
               throw e;
             }
             retract {
-//              if(method === 'breakConnection') {
-                // breakConnection doesn't hit the catch, because it errors in
-                // the hold(500)
-                s.push('1');
-//              }
-//              s.push('2');
+              s.push('1');
             }
           }
         };
@@ -1269,11 +1257,11 @@ context("garbage collection") {||
   @test("connections are dropped on disconnect") {||
     require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|
       api.numConnections() .. @assert.eq(1);
-
       require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|
         api.numConnections() .. @assert.eq(2);
       }
-
+      // give other side a chance to close:
+      hold(100);
       api.numConnections() .. @assert.eq(1);
     }
   }
