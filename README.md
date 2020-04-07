@@ -23,7 +23,13 @@
 
 ### Running testsuite:
 
+For local code repository:
+
     cd conductance
     docker-compose -f ./docker-compose.test.yml up --build
 
+Or, for a built image with tag 'TAG':
 
+    docker run --rm -t --entrypoint /bin/bash onilabs/conductance:TAG
+      -c "/usr/src/conductance/node_modules/stratifiedjs/test/run && 
+          /use/src/conductance/test/run"
