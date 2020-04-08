@@ -4,7 +4,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * General
 
-   * nodejs/container OS dependency is updated to node:12.16.1-buster-slim
+   * nodejs/container OS dependency is updated to node:13.12.0-buster-slim
 
 
  * New functionality
