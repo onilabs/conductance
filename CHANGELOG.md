@@ -110,7 +110,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `mho:rpc/bridge`: Propagation of blocklambda breaks/returns and exceptions from
      aborted finally clauses has been fixed. (See `test/integration/bridge-tests.sjs:abort-finally`)
 
-
+   * `sjs` and `conductance shell` REPLs: `require` calls now correctly resolve nodejs modules
+     to the directory that the shell was started in, rather than to the sjs/conductance home
+     directories.
+ 
 
 ## Version 0.9.0:
 
