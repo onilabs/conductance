@@ -9,6 +9,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * The SJS language has a new `waitfor/while` syntax construct for asymmetric concurrency 
+     composition, where the 'while'-branch "controls" the lifetime of the 'waitfor'-branch. 
+     See the documentation under `#language/syntax::waitfor-while` for details.
+
    * `mho:rpc/bridge`: Added a new websocket-based transport 
      (rpc/wst-client.sjs & rpc/wst-server.sjs) which is now used by default by the 
      conductance bridge. It is a drop-in replacement for the old asymmetric AJAX transport
