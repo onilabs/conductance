@@ -44,13 +44,14 @@ This changelog lists the most prominent, developer-visible changes in each relea
      See documentation under `sjs:service::Service`.
 
    * Added a new function `sjs:service::withBackgroundServices` for running services in the 
-     background.
+     background. 
 
-   * Added a new function `sjs:service::isServiceUnavailableError`.
+   * Added a new function `sjs:service::runGlobalBackgroundService` for running a background 
+     service with unbounded lifetime.
 
-   * Frontends served via the `mho:server/routed-directory::RoutedFrontendDirectory` feature will 
-     now see a global symbol 'GLOBAL_SERVICE_SESSION' - see the documentation for 
-     'RoutedFrontendDirectory' for more details.
+   * Added a new function `sjs:service::withControlledService` for wrapping a service with
+     start/stop control functionality. Added associated function 
+     `sjs:service::isServiceUnavailableError`.
 
 
  * Bug fixes / Behavioral changes:

@@ -185,8 +185,7 @@ if (require.main === module) {
     withBackgroundServices {
       |background_session|
 
-      var server_process = background_session.attach(helper.serve, serverConfig);
-
+      var server_process;
 
       var init = function(runner) {
         // inherit from runner.reporter, and amend its reporting
@@ -195,10 +194,11 @@ if (require.main === module) {
         reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
           if (ctx.module() .. string.startsWith('integration/')) {
             // synchronously start server, if not running yet:
-            server_process.start(true);
+            if (!server_process)
+              server_process = background_session.runService(helper.serve, serverConfig);
           }
         });
-      reporter.suiteEnd = func.seq(-> server_process.stop(), reporter.suiteEnd);
+      reporter.suiteEnd = func.seq(-> server_process ? server_process[1]() /* i.e. stop server */, reporter.suiteEnd);
       }
 
       require('./run.html').run({

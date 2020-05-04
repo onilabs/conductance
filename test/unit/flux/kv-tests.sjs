@@ -138,19 +138,13 @@ function tx_query(db, range_f) {
         if (OpenStream) {
           // the transaction has failed and we're being called again.
           // clean up the old open stream:
-          OpenStream.stop();
+          OpenStream[1]();
         }
         var range = range_f(tx);
-        OpenStream = background_session.attach(@withOpenStream, db .. @kv.query(range));
-        // the 'sync' flag is important here, to ensure that the query has 
-        // actually started before we leave the transaction:
-        OpenStream.start(true);
+        OpenStream = background_session.runService(@withOpenStream, db .. @kv.query(range));
       });
       // if we end up here, we have a transactional open stream:
-      OpenStream.use {
-        |open_stream|
-        open_stream .. @each(r);
-      }
+      OpenStream[0] .. @each(r);
     }
   });
 }
@@ -166,13 +160,11 @@ function tx_query_tweaked(db, range_f) {
         if (OpenStream) {
           // the transaction has failed and we're being called again.
           // clean up the old open stream:
-          OpenStream.stop();
+          OpenStream[1]();
         }
         var range = range_f(tx);
         //console.log('got range:', range .. @inspect);
-        OpenStream = background_session.attach(@withOpenStream, db .. @kv.query(range));
-        hold(10);
-        OpenStream.use({||});
+        OpenStream = background_session.runService(@withOpenStream, db .. @kv.query(range));
         hold(10);
       });
 
@@ -184,10 +176,7 @@ function tx_query_tweaked(db, range_f) {
       hold(100);
       
       // if we end up here, we have a transactional open stream:
-      OpenStream.use {
-        |open_stream|
-        open_stream .. @each(r);
-      }
+      OpenStream[0] .. @each(r);
     }
   });
 }

@@ -339,12 +339,10 @@ context() {||
         |background_session|
         var bridge_service; 
         test.beforeAll {|s|
-          bridge_service = background_session.attach(bridge.connect, apiUrl(), {server:helper.getRoot()});
-          bridge_service.use { |_api|
-            api = _api.api;
-          }
+          bridge_service = background_session.runService(bridge.connect, apiUrl(), {server:helper.getRoot()});
+          api = bridge_service[0].api;
         }
-        test.afterAll {|s| bridge_service.stop(true) }
+        test.afterAll {|s| bridge_service[1](); }
         var payload = 'ßɩnɑʀʏ';
         
         test('Buffer') {||
@@ -1167,7 +1165,7 @@ context("non-root locations") {||
     |background_session|
 
     test.beforeAll {|s|
-      s.server = background_session.attach(function(scope) {
+      s.server = background_session.runService(function(scope) {
         var ready = @Condition();
         waitfor {
           require('./fixtures/bridge-proxy.mho').serve([], ready);
@@ -1178,11 +1176,10 @@ context("non-root locations") {||
           scope();
         }
       });
-      s.server.start(true);
     }
     
     test.afterAll {|s|
-      s.server.stop(true);
+      s.server[1](); // terminate server
     }
     
     var testResolve = function(dest, path, expectedRelative) {
