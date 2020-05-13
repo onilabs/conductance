@@ -9,6 +9,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * Added new method sjs:cutil::Semaphore::countWaiting.	
+
    * The SJS language has a new `waitfor/while` syntax construct for asymmetric concurrency 
      composition, where the 'while'-branch "controls" the lifetime of the 'waitfor'-branch. 
      See the documentation under `#language/syntax::waitfor-while` for details.
