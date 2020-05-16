@@ -120,7 +120,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * `sjs` and `conductance shell` REPLs: `require` calls now correctly resolve nodejs modules
      to the directory that the shell was started in, rather than to the sjs/conductance home
      directories.
- 
+
+   * In stack traces, module names are now rendered without the 'module' prefix (e.g. 
+     'Error at file://foo' instead of 'Error at module file://foo'). This is to prevent the
+     URL shortener built into the chrome browser console from getting confused when loggin
+     errors.
+
 
 ## Version 0.9.0:
 

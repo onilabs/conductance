@@ -54,7 +54,7 @@ context('bridge error handling') {||
 
   test('includes server-side stacktrace') {||
     //XXX should be able to disable this if server filesystem layout is sensitive
-    assert.raises({filter: e -> !isTransportError(e) && e.toString() .. /at module file:\/\/.*fixtures\/bridge.api:\d+/.test()}) {||
+    assert.raises({filter: e -> !isTransportError(e) && e.toString() .. /at file:\/\/.*fixtures\/bridge.api:\d+/.test()}) {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.callme(function() { throw new Error('Some client error'); });
       }
