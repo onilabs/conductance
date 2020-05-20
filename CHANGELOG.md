@@ -126,6 +126,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
      URL shortener built into the chrome browser console from getting confused when loggin
      errors.
 
+   * `mho:surface/widgets::overlay` (and by extension `mho:surface/widgets::dialog`) will now 
+     move the document focus to the backdrop and attempt to restore the previous focus upon exit.
+
 
 ## Version 0.9.0:
 

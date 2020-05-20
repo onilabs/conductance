@@ -562,6 +562,10 @@ exports.DropdownMenu = DropdownMenu;
      
          block(content_node1, content_node2, ..., backdrop_node) 
 
+     At the beginning of `block`, the document focus will be moved to the backdrop, so that e.g.
+     keypresses don't end up being dispatched to the content below the backdrop.
+     When `block` finishes, `overlay` attempts to restore the focus that was previously in effect.
+
      `block` is called with a [mho:surface::DynamicDOMContext] set to the same list of nodes as block's arguments.
      This means that certain operations within `block` do not require an explicit context. E.g. [mho:surface/field::Field]s contained 
      in the first top-level content DOM node can be implicitly resolved. Similarly, any commands emitted by [mho:surface/cmd::On] on
@@ -623,16 +627,28 @@ function overlay(content, settings, block) {
 
   document.body .. @appendContent(html) {
     |overlay_node|
-    var content_nodes = overlay_node.childNodes .. @toArray;
-    // append the backdrop to the end of the context, so that
-    // field.Value resolves ok (field.Value only checks the first node
-    // in the DOM context). Don't omit backdrop from context entirely
-    // so that we can still bind to the 'backdrop-click' command.
-    var backdrop_node = overlay_node;
-    content_nodes.push(backdrop_node);
-    @withDOMContext(content_nodes) {
-      ||
-      block.apply(null, content_nodes);
+    try {
+      var previous_focus = document.activeElement;
+      // trap focus, so that we don't get keystrokes sent to content under our overlay:
+      overlay_node.focus();
+
+      var content_nodes = overlay_node.childNodes .. @toArray;
+      // append the backdrop to the end of the context, so that
+      // field.Value resolves ok (field.Value only checks the first node
+      // in the DOM context). Don't omit backdrop from context entirely
+      // so that we can still bind to the 'backdrop-click' command.
+      var backdrop_node = overlay_node;
+      content_nodes.push(backdrop_node);
+      @withDOMContext(content_nodes) {
+        ||
+        block.apply(null, content_nodes);
+      }
+    }
+    finally {
+      // try to return focus to previously focused element, but ignore if not possible:
+      try { 
+        previous_focus.focus(); 
+      } catch(e) { /* ignore */ }
     }
   }
 }
