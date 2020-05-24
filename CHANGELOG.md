@@ -127,7 +127,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
      errors.
 
    * `mho:surface/widgets::overlay` (and by extension `mho:surface/widgets::dialog`) will now 
-     move the document focus to the backdrop and attempt to restore the previous focus upon exit.
+     move the document focus to the backdrop, constrain it to stay within child content of the
+     backdrop, and attempt to restore the previous focus upon exit.
 
 
 ## Version 0.9.0:

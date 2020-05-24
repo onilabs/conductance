@@ -542,7 +542,70 @@ function DropdownMenu(anchor, items, settings) {
 exports.DropdownMenu = DropdownMenu;
 
 //----------------------------------------------------------------------
-// XXX This needs some work. see e.g. https://www.smashingmagazine.com/2014/09/making-modal-windows-better-for-everyone/
+// XXX overlay needs some work. see e.g. https://www.smashingmagazine.com/2014/09/making-modal-windows-better-for-everyone/
+
+// Stack of ['trap', dom_node], and ['restore', dom_node]
+var gFocusStack = @ObservableVar([]); 
+
+// Runs in background to handle current top item of focus stack.
+// 'trap': indefinitely trap focus in dom_node
+// 'restore': restore focus to dom_node and remove item from focus stack
+function background_focus_stack_handler() {
+  gFocusStack .. @each.track {
+    |focus_stack|
+    //console.log("FOCUS_STACK=", focus_stack);
+    if (focus_stack.length === 0) continue;
+    var top = focus_stack[focus_stack.length-1];
+    if (top[0] === 'restore') {
+      try {
+        //console.log('Trying to restore focus to ',top[1]);
+        top[1].focus();
+      }
+      catch(e) { /* ignore */ }
+      gFocusStack.modify(s->s.slice(0,-1));
+    }
+    else { // top[0] === 'trap' implied
+      var root = top[1];
+      waitfor {
+        // this trapping algo is from https://www.smashingmagazine.com/2014/09/making-modal-windows-better-for-everyone/
+        // xxx for some reason it isn't perfect... it allows going from e.g. editbox to document.body
+        document .. @events('!focus') .. @each {
+          |ev|
+          //console.log('focus with ev.target=', ev.target);
+          if (!root.contains(ev.target)) {
+            //console.log('reclaiming focus');
+            ev.stopPropagation();
+            root.focus();
+          }
+        }
+      }
+      and {
+        // make sure that focus is initially within root:
+        if (!root.contains(document.activeElement))
+          root.focus();
+      }
+    }
+  }
+}
+spawn background_focus_stack_handler();
+
+// traps focus in root_node; restores focus to previous node on exit
+// nested execution is ok; a focus stack is maintained in background
+// XXX Maybe we should expose this as a surface API function
+function withTrappedFocus(root_node, session_f) {
+  try {
+    var trap_item = ['trap', root_node];
+    gFocusStack.modify(__js s -> [...s, ['restore', document.activeElement], trap_item ]);
+    return session_f();
+  }
+  finally {
+    // this doesn't remove any 'restore' node that might be right behind us, but that doesn't matter
+    // as the 'restore' in front of us will override the effect of the first.
+    // If we really want to remove it, we could do something like:
+    // s .. @pack(function(nxt) { var x=nxt(); if (x===trap_item) { nxt(); return nxt(); } else return x; }, @PACK_OMIT) .. @toArray
+    gFocusStack.modify(__js s -> s .. @array_difference([trap_item]));
+  }
+}
 
 /**
    @function overlay
@@ -562,7 +625,8 @@ exports.DropdownMenu = DropdownMenu;
      
          block(content_node1, content_node2, ..., backdrop_node) 
 
-     At the beginning of `block`, the document focus will be moved to the backdrop, so that e.g.
+     At the beginning of `block`, the document focus will be moved to the backdrop and constrained
+     to stay within child content of the backdrop. This ensures e.g. that 
      keypresses don't end up being dispatched to the content below the backdrop.
      When `block` finishes, `overlay` attempts to restore the focus that was previously in effect.
 
@@ -627,28 +691,19 @@ function overlay(content, settings, block) {
 
   document.body .. @appendContent(html) {
     |overlay_node|
-    try {
-      var previous_focus = document.activeElement;
-      // trap focus, so that we don't get keystrokes sent to content under our overlay:
-      overlay_node.focus();
-
-      var content_nodes = overlay_node.childNodes .. @toArray;
-      // append the backdrop to the end of the context, so that
-      // field.Value resolves ok (field.Value only checks the first node
-      // in the DOM context). Don't omit backdrop from context entirely
-      // so that we can still bind to the 'backdrop-click' command.
-      var backdrop_node = overlay_node;
-      content_nodes.push(backdrop_node);
-      @withDOMContext(content_nodes) {
+    var content_nodes = overlay_node.childNodes .. @toArray;
+    // append the backdrop to the end of the context, so that
+    // field.Value resolves ok (field.Value only checks the first node
+    // in the DOM context). Don't omit backdrop from context entirely
+    // so that we can still bind to the 'backdrop-click' command.
+    var backdrop_node = overlay_node;
+    content_nodes.push(backdrop_node);
+    @withDOMContext(content_nodes) {
+      ||
+      withTrappedFocus(backdrop_node) { 
         ||
-        block.apply(null, content_nodes);
+        return block.apply(null, content_nodes);
       }
-    }
-    finally {
-      // try to return focus to previously focused element, but ignore if not possible:
-      try { 
-        previous_focus.focus(); 
-      } catch(e) { /* ignore */ }
     }
   }
 }
@@ -770,6 +825,7 @@ var DialogCSS = @CSS([
       flex: 1;
       height: 100%;
       margin: 24px 24px 8px 24px;
+      overflow: hidden;
     }
 
     .mho-dialog__title + .mho-dialog__content {
@@ -826,7 +882,7 @@ function dialog(content, settings, block) {
     content_nodes.push(backdrop_node);
     @withDOMContext(content_nodes) {
       ||
-      block.apply(null, content_nodes);
+      return block.apply(null, content_nodes);
     }
   }
 
