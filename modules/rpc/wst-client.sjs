@@ -164,7 +164,7 @@ function runTransportSession(ws, session_f) {
       }
     };
     try {
-      session_f(transport_itf);
+      return session_f(transport_itf);
     }
     finally {
       // XXX is this needed?

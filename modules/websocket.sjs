@@ -197,7 +197,7 @@ function withWebSocketClient(settings, session_f) {
         itf.ping = -> socket.ping();
       }
 
-      session_f(itf);
+      return session_f(itf);
     }
   }
   finally {
@@ -280,7 +280,7 @@ exports.WebSocketServer = function(config) {
           }
         }
         if (ws)
-          withWebSocketClient({websocket:ws}, session_f);
+          return withWebSocketClient({websocket:ws}, session_f);
         else
           throw WebSocketError("socket closed before connection established");
       }
