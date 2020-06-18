@@ -96,6 +96,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
      waitfor-or clauses would not correctly abort hold(...) calls. See 'reentrant quench' in
      the sjs-3-test testsuite.
 
+   * Various other reentrant abort/collapse edgecases have been fixed.
+
+   * Handling of 'null' or 'undefined' exceptions in the VM has been fixed.
+
    * `sjs:bytes::isBuffer` is now exported by `sjs:bytes` on platforms other than 'nodejs', too.
      It will always return `false` on those platforms.
 
