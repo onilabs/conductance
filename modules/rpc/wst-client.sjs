@@ -81,16 +81,15 @@ function runTransportSession(ws, session_f) {
   }
   or {
     /* 
-       keepalive logic:
+       Keepalive logic:
 
-       * kicks in when there hasn't been any message traffic for KEEPALIVE_T0 ms.
-       * party who last _received_ a message sends a keepalive to the sender. This, in turn,
-         gets acknowledged with a keepalive by the sender within KEEPALIVE_T_LAT.
-       * parties continue sending/acknowledging keepalives, with intervals increasing by 
-         factor of 2 after every round, up to a maximum of KEEPALIVE_T_MAX.
-       * logic resets as soon as any proper message sent/received. 
+       * After any sent or received message, either side in the connection expects to receive 
+         either a message or a ping within (KEEPALIVE_T0 + KEEPALIVE_T_LAT) from the other side.
+       * While there is no message traffic, either side expects a ping from the other side with
+         increasing intervals (INTERVAL + KEEPALIVE_T_LAT), where INTERVAL=2^N*KEEPALIVE_T0 up to
+         a maximum of KEEPALIVE_T_MAX.
 
-       Idea behind the relaxation logic:
+       Idea behind the keepalive relaxation logic:
 
        * Generally bridge traffic consists of 'dialogs', where one side initiates a call, waits
          for a reply, which might trigger another reply, etc. Our main goal is to ensure
@@ -100,27 +99,84 @@ function runTransportSession(ws, session_f) {
        * The relaxation logic strikes a balance, sending out keepalives at intervals at which we
          reasonably might expect messages. 
 
+       Quirks:
+       
+       * The simple wst protocol doesn't send any (logical) timestamps, so we cannot match up 
+         pings with their respective triggering message. As a result, the keepalive receive
+         logic might sometimes open up the 'expected receive interval' in response to a keepalive 
+         that was sent by the other side BEFORE the last triggering message. In effect, the 
+         receiver will allow more time for each follow-on ping than necessary: Where the sender 
+         sends a ping after an interval of 2^X*KEEPALIVE_T0, the receiver will allow an interval
+         2^(X+1)*KEEPALIVE_T0 (or maybe even X+N, N>1?). 
+         In such a situation, the receiver might only act on a connection break at a later 
+         than would be possible if messages were matched up perfectly (on average by X*KEEPALIVE_T0?)
+         Given that this scenario is relatively uncommon and self-resetting (both when new 
+         messages are exchanged, or when the keepalive interval hits KEEPALIVE_T_MAX), in practice
+         it is probably not worth 'fixing' this.
     */
-    Traffic .. @each.track {
-      |direction|
-      var t = KEEPALIVE_T0;
+
+    waitfor {
+      // keepalive receive logic
       while (1) {
+        var t_r = KEEPALIVE_T0;
         waitfor {
-          hold(t + KEEPALIVE_T_LAT);
+          hold(t_r + KEEPALIVE_T_LAT);
+          //console.log("Transport timeout within t_r+lat="+(t_r+KEEPALIVE_T_LAT)+"ms");
           throw @TransportError("timeout");
         }
         or {
-          if (direction === RECEIVE_TRAFFIC) {
-            hold(t);
-            ws.send(''); // send keepalive
-          }
-          Keepalives .. @wait();
-          if (direction === SEND_TRAFFIC) {
-            ws.send(''); // send keepalive
+          Traffic .. @filter(t->t===RECEIVE_TRAFFIC) .. @first();
+          continue; // reset t
+        }
+        or {
+          Keepalives .. @first();
+        }
+        // follow-on loop:
+        waitfor {
+          while (1) {
+            t_r *= 2;
+            if (t_r > KEEPALIVE_T_MAX) t_r = KEEPALIVE_T_MAX;
+            waitfor {
+              hold(t_r + KEEPALIVE_T_LAT);
+              //console.log("Transport timeout 2 within t_r+lat="+(t_r+KEEPALIVE_T_LAT)+"ms");
+              throw @TransportError("timeout");            
+            }
+            or {
+              Keepalives .. @first();
+            }
           }
         }
-        t *= 2;
-        if (t > KEEPALIVE_T_MAX) t = KEEPALIVE_T_MAX;
+        or {
+          Traffic .. @first();
+        }
+      }
+    }
+    and {
+      // keepalive send logic
+      while (1) {
+        var t_s = KEEPALIVE_T0;
+        // initial keepalive (not resettable by received traffic)
+        waitfor {
+          hold(t_s);
+          collapse;
+          ws.send('');
+        }
+        or {
+          Traffic .. @filter(t->t===SEND_TRAFFIC) .. @first();
+          continue; // reset t
+        }
+        // follow-on loop
+        waitfor {
+          while (1) {
+            t_s *= 2;
+            if (t_s > KEEPALIVE_T_MAX) t_s = KEEPALIVE_T_MAX;
+            hold(t_s);
+            ws.send('');
+          }
+        }
+        or {
+          Traffic .. @first();
+        }
       }
     }
   }
