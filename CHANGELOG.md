@@ -134,6 +134,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
      move the document focus to the backdrop, constrain it to stay within child content of the
      backdrop, and attempt to restore the previous focus upon exit.
 
+   * Various array and object destructuring edgecases in __js blocks have been fixed.
+
 
 ## Version 0.9.0:
 
