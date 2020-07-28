@@ -188,7 +188,7 @@ function withWebSocketClient(settings, session_f) {
 
       var itf = {
         receive: -> receive_stream,
-        send: data -> socket.send(data)
+        send: __js function(data) { try { return socket.send(data); } catch(e) { throw WebSocketError(e); } }
       };
 
       if (@sys.hostenv === 'nodejs') {
