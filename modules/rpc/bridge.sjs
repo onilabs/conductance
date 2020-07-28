@@ -596,11 +596,22 @@ function BridgeConnection(transport, opts) {
 
     var args = marshall(data, connection);
 
+    // XXX
     // it is important that once a message has a sequence number, it
     // does get sent. Therefore we don't wait for transport.send to return (the 
     // return value is not needed anyway).
-    __js if (transport)
-      transport.send({ seq: ++connection.msg_seq_counter, msg:args });
+    //__js 
+
+    if (transport) {
+      try {
+        transport.send({ seq: ++connection.msg_seq_counter, msg:args });
+      }
+      catch(e) {
+        if (dont_throw) 
+          return;
+        throw @TransportError(e);
+      }
+    }
   }
 
   var connection = {
