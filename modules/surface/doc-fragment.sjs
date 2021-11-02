@@ -102,7 +102,7 @@ staticExports.busyIndicator = function(showImmediately, opts) {
         window.inhibit_auto_busy_indicator = true;
         delay = delay || 500;
         if (++count === 1) {
-          stratum = spawn (function() {
+          stratum = _task (function() {
             hold(delay);
             rainbow.show();
             shown = true;
@@ -116,7 +116,7 @@ staticExports.busyIndicator = function(showImmediately, opts) {
         // calls show next, we
         // don't want to stop a currently running indicator
       "
-        spawn (function() {
+        _task (function() {
           hold(10);
           if (--count === 0) {
             if (stratum) {

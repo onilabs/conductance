@@ -2,13 +2,13 @@
 @docutil = require('sjs:docutil');
 @helper = require('../helper');
 
-@context("generated documentation") {||
+@context("generated documentation", function() {
   @library = require('mho:../doc/library');
   @symbol = require('mho:../doc/symbol');
   var libraries = @library.Collection();
 
   var hubs = ['mho:', 'sjs:'];
-  @test.beforeAll {||
+  @test.beforeAll:: function() {
     libraries.add('mho:', @helper.url('__mho/'));
     libraries.add('sjs:', @helper.url('__sjs/modules/'));
   }
@@ -77,15 +77,15 @@
 
   var checked = {};
 
-  @test("each library has an index") {||
+  @test("each library has an index", function() {
     hubs .. @each {|hub|
       var root = libraries.get(hub);
       var index = root.loadIndex();
       @assert.ok(index, "hub #{hub} has no index");
     }
-  }
+  });
 
-  @test("broken links") {||
+  @test("broken links", function() {
     var failures = [];
     hubs .. @each {|hub|
       var root = libraries.get(hub);
@@ -134,6 +134,6 @@
     if (failures.length) {
       throw new Error("Issues:\n#{failures .. @join("\n")}");
     }
-  }.timeout(40)
+  }).timeout(40)
 
-}.serverOnly();
+}).serverOnly();

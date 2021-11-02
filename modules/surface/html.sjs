@@ -746,7 +746,7 @@ exports.Checkbox = @ElementConstructor :: Checkbox;
 
     var percent = @ObservableVar(0);
 
-    spawn @generate(Math.random) ..@each(function (x) {
+    _task @generate(Math.random) ..@each(function (x) {
       percent.set(x * 100);
       hold(2000);
     });

@@ -168,12 +168,12 @@ function runMechanisms(elems, mechanismsInstalled, await) {
   // let's start them:
   mechs .. PrioritySet_stream .. @each {
     |[elem, mech]|
-    var s = spawn withDOMContext(elem) { || mech.func.call(elem, elem) };
+    var s = _task withDOMContext(elem) { || mech.func.call(elem, elem) };
     elem.__oni_mechs.push(s);
     rv.push(s);
   };
   if (await) {
-    return spawn(function() {
+    return _task(function() {
       try {
         @waitforAll(awaitStratumError, rv);
         hold();

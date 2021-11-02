@@ -544,7 +544,7 @@ exports.renderer = function(libraries, rootSymbol) {
 		return rv;
 	};
 
-	var centerView = Mechanism {|elem|
+	var centerView = Mechanism:: function(elem) {
 		var container = document.getElementById("sidebar");
 		container.scrollTop = elem.offsetTop - (container.clientHeight / 2);
 	};

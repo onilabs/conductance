@@ -36,7 +36,7 @@ function non_cancelable_exclusive(f) {
   var stratum, cancel;
   return function() {
     if (cancel) { cancel(); cancel = null; }
-    if (!cancel) stratum = spawn (function(t,a){
+    if (!cancel) stratum = _task (function(t,a){
       var cancel_func;
       waitfor {
         waitfor() { cancel_func = resume; cancel = cancel_func; }
@@ -374,7 +374,7 @@ function captureLinks() {
     @events("!click") .. @each {
       |ev|
       if (ev.target.tagName !== 'A' || ev.target.hasAttribute('download')) continue;
-      spawn navigate(ev.target.href, {event: ev});
+      _task navigate(ev.target.href, {event: ev});
     }
 }
 
@@ -383,7 +383,7 @@ function dispatchStateChanges() {
     @events("popstate") ..
     @each {
       |ev|
-      spawn navigate(location.href, {omit_state_push:true, enable_not_found_route: true, event: ev});
+      _task navigate(location.href, {omit_state_push:true, enable_not_found_route: true, event: ev});
     }
 }
 

@@ -170,7 +170,7 @@ exports.Datadog = function(opts) {
       drop: ([type,]) -> @logging.warn("Dropping queued datadog #{type}"),
     });
     //var STOP = {};
-    var thread = spawn(function() {
+    var thread = _task(function() {
       eventStream .. @each {|item|
         //if(item === STOP) break;
         var [fn, args] = item;

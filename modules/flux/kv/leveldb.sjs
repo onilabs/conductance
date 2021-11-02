@@ -51,7 +51,8 @@ function LevelDB(location, options) {
 
   // slightly round-about way of opening to gracefully handle closing
   // of the db if we are being retracted while opening
-  var open = spawn (function() {
+
+  var open = _task (function() {
     waitfor (var error) {
       db.open(options, resume);
     }
@@ -63,7 +64,7 @@ function LevelDB(location, options) {
   }
   retract {
     // make sure db gets closed
-    spawn (function() {
+    _task (function() {
       var err = open.value();
       if (!err) db.close(@fn.nop);
     })()

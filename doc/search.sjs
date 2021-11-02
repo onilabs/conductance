@@ -10,6 +10,7 @@ var {ownPropertyPairs, ownValues, hasOwn} = require('sjs:object');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
 var http = require('sjs:http');
+var sys = require('sjs:sys');
 
 var assert = require('sjs:assert');
 
@@ -185,7 +186,7 @@ exports.run = (function() {
 				var disabled = ObservableVar(false);
 				var enabledWidget = Checkbox(lib.searchEnabled) .. Attrib("disabled", disabled);
 				libraryStatus.push(Element("li", `${enabledWidget} <span class="hub">${lib.name}</span> ${loaded}`, {"class":"libraryStatus"}));
-				spawn(function() {
+				sys.spawn(function() {
 					// load each index in background
 					var idx = lib.loadIndex();
 					if (idx === null) {
@@ -194,7 +195,7 @@ exports.run = (function() {
 					} else {
 						loaded.set("");
 					}
-				}());
+				});
 			};
 
 			var indexUpdate = function() {

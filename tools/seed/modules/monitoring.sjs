@@ -54,7 +54,7 @@ var metricLoop = (function() {
 
 	metricLoop.start = function() {
 		this.instance .. @assert.eq(null, "already started");
-		this.instance = spawn(metricLoop());
+		this.instance = _task(metricLoop());
 	};
 
 	metricLoop.stop = function() {
@@ -66,7 +66,7 @@ var metricLoop = (function() {
 	metricLoop.add = function(key, metric) {
 		if (METRICS .. @hasOwn(key)) throw new Error("metric #{key} is already configured");
 		metricCount++;
-		METRICS[key] = spawn(function() {
+		METRICS[key] = _task(function() {
 			hold(0);
 			try {
 				metric .. @each {|val|

@@ -342,7 +342,7 @@ exports.gen_routed_page = function(src, aux) {
     mapping.config.init ? `require('frontend-config.yaml:__inline_init__');`,
     `
     @ = require(['mho:surface/navigation']);
-    spawn @route([${
+    _task @route([${
                      mapping.paths .. 
                        @map([path, module, type] ->
                             type === 'page' ?

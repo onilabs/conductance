@@ -985,7 +985,7 @@ exports.GlobalCSS = function(content) {
                                          }));
 
     This behavior is consistent with how abortion/cancellation works in SJS in general, and is usually what is wanted.
-    `spawn` can be used in situations where an action initiated by a mechanism should complete even if the underlying dom element has been removed. This is e.g. done in [::OnClick], as aborting an initiated event handler is - in most circumstances - not desired.
+    `_task` can be used in situations where an action initiated by a mechanism should complete even if the underlying dom element has been removed. This is e.g. done in [::OnClick], as aborting an initiated event handler is - in most circumstances - not desired.
     
 */
 __js {
@@ -1233,15 +1233,14 @@ function Class(element, clsname, val) {
     if (arguments.length > 2) {
       // val is provided, treat it as a boolean toggle
       if (@isStream(val)) {
-        element = element .. Mechanism {
-          |elem|
+        element = element .. Mechanism(function(elem) {
           var cl = elem.classList;
           val .. each {
             |v|
             if (v) cl.add(clsname);
             else cl.remove(clsname);
           }
-        }
+        })
       }
       else {
         if (val) 

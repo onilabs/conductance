@@ -55,7 +55,7 @@
     value of the call (and doesn't want to block until the call has been acknowledged 
     by the other end), then network traffic can be conserved by making a 'signalled call' using
     the [sjs:function::signal] function: `foo .. @fn.signal(null, [x,y,z])` instead of `foo(x,y,z)` or 
-    `spawn foo(x,y,z)`. The latter calls both cause the other end of the bridge connection to send
+    `_task foo(x,y,z)`. The latter calls both cause the other end of the bridge connection to send
     out a return value when the call has finished there, whereas the signalled call does not.
     
     ### Custom types:
@@ -223,7 +223,7 @@ __js {
   function makeBlocklambdaBreakControlFlowException(eid) {
     var rv = Object.create(ReceivedControlFlowException.prototype);
     rv.postLocally = function() {
-      var cfx = __oni_rt.BlBreak({blbref:{sid:eid}});
+      var cfx = __oni_rt.BlBreakOld({blbref:{sid:eid}});
       return cfx;
     };
     return rv;
@@ -715,7 +715,7 @@ function BridgeConnection(transport, opts) {
       }
       closed = true;
 //      console.log(">>>>>>>>>> CLOSING BRIDGE #{bridge_id} <<<<<<<<<<<<<<<<<");
-      spawn this.stratum.abort();
+      _task this.stratum.abort();
 
       if (transport) {
         transport.__finally__();
@@ -723,7 +723,7 @@ function BridgeConnection(transport, opts) {
       }
 
       executing_calls .. @ownValues .. @each {|s|
-        spawn(function() {
+        _task(function() {
           try {
             s.abort();
           } catch(e) {
@@ -734,7 +734,7 @@ function BridgeConnection(transport, opts) {
       executing_calls = {};
 
       pending_calls .. @ownPropertyPairs .. @each {|[id,[r]]|
-        spawn(function() {
+        _task(function() {
           try {
 //            console.log("Abort pending call #{id} with session lost...");
             r(@TransportError('session lost'), true);
@@ -870,7 +870,7 @@ function BridgeConnection(transport, opts) {
       catch (e) { 
         if (e && e.__oni_cfx) {
           // a control-flow exception
-          if (e.type === 'blb') {
+          if (e.type === 'blb_old') {
             return makeBlocklambdaBreakMessage(e.eid, call_no);
           }
           else if (e.type === 'r' && e.eid) { // blocklambda return
@@ -1005,7 +1005,7 @@ function BridgeConnection(transport, opts) {
         if (__oni_rt.is_ef(call_rv[2])) {
           // go async
           executing_calls[message[1]] = 
-            spawn(function(ef, call_id) { 
+            _task(function(ef, call_id) { 
               var rv;
               try {
                 ef.wait();
@@ -1013,7 +1013,7 @@ function BridgeConnection(transport, opts) {
               finally (e) { 
                 delete executing_calls[call_id];
                 if (e[1]) { // exception
-                  if (e[0].type === 'blb') {
+                  if (e[0].type === 'blb_old') {
                     __js rv = makeBlocklambdaBreakMessage(e[0].eid, call_id);
                     // prevent further blocklambda break handling:
                     e = [undefined];
@@ -1060,7 +1060,7 @@ function BridgeConnection(transport, opts) {
       var executing_call = executing_calls[message[1]];
       if (executing_call) {
         // XXX should try aborting synchronously first - see the code for case 'C', above
-        spawn (function(call_id) {
+        _task (function(call_id) {
           try {
             executing_call.abort(message[0] === 'P');
           }
@@ -1104,9 +1104,10 @@ function BridgeConnection(transport, opts) {
   // sure how that's going to work from the server-side (sys:resolve??)
   var getAPI = -> connection.makeCall(0, [opts.api]);
 
-  connection.stratum = spawn receiver();
+  connection.stratum = _task receiver();
   waitfor {
     // to make sure errors are routed while the getAPI call is in progress
+    /* reify().adopt(connection.stratum); // will be readopted when handed over to `connect` */
     connection.stratum.waitforValue();
   }
   or {
@@ -1219,6 +1220,7 @@ exports.connect = function(apiinfo, opts, block) {
   if (block) {
     waitfor {
       try {
+        /* reify().adopt(connection.stratum) XXXX we need to catch the error though */
         connection.stratum.waitforValue();
       }
       catch (e) {

@@ -7,7 +7,7 @@ exports.hash = hash .. @transform(identity);
 exports.hash.set = function(newval) {
 	document.location.hash = "#" + newval;
 };
-spawn(window .. @events('hashchange') .. @each(v -> hash.set(getHash())));
+_task(window .. @events('hashchange') .. @each(v -> hash.set(getHash())));
 
 
 exports.lift = function(codec) {

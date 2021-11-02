@@ -1,5 +1,5 @@
 var {test, context, assert} = require('sjs:test/suite');
-context("dynamic") {||
+context("dynamic", function() {
 @ =require(['sjs:test/std', 'mho:surface', 'sjs:sequence', 'sjs:observable', 'sjs:object', 'mho:surface/html']);
 
 var {@ObservableVar, @observe} = require('sjs:observable');
@@ -10,14 +10,14 @@ var click = function(elem) {
   elem .. @driver.trigger('change');
 }
 
-context("void elements") {||
-  test("should throw no errors") {||
+context("void elements", function() {
+  test("should throw no errors", function() {
     // testing for IE edge cases, mostly
     document.body .. @appendContent(@Element("img"), ->hold(100));
-  }
-}
+  });
+});
 
-context("block-scoped insertion method error handling") {||
+context("block-scoped insertion method error handling", function() {
   var cls = "should-be-removed";
   var content = @Element("div", [], {"class": cls});
   var expectedError = new Error("error thrown by mechanism");
@@ -29,14 +29,14 @@ context("block-scoped insertion method error handling") {||
     })
   ], {'class':cls});
 
-  test.beforeEach {|s|
+  test.beforeEach:: function(s) {
     var div = @Element("div");
     [s.container] = document.body .. @appendContent(div);
     [s.containerFirst] = s.container .. @appendContent(div);
     [s.containerLast] = s.container .. @appendContent(div);
   }
 
-  test.afterEach {|s|
+  test.afterEach:: function(s) {
     var remainingElements = document.querySelectorAll(".#{cls}");
     var length = remainingElements.length;
     @removeNode(s.container);
@@ -50,7 +50,7 @@ context("block-scoped insertion method error handling") {||
     ["insertBefore", "containerLast", 1],
     ["insertAfter", "containerFirst", 1],
   ] .. @each {|[method, subject, expectedIndex]|
-    test(method) {|s|
+    test(method, function(s) {
       @assert.suspends( -> s[subject] .. @[method](content) {|elem|
         s.container.childNodes[expectedIndex] .. @assert.eq(elem);
         hold(10);
@@ -64,12 +64,12 @@ context("block-scoped insertion method error handling") {||
       } else {
         s.container.childNodes.length .. @assert.eq(2);
       }
-    }
+    });
   }
-}
+});
 
-context("observable widget content") {||
-  test("should reflect changes made before & after insertion") {||
+context("observable widget content", function() {
+  test("should reflect changes made before & after insertion", function() {
     var content = @ObservableVar("first");
     var observableElement = @Element("div", content);
     var computedElement = @Element("div", @observe(content, c -> 'computed ' + c));
@@ -90,12 +90,12 @@ context("observable widget content") {||
         elem.textContent.split(' ') .. @at(-1) .. assert.eq("third");
       }
     });
-  }
-}
+  });
+});
 
-context("textarea widget") {||
+context("textarea widget", function() {
   // textarea doesn't contain HTML, only values
-  test("should contain contents") {||
+  test("should contain contents", function() {
     var obs = @ObservableVar("initial value");
     document.body .. @appendContent(@TextArea(obs)) {|elem|
       elem.value .. @assert.eq("initial value");
@@ -103,25 +103,25 @@ context("textarea widget") {||
       hold(0);
       elem.value .. @assert.eq("new value");
     }
-  }
-}
+  });
+});
 
-context("select widget") {||
+context("select widget", function() {
   var selectionMap = node -> node.childNodes .. @map(e -> e.selected);
   var withSelect = (settings, block) ->
       document.body .. @appendContent(@Select(settings), block);
 
   var commonTests = function() {
-    test("should reflect static selections") {|s|
+    test("should reflect static selections", function(s) {
       withSelect({
         items: s.items,
         selected: "one",
       }) {|elem|
         elem .. selectionMap .. assert.eq([true, false, false]);
       }
-    }
+    });
 
-    test("should read selection object changes") {|s|
+    test("should read selection object changes", function(s) {
       var selection = @ObservableVar("one");
       withSelect({
         items: s.items,
@@ -142,9 +142,9 @@ context("select widget") {||
         selection.set(["two", "three"]);
         elem .. selectionMap .. assert.eq([false, true, true]);
       }
-    }
+    });
 
-    test("should store selection object changes") {|s|
+    test("should store selection object changes", function(s) {
       var selection = @ObservableVar("one");
       withSelect({
         items: s.items,
@@ -167,23 +167,23 @@ context("select widget") {||
         elem .. selectionMap .. assert.eq([true, false, false]);
         selection.get() .. assert.eq(['one']);
       }
-    }
+    });
   };
 
-  context("plain items") {||
-    test.beforeEach {|s|
+  context("plain items", function() {
+    test.beforeEach:: function(s) {
       s.items = ["one", "two", "three"];
     }
     commonTests();
-  }
+  });
 
-  context("observable collection") {||
-    test.beforeEach {|s|
+  context("observable collection", function() {
+    test.beforeEach:: function(s) {
       s.items = @ObservableVar(["one", "two", "three"]);
     }
     commonTests();
 
-    test("should maintain single selection on item change") {|s|
+    test("should maintain single selection on item change", function(s) {
       var selection = @ObservableVar("one");
       withSelect({
         items: s.items,
@@ -193,9 +193,9 @@ context("select widget") {||
         s.items.set(["zero", "one"]);
         elem .. selectionMap .. assert.eq([false, true]);
       }
-    }
+    });
 
-    test("should maintain multiple selection on item change") {|s|
+    test("should maintain multiple selection on item change", function(s) {
       var selection = @ObservableVar(["one", "two"]);
       withSelect({
         items: s.items,
@@ -206,9 +206,9 @@ context("select widget") {||
         s.items.set(["zero", "one", "two", "three"]);
         elem .. selectionMap .. assert.eq([false, true, true, false]);
       }
-    }
+    });
 
-    test("should use latest selection on item change if selection is observable") {|s|
+    test("should use latest selection on item change if selection is observable", function(s) {
       var selection = @ObservableVar(["one", "two"]);
       withSelect({
         items: s.items,
@@ -221,11 +221,11 @@ context("select widget") {||
         s.items.set(["zero", "one"]);
         elem .. selectionMap .. assert.eq([true, false]);
       }
-    }
-  }
-}
+    });
+  });
+});
 
-@context("bootstrap wrappers") {||
+@context("bootstrap wrappers", function() {
   @bootstrap = require('mho:surface/bootstrap');
   var clsArray = function(elem) {
     var classes = elem.classList;
@@ -237,7 +237,7 @@ context("select widget") {||
     return rv .. @sort();
   }
   var t = function(name, leadingArgs, tagname, extra_classes, extra_attrs) {
-    @test(name) {||
+    @test(name, function() {
       var content = "Content!";
       var attribs = {'class':"customClass1 customClass2", "name":"customName"};
       var elem = @bootstrap[name].apply(null, leadingArgs.concat([content, attribs]));
@@ -252,7 +252,7 @@ context("select widget") {||
           }
         }
       }
-    }
+    });
   }
 
   t("Button", [], "button", "btn btn-default");
@@ -282,14 +282,14 @@ context("select widget") {||
 
   // XXX ListGroupItem?
   
-  @test("Icon") {||
+  @test("Icon", function() {
     document.body .. @appendContent(@bootstrap.Icon("foo", {name:"myIcon", "class":"cls1 cls2"})) {|elem|
       elem.tagName.toLowerCase() .. @assert.eq('span');
       elem.getAttribute("name") .. @assert.eq("myIcon");
       elem .. clsArray .. @assert.eq("glyphicon glyphicon-foo cls1 cls2".split(" ") .. @sort);
     }
-  }
-  @test("Input") {||
+  });
+  @test("Input", function() {
     document.body .. @appendContent(@bootstrap.Input({type:"checkbox", value:"initialVal", attrs:{name:"myIcon", "class":"cls1 cls2"}})) {|elem|
       elem.tagName.toLowerCase() .. @assert.eq('input');
       elem.value .. @assert.eq("initialVal");
@@ -297,7 +297,7 @@ context("select widget") {||
       elem.getAttribute("type") .. @assert.eq("checkbox");
       elem .. clsArray .. @assert.eq("cls1 cls2 form-control".split(" ") .. @sort);
     }
-  }
-}
+  });
+});
 
-}.browserOnly();
+}).browserOnly();

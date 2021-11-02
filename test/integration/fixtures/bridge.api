@@ -4,6 +4,7 @@ var { setStatus } = require('mho:server/response');
 var logging = require('sjs:logging');
 var { ObservableVar } = require('sjs:observable');
 var bridge = require('mho:rpc/bridge');
+var sys = require('sjs:sys');
 
 exports.throwError = function(msg) { throw new Error(msg); }
 
@@ -29,11 +30,11 @@ var transport = function() {
 
 exports.destroyConnection = function(timeout) {
   var t = transport();
-  spawn(function() {
+  sys.spawn(function() {
     hold(timeout);
     logging.info("bridge.api: destroying connection");
     t.__finally__();
-  }());
+  });
 }
 
 var sharedVariable;
@@ -75,7 +76,7 @@ exports.checkErrorThrownOnCallingFuncAfterDelay = function(func, delay){
       errorThrown = true;
     }
   }
-  spawn caller();
+  sys.spawn(caller);
 }
 exports.wasErrorThrown = -> errorThrown;
 

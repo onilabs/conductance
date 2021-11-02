@@ -6,7 +6,7 @@ var {ownValues, hasOwn, get, clone, merge, pairsToObject} = require('sjs:object'
 var docutil = require('sjs:docutil');
 var http = require('sjs:http');
 var logging = require('sjs:logging');
-
+var sys = require('sjs:sys');
 var assert = require('sjs:assert');
 
 var CollectionProto = exports.CollectionProto = {};
@@ -182,20 +182,28 @@ Library.prototype.loadModuleDocs = function(path) {
 };
 
 Library.prototype.loadIndex = function() {
-	var strata = spawn(function() {
-		var result = null;
+  var result=null, is_exception;
+  var me = this;
+	var stratum = sys.spawn(function() {
 		try {
-			result = JSON.parse(this.loadFile('sjs-lib-index.json'));
+			result = JSON.parse(me.loadFile('sjs-lib-index.json'));
 		} catch(e) {
-			if (e.status !== 404) throw e;
+			if (e.status !== 404) {
+        result = e;
+        is_exception = true;
+      }
 			logging.info("Couldn't find index for #{this.root}: #{e}");
 		} finally {
-			this._index = result;
-			this.loadIndex = -> result;
+			//me._index = result;
+			me.loadIndex = -> result;
 			return result;
 		}
-	}.call(this));
-	this.loadIndex = strata.waitforValue.bind(strata);
+	});
+	this.loadIndex = function() { 
+    stratum.wait(); 
+    if (is_exception) throw result;
+    return result;
+  }
 	return this.loadIndex();
 };
 

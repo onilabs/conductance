@@ -210,7 +210,7 @@ var proxyConnections = exports.proxyConnections = function(sshConn, port, block)
 		// NOTE: this is unbound
 		var strata = [];
 		server.on("connection", function(conn) {
-			var s = spawn(function() {
+			var s = _task(function() {
 				hold(0);
 				try {
 					@debug("proxy start [active=#{strata.length}]");

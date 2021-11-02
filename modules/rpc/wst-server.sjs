@@ -36,7 +36,7 @@ function createTransportHandler(transportSink) {
   var SocketServer = @WebSocketServer();
 
   function handler_func(req) {
-    spawn (function() {
+    _task (function() {
       try {
         SocketServer.runWebSocketSession(req) {
           |ws|

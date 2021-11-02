@@ -29,37 +29,37 @@ var CALL_BATCH_PERIOD = 20;   // bridge implementation detail
 var MAX_ROUNDTRIP = CALL_BATCH_PERIOD + 100; // roundtrip time between client & server.
                                              // If a single call takes longer than this, tests may fail.
 
-context('bridge error handling') {||
+context('bridge error handling', function() {
   var apiid;
 
-  test.beforeAll {|s|
+  test.beforeAll:: function(s) {
     apiid = apiUrl();
   }
 
-  test('propagates server-side errors') {||
+  test('propagates server-side errors', function() {
     assert.raises({filter: e -> !isTransportError(e) && e.message == "Some error"}) {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.throwError('Some error');
       }
     };
-  }
+  });
 
-  test('re-throws client-side errors') {||
+  test('re-throws client-side errors', function() {
     assert.raises({filter: e -> !isTransportError(e) && e.message == "Some client error"}) {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.callme(function() { throw new Error('Some client error'); });
       }
     };
-  }
+  });
 
-  test('includes server-side stacktrace') {||
+  test('includes server-side stacktrace', function() {
     //XXX should be able to disable this if server filesystem layout is sensitive
     assert.raises({filter: e -> !isTransportError(e) && e.toString() .. /at file:\/\/.*fixtures\/bridge.api:\d+/.test()}) {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.callme(function() { throw new Error('Some client error'); });
       }
     };
-  }
+  });
 
   var destroyMethods = ['destroyConnection'/*, 'breakConnection'*/];
   destroyMethods .. each {|method|
@@ -69,8 +69,8 @@ context('bridge error handling') {||
       return api.ping();
     };
 
-    context("destroyed with #{method}") {||
-      test.beforeEach {|s|
+    context("destroyed with #{method}", function() {
+      test.beforeEach:: function(s) {
         s.log = [];
         s.push = function(obj) {
           logging.info("log.push: #{obj}");
@@ -78,7 +78,7 @@ context('bridge error handling') {||
         }
       }
 
-      test("throws connection error") {|s|
+      test("throws connection error", function(s) {
         assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
           bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
             s.push(connection.api.ping());
@@ -97,9 +97,9 @@ context('bridge error handling') {||
         };
 
         s.log .. assert.eq([ 'pong', '1']);
-      };
+      });
 
-      test("error thrown in cancellation") {|s|
+      test("error thrown in cancellation", function(s) {
         assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
           bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
             waitfor {
@@ -111,9 +111,9 @@ context('bridge error handling') {||
           }
         };
         hold(MAX_ROUNDTRIP * 4); // give server a chance to fail
-      }
+      });
 
-      test("retracts all running calls") {|s|
+      test("retracts all running calls", function(s) {
         // ideally this would not be necessary, but long-running methods invoked
         // by a remote function may never receive a retraction (since the remote cannot send one)
         // To be safe. we abort _all_ running calls when we see a ConnectionError
@@ -121,7 +121,7 @@ context('bridge error handling') {||
           bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
             connection.api.callme {||
               try {
-                spawn(function() {
+                @sys.spawn(function() {
                   hold(200);
                   try {
                     s.push(connection.api .. destroy());
@@ -131,7 +131,7 @@ context('bridge error handling') {||
                     //assert.eq(e.message, 'session lost');
                     s.push('lingering call exception'); 
                   }
-                }());
+                });
                 s.push("running");
                 hold(1000);
               } retract {
@@ -144,15 +144,15 @@ context('bridge error handling') {||
         }
         hold(1000);
         s.log .. assert.eq(['running', 'retracted', 'finally', 'lingering call exception']);
-      }
+      });
 
-      test("retracts all pending calls") {|s|
+      test("retracts all pending calls", function(s) {
         // ideally this would not be necessary, but long-running methods invoked
         // by a remote function may never receive a retraction (since the remote cannot send one)
         // To be safe. we abort _all_ running calls when we see a ConnectionError
         assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
           bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
-            spawn(function() {
+            @sys.spawn(function() {
               hold(200);
               try {
                 s.push(connection.api .. destroy());
@@ -162,7 +162,7 @@ context('bridge error handling') {||
                 //assert.eq(e.message, 'session lost');
                 s.push('lingering call exception'); 
               }
-            }());
+            });
             try {
               s.push("running");
               connection.api.hold();
@@ -175,28 +175,28 @@ context('bridge error handling') {||
         }
         hold(1000);
         s.log .. assert.eq(['running', 'retracted', 'finally', 'lingering call exception']);
-      }
-    }
+      });
+    });
   };
 
-  test('retracts server side execution initiated by client on closed connection'){||
+  test('retracts server side execution initiated by client on closed connection', function() {
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
-      spawn(function() {
+      @sys.spawn(function() {
         // call doesn't return before the connection ends (due to `spawn`),
         // which will cause a `session lost` error
         assert.raises({filter: isTransportError}, ->
           connection.api.detectRetractionAfterDelay(2*MAX_ROUNDTRIP));
-      })();
+      });
       hold(MAX_ROUNDTRIP);
     }
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
       assert.truthy(connection.api.didDetectRetraction());
     }
-  }
+  });
 
-  test('throws TransportError when calling client function after closed connection'){||
+  test('throws TransportError when calling client function after closed connection', function() {
     var someFuncExecuted = false;
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
@@ -210,9 +210,9 @@ context('bridge error handling') {||
       |connection|
       assert.truthy(connection.api.wasErrorThrown());
     }
-  }
+  });
 
-}
+});
 
 function waitforSuccess(block) {
   var lastError;
@@ -233,25 +233,25 @@ function waitforSuccess(block) {
   
       
 
-context() {||
+context(function() {
   // common setup to make api module available
   var url,prefix;
 
-  test.beforeAll {||
+  test.beforeAll:: function() {
     url = apiUrl();
     var path = Url.parse(url).relative;
     prefix = path.slice(0, path.indexOf('test/'));
     require('mho:rpc/aat-client').setServerPrefix(prefix);
   }
 
-  context('object marshalling') {||
-    test("Stream") {||
+  context('object marshalling', function() {
+    test("Stream", function() {
       require(url).connect {|api|
         api.integers(0, 5) .. map(x -> x) .. assert.eq([0,1,2,3,4,5]);
       }
-    }
+    });
 
-    test("ObservableVar") {||
+    test("ObservableVar", function() {
       require(url).connect({status:true}) {|api|
         api.withSharedVariable {|v|
           var changes = [];
@@ -265,9 +265,9 @@ context() {||
           }
         }
       }
-    }
+    });
 
-    test("Custom") {||
+    test("Custom", function() {
       var duck = {text: "Hi there!"};
       var marshalled = {text: "Hi there!"};
       bridge.connect(apiUrl(), {server: helper.getRoot()}) {|connection|
@@ -281,9 +281,9 @@ context() {||
         api.isCustomObject(duck .. api.unmarshallCustomObject()) .. assert.eq(false);
         api.isCustomObject(marshalled) .. assert.eq(true);
       }
-    }
+    });
 
-    test("Error during unmarshalling") {||
+    test("Error during unmarshalling", function() {
       var obj = {text: "Hi there!"};
       bridge.connect(apiUrl(), {server: helper.getRoot()}) {|connection|
         var api = connection.api;
@@ -293,9 +293,9 @@ context() {||
         });
         assert.raises({message:"This unmarshaller intentionally left broken"}, -> api.isCustomObject(obj));
       }
-    }
+    });
 
-    test("Arbitrary unmarshaller is disallowed") {||
+    test("Arbitrary unmarshaller is disallowed", function() {
       var obj = {text: "Hi there!"};
       bridge.connect(apiUrl(), {server: helper.getRoot()}) {|connection|
         var api = connection.api;
@@ -306,7 +306,7 @@ context() {||
         assert.raises({ message: /Unsupported marshalling descriptor/},
           -> api.ping(obj));
       }
-    }
+    });
 
     exports.allowedUnmarshaller = function(obj) {
       return {custom:true, obj:obj};
@@ -316,7 +316,7 @@ context() {||
       throw new Error("disallowedUnmarshaller called!");
     };
 
-    test("Only whitelisted unmarshallers are allowed from server") {||
+    test("Only whitelisted unmarshallers are allowed from server", function() {
       var duck = {text: "Hi there!"};
       bridge.connect(apiUrl(), {server: helper.getRoot(), localWrappers:[ [module.id, 'allowedUnmarshaller'] ]}) {|connection|
         var api = connection.api;
@@ -328,65 +328,62 @@ context() {||
         assert.raises({ message: /Unsupported marshalling descriptor/},
           -> api.returnCustomObject(duck, [module.id, 'disallowedUnmarshaller']));
       }
-    }
+    });
 
-    context("binary data") {||
+    context("binary data", function() {
       var isPhantomJS = @isBrowser && /PhantomJS/.test(window.navigator.userAgent);
       var noTypedArraySupport = isPhantomJS;
       var noBlobSupport = typeof(Blob) === 'undefined';
       var api;
-      @withBackgroundServices {
-        |background_session|
-        var bridge_service; 
-        test.beforeAll {|s|
-          bridge_service = background_session.runService(bridge.connect, apiUrl(), {server:helper.getRoot()});
-          api = bridge_service[0].api;
-        }
-        test.afterAll {|s| bridge_service[1](); }
-        var payload = 'ßɩnɑʀʏ';
-        
-        test('Buffer') {||
-          var buf = Buffer.from(payload);
-          var rv = api.identity(buf);
-          rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
-          rv .. @assert.eq(buf);
-        }.serverOnly()
-        
-        test('Uint8Array') {||
-          var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
-          var rv = api.identity(buf);
-          (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
-          rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
-          rv .. @assert.eq(buf);
-        }.skipIf(noTypedArraySupport)
-        
-        test('ArrayBuffer ends up as Uint8Array') {||
-          var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8)).buffer;
-          (buf instanceof ArrayBuffer) .. @assert.ok();
-          var rv = api.identity(buf);
-          (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
-          rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
-        }.skipIf(noTypedArraySupport)
-        
-        test('Blob ends up in the platform\'s preferred format') {||
-          var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
-          buf = new Blob([buf]);
-          (buf instanceof Blob) .. @assert.ok();
-          var rv = api.identity(buf);
-          if(@isBrowser) {
-            (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
-            rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
-          } else {
-            rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
-            rv .. @assert.eq(Buffer.from(payload));
-          }
-        }.skipIf(noBlobSupport || isPhantomJS /* PhantomJS Blob implementation is busted */)
+      var bridge_service; 
+      test.beforeAll:: function(s) {
+        bridge_service = @runGlobalBackgroundService(bridge.connect, apiUrl(), {server:helper.getRoot()});
+        api = bridge_service[0].api;
       }
-    } // background_session
-  }
+      test.afterAll:: function(s) { bridge_service[1](); }
+      var payload = 'ßɩnɑʀʏ';
+      
+      test('Buffer', function() {
+        var buf = Buffer.from(payload);
+        var rv = api.identity(buf);
+        rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
+        rv .. @assert.eq(buf);
+      }).serverOnly()
+      
+      test('Uint8Array', function() {
+        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
+        var rv = api.identity(buf);
+        (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+        rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
+        rv .. @assert.eq(buf);
+      }).skipIf(noTypedArraySupport)
+      
+      test('ArrayBuffer ends up as Uint8Array', function() {
+        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8)).buffer;
+        (buf instanceof ArrayBuffer) .. @assert.ok();
+        var rv = api.identity(buf);
+        (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+        rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
+      }).skipIf(noTypedArraySupport)
+      
+      test('Blob ends up in the platform\'s preferred format', function() {
+        var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
+        buf = new Blob([buf]);
+        (buf instanceof Blob) .. @assert.ok();
+        var rv = api.identity(buf);
+        if(@isBrowser) {
+          (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+          rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
+        } else {
+          rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
+          rv .. @assert.eq(Buffer.from(payload));
+        }
+      }).skipIf(noBlobSupport || isPhantomJS /* PhantomJS Blob implementation is busted */)
+    });
+  });
 
-  context('returns_and_breaks') {||
-    test('blocklambda_return') {||
+  context('returns_and_breaks', function() {
+    test('blocklambda_return', function() {
       var rv = '';
       function foo(api) { 
         api.integer_stream { |x|
@@ -399,9 +396,9 @@ context() {||
         rv += foo(api);
       }
       assert.eq(rv, '012345678910done');
-    }
+    });
 
-    test('blocklambda_return_async') {||
+    test('blocklambda_return_async', function() {
       var rv = '';
       function foo(api) { 
         api.integer_stream { |x|
@@ -417,10 +414,10 @@ context() {||
         rv += foo(api);
       }
       assert.eq(rv, '012345678910done');
-    }
+    });
 
 
-    test('blocklambda_return_slow') {||
+    test('blocklambda_return_slow', function() {
       var rv = '';
       function foo(api) { 
         (api.slowIntegers(0)) { |x|
@@ -433,9 +430,9 @@ context() {||
         rv += foo(api);
       }
       assert.eq(rv, '012345678910done');
-    }
+    });
 
-    test('blocklambda_break_1') {||
+    test('blocklambda_break_1', function() {
       var rv = '';
       function foo(api) { 
         api.integer_stream { |x|
@@ -448,9 +445,9 @@ context() {||
         rv += foo(api);
       }
       assert.eq(rv, '012345678910done');
-    }
+    });
 
-    test('blocklambda_break_2') {||
+    test('blocklambda_break_2', function() {
       var rv = '';
       require(url).connect() {|api|
         api.integer_stream { |x|
@@ -460,9 +457,9 @@ context() {||
         rv += 'done';
       }
       assert.eq(rv, '012345678910done');
-    }
+    });
 
-    test('blocklambda_break_async') {||
+    test('blocklambda_break_async', function() {
       var rv = '';
       require(url).connect() {|api|
         api.integer_stream { |x|
@@ -473,10 +470,10 @@ context() {||
         rv += 'done';
       }
       assert.eq(rv, '012345678910done');
-    }
-  }
+    });
+  });
 
-  context('synchronous_aborting') {||
+  context('synchronous_aborting', function() {
 
     /**
 
@@ -487,7 +484,7 @@ context() {||
 
      */
 
-    test('async_blbreak_blocking_finally_at_initiator') {||
+    test('async_blbreak_blocking_finally_at_initiator', function() {
       var rv = '';
       require(url).connect() { |api|
         api.integer_stream { |x|
@@ -506,9 +503,9 @@ context() {||
         rv += 'done'
       }
       assert.eq(rv,'012345678910Fdone');
-    }
+    });
 
-    test('blbreak_blocking_finally_at_initiator') {||
+    test('blbreak_blocking_finally_at_initiator', function() {
       var rv = '';
       require(url).connect() { |api|
         api.integer_stream { |x|
@@ -526,10 +523,10 @@ context() {||
         rv += 'done'
       }
       assert.eq(rv,'012345678910Fdone');
-    }
+    });
 
 
-    test('async_blbreak_blocking_finally_at_intermediate') {||
+    test('async_blbreak_blocking_finally_at_intermediate', function() {
       var rv = '';
       require(url).connect() { |api|
         api.blocking_finally(-> (rv+='c','ignore')) { ||
@@ -542,9 +539,9 @@ context() {||
         rv += 'd';
       }
       assert.eq(rv, 'abcd');
-    }
+    });
 
-    test('s_blbreak_blocking_finally_at_intermediate') {||
+    test('s_blbreak_blocking_finally_at_intermediate', function() {
       var rv = '';
       require(url).connect() { |api|
         api.blocking_finally(-> (rv+='c','ignore')) { ||
@@ -556,64 +553,52 @@ context() {||
         rv += 'd';
       }
       assert.eq(rv, 'abcd');
-    }
+    });
 
-    test('async_nested_blbreak_blocking_finally_at_intermediate') {||
+    test('async_nested_blbreak_blocking_finally_at_intermediate', function() {
       var rv = '';
       require(url).connect() { |api|
 
-        var block = { ||
-          rv += 'a';
-          hold(10);
-          rv += 'b';
-          break;
-          rv += 'x';
-        };
-
-        (function() {
+        (function(block) {
           api.blocking_finally(-> (rv+='c','ignore'), block);
           rv += 'y';
-        })();
-        rv += 'd';
-      }
-      assert.eq(rv, 'abcd');
-    }
-
-    test('async_complicated_nested_blbreak_blocking_finally_at_intermediate') {||
-      var rv = '';
-      require(url).connect() { |api|
-
-        var block = { ||
+        })({ ||
           rv += 'a';
           hold(10);
           rv += 'b';
           break;
           rv += 'x';
-        };
+        });
+        rv += 'd';
+      }
+      assert.eq(rv, 'abcd');
+    });
 
-        (function() {
-          var stratum = spawn api.blocking_finally(-> (rv+='c','ignore'), block);
-          hold();//stratum.value();
+    test('async_complicated_nested_blbreak_blocking_finally_at_intermediate', function() {
+      var rv = '';
+      require(url).connect() { |api|
+
+        (function(block) {
+          var stratum = reifiedStratum.spawn(-> api.blocking_finally(-> (rv+='c','ignore'), block));
+          hold();//stratum.wait();
           rv += 'y';
-        })();
-        rv += 'd';
-      }
-      assert.eq(rv, 'abcd');
-    }
-
-    test('async_nested_blbreak_blocking_finally_finally') {||
-      var rv = '';
-      require(url).connect() { |api|
-
-        var block = { ||
+        })({ ||
           rv += 'a';
           hold(10);
           rv += 'b';
           break;
           rv += 'x';
-        };
+        });
+        rv += 'd';
+      }
+      assert.eq(rv, 'abcd');
+    });
 
-        (function() {
+    test('async_nested_blbreak_blocking_finally_finally', function() {
+      var rv = '';
+      require(url).connect() { |api|
+
+        (function(block) {
           try {
             api.blocking_finally(-> (rv+='c','ignore'), block);
           }
@@ -622,45 +607,42 @@ context() {||
             rv += 'f';
           }
           rv += 'y';
-        })();
+        })({ ||
+          rv += 'a';
+          hold(10);
+          rv += 'b';
+          break;
+          rv += 'x';
+        });
         rv += 'd';
       }
       assert.eq(rv, 'abcfd');
-    }
+    });
 
 
-    test('s_nested_blbreak_blocking_finally_at_intermediate') {||
+    test('s_nested_blbreak_blocking_finally_at_intermediate', function() {
       var rv = '';
       require(url).connect() { |api|
 
-        var block = { ||
+        (function(block) {
+          api.blocking_finally(-> (rv+='c','ignore'), block);
+          rv += 'y';
+        })({ ||
           rv += 'a';
           rv += 'b';
           break;
           rv += 'x';
-        };
-
-        (function() {
-          api.blocking_finally(-> (rv+='c','ignore'), block);
-          rv += 'y';
-        })();
+        });
         rv += 'd';
       }
       assert.eq(rv, 'abcd');
-    }
+    });
 
-    test('s_nested_blbreak_blocking_finally_finally') {||
+    test('s_nested_blbreak_blocking_finally_finally', function() {
       var rv = '';
       require(url).connect() { |api|
 
-        var block = { ||
-          rv += 'a';
-          rv += 'b';
-          break;
-          rv += 'x';
-        };
-
-        (function() {
+        (function(block) {
           try {
             api.blocking_finally(-> (rv+='c','ignore'), block);
           }
@@ -668,15 +650,20 @@ context() {||
             rv += 'f';
           }
           rv += 'y';
-        })();
+        })({ ||
+          rv += 'a';
+          rv += 'b';
+          break;
+          rv += 'x';
+        });
         rv += 'd';
       }
       assert.eq(rv, 'abcfd');
-    }
+    });
 
 
     //--------------------------------------------------------------
-    test('s_blreturn_blocking_finally_at_intermediate') {||
+    test('s_blreturn_blocking_finally_at_intermediate', function() {
       var rv = '';
       require(url).connect() { |api|
         function test() {
@@ -692,10 +679,10 @@ context() {||
         hold(100);
       }
       assert.eq(rv, 'abcd');
-    }
+    });
     //--------------------------------------------------------------
 
-    test('async_blreturn_blocking_finally_at_intermediate') {||
+    test('async_blreturn_blocking_finally_at_intermediate', function() {
       var rv = '';
       require(url).connect() { |api|
         function test() {
@@ -712,10 +699,10 @@ context() {||
         //hold(1000);
       }
       assert.eq(rv, 'abcd');
-    }
+    });
 
     //--------------------------------------------------------------
-    test('s_blreturn_blocking_finally_at_intermediate_2') {||
+    test('s_blreturn_blocking_finally_at_intermediate_2', function() {
       var rv = '';
       require(url).connect() { |api|
         function test() {
@@ -736,10 +723,10 @@ context() {||
         hold(100);
       }
       assert.eq(rv, 'abcfd');
-    }
+    });
     //--------------------------------------------------------------
 
-    test('async_blreturn_blocking_finally_at_intermediate_2') {||
+    test('async_blreturn_blocking_finally_at_intermediate_2', function() {
       var rv = '';
       require(url).connect() { |api|
         function test() {
@@ -761,48 +748,45 @@ context() {||
         //hold(1000);
       }
       assert.eq(rv, 'abcfd');
-    }
+    });
 
-    test('async_nested_blreturn_blocking_finally_at_intermediate') {||
+    test('async_nested_blreturn_blocking_finally_at_intermediate', function() {
       var rv = '';
       require(url).connect() { |api|
 
         (function() {
 
-          var block = { ||
+          (function(block) {
+            api.blocking_finally(-> (rv+='c','ignore'), block);
+            rv += 'y';
+          })({ ||
             rv += 'a';
             hold(10);
             rv += 'b';
             return;
             rv += 'x';
-          };
-          
-          (function() {
-            api.blocking_finally(-> (rv+='c','ignore'), block);
-            rv += 'y';
-          })();
+          });
           rv += 'z';
         })();
         rv += 'd';
       }
       assert.eq(rv, 'abcd');
-    }
+    });
 
-    test('async_nested_blreturn_blocking_finally_at_intermediate_2') {||
+    test('async_nested_blreturn_blocking_finally_at_intermediate_2', function() {
       var rv = '';
       require(url).connect() { |api|
 
         (function() {
           
           (function() {
-            var block = { ||
+            api.blocking_finally(-> (rv+='c','ignore'), { ||
               rv += 'a';
               hold(10);
               rv += 'b';
               return;
               rv += 'x';
-            };
-            api.blocking_finally(-> (rv+='c','ignore'), block);
+            });
             rv += 'y';
           })();
           rv += 'z';
@@ -810,35 +794,33 @@ context() {||
         rv += 'd';
       }
       assert.eq(rv, 'abczd');
-    }
+    });
 
-    test('async_complicated_nested_blreturn_blocking_finally_at_intermediate') {||
+    test('async_complicated_nested_blreturn_blocking_finally_at_intermediate', function() {
       var rv = '';
       function test() {
         require(url).connect() { |api|
           
-          var block = { ||
+          (function(block) {
+            var stratum = reifiedStratum.spawn(-> api.blocking_finally(-> (rv+='c','ignore'), block));
+            hold();//stratum.wait();
+            rv += 'y';
+          })({ ||
             rv += 'a';
             hold(10);
             rv += 'b';
             return 'r';
             rv += 'x';
-          };
-          
-          (function() {
-            var stratum = spawn api.blocking_finally(-> (rv+='c','ignore'), block);
-            hold();//stratum.value();
-            rv += 'y';
-          })();
+          });
           rv += 'd';
         }
         rv += 'e';
       }
       rv += test();
       assert.eq(rv, 'abcr');
-    }
+    });
 
-    test('blreturn_across_nested_bridge_calls') { ||
+    test('blreturn_across_nested_bridge_calls', function() {
       var rv = '';
 
       function test() {
@@ -875,14 +857,14 @@ context() {||
 
       rv += test();
       assert.eq(rv, '*gGiIoOR');
-    }
+    });
 
-    test('blreturn_across_nested_spawned_bridge_calls') { ||
+    test('blreturn_across_nested_spawned_bridge_calls', function() {
       var rv = '';
 
       function spawn_and_wait(id, block) {
         try {
-          (spawn block()).value();
+          reifiedStratum.spawn(block).wait();
         }
         finally {
           rv += id;
@@ -917,14 +899,14 @@ context() {||
 
       rv += test();
       assert.eq(rv, '*gGiIoOR');
-    }
+    });
 
-    test('blbreak_across_nested_spawned_bridge_calls') { ||
+    test('blbreak_across_nested_spawned_bridge_calls', function() {
       var rv = '';
 
       function spawn_and_wait(id, block) {
         try {
-          (spawn block()).value();
+          reifiedStratum.spawn(block).wait();
         }
         finally {
           rv += id;
@@ -934,13 +916,7 @@ context() {||
       function test() {
         require(url).connect() { |api|
 
-          var blk = {
-            ||
-            hold(10);
-            rv += '*';
-            break;
-          }
-
+          (function(blk) {
           spawn_and_wait('O') {
             ||
             api.blocking_finally(->(rv+='o','ignore')) {
@@ -957,6 +933,12 @@ context() {||
               }
             }
           }
+          })({
+            ||
+            hold(10);
+            rv += '*';
+            break;
+          });
 
           return 'R';
         }
@@ -964,7 +946,7 @@ context() {||
 
       rv += test();
       assert.eq(rv, '*gGiIoOR');
-    }
+    });
 
 
     // XXX it's not quite clear what the semantics should be here.
@@ -990,22 +972,14 @@ context() {||
        console.log('b');
      }
     */    
-    test('async_complicated_nested_blbreak_blocking_finally_at_intermediate_throw') {||
+    test('async_complicated_nested_blbreak_blocking_finally_at_intermediate_throw', function() {
       var rv = '';
       require(url).connect() { |api|
 
-        var block = { ||
-          rv += 'a';
-          hold(10);
-          rv += 'b';
-          break;
-          rv += 'x';
-        };
-
-        (function() {
-          var stratum = spawn api.blocking_finally(function() { rv+='c'; throw new Error('finalizer_throw');}, block);
+        (function(block) {
+          var stratum = @sys.spawn(-> api.blocking_finally(function() { rv+='c'; throw new Error('finalizer_throw');}, block));
           try {
-            stratum.value();
+            stratum.capture();
           }
           catch(e) { assert.eq(String(e).split('\n')[0], 
                                'Error: finalizer_throw'); 
@@ -1014,14 +988,20 @@ context() {||
             rv += 'f';
           }
           rv += 'y';
-        })();
+        })({ ||
+          rv += 'a';
+          hold(10);
+          rv += 'b';
+          break;
+          rv += 'x';
+        });
         rv += 'd';
       }
       assert.eq(rv, 'abcCfyd');
-    }
+    });
 
     //----------------------------------------------------------------------
-    test('blklambda break in abort-finally') {||
+    test('blklambda break in abort-finally', function() {
       // This test used to hang
       require(url).connect() { |api|
         // have the other side call and abort f, but not return itself...
@@ -1036,14 +1016,14 @@ context() {||
           }
         }
       }
-    }
+    }).skip('_taskXXX FIXME');
 
-    test('blklambda return in abort-finally') {||
+    test('blklambda return in abort-finally', function() {
       // This test used to hang
       function foo() {
         require(url).connect() { |api|
           // have the other side call and abort f, but not return itself...
-          // only the 'break' will abort the outer call
+          // only the 'return' will abort the outer call
           api.callAbortHold { ||
             try { 
               hold();
@@ -1058,9 +1038,9 @@ context() {||
         return 'zzz';
       }
       assert.eq(foo(), 'xxx');
-    }
+    }).skip('_taskXXX FIXME');
 
-    test('exception in abort-finally') {||
+    test('exception in abort-finally', function() {
       // This test used to hang
       function foo() {
         require(url).connect() { |api|
@@ -1084,18 +1064,18 @@ context() {||
         rv = e;
       }
       assert.eq(rv, 'xxx');
-    }
-  }
+    });
+  });
 
-  context('api modules') {||
+  context('api modules', function() {
 
-    test('returns API') {||
+    test('returns API', function() {
       var rv;
       require(url).connect(a -> rv = a.ping());
       rv .. assert.eq('pong');
-    }
+    });
 
-    test('reestablishes connection') {||
+    test('reestablishes connection', function() {
       var log = [];
       require(url).connect({status:true}) {|api, connection|
         var status = connection.status;
@@ -1119,22 +1099,22 @@ context() {||
         'ping', 'pong',
         'ping', 'disconnected', 'connected', /* no pong; it was aborted */
         'ping', 'pong']);
-    }.skip("Currently aborts entire connection, to err on safe side (workaround for uncaught errors in strata)");
+    }).skip("Currently aborts entire connection, to err on safe side (workaround for uncaught errors in strata)");
 
-    test("serves .api from relative directory") {||
+    test("serves .api from relative directory", function() {
       // hello.api is configured to be served from "./test",
       // not cwd() + '/test':
       require(helper.url('hello.api')).connect {|api|
         api.hello() .. assert.eq("world!");
       }
-    }
+    });
 
 
-    context('multiple clients') {||
+    context('multiple clients', function() {
       var driver = require('sjs:xbrowser/driver');
       var { Driver } = driver;
 
-      test.beforeEach {|s|
+      test.beforeEach(function(s) {
         assert.ok(prefix);
         var fixtureUrl = Url.normalize('./fixtures/bridgeClient.html?root=' + prefix, module.id);
         s.drivers = [];
@@ -1147,25 +1127,22 @@ context() {||
           c.lib = driver.waitforCondition(-> c.driver.window().stdlib);
           return c;
         }
-      }
+      });
 
-      test.afterEach {|s|
+      test.afterEach(function(s) {
         s.drivers .. each (function(c) {
           console.log("END OF client");
         });
         s.drivers .. each(d -> d.__finally__());
-      }
+      });
 
-    }.browserOnly().timeout(15);
-  }
-}
+    }).browserOnly().timeout(15);
+  });
+});
 
-context("non-root locations") {||
-  @withBackgroundServices {
-    |background_session|
-
-    test.beforeAll {|s|
-      s.server = background_session.runService(function(scope) {
+context("non-root locations", function() {
+    test.beforeAll:: function(s) {
+      s.server = @runGlobalBackgroundService(function(scope) {
         var ready = @Condition();
         waitfor {
           require('./fixtures/bridge-proxy.mho').serve([], ready);
@@ -1178,12 +1155,12 @@ context("non-root locations") {||
       });
     }
     
-    test.afterAll {|s|
+    test.afterAll(function(s) {
       s.server[1](); // terminate server
-    }
+    });
     
     var testResolve = function(dest, path, expectedRelative) {
-      return test(dest + path) {|s|
+      return test(dest + path, function(s) {
         var port = s.ports[0];
         var url = "http://localhost:#{port}#{dest}#{path}bridge.api";
         logging.info("Resolving: #{url}");
@@ -1193,10 +1170,10 @@ context("non-root locations") {||
         var expected = "http://localhost:#{port}#{dest}";
         @url.normalize(resolved.root, url) .. @assert.eq(expected);
         resolved.root .. assert.eq(expectedRelative);
-      }
+      });
     }
     
-    context("proxied API maintains relative address") {||
+    context("proxied API maintains relative address", function() {
       testResolve('/proxy/', '', './');
       testResolve('/proxy/', 'double/prefix/', '../../');
       testResolve('/proxy/', 'nested/prefix/', '../../');
@@ -1207,28 +1184,27 @@ context("non-root locations") {||
       // non-canonical URLs are unlikely, but can probably happen:
       testResolve('/proxy/', 'parent/fixtures/../fixtures/', '../../');
       testResolve('/proxy/', 'parent//fixtures/../fixtures/', '../../');
-    }
+    });
     
-    context("redirected API maintains relative address") {||
+    context("redirected API maintains relative address", function() {
       testResolve('/redirect/', 'double/prefix/', '../../');
-    }
+    });
     
-    test("custom bridgeRoot") {|s|
+    test("custom bridgeRoot", function(s) {
       var [proxyPort, canonicalPort] = s.ports;
       var url = "http://localhost:#{proxyPort}/canonicalize/bridge.api";
       logging.info("Resolving: #{url}");
       var resolved = bridge.resolve(url);
       resolved.server .. assert.eq("http://example.com/rpc/");
-    }
-  } // background_session
-}.serverOnly();
+    });
+}).serverOnly();
 
-context("garbage collection") {||
+context("garbage collection", function() {
   var singleton = function(a) {
     a.length .. @assert.eq(1, `expected a singleton, got $a`);
     return a[0];
   }
-  @test("deletion of published functions") {||
+  @test("deletion of published functions", function() {
     require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|
       function forceRefreshNumFunctions() {
         global.gc();
@@ -1249,9 +1225,9 @@ context("garbage collection") {||
       funcs = null;
       @assert.eq(forceRefreshNumFunctions(), initialFuncs);
     }
-  }.skipIf(!global.gc, "pass --expose-gc to node if you want to run this test");
+  }).skipIf(!global.gc, "pass --expose-gc to node if you want to run this test");
 
-  @test("connections are dropped on disconnect") {||
+  @test("connections are dropped on disconnect", function() {
     require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|
       api.numConnections() .. @assert.eq(1);
       require(@helper.url('test/integration/fixtures/resource-usage.api')).connect {|api|
@@ -1261,6 +1237,6 @@ context("garbage collection") {||
       hold(100);
       api.numConnections() .. @assert.eq(1);
     }
-  }
-}.serverOnly();
+  });
+}).serverOnly();
 

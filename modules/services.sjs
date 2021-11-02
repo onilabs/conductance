@@ -290,7 +290,7 @@ function withServices(settings, block) {
           gRunningInstances[instance_name] = run_info = { 
             ref_count: 0,
             api: @Condition(),
-            stratum: spawn (function() { 
+            stratum: _task (function() { 
               try { 
                 hold(0); 
 

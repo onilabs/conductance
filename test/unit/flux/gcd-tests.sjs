@@ -1,8 +1,8 @@
 @ = require('sjs:test/std');
-@context {||
+@context(function() {
   @gcd = require('mho:flux/gcd');
-  @context("JS -> GCD conversion") {||
-    @context("array values") {||
+  @context("JS -> GCD conversion", function() {
+    @context("array values", function() {
       var schemas = {
         Data: {
           array_values: [ { __type: 'string', } ],
@@ -24,7 +24,7 @@
         return rv.data;
       }
 
-      @test("are flattened") {||
+      @test("are flattened", function() {
         var source = {
           array_values: [ "one", "two", "three" ]
         };
@@ -40,9 +40,9 @@
         });
 
         roundtrip(source) .. @assert.eq(source);
-      }
+      });
 
-      @test("disallows gaps") {||
+      @test("disallows gaps", function() {
         ;[
           [ undefined, "two" ],
           [ "one", undefined ],
@@ -52,9 +52,8 @@
             array_values: example,
           }));
         }
-      }
-
-      @test("allows undefined if all values are undefined") {||
+      });
+      @test("allows undefined if all values are undefined", function() {
         var source = {
           array_values: [ undefined, undefined, undefined ],
         };
@@ -62,10 +61,10 @@
         convert(source).properties .. @assert.eq({});
 
         roundtrip(source) .. @assert.eq({});
-      }
-    }
+      });
+    });
 
-    @context("array sub-properties") {||
+    @context("array sub-properties", function() {
       var schemas = {
         Data: {
           array_values: [ {
@@ -91,7 +90,7 @@
         return rv.data;
       }
 
-      @test("are flattened") {||
+      @test("are flattened", function() {
         var source = {
           array_values: [
             { first: "f1", middle: "m1", last: "l1" },
@@ -128,9 +127,9 @@
           });
 
         roundtrip(source) .. @assert.eq(source);
-      }
+      });
 
-      @test("disallows gaps") {||
+      @test("disallows gaps", function() {
         ;[
           [
             { first: "f1", middle: "m1", last: "l1" },
@@ -148,9 +147,9 @@
             }));
           }
         }
-      }
+      });
 
-      @test("allows undefined if all values are undefined") {||
+      @test("allows undefined if all values are undefined", function() {
         var source;
         
         source = {
@@ -190,15 +189,15 @@
 
         roundtrip(source) .. @assert.eq({});
 
-      }
+      });
 
-      @test("an object with no defined properties is treated as undefined") {||
+      @test("an object with no defined properties is treated as undefined", function() {
         // this is not necessarily desired, but worth documenting:
         roundtrip({array_values: [ {} ] }) .. @assert.eq({});
-      }
-    }
+      });
+    });
 
-    @context("array nested sub-properties") {||
+    @context("array nested sub-properties", function() {
       var schemas = {
         Data: {
           array_values: [ {
@@ -226,7 +225,7 @@
         return rv.data;
       }
 
-      @test("are flattened") {||
+      @test("are flattened", function() {
         var source = {
           array_values: [
             { first: { lower: "f1", upper: "F1" }, last: "l1"},
@@ -263,9 +262,9 @@
           });
 
         roundtrip(source) .. @assert.eq(source);
-      }
+      });
 
-      @test("disallows gaps") {||
+      @test("disallows gaps", function() {
         ;[
           [
             { first: {lower: "f1", upper: "F1"}, last: "l1" },
@@ -287,9 +286,9 @@
             }));
           }
         }
-      }
+      });
 
-      @test("allows undefined if all values are undefined") {||
+      @test("allows undefined if all values are undefined", function() {
         var source;
         
         source = {
@@ -352,13 +351,13 @@
 
         roundtrip(source) .. @assert.eq({});
 
-      }
+      });
 
-      @test("an object with no defined properties is treated as undefined") {||
+      @test("an object with no defined properties is treated as undefined", function() {
         // this is not necessarily desired, but worth documenting:
         roundtrip({array_values: [ {} ] }) .. @assert.eq({});
-      }
-    }
+      });
+    });
   }
-}.serverOnly();
+)}).serverOnly();
 

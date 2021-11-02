@@ -1,29 +1,29 @@
 @ = require('sjs:test/std');
 @env = require('mho:env');
 
-@context('environment') {||
-  @test('value') {||
+@context('environment', function() {
+  @test('value', function() {
     @env.value('val1', 'one');
     @env.get('val1') .. @assert.eq('one');
     @assert.raises( -> @env.get('val2'));
-  }
+  });
 
-  @test('factory') {||
+  @test('factory', function() {
     var val=1;
     @env.factory('val', -> val++);
     @env.get('val') .. @assert.eq(1);
     @env.get('val') .. @assert.eq(2);
-  }
+  });
 
-  @test('lazy') {||
+  @test('lazy', function() {
     var val=1;
     @env.lazy('val', -> val++);
     @env.get('val') .. @assert.eq(1);
     @env.get('val') .. @assert.eq(1);
-  }
+  });
 
-  @context('dependencies') {||
-    @test.beforeEach {||
+  @context('dependencies', function() {
+    @test.beforeEach:: function() {
       @env.log = [];
 
       @env.factory('c', function(reg) {
@@ -48,7 +48,7 @@
       @env.value('v', 'val');
     }
 
-    @test('recursive lazy dependencies are evaluated as needed') {||
+    @test('recursive lazy dependencies are evaluated as needed', function() {
       @env.get('c') .. @assert.eq('c');
       @env.log .. @assert.eq(['a','b','c']);
 
@@ -56,9 +56,9 @@
       @env.get('b') .. @assert.eq('b');
       @env.get('c') .. @assert.eq('c');
       @env.log .. @assert.eq(['a','b','c','c']);
-    }
+    });
 
-    @test('clearCached') {||
+    @test('clearCached', function() {
       @env.get('c') .. @assert.eq('c');
       @env.log .. @assert.eq(['a','b','c']);
 
@@ -66,9 +66,9 @@
 
       @env.get('c') .. @assert.eq('c');
       @env.log .. @assert.eq(['a','b','c','a','b','c']);
-    }
+    });
 
-    @test('clearCached with explicit keys') {||
+    @test('clearCached with explicit keys', function() {
       @env.get('c') .. @assert.eq('c');
       @env.log .. @assert.eq(['a','b','c']);
 
@@ -80,16 +80,16 @@
       @env.clearCached(['b','c']);
       @env.get('c') .. @assert.eq('c');
       @env.log .. @assert.eq(['a','b','c','c','b','c']);
-    }
+    });
 
-    @test('clearCached on missing key') {||
+    @test('clearCached on missing key', function() {
       @assert.raises({message: /^Key 'foo' not found in <#Environment.*/}, -> @env.clearCached('foo'));
-    }
-  }
+    });
+  });
     
-  @test('calling module as a shortcut for get()') {||
+  @test('calling module as a shortcut for get()', function() {
     @env.set('val', 123);
     @env('val') .. @assert.eq(123);
-  }
+  });
 
-}
+});

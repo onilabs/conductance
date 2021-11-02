@@ -286,12 +286,12 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
     }
   });
 
-  spawn @generate(Math.random) ..@each(function (x) {
+  _task @generate(Math.random) ..@each(function (x) {
     percent.set(x * 100);
     hold(2000);
   });
 
-  spawn (function () {
+  _task (function () {
     while (true) {
       hold(4000);
       if (animate.get()) {

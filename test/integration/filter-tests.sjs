@@ -1,12 +1,12 @@
 @ = require('sjs:test/std');
 @helper = require('../helper');
 
-@context {||
+@context(function() {
   var getter = (url) -> (etag, headers) -> @http.get(
     [url, {'etag': etag}],
     {response: 'full', 'throwing': false, headers: headers || {}})
 
-  @test("EtagFilter") {||
+  @test("EtagFilter", function() {
     var url = @helper.url('etagRoute');
     var get = getter(url);
     var response;
@@ -32,6 +32,6 @@
     response = get('tag1', headers);
     response.status .. @assert.eq(304);
     response.content .. @assert.falsy();
-  }
+  });
 
-}.serverOnly();
+}).serverOnly();

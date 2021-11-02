@@ -1,9 +1,9 @@
 @ = require('sjs:test/std');
 
-@context {||
+@context(function() {
   var { @TemporaryFile} = require('sjs:nodejs/tempfile');
   @env = require('mho:env');
-  @test("bundle") {||
+  @test("bundle", function() {
     @TemporaryFile {|{path, close}|
       close();
       @fs.unlink(path);
@@ -14,5 +14,5 @@
         '--output', path], {stdio:'inherit'});
       path .. @fs.exists .. @assert.ok();
     }
-  }
-}.serverOnly();
+  });
+}).serverOnly();

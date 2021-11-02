@@ -50,7 +50,7 @@ __js {
 //----------------------------------------------------------------------
 // default transport sink (for testing):
 function defaultTransportSink(transport) {
-  spawn (function() {
+  _task (function() {
     try {
       while (1) {
         var message = transport.receive();
@@ -58,7 +58,7 @@ function defaultTransportSink(transport) {
         if (message == 'time')
           transport.send(new Date());
         else if (message == 'delay') 
-          spawn (hold(1000),transport.send('delayed!'));
+          _task (hold(1000),transport.send('delayed!'));
       }
     }
     catch (e) {
@@ -230,7 +230,7 @@ function createTransport(finish) {
       delete transports[this.id];
       this.active = false;
       if (this._reaper) {
-        spawn this._reaper.abort();
+        _task this._reaper.abort();
         this._reaper = null;
       }
       if (resume_receive)
@@ -261,7 +261,7 @@ function createTransport(finish) {
     transport.__finally__();
   }
 
-  transport._reaper = spawn reaper();
+  transport._reaper = _task reaper();
 
   transports[transport.id] = transport;
 

@@ -6,40 +6,40 @@ var helper = require('../helper');
 
 var rel = p -> helper.url('test/integration/fixtures/' + p);
 
-context("serving files") {||
-	test("Listing a directory with special characters") {||
+context("serving files", function() {
+	test("Listing a directory with special characters", function() {
 		var contents = http.get(rel(''));
 		contents .. assert.contains('<a href="%2520special%20characters/">%20special characters/</a>');
-	}
+	});
 
-	test("Listing a file with special characters") {||
+	test("Listing a file with special characters", function() {
 		var contents = http.get(rel(url.encode('%20special characters') + '/'));
 		contents .. assert.contains('<a href="%2520awkward%20%252f%20characters.sjs">%20awkward %2f characters.sjs</a>');
-	}
+	});
 
-	test("Accessing a file with special characters") {||
+	test("Accessing a file with special characters", function() {
 		// will raise if there's an http error
 		http.get(rel(url.encode('%20special characters') + '/' + url.encode('%20awkward %2f characters.sjs'))) .. assert.ok();
-	}
+	});
 
-	test("Accessing a file outside the document root") {||
+	test("Accessing a file outside the document root", function() {
 		assert.raises(
 			{filter: e -> e.status === 404},
 			-> http.get(rel('../../../../../etc/hosts')));
-	}
+	});
 
-	test("Accessing a path containing encoded slashes") {||
+	test("Accessing a path containing encoded slashes", function() {
 		assert.raises({filter: e -> e.status === 404}, -> http.get(rel('%2f')));
 		assert.raises({filter: e -> e.status === 404}, -> http.get(rel('%2F')));
-	}.skipIf(isBrowser);
+	}).skipIf(isBrowser);
 
-	test("Accessing a file outside the document root (encoded path components)") {||
+	test("Accessing a file outside the document root (encoded path components)", function() {
 		assert.raises(
 			{filter: e -> e.status === 404},
 			-> http.get(rel('%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/hosts')));
-	}.skipIf(isBrowser);
+	}).skipIf(isBrowser);
 
-	test("Can't access source code of .api files") {||
+	test("Can't access source code of .api files", function() {
 		var executable_url = rel('hello.api');
 		var code_url = executable_url.replace('/test/','/test_as_code/');
 		code_url .. @assert.notEqual(executable_url);
@@ -57,21 +57,21 @@ context("serving files") {||
 				contents .. assert.notContains('is_source_code', "raw api contents served at #{url}");
 			}
 		}
-	}
+	});
 
-	test("Can't access source code of .gen files") {||
+	test("Can't access source code of .gen files", function() {
 		var url = rel('hello.txt');
 		http.get(url) .. assert.eq('world!');
     var contents = http.get(url + '.gen');
     contents .. assert.notContains('world', "raw .gen contents served at #{url}");
-	}
-}
+	});
+});
 
 // TODO
-context("Server only") {||
+context("Server only", function() {
 	var { contents } = require("sjs:nodejs/stream");
 
-	test("gzipping a large file") {||
+	test("gzipping a large file", function() {
 		var size = 1024 * 50;
 		var rv = http.get(rel("bigfile.txt?size=#{size}"), {
 			headers: {'accept-encoding':'gzip'},
@@ -82,9 +82,9 @@ context("Server only") {||
 		var expected = require('./fixtures/bigfile.txt.gen').build(size);
 		contents.length .. @assert.eq(expected.length);
 		contents .. @assert.eq(expected);
-	}
+	});
 
-	test("Range requests") {||
+	test("Range requests", function() {
 		var length = 6;
 		var file = "hello.txt";
 
@@ -140,9 +140,9 @@ context("Server only") {||
 		test_failure(1, 0);
 		test_failure(6, 7);
 		test_failure("", 0);
-	};
+	});;
 
-	test("HEAD") {||
+	test("HEAD", function() {
 		var rv = http.request(rel("hello.txt"), {
 			method: 'HEAD',
 			response: 'raw'
@@ -150,5 +150,5 @@ context("Server only") {||
 
 		@assert.eq(rv.statusCode, 200);
 		@assert.eq(rv ..contents ..@join(), '');
-	};
-}.serverOnly();
+	});
+}).serverOnly();

@@ -29,12 +29,12 @@
 // XXX This is useful for many nodejs libs that don't provide a way to
 // abort acquisition, so it should go into some common library
 function delayed_retract(uninterrupted_acquire, delayed_retract) {
-  var resource = spawn uninterrupted_acquire();
+  var resource = _task uninterrupted_acquire();
   try {
     return resource.value();
   }
   retract {
-    spawn delayed_retract(resource.value());
+    _task delayed_retract(resource.value());
   }
 }
 

@@ -103,7 +103,7 @@ var resourceRegistry = {
         if (desc.mechanism) {
           withDOMContext(desc.elem) {
             ||
-            desc.elem.__oni_mech = spawn(desc.mechanism.call(desc.elem, desc.elem));
+            desc.elem.__oni_mech = _task(desc.mechanism.call(desc.elem, desc.elem));
           }
         }
         if (def.waitforLoading) {
@@ -296,7 +296,7 @@ function insertHtml(html, block, doInsertHtml) {
     // let's start them:
     mechs .. PrioritySet_stream .. @each {
       |[elem, mech]|
-      var s = spawn withDOMContext(elem) { || mech.func.call(elem, elem) };
+      var s = _task withDOMContext(elem) { || mech.func.call(elem, elem) };
       elem.__oni_mechs.push(s);
       started_mechs.push(s);
     };
@@ -721,7 +721,7 @@ function OnClick(html, opts, f) {
     f = opts;
     opts = undefined;
   }
-  return html .. On('click', opts, function(ev) { var S = spawn f(ev); return S.value();});
+  return html .. On('click', opts, function(ev) { var S = _task f(ev); return S.value();});
 }
 exports.OnClick = OnClick;
 

@@ -48,7 +48,7 @@ exports.main = function(client, serverId, singleton) {
 			if (singleton || owned .. @hasElem(id)) {
 				info("adopting already-running app: #{id}");
 				owned .. @remove(id);
-				spawn(appRunLoop(client, serverId, info, app, id, withLoad, true));
+				_task(appRunLoop(client, serverId, info, app, id, withLoad, true));
 			} else {
 				@warn(`slave ${serverId} ignoring running app $id (owned by another slave, and singleton is false)`);
 			}
@@ -267,6 +267,6 @@ function discoverNewRequests(client, serverId, info, withLoad) {
 		info("starting job for app #{id}");
 		var app = getLocalAppState(id);
 		// XXX make this waitable?
-		spawn(appRunLoop(client, serverId, info, app, id, withLoad, false));
+		_task(appRunLoop(client, serverId, info, app, id, withLoad, false));
 	}
 }

@@ -1,7 +1,7 @@
 @ = require('sjs:test/std');
 @env = require('mho:env');
 
-@context{||
+@context(function() {
   var { @mkdirp } = require('sjs:nodejs/mkdirp');
   var killProc = function(proc) {
     if(!proc) {
@@ -59,7 +59,7 @@
       @childProcess.run('cp', ['-aL', src, dest]);
     };
 
-  @test("supports conductance installed in a path with special characters") {|s|
+  @test("supports conductance installed in a path with special characters", function(s) {
     // There are various other exotic sequences that nodemon will probably
     // fail on, as its parsing code is complex and doesn't follow any
     // particular standard. But we mostly care about spaces.
@@ -141,9 +141,9 @@
         killProc(proc);
       }
     }
-  }.timeout(20); // a lot of files to copy, can be slow (esp. on a windows VM)
+  }).timeout(20); // a lot of files to copy, can be slow (esp. on a windows VM)
 
-  @context("long-running server") {||
+  @context("long-running server", function() {
     var base = @url.normalize('./fixtures/nodemon', module.id) .. @url.toPath;
     var expectStarts = function(proc, expected, block) {
       var restarts = 0;
@@ -187,7 +187,7 @@
     }
 
     var TO_REMOVE = [];
-    @test.beforeAll() {|s|
+    @test.beforeAll:: function(s) {
       if (base .. @contains(@path.sep + ".")) {
         // we're running from a hidden directory, so minimatch will
         // cause nodemmon to ignore everything. Let's make a tempfile instead
@@ -206,7 +206,7 @@
       }
     }
 
-    @test.afterAll() {|s|
+    @test.afterAll:: function(s) {
       s.proc .. killProc();
       if (TO_REMOVE.length > 0) {
         @childProcess.run('rm', ['-rf'].concat(TO_REMOVE), {stdio:'inherit'});
@@ -214,23 +214,23 @@
     }
 
     ;['api','sjs','js','mho','gen'] .. @each {|ext|
-      @test("restarts on .#{ext} change") {|s|
+      @test("restarts on .#{ext} change", function(s) {
         s.proc .. expectStarts(1) {|restarted|
           touch(@path.join(base, "file.#{ext}"));
           restarted .. @wait();
         }
-      }
+      });
     }
 
     ;['css','html'] .. @each {|ext|
-      @test("does not restart on .#{ext} change by default") {|s|
+      @test("does not restart on .#{ext} change by default", function(s) {
         s.proc .. expectStarts(0) {|restarted|
           touch(@path.join(base, "file.#{ext}"));
           hold(2000);
         }
-      }
+      });
     }
-  }
+  });
 
 
-}.serverOnly();
+}).serverOnly();

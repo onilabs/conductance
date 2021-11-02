@@ -4,7 +4,7 @@ exports.serve = function() {
     address: @Port(7079),
     routes: [
       @Route(/ping$/, {
-        "GET": function(req, matches) { req.response.end("Pong!"); spawn(function(){hold(0); process.exit(0);}()); }
+        "GET": function(req, matches) { req.response.end("Pong!"); _task(function(){hold(0); process.exit(0);}()); }
       }),
       @Route(/up$/, {
         "GET": function(req, matches) { req.response.end("ok"); }

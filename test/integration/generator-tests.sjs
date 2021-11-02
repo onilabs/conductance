@@ -1,14 +1,14 @@
 @ = require('sjs:test/std');
 @helper = require('../helper');
 
-@context {||
-  @context("caching") {||
+@context(function() {
+  @context("caching", function() {
 
     var getter = (url) -> (etag, headers) -> @http.get(
       [url, {'etag': etag}],
       {response: 'full', 'throwing': false, headers: headers || {}})
 
-    @test("without an etag") {||
+    @test("without an etag", function() {
       var url = @helper.url('test/integration/fixtures/counter.txt');
       var get = getter(url);
 
@@ -24,9 +24,9 @@
       // without an etag, the content function should always be called
       @info("req2");
       get().content .. @assert.eq('current: 1');
-    }
+    });
 
-    @test("custom etag") {||
+    @test("custom etag", function() {
       var url = @helper.url('test/integration/fixtures/etag');
       var get = getter(url);
       var response;
@@ -53,27 +53,27 @@
       response = get('tag1', headers);
       response.status .. @assert.eq(304);
       response.content .. @assert.falsy();
-    }
-  }
+    });
+  });
 
-  @context("custom filter") {||
-    @test("headers") {||
+  @context("custom filter", function() {
+    @test("headers", function() {
       var response = @http.get(@helper.url('test/integration/fixtures/custom-filter.txt'), {response:'full'});
       response.content .. @assert.eq("hello!");
       response.status .. @assert.eq(200);
       response.getHeader('x-gen-was-here') .. @assert.eq("yup");
       response.getHeader('content-type') .. @assert.eq("application/x-special-format");
       response.getHeader('cache-control') .. @assert.eq("private, max-age=10");
-    }
+    });
 
-    @test("alternate response") {||
+    @test("alternate response", function() {
       var response = @http.get(@helper.url('test/integration/fixtures/custom-filter.txt?redirect=/elsewhere'), {response:'full', throwing:false, max_redirects:0});
       response.status .. @assert.eq(302);
       response.getHeader('location') .. @assert.eq('/elsewhere');
-    }
-  }
+    });
+  });
 
-  @test("slow generator import race condition") {||
+  @test("slow generator import race condition", function() {
     if(!@helper.inProcessServer()) @skipTest("Can't be run against external server");
     var modulePath = require.resolve('./fixtures/slow_gen.txt.gen').path;
     var url = @helper.url('test/integration/fixtures/slow_gen.txt');
@@ -89,5 +89,5 @@
 
     // make sure modulePath was actually the path that got populated
     require.modules[modulePath].exports.content() .. @assert.eq(msg);
-  }
-}.serverOnly();
+  });
+}).serverOnly();

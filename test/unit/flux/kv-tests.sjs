@@ -394,7 +394,7 @@ function test_nested_transactions(db) {
 }
 
 function test_persistence(info) {
-  @test("persistence") {|s|
+  @test("persistence", function(s) {
     all(s.db) ..@assert.eq([]);
 
     s.db ..@kv.set('foo', 1);
@@ -414,7 +414,7 @@ function test_persistence(info) {
     else {
       localStorage[info.localStorage] ..@assert.eq(expected);
     }
-  }
+  });
 }
 
 function test_equal(db, new_db) {
@@ -432,8 +432,8 @@ function test_equal(db, new_db) {
 }
 
 function test_subspace() {
-  @context("subspace") {||
-    @test("init") {|s|
+  @context("subspace", function() {
+    @test("init", function(s) {
       all(s.db) ..@assert.eq([]);
       all(s.raw) ..@assert.eq([]);
 
@@ -451,9 +451,9 @@ function test_subspace() {
           db ..@kv.set('corge', 4);
         });
       });
-    }
+    });
 
-    @test("query") {|s|
+    @test("query", function(s) {
       all(s.db) ..@assert.eq([[['corge'], 4],
                               [['foo'], 1],
                               [['foo', 'bar'], 2],
@@ -481,9 +481,9 @@ function test_subspace() {
                                                            [['foobar', 0, 'foo'], 1],
                                                            [['foobar', 0, 'foo', 'bar'], 2],
                                                            [['foobar', 0, 'qux'], 3]]);
-    }
+    });
 
-    @test("get") {|s|
+    @test("get", function(s) {
       s.db ..@kv.get('foo') ..@assert.eq(1);
       s.db ..@kv.get(['foo', 'bar']) ..@assert.eq(2);
       s.db ..@kv.get('qux') ..@assert.eq(3);
@@ -493,9 +493,9 @@ function test_subspace() {
       s.raw ..@kv.get(['foobar', 0, 'foo', 'bar']) ..@assert.eq(2);
       s.raw ..@kv.get(['foobar', 0, 'qux']) ..@assert.eq(3);
       s.raw ..@kv.get(['foobar', 0, 'corge']) ..@assert.eq(4);
-    }
+    });
 
-    @test("sub-subspace") {|s|
+    @test("sub-subspace", function(s) {
       var sub = @kv.Subspace(s.db, 'nou');
 
       sub ..@kv.set('foo', 10);
@@ -534,13 +534,13 @@ function test_subspace() {
                                [['foobar', 0, 'nou', 'foo'], 10],
                                [['foobar', 0, 'nou', 'qux'], 30],
                                [['foobar', 0, 'qux'], 3]]);
-    }
-  }
+    });
+  });
 }
 
 function test_encryption() {
-  @context("encryption") {||
-    @test("init") {|s|
+  @context("encryption", function() {
+    @test("init", function(s) {
       all(s.db) ..@assert.eq([]);
       all(s.raw) ..@assert.eq([]);
 
@@ -550,9 +550,9 @@ function test_encryption() {
       var expected = [[['bar'], 2], [['foo'], 1]];
       all(s.db) ..@assert.eq(expected);
       all(s.raw) ..@assert.notEq(expected);
-    }
+    });
 
-    @test("same value") {|s|
+    @test("same value", function(s) {
       var enc_foo = s.db ..@kv.get('foo');
       var raw_foo = s.raw ..@kv.get('foo');
 
@@ -564,21 +564,21 @@ function test_encryption() {
       s.db ..@kv.get('foo') ..@assert.eq(enc_foo);
       s.raw ..@kv.get('foo') ..@assert.notEq(enc_foo);
       s.raw ..@kv.get('foo') ..@assert.notEq(raw_foo);
-    }
+    });
 
-    @test("same password") {|s|
+    @test("same password", function(s) {
       var new_db = @kv.Encrypted(s.raw, { password: 'foobar' });
 
       new_db ..@kv.get('foo') ..@assert.eq(1);
-    }
+    });
 
-    @test("different password") {|s|
+    @test("different password", function(s) {
       var new_db = @kv.Encrypted(s.raw, { password: 'different_password' });
 
       @assert.raises(-> new_db ..@kv.get('foo'));
-    }
+    });
 
-    @test("transactions") {|s|
+    @test("transactions", function(s) {
       s.db ..@kv.set('foo', 5);
 
       var foo = s.db ..@kv.withTransaction(function (db) {
@@ -603,14 +603,14 @@ function test_encryption() {
 
       s.db ..@kv.get('foo') ..@assert.eq(15);
       s.raw ..@kv.get('foo') ..@assert.notEq(15);
-    }
-  }
+    });
+  });
 }
 
 function test_all(new_db) {
-  @test("withTransaction") { |s| s.db .. test_transaction }
-  @test("equal")           { |s| s.db .. test_equal(new_db(s)) }
-  @test("transactionalquery") { |s| s.db .. test_transactional_query }
+  @test("withTransaction", function(s) { s.db .. test_transaction });
+  @test("equal", function(s) { s.db .. test_equal(new_db(s)) });
+  @test("transactionalquery", function(s) { s.db .. test_transactional_query });
 
   // For all these tests, we run them both inside & outside
   // of a transaction block
@@ -619,103 +619,103 @@ function test_all(new_db) {
     ["withTransaction", (s, block) -> s.db .. @kv.withTransaction(block)],
     ["withTransaction^2", (s, block) -> s.db ..@kv.withTransaction(db -> db ..@kv.withTransaction(block))]
   ] .. @each {|[desc, wrap]|
-    @context(desc) {||
-      @test("value types") { |s| s .. wrap(test_value_types) }
-      @test("key types")   { |s| s .. wrap(test_key_types)   }
-      @test("large key")   { |s| s .. wrap(test_large_key)   }
-      @test("large value") { |s| s .. wrap(test_large_value) }.serverOnly()
-      @test("clear")       { |s| s .. wrap(test_clear)       }
-      @test("get")         { |s| s .. wrap(test_get)         }
-      @test("range_query") { |s| s .. wrap(test_range_query) }
-      @test("concurrent_mod_and_query") { |s| s .. wrap(test_concurrent_mod_and_query) }
-      @test("reverse_range_query") { |s| s .. wrap(test_reverse_range_query) }
-      @test("child_query") { |s| s .. wrap(test_child_query) }
-      @test("nested transactions") { |s| s .. wrap(test_nested_transactions) }.skip("TODO")
-    }
+    @context(desc, function() {
+      @test("value types", function(s) { s .. wrap(test_value_types) });
+      @test("key types", function(s) { s .. wrap(test_key_types)   });
+      @test("large key", function(s) { s .. wrap(test_large_key)   });
+      @test("large value", function(s) { s .. wrap(test_large_value) }).serverOnly();
+      @test("clear", function(s) { s .. wrap(test_clear)       });
+      @test("get", function(s) { s .. wrap(test_get)         });
+      @test("range_query", function(s) { s .. wrap(test_range_query) });
+      @test("concurrent_mod_and_query", function(s) { s .. wrap(test_concurrent_mod_and_query) });
+      @test("reverse_range_query", function(s) { s .. wrap(test_reverse_range_query) });
+      @test("child_query", function(s) { s .. wrap(test_child_query) });
+      @test("nested transactions", function(s) { s .. wrap(test_nested_transactions) }).skip("TODO");
+    });
   }
 }
 
 //----------------------------------------------------------------------
 
-@context {||
-  @context("LocalDB (memory)") {||
-    @test.beforeAll {|s|
+@context(function() {
+  @context("LocalDB (memory)", function() {
+    @test.beforeAll(function(s) {
       s.db = @kv.LocalDB();
-    }
+    });
 
     test_all(s -> s.db);
-  }
+  });
 
-  @context("Encrypted (memory)") {||
-    @test.beforeAll {|s|
+  @context("Encrypted (memory)", function() {
+    @test.beforeAll(function(s) {
       s.raw = @kv.LocalDB();
       s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
-    }
+    });
 
     test_encryption();
     test_all(s -> s.db);
-  }
+  });
 
-  @context("Subspace") {||
-    @test.beforeAll {|s|
+  @context("Subspace", function() {
+    @test.beforeAll(function(s) {
       s.raw = @kv.LocalDB();
       s.db = @kv.Subspace(s.raw, ['foobar', 0]);
-    }
+    });
 
     test_subspace();
     test_all(s -> @kv.Subspace(s.raw, ['foobar', 0]));
-  }
-};
+  });
+});;
 
-@context {||
-  @context("LocalDB (localStorage)") {||
-    @test.beforeAll {|s|
+@context(function() {
+  @context("LocalDB (localStorage)", function() {
+    @test.beforeAll(function(s) {
       s.db = @kv.LocalDB({ localStorage: 'local-test-db' });
-    }
+    });
 
-    @test.afterAll {|s|
+    @test.afterAll(function(s) {
       delete localStorage['local-test-db'];
-    }
+    });
 
     test_persistence({ localStorage: 'local-test-db' });
     test_all(s -> @kv.LocalDB({ localStorage: 'local-test-db' }));
-  }
+  });
 
-  @context("Encrypted (localStorage)") {||
-    @test.beforeAll {|s|
+  @context("Encrypted (localStorage)", function() {
+    @test.beforeAll(function(s) {
       s.raw = @kv.LocalDB({ localStorage: 'encrypted-test-db' });
       s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
-    }
+    });
 
-    @test.afterAll {|s|
+    @test.afterAll(function(s) {
       delete localStorage['encrypted-test-db'];
-    }
+    });
 
     test_encryption();
     test_all(s -> @kv.Encrypted(s.raw, { password: 'foobar' }));
-  }
-}.browserOnly();
+  });
+}).browserOnly();
 
-@context {||
+@context(function() {
   var obs = @ObservableVar('');
-  @context("LocalDB (string)") {||
-    @test.beforeAll {|s|
+  @context("LocalDB (string)", function() {
+    @test.beforeAll(function(s) {
       obs.set('');
       s.db = @kv.LocalDB({ string: obs });
-    }
+    });
 
     test_persistence({ string: obs });
     test_all(s -> /*@kv.LocalDB({ string: obs })*/s.db); // XXX two dbs with same 'string=obs' are **not** the same db (yet - maybe this behavior will be changed at some point)
-  }
-}
+  });
+});
 
-@test("LocalDB readonly") {||
+@test("LocalDB readonly", function() {
   var db = @kv.LocalDB({readonly: true});
   @assert.raises(-> db .. @kv.set('foo', 'bar'));
-}
+});
 
-@context {||
-  @test.beforeAll {|s|
+@context(function() {
+  @test.beforeAll(function(s) {
     s.root = @path.join(process.env['TEMPDIR'] || process.env['TEMP'] || '/tmp', 'sjs-fs-tests');
 
     // TODO code duplication with afterAll
@@ -725,46 +725,46 @@ function test_all(new_db) {
       @fs.mkdir(s.root);
     }
     s.path = -> @path.join.apply(null, [s.root].concat(arguments .. @toArray));
-  }
+  });
 
-  @test.afterAll {|s|
+  @test.afterAll(function(s) {
     @childProcess.run('rm', ['-rf', s.root], {stdio:'inherit'});
-  }
+  });
 
-  @context("LocalDB (file)") {||
-    @test.beforeAll {|s|
+  @context("LocalDB (file)", function() {
+    @test.beforeAll(function(s) {
       s.db = @kv.LocalDB({ file: s.path('local-test-db') });
-    }
+    });
 
     test_persistence({ file: 'local-test-db' });
     test_all(s -> @kv.LocalDB({ file: s.path('local-test-db') }));
-  }
+  });
 
-  @context("Encrypted (file)") {||
-    @test.beforeAll {|s|
+  @context("Encrypted (file)", function() {
+    @test.beforeAll(function(s) {
       s.raw = @kv.LocalDB({ file: s.path('encrypted-test-db') });
       s.db = @kv.Encrypted(s.raw, { password: 'foobar' });
-    }
+    });
 
     test_encryption();
     test_all(s -> @kv.Encrypted(s.raw, { password: 'foobar' }));
-  }
+  });
 
   //----------------------------------------------------------------------
   // LevelDB
 
-  @context("LevelDB") {||
-    @test.beforeAll {|s|
+  @context("LevelDB", function() {
+    @test.beforeAll(function(s) {
       s.db = @kv.LevelDB(s.path('leveldb-test-db'));
-    }
+    });
 
-    @test.afterAll {|s|
+    @test.afterAll(function(s) {
       s.db.close();
-    }
+    });
 
     // TODO test that opening the same location twice results in equal dbs
     test_all(s -> s.db);
-  }
+  });
 
-}.serverOnly();
+}).serverOnly();
 

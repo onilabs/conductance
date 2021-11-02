@@ -70,7 +70,7 @@ exports.Cache = function(upstream, options) {
   var CHANGE_BUFFER_SIZE = 100; // XXX should this be configurable?
   var change_buffer = ChangeBuffer(CHANGE_BUFFER_SIZE);
 
-  var updater_stratum = spawn upstream.watch {
+  var updater_stratum = _task upstream.watch {
     |changes|
     changes .. each { 
       |{id, schema}| 
@@ -103,7 +103,7 @@ exports.Cache = function(upstream, options) {
       var entry = items.get(entity.id);
       if (!entry) {
         if (!pendingReads[entity.id]) {
-          pendingReads[entity.id] = spawn (function() {
+          pendingReads[entity.id] = _task (function() {
             var entry = upstream.read(entity);
             items.put(entity.id, entry);
             return entry;
