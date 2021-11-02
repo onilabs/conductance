@@ -1,5 +1,0 @@
-#!bash -eu
-gup -u "$2.xml.template"
-0install run --not-before="0.2" http://0install.net/tools/0template.xml -o "$1" "$2.template" \
-	version=1-pre2-2.1.1 \
-	archive='http://storage.googleapis.com/gcd/tools/gcd-v1beta2-rev1-2.1.1.zip'

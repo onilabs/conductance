@@ -1,8 +1,0 @@
-#!/bin/bash
-set -eu
-
-here="$(dirname "$0")"
-conductance="$(cd "$here/../../../"; pwd)"/conductance
-set -x
-"$conductance" "$here/main.sjs" "$@"
-"$conductance" "$here/server" single-run "$@"

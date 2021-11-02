@@ -1,8 +1,0 @@
-#!bash -eu
-if [ ! -e dev ]; then
-	echo 'NOTE: you need to create the `dev` symlink'
-	exit 1
-fi
-src="dev/$2"
-gup --always
-cp --dereference "$src" "$1"

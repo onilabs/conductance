@@ -1,8 +1,0 @@
-#!bash -eu
-base="$(pwd)"
-mkdir "$1"
-tarfile="$2.tar.gz"
-gup -u "$tarfile"
-tar zxf "$tarfile" --strip-components=1 -C "$1"
-cd "$1"
-./build

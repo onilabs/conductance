@@ -1,8 +1,0 @@
-#!/bin/bash
-set -eu
-base="$(dirname "$0")"
-feed="$base/gcd.xml"
-if [ ! -e "$feed" ]; then
-	gup -u "$feed"
-fi
-exec 0install run "$base/gcd.xml" "$@"

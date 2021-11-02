@@ -1,7 +1,0 @@
-copy-from-dev:
-	key-all-jwt-public.pem
-	key-conductance-jwt-private.pem
-	key-conductance-fs-server.key
-	key-conductance-apis.json
-	key-all-internal-ca.crt
-	key-all-fs-server.crt

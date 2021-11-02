@@ -1,2 +1,0 @@
-#!bash -eux
-gup -u deps docker/all
