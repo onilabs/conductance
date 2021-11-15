@@ -55,7 +55,7 @@
     value of the call (and doesn't want to block until the call has been acknowledged 
     by the other end), then network traffic can be conserved by making a 'signalled call' using
     the [sjs:function::signal] function: `foo .. @fn.signal(null, [x,y,z])` instead of `foo(x,y,z)` or 
-    `_task foo(x,y,z)`. The latter calls both cause the other end of the bridge connection to send
+    `*.spawn foo(x,y,z)`. The latter calls both cause the other end of the bridge connection to send
     out a return value when the call has finished there, whereas the signalled call does not.
     
     ### Custom types:
@@ -715,33 +715,25 @@ function BridgeConnection(transport, opts) {
       }
       closed = true;
 //      console.log(">>>>>>>>>> CLOSING BRIDGE #{bridge_id} <<<<<<<<<<<<<<<<<");
-      _task this.stratum.abort();
+      this.stratum.abort(); // don't want to wait for abort here
 
       if (transport) {
         transport.__finally__();
         transport = null;
       }
 
-      executing_calls .. @ownValues .. @each {|s|
-        _task(function() {
-          try {
-            s.abort();
-          } catch(e) {
-            @logging.warn("Error while aborting executing call: #{e}");
-          }
-        }());
-      }
+      executing_calls .. @ownValues .. @each {|s| s.abort(); }
       executing_calls = {};
 
       pending_calls .. @ownPropertyPairs .. @each {|[id,[r]]|
-        _task(function() {
+        @sys.spawn(function() {
           try {
 //            console.log("Abort pending call #{id} with session lost...");
             r(@TransportError('session lost'), true);
           } catch(e) {
             @logging.warn("Error while aborting pending call: #{e}");
           }
-        }());
+        });
       }
       pending_calls = {};
 
@@ -1005,7 +997,7 @@ function BridgeConnection(transport, opts) {
         if (__oni_rt.is_ef(call_rv[2])) {
           // go async
           executing_calls[message[1]] = 
-            _task(function(ef, call_id) { 
+            @sys.spawn(->(function(ef, call_id) { 
               var rv;
               try {
                 ef.wait();
@@ -1047,7 +1039,7 @@ function BridgeConnection(transport, opts) {
                 }
                 throw e;
               }
-            })(call_rv[2], message[1])
+            })(call_rv[2], message[1]));
         }
         else {
           send(call_rv);
@@ -1057,26 +1049,11 @@ function BridgeConnection(transport, opts) {
 
     case 'A': // abort
     case 'P': // pseudo-abort
+      //XXX pseudo abort should go
       var executing_call = executing_calls[message[1]];
       if (executing_call) {
         // XXX should try aborting synchronously first - see the code for case 'C', above
-        _task (function(call_id) {
-          try {
-            executing_call.abort(message[0] === 'P');
-          }
-          catch(e) {
-            @logging.warn("Error while aborting active bridge call: #{e}");
-            if (!@isTransportError(e)) {
-              try {
-                send(['E', call_id, e]);
-              }
-              catch(e) {
-                if (!@isTransportError(e)) throw e;
-                // else swallow transport error
-              }
-            }
-          }
-        })(message[1]);
+        executing_call.abort();
       }
       else {
         send(['E', message[1], new Error("Didn't find bridge call to abort")]);
@@ -1104,11 +1081,9 @@ function BridgeConnection(transport, opts) {
   // sure how that's going to work from the server-side (sys:resolve??)
   var getAPI = -> connection.makeCall(0, [opts.api]);
 
-  connection.stratum = _task receiver();
+  connection.stratum = @sys.spawn(receiver);
   waitfor {
-    // to make sure errors are routed while the getAPI call is in progress
-    /* reify().adopt(connection.stratum); // will be readopted when handed over to `connect` */
-    connection.stratum.waitforValue();
+    connection.stratum.wait();
   }
   or {
     if (opts.api)
@@ -1117,7 +1092,7 @@ function BridgeConnection(transport, opts) {
 
   connection._published_funcs = published_funcs;
   return connection;
-}
+} // function BridgeConnection(transport, opts)
 
 /**
   @function resolve
@@ -1220,8 +1195,7 @@ exports.connect = function(apiinfo, opts, block) {
   if (block) {
     waitfor {
       try {
-        /* reify().adopt(connection.stratum) XXXX we need to catch the error though */
-        connection.stratum.waitforValue();
+        connection.stratum.capture();
       }
       catch (e) {
         //console.log("BRIDGE CONNECTION LOST IN CONNECT(BLOCK)");

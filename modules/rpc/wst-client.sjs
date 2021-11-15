@@ -250,7 +250,7 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
 */
 function openTransport(server, requestOpts) {
   waitfor (var rv) {
-    _task (function() {
+    @sys.spawn(function() {
       try {
         server = server || @url.normalize(SERVER_PREFIX, module.id);
         server = server.replace(/^http/,'ws') + SERVER_PATH + '/' + WST_VERSION;
@@ -272,7 +272,7 @@ function openTransport(server, requestOpts) {
         }
         // else ignore
       }
-    })();
+    });
   }
   return rv;
 }

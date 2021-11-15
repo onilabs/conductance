@@ -11,7 +11,7 @@ var [dest] = require('sjs:sys').argv();
 @childProcess.run('gup', ['--always'], {stdio:'inherit'});
 
 function gen(dir) {
-  return @Stream() {|emit|
+  return @Stream:: function(emit) {
     @walk(dir) {|file|
       if (file .. @endsWith('-tests.sjs')) {
         emit(file);

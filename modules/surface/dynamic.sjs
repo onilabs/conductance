@@ -103,7 +103,7 @@ var resourceRegistry = {
         if (desc.mechanism) {
           withDOMContext(desc.elem) {
             ||
-            desc.elem.__oni_mech = _task(desc.mechanism.call(desc.elem, desc.elem));
+            desc.elem.__oni_mech = @sys.spawn(-> desc.mechanism.call(desc.elem, desc.elem));
           }
         }
         if (def.waitforLoading) {
@@ -200,6 +200,8 @@ function unuseCSS(elems) {
   }
 }
 
+// XXX this deliberately doesn't wait for stopped mechs, but it used to. The problem is 
+// that we now deadlock on stratum.wait(), so a mech cannot really wait for its own abortion.
 function stopMechanisms(parent, include_parent) {
   var nodes = StreamNodes(parent);
   if (parent.querySelectorAll)
@@ -210,23 +212,13 @@ function stopMechanisms(parent, include_parent) {
   nodes .. @each {
     |node|
     if (!node.__oni_mechs) continue;
-    node.__oni_mechs .. @each.par {
+    node.__oni_mechs .. @each {
       |stratum|
       stratum.abort();
     }
     delete node.__oni_mechs;
   }
 }
-
-// helper for insertHtml
-function awaitStratumError(s) {
-  // ignores stratum cancellation
-  try {
-    s.value();
-  } catch(e) {
-    if (!(e instanceof @StratumAborted)) throw e;
-  }
-};
 
 function insertHtml(html, block, doInsertHtml) {
   html = collapseHtmlFragment(html);
@@ -294,9 +286,11 @@ function insertHtml(html, block, doInsertHtml) {
     
     // at this point 'mechs' contains all of our mechanisms sorted by priority.
     // let's start them:
+    var spawn = block ? reifiedStratum.spawn : @sys.spawn;
+
     mechs .. PrioritySet_stream .. @each {
       |[elem, mech]|
-      var s = _task withDOMContext(elem) { || mech.func.call(elem, elem) };
+      var s = spawn(-> withDOMContext(elem, function() { mech.func.call(elem, elem) }));
       elem.__oni_mechs.push(s);
       started_mechs.push(s);
     };
@@ -314,15 +308,11 @@ function insertHtml(html, block, doInsertHtml) {
 
   var dom_context = inserted .. filterElementsAndComments .. toArray;
   if (block) {
-    waitfor {
+    try {
       withDOMContext(dom_context) {
         ||
         return block.apply(null, dom_context);
       }
-    } 
-    or {
-      @waitforAll(awaitStratumError, started_mechs);
-      hold();
     }
     finally {
       // XXX each.par here?
@@ -721,7 +711,17 @@ function OnClick(html, opts, f) {
     f = opts;
     opts = undefined;
   }
-  return html .. On('click', opts, function(ev) { var S = _task f(ev); return S.value();});
+  return html .. On('click', opts, 
+                    function(ev) { 
+                      var S = reifiedStratum.spawn(->f(ev)); 
+                      try {
+                        S.wait();
+                      }
+                      retract {
+                        // XXX could route error somewhere
+                        @sys.spawn(S.capture);
+                      }
+                    });
 }
 exports.OnClick = OnClick;
 

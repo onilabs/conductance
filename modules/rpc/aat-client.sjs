@@ -98,7 +98,7 @@ function TemporalBatcher(flush) {
       batch.emit(arg);
     }
     else
-      _task batcher(arg);
+      @sys.spawn(-> batcher(arg));
   }
 }
 
@@ -268,7 +268,7 @@ function openTransport(server, requestOpts) {
         this.id = transport_id_suffix.substr(1);
         
         // start our polling loop:
-        poll_stratum = _task (hold(0),poll_loop());
+        poll_stratum = @sys.spawn(-> (hold(0),poll_loop()));
       }
       else if (status_code != 'ok')
         throw TransportError("response not ok: #{status_code}");
@@ -345,7 +345,7 @@ function openTransport(server, requestOpts) {
       if (!this.closed) {
         this.closed = true;
         if (transport_id_suffix.length) {
-          _task (function() {
+          @sys.spawn (function() {
             try {
               http.post([
                 server, SERVER_PATH, AAT_VERSION,
@@ -354,7 +354,7 @@ function openTransport(server, requestOpts) {
             } catch (e) {
               logging.debug("Error closing transport: #{e}");
             }
-          })();
+          });
         }
       }
       this.active = false;

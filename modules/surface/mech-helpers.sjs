@@ -41,6 +41,7 @@
 
 
 @ = require([
+  {id: 'sjs:sys', name:'sys'},
   'sjs:cutil',
   'sjs:sequence'
 ]);
@@ -109,16 +110,6 @@ __js {
 
 __js var fakeArray = { push: -> null };
 
-function awaitStratumError(s) {
-  // ignores stratum cancellation
-  try {
-    s.value();
-  } catch(e) {
-    if (!(e instanceof @StratumAborted)) throw e;
-  }
-};
-
-
 // XXX see note at top of this file
 function runMechanisms(elems, mechanismsInstalled, await) {
   var rv = await ? [] : fakeArray;
@@ -168,19 +159,15 @@ function runMechanisms(elems, mechanismsInstalled, await) {
   // let's start them:
   mechs .. PrioritySet_stream .. @each {
     |[elem, mech]|
-    var s = _task withDOMContext(elem) { || mech.func.call(elem, elem) };
+    var s = @sys.spawn(-> withDOMContext(elem, function() { mech.func.call(elem, elem) }));
     elem.__oni_mechs.push(s);
     rv.push(s);
   };
   if (await) {
-    return _task(function() {
-      try {
-        @waitforAll(awaitStratumError, rv);
-        hold();
-      } finally { 
-        rv .. @each.par(s -> s.abort());
-      }
-    }());
+    return @sys.spawn(function() {
+      var parent = reifiedStratum;
+      rv .. @each(s -> parent.adopt(s));
+    });
   }
 }
 

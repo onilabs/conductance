@@ -28,7 +28,7 @@ var { ownValues } = require('sjs:object');
 var { startsWith } = require('sjs:string');
 var { createID } = require('../server/random');
 var { TransportError } = require('./error');
-var { hostenv } = require('sjs:sys');
+var { hostenv,spawn } = require('sjs:sys');
 var { toBuffer } = require('sjs:bytes');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
@@ -50,7 +50,7 @@ __js {
 //----------------------------------------------------------------------
 // default transport sink (for testing):
 function defaultTransportSink(transport) {
-  _task (function() {
+  spawn (function() {
     try {
       while (1) {
         var message = transport.receive();
@@ -58,13 +58,13 @@ function defaultTransportSink(transport) {
         if (message == 'time')
           transport.send(new Date());
         else if (message == 'delay') 
-          _task (hold(1000),transport.send('delayed!'));
+          spawn(->(hold(1000),transport.send('delayed!')));
       }
     }
     catch (e) {
       logging.error("TransportSink #{transport.id}: #{e}");
     }
-  })();
+  });
 }
 
 //----------------------------------------------------------------------
@@ -230,7 +230,7 @@ function createTransport(finish) {
       delete transports[this.id];
       this.active = false;
       if (this._reaper) {
-        _task this._reaper.abort();
+        this._reaper.abort();
         this._reaper = null;
       }
       if (resume_receive)
@@ -261,7 +261,7 @@ function createTransport(finish) {
     transport.__finally__();
   }
 
-  transport._reaper = _task reaper();
+  transport._reaper = spawn(reaper);
 
   transports[transport.id] = transport;
 

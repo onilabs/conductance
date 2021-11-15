@@ -341,16 +341,15 @@ exports.gen_routed_page = function(src, aux) {
     mapping.config.main || mapping.config.init ? `require.hubs.push(['frontend-config.yaml:', '${yaml_url_root}']);`,
     mapping.config.init ? `require('frontend-config.yaml:__inline_init__');`,
     `
-    @ = require(['mho:surface/navigation']);
-    _task @route([${
-                     mapping.paths .. 
-                       @map([path, module, type] ->
-                            type === 'page' ?
-                            "@Page('#{@path.join('/',aux.request.strippedURLPrefix,MappingPathToRoutingTablePath(path))}',ctx->require(\'#{@path.join('/',aux.request.strippedURLPrefix,module)}\').content(ctx))" :
-                            "@Container('#{@path.join('/',aux.request.strippedURLPrefix,MappingPathToRoutingTablePath(path))}',ctx->require(\'#{@path.join('/',aux.request.strippedURLPrefix,module)}\').content(ctx))") ..
-                       @join(',')
-                   }
-                 ]);
+    @ = require([{id:'sjs:sys', include:['spawn']}, 'mho:surface/navigation']);
+    @spawn(-> @route([${
+      mapping.paths .. 
+        @map([path, module, type] ->
+             type === 'page' ?
+             "@Page('#{@path.join('/',aux.request.strippedURLPrefix,MappingPathToRoutingTablePath(path))}',ctx->require(\'#{@path.join('/',aux.request.strippedURLPrefix,module)}\').content(ctx))" :
+             "@Container('#{@path.join('/',aux.request.strippedURLPrefix,MappingPathToRoutingTablePath(path))}',ctx->require(\'#{@path.join('/',aux.request.strippedURLPrefix,module)}\').content(ctx))") ..
+        @join(',')
+    }]));
     `,
     mapping.config.main ? `require('frontend-config.yaml:__inline_main__');`
   ];

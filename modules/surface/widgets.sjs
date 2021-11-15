@@ -587,7 +587,7 @@ function background_focus_stack_handler() {
     }
   }
 }
-_task background_focus_stack_handler();
+@sys.spawn(background_focus_stack_handler);
 
 // traps focus in root_node; restores focus to previous node on exit
 // nested execution is ok; a focus stack is maintained in background

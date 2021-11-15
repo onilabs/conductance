@@ -102,11 +102,11 @@ staticExports.busyIndicator = function(showImmediately, opts) {
         window.inhibit_auto_busy_indicator = true;
         delay = delay || 500;
         if (++count === 1) {
-          stratum = _task (function() {
+          stratum = __oni_rt.sys.spawn(function() {
             hold(delay);
             rainbow.show();
             shown = true;
-          })();
+          });
         }
       }
 
@@ -116,7 +116,7 @@ staticExports.busyIndicator = function(showImmediately, opts) {
         // calls show next, we
         // don't want to stop a currently running indicator
       "
-        _task (function() {
+        __oni_rt.sys.spawn(function() {
           hold(10);
           if (--count === 0) {
             if (stratum) {
@@ -128,7 +128,7 @@ staticExports.busyIndicator = function(showImmediately, opts) {
               shown = false;
             }
           }
-        })();
+        });
       }
 
       __js var noop = function() {};

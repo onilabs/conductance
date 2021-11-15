@@ -286,12 +286,12 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
     }
   });
 
-  _task @generate(Math.random) ..@each(function (x) {
+  @sys.spawn(->@generate(Math.random) ..@each(function (x) {
     percent.set(x * 100);
     hold(2000);
-  });
+  }));
 
-  _task (function () {
+  @sys.spawn(function () {
     while (true) {
       hold(4000);
       if (animate.get()) {
@@ -300,7 +300,7 @@ module.exports = require(['./bootstrap/html', './bootstrap/components']);
         animate.set(true);
       }
     }
-  })();
+  });
 
   @mainContent .. @appendContent([
     @demo.CodeResult("\

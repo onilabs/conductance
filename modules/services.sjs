@@ -290,9 +290,9 @@ function withServices(settings, block) {
           gRunningInstances[instance_name] = run_info = { 
             ref_count: 0,
             api: @Condition(),
-            stratum: _task (function() { 
+            stratum: @sys.spawn(function() {
               try { 
-                hold(0); 
+                hold(0);
 
                 var service_provisioning;
                 if (instance_info.provisioning_data !== undefined) {
@@ -328,7 +328,7 @@ function withServices(settings, block) {
                 run_info.api.set(new Error(e));
                 ServiceThrewCondition.set(e);
               } 
-            })()
+            })
           };
         }
         // so far the block has been synchronous. we have a hold(0) in the stratum above, so that reentrant calls to withServices from 
@@ -355,7 +355,7 @@ function withServices(settings, block) {
       if (val === null) continue;
       if (--gRunningInstances[instance_name].ref_count <= 0) {
         //console.log("Terminating service instance #{instance_name}");
-        gRunningInstances[instance_name].stratum.abort();
+        gRunningInstances[instance_name].stratum.abort().wait();
         delete gRunningInstances[instance_name];
       }
     }

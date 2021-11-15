@@ -170,7 +170,7 @@ exports.Datadog = function(opts) {
       drop: ([type,]) -> @logging.warn("Dropping queued datadog #{type}"),
     });
     //var STOP = {};
-    var thread = _task(function() {
+    var thread = @sys.spawn(function() {
       eventStream .. @each {|item|
         //if(item === STOP) break;
         var [fn, args] = item;
@@ -181,7 +181,7 @@ exports.Datadog = function(opts) {
           @logging.info("Args:", JSON.stringify(args));
         }
       }
-    }());
+    });
 
     var rv = [ 'event', 'metric', 'metrics' ]
       .. @map(key -> [key, function() { events.emit([key, arguments]) }])

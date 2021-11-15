@@ -36,7 +36,7 @@ function createTransportHandler(transportSink) {
   var SocketServer = @WebSocketServer();
 
   function handler_func(req) {
-    _task (function() {
+    @sys.spawn(function() {
       try {
         SocketServer.runWebSocketSession(req) {
           |ws|
@@ -53,7 +53,7 @@ function createTransportHandler(transportSink) {
         }
         // else ignore
       }
-    })();
+    });
   }
 
   return {

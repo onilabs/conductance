@@ -21,6 +21,28 @@
              { id: './wrap', name: 'wrap' },
              { id: './encoding', name: 'encoding' }]);
 
+// helper to gracefully handle cleanup of a resource when we're
+// retracting during acquisition. 
+// XXX This is useful for many nodejs libs that don't provide a way to
+// abort acquisition, so it should go into some common library
+// XXX we also use it in ssh-client.sjs
+function delayed_retract(uninterrupted_acquire, delayed_retract) {
+  var resource;
+  var S = reifiedStratum.spawn(function() { resource = uninterrupted_acquire(); });
+  try {
+    S.wait();
+    return resource;
+  }
+  retract {
+    @sys.spawn(function() {
+      reifiedStratum.adopt(S);
+      S.wait();
+      delayed_retract(resource);
+    });
+  }
+}
+
+
 __js function annotateError(err, orig) {
   // XXX leveldown should really have better types
   var type = orig.message;
@@ -51,24 +73,16 @@ function LevelDB(location, options) {
 
   // slightly round-about way of opening to gracefully handle closing
   // of the db if we are being retracted while opening
-
-  var open = _task (function() {
-    waitfor (var error) {
-      db.open(options, resume);
-    }
-    return error;
-  })();
-
-  try {
-    var err = open.value();
-  }
-  retract {
-    // make sure db gets closed
-    _task (function() {
-      var err = open.value();
+  var err;
+  delayed_retract(
+    function() {
+      waitfor(err) { db.open(options, resume); }
+    },
+    function() {
       if (!err) db.close(@fn.nop);
-    })()
-  }
+    }
+  );
+
   if (err) throw new Error("Failed to open database at #{location}: #{err}") .. annotateError(err);
 
   /*

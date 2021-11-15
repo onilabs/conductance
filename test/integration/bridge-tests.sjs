@@ -1016,7 +1016,7 @@ context(function() {
           }
         }
       }
-    }).skip('_taskXXX FIXME');
+    });
 
     test('blklambda return in abort-finally', function() {
       // This test used to hang
@@ -1038,7 +1038,7 @@ context(function() {
         return 'zzz';
       }
       assert.eq(foo(), 'xxx');
-    }).skip('_taskXXX FIXME');
+    });
 
     test('exception in abort-finally', function() {
       // This test used to hang

@@ -9,6 +9,7 @@
  * according to the terms contained in the LICENSE file.
  */
 
+var { spawn } = require('sjs:sys');
 var { makeCache } = require('sjs:lru-cache');
 var { each, map, makeIterator, Stream } = require('sjs:sequence');
 var { wait } = require('sjs:event');
@@ -18,6 +19,7 @@ var { ChangeBuffer, structuralClone } = require('./helpers');
 
 /** @nodoc */
 
+// XXX This functionality needs a rewrite that implements finalization
 
 //----------------------------------------------------------------------
 // sequence module backfill
@@ -70,7 +72,7 @@ exports.Cache = function(upstream, options) {
   var CHANGE_BUFFER_SIZE = 100; // XXX should this be configurable?
   var change_buffer = ChangeBuffer(CHANGE_BUFFER_SIZE);
 
-  var updater_stratum = _task upstream.watch {
+  var updater_stratum = spawn(-> upstream.watch {
     |changes|
     changes .. each { 
       |{id, schema}| 
@@ -90,7 +92,7 @@ exports.Cache = function(upstream, options) {
       }
     }
     change_buffer.addChanges(changes);
-  };
+  });
 
   var pendingReads = {};
 
@@ -103,17 +105,18 @@ exports.Cache = function(upstream, options) {
       var entry = items.get(entity.id);
       if (!entry) {
         if (!pendingReads[entity.id]) {
-          pendingReads[entity.id] = _task (function() {
-            var entry = upstream.read(entity);
-            items.put(entity.id, entry);
-            return entry;
-          })();
+          waiting = 0;
+          pendingReads[entity.id] = spawn (function(S) {
+            S.entry = upstream.read(entity);
+            items.put(entity.id, S.entry);
+          });
         }
         try {
-          entry = pendingReads[entity.id].value();
+          ++pendingReads[entity.id].waiting;
+          entry = pendingReads[entity.id].wait().entry;
         }
         finally {
-          if (pendingReads[entity.id].waiting() === 0) {
+          if (--pendingReads[entity.id].waiting === 0) {
             // XXX we *could* abort here, but it's an uncommon edge
             //case to have reads retracted, so we optimize for the 
             // common case where abort would be redundant (because the

@@ -10,10 +10,7 @@ var scrubConnections = function() {
 		var running = false;
 		waitfor {
 			// if this returns synchronously, the second branch will not execute
-      try {
-			  conn.stratum.value();
-      }
-      catch (e) { /* ignore */ }
+			conn.stratum.wait();
 		} or {
 			running = true;
 		}

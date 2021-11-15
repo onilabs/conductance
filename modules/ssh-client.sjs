@@ -28,13 +28,20 @@
 // retracting during acquisition. 
 // XXX This is useful for many nodejs libs that don't provide a way to
 // abort acquisition, so it should go into some common library
+// XXX we also use it in leveldb.sjs
 function delayed_retract(uninterrupted_acquire, delayed_retract) {
-  var resource = _task uninterrupted_acquire();
+  var resource;
+  var S = reifiedStratum.spawn(function() { resource = uninterrupted_acquire(); });
   try {
-    return resource.value();
+    S.wait();
+    return resource;
   }
   retract {
-    _task delayed_retract(resource.value());
+    @sys.spawn(function() {
+      reifiedStratum.adopt(S);
+      S.wait();
+      delayed_retract(resource);
+    });
   }
 }
 

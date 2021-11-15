@@ -33,24 +33,38 @@ var global_active_node_path = [];
 // within a @navigate call... the new reentrant @navigate call should only abort the
 // ui code, but not the fresh @navigate call
 function non_cancelable_exclusive(f) {
-  var stratum, cancel;
-  return function() {
-    if (cancel) { cancel(); cancel = null; }
-    if (!cancel) stratum = _task (function(t,a){
-      var cancel_func;
-      waitfor {
-        waitfor() { cancel_func = resume; cancel = cancel_func; }
-      } or {
-        return f.apply(t,a);
-      } finally { 
-        if (cancel === cancel_func) 
-          cancel = null;
-      }
-    }(this,arguments));
-
-    return stratum.value();
+  var stratum;
+  return function(...args) {
+    if (stratum) stratum.abort().wait();
+    var rv;
+    try {
+      reifiedStratum.spawn(function(S) {
+        try {
+          stratum = S;
+          rv = f(...args);
+        }
+        finally {
+          stratum = null;
+        }
+      });
+      if (stratum)
+        stratum.wait();
+      return rv;
+    }
+    retract {
+      if (stratum)
+        @sys.spawn(function() {
+          try {
+            stratum.capture();
+          }
+          catch(e) {
+            console.error("Exception in retracted non_cancelable_exclusive: "+e);
+          }
+        });
+    }
   }
-};
+}
+
 
 //----------------------------------------------------------------------
 /**
@@ -370,21 +384,33 @@ var navigate = non_cancelable_exclusive :: function(url, settings) {
 // link and browser navigation button helpers:
 
 function captureLinks() {
-  document .. 
-    @events("!click") .. @each {
-      |ev|
-      if (ev.target.tagName !== 'A' || ev.target.hasAttribute('download')) continue;
-      _task navigate(ev.target.href, {event: ev});
-    }
+  try {
+    document .. 
+      @events("!click") .. @each {
+        |ev|
+        if (ev.target.tagName !== 'A' || ev.target.hasAttribute('download')) continue;
+        reifiedStratum.spawn(-> navigate(ev.target.href, {event: ev}));
+      }
+  }
+  finally {
+    // make sure any navigation after abort isn't aborted too:
+    reifiedStratum.join();
+  }
 }
 
 function dispatchStateChanges() {
-  window ..
-    @events("popstate") ..
-    @each {
-      |ev|
-      _task navigate(location.href, {omit_state_push:true, enable_not_found_route: true, event: ev});
-    }
+  try {
+    window ..
+      @events("popstate") ..
+      @each {
+        |ev|
+        reifiedStratum.spawn(-> navigate(location.href, {omit_state_push:true, enable_not_found_route: true, event: ev}));
+      }
+  }
+  finally {
+    // make sure any navigation after abort isn't aborted too:
+    reifiedStratum.join();
+  }
 }
 
 //----------------------------------------------------------------------
