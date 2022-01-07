@@ -158,7 +158,6 @@ exports.execViaDetachedStratum = function(f) {
         resume(f(), false);
       }
       catch(e) {
-        console.log("/////// API CAUGHT "+e);
         resume(e, true);
       }
     });

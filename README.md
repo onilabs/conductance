@@ -33,3 +33,17 @@ Or, for a built image with tag 'TAG':
     docker run --rm -t --entrypoint /bin/bash onilabs/conductance:TAG
       -c "/usr/src/conductance/node_modules/stratifiedjs/test/run && 
           /use/src/conductance/test/run"
+
+### Running clientside testsuite:
+
+In stratifiedjs/test dir:
+    
+    conductance serve
+
+    Then open localhost:7071/test/run.html in browser
+
+In conductance/test dir:
+
+   conductance serve run.mho
+
+   Then open localhost:7078/test/run.html in browser
