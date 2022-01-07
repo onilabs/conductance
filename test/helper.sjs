@@ -5,8 +5,8 @@ var logging = require('sjs:logging');
 var suite = require('sjs:test/suite');
 var { isBrowser } = require('sjs:test/suite');
 
-var host = null;
 var prefix = isBrowser ? (Url.normalize('../', module.id) .. Url.parse()).path : '/';
+var host = isBrowser ? (Url.normalize('/', module.id)) : null;
 
 exports.getRoot = function() {
   if(!host && !isBrowser) throw new Error("Host not yet set");
@@ -44,6 +44,7 @@ exports.serve = function(config, block) {
   }
 
   inProcessServer = true;
+  console.log("WARNING: IN-PROCESS SERVER");
   require('mho:server').run(config, block);
 }
 

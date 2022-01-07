@@ -42,6 +42,7 @@ function createTransportHandler(transportSink) {
           |ws|
           @runTransportSession(ws) { 
             |transport_itf|
+            transport_itf.server = true;
             transportSink(transport_itf);
             hold();
           }

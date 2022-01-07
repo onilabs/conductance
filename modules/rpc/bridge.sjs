@@ -116,9 +116,9 @@ Protocol:
 
   ['R', call#, RV ] // return
 
-  ['Q', call#, eid ] // blocklambda return; eid prefixed with bridge-id for remote
+  ['Q', call#, aid, anchor_bridge_id ] // blocklambda return
 
-  ['B', call#, eid ] // blocklambda break; eid prefixed with bridge-id for remote
+  ['B', call#, aid, anchor_bridge_id ] // blocklambda break
 
   ['E', call#, RV] // return exception
 
@@ -159,7 +159,6 @@ Transport:
 @ = require([
   'sjs:std',
   {id:'sjs:bytes', name:'bytes'},
-  {id:'sjs:crypto', name:'crypto'},
   {id:'./error', include: ['isTransportError', 'TransportError']}
 ]);
 
@@ -210,23 +209,53 @@ __js {
 
   function isReceivedControlFlowException(obj) { return (obj instanceof ReceivedControlFlowException) }
 
-  function makeBlocklambdaReturnControlFlowException(eid, val) {
-    var rv = Object.create(ReceivedControlFlowException.prototype);
-    rv.postLocally = function() {
-      var cfx = __oni_rt.Return(val);
-      cfx.eid = eid;
-      return cfx;
-    };
-    return rv;
+  function makeBlocklambdaReturnControlFlowException(aid, remote_aid, remote_vm, val, dynvars) {
+    // check if we can route this:
+    var node = dynvars;
+    while (node) {
+      if (node.__oni_anchor == aid) {
+        // yes we can!
+        var rv = Object.create(ReceivedControlFlowException.prototype);
+        rv.postLocally = function() {
+          var cfx = new __oni_rt.CFException('blr', val);
+          cfx.aid = aid;
+          if (aid === -1) {
+            cfx.remote_vm = remote_vm;
+            cfx.remote_aid = remote_aid;
+          }
+          return cfx;
+        };
+        return rv;
+      }
+      node = node.__oni_anchor_route;
+    }
+
+    // no, we can't route this
+    return new Error("Unroutable blocklambda return from remote connection");
   }
 
-  function makeBlocklambdaBreakControlFlowException(eid) {
-    var rv = Object.create(ReceivedControlFlowException.prototype);
-    rv.postLocally = function() {
-      var cfx = __oni_rt.BlBreakOld({blbref:{sid:eid}});
-      return cfx;
-    };
-    return rv;
+  function makeBlocklambdaBreakControlFlowException(aid, remote_aid, remote_vm, dynvars) {
+    // check if we can route this:
+    var node = dynvars;
+    while (node) {
+      if (node.__oni_anchor === aid) {
+        // yes we can!
+        var rv = Object.create(ReceivedControlFlowException.prototype);
+        rv.postLocally = function() {
+          var cfx = new __oni_rt.CFException('blb');
+          cfx.aid = aid;
+          if (aid === -1) {
+            cfx.remote_vm = remote_vm;
+            cfx.remote_aid = remote_aid;
+          }
+          return cfx;
+        };
+        return rv;
+      }
+      node = node.__oni_anchor_route;
+    }
+    // no, we can't route this
+    return new Error("Unroutable blocklambda break from remote connection");
   }
 
 } // __js
@@ -288,7 +317,7 @@ exports.defaultMarshallers = defaultMarshallers;
 
 __js {
   var coerceBinary, isNodeJSBuffer, nodejs = @sys.hostenv === 'nodejs';
-  var toIterableBytes = @fn.identity;
+  toIterableBytes = b -> b instanceof ArrayBuffer ? b .. @bytes.toUint8Array : b;
   var isBytes = @bytes.isBytes;
   if (nodejs) {
     isNodeJSBuffer = value -> Buffer.isBuffer(value);
@@ -299,16 +328,15 @@ __js {
         default: throw new Error("Unknown binary type #{t}");
       }
     };
-    // nodejs can't send an ArrayBuffer as a request body
-    toIterableBytes = b -> b instanceof ArrayBuffer ? b .. @bytes.toUint8Array : b;
   } else {
     isNodeJSBuffer = -> false;
     // browser can only represent binary data as TypedArray
     coerceBinary = @fn.identity;
-    if(typeof(Blob) !== 'undefined') {
-      // treat browser `Blob` as bytes
-      isBytes = (b) -> @bytes.isBytes(b) || b instanceof Blob;
-    }
+    // Blobs not supported anymore:
+    //if(typeof(Blob) !== 'undefined') {
+    //  // treat browser `Blob` as bytes
+    //  isBytes = (b) -> @bytes.isBytes(b) || b instanceof Blob;
+    // }
   }
 }
 
@@ -532,6 +560,8 @@ function unmarshallFunction(obj, connection) {
 
 //----------------------------------------------------------------------
 
+var bridge_id_counter = 0;
+
 /**
   @class BridgeConnection
   @summary A connection to a remote conductance API
@@ -565,7 +595,7 @@ function BridgeConnection(transport, opts) {
     of 10^-16
     
    */
-  var bridge_id = @crypto.randomID(2); // 64 bits, see above
+  var bridge_id = @sys.VMID+'-'+(transport.server?'S':'C')+(++bridge_id_counter); // 64 bits randomness, see above
   var pending_calls  = {}; // calls in progress, made to the other side
   var executing_calls = {}; // calls in progress, made to our side; call_no -> stratum
   var pending_returns = {}; // target_frame_id -> return value
@@ -615,6 +645,7 @@ function BridgeConnection(transport, opts) {
   }
 
   var connection = {
+    bridge_id: bridge_id,
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
     msg_seq_counter: 0, // sequence counter to facilitate ordering of (non-data) messages; aat doesn't guarantee order
     received_blobs: {},
@@ -639,6 +670,7 @@ function BridgeConnection(transport, opts) {
     },
     makeCall: function(function_id, args) {
       var call_no = ++call_counter;
+      //console.log(bridge_id+":makeCall("+function_id+",...)/call_no="+call_no);
       waitfor {
         // initiate waiting for return value:
         waitfor (var rv, isException) {
@@ -747,9 +779,9 @@ function BridgeConnection(transport, opts) {
            while (max_levels--) {
              if (p.env.blscope) {
                var sid = p.env.blscope.sid;
-               for (eid in pending_returns) {
-                 if (sid == eid) {
-                   delete pending_returns[eid];
+               for (aid in pending_returns) {
+                 if (sid == aid) {
+                   delete pending_returns[aid];
                    return;
                  }
                }
@@ -862,15 +894,15 @@ function BridgeConnection(transport, opts) {
       catch (e) { 
         if (e && e.__oni_cfx) {
           // a control-flow exception
-          if (e.type === 'blb_old') {
-            return makeBlocklambdaBreakMessage(e.eid, call_no);
+          if (e.type === 'blb') {
+            return makeBlocklambdaBreakMessage(e, call_no);
           }
-          else if (e.type === 'r' && e.eid) { // blocklambda return
-            return makeBlocklambdaReturnMessage(e.eid, e.val, call_no);
+          else if (e.type === 'blr') { // blocklambda return
+            return makeBlocklambdaReturnMessage(e, call_no);
           }
           else {
             // Can this ever happen??
-            console.log("Unexpected controlflow in conductance bridge");
+            console.log("Unexpected controlflow in conductance bridge: "+e.type);
             throw new Error("Unexpected controlflow in conductance bridge");
           }
           return;
@@ -882,30 +914,38 @@ function BridgeConnection(transport, opts) {
     }
   }
 
-  __js function makeBlocklambdaBreakMessage(eid, call_id) {
-    var rv;
-    if (typeof eid === 'number') {
-      rv = ['B', call_id, "#{bridge_id}/#{eid}"];
+  __js function makeBlocklambdaBreakMessage(e, call_id) {
+    var aid, anchor_bridge_id;
+
+    aid = e.aid;
+
+    if (aid === -1) {
+      aid = e.remote_aid;
+      anchor_bridge_id = e.remote_vm;
     }
     else {
-      // this is a remote eid
-      rv = ['B', call_id, eid];
+      // this is a local blb
+      anchor_bridge_id = bridge_id;
     }
-    return rv;
+    return ['B', call_id, aid, anchor_bridge_id];
   }
 
-  __js function makeBlocklambdaReturnMessage(eid, val, call_id) {
-    var rv;
-    if (typeof eid === 'number') {
-      // this is a local eid
-      pending_returns[eid] = val;
-      rv = ['Q', call_id, "#{bridge_id}/#{eid}"];
+  __js function makeBlocklambdaReturnMessage(e, call_id) {
+    var aid, anchor_bridge_id;
+
+    aid = e.aid;
+
+    if (aid === -1) {
+      aid = e.remote_aid;
+      anchor_bridge_id = e.remote_vm;
     }
     else {
-      // this is a remote eid
-      rv = ['Q', call_id, eid];
+      // this is a local blr
+      pending_returns[aid] = e.val;
+      anchor_bridge_id = bridge_id;
     }
-    return rv;
+
+    return ['Q', call_id, aid, anchor_bridge_id];
   }
 
   function receiveMessage(message) {
@@ -923,16 +963,21 @@ function BridgeConnection(transport, opts) {
       __js {
         var cb = pending_calls[message[1]];
         if (cb) {
-          var eid = message[2];
+          var aid = message[2];
+          var anchor_bridge_id = message[3];
+          var remote_aid;
           var val = undefined;
-          if (eid.split('/')[0] == bridge_id) {
-            // resolve local blocklambda return
-            eid = Number(eid.split('/')[1]);
-            val = pending_returns[eid];
-            delete pending_returns[eid];
+          if (anchor_bridge_id !== bridge_id) {
+            // this blr is not targeted at our vm
+            remote_aid = aid;
+            aid = -1;
           }
-//          console.log("INJECT blocklambda return with eid=#{eid} into pending call #{message[1]}");
-          cb[0](makeBlocklambdaReturnControlFlowException(eid,val), true);
+          else {
+            val = pending_returns[aid];
+            delete pending_returns[aid];
+          }
+//          console.log("INJECT blocklambda return with aid=#{aid}, remote_aid=#{remote_aid} into pending call #{message[1]}");
+          cb[0](makeBlocklambdaReturnControlFlowException(aid, remote_aid, anchor_bridge_id, val, cb[1]), true);
         }
       } // __js
       break;
@@ -941,13 +986,16 @@ function BridgeConnection(transport, opts) {
       __js {
         var cb = pending_calls[message[1]];
         if (cb) {
-          var eid = message[2];
-          if (eid.split('/')[0] == bridge_id) {
-            // resolve local blocklambda break
-            eid = Number(eid.split('/')[1]);
+          var aid = message[2];
+          var anchor_bridge_id = message[3];
+          var remote_aid;
+          if (anchor_bridge_id !== bridge_id) {
+            // this blb is not targeted at our vm
+            remote_aid = aid;
+            aid = -1;
           }
-//          console.log("INJECT blocklambda break with eid=#{eid} into pending call #{message[1]}");
-          cb[0](makeBlocklambdaBreakControlFlowException(eid), true);
+//          console.log("INJECT blocklambda break with aid=#{aid} into pending call #{message[1]}");
+          cb[0](makeBlocklambdaBreakControlFlowException(aid, remote_aid, anchor_bridge_id, cb[1]), true);
         }
       } // __js
       break;
@@ -986,12 +1034,18 @@ function BridgeConnection(transport, opts) {
         dynvar_proto = @sys.getCurrentDynVarContext();
 
       @sys.withDynVarContext(dynvar_proto) { ||
+        // make sure blocklambda controlflow gets routed:
+        __oni_rt.current_dyn_vars.__oni_anchor_route =  dynvar_proto;
+        __oni_rt.current_dyn_vars.__oni_anchor = -1;
         @sys.setDynVar("__mho_bridge_#{bridge_id}_dynvarctx", message[1]);
+
+        //console.log(bridge_id+":performCall/function_id="+message[3]+"/call_no="+message[1]);
 
         __js var call_rv = performReceivedCallSync(message[1], //call_no
                                                    message[3], // function_id
                                                    message[4] // args
                                                   );
+
         if (call_rv === undefined) break;
 
         if (__oni_rt.is_ef(call_rv[2])) {
@@ -1005,13 +1059,13 @@ function BridgeConnection(transport, opts) {
               finally (e) { 
                 delete executing_calls[call_id];
                 if (e[1]) { // exception
-                  if (e[0].type === 'blb_old') {
-                    __js rv = makeBlocklambdaBreakMessage(e[0].eid, call_id);
+                  if (e[0].type === 'blb') {
+                    __js rv = makeBlocklambdaBreakMessage(e[0], call_id);
                     // prevent further blocklambda break handling:
                     e = [undefined];
                   }
-                  else if (e[0].type === 'r' && e[0].eid) {
-                    __js rv = makeBlocklambdaReturnMessage(e[0].eid, e[0].val, call_id);
+                  else if (e[0].type === 'blr') {
+                    __js rv = makeBlocklambdaReturnMessage(e[0], call_id);
                     // prevent further blocklambda return handling:
                     e = [undefined];
                   }
@@ -1198,21 +1252,20 @@ exports.connect = function(apiinfo, opts, block) {
         connection.stratum.capture();
       }
       catch (e) {
-        //console.log("BRIDGE CONNECTION LOST IN CONNECT(BLOCK)");
         @logging.verbose("Bridge connection lost: #{e}");
       }
-
-      // xxx if there are unretractable active calls in `block`
-      // (i.e. something like try{}finally{api.call()}, we will end
-      // up with deadlock here, unless we clean up those calls right here:
-      //XXX
-
+      finally {
+        // to prevent deadlock if there are unretractable active calls in `block`
+        // (e.g. a call waiting to retract the other side, or something like 
+        // try{}finally{api.call()} , we shut the connection here and not in the finally below:
+        connection.__finally__();
+      }
       throw @TransportError("Bridge connection lost");
     } or {
       return block(connection);
     }
     finally {
-      connection.__finally__();
+//      connection.__finally__();
       connection.sessionLost.emit('session lost');
     }
   }

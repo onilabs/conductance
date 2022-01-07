@@ -202,7 +202,6 @@ function runTransportSession(ws, session_f) {
         var payload = (new Uint8Array(packet, 2));
         payload.set(header,0);
         payload.set(bytes,header.byteLength);
-
         ws.send(packet);
       },
       receive: function() { if (transport_itf.closed) throw @TransportError("connection closed");
@@ -245,35 +244,39 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
 /**
    @function openTransport
    @summary  Establish an WST transport to the given server
-   @param {optional String} [server='/'] WST server to connect to
+   @param {optional String} [server] WST server to connect to (default = server where this module is served from)
    @return {::Transport}
 */
 function openTransport(server, requestOpts) {
-  waitfor (var rv) {
-    @sys.spawn(function() {
-      try {
-        server = server || @url.normalize(SERVER_PREFIX, module.id);
-        server = server.replace(/^http/,'ws') + SERVER_PATH + '/' + WST_VERSION;
-//        console.log("OPEN WST TRANSPORT TO #{server}");
-        @withWebSocketClient(server) {
-          |ws|
-          runTransportSession(ws) {
-            |transport|
-            resume(transport);
-            // hold transport open; session will close (with transport error) when 
-            // transport closed from either our or the other side:
-            hold();
+  var rv;
+  (function() {
+    server = server || @url.normalize(SERVER_PREFIX, module.id);
+    server = server.replace(/^http/,'ws') + SERVER_PATH + '/' + WST_VERSION;
+    //console.log("OPEN WST TRANSPORT TO #{server}");
+    @withWebSocketClient(server) {
+      |ws|
+      runTransportSession(ws) {
+        |transport|
+        rv = transport;
+        // continue stratum in background:
+        var service_stratum = reifiedStratum;
+        @sys.spawn(function() { 
+          try {
+            service_stratum.capture();
           }
-        }
+          catch(e) {
+            if (!@isWebSocketError(e) && !@isTransportError(e)) {
+              console.log('wst-client: Uncaught exception '+e);
+            }
+            // else ignore
+          }
+        });
+        // hold transport open; session will close (with transport error) when 
+        // transport closed from either our or the other side:
+        hold();
       }
-      catch(e) {
-        if (!@isWebSocketError(e) && !@isTransportError(e)) {
-          console.log('wst-client: Uncaught exception '+e);
-        }
-        // else ignore
-      }
-    });
-  }
+    }
+  })();
   return rv;
 }
 

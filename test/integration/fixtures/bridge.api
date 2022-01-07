@@ -121,13 +121,16 @@ exports.integer_stream = Stream(function(r) {
 });
 
 exports.blocking_finally = function(finalizer, block) { 
+  var retract_called = false;
   try {
     block();
   }
   retract {
-    throw new Error('THIS RETRACT ON THE SERVER SHOULD NOT BE CALLED');
+    retract_called = true;
   }
   finally {
+    if (!retract_called)
+      throw new Error('RETRACT ON THE SERVER HAS NOT BEEN CALLED');
     hold(10);
     finalizer();
   }
@@ -141,4 +144,25 @@ exports.callAbortHold = function(f) {
     hold(10);
   }
   hold();
+};
+
+exports.execViaStratum = function(f) {
+  reifiedStratum.spawn(f);
+  reifiedStratum.wait();
+};
+
+exports.execViaDetachedStratum = function(f) {
+  waitfor(var rv, isException) {
+    sys.spawn(function() {
+      try {
+        resume(f(), false);
+      }
+      catch(e) {
+        console.log("/////// API CAUGHT "+e);
+        resume(e, true);
+      }
+    });
+  }
+  if (isException) throw rv;
+  else return rv;
 };
