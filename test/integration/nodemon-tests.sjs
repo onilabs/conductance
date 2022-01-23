@@ -147,7 +147,7 @@
     var base = @url.normalize('./fixtures/nodemon', module.id) .. @url.toPath;
     var expectStarts = function(proc, expected, block) {
       var restarts = 0;
-      var restarted = @Emitter();
+      var restarted = @Dispatcher();
       waitfor {
         var data;
         proc.stderr .. @stream.contents('utf-8') .. @each {|data|
@@ -157,7 +157,7 @@
             restarts += newRestarts;
             @info("restarts = #{restarts}");
             hold(1000);
-            restarted.emit(restarts);
+            restarted.dispatch(restarts);
           }
         }
       } or {
@@ -202,7 +202,7 @@
       s.proc = launch();
       // wait until it's started
       s.proc .. expectStarts(1) {|restarted|
-        restarted .. @wait();
+        restarted.receive();
       }
     }
 
@@ -217,7 +217,7 @@
       @test("restarts on .#{ext} change", function(s) {
         s.proc .. expectStarts(1) {|restarted|
           touch(@path.join(base, "file.#{ext}"));
-          restarted .. @wait();
+          restarted.receive();
         }
       });
     }

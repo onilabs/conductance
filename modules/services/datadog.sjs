@@ -164,9 +164,9 @@ exports.Datadog = function(opts) {
     // - queue all events and return _immediately_
     // - never throw (all errors are logged)
     // - logs dropped event types past `capacity`
-    var events = @Emitter();
+    var events = @Dispatcher();
     var blocking = this;
-    var eventStream = events .. loggingTailBuffer(opts.capacity, {
+    var eventStream = @events(events) .. loggingTailBuffer(opts.capacity, {
       drop: ([type,]) -> @logging.warn("Dropping queued datadog #{type}"),
     });
     //var STOP = {};
@@ -184,7 +184,7 @@ exports.Datadog = function(opts) {
     });
 
     var rv = [ 'event', 'metric', 'metrics' ]
-      .. @map(key -> [key, function() { events.emit([key, arguments]) }])
+      .. @map(key -> [key, function() { events.dispatch([key, arguments]) }])
       .. @pairsToObject();
     return rv;
   };

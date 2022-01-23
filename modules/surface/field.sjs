@@ -585,7 +585,7 @@ function Field(elem, settings /* || name, initval */) {
   if (settings.ValidationState)
     settings.ValidationState.set({state:'unknown'});
 
-  var ValidatorsChange = @Emitter();
+  var ValidatorsChange = @Dispatcher();
 
   return elem ..
     // Mechanism that installs field api:
@@ -608,7 +608,7 @@ function Field(elem, settings /* || name, initval */) {
                   ++field.validators_deps[dep];
               }
             }
-            ValidatorsChange.emit();
+            ValidatorsChange.dispatch();
           },
           removeValidator: function(validator) {
             field.validators .. @remove(validator);
@@ -618,7 +618,7 @@ function Field(elem, settings /* || name, initval */) {
                   delete field.validators_deps[dep];
               }
             }
-            ValidatorsChange.emit();
+            ValidatorsChange.dispatch();
           },
           validators: [],
           validators_deps: {},
@@ -643,7 +643,7 @@ function Field(elem, settings /* || name, initval */) {
 
         waitfor {
           // [1] here to make sure that we have an initial prod
-          @combine([1],ValidatorsChange) .. @each.track { ||
+          @combine([1],@events(ValidatorsChange)) .. @each.track { ||
             field_itf.validation_loop(node);
           }
         }
@@ -805,7 +805,7 @@ var FieldMap = (elem) ->
             this._field.value.set(current_map_value .. @merge(@pairsToObject([[name, field_node[ITF_FIELD].value .. @current]])));
 
           // make sure we listen to the new field in our synchronization loop: (only applicable if this field is added dynamically)
-          this._field_mutation_emitter.emit();
+          this._field_mutation_dispatcher.dispatch();
         },
         removeField: function(name, field_node) {
           if(!this._fieldmap .. @hasOwn(name)) throw new Error("Field '#{name}' not found in FieldMap");
@@ -814,13 +814,13 @@ var FieldMap = (elem) ->
           
           // XXX should we delete the associated value from our _field (or set it to 'undefined')?
 
-          this._field_mutation_emitter.emit();
+          this._field_mutation_dispatcher.dispatch();
         },
 
         // internal fields:
 
         _fieldmap: {},
-        _field_mutation_emitter: @Emitter()
+        _field_mutation_dispatcher: @Dispatcher()
         // _field: our bound field; will be set below
       }; /* fieldcontainer_itf */
 
@@ -933,7 +933,7 @@ var FieldMap = (elem) ->
             }
           }
           or {
-            fieldcontainer_itf._field_mutation_emitter .. @wait;
+            fieldcontainer_itf._field_mutation_dispatcher.receive();
           }
         }
       }
@@ -1071,7 +1071,7 @@ function FieldArray(elem, settings) {
                 this._fieldarray.splice(i,1);
                 this._array_length.modify(x -> --x);
                 
-                this._array_mutation_emitter.emit();
+                this._array_mutation_dispatcher.dispatch();
                 return;
               }
             }
@@ -1081,7 +1081,7 @@ function FieldArray(elem, settings) {
 
           // internal fields:
           _fieldarray: [],
-          _array_mutation_emitter: @Emitter(),
+          _array_mutation_dispatcher: @Dispatcher(),
           _array_length: @ObservableVar(0),
           // _field: out bound field; will be set below
         }; /* fieldcontainer_itf */
@@ -1117,7 +1117,7 @@ function FieldArray(elem, settings) {
             if(fieldcontainer_itf._field.validators_deps .. @ownKeys .. @count > 0) 
               throw new Error("Validator dependencies not implemented for field arrays yet"); 
         
-            @updatesToObservable(fieldcontainer_itf._array_mutation_emitter,->0) .. @each.track {
+            @updatesToObservable(@events(fieldcontainer_itf._array_mutation_dispatcher),->0) .. @each.track {
               ||
               // XXX effectively this does validations twice, because a value change goes 
               // hand in hand with a change in children's validation states
@@ -1201,7 +1201,7 @@ function FieldArray(elem, settings) {
                                       for (/**/;i<fieldcontainer_itf._fieldarray.length;++i)
                                         fieldcontainer_itf._fieldarray[i].Index.modify(l-> --l);
                                       fieldcontainer_itf._array_length.modify(l-> --l);
-                                      fieldcontainer_itf._array_mutation_emitter.emit();
+                                      fieldcontainer_itf._array_mutation_dispatcher.dispatch();
                                     }
                                   }) ..
                                                Field({initval:val})));
@@ -1214,7 +1214,7 @@ function FieldArray(elem, settings) {
               array_mutation = true;
               fieldcontainer_itf._fieldarray.pop().node .. @removeNode();
             }
-            if (array_mutation) fieldcontainer_itf._array_mutation_emitter.emit();
+            if (array_mutation) fieldcontainer_itf._array_mutation_dispatcher.dispatch();
           };
         }
         and {
@@ -1254,7 +1254,7 @@ function FieldArray(elem, settings) {
               }
             }
             or {
-              fieldcontainer_itf._array_mutation_emitter .. @wait;
+              fieldcontainer_itf._array_mutation_dispatcher.receive();
             } 
           }
         }

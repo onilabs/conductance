@@ -86,10 +86,10 @@ function LevelDB(location, options) {
   if (err) throw new Error("Failed to open database at #{location}: #{err}") .. annotateError(err);
 
   /*
-    MutationEmitter receives all mutations in the form
+    MutationDispatcher receives all mutations in the form
     [{type:'put'|'del', key:encoded_key, value:encoded_value}, ...]
    */
-  var MutationEmitter = @Emitter();
+  var MutationDispatcher = @Dispatcher();
 
   __js var encoding_backend = {
     makeEncodingBuffer: Buffer.allocUnsafe,
@@ -110,7 +110,7 @@ function LevelDB(location, options) {
   };
 
   var base = {
-    changes: MutationEmitter,
+    changes: @events(MutationDispatcher),
 
     encoding_backend : encoding_backend,
 
@@ -136,7 +136,7 @@ function LevelDB(location, options) {
         db.put(key, value, options || {}, resume);
       }
       if (err) throw new Error(err) .. annotateError(err);
-      MutationEmitter.emit([{type:'put', key:key, value:value}]);
+      MutationDispatcher.dispatch([{type:'put', key:key, value:value}]);
     },
     */
     /**
@@ -169,7 +169,7 @@ function LevelDB(location, options) {
         db.del(key, options || {}, resume);
       }
       if (err) throw new Error("Error deleting '#{key}' from database at #{location}: #{err}") .. annotateError(err);
-      MutationEmitter.emit([{type:'del', key:key}]);
+      MutationDispatcher.dispatch([{type:'del', key:key}]);
     },
     */
     /**
@@ -183,7 +183,7 @@ function LevelDB(location, options) {
         __js db.batch(ops, options || {}, resume);
       }
       if (err) throw new Error("Error in batch operation for database at #{location}: #{err}") .. annotateError(err);
-      MutationEmitter.emit(ops);
+      MutationDispatcher.dispatch(ops);
     },
     /**
        @function LevelDB.query

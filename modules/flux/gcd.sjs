@@ -1022,7 +1022,7 @@ function GoogleCloudDatastore(attribs) {
     watch: function(f) {
       var start_revision = change_buffer.revision, current_revision;
       while (true) {
-        current_revision = change_buffer.emitter .. @wait();
+        current_revision = change_buffer.dispatcher.receive();
         while (current_revision !== start_revision) {
           f(change_buffer.getChanges(start_revision));
           start_revision = current_revision;

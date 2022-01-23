@@ -71,10 +71,10 @@ function TemporalBatcher(flush) {
 
   function batcher(initial) {
     var args = [initial];
-    batch = @Emitter();
+    batch = @Dispatcher();
     while (1) {
       waitfor {
-        args.push(batch .. @wait());
+        args.push(batch.receive());
         if (args.length >= MAX_CALL_BATCH)
           break;
       }
@@ -95,7 +95,7 @@ function TemporalBatcher(flush) {
 
   return function(arg) {
     if (batch) { 
-      batch.emit(arg);
+      batch.dispatch(arg);
     }
     else
       @sys.spawn(-> batcher(arg));

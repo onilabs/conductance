@@ -256,9 +256,6 @@
               "children": {
                 "__finally__": {
                   "type": "function"
-                },
-                "sessionLost": {
-                  "type": "variable"
                 }
               }
             },

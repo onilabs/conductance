@@ -388,15 +388,15 @@ var encoding_backend = {
 
 function wrap_dict(dict, options) {
   /*
-    MutationEmitter receives all mutations in the form
+    MutationDispatcher receives all mutations in the form
     [{type:'put'|'del', key:encoded_key, value:encoded_value}, ...]
    */
-  var MutationEmitter = @Emitter();
+  var MutationDispatcher = @Dispatcher();
 
   return {
     encoding_backend : encoding_backend,
 
-    changes: MutationEmitter,
+    changes: @events(MutationDispatcher),
 
     encodeValue: function (value) {
       return value;
@@ -438,7 +438,7 @@ function wrap_dict(dict, options) {
 
       save_db(dict, options);
 
-      MutationEmitter.emit(ops);
+      MutationDispatcher.dispatch(ops);
     }),
 
     query: function (info) {

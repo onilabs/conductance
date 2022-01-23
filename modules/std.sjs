@@ -251,10 +251,11 @@ module.exports = require(modules);
   ### Symbols from the [sjs:cutil](#sjs%3Acutil) module:
   
    - **breaking**: (function [sjs:cutil::breaking])
+   - **Channel**: (class [sjs:cutil::Channel])
    - **Condition**: (class [sjs:cutil::Condition])
+   - **Dispatcher**: (class [sjs:cutil::Dispatcher])
    - **Queue**: (class [sjs:cutil::Queue])
    - **Semaphore**: (class [sjs:cutil::Semaphore])
-   - **StratumAborted**: (variable [sjs:cutil::StratumAborted])
    - **waitforAll**: (function [sjs:cutil::waitforAll])
    - **waitforFirst**: (function [sjs:cutil::waitforFirst])
    - **withBackgroundStrata**: (function [sjs:cutil::withBackgroundStrata])
@@ -269,7 +270,6 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:event](#sjs%3Aevent) module:
   
-   - **Emitter**: (class [sjs:event::Emitter])
    - **events**: (function [sjs:event::events])
    - **wait**: (function [sjs:event::wait])
   

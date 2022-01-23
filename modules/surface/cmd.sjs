@@ -83,7 +83,7 @@ function emit(settings /*{[node], cmd, [param]}*/) {
   var node = settings.node .. @getDOMNode();
   var processor = node .. findCmdProcessor(settings.cmd);
   if (!processor) return false;
-  processor.emitter.emit([settings.cmd, settings.param]);
+  processor.dispatcher.dispatch([settings.cmd, settings.param]);
   return true;
 }
 exports.emit = emit;
@@ -174,12 +174,12 @@ function On(/*element, settings*/) {
   
   if (settings.track_enabled)
     var Enabled = @ObservableVar(false);
-  var emitter;
+  var dispatcher;
   
   var methods = {
     cmd: settings.cmd,
-    isBound: function() { return !!emitter },
-    setEmitter: function(e) { emitter = e; if (Enabled) { Enabled.set(!!e); } }
+    isBound: function() { return !!dispatcher },
+    setDispatcher: function(e) { dispatcher = e; if (Enabled) { Enabled.set(!!e); } }
   };
 
   var rv = element ..
@@ -204,7 +204,7 @@ function On(/*element, settings*/) {
               if (rec.bound_commands && rec.bound_commands.indexOf(methods.cmd) === -1)
                 continue;
               rec.cmd_nodes.push(methods);
-              methods.setEmitter(rec.emitter);
+              methods.setDispatcher(rec.dispatcher);
               return; // we're bound
             }
           }
@@ -216,7 +216,7 @@ function On(/*element, settings*/) {
         {handle: settings.handle,
          filter: settings.filter
         },
-        ev -> emitter ? emitter.emit([settings.cmd,
+        ev -> dispatcher ? dispatcher.dispatch([settings.cmd,
                                       settings.param!==undefined ?
                                       (typeof settings.param === 'function' ? settings.param(ev) : settings.param) :
                                       ev
@@ -253,11 +253,11 @@ function Active(/*[dom_root], cmd */) {
   return @Stream(function(downstream) {
 
     var Enabled = @ObservableVar(false);
-    var emitter;
+    var dispatcher;
     var methods = {
       cmd: cmd,
-      isBound: function() { return !!emitter },
-      setEmitter: function(e) { emitter = e; Enabled.set(!!e); }
+      isBound: function() { return !!dispatcher },
+      setDispatcher: function(e) { dispatcher = e; Enabled.set(!!e); }
     };
 
 
@@ -290,7 +290,7 @@ function Active(/*[dom_root], cmd */) {
             if (proc.bound_commands && proc.bound_commands.indexOf(methods.cmd) === -1)
               continue;
             proc.cmd_nodes.push(methods);
-            methods.setEmitter(proc.emitter);
+            methods.setDispatcher(proc.dispatcher);
             break; // we're bound
           }
         }
@@ -334,8 +334,8 @@ function stream(/*[dom_root], [commands]*/) {
     else if (args.length !== 0)
       throw new Error("Surplus arguments supplied to cmd::Stream()");
     
-    var emitter = @Emitter();
-    var disable_inputs = @Emitter();
+    var dispatcher = @Dispatcher();
+    var disable_inputs = @Dispatcher();
 
     while (1) {
       waitfor {
@@ -346,7 +346,7 @@ function stream(/*[dom_root], [commands]*/) {
           var cmd_processor = {
             bound_commands: bound_commands,
             cmd_nodes: cmd_nodes,
-            emitter: emitter
+            dispatcher: dispatcher
           };
           root .. @getDOMNodes() .. @each {
             |node|
@@ -373,19 +373,19 @@ function stream(/*[dom_root], [commands]*/) {
                 if (bound_commands && bound_commands.indexOf(cmd_ui.cmd) === -1)
                   continue; // not a command we bind to
                 cmd_nodes.push(cmd_ui);
-                cmd_ui.setEmitter(emitter);
+                cmd_ui.setDispatcher(dispatcher);
               }
             }
 
           // keep up bindings until 'disable_inputs' fires
-          disable_inputs .. @wait();
+          disable_inputs.receive();
           
         }
         finally {
           // unbind
           cmd_nodes .. @each {
             |command_ui|
-            command_ui.setEmitter(null);
+            command_ui.setDispatcher(null);
           }
 
           root .. @getDOMNodes() .. @each {
@@ -397,7 +397,7 @@ function stream(/*[dom_root], [commands]*/) {
         }
       }
       and {
-        emitter .. @each {
+        @events(dispatcher) .. @each {
           |cmd_param|
           var downstream_taking_time = false;
           waitfor {
@@ -406,7 +406,7 @@ function stream(/*[dom_root], [commands]*/) {
           or {
             hold(100);
             downstream_taking_time = true;
-            disable_inputs.emit();
+            disable_inputs.dispatch();
             hold();
           }
           if (downstream_taking_time)

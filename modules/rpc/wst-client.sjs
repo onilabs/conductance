@@ -45,30 +45,30 @@ var KEEPALIVE_T_LAT = 1500; // time to budget for round-trip latency (note: XXX 
 var UTF8Encoder = new TextEncoder();
 var UTF8Decoder = new TextDecoder();
 
-// constants for 'Traffic' emitter:
+// constants for 'Traffic' dispatcher:
 var RECEIVE_TRAFFIC = 1;
 var SEND_TRAFFIC = 2;
 
 function runTransportSession(ws, session_f) {
   var Q = @Queue(1000);
 
-  var Traffic = @Emitter();
-  var Keepalives = @Emitter();
+  var Traffic = @Dispatcher();
+  var Keepalives = @Dispatcher();
 
   waitfor {
     ws.receive() .. @each {
       |mes|
       if (typeof mes === 'string') {
         if (mes.length === 0) {
-          Keepalives.emit();
+          Keepalives.dispatch();
         }
         else {
-          Traffic.emit(RECEIVE_TRAFFIC);
+          Traffic.dispatch(RECEIVE_TRAFFIC);
           Q.put({type:'message', data:JSON.parse(mes)});
         }
       }
       else if (mes instanceof ArrayBuffer) {
-        Traffic.emit(RECEIVE_TRAFFIC);
+        Traffic.dispatch(RECEIVE_TRAFFIC);
         // data message; typeof = Uint8Array
         var header_length = (new DataView(mes)).getUint16(0);
         var header = UTF8Decoder.decode(new Uint8Array(mes,2,header_length)) .. JSON.parse;
@@ -121,15 +121,15 @@ function runTransportSession(ws, session_f) {
         var t_r = KEEPALIVE_T0;
         waitfor {
           hold(t_r + KEEPALIVE_T_LAT);
-          //console.log("Transport timeout within t_r+lat="+(t_r+KEEPALIVE_T_LAT)+"ms");
+          console.log("Transport timeout within t_r+lat="+(t_r+KEEPALIVE_T_LAT)+"ms");
           throw @TransportError("timeout");
         }
         or {
-          Traffic .. @filter(t->t===RECEIVE_TRAFFIC) .. @first();
+          @events(Traffic) .. @filter(t->t===RECEIVE_TRAFFIC) .. @first();
           continue; // reset t
         }
         or {
-          Keepalives .. @first();
+          Keepalives.receive();
         }
         // follow-on loop:
         waitfor {
@@ -142,12 +142,12 @@ function runTransportSession(ws, session_f) {
               throw @TransportError("timeout");            
             }
             or {
-              Keepalives .. @first();
+              Keepalives.receive();
             }
           }
         }
         or {
-          Traffic .. @first();
+          Traffic.receive();
         }
       }
     }
@@ -162,7 +162,7 @@ function runTransportSession(ws, session_f) {
           ws.send('');
         }
         or {
-          Traffic .. @filter(t->t===SEND_TRAFFIC) .. @first();
+          @events(Traffic) .. @filter(t->t===SEND_TRAFFIC) .. @first();
           continue; // reset t
         }
         // follow-on loop
@@ -175,7 +175,7 @@ function runTransportSession(ws, session_f) {
           }
         }
         or {
-          Traffic .. @first();
+          Traffic.receive();
         }
       }
     }
@@ -192,7 +192,7 @@ function runTransportSession(ws, session_f) {
       send: function(message) {
         if (transport_itf.closed) throw @TransportError("connection closed");
         ws.send(JSON.stringify(message));
-        Traffic.emit(SEND_TRAFFIC);
+        Traffic.dispatch(SEND_TRAFFIC);
       },
       sendData: function(header, bytes) {
         if (transport_itf.closed) throw @TransportError("connection closed");

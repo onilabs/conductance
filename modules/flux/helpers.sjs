@@ -12,7 +12,7 @@
 /**
   @nodoc
 */
-var { Emitter } = require('sjs:event');
+var { Dispatcher } = require('sjs:cutil');
 var { flatten } = require('sjs:array');
 
 exports.ChangeBuffer = function(size) {
@@ -21,12 +21,12 @@ exports.ChangeBuffer = function(size) {
   // when deciding to shift the buffer?
   var buf = [];
   var rv = {
-    emitter: Emitter(),
+    dispatcher: Dispatcher(),
     revision: 1,
     addChanges: function(changes) {
       buf.push(changes);
       if (buf.length > size) buf.shift();
-      rv.emitter.emit(++rv.revision);
+      rv.dispatcher.dispatch(++rv.revision);
     },
     getChanges: function(start_revision) {
       var count = rv.revision - start_revision;

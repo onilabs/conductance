@@ -49,11 +49,11 @@ var afterFirst = (in_stream, f) ->
 
 function mutationEvents(element, config) {
   return @Stream(function(r) {
-    var emitter = @Emitter();
-    var observer = new MutationObserver(mutations -> emitter.emit(mutations));
+    var dispatcher = @Dispatcher();
+    var observer = new MutationObserver(mutations -> dispatcher.dispatch(mutations));
     try {
       observer.observe(element, config);
-      emitter .. @each(r);
+      @events(dispatcher) .. @each(r);
     }
     finally {
       observer.disconnect();
@@ -445,17 +445,17 @@ function doDropdown(/* anchor, items, [settings] */) {
       
   }
 
-  var DropdownUpdatedEmitter = @Emitter();
+  var DropdownUpdatedDispatcher = @Dispatcher();
 
   var DropdownContent = @Stream(function(r) {
     settings.items .. @each.track {
       |items| 
 
 
-      DropdownUpdatedEmitter.emit();
+      DropdownUpdatedDispatcher.dispatch();
 
       // asynchronizing here makes sure that the
-      // DropdownUpdatedEmitter call below is caught by the keyboard
+      // DropdownUpdatedDispatcher call below is caught by the keyboard
       // processing code below when the dropdown is opened initially.
       // Also, it prevents certain flicker scenarios: e.g. when we want to 
       // hide the dropdown when text in a select field is empty, we want a chance to
@@ -463,7 +463,7 @@ function doDropdown(/* anchor, items, [settings] */) {
       hold(0);
 
 
-      r(@CollectStream(items .. afterFirst(-> DropdownUpdatedEmitter.emit()) .. @transform(makeDropdownItem)));
+      r(@CollectStream(items .. afterFirst(-> DropdownUpdatedDispatcher.dispatch()) .. @transform(makeDropdownItem)));
     }
   });
 
@@ -486,7 +486,7 @@ function doDropdown(/* anchor, items, [settings] */) {
     }
     or {
       if (!settings.keyboard) hold();
-      DropdownUpdatedEmitter .. @each.track {
+      @events(DropdownUpdatedDispatcher) .. @each.track {
         ||
         var selected = dropdownDOMElement.querySelector('li');
         if (!selected) continue;

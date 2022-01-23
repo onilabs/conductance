@@ -173,9 +173,9 @@ exports.Connected = Connected;
    @function logOut
    @summary xxx document
 */
-var LogoutEmitter = @Emitter();
+var LogoutEmitter = @Dispatcher();
 exports.logOut = function() {
-  LogoutEmitter.emit();
+  LogoutEmitter.dispatch();
 }
 
 //----------------------------------------------------------------------
@@ -318,7 +318,7 @@ function runSession(block) {
     block(auth_api);
   }
   or {
-    LogoutEmitter .. @wait();
+    LogoutEmitter.wait();
     delete localStorage['credentials'];
   }
 }

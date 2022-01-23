@@ -101,23 +101,23 @@ function runRaftServer(settings, clientBlock) {
   //----------------------------------------------------------------------
   // API exposed to other servers:
 
-  // We use a bunch of emitters to communicate between external calls
+  // We use a bunch of dispatchers to communicate between external calls
   // made to our API and the current Raft state loop (follower,
   // candidate, leader - see below):
 
-  //  *  Heartbeat that will be emitted whenever there is comms from a
+  //  *  Heartbeat that will be dispatched whenever there is comms from a
   //     leader or a candidate that we're waiting for. This is used to 
   //     reset election timeouts when in the 'follower' or 'candidate' 
   //     state
-  var heartbeatEmitter = @Emitter();
+  var heartbeatDispatcher = @Dispatcher();
 
-  //  *  Emitter that will fire whenever there are new commands in the log
+  //  *  Dispatcher that will fire whenever there are new commands in the log
   //     that can be applied to the state machine:
-  var applyCommitsEmitter = @Emitter();
+  var applyCommitsDispatcher = @Dispatcher();
 
-  //  *  Emitter that will fire whenever we received a call with a term
+  //  *  Dispatcher that will fire whenever we received a call with a term
   //     greater than our current term:
-  var termChangeEmitter = @Emitter();
+  var termChangeDispatcher = @Dispatcher();
 
 
   var localRaftAPI = {
@@ -134,7 +134,7 @@ function runRaftServer(settings, clientBlock) {
       checkTermCurrent(term);
       
       // reset election timeouts (in case of 'follower' or 'candidate') [RAFT 5.2]
-      heartbeatEmitter.emit(); // XXX should we do this before the term check above?
+      heartbeatDispatcher.dispatch(); // XXX should we do this before the term check above?
 
       // reply false if log doesn't contain an entry at prevLogIndex
       // whose term matches prevLogTerm [RAFT 5.3 & Fig.2 AppendEntries RPC 2]
@@ -152,7 +152,7 @@ function runRaftServer(settings, clientBlock) {
 
       if (leaderCommit > commitIndex) {
         commitIndex = Math.min(leaderCommit, state.log.length);
-        applyCommitsEmitter.emit();
+        applyCommitsDispatcher.dispatch();
       }
 
       return { success: true, term: state.currentTerm };
@@ -172,7 +172,7 @@ function runRaftServer(settings, clientBlock) {
       ) {
 
         state.votedFor = candidateId;
-        heartbeatEmitter.emit();
+        heartbeatDispatcher.dispatch();
         return { voteGranted: true, term: state.currentTerm };
       }
       
@@ -184,7 +184,7 @@ function runRaftServer(settings, clientBlock) {
     if (term > state.currentTerm) {
       state.currentTerm = term;
       state.votedFor = null;
-      termChangeEmitter.emit();
+      termChangeDispatcher.dispatch();
     }
   }
 
@@ -207,7 +207,7 @@ function runRaftServer(settings, clientBlock) {
         while (commitIndex > lastApplied) {
           r(state.log[++lastApplied]);
         }
-        applyCommitsEmitter .. @wait;
+        applyCommitsDispatcher.receive();
       }
     })
   };
@@ -219,7 +219,7 @@ function runRaftServer(settings, clientBlock) {
     LOG('FOLLOWER');
     while (true) {
       waitfor {
-        heartbeatEmitter .. @wait();
+        heartbeatDispatcher.receive();
       }
       or {
         hold(electionTimeout);
@@ -233,7 +233,7 @@ function runRaftServer(settings, clientBlock) {
 
   function candidate() {
     LOG("CANDIDATE in term #{state.currentTerm+1}");
-    // XXX termchange emitter
+    // XXX termchange dispatcher
     ++state.currentTerm;
     state.votedFor = myId;
     waitfor {
@@ -261,7 +261,7 @@ function runRaftServer(settings, clientBlock) {
       leader();
     }
     or {
-      heartbeatEmitter .. @wait();
+      heartbeatDispatcher.receive();
       collapse;
       // we've got a new leader; become follower
       follower();
@@ -270,7 +270,7 @@ function runRaftServer(settings, clientBlock) {
 
   function leader() {
     LOG('***** NEW LEADER ******');
-    // XXX termchange emitter
+    // XXX termchange dispatcher
     
     waitfor {
       // keepalive loop
@@ -288,7 +288,7 @@ function runRaftServer(settings, clientBlock) {
         or {
           while (true) {
             waitfor {
-              heartbeatEmitter .. @wait();
+              heartbeatDispatcher.receive();
             }
             or {
               hold(electionTimeout/2);

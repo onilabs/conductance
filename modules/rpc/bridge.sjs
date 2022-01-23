@@ -530,7 +530,7 @@ function unmarshallBlob(obj, connection) {
     // referencing call: aat-server doesn't get a "notification" when
     // the data has arrived at the client, since it is being sent in a
     // http response. Hence the `wait` here:
-    connection.dataReceived .. @wait();
+    connection.dataReceived.receive();
   }
   delete connection.received_blobs[id];
   return blob;
@@ -572,10 +572,6 @@ var bridge_id_counter = 0;
     `BridgeConnection` instances cannot be constructed directly, see [::connect] or
     [#features/api-file::].
 
-  @variable BridgeConnection.sessionLost
-  @type sjs:event::EventStream
-  @summary The session has been lost
-
   @function BridgeConnection.__finally__
   @summary Terminate and clean up this connection
 */
@@ -605,11 +601,9 @@ function BridgeConnection(transport, opts) {
   var closed = false;
   var throwing = opts.throwing !== false;
 
-  var sessionLost = @Emitter(); // session has been lost
-  
-  // emitter that gets prodded every time a binary data packet is received;
+  // dispatcher that gets prodded every time a binary data packet is received;
   // see note under `unmarshallBlob` for details
-  var dataReceived = @Emitter(); 
+  var dataReceived = @Dispatcher(); 
 
   if (opts.api_getter)
     published_funcs[0] = opts.api_getter;
@@ -649,7 +643,6 @@ function BridgeConnection(transport, opts) {
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
     msg_seq_counter: 0, // sequence counter to facilitate ordering of (non-data) messages; aat doesn't guarantee order
     received_blobs: {},
-    sessionLost: sessionLost,
     dataReceived: dataReceived,
     localWrappers: opts.localWrappers,
 
@@ -862,14 +855,15 @@ function BridgeConnection(transport, opts) {
     }
     catch (e) {
       if (@isTransportError(e)) {
+        console.log("Transport Error while receiving; terminating BridgeConnection: #{e}");
         @logging.debug("Transport Error while receiving; terminating BridgeConnection: #{e}");
       }
       else {
+        console.log("Error while receiving; terminating BridgeConnection: #{e}");
         @logging.error("Error while receiving; terminating BridgeConnection: #{e}");
       }
       if (!throwing) {
         connection.__finally__();
-        sessionLost.emit(e);
         return;
       }
       // in the throwing case, we call __finally__ later, after we've given the block
@@ -881,7 +875,7 @@ function BridgeConnection(transport, opts) {
 
   function receiveData(packet) {
     connection.received_blobs[packet.header.id] = coerceBinary(packet.data, packet.header.t);
-    dataReceived.emit();
+    dataReceived.dispatch();
   }
 
 
@@ -1208,14 +1202,7 @@ exports.resolve = function(api_name, opts) {
 
     It is recommended to pass a `block` argument, rather than relying on
     `connect` to return the connection, since using a return value means that
-    you will need to:
-    
-    - monitor the connection's [::BridgeConnection::sessionLost]
-      event yourself to see if the connection is still alive
-
-    and
-
-    - close the connection manually (using [::BridgeConnection::__finally__])
+    you will need to close the connection manually (using [::BridgeConnection::__finally__])
 */
 exports.connect = function(apiinfo, opts, block) {
   if(typeof(opts) == 'function') throw new Error("opts are required when passing a block to connect()");
@@ -1266,7 +1253,6 @@ exports.connect = function(apiinfo, opts, block) {
     }
     finally {
 //      connection.__finally__();
-      connection.sessionLost.emit('session lost');
     }
   }
   else return connection;
