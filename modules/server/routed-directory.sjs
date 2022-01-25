@@ -327,12 +327,21 @@ exports.gen_routed_page = function(src, aux) {
           'sjs:std',
           {id: 'mho:surface/api-connection', name: 'api_connection'}
         ]);
-        @runGlobalBackgroundService(@api_connection.withAPI,
-                                    {id: '${mapping.config.api}'})[0] ..
-        @ownPropertyPairs .. @each {
-          |[key,val]|
-          exports[key] = val;
-        }
+        var the_api = @Condition();
+        exports.api = function() { return the_api.wait(); }
+        @sys.spawn(function() {
+          @api_connection.withAPI({id:'${mapping.config.api}'}) { 
+            |api|
+            try {
+              the_api.set(api); 
+              hold();
+            }
+            finally {
+              the_api.clear();
+            }
+          }
+        });
+
         `
     );
   }
