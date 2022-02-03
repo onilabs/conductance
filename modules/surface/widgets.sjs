@@ -788,17 +788,11 @@ var DialogCSS = @CSS([
 
     .mho-dialog {
       display:flex;
+      flex-direction:column;
       background-color: var(--mho-theme-background, #fff);
       ${@style_helpers.Elevation(24)}
       border-radius: 2px;
       overflow:hidden;
-    }
-
-    .mho-dialog > div {
-      display: flex;
-      flex:1;
-      overflow:hidden;
-      flex-direction: column;
     }
 
     .mho-dialog--type_small {
@@ -823,17 +817,19 @@ var DialogCSS = @CSS([
 
     .mho-dialog__content {
       flex: 1;
+      display: flex;
+      flex-direction: column;
       height: 100%;
       margin: 24px 24px 8px 24px;
       overflow: hidden;
     }
 
     .mho-dialog__title + .mho-dialog__content {
-      margin-top: 20px;
+      margin-top: 10px;
     }
 
     .mho-dialog__title {
-      margin: 24px 24px 0px 24px;
+      margin: 18px 24px 0px 24px;
     }
 
     .mho-dialog__actions {
@@ -871,13 +867,13 @@ function dialog(content, settings, block) {
       @Class('mho-dialog__close') .. 
       @Class(@cmd.Active('dialog-close') .. @transform(b -> !b ? 'mho-dialog__close_disabled' )) .. 
       @cmd.Click('dialog-close') :: `&#xd7;`,
-    ResizingMaterial .. @Class("mho-dialog mho-dialog--type_#{settings.type}") :: content
+    /*ResizingMaterial*/ @Div .. @Class("mho-dialog mho-dialog--type_#{settings.type}") :: content
   ];
 
   overlay(ui, {zindex: settings.zindex, css: css, backdrop_click_cmd: 'dialog-close'}) {
     |dialog_close_node, dialog_node, backdrop_node|
     // see comment in @appendContent body of @overlay
-    var content_nodes = dialog_node.firstChild.children .. @toArray;
+    var content_nodes = dialog_node/*.firstChild*/.children .. @toArray;
     content_nodes.push(dialog_close_node);
     content_nodes.push(backdrop_node);
     @withDOMContext(content_nodes) {
