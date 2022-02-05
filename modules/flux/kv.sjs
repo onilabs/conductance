@@ -369,7 +369,7 @@ function LevelDB(location, options, block) {
 
   if (block) {
     try {
-      block(itf);
+      return block(itf);
     } finally {
       itf.close();
     }
@@ -438,7 +438,7 @@ function LocalDB(options, block) {
   var itf = require('./kv/localdb').LocalDB(options);
 
   if (block) {
-    block(itf);
+    return block(itf);
   } else {
     return itf;
   }
@@ -486,7 +486,7 @@ function Encrypted(db, options, block) {
   var itf = require('./kv/encrypted').Encrypted(db, options);
 
   if (block) {
-    block(itf);
+    return block(itf);
   } else {
     return itf;
   }
@@ -519,7 +519,7 @@ function Subspace(db, prefix, block) {
   var itf = require('./kv/subspace').Subspace(db, prefix);
 
   if (block) {
-    block(itf);
+    return block(itf);
   } else {
     return itf;
   }
