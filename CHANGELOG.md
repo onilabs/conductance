@@ -1,5 +1,13 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
+## Version 1.0.0:
+
+ * General
+
+   * This version is based on a stratifiedjs v1.0.0 which includes a complete overhaul of
+	   spawned strata and blocklambdas.
+
+	
 ## Version 0.9.1:
 
  * General

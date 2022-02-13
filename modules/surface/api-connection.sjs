@@ -251,6 +251,7 @@ exports.withAPI = function(api, opts, block) {
         }
       })) {
         |connection|
+        console.log("api-connection::withAPI: Bridge connection to #{api .. @inspect} established");
         // we're connected; reset connection delay
         delay = initialDelay;
         block(connection.api);

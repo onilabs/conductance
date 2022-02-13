@@ -164,7 +164,7 @@ function withWebSocketClient(settings, session_f) {
     waitfor {
       try {
         var error = socket .. @wait('error');
-        throw WebSocketError(error);
+        throw WebSocketError("Undeterminable error");
       }
       finally {
         // ignore errors, so that we don't get things like
@@ -268,6 +268,7 @@ exports.WebSocketServer = function(config) {
       // XXX maybe we should use a separate flag to indicate that requests have been handled;
       // overloading 'req.socket' in this way could be problematic if we do anything fancy
       // with requests before running sessions off them
+      console.log("Websocket connection from #{socket.remoteAddress}");
       req.socket = null;
       try {
         waitfor (var ws) {
