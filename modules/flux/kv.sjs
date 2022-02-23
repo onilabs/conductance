@@ -259,7 +259,9 @@ exports.clearRange = clearRange;
    @param {::Key} [key]
    @return {sjs:observable::Observable}
    @summary Return an [sjs:observable::Observable] of the value associated with key.
-
+   @desc
+     Note: If there is nothing stored under the key, or an existing value is [::clear]ed, 
+     the value of the observable will be `undefined`.
 */
 __js function observe(store, key) {
   key = @util.normalizeKey(key);
