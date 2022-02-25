@@ -1,5 +1,12 @@
 This changelog lists the most prominent, developer-visible changes in each release, starting with release 0.7.5:
 
+## Version 1.0.0+:
+
+ * New functionality
+
+   * 'sessionStorage' backend for mho:flux/kv::LocalDB
+
+	
 ## Version 1.0.0:
 
  * General

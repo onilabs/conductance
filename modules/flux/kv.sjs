@@ -391,15 +391,20 @@ exports.LevelDB = LevelDB;
   @param {optional Object} [settings]
   @param {optional Function} [block] Lexical block to scope the LocalDB object to
   @setting {optional String} [localStorage] The name to use in `localStorage` for loading/saving the DB
+  @setting {optional String} [sessionStorage] The name to use in `sessionStorage` for loading/saving the DB
   @setting {optional String} [file] The file path to use for loading/saving the DB
   @setting {optional sjs:observable::ObservableVar} [string] A string [sjs:observable::ObservableVar] backing the DB
   @setting {optional Boolean} [readonly=false] If this is `true`, any mutation attempts will throw an exception
   @desc
   
-    * `localStorage`, `file`, and `string` are exclusive of each other.
+    * `localStorage`, `sessionStorage`, `file`, and `string` are exclusive of each other.
 
     * If you provide `localStorage`, the DB will be loaded/saved to
       `localStorage`, using the name provided. This can only be used in
+      the xbrowser host environment.
+
+    * If you provide `sessionStorage`, the DB will be loaded/saved to
+      `sessionStorage`, using the name provided. This can only be used in
       the xbrowser host environment.
 
     * If you provide `file`, the DB will be loaded/saved to a file. This
@@ -415,7 +420,7 @@ exports.LevelDB = LevelDB;
 
     * The serialization format is the same for all backing stores.
 
-    * If two DBs are loaded with the same `localStorage` or `file`, they will
+    * If two DBs are loaded with the same `localStorage`, `sessionStorage` or `file`, they will
       be exactly the same DB:
 
           // true
@@ -424,7 +429,7 @@ exports.LevelDB = LevelDB;
     ----
 
     LocalDB should **not** be used to store very large keys/values. Partly
-    because the performance is bad, and partly because `localStorage` has
+    because the performance is bad, and partly because `localStorage`/`sessionStorage` have
     a very small size limit. If you go over the limit, you will get an
     error.
 */

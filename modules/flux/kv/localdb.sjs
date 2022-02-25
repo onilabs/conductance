@@ -312,6 +312,7 @@ var SortedDict = (function () {
 
 
 var cache_localStorage = {};
+var cache_sessionStorage = {};
 var cache_file = {};
 
 function get_cache(o, s, f) {
@@ -327,6 +328,9 @@ function save_db(dict, options) {
     localStorage[options.localStorage] = dict.serialize();
 
   } 
+  else if (options.sessionStorage != null) {
+    sessionStorage[options.sessionStorage] = dict.serialize();
+  }
   else if (options.file != null) {
     @fs.writeFile(options.file, dict.serialize(), 'utf8');
   }
@@ -468,8 +472,17 @@ function load_db(options) {
 
       return @wrap.wrapDB(wrap_dict(dict, options));
     });
-
   } 
+  else if (options.sessionStorage != null) {
+    return get_cache(cache_sessionStorage, options.sessionStorage, function() {
+      var dict = SortedDict();
+      var db = sessionStorage[options.sessionStorage];
+      if (db) {
+        dict = load_db1(dict, db);
+      }
+      return @wrap.wrapDB(wrap_dict(dict, options));
+    });
+  }
   else if (options.file != null) {
     return get_cache(cache_file, options.file, function () {
       var dict = SortedDict();
@@ -502,6 +515,7 @@ function load_db(options) {
 function LocalDB(options) {
   var backends = 0;
   if (options.localStorage != null) ++backends;
+  if (options.sessionStorage != null) ++backends;
   if (options.file != null) ++backends;
   if (options.string != null) ++backends;
   if (backends > 1) {
