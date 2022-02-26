@@ -768,22 +768,20 @@ __js {
     var class_name = "_oni_css#{id}_";
     
     function setCSS(ft) {
-      ft = cloneElement(ft);
-      
-      if (!ft.css[id])
-        ft.css[id] = [1,cssdef];
-      else
-        ft.css[id] = [ft.css[id][0]+1, cssdef];
-      
+      ft = cloneElement(ft);      
+      if (ft.css[id] !== undefined) return;
+      ft.css[id] = [1,cssdef];
       var classes = ft._normalizeClasses();
+      
       if (classes.indexOf('_oni_css_') == -1)
         ft.attribs['class'] = classes.concat('_oni_css_', class_name);
-      else if (classes.indexOf(class_name) == -1)
+      else
         ft.attribs['class'] = classes.concat(class_name);
       return ft;
     }
 
-    var selector = '_oni_css_.' + class_name;
+    if (!class_name .. @startsWith('_oni_css')) throw new Error("Unexepected CSS name "+class_name);
+    var selector = class_name;
 
     var cssMechanism;
     var content = arguments.length == 1 ? arguments[0] : arguments[1];

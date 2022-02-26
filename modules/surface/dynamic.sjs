@@ -122,7 +122,7 @@ var resourceRegistry = {
       else {
         desc.ref_count += cnt;
       }
-    }   
+    }
   },
   unuseCSSDefs: function(defs) {
     ownKeys(defs) .. each { 
@@ -196,6 +196,8 @@ function unuseCSS(elems) {
       var matches = /_oni_css(\d+)_/.exec(cls);
       if (!matches) continue;
       resourceRegistry.unuseCSS(matches[1]);
+      // see comment in removeNode below for why the following is important:
+      elem.classList.remove('_oni_css_');
     }
   }
 }
@@ -545,13 +547,21 @@ function removeNode(node) {
   try {} finally {
     // stop our mechanism and all mechanisms below us
     stopMechanisms(node, true);
-    __js if (node.parentNode)
+    if (node.parentNode)
       node.parentNode.removeChild(node);
     
     // if node is an element, unuse our CSS and all CSS used below us
-    if (node.querySelectorAll)
+    /*
+      The removed node might have children with mechanisms which themselves
+      remove child nodes - those will have their css This might
+      cause css to be removed twice - to guard against that, 'unuseCSS' will remove
+      the '._oni_css_' class
+     */
+    if (node.querySelectorAll) {
       concat([node], node.querySelectorAll('._oni_css_')) ..
       unuseCSS();
+    }
+    
   }
 }
 exports.removeNode = removeNode;

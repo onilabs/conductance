@@ -6,6 +6,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * 'sessionStorage' backend for mho:flux/kv::LocalDB
 
+ * Bug fixes / Behavioral changes:
+
+   * With certain nested mechanism interplays, surface would sometimes remove 
+     mho:surface:CSS stylesheets prematurely. This has been fixed.
+
 	
 ## Version 1.0.0:
 
