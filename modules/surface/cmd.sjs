@@ -314,6 +314,9 @@ exports.Active = Active;
    @return {sjs:sequence::Stream} Sequence of `[cmd,param]` elements
    @param {optional DOMNode|Array} [dom_root] DOM node or array thereof (overrides use of [mho:surface::DynamicDOMContext])
    @param {optional Array} [commands] Array of commands to listen for (default: listen for all commands).
+   @desc
+     - Only one command will be executed at a time. While a command is actively being processed, `stream` will stop listening for other commands.
+     - If you want certain commands to be executable reentrantly (e.g. one command executes another command), you can separate them into multiple `stream` loops.
 */
 function stream(/*[dom_root], [commands]*/) {
 
