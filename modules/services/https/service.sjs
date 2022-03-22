@@ -206,6 +206,7 @@ function run_with_certbot(config, block) {
           var process = @childProcess.run('certbot', @flatten :: 
                                           [
                                             '--config-dir', certbot_config_root,
+                                            '--webroot-path', WEBROOT,
                                             'renew'
                                           ]);
           console.log(process.stderr + '\n' + process.stdout);

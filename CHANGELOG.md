@@ -11,6 +11,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * With certain nested mechanism interplays, surface would sometimes remove 
      mho:surface:CSS stylesheets prematurely. This has been fixed.
 
+   * https service: Fix automated certbot renewals (webroot-path option was missing)
+
 	
 ## Version 1.0.0:
 
