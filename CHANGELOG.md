@@ -13,6 +13,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * https service: Fix automated certbot renewals (webroot-path option was missing)
 
+   * SJS VM: A bug in the waitfor/while quench behavior has been fixed. This caused e.g. a 
+     deadlock edgecase in sjs:service:IControlledService when IControlledService::stop() was 
+     called during a session abort.
+
 	
 ## Version 1.0.0:
 

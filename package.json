@@ -7,7 +7,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git://github.com/onilabs/conductance.git"
+    "url": "https://github.com/onilabs/conductance.git"
   },
   "main": "conductance",
   "bin": {
@@ -18,7 +18,7 @@
     "leveldown": "^5.6.0",
     "nodemon": "^1.19.4",
     "ssh2": "^0.8.9",
-    "stratifiedjs": "git://github.com/onilabs/stratifiedjs.git#v1.0.0",
+    "stratifiedjs": "git+https://github.com/onilabs/stratifiedjs.git#9d654a670dba59b434af776249350c5a2b7a8d7d",
     "ws": "^6.2.1"
   },
   "scripts": {
