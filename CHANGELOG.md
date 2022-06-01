@@ -8,6 +8,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * sjs:service::withControlledService: Allow stopping of services in state 'initializing'
+     in addition to 'running'. Fixes a deadlock edgecase when 'stop' is called in a finally
+     clause on a service stuck in state 'initializing'.
+
    * With certain nested mechanism interplays, surface would sometimes remove 
      mho:surface:CSS stylesheets prematurely. This has been fixed.
 
