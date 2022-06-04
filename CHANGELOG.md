@@ -2,11 +2,20 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 1.0.0+:
 
+ * General
+
+   * nodejs/container dependency updated to node:16.15.0-bullseye-slim
+
+
  * New functionality
 
    * 'sessionStorage' backend for mho:flux/kv::LocalDB
 
+
  * Bug fixes / Behavioral changes:
+
+   * sjs:string::octetsToBase64/base64ToOctets: Fix conversion on nodejs. Octets outside the ASCII 
+     range were incorrectly interpreted as UTF8.
 
    * sjs:service::withControlledService: Allow stopping of services in state 'initializing'
      in addition to 'running'. Fixes a deadlock edgecase when 'stop' is called in a finally
