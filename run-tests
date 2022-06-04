@@ -1,0 +1,4 @@
+#!/bin/bash
+set -e
+docker run -it --rm --name sjs-tests --entrypoint /usr/src/conductance/node_modules/stratifiedjs/test/run onilabs/conductance:latest
+docker run -it --rm --name conductance-tests onilabs/conductance:latest test/run

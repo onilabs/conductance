@@ -1,0 +1,4 @@
+#!/bin/bash
+
+docker push onilabs/conductance:latest
+
