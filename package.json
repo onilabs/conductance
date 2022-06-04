@@ -14,12 +14,12 @@
     "conductance": "conductance"
   },
   "dependencies": {
-    "google-oauth-jwt": "0.0.7",
+    "google-oauth-jwt": "^0.0.7",
     "leveldown": "^5.6.0",
     "nodemon": "^1.19.4",
     "ssh2": "^0.8.9",
-    "stratifiedjs": "git+https://github.com/onilabs/stratifiedjs.git#0e234b1ef0d3a003c38071d73e115f5ad34c4bff",
-    "ws": "^6.2.1"
+    "stratifiedjs": "git+https://github.com/onilabs/stratifiedjs.git#affc9cb3d97687c87c3406e13c9fbfbe52004a6d",
+    "ws": "^6.2.2"
   },
   "scripts": {
     "test": "./conductance test/run.mho",
