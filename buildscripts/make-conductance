@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# NOTE: THIS CURRENTLY NEEDS TO BE RUN MANUALLY UNTIL WE REPLACE GUP
+# As long as we commit all the changes made by this script, we don't need to run it as
+# part of the docker build
+
+CONDUCTANCE_HOME=`dirname $0`/..
+$CONDUCTANCE_HOME/conductance $CONDUCTANCE_HOME/buildscripts/export-node-modules.sjs "$@"

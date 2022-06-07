@@ -9,6 +9,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * new module 'mho:msgpack', shadowing npm module @msgpack/msgpack
+
    * 'sessionStorage' backend for mho:flux/kv::LocalDB
 
 

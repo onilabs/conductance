@@ -245,6 +245,26 @@
       },
       "summary": "SJS Module Compiler"
     },
+    "msgpack": {
+      "type": "module",
+      "children": {
+        "DECODER": {
+          "type": "class",
+          "children": {}
+        },
+        "ENCODER": {
+          "type": "class",
+          "children": {}
+        },
+        "decode": {
+          "type": "function"
+        },
+        "encode": {
+          "type": "function"
+        }
+      },
+      "summary": "Browserified version of nodejs:@msgpack/msgpack"
+    },
     "rpc/": {
       "type": "lib",
       "children": {

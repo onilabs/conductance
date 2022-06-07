@@ -14,6 +14,8 @@
     "conductance": "conductance"
   },
   "dependencies": {
+    "@msgpack/msgpack": "^2.7.2",
+    "browserify": "^17.0.0",
     "google-oauth-jwt": "^0.0.7",
     "leveldown": "^5.6.0",
     "nodemon": "^1.19.4",
