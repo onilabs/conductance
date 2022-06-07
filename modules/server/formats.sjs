@@ -420,7 +420,7 @@ exports.Code = Code;
 
     Note that the redacted source (only documentation comments) of .api files is
     accessible via the `src` format.
-    Similarly, the refacted source of .gen and .REST files is accessible when these files are 
+    Similarly, the redacted source of .gen and .REST files is accessible when these files are 
     accessed directly (e.g. a request to foo.REST rather than foo)
 
     #### Warning
