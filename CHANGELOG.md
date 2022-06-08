@@ -9,6 +9,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * The default bridge transport (mho:rpc/wst-client & wst-server) now uses
+     a binary format instead of JSON across the wire.
+
    * new module 'mho:msgpack', shadowing npm module @msgpack/msgpack
 
    * 'sessionStorage' backend for mho:flux/kv::LocalDB

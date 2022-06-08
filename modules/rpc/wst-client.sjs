@@ -21,7 +21,8 @@
 @ = require([
   'sjs:std',
   'mho:websocket',
-  {id:'./error', include:['TransportError', 'isTransportError']}
+  {id:'./error', include:['TransportError', 'isTransportError']},
+  {id:'mho:msgpack', name:'msgpack'},
 ]);
 
 //----------------------------------------------------------------------
@@ -54,29 +55,33 @@ function runTransportSession(ws, session_f) {
 
   var Traffic = @Dispatcher();
   var Keepalives = @Dispatcher();
-
+  
   waitfor {
     ws.receive() .. @each {
       |mes|
-      if (typeof mes === 'string') {
-        if (mes.length === 0) {
-          Keepalives.dispatch();
+      if (typeof mes == 'string' && mes.length === 0) {
+        Keepalives.dispatch();
+      }
+      else {
+        __js mes = @msgpack.decode(mes);
+        if (__js !(mes instanceof Uint8Array)) {
+          Traffic.dispatch(RECEIVE_TRAFFIC);
+          Q.put({type:'message', data:mes});
         }
         else {
           Traffic.dispatch(RECEIVE_TRAFFIC);
-          Q.put({type:'message', data:JSON.parse(mes)});
+          // data message; typeof = Uint8Array
+          __js {
+            var mes_buffer = mes.buffer;
+            var mes_length = mes.byteLength;
+            var mes_offset = mes.byteOffset;
+            var header_length = (new DataView(mes_buffer,mes_offset)).getUint16(0);
+            var header = UTF8Decoder.decode(new Uint8Array(mes_buffer,2+mes_offset,header_length)) .. JSON.parse;
+            var data = new Uint8Array(mes.buffer, 2+header_length+mes_offset);
+          }
+          Q.put({type:'data', header: header, data: data});
         }
       }
-      else if (mes instanceof ArrayBuffer) {
-        Traffic.dispatch(RECEIVE_TRAFFIC);
-        // data message; typeof = Uint8Array
-        var header_length = (new DataView(mes)).getUint16(0);
-        var header = UTF8Decoder.decode(new Uint8Array(mes,2,header_length)) .. JSON.parse;
-        var data = new Uint8Array(mes, 2+header_length);
-        Q.put({type:'data', header: header, data: data});
-      }
-      else 
-        throw new Error("Unexpected message type");
     }
   }
   or {
@@ -191,18 +196,20 @@ function runTransportSession(ws, session_f) {
       closed: false,
       send: function(message) {
         if (transport_itf.closed) throw @TransportError("connection closed");
-        ws.send(JSON.stringify(message));
+        ws.send(__js @msgpack.encode(message));
         Traffic.dispatch(SEND_TRAFFIC);
       },
       sendData: function(header, bytes) {
         if (transport_itf.closed) throw @TransportError("connection closed");
-        header = UTF8Encoder.encode(JSON.stringify(header));
-        var packet = new ArrayBuffer(2 + header.byteLength + bytes.byteLength);
-        (new DataView(packet)).setUint16(0,header.byteLength);
-        var payload = (new Uint8Array(packet, 2));
-        payload.set(header,0);
-        payload.set(bytes,header.byteLength);
-        ws.send(packet);
+        __js {
+          header = UTF8Encoder.encode(JSON.stringify(header));
+          var packet = new ArrayBuffer(2 + header.byteLength + bytes.byteLength);
+          (new DataView(packet)).setUint16(0,header.byteLength);
+          var payload = (new Uint8Array(packet, 2));
+          payload.set(header,0);
+          payload.set(bytes,header.byteLength);
+        }
+        ws.send(__js @msgpack.encode(new Uint8Array(packet)));
       },
       receive: function() { if (transport_itf.closed) throw @TransportError("connection closed");
                             var rv = Q.get();
