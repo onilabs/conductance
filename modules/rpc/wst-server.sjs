@@ -53,6 +53,8 @@ function createTransportHandler(transportSink) {
           console.log("wst-server: Uncaught exception "+e);
         }
         // else ignore
+        console.log("ignored error:");
+        console.log(e);
       }
     });
   }

@@ -57,7 +57,7 @@ function runTransportSession(ws, session_f) {
   var Keepalives = @Dispatcher();
   
   waitfor {
-    ws.receive() .. @each {
+    @generate(ws.receive) .. @each {
       |mes|
       if (typeof mes == 'string' && mes.length === 0) {
         Keepalives.dispatch();
@@ -143,7 +143,7 @@ function runTransportSession(ws, session_f) {
             if (t_r > KEEPALIVE_T_MAX) t_r = KEEPALIVE_T_MAX;
             waitfor {
               hold(t_r + KEEPALIVE_T_LAT);
-              //console.log("Transport timeout 2 within t_r+lat="+(t_r+KEEPALIVE_T_LAT)+"ms");
+              console.log("Transport timeout 2 within t_r+lat="+(t_r+KEEPALIVE_T_LAT)+"ms");
               throw @TransportError("timeout");            
             }
             or {

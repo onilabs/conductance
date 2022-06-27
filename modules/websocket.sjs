@@ -57,10 +57,12 @@ __js {
      Session interface as created by [::withWebSocketClient] or [::WebSocketServer::runWebSocketSession]
 
    @function IWebSocketSession.receive
-   @summary Returns an unbuffered and unmirrored [sjs:sequence::Stream] of received data
+   @summary Blocks until the next message is received and returns it.
    @desc 
-     The stream items will either be Strings or ArrayBuffers, depending on the sent item.
-   @return {sjs:sequence::Stream}
+     * Any messages received while there is not an active `receive()` call will be lost.
+     * `receive` can be turned into an [sjs:event::EventStream] using [sjs:sequence::generate].
+     * The received messages will either be Strings or ArrayBuffers, depending on the sent item.
+   @return {String|ArrayBuffer}
 
    @variable IWebSocketSession.Pings
    @hostenv nodejs
@@ -107,7 +109,7 @@ __js {
          @withWebSocketClient('wss:ws.kraken.com') {
            |ws|
            waitfor { 
-             ws.receive() .. @each {
+             @generate(ws.receive) .. @each {
                |x|
                console.log(x);
              }
@@ -138,14 +140,16 @@ function withWebSocketClient(settings, session_f) {
 
   if (@sys.hostenv === 'nodejs') {
     var nodejs_opts = {
-      rejectUnauthorized: true
+      rejectUnauthorized: true,
+      perMessageDeflate: false,
+      skipUTF8Validation: false
     } .. @override(settings);
   }
 
   settings = {
     url: undefined,
     websocket: undefined,
-    protocols: undefined
+    protocols: undefined,
   } .. @override(settings);
 
   // for internal use by WebSocketServer, we allow initialization with a websocket instead
@@ -182,25 +186,28 @@ function withWebSocketClient(settings, session_f) {
       if (socket.readyState !== @WebSocket.OPEN)
         socket .. @wait('open');
 
-      var receive_stream = socket .. @events('message');
-      if (@sys.hostenv !== 'nodejs')
-        receive_stream = receive_stream .. @transform(__js x->x.data);
+      @withEventListener(socket, 'message') {
+        |receive|
 
-      var itf = {
-        receive: -> receive_stream,
-        send: __js function(data) { try { return socket.send(data); } catch(e) { throw WebSocketError(e); } }
-      };
+        var itf = {
+          receive: @sys.hostenv !== 'nodejs' ? -> receive().data : receive,
+          send: __js function(data) { try { return socket.send(data); } catch(e) { throw WebSocketError(e); } }
+        };
 
-      if (@sys.hostenv === 'nodejs') {
-        itf.Pings = socket .. @events('ping');
-        itf.Pongs = socket .. @events('pong');
-        itf.ping = -> socket.ping();
-      }
+        if (@sys.hostenv === 'nodejs') {
+          itf.Pings = socket .. @events('ping');
+          itf.Pongs = socket .. @events('pong');
+          itf.ping = -> socket.ping();
+        }
+        
+        //      console.log("WEBSOCKET EXTENSIONS=", socket.extensions);
 
-      return session_f(itf);
+        return session_f(itf);
+      } // withEventListener
     }
   }
   finally {
+    console.log("Initiate websocket close on #{settings.url}");
     socket.close();
   }
 }
