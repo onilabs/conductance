@@ -190,7 +190,8 @@ function withWebSocketClient(settings, session_f) {
         |receive|
 
         var itf = {
-          receive: @sys.hostenv !== 'nodejs' ? -> receive().data : receive,
+          receive: @sys.hostenv !== 'nodejs' ? -> receive().data : 
+            function() { var m = receive(); if (m[1]) return m[0]; else return String(m[0]); },
           send: __js function(data) { try { return socket.send(data); } catch(e) { throw WebSocketError(e); } }
         };
 
