@@ -9,6 +9,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * Added new function sjs:event::withEventListener.
+	
    * The default bridge transport (mho:rpc/wst-client & wst-server) now uses
      a binary format instead of JSON across the wire.
 
@@ -18,6 +20,21 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * Bug fixes / Behavioral changes:
+
+   * mho:rpc::bridge: An edgecase whereby the bridge would attempt to abort a nonexisting remote call
+     when the marshalling code throws an exception has been fixed.
+
+   * mho:websocket::withWebSocketClient: Because of performance concerns, clients will no longer 
+     negotiate a 'perMessageDeflate' session by default. (It can still be requested by passing the
+     flag to the session constructor.)  
+
+   * mho:websocket::IWebsocketSession::receive now blocks and returns the next message instead of 
+     returning an EventStream.
+
+   * sjs:service::withControlledService: Exception handling has been improved.
+
+   * Added very hacky support for big.js numbers in sjs:debug::inspect. Will be revisited when
+     big numbers are integrated into SJS.
 
    * sjs:string::octetsToBase64/base64ToOctets: Fix conversion on nodejs. Octets outside the ASCII 
      range were incorrectly interpreted as UTF8.
