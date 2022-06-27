@@ -427,7 +427,7 @@ function marshall(value, connection) {
     var rv = value .. prepare;
     return rv;
   } catch(e) {
-    e.message = "Error marshalling value: #{e.message || ""}";
+    e.message = "Error marshalling value #{value}: #{e.message || ""}";
     throw e;
   }
 }
@@ -663,6 +663,7 @@ function BridgeConnection(transport, opts) {
     },
     makeCall: function(function_id, args) {
       var call_no = ++call_counter;
+      var preempt_abort = false;
       //console.log(bridge_id+":makeCall("+function_id+",...)/call_no="+call_no);
       waitfor {
         // initiate waiting for return value:
@@ -674,10 +675,10 @@ function BridgeConnection(transport, opts) {
           pending_calls[call_no] = [resume, @sys.getCurrentDynVarContext()];
         }
         finally (e) {
-          //@logging.debug("deleting call responder #{call_no} (#{function_id})");
+          //console.log("deleting call responder #{call_no} (#{function_id})");
           delete pending_calls[call_no];
           
-          if (e[2]) {
+          if (!preempt_abort && e[2]) {
           // We have an abort.
           // Wait for other side to be retracted.
           // If the bridge gets torn down before the other side answers, our finalization
@@ -689,7 +690,7 @@ function BridgeConnection(transport, opts) {
               send([is_pseudo ? 'P' : 'A', call_no]);
             }
             catch(e) {
-              if (!@isTransportError(e)) throw e;
+              if (!@isTransportError(e)) { throw e; }
               // ... else we couldn't send, because of a transport error.
               // -> ignore
             }
@@ -717,7 +718,14 @@ function BridgeConnection(transport, opts) {
         // check if the current stratum originates from a call from the other side of the bridge, and
         // if yes, tell the other side about any dynamic variable context it needs to restore:
         var dynvar_call_ctx = @sys.getDynVar("__mho_bridge_#{bridge_id}_dynvarctx", 0); // default 0 == no context to restore
-        send(['C', call_no, dynvar_call_ctx, function_id, @toArray(args)]);
+        try {
+          send(['C', call_no, dynvar_call_ctx, function_id, @toArray(args)]);
+        }
+        catch(e) {
+          preempt_abort = true;
+          //console.log("error in responder #{call_no} (#{function_id})");
+          throw e;
+        }
       }
       if (isException) {
         if (isReceivedControlFlowException(rv)) {
@@ -1104,6 +1112,7 @@ function BridgeConnection(transport, opts) {
         executing_call.abort();
       }
       else {
+        console.log("#{bridge_id}: Didn't find bridge call to abort... callno=#{message[1]}");
         send(['E', message[1], new Error("Didn't find bridge call to abort")]);
       }
       break;
