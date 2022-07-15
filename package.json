@@ -20,8 +20,8 @@
     "leveldown": "^5.6.0",
     "nodemon": "^1.19.4",
     "ssh2": "^0.8.9",
-    "stratifiedjs": "git+https://github.com/onilabs/stratifiedjs.git#d409e078d942e0b193a9414d873cbc334287b909",
-    "ws": "^8.8.0"
+    "stratifiedjs": "git+https://github.com/onilabs/stratifiedjs.git#9ddddfa4a44f112d4af07101a336c932dce38598",
+    "ws": "^8.8.1"
   },
   "scripts": {
     "test": "./conductance test/run.mho",

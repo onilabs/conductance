@@ -136,7 +136,7 @@ __js {
   'Bdi', 'Bdo', 'Span', 'Br', 'Wbr',
   'Ins', 'Del',
   'Img', 'Iframe', 'Embed', 'Object', 'Param', 'Video', 'Audio', 'Source', 'Track',
-  'Canvas', 'Map', 'Area', 'Svg', 'Math',
+  'Canvas', /*'Map',*/ 'Area', 'Svg', 'Math',
   'Table', 'Caption', 'ColGroup', /* 'Col' ,*/ 'TBody', 'THead', 'TFoot', 'Tr', 'Td', 'Th',
   'Form', 'FieldSet', 'Legend', /*'Label', */ /* 'Input', */ /* 'Button', */ /* 'Select', */
   'DataList', 'OptGroup', 'Option', /*'TextArea', */ 'KeyGen', 'Output', /* 'Progress', */ 'Meter',

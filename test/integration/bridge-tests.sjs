@@ -251,6 +251,19 @@ context(function() {
       }
     });
 
+    test("Set", function() {
+      require(url).connect {|api|
+        api.identity(@Set([1,2,3,'foo'])) .. assert.eq(@Set([1,2,3,'foo']));
+      }
+    });
+
+    test("Map", function() {
+      require(url).connect {|api|
+        api.identity(@Map([[1,1],[2,'a'],['foo','bar']])) .. 
+          assert.eq(@Map([[1,1],[2,'a'],['foo','bar']]));
+      }
+    });
+
     test("ObservableVar", function() {
       require(url).connect({status:true}) {|api|
         api.withSharedVariable {|v|

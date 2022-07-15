@@ -9,6 +9,14 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * Added `sjs:sequence::StructuredStream` type 'map'.
+
+   * Added `sjs:observable::ObservableMapVar.
+
+   * Added `sjs:Map` module, wrapping JS's Map objects.
+
+   * Added `sjs:sequence::isMaterialSequence`.
+
    * Added new function sjs:event::withEventListener.
 	
    * The default bridge transport (mho:rpc/wst-client & wst-server) now uses
@@ -20,6 +28,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * Bug fixes / Behavioral changes:
+
+   * sjs:sequence::batch: Fixed hypothetical edgecase where batching would operate on the wrong
+     layer of a StructuredStream hierarchy containing multiple 'batch' layers.
 
    * mho:rpc::bridge: An edgecase whereby the bridge would attempt to abort a nonexisting remote call
      when the marshalling code throws an exception has been fixed.

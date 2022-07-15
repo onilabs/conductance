@@ -208,7 +208,7 @@ function withWebSocketClient(settings, session_f) {
     }
   }
   finally {
-    console.log("Initiate websocket close on #{settings.url}");
+//    console.log("Initiate websocket close on #{settings.url}");
     socket.close();
   }
 }
