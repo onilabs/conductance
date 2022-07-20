@@ -222,7 +222,7 @@ exports.run = function(config, block) {
     }
   }
   //logging.print("\nOni Conductance finished");
-  servers .. each {|[_, _, routes]|
+  servers .. each {|[ , , routes]|
     routes .. each(r -> r.__finally__());
   }
 };

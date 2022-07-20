@@ -29,6 +29,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * SJS language: rest parameter syntax now also works in parameter lists that
+     contain destructuring (e.g. `function foo([a,b,{c:d}],...e){}`).
+
    * sjs:sequence::batch: Fixed hypothetical edgecase where batching would operate on the wrong
      layer of a StructuredStream hierarchy containing multiple 'batch' layers.
 
