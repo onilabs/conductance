@@ -126,15 +126,29 @@ exports.ActionLink = (content, action) ->
 /**
    @function popover
    @summary Display a popover 
-   @param {DOMNode} [anchor] DOM element relative to which popover will be positioned
+   @param {DOMNode|Array} [anchor] DOM element or viewport coordinate pair relative to which popover will be positioned
    @param {surface::HtmlFragment} [content] Popover content
    @param {optional Object} [settings] 
    @param {Function} [block] Function bounding lifetime of popover
-   @setting {Integer} [top=1] Top position of popover relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
-   @setting {Integer} [left=0] Left position of popover relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
-   @setting {Integer} [bottom=undefined] Bottom position of popover relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
-   @setting {Integer} [right=undefined] Right position of popover relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
+   @setting {Integer} [top=1] Top position of popover relative to anchor - see below
+   @setting {Integer} [left=0] Left position of popover relative to anchor - see below
+   @setting {Integer} [bottom=undefined] Bottom position of popover relative to anchor - see below
+   @setting {Integer} [right=undefined] Right position of popover relative to anchor - see below
    @setting {Integer} [zindex=1040] CSS z-index of popover
+   @desc
+     ### Positioning
+
+     - The popover will be positioned relative to the anchor based on whether `top` or `bottom` is set to a number (at least one of them should be left undefined), and on whether `left` or `right` is set to a number (again, at least one of them should be left undefined). If both `top`&`bottom`, or `left`&`right` are left undefined than the defaults apply.
+
+     - If `anchor` is a pair of viewport coordinates (e.g. `[ev.clientX,ev.clientY]` from a click event,
+     the numerical values of the position settings will be ignored, and the popover will be displayed
+     at the anchor according to which pair `[left|right, top|bottom]` is `!=undefined`.
+
+     - If `anchor` is a DOM element (i.e. anchor defines a rectangle), the position of the popup 
+     will be scaled according to the numerical value of the position settings: 
+       - For `top` & `bottom`: 0=top side of anchor, 1=bottom side of anchor
+       - For `left` & `right`: 0=left side of anchor, 1=right side of anchor
+     
    @demo
      @ = require(['mho:std', 'mho:app', {id:'./demo-util', name:'demo'}, 'mho:surface/widgets']);
 
@@ -200,7 +214,13 @@ function popover(anchor, element, settings, block) {
   // to prevent the popover from being obscured by content in other stacking orders, we
   // append to the document body. determine position from anchor:
 
-  var anchor_rect = anchor.getBoundingClientRect(); 
+  var anchor_rect;
+  if (Array.isArray(anchor)) {
+    anchor_rect = { left: anchor[0], right: anchor[0], top: anchor[1], bottom: anchor[1] };
+  }
+  else {
+     anchor_rect = anchor.getBoundingClientRect(); 
+  }
 
   var popover_CSS = @CSS("
     {
@@ -213,6 +233,9 @@ function popover(anchor, element, settings, block) {
     }
   ");
 
+  if (!@isElement(element))
+    element = @Div(element);
+  
   return document.body .. @appendContent(
     element .. popover_CSS,
     block);
@@ -264,7 +287,7 @@ function waitforClosingClick(elem) {
     // clicks that are already pendinging *before* calling waitforClosingClick.
     window .. @wait('!mousedown');
 
-    window .. @events('!click') .. @each {
+    window .. @events(['!click','!contextmenu']) .. @each {
       |ev|
       var node = ev.target;
       while (node) {
@@ -292,14 +315,14 @@ function waitforClosingClick(elem) {
    @altsyntax anchor .. doDropdown(items, [settings])
    @summary Display a dropdown menu and handle mouse/keyboard interactions
    @param {Object} [settings] 
-   @setting {DOMNode} [anchor] DOM element relative to which dropdown will be positioned
+   @setting {DOMNode|Array} [anchor] DOM element or viewport coordinate pair relative to which dropdown will be positioned
    @setting {sjs:sequence::MaterialSequence|sjs:observable::Observable} [items] Sequence of menu items as outlined in the description below, or Observable thereof.
    @setting {Boolean} [keyboard=false] If `true`, UP, DOWN, and ENTER interactions will be enabled.
    @setting {Boolean} [focus=true] If `true`, focusable content in the dropdown will be focused when selected; otherwise focusing (and consequently bluring of currently focused content) will be disabled.
-   @setting {Integer} [top=1] Top position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
-   @setting {Integer} [left=0] Left position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
-   @setting {Integer} [bottom=undefined] Bottom position of dropdown relative to anchor (scaled such that 0=top of anchor, 1=bottom of anchor)
-   @setting {Integer} [right=undefined] Right position of dropdown relative to anchor (scaled such that 0=left of anchor, 1=right of anchor)
+   @setting {Integer} [top=1] Top position of dropdown relative to anchor - see below
+   @setting {Integer} [left=0] Left position of dropdown relative to anchor - see below
+   @setting {Integer} [bottom=undefined] Bottom position of dropdown relative to anchor - see below
+   @setting {Integer} [right=undefined] Right position of dropdown relative to anchor - see below
    @setting {mho:surface::CSS} [css] CSS overrides
    @return {Object} 
    @desc
@@ -316,8 +339,20 @@ function waitforClosingClick(elem) {
 
      ### Positioning
 
-     If neither `left` nor `right` are specified the dropdown will be horizontally aligned to the
+     - If neither `left` nor `right` are specified the dropdown will be horizontally aligned to the
      edge closest to the viewport border.
+
+     - The popover will be positioned relative to the anchor based on whether `top` or `bottom` is set to a number (at least one of them should be left undefined), and on whether `left` or `right` is set to a number (again, at least one of them should be left undefined). If both `top`&`bottom`, or `left`&`right` are left undefined than the defaults apply.
+
+     - If `anchor` is a pair of viewport coordinates (e.g. `[ev.clientX,ev.clientY]` from a click event,
+     the numerical values of the position settings will be ignored, and the popover will be displayed
+     at the anchor according to which pair `[left|right, top|bottom]` is `!=undefined`.
+
+     - If `anchor` is a DOM element (i.e. anchor defines a rectangle), the position of the popup 
+     will be scaled according to the numerical value of the position settings: 
+       - For `top` & `bottom`: 0=top side of anchor, 1=bottom side of anchor
+       - For `left` & `right`: 0=left side of anchor, 1=right side of anchor
+
 
      ### CSS Customization
 
@@ -434,7 +469,13 @@ function doDropdown(/* anchor, items, [settings] */) {
 
   if (settings.left === undefined && settings.right === undefined) {
     // intelligently align dropdown to edge closest to viewport boundary
-    var anchor_rect = anchor.getBoundingClientRect(); 
+    var anchor_rect;
+    if (Array.isArray(anchor)) {
+      anchor_rect = { left: anchor[0], right: anchor[0], top: anchor[1], bottom: anchor[1] };
+    }
+    else {
+      anchor_rect = anchor.getBoundingClientRect(); 
+    }
     var dX = (anchor_rect.left + anchor_rect.right)/2;
     if (dX < window.innerWidth - dX) {
       settings.left = 0;
@@ -665,7 +706,7 @@ function overlay(content, settings, block) {
     @global {
       .mho-overlay {
         z-index: ${settings.zindex};
-        overflow-y: scroll;
+        overflow-y: auto;
         top: 0; 
         left: 0;
         width: 100%;
