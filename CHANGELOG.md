@@ -9,6 +9,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * Added `sjs:sequence::chunk.json` and `sjs:sequence::StructuredStream` type `chunked.json`.
+
+   * Added `sjs:object::mergeProperties`.
+
    * mho:surface/widgets::popover & ::overlay: Allow specifying position via viewport coordinate pair.
 	
    * Added `sjs:sequence::StructuredStream` type 'map'.
