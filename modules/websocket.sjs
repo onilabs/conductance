@@ -77,7 +77,7 @@ __js {
    @summary Send a ping
 
    @function IWebSocketSession.send
-   @param {String|Buffer|ArrayBuffer} [data]
+   @param {String|Buffer|ArrayBuffer|TypedArray|DataView} [data]
    @summary Send the given data
 */
 

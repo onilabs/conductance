@@ -416,7 +416,7 @@ function stream(/*[dom_root], [commands]*/) {
             break; // force outer loop
         }
       }
-    }
+    } // while
   });
 };
 exports.stream = stream;
