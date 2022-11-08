@@ -59,11 +59,6 @@
     `*.spawn foo(x,y,z)`. The latter calls both cause the other end of the bridge connection to send
     out a return value when the call has finished there, whereas the signalled call does not.
     
-    ### Custom types:
-
-    For custom object types where the default `Object` serialization does
-    not suffice, you can implement custom serialization using [::setMarshallingDescriptor].
-
     ### Limitations
 
      - `this` value in serialized functions
@@ -264,57 +259,6 @@ __js {
 //----------------------------------------------------------------------
 // marshalling
 
-/**
-  @function setMarshallingDescriptor
-  @summary set the marshalling descriptor for a given object / prototype
-  @param {Object} [obj] object or prototype
-  @param {Function} [desc] marshalling descriptor
-  @desc
-
-    Typically `obj` will be an object prototype, so that all objects
-    inheriting from it will be serialized consistently. But
-    `setMarshallingDescriptor` can also be used on individual objects.
-
-    If called on an object prototype, all objects inherited from that
-    prototype will use this marshalling descriptor.
-
-    `desc` must be an object with the following properties:
-
-     - wrapLocal: A method accepting a single `localObject` argument,
-       and returning a serializable object. This return value can
-       be any serializable object, including nested properties,
-       functions and any other types that are supported by bridge.
-
-     - wrapRemote: An array of `[module, functionName]`. After
-       the serialized object is sent over the bridge, the named function
-       will be called (on the receiver) with this serialized object
-       as an argument. This function should return some object that
-       will act as a proxy for the original remote object.
-
-       For security, the allowed values for `wrapRemote` are narrow.
-       When `setMarshallingDescriptor` is called on the client, `module` must
-       be an `.api` module object obtained from the server. When called on the
-       server, `module` should be a string, however only module & function
-       name pairs which are explicitly listed in the `localWrappers` setting of
-       the connection will actually be allowed.
-*/
-function setMarshallingDescriptor(obj, descr) {
-  var wrapRemote = descr.wrapRemote;
-  var [remoteMod, remoteKey] = wrapRemote;
-  // turn an api object into a serializable reference
-  if (remoteMod.__oni_apiid !== undefined) {
-    descr = descr .. @merge({
-      wrapRemote: [{__oni_apiid: remoteMod.__oni_apiid}, remoteKey],
-    });
-  }
-  obj.__oni_marshalling_descriptor = descr;
-  return obj;
-}
-exports.setMarshallingDescriptor = setMarshallingDescriptor;
-
-var defaultMarshallers = [];
-
-exports.defaultMarshallers = defaultMarshallers;
 
 __js {
   var coerceBinary, isNodeJSBuffer, nodejs = @sys.hostenv === 'nodejs';
@@ -393,12 +337,7 @@ function marshall(value, connection) {
         rv = {__oni_bridge_type: 'quasi', val: prepare(value.parts) };
       }
       else if (typeof value === 'object' && value !== null) {
-        var descriptor;
-        if ((descriptor = value.__oni_marshalling_descriptor) !== undefined) {
-          rv = prepare(descriptor.wrapLocal(value));
-          rv = { __oni_bridge_type: 'custom_marshalled', proxy: rv, wrap: descriptor.wrapRemote };
-        }
-        else if (value instanceof Error || value._oniE) {
+        if (value instanceof Error || value._oniE) {
           rv = { __oni_bridge_type: 'error', message: value.message, stack: value.__oni_stack };
           // many error APIs provide errno / code to distinguish error types, so include
           // those if present
@@ -451,8 +390,7 @@ function unmarshallComplexTypes(obj, connection) {
 
   __js {
 
-  // XXX ideally we would like 'unmarshallComplexTypes' to be fully __js, but the presence of blobs and
-  // potentially asynchronous localWrappers makes this impossible atm.
+  // XXX ideally we would like 'unmarshallComplexTypes' to be fully __js, but the presence of blobs makes this impossible atm.
 
   var rv, potentially_async = false;
 
@@ -487,22 +425,6 @@ function unmarshallComplexTypes(obj, connection) {
     }
     else if (obj.__oni_bridge_type == 'map') {
       rv = @Map(obj.val .. @map(v -> unmarshallComplexTypes(v, connection)));
-    }
-    else if (obj.__oni_bridge_type == 'custom_marshalled') {
-      var mod;
-      var apiid = obj.wrap[0].__oni_apiid;
-      if(apiid !== undefined) {
-        mod = apiRegistry.getAPIbyAPIID(apiid);
-      } else {
-        if (connection.localWrappers &&
-            connection.localWrappers .. @find(w -> w .. @eq(obj.wrap), false)
-           ) {
-          mod = require(obj.wrap[0]);
-        } else {
-          throw new Error("Unsupported marshalling descriptor: #{obj.wrap}");
-        }
-      }
-      rv = mod[obj.wrap[1]](unmarshallComplexTypes(obj.proxy, connection));
     }
     else {
       // generic object -> descend recursively
@@ -1233,11 +1155,9 @@ exports.connect = function(apiinfo, opts, block) {
       var server = opts.server || apiinfo.server;
       transport = require('./wst-client').openTransport(server);
     }
-    var marshallers = defaultMarshallers.concat(opts.localWrappers || []);
     var connection = BridgeConnection(transport, opts .. @merge({
       throwing: !!block,
-      api:apiinfo .. @get('id'),
-      localWrappers: marshallers
+      api:apiinfo .. @get('id')
     }));
   }
   or {

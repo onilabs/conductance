@@ -294,9 +294,6 @@
             },
             "resolve": {
               "type": "function"
-            },
-            "setMarshallingDescriptor": {
-              "type": "function"
             }
           },
           "summary": "API bridge: High-level API remoting"
