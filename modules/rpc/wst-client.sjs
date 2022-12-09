@@ -21,65 +21,151 @@
 @ = require([
   'sjs:std',
   'mho:websocket',
-  {id:'./error', include:['TransportError', 'isTransportError']},
+  {id:'./error', include:['TransportError', 'isTransportError', 'markAsTransportError']},
   {id:'mho:msgpack', name:'msgpack'},
 ]);
 
 //----------------------------------------------------------------------
+// helper (should go into sjs):
+
+__js function concat_typed_arrays(typed_arrays) {
+  var length = typed_arrays .. @reduce(0, (sum, a)->sum+a.byteLength);
+  //console.log("LENGTH=#{length}");
+  var buf = new Uint8Array(length);
+  var offset = 0;
+  typed_arrays .. @each {
+    |a|
+    buf.set(a, offset)
+    offset += a.byteLength;
+  }
+    
+  return buf;
+}
+
+//----------------------------------------------------------------------
 // common wst-client/wst-server code:
 
-var KEEPALIVE_T0 = 300; // time from traffic to first keepalive packet
+var MAX_MESSAGE_BYTES = 100*1024;
+
+var KEEPALIVE_T0 = 600; // time from traffic to first keepalive packet
 var KEEPALIVE_T_MAX = 30000; // max time between keepalives
 var KEEPALIVE_T_LAT = 1500; // time to budget for round-trip latency (note: XXX this needs to account for full transmission time of initiating normal traffic packet too; i.e. it could be problematic for large messages)
 
 /*
 
-  we use 3 types of messages:
+  we use 2 types of messages:
 
   - empty strings:        keep-alive messages
-  - non-empty strings:    json messages ('send')
-  - binary (ArrayBuffer): binary data ('sendData')
+  - binary:               msgpack-encoded data chunks
 
 */
 
-// helpers for encoding/decoding headers for binary data:
-var UTF8Encoder = new TextEncoder();
-var UTF8Decoder = new TextDecoder();
+__js {
+  // messages passed through send/receive are always 
+  // of the format [json-encodable data, [ ... array buffers ]]
+  // msgpack cannot send arraybuffers, but *can* send Uint8Arrays. We need to do some converting:
+  
+  function marshall(msg) {
+    if (msg[1] === undefined) throw new Error("NO!!!!");
+    return [msg[0], msg[1] .. @map(buf -> new Uint8Array(buf))];
+  }
+
+  function unmarshall(msg) {
+    // XXX it sucks that we have to copy the buffer here, but downstream expects zero-offset, exact buffers :/
+    return [msg[0], msg[1] .. @map(buf -> buf.buffer.slice(buf.byteOffset, buf.byteOffset+buf.length))];
+  }
+
+} // __js
 
 // constants for 'Traffic' dispatcher:
 var RECEIVE_TRAFFIC = 1;
 var SEND_TRAFFIC = 2;
 
-function runTransportSession(ws, session_f) {
-  var Q = @Queue(1000);
+function runTransportSession(ws, is_server, session_f) {
+  var RQ = @Queue(1000);
+  var SQ = @Queue(1000);
+
+  var ReconstitutionIDCounter = 0;
+  var ReconstitutionBuffer = {};
 
   var Traffic = @Dispatcher();
   var Keepalives = @Dispatcher();
   
   waitfor {
-    @generate(ws.receive) .. @each {
+    // RECEIVE LOGIC:
+    @generate(ws.receive) .. @buffer(100, {drop:'throw'}) .. @each {
       |mes|
       if (typeof mes == 'string' && mes.length === 0) {
         Keepalives.dispatch();
       }
       else {
         __js mes = @msgpack.decode(mes);
-        if (__js !(mes instanceof Uint8Array)) {
-          Traffic.dispatch(RECEIVE_TRAFFIC);
-          Q.put({type:'message', data:mes});
-        }
-        else {
-          Traffic.dispatch(RECEIVE_TRAFFIC);
-          // data message; typeof = Uint8Array
-          __js {
-            var mes_buffer = mes.buffer;
-            var mes_length = mes.byteLength;
-            var mes_offset = mes.byteOffset;
-            var header_length = (new DataView(mes_buffer,mes_offset)).getUint16(0);
-            var header = UTF8Decoder.decode(new Uint8Array(mes_buffer,2+mes_offset,header_length)) .. JSON.parse;
-            var data = new Uint8Array(mes.buffer, 2+header_length+mes_offset);
+        Traffic.dispatch(RECEIVE_TRAFFIC);
+        __js if (Array.isArray(mes) && mes[0] === '@wst') {
+          if (mes[1] === 'split') {
+            console.log("wst-client: rcv split message");
+            var parts = ReconstitutionBuffer[mes[2]];
+            if (!parts) {
+              parts = ReconstitutionBuffer[mes[2]] = [];
+            }
+            parts.push(mes[3]);
           }
-          Q.put({type:'data', header: header, data: data});
+          else if (mes[1] === 'final') {
+            var parts = ReconstitutionBuffer[mes[2]];
+            parts.push(mes[3]);
+            var data = concat_typed_arrays(parts);
+            console.log("wst-client: reconstitute split message");
+            mes = @msgpack.decode(data);
+            delete ReconstitutionBuffer[mes[2]];
+            //              RQ.put({type:'message', data:mes});
+            RQ.put(unmarshall(mes));
+          }
+          else if (mes[1] === 'cancel') {
+            console.log("wst-client: rcv split message cancel");
+            delete ReconstitutionBuffer[mes[2]];
+          }
+          else throw new Error("wst-client: Received unknown internal @wst message");
+        }
+        else
+          RQ.put(unmarshall(mes));
+        //RQ.put({type:'message', data:mes});
+      }
+    } // @generate(ws.receive)
+    hold(0); // needed?
+  }
+  or {
+    // SEND LOGIC
+    @generate(->SQ.get()) .. @each {
+      |data|
+      if (data.byteLength <= MAX_MESSAGE_BYTES) {
+        ws.send(data);
+        Traffic.dispatch(SEND_TRAFFIC);
+      }
+      else {
+        console.log('wst-client: splitting message for transfer');
+        var offset = data.byteOffset;
+        var remain = data.byteLength;
+        var id = ++ReconstitutionIDCounter;
+        while (1) {
+          var sending = Math.min(remain, MAX_MESSAGE_BYTES);
+          var view = new DataView(data.buffer, offset, sending);
+          remain -= sending;
+          if (remain > 0) {
+            offset += sending;
+            ws.send(@msgpack.encode(['@wst','split',id,view]));
+            Traffic.dispatch(SEND_TRAFFIC);
+            // XXX This hold() would allow concurrent sends, but
+            // because bridge.sjs will re-order messages
+            // and process them sequentially it ultimately doesn't
+            // help with anything (e.g. to keep the bridge 'live'
+            // when there's a huge message)
+            hold(0);
+          }
+          else {
+            ws.send(@msgpack.encode(['@wst','final',id,view]));
+            Traffic.dispatch(SEND_TRAFFIC);
+            break;
+          }
         }
       }
     }
@@ -113,7 +199,7 @@ function runTransportSession(ws, session_f) {
          receiver will allow more time for each follow-on ping than necessary: Where the sender 
          sends a ping after an interval of 2^X*KEEPALIVE_T0, the receiver will allow an interval
          2^(X+1)*KEEPALIVE_T0 (or maybe even X+N, N>1?). 
-         In such a situation, the receiver might only act on a connection break at a later 
+         In such a situation, the receiver might only act on a connection break later 
          than would be possible if messages were matched up perfectly (on average by X*KEEPALIVE_T0?)
          Given that this scenario is relatively uncommon and self-resetting (both when new 
          messages are exchanged, or when the keepalive interval hits KEEPALIVE_T_MAX), in practice
@@ -186,44 +272,21 @@ function runTransportSession(ws, session_f) {
     }
   }
   or {
-    waitfor() {
-      var close = resume;
-    }
-    throw @TransportError("connection closed");
-  }
-  or {
     var transport_itf = {
+      server: is_server,
       closed: false,
       send: function(message) {
         if (transport_itf.closed) throw @TransportError("connection closed");
-        ws.send(__js @msgpack.encode(message));
-        Traffic.dispatch(SEND_TRAFFIC);
-      },
-      sendData: function(header, bytes) {
-        if (transport_itf.closed) throw @TransportError("connection closed");
-        __js {
-          header = UTF8Encoder.encode(JSON.stringify(header));
-          var packet = new ArrayBuffer(2 + header.byteLength + bytes.byteLength);
-          (new DataView(packet)).setUint16(0,header.byteLength);
-          var payload = (new Uint8Array(packet, 2));
-          payload.set(header,0);
-          payload.set(bytes,header.byteLength);
-        }
-        ws.send(__js @msgpack.encode(new Uint8Array(packet)));
+        __js var data = @msgpack.encode(marshall(message));
+        SQ.put(data);
       },
       receive: function() { if (transport_itf.closed) throw @TransportError("connection closed");
-                            var rv = Q.get();
+                            var rv = RQ.get();
                             if (transport_itf.closed) {
                               throw @TransportError("connection closed");
                             }
                             return rv;
-                          },
-      __finally__: function() {
-        close();
-        transport_itf.closed = true;
-        // flush the queue with some dummy data:
-        Q.put(undefined);
-      }
+                          }
     };
     try {
       return session_f(transport_itf);
@@ -232,7 +295,7 @@ function runTransportSession(ws, session_f) {
       // XXX is this needed?
       transport_itf.closed = true;
       // flush the queue with some dummy data:
-      Q.put(undefined);
+      RQ.put(undefined);
     }
   }
 }
@@ -249,42 +312,22 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
 
 
 /**
-   @function openTransport
-   @summary  Establish an WST transport to the given server
-   @param {optional String} [server] WST server to connect to (default = server where this module is served from)
-   @return {::Transport}
+   @function withWSTClientTransport
+   @summary XXX
 */
-function openTransport(server, requestOpts) {
-  var rv;
-  (function() {
-    server = server || @url.normalize(SERVER_PREFIX, module.id);
-    server = server.replace(/^http/,'ws') + SERVER_PATH + '/' + WST_VERSION;
-    //console.log("OPEN WST TRANSPORT TO #{server}");
+exports.withWSTClientTransport = function(server, session_f) {
+  server = server || @url.normalize(SERVER_PREFIX, module.id);
+  server = server.replace(/^http/, 'ws')  +SERVER_PATH + '/' + WST_VERSION;
+  try {
     @withWebSocketClient(server) {
       |ws|
-      runTransportSession(ws) {
-        |transport|
-        rv = transport;
-        // continue stratum in background:
-        var service_stratum = reifiedStratum;
-        @sys.spawn(function() { 
-          try {
-            service_stratum.capture();
-          }
-          catch(e) {
-            if (!@isWebSocketError(e) && !@isTransportError(e)) {
-              console.log('wst-client: Uncaught exception '+e);
-            }
-            // else ignore
-          }
-        });
-        // hold transport open; session will close (with transport error) when 
-        // transport closed from either our or the other side:
-        hold();
-      }
+      return runTransportSession(ws, false, session_f);
     }
-  })();
-  return rv;
-}
-
-exports.openTransport = openTransport;
+  }
+  catch (e) {
+    if (e .. @isWebSocketError()) {
+      e .. @markAsTransportError();
+    }
+    throw e;
+  }
+};

@@ -597,6 +597,7 @@ module.exports = require(modules);
    Retrieves the first DOM node in the current [::DynamicDOMContext] (or the explicit `context`, if provided) that matches `selector`. If no `selector` is given, the first node in the context will be returned.
 
 @function getDOMNodes
+@return {sjs:sequence::Sequence}
 @param {optional DOMNode|Array} [context] DOM node or Array of DOM nodes (overrides use of the [::DynamicDOMContext])
 @param {optional String} [selector] CSS selector
 @hostenv xbrowser

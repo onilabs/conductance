@@ -488,24 +488,13 @@ function SystemBridgeRoutes() {
     Route(
       /^__wst_bridge\/(1)$/,
       require('mho:rpc/wst-server').createTransportHandler(
-        function(transport) {
-          require('mho:rpc/bridge').accept(
+        function(withTransport, session_f) {
+          return require('mho:rpc/bridge').accept(
             require('./api-registry').getAPIbyAPIID,
-            transport);
+            withTransport, session_f);
         }
       )
     )
-/*    ,Route(
-      /^__aat_bridge\/(2)$/,
-      require('mho:rpc/aat-server').createTransportHandler(
-        function(transport) {
-          require('mho:rpc/bridge').accept(
-            require('./api-registry').getAPIbyAPIID,
-            transport);
-        }
-      )
-    )
-*/
   ];
 }
 exports.SystemBridgeRoutes = SystemBridgeRoutes;

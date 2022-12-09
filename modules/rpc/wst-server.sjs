@@ -29,34 +29,47 @@
 /**
    @function createTransportHandler
    @summary Create an WST transport handler for use in a [server::Route].
-   @param {Function} [transportSink] Function to pass accepted [wst-client::Transport] objects to
+   @param {Function} [transportSink] Service using transport - will be called with a 'withTransport' function as first parameter, and session_f as second.
 */
 function createTransportHandler(transportSink) {
-
   var SocketServer = @WebSocketServer();
 
   function handler_func(req) {
-    @sys.spawn(function() {
-      try {
-        SocketServer.runWebSocketSession(req) {
-          |ws|
-          @runTransportSession(ws) { 
-            |transport_itf|
-            transport_itf.server = true;
-            transportSink(transport_itf);
-            hold();
+
+    waitfor {
+      // waitfor/resume, because we must not return before the upgrade has been performed.
+      waitfor() {
+        @sys.spawn(function() {
+          try {
+            function withTransport(inner_session_f) {     
+              SocketServer.runWebSocketSession(req) {
+                |ws|
+                resume();
+                @runTransportSession(ws, true) {
+                  |transport_itf|
+                  return inner_session_f(transport_itf);
+                }
+              }
+            }
+            transportSink(withTransport) {
+              |itf|
+              hold();
+            }
           }
-        }
+          catch(e) {
+            if (!@isWebSocketError(e) || e.message !== 'Websocket Error: websocket closed')
+              console.log("wst-server: Uncaught exception: ",e);
+            // else ... websocket was closed; ignore
+          }
+        });
       }
-      catch(e) {
-        if (!@isWebSocketError(e) && !@isTransportError(e)) {
-          console.log("wst-server: Uncaught exception "+e);
-        }
-        // else ignore
-        console.log("ignored error:");
-        console.log(e);
-      }
-    });
+    }
+    or {
+      // set a (very conservative) limit on the time for the upgrade:
+      hold(5000);
+      console.log("wst-server: socket upgrade timeout!");
+      // XXX close socket?
+    }
   }
 
   return {

@@ -10,14 +10,27 @@
  */
 
 /** @nodoc */
-var TransportErrorProto = new Error();
-exports.TransportError = function(message, connection) {
-  var err = Object.create(TransportErrorProto);
-  err.message = message;
-  err.connection = connection;
-  return err;
-}
+module.setCanonicalId('mho:rpc/error');
 
-exports.isTransportError = function(e) {
-  return TransportErrorProto.isPrototypeOf(e);
-}
+@type = require('sjs:type');
+
+__js {
+
+  var TRANSPORT_ERROR_TOKEN = @type.Token(module, 'error', 'generic');
+
+  exports.TransportError = function(message) {
+    var err = new Error(message);
+    err[TRANSPORT_ERROR_TOKEN] = true;
+    return err;
+  };
+
+  exports.markAsTransportError = function(err) {
+    err[TRANSPORT_ERROR_TOKEN] = true;
+    return err;
+  };
+  
+  exports.isTransportError = function(e) {
+    return e && e[TRANSPORT_ERROR_TOKEN] === true;
+  };
+
+} // __js

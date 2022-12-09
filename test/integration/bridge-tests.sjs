@@ -3,7 +3,7 @@
 var {test, context, assert, isBrowser} = require('sjs:test/suite');
 var helper = @helper = require('../helper');
 var bridge = @bridge = require('mho:rpc/bridge');
-var { isTransportError } = bridge;
+var { isBridgeError } = bridge;
 var http = require('sjs:http');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
@@ -37,7 +37,7 @@ context('bridge error handling', function() {
   }
 
   test('propagates server-side errors', function() {
-    assert.raises({filter: e -> !isTransportError(e) && e.message == "Some error"}) {||
+    assert.raises({filter: e -> !isBridgeError(e) && e.message == "Some error"}) {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.throwError('Some error');
       }
@@ -45,7 +45,7 @@ context('bridge error handling', function() {
   });
 
   test('re-throws client-side errors', function() {
-    assert.raises({filter: e -> !isTransportError(e) && e.message == "Some client error"}) {||
+    assert.raises({filter: e -> !isBridgeError(e) && e.message == "Some client error"}) {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.callme(function() { throw new Error('Some client error'); });
       }
@@ -54,7 +54,7 @@ context('bridge error handling', function() {
 
   test('includes server-side stacktrace', function() {
     //XXX should be able to disable this if server filesystem layout is sensitive
-    assert.raises({filter: e -> !isTransportError(e) && e.toString() .. /at file:\/\/.*fixtures\/bridge.api:\d+/.test()}) {||
+    assert.raises({filter: e -> !isBridgeError(e) && e.toString() .. /at file:\/\/.*fixtures\/bridge.api:\d+/.test()}) {||
       bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
         connection.api.callme(function() { throw new Error('Some client error'); });
       }
@@ -78,8 +78,8 @@ context('bridge error handling', function() {
         }
       }
 
-      test("throws connection error", function(s) {
-        assert.raises({filter: e -> e.message === 'Bridge connection lost'}) {||
+      test("throws bridge error", function(s) {
+        assert.raises({filter: e -> e .. isBridgeError()}) {||
           bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
             s.push(connection.api.ping());
             try {
@@ -127,7 +127,7 @@ context('bridge error handling', function() {
                     s.push(connection.api .. destroy());
                     s.push('not reached');
                   } catch (e) {
-                    assert.truthy(e .. isTransportError);
+                    assert.truthy(e .. isBridgeError);
                     //assert.eq(e.message, 'session lost');
                     s.push('lingering call exception'); 
                   }
@@ -158,7 +158,7 @@ context('bridge error handling', function() {
                 s.push(connection.api .. destroy());
                 s.push('not reached');
               } catch (e) {
-                assert.truthy(e .. isTransportError);
+                assert.truthy(e .. isBridgeError);
                 //assert.eq(e.message, 'session lost');
                 s.push('lingering call exception'); 
               }
@@ -185,7 +185,7 @@ context('bridge error handling', function() {
       @sys.spawn(function() {
         // call doesn't return before the connection ends (due to `spawn`),
         // which will cause a `session lost` error
-        assert.raises({filter: isTransportError}, ->
+        assert.raises({filter: isBridgeError}, ->
           connection.api.detectRetractionAfterDelay(2*MAX_ROUNDTRIP));
       });
       hold(MAX_ROUNDTRIP);
@@ -196,7 +196,7 @@ context('bridge error handling', function() {
     }
   });
 
-  test('throws TransportError when calling client function after closed connection', function() {
+  test('throws BridgeError when calling client function after closed connection', function() {
     var someFuncExecuted = false;
     bridge.connect(apiid, {server: helper.getRoot()}){
       |connection|
@@ -241,7 +241,6 @@ context(function() {
     url = apiUrl();
     var path = Url.parse(url).relative;
     prefix = path.slice(0, path.indexOf('test/'));
-    require('mho:rpc/aat-client').setServerPrefix(prefix);
   }
 
   context('object marshalling', function() {
@@ -293,26 +292,27 @@ context(function() {
       test.afterAll:: function(s) { bridge_service[1](); }
       var payload = 'ßɩnɑʀʏ';
       
-      test('Buffer', function() {
+      test('Buffer ends up as Uint8Array', function() {
         var buf = Buffer.from(payload);
         var rv = api.identity(buf);
-        rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
-        rv .. @assert.eq(buf);
+        //rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
+        (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+        rv .. @assert.eq(new Uint8Array(buf.buffer, buf.byteOffset, buf.length));
       }).serverOnly()
       
       test('Uint8Array', function() {
         var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
-        var rv = api.identity(buf);
+        var rv = api.identity(new Uint8Array(buf)); // 'new' here, so that we keep buf; bridge might pass ownership otherwise
         (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
         rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
         rv .. @assert.eq(buf);
       }).skipIf(noTypedArraySupport)
       
-      test('ArrayBuffer ends up as Uint8Array', function() {
+      test('ArrayBuffer ends up as ArrayBuffer', function() {
         var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8)).buffer;
         (buf instanceof ArrayBuffer) .. @assert.ok();
         var rv = api.identity(buf);
-        (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
+        (rv instanceof ArrayBuffer) .. @assert.ok(`not an ArrayBuffer: $rv`);
         rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
       }).skipIf(noTypedArraySupport)
       
@@ -1090,7 +1090,7 @@ context(function() {
           ping();
           api.destroyConnection(50);
           hold(100);
-          assert.raises({filter: isTransportError}, -> ping());
+          assert.raises({filter: isBridgeError}, -> ping());
           // after the above disconnect, the API should be reconnected
           ping();
         } or {

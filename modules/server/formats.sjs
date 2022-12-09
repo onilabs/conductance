@@ -105,7 +105,7 @@ var {gen_sjs_bundle, gen_sjs_bundle_etag} = (function() {
         // but we can't handle that in the general case without deep knowledge of routes.
         [@url.normalize('./', pathUrl), @url.normalize('./', url.source)],
       ],
-      skipFailed: true,
+      skipFailed: false,
       compile: true
     };
     var appSettings = @env.get('bundleSettings', defaultSettings);
@@ -178,20 +178,33 @@ function gen_moduledocs_html(src, aux) {
 // filter that generates import sjs for an api:
 function apiimport(src, aux) {
   return ["\
-exports.connect = function(opts, block) {
+exports.connect = function(opts, session_f) {
   var bridge = require('mho:rpc/bridge');
   if (typeof(opts) == 'function') {
-    block = opts;
+    session_f = opts;
     opts = null;
   }
-  if (block) {
+  if (session_f) {
     bridge.connect(module.id, opts) {
       |connection|
-      block(connection.api);
+      session_f(connection.api);
     }
   }
-  else
-    return bridge.connect(module.id, opts).api;
+  else {
+    waitfor (var rv) {
+      @require('sjs:sys').spawn(function() {
+        try {
+          bridge.connect(module.id, opts) { 
+            |connection| 
+            resume(connection.api);
+            hold();
+          }
+        }
+        catch(e) { console.log('API '+module.id+' uncaught: ',e); }
+      });
+    }
+    return rv;
+  }
 };
 "];
 }

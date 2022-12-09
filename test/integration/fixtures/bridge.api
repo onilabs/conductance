@@ -22,18 +22,20 @@ exports.throwOnCancellation = function(msg, delay) {
   }
 }
 
-var transport = function() {
-  if (!exports._transport)
-    throw new Error("Test harness error: exports._transport not set by server config");
-  return exports._transport;
+var bridgeSession = function() {
+  if (!exports._bridgeSessions)
+    throw new Error("Test harness error: exports._bridgeSessions not set by server config");
+  if (exports._bridgeSessions.length !== 1) 
+    throw new Error("Unexpected number of bridge sessions: #{exports._bridgeSessions.length}!=1");
+  return exports._bridgeSessions[0];
 }
 
 exports.destroyConnection = function(timeout) {
-  var t = transport();
+  var S = bridgeSession();
   sys.spawn(function() {
     hold(timeout);
     logging.info("bridge.api: destroying connection");
-    t.__finally__();
+    S.abort();
   });
 }
 
@@ -70,9 +72,9 @@ exports.checkErrorThrownOnCallingFuncAfterDelay = function(func, delay){
   function caller(){
     hold(delay);
     try{
-      var rv = func()
+      var rv = func();
     }catch(e){
-      if(!bridge.isTransportError(e)) throw e;
+      if(!bridge.isBridgeError(e)) throw e;
       errorThrown = true;
     }
   }

@@ -14,7 +14,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Added `sjs:object::mergeProperties`.
 
    * mho:surface/widgets::popover & ::overlay: Allow specifying position via viewport coordinate pair.
-	
+
    * Added `sjs:sequence::StructuredStream` type 'map'.
 
    * Added `sjs:observable::ObservableMapVar.
@@ -24,7 +24,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * Added `sjs:sequence::isMaterialSequence`.
 
    * Added new function sjs:event::withEventListener.
-	
+
    * The default bridge transport (mho:rpc/wst-client & wst-server) now uses
      a binary format instead of JSON across the wire.
 
@@ -32,11 +32,23 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * 'sessionStorage' backend for mho:flux/kv::LocalDB
 
+   * 'mho:rpc/bridge' now uses 'sjs:vmbridge' under the hood, and runs on a webworker in 
+     xbrowser hostenv to better uphold transport timing constraints.
+
+   * Added 'sjs:thread' for running SJS code in webworkers (and soon nodejs threads).
+
+   * Added 'sjs:vmbridge' for running code across SJS VMs.
+
 
  * Bug fixes / Behavioral changes:
 
+
+   * mho:websocket::isWebSocketError & mho:rpc/bridge::isTransportError: these now work for Errors remoted across VMs; also types are not mutually exclusive any longer: an error can be both or either/or a WebsocketError/TransportError.
+
+   * Obsolete mho:rpc::aat-client/aat-server have been removed.
+
    * mho:rpc::bridge: Custom marshalling functionality has been removed.
-	
+
    * SJS language: rest parameter syntax now also works in parameter lists that
      contain destructuring (e.g. `function foo([a,b,{c:d}],...e){}`).
 
@@ -74,7 +86,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
      deadlock edgecase in sjs:service:IControlledService when IControlledService::stop() was 
      called during a session abort.
 
-	
+
 ## Version 1.0.0:
 
  * General

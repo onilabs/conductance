@@ -46,7 +46,7 @@
   @require sjs:service
 */
 
-var hostenv = require('builtin:apollo-sys').hostenv;
+var { hostenv, getGlobal } = require('builtin:apollo-sys');
 var modules = [
   'sjs:object',
   'sjs:array',
@@ -83,10 +83,14 @@ if (hostenv === 'nodejs') {
   ]);
 } else {
   modules = modules.concat([
-    {id:'sjs:sys', include: ['eval']},
-    {id: 'sjs:xbrowser/dom', name: 'dom'},
-    {id: 'sjs:xbrowser/dom', include: ['preventDefault','stopEvent', 'eventTarget']},
+    {id:'sjs:sys', include: ['eval']}
   ]);
+  if (getGlobal().document && getGlobal().document.createElement) {
+    modules = modules.concat([
+      {id: 'sjs:xbrowser/dom', name: 'dom'},
+      {id: 'sjs:xbrowser/dom', include: ['preventDefault','stopEvent', 'eventTarget']}
+    ]);
+  }
 }
 
 
@@ -135,7 +139,6 @@ module.exports = require(modules);
   
    - **assert**: (module [sjs:assert](#sjs%3Aassert))
    - **childProcess**: (module [sjs:nodejs/child-process](#sjs%3Anodejs%2Fchild-process))
-   - **dom**: (module [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom))
    - **env**: (module [mho:env](#mho%3Aenv))
    - **fn**: (module [sjs:function](#sjs%3Afunction))
    - **fs**: (module [sjs:nodejs/fs](#sjs%3Anodejs%2Ffs))
@@ -493,13 +496,5 @@ module.exports = require(modules);
   
    - **argv**: (function [sjs:sys::argv])
    - **eval**: (function [sjs:sys::eval])
-  
-  
-  ### Symbols from the [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom) module:
-  *(when in the xbrowser environment)*
-  
-   - **eventTarget**: (function [sjs:xbrowser/dom::eventTarget])
-   - **preventDefault**: (function [sjs:xbrowser/dom::preventDefault])
-   - **stopEvent**: (function [sjs:xbrowser/dom::stopEvent])
 
 */

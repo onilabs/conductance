@@ -4,19 +4,8 @@ exports.id = module.id;
 exports.apiRegistry = -> require('mho:rpc/api-registry')._registry;
 
 var scrubConnections = function() {
-	exports._connections .. @assert.ok('exports._connections');
-	//console.log(exports._connections);
-	exports._connections = exports._connections .. @filter(function(conn) {
-		var running = false;
-		waitfor {
-			// if this returns synchronously, the second branch will not execute
-			conn.stratum.wait();
-		} or {
-			running = true;
-		}
-		return running;
-	}) .. @toArray();
-	return exports._connections;
+	exports._bridgeSessions .. @assert.ok('exports._bridgeSessions');
+	return exports._bridgeSessions;
 };
 
 exports.numConnections = function() {
@@ -24,6 +13,7 @@ exports.numConnections = function() {
 }
 
 exports.numFunctions = function() {
+// XXX write me
 	return scrubConnections() .. @map(c -> c._published_funcs .. @ownKeys .. @count);
 }
 

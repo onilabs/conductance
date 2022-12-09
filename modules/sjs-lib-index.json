@@ -271,14 +271,6 @@
         "bridge": {
           "type": "module",
           "children": {
-            "BridgeConnection": {
-              "type": "class",
-              "children": {
-                "__finally__": {
-                  "type": "function"
-                }
-              }
-            },
             "TransportError": {
               "type": "class",
               "children": {}
@@ -287,6 +279,9 @@
               "type": "function"
             },
             "connect": {
+              "type": "function"
+            },
+            "isBridgeError": {
               "type": "function"
             },
             "isTransportError": {

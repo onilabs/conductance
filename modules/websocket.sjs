@@ -14,9 +14,11 @@
   @desc
     Uses the https://github.com/websockets/ws library on the server side.
 */
+module.setCanonicalId('mho:websocket');
 
 @ = require([
-  'sjs:std'
+  'sjs:std',
+  {id:'sjs:type', name:'type'}
 ]);
 
 if (@sys.hostenv === 'nodejs') {
@@ -37,14 +39,17 @@ else { // xbrowser implied
    @summary Returns `true` if `e` is a [::WebSocketError]
 */
 __js {
+
+  var WEBSOCKET_ERROR_TOKEN = @type.Token(module, 'error', 'generic');
+
   function WebSocketError(mes) {
     var err = new Error("Websocket Error: #{mes}");
-    err.__oni_web_socket_error = true;
+    err[WEBSOCKET_ERROR_TOKEN] = true;
     return err;
   }
 
   function isWebSocketError(e) {
-    return e && e.__oni_web_socket_error === true;
+    return e && e[WEBSOCKET_ERROR_TOKEN] === true;
   }
   exports.isWebSocketError = isWebSocketError;
 } // __js 
@@ -137,7 +142,6 @@ __js function ignore() {}
 function withWebSocketClient(settings, session_f) {
   if (typeof settings === 'string')
     settings = { url: settings };
-
   if (@sys.hostenv === 'nodejs') {
     var nodejs_opts = {
       rejectUnauthorized: true,
