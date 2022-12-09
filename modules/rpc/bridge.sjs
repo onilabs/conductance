@@ -47,7 +47,7 @@ exports.TransportError = @TransportError;
   @return {Boolean}
   @summary Returns whether `err` was raised by connection/transport errors
 */
-exports.isTransportError = @TransportError;
+exports.isTransportError = @isTransportError;
 
 
 /**
