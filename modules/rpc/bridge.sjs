@@ -21,6 +21,7 @@
 @ = require([
   'sjs:std',
   'sjs:vmbridge',
+  {id:'sjs:thread', name:'thread'},
   {id:'./error', include: ['isTransportError', 'TransportError']}
 ]);
 
@@ -99,10 +100,10 @@ exports.resolve = function(api_name, opts) {
 */
 exports.connect = function(apiinfo, opts, session_f) {
 
-  if (@sys.hostenv === 'xbrowser' && !document.isThread) {
+  if (@thread.isMainThread) {
     // let's run this in a thread
     console.log("---- Running api bridge in a thread ----");
-    require('sjs:thread').withThread {
+    @thread.withThread {
       |{eval}|
       var threaded_bridge = eval("require('mho:rpc/bridge');");
       return threaded_bridge.connect(apiinfo, opts, session_f);
@@ -133,6 +134,16 @@ exports.connect = function(apiinfo, opts, session_f) {
   @param {Function} [session_f]
 */
 exports.accept = function(getAPI, withTransport, session_f) {
+  if (@thread.isMainThread) {
+    // let's run this in a thread
+    console.log("Running api bridge in a thread ---");
+    @thread.withThread {
+      |{eval}|
+      var threaded_bridge = eval("require('mho:rpc/bridge');");
+      return threaded_bridge.accept(getAPI, withTransport, session_f);
+    }
+  }
+
   @withVMBridge({withTransport: withTransport, 
                  local_itf: getAPI}) {
     ||
