@@ -217,9 +217,9 @@ function On(/*element, settings*/) {
          filter: settings.filter
         },
         ev -> dispatcher ? dispatcher.dispatch([settings.cmd,
-                                      settings.param!==undefined ?
-                                      (typeof settings.param === 'function' ? settings.param(ev) : settings.param) :
-                                      ev
+                                      //settings.param!==undefined ?
+                                      (typeof settings.param === 'function' ? settings.param(ev) : settings.param)// :
+                                      //ev
                                      ])
        );
 
