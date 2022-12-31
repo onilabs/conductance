@@ -22,9 +22,35 @@
 @ = require([
   'sjs:std',
   'mho:websocket',
+  {id:'sjs:thread', name:'thread'},
   './wst-client',
   {id:'./error', include:['TransportError', 'isTransportError']}
 ]);
+
+
+/*
+  This doesn't work because Sockets aren't remotable in nodejs
+
+// exported for use in thread:
+exports.runThreadedTransport = function(req, transportSink, resume, session_f) {
+  var SocketServer = @WebSocketServer();
+  function withTransport(inner_session_f) {
+    SocketServer.runWebSocketSession(req) {
+      |ws|
+      resume();
+      return @runTransportSession(ws, true, inner_session_f);
+    }
+  }
+  try {
+    return transportSink(withTransport, session_f);
+  }
+  catch(e) {
+    if (!@isWebSocketError(e) || e.message !== 'Websocket Error: websocket closed')
+      console.log("wst-server: Uncaught exception: ", e);
+    // else ... websocket was closed; ignore
+  }
+};
+*/
 
 /**
    @function createTransportHandler
@@ -32,7 +58,7 @@
    @param {Function} [transportSink] Service using transport - will be called with a 'withTransport' function as first parameter, and session_f as second.
 */
 function createTransportHandler(transportSink) {
-  var SocketServer = @WebSocketServer();
+//  var SocketServer = @WebSocketServer();
 
   function handler_func(req) {
 
@@ -40,26 +66,21 @@ function createTransportHandler(transportSink) {
       // waitfor/resume, because we must not return before the upgrade has been performed.
       waitfor() {
         @sys.spawn(function() {
-          try {
-            function withTransport(inner_session_f) {     
-              SocketServer.runWebSocketSession(req) {
-                |ws|
-                resume();
-                @runTransportSession(ws, true) {
-                  |transport_itf|
-                  return inner_session_f(transport_itf);
-                }
-              }
-            }
-            transportSink(withTransport) {
-              |itf|
+          // XXX we would like to run a thread here, but nodejs can't share sockets across
+          // threads yet
+          /*
+          @thread.withThread {
+            |{eval}|
+            var runTransport = eval("require('mho:rpc/wst-server').runThreadedTransport");
+            runTransport(req, transportSink, resume) {
+              ||
               hold();
             }
           }
-          catch(e) {
-            if (!@isWebSocketError(e) || e.message !== 'Websocket Error: websocket closed')
-              console.log("wst-server: Uncaught exception: ",e);
-            // else ... websocket was closed; ignore
+          */
+          exports.runThreadedTransport(req, transportSink, resume) {
+            ||
+            hold();
           }
         });
       }

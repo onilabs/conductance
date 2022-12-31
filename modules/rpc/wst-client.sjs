@@ -25,6 +25,7 @@
   {id:'mho:msgpack', name:'msgpack'},
 ]);
 
+
 //----------------------------------------------------------------------
 // helper (should go into sjs):
 
@@ -247,8 +248,13 @@ function runTransportSession(ws, is_server, session_f) {
       while (1) {
         var t_s = KEEPALIVE_T0;
         // initial keepalive (not resettable by received traffic)
+        var start_time = new Date();
         waitfor {
           hold(t_s);
+          var mid_time = new Date();
+          if (mid_time - start_time -t_s > .1*t_s) {
+            console.log("Transport violation: Initial keepalive timer took #{mid_time-start_time}ms - should have been #{t_s}ms");
+          }
           collapse;
           ws.send('');
         }
@@ -256,13 +262,24 @@ function runTransportSession(ws, is_server, session_f) {
           @events(Traffic) .. @filter(t->t===SEND_TRAFFIC) .. @first();
           continue; // reset t
         }
+        finally {
+          var end_time = new Date();
+          if (end_time - start_time - t_s > .1*t_s) {
+            console.log("Transport violation: Initial keepalive took #{end_time-start_time}ms - should have been ~#{t_s}ms");
+          }
+        }
         // follow-on loop
         waitfor {
           while (1) {
+            var start_time = new Date();
             t_s *= 2;
             if (t_s > KEEPALIVE_T_MAX) t_s = KEEPALIVE_T_MAX;
             hold(t_s);
             ws.send('');
+            var end_time = new Date();
+            if (end_time - start_time - t_s > .1*t_s) {
+              console.log("Transport violation: Follow-on keepalive took #{end_time-start_time}ms - should have been ~#{t_s}ms");
+            }
           }
         }
         or {

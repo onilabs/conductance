@@ -32,7 +32,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * 'sessionStorage' backend for mho:flux/kv::LocalDB
 
-   * 'mho:rpc/bridge' now uses 'sjs:vmbridge' under the hood, and runs in a worker thread to better uphold transport timing constraints.
+   * 'mho:rpc/bridge' now uses 'sjs:vmbridge' under the hood, and, in the xbrowser hostenv,
+	   runs in a worker thread to better uphold transport timing constraints.
 
    * Added 'sjs:thread' for running SJS code in worker threads.
 
