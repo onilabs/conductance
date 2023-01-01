@@ -28,10 +28,7 @@
 ]);
 
 
-/*
-  This doesn't work because Sockets aren't remotable in nodejs
-
-// exported for use in thread:
+// XXX The idea is that this function is run on a thread, but that's currently not possible because Sockets cannot be shared across threads in nodejs
 exports.runThreadedTransport = function(req, transportSink, resume, session_f) {
   var SocketServer = @WebSocketServer();
   function withTransport(inner_session_f) {
@@ -50,7 +47,7 @@ exports.runThreadedTransport = function(req, transportSink, resume, session_f) {
     // else ... websocket was closed; ignore
   }
 };
-*/
+
 
 /**
    @function createTransportHandler
