@@ -42,6 +42,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * mho:flux/kv::LevelDB now uses rocksdb by default.
+	
    * mho:surface/cmd::On: Do not pass event object to command handler if no `param` specified (it doesn't remote across the bridge).
 
    * mho:websocket::isWebSocketError & mho:rpc/bridge::isTransportError: these now work for Errors remoted across VMs; also types are not mutually exclusive any longer: an error can be both or either/or a WebsocketError/TransportError.

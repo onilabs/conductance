@@ -17,10 +17,10 @@
     "@msgpack/msgpack": "^2.8.0",
     "browserify": "^17.0.0",
     "google-oauth-jwt": "^0.0.7",
-    "leveldown": "^5.6.0",
     "nodemon": "^1.19.4",
+    "rocksdb": "^5.2.1",
     "ssh2": "^0.8.9",
-    "stratifiedjs": "git+https://github.com/onilabs/stratifiedjs.git#9e436be354fb2116d4c9c0e2f74157060710885157cce35a46dd63b36911938ad0f775ede5723fa8",
+    "stratifiedjs": "github:onilabs/stratifiedjs#07f953f909344244cd3e4b6fad0a86835575e221",
     "ws": "^8.11.0"
   },
   "scripts": {

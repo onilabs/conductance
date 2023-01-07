@@ -55,15 +55,15 @@ __js function annotateError(err, orig) {
 /**
    @class LevelDB
    @inherits KVStore
-   @summary LevelDB database session
+   @summary LevelDB (actually RocksDB) database session
    @function LevelDB
    @altsyntax LevelDB(location, [options]) { |itf| ... }
    @param {String} [location] Location of DB on disk
    @param {Object} [options] See https://github.com/rvagg/node-leveldown#leveldownopenoptions-callback
-   @setting {optional String} [leveldown='leveldown'] Name of alternative leveldown module to use (e.g. 'rocksdb/leveldown')
+   @setting {optional String} [leveldown='rocksdb/leveldown'] Name of alternative leveldown module to use (e.g. 'npm:leveldown')
 */
 function LevelDB(location, options) {
-  var leveldown = 'leveldown';
+  var leveldown = 'rocksdb/leveldown';
   if (options && options.leveldown) {
     leveldown = options.leveldown;
     options = options .. @clone;
