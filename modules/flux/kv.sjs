@@ -221,6 +221,7 @@ exports.clear = clear;
    @setting {Boolean} [reverse=false] Reverse direction of range
    @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
    @setting {Boolean} [values=true] If this is `false`, the kv may emit `undefined` instead of the real values (currently only the leveldb backend honors this).
+   @setting {Boolean} [keys=true] If this is `false`, the kv may emit `undefined` instead of the real keys (currently only the leveldb backend honors this).
    @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs in the given [::Range].
    @desc
      The returned stream will be based on a stable view of the database content as of the time that iteration starts.
@@ -347,31 +348,34 @@ exports.withTransaction = withTransaction;
   @class LevelDB
   @inherit ::KVStore
   @hostenv nodejs
-  @summary Simple fast and efficient persistent local key-value storage backed by [LevelDB](http://en.wikipedia.org/wiki/LevelDB)
+  @summary Simple fast and efficient persistent local key-value storage backed by [RocksDB](http://rocksdb.org/)
   @function LevelDB
   @altsyntax LevelDB(location, [options]) { |kvstore| ... }
   @param {String} [location] Location of DB on disk
   @param {optional Object} [options] See https://github.com/rvagg/node-leveldown#leveldownopenoptions-callback
-  @setting {optional String} [leveldown='leveldown'] Name of alternative leveldown module to use (e.g. 'rocksdb/leveldown')
-  @param {optional Function} [block] Lexical block to scope the LevelDB object to
+  @setting {optional String} [leveldown='leveldown'] Name of alternative leveldown module to use (e.g. 'npm:leveldown')
+  @param {optional Function} [session_f] Session to scope the LevelDB object to
+  @desc
+    Note: To repair a corrupt rocksdb database you can use `require('mho:flux/rv/leveldb').repairLevelDB(location)`.
+
 
   @function LevelDB.close
   @summary  Close the DB.
 */
-function LevelDB(location, options, block) {
+function LevelDB(location, options, session_f) {
   // untangle args
   if (arguments.length == 1) {
     options = {};
   } else if (arguments.length < 3 && typeof options === 'function') {
-    block = options;
+    session_f = options;
     options = {};
   }
 
   var itf = require('./kv/leveldb').LevelDB(location, options);
 
-  if (block) {
+  if (session_f) {
     try {
-      return block(itf);
+      return session_f(itf);
     } finally {
       itf.close();
     }

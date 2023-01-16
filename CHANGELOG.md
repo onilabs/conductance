@@ -9,6 +9,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * Added `keys` option to `mho:flux/kv::query`.
+
+   * Added `mho:flux/kv/leveldb::repairLevelDB`.
+
    * Added `sjs:sequence::chunk.json` and `sjs:sequence::StructuredStream` type `chunked.json`.
 
    * Added `sjs:object::mergeProperties`.

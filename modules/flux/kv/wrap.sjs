@@ -28,7 +28,8 @@ function wrapDB(base) {
     var query_opts = {
       limit: -1,
       reverse: false,
-      values: true
+      values: true,
+      keys: true
     } .. @override(options);
     query_opts.gte = range.begin;
     query_opts.lt = range.end;

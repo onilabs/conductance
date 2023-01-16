@@ -53,6 +53,20 @@ __js function annotateError(err, orig) {
 }
 
 /**
+   @function repairLevelDB
+   @summary Attempt to repair a corrupt rocksdb database
+   @param {String} [location] Location of DB on disk
+*/
+function repairLevelDB(location) {
+  var leveldown = 'rocksdb/leveldown';
+  waitfor (var err) {
+    require(leveldown).repair(location, resume);
+  }
+  if (err) throw new Error(err);
+}
+exports.repairLevelDB = repairLevelDB;
+
+/**
    @class LevelDB
    @inherits KVStore
    @summary LevelDB (actually RocksDB) database session
