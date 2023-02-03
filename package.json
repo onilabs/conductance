@@ -20,8 +20,8 @@
     "nodemon": "^1.19.4",
     "rocksdb": "^5.2.1",
     "ssh2": "^0.8.9",
-    "stratifiedjs": "github:onilabs/stratifiedjs#07f953f909344244cd3e4b6fad0a86835575e221",
-    "ws": "^8.11.0"
+    "stratifiedjs": "github:onilabs/stratifiedjs#fc3ab706c39ed6b78d394fbcd14ecd18071303e2",
+    "ws": "^8.12.0"
   },
   "scripts": {
     "test": "./conductance test/run.mho",
