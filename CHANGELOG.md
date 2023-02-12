@@ -163,6 +163,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * Handling of nested rest parameters (`...`) has been fixed for both parameter lists and
+     destructuring assignment.
+
    * Various unused (or very rarely used) modules and functions have been removed:
      - `sjs:function::chain`
      - `sjs:function::deferred`
