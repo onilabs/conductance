@@ -9,6 +9,13 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * `sjs:observable::ObservableWindowVar` objects are now indirected streams that can
+     be used directly in place of their `stream` member.
+
+   * `sjs:observable::ObservableVar` now has a `stream` member to access the naked stream.
+
+   * `sjs:sequence`: Added 'indirected stream' functionality via `sjs:sequence::ITF_STREAM`.
+
    * Added `keys` option to `mho:flux/kv::query`.
 
    * Added `mho:flux/kv/leveldb::repairLevelDB`.
