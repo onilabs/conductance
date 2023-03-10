@@ -9,6 +9,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 
+   * Added `sjs:observable::ObservableSortedMapVar`
+
+   * Added `sjs:map::SortedMap`.
+
+   * Added `sjs:array::shuffle`.
+
    * `sjs:observable::ObservableWindowVar` objects are now indirected streams that can
      be used directly in place of their `stream` member.
 
@@ -26,7 +32,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
    * mho:surface/widgets::popover & ::overlay: Allow specifying position via viewport coordinate pair.
 
-   * Added `sjs:sequence::StructuredStream` type 'map'.
+   * Added `sjs:sequence::StructuredStream` types 'map' & 'array.mutations'.
 
    * Added `sjs:observable::ObservableMapVar.
 

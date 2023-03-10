@@ -156,7 +156,8 @@ exports.RANGE_ALL = RANGE_ALL;
    @class Value
    @summary Object that can be stored as a value in a [::KVStore]
    @desc
-     A `Value` can be any JSON-serializable JavaScript object.
+     * A `Value` can be any JSON-serializable JavaScript object.
+     * Some stores, like in-memory [::LocalDB]s can store any JS value.
 */
 
 //----------------------------------------------------------------------
@@ -429,6 +430,9 @@ exports.LevelDB = LevelDB;
 
           // true
           @LocalDB({ localStorage: 'foo' }) === @LocalDB({ localStorage: 'foo' });
+
+    * In-memory LocalDBs can store [::Value]s of any type; they are not limited to JSON-serializable
+      values.
 
     ----
 

@@ -229,6 +229,7 @@ module.exports = require(modules);
    - **kCombinations**: (function [sjs:array::kCombinations])
    - **permutations**: (function [sjs:array::permutations])
    - **remove**: (function [sjs:array::remove])
+   - **shuffle**: (function [sjs:array::shuffle])
   
   
   ### Symbols from the [sjs:bytes](#sjs%3Abytes) module:
@@ -293,7 +294,9 @@ module.exports = require(modules);
   ### Symbols from the [sjs:map](#sjs%3Amap) module:
   
    - **isMap**: (function [sjs:map::isMap])
+   - **isSortedMap**: (function [sjs:map::isSortedMap])
    - **Map**: (class [sjs:map::Map])
+   - **SortedMap**: (class [sjs:map::SortedMap])
   
   
   ### Symbols from the [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream) module:
@@ -338,9 +341,11 @@ module.exports = require(modules);
    - **DelayedObservable**: (function [sjs:observable::DelayedObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])
    - **isObservableMapVar**: (function [sjs:observable::isObservableMapVar])
+   - **isObservableSortedMapVar**: (function [sjs:observable::isObservableSortedMapVar])
    - **isObservableVar**: (function [sjs:observable::isObservableVar])
    - **isObservableWindowVar**: (function [sjs:observable::isObservableWindowVar])
    - **ObservableMapVar**: (class [sjs:observable::ObservableMapVar])
+   - **ObservableSortedMapVar**: (class [sjs:observable::ObservableSortedMapVar])
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
    - **ObservableWindowVar**: (class [sjs:observable::ObservableWindowVar])
    - **observe**: (function [sjs:observable::observe])
@@ -386,6 +391,8 @@ module.exports = require(modules);
    - **find.par**: (function [sjs:sequence::find.par])
    - **first**: (function [sjs:sequence::first])
    - **generate**: (function [sjs:sequence::generate])
+   - **getStructuredStreamBase**: (function [sjs:sequence::getStructuredStreamBase])
+   - **getStructuredStreamType**: (function [sjs:sequence::getStructuredStreamType])
    - **groupBy**: (function [sjs:sequence::groupBy])
    - **hasElem**: (function [sjs:sequence::hasElem])
    - **indexed**: (function [sjs:sequence::indexed])
@@ -397,6 +404,7 @@ module.exports = require(modules);
    - **isSequence**: (function [sjs:sequence::isSequence])
    - **isStream**: (function [sjs:sequence::isStream])
    - **isStructuredStream**: (function [sjs:sequence::isStructuredStream])
+   - **ITF_STREAM**: (variable [sjs:sequence::ITF_STREAM])
    - **join**: (function [sjs:sequence::join])
    - **last**: (function [sjs:sequence::last])
    - **map**: (function [sjs:sequence::map])
