@@ -59,6 +59,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * In the nodejs hostenv, `require` on extensionless uris would perform an lstat system call even if the module was already loaded. This would cause the `require` call to unnecessarily (and unexpectedly) block. This behavior has been fixed: If the requested module is already loaded, `require` will now return without blocking.
+	
    * sjs:url::parse:: Parsing of ipv6 addresses has been fixed and an 'ipv6' boolean member has been added to the return value.
 	
    * mho:flux/kv::LevelDB now uses rocksdb by default.
