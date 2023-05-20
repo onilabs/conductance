@@ -329,11 +329,11 @@ function insertHtml(html, block, doInsertHtml) {
 // boundary points. 
 function nodes(parent, before_node, after_node) {
   return Stream(function(r) {
-    var node = before_node ? before_node.nextSibling :
+    __js var node = before_node ? before_node.nextSibling :
       parent.firstChild;
-    while (node != after_node) {
+    while (__js node != after_node) {
       r(node);
-      node = node.nextSibling;
+      __js node = node.nextSibling;
     }
   });
 }
@@ -419,7 +419,7 @@ exports.replaceContent = replaceContent;
          }
 */
 function appendContent(parent_element, html, block) {
-  var inserted_nodes = nodes(parent_element, parent_element.lastChild, null);
+  __js var inserted_nodes = nodes(parent_element, parent_element.lastChild, null);
   
   return insertHtml(html, block, __js function(html) {
     parent_element.insertAdjacentHTML('beforeend', html.getHtml());

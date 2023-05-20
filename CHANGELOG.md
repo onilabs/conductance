@@ -59,6 +59,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * mho:surface/base::StreamingReplacingContent (the function handling streams in HtmlFragments) will behave correctly for blocking abortion (e.g. in the case of remote streaming content previously the function would throw an error if there were any pending or in-flight receiver calls before retraction filtered through from client->server->client).
+	
    * sjs:sequence::combineSort will now only call `pick` if there are two or more unconsumed input sequences. Previously it used to be called (with one argument) if there was only one unconsumed input sequence.
 	
    * In the nodejs hostenv, `require` on extensionless uris would perform an lstat system call even if the module was already loaded. This would cause the `require` call to unnecessarily (and unexpectedly) block. This behavior has been fixed: If the requested module is already loaded, `require` will now return without blocking.

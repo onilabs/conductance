@@ -234,22 +234,30 @@ function StreamingReplacingContent(stream) {
   function mechanism(node) {
     stream .. each.track {
       |val|
-      var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
-
-      anchor .. dyn.insertBefore(val) { 
-        ||
-        // We hold until aborted (when content gets removed from doc
-        // and we get retracted, or when a new stream value arrives
-        // and 'each.track' aborts us)
-        // On abortion, insertBefore will clean up our content.
-        hold();
+      __js var anchor = node.nextSibling; // anchor is the `<!-- surface_end_stream -->` node
+      /* the `if (anchor)` check is necessary because mechanisms don't wait for blocking abortion before
+         removing their associated nodes from the document. If e.g. stream is a remote stream, 
+         we might get more `each.track` calls before the retraction finally filters through. For these
+         calls `anchor` will be null, because `node` has been removed from the document.
+       */
+      if (anchor) {
+        anchor .. dyn.insertBefore(val) {
+          ||
+          // We hold until aborted (when content gets removed from doc
+          // and we get retracted, or when a new stream value arrives
+          // and 'each.track' aborts us)
+          // On abortion, insertBefore will clean up our content.
+          hold();
+        }
       }
     }
   }
 
-  var ft = CollapsedFragment(), id = ++gMechanismCounter;
-  ft.content = "<!-- surface_stream |#{id}| --><!-- surface_end_stream |#{id}| -->";
-  ft.mechanisms[id] = mechanism;
+  __js {
+    var ft = CollapsedFragment(), id = ++gMechanismCounter;
+    ft.content = "<!-- surface_stream |#{id}| --><!-- surface_end_stream |#{id}| -->";
+    ft.mechanisms[id] = mechanism;
+  }
   return ft;
 }
 
