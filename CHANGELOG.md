@@ -8,6 +8,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * New functionality
+   * The documentation system now supports tag `@service` (similar to `@class`).
 
    * Added `sjs:observable::ObservableSortedMapVar`
 
@@ -58,7 +59,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * Bug fixes / Behavioral changes:
-
+	
+   * Documentation system: Using dotted notation for class members (e.g. `@variable Semaphore.permits`) is now deprecated.
+     Use double colons instead (e.g. `@variable Semaphore::permits`). In future, when old uses of the 
+     dot notation have been eliminated from the codebase, we can repurpose dot notation for static
+     class members.
+	
    * mho:surface/base::StreamingReplacingContent (the function handling streams in HtmlFragments) will behave correctly for blocking abortion (e.g. in the case of remote streaming content previously the function would throw an error if there were any pending or in-flight receiver calls before retraction filtered through from client->server->client).
 	
    * sjs:sequence::combineSort will now only call `pick` if there are two or more unconsumed input sequences. Previously it used to be called (with one argument) if there was only one unconsumed input sequence.

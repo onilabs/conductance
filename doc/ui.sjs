@@ -235,8 +235,13 @@ exports.renderer = function(libraries, rootSymbol) {
 
 	function functionSignature(docs, symbol) {
 		var signature = [];
-		if (docs.type != 'ctor' && symbol.className && !docs['static'])
-			signature.push("#{symbol.className .. toCamelCase()}.#{symbol.name}");
+		if (docs.type != 'ctor' && symbol.className && !docs['static']) {
+      if (symbol.parent().docs().type === 'service') {
+        signature.push("#{symbol.className .. toCamelCase()}Session.#{symbol.name}");
+      }
+      else // parent type 'class' implied
+			  signature.push("#{symbol.className .. toCamelCase()}.#{symbol.name}");
+    }
 		else {
 			var call = symbol.name;
 			if (docs.type == 'ctor' && !docs.nonew) {
@@ -345,7 +350,6 @@ exports.renderer = function(libraries, rootSymbol) {
 			rv.push(makeRequireSnippet(symbol, symbol.fullModulePath, symbol.name));
 		}
     */
-
 		if (docs.type == "function" || docs.type == "ctor") {
 			rv.push(makeFunctionHtml(docs, symbol));
 			rv.push(makeDescriptionHTML(docs, symbol));
@@ -378,7 +382,33 @@ exports.renderer = function(libraries, rootSymbol) {
 						children['variable']        .. then(HeaderTable("Member Variables")),
 					] .. filter .. toArray,
 					{"class": "symbols"}));
-			} else {
+			}
+      else if (docs.type == 'service') {
+				var constructor = docs.children .. ownPropertyPairs .. find([name, val] -> val.type == 'ctor', undefined);
+
+				rv.push(`<h2>Service</h2>`);
+				rv.push(summary);
+
+				if (docs.desc) {
+					rv.push(Element("div", makeDescriptionHTML(docs, symbol), {"class":"mb-class-desc"}));
+				}
+
+				if (constructor) {
+					var [name, child] = constructor;
+					var childSymbol = symbol.child(name);
+					rv.push(makeFunctionHtml(child, childSymbol));
+					rv.push(makeDescriptionHTML(child, childSymbol));
+				}
+
+				var children = collectModuleChildren(docs, symbol);
+				rv.push(
+					Element("div", [
+						children['function']        .. then(HeaderTable("Session Interface Functions")),
+						children['variable']        .. then(HeaderTable("Session Interface Variables")),
+					] .. filter .. toArray,
+					{"class": "symbols"}));
+      }
+      else {
 				// probably a variable
 				rv.push(summary);
 				var signature = [
@@ -457,6 +487,7 @@ exports.renderer = function(libraries, rootSymbol) {
 				children['function'] .. then(HeaderTable("Functions")),
 				children['variable'] .. then(HeaderTable("Variables")),
 				children['class']    .. then(HeaderTable("Classes")),
+        children['service']  .. then(HeaderTable("Services"))
 			] .. filter .. toArray,
 			{"class": "symbols"}));
 		return rv;
@@ -521,6 +552,7 @@ exports.renderer = function(libraries, rootSymbol) {
 				children['function'] .. then(HeaderTable("Functions")),
 				children['variable'] .. then(HeaderTable("Variables")),
 				children['class']    .. then(HeaderTable("Classes")),
+        children['service']  .. then(HeaderTable("Services"))
 			] .. filter .. toArray,
 			{"class": "symbols"}));
 
@@ -705,11 +737,12 @@ exports.renderer = function(libraries, rootSymbol) {
           }
           break;
         case 'class':
+        case 'service':
           if (docs.children .. ownPropertyPairs .. any([name, val] -> val.type == 'ctor'))
             snippet = makeRequireSnippet(symbol, symbol.fullModulePath, symbol.name);
           break;
         default:
-          if ((!symbol.className || docs.type == 'ctor') && docs.type !== 'class') {
+          if ((!symbol.className || docs.type == 'ctor') && docs.type !== 'class' && docs.type !== 'service') {
             var parent = symbol.parent();
             var symbol_path;
             if (parent && parent.docs().type === 'template')
