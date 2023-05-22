@@ -29,6 +29,7 @@ var flattenLibraryIndex = function(lib) {
 					break;
 				case 'module':
 				case 'class':
+        case 'service':
 					id += "::";
 					break;
 				default:
