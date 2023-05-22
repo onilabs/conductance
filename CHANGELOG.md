@@ -8,6 +8,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * New functionality
+	
+   * Added `sjs:nodejs/fs::writev`.
+	
    * The documentation system now supports tag `@service` (similar to `@class`).
 
    * Added `sjs:observable::ObservableSortedMapVar`
