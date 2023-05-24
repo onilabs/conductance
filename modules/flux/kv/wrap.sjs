@@ -73,19 +73,44 @@ function wrapDB(base) {
         -> base.decodeValue(base.get(key)));
     },
 
-    observeQuery: function(range, options) {
-      // XXX we actually want an ObservableQuery that iterates over the data
-      // lazily and only transmits deltas
+    observeQuery: function(range /*, options*/) {
+
+      // XXX we might want an ObservableQuery that iterates over the data
+      // lazily
 
       var encoded_range = @encoding.encodeKeyRange(base.encoding_backend, 
                                                    range);
 
-      return @updatesToObservable(
-        base.changes ..
-          @filter(kvs -> kvs .. @any(kv -> kv.key .. @encoding.encodedKeyInRange(encoded_range.begin, encoded_range.end))) ..
-          @transform(-> kv_query(encoded_range, options) .. @transform(decodeKV)),
-        -> kv_query(encoded_range, options) .. @transform(decodeKV)
-      );
+      return @StructuredStream('array.mutations') :: @Stream :: function(receiver) {
+
+        base.changes .. 
+          @buffer(1000, {drop:'throw'}) .. // XXX 1000 is arbitrary, and we don't want to throw. reset the map instead
+          @withOpenStream {
+            |changes|
+            var QueryResult = @ObservableSortedMapVar({initial_elements:kv_query(encoded_range),
+                                                       comparator: 'numericArray'});
+            waitfor {
+              @getStructuredStreamBase(
+                QueryResult.Elements ..
+                  @transform$map(decodeKV)
+              )(receiver);
+            }
+            or {
+              // XXX it would be great if we could batch-apply changes to QueryResult, maybe via
+              // a mutate([actions]) method on ObservableSortedMapVar?
+              changes .. 
+                @unpack .. 
+                @filter(__js {key} -> key .. @encoding.encodedKeyInRange(encoded_range.begin, encoded_range.end)) ..
+                @each {
+                |{key,value}|
+                if (value === undefined) 
+                  QueryResult.delete(key);
+                else
+                  QueryResult.set(key, value);
+              }
+            }
+          }
+      };
     },
 
     // TODO use SortedDict rather than converting keys to hex strings

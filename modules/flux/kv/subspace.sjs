@@ -33,7 +33,7 @@ function Subspace(input, prefix) {
       for (var i = 0; i < prefix.length; ++i) {
         // TODO better equality check
         if (key[i] !== prefix[i]) {
-          throw new Error("Invalid prefix");
+          throw new Error("kv:subspace: Missing expected prefix '#{prefix}'");
         }
       }
       

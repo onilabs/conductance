@@ -276,11 +276,13 @@ exports.observe = observe;
    @function observeQuery
    @param {::KVStore} [kvstore]
    @param {::Range} [range]
-   @param {optional Object} [settings]
+   @param {optional Object} [settings] no options yet
    @return {sjs:observable::Observable}
-   @setting {Boolean} [reverse=false] Reverse direction of range
-   @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
-   @summary Return an [sjs:observable::Observable] of the [sjs:sequence::Stream] of `[key, value]` pairs in the given range.
+   @summary Return an [sjs:observable::Observable] of the array of `[key, value]` pairs in the given range.
+   @desc
+     ### Stream structuring details
+
+     The returned stream is an [sjs:observable::Observable] of a `[key,value]` pair array encoded as a [sjs:sequence::StructuredStream] of type 'array.mutations'
 
 */
 __js function observeQuery(store, range, options) {

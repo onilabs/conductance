@@ -62,6 +62,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * Bug fixes / Behavioral changes:
+   * mho:flux/kv::observeQuery now returns a structured 'array.mutations' stream. To facilitate this, the settings 'reverse' and 'limit' have been removed.
 	
    * Documentation system: Using dotted notation for class members (e.g. `@variable Semaphore.permits`) is now deprecated.
      Use double colons instead (e.g. `@variable Semaphore::permits`). In future, when old uses of the 
