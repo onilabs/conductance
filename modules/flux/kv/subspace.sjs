@@ -66,7 +66,7 @@ function Subspace(input, prefix) {
         return db.observe(prefixKey(key));
       },
       observeQuery: function(range, options) {
-        return db.observeQuery(@util.transformKeyRange(range, prefixKey), options) .. @transform(results -> results .. @transform(unprefixKV));
+        return db.observeQuery(@util.transformKeyRange(range, prefixKey), options) .. @transform$map(unprefixKV);
       },
 
       withTransaction: function(options, block) {

@@ -78,7 +78,7 @@ function Encrypted(input, settings) {
         return db.observe(key) .. @transform(decrypt);
       },
       observeQuery: function (range, options) {
-        return db.observeQuery(range, options) .. @transform(results -> results .. @transform(decodeKV));
+        return db.observeQuery(range, options) .. @transform$map(decodeKV);
       },
       withTransaction: function (options, block) {
         if (in_transaction) {

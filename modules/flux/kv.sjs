@@ -74,7 +74,7 @@ exports.isNotFound = function(e) {
 
          obj[ITF_KVSTORE].observe(key) // return observable tracking key
 
-         obj[ITF_KVSTORE].observeQuery(range, [options]) // return observable tracking range
+         obj[ITF_KVSTORE].observeQuery(range, [options]) // return observable tracking range; must be a StructuredStream of type 'array.mutations'
 
          obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
 
