@@ -67,7 +67,6 @@ __js {
   // msgpack cannot send arraybuffers, but *can* send Uint8Arrays. We need to do some converting:
   
   function marshall(msg) {
-    if (msg[1] === undefined) throw new Error("NO!!!!");
     return [msg[0], msg[1] .. @map(buf -> new Uint8Array(buf))];
   }
 
@@ -82,8 +81,10 @@ __js {
 var RECEIVE_TRAFFIC = 1;
 var SEND_TRAFFIC = 2;
 
-function runTransportSession(ws, is_server, session_f) {
-  var RQ = @Queue(1000);
+function runTransportSession(ws, is_server, receive_buffer_size, session_f) {
+  // min capacity 1, so that we can flush in finally below to kill any pending receive calls. Note: the sync flag is important if receive_buffer_size===0, so that RQ gets cleared by pending gets before the next put... we need to avoid blocking:
+  receive_buffer_size = Math.max(receive_buffer_size, 1);
+  var RQ = @Queue(receive_buffer_size, true); 
   var SQ = @Queue(1000);
 
   var ReconstitutionIDCounter = 0;
@@ -94,15 +95,17 @@ function runTransportSession(ws, is_server, session_f) {
   
   waitfor {
     // RECEIVE LOGIC:
-    @generate(ws.receive) .. @buffer(100, {drop:'throw'}) .. @each {
-      |mes|
+    @generate(ws.receive) .. @each(__js function(mes) {
+      // this function must never block, so we check RQ count:
+      if (RQ.count() === receive_buffer_size) 
+        throw new Error("Receive buffer is full");
       if (typeof mes == 'string' && mes.length === 0) {
         Keepalives.dispatch();
       }
       else {
-        __js mes = @msgpack.decode(mes);
+        mes = @msgpack.decode(mes);
         Traffic.dispatch(RECEIVE_TRAFFIC);
-        __js if (Array.isArray(mes) && mes[0] === '@wst') {
+        if (Array.isArray(mes) && mes[0] === '@wst') {
           if (mes[1] === 'split') {
             console.log("wst-client: rcv split message");
             var parts = ReconstitutionBuffer[mes[2]];
@@ -118,8 +121,7 @@ function runTransportSession(ws, is_server, session_f) {
             console.log("wst-client: reconstitute split message");
             mes = @msgpack.decode(data);
             delete ReconstitutionBuffer[mes[2]];
-            //              RQ.put({type:'message', data:mes});
-            RQ.put(unmarshall(mes));
+            RQ.put(unmarshall(mes)); 
           }
           else if (mes[1] === 'cancel') {
             console.log("wst-client: rcv split message cancel");
@@ -129,9 +131,8 @@ function runTransportSession(ws, is_server, session_f) {
         }
         else
           RQ.put(unmarshall(mes));
-        //RQ.put({type:'message', data:mes});
       }
-    } // @generate(ws.receive)
+    }); // @generate(ws.receive)
     hold(0); // needed?
   }
   or {
@@ -311,8 +312,9 @@ function runTransportSession(ws, is_server, session_f) {
     finally {
       // XXX is this needed?
       transport_itf.closed = true;
-      // flush the queue with some dummy data:
-      RQ.put(undefined);
+      
+      // flush the queue with some dummy data, so that any pending receive call gets aborted
+      if (RQ.count() === 0) RQ.put(undefined);
     }
   }
 }
@@ -332,13 +334,13 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
    @function withWSTClientTransport
    @summary XXX
 */
-exports.withWSTClientTransport = function(server, session_f) {
+exports.withWSTClientTransport = function(server, receive_buffer_size, session_f) {
   server = server || @url.normalize(SERVER_PREFIX, module.id);
   server = server.replace(/^http/, 'ws')  +SERVER_PATH + '/' + WST_VERSION;
   try {
     @withWebSocketClient(server) {
       |ws|
-      return runTransportSession(ws, false, session_f);
+      return runTransportSession(ws, false, receive_buffer_size, session_f);
     }
   }
   catch (e) {

@@ -86,7 +86,7 @@ exports.resolve = function(api_name, opts) {
   @param {Settings} [settings]
   @param {Function} [session_f]
   @setting {String} [server] Server root
-  @setting {Transport} [transport] Optional existing transport to use
+  @setting {optional Boolean} [acceptDFuncs=false] Whether our side of the bridge will accept [sjs:#language/syntax::dfunc]s. Note that dfuncs grant the remote side unlimited code execution capabilities
   @desc
     Throws a [::TransportError] if the connection attempt fails.
 
@@ -98,27 +98,30 @@ exports.resolve = function(api_name, opts) {
     When `session_f` finishes execution (either normally or via an exception), the
     connection will be closed automatically.
 */
-exports.connect = function(apiinfo, opts, session_f) {
 
-  if (@thread.isMainThread) {
-    // let's run this in a thread
-    console.log("---- Running api bridge in a thread ----");
-    @thread.withThread {
-      |{eval}|
-      var threaded_bridge = eval("require('mho:rpc/bridge');");
-      return threaded_bridge.connect(apiinfo, opts, session_f);
-    }
+var constructWithThreadedTransport= server -> function(session_f) {
+  //  return require('mho:rpc/wst-client').withWSTClientTransport(server, 0, session_f);
+  // we're running the transport in a separate thread, so that keepalives keep better timing
+  @thread.withThread(@{
+    -> require('mho:rpc/wst-client').withWSTClientTransport
+  }) {
+    |[withClientTransport]|
+    // we need some receive-buffering, because we cannot synchronously receive across the thread
+    // barrier. arbitrarily set to 1000 here. 
+    return withClientTransport(server, 1000, session_f);
   }
+};
 
+exports.connect = function(apiinfo, opts, session_f) {
   if (!opts) opts = {};
   if (@isString(apiinfo)) {
     apiinfo = exports.resolve(apiinfo);
   }
   var server = opts.server || apiinfo.server;
-  var withTransport = session_f -> require('./wst-client').withWSTClientTransport(server, session_f);
   
-  @withVMBridge({withTransport:withTransport,
-                 local_itf: undefined
+  @withVMBridge({withTransport:constructWithThreadedTransport(server),
+                 local_itf: undefined,
+                 acceptDFuncs: opts.acceptDFuncs ? true : false
                 }) {
     |itf|
     console.log(itf.id+' attempt to get '+(apiinfo .. @get('id'))+' during handshake');
@@ -135,6 +138,7 @@ exports.connect = function(apiinfo, opts, session_f) {
 */
 exports.accept = function(getAPI, withTransport, session_f) {
   return @withVMBridge({withTransport: withTransport, 
+                        acceptDFuncs: false,
                         local_itf: getAPI}, session_f);
 };
 

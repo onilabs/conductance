@@ -74,6 +74,7 @@
        the  routing process (e.g. code to map hubs) (STRING) 
      * `main`: Additional code to execute after starting the routing process (STRING)
      * `api`: Id of a backend module whose exported methods will be served as an api (as module '/api') (STRING)
+     * `acceptDFuncs`: If `true`, the frontend will accept [sjs:#language/syntax::dfunc]s from the api. Note that dfuncs grant the server side unlimited code execution capabilities on the client.
      * `bundle`: Modules to parse for bundle dependencies - by default only the conductance 
        standard lib will be bundled (ARRAY OF STRINGS).
 
@@ -173,7 +174,8 @@ function parseDirectory(root_dir) {
     main: undefined,
     init: undefined,
     bundle: [],
-    api: undefined
+    api: undefined,
+    acceptDFuncs: false
   };
 
   var frontend_config_file = @path.join(root_dir, 'frontend-config.yaml');
@@ -330,7 +332,7 @@ exports.gen_routed_page = function(src, aux) {
         var the_api = @Condition();
         exports.api = function() { return the_api.wait(); }
         @sys.spawn(function() {
-          @api_connection.withAPI({id:'${mapping.config.api}'}) { 
+          @api_connection.withAPI({id:'${mapping.config.api}'}, {acceptDFuncs:${String(mapping.config.acceptDFuncs)}}) { 
             |api|
             try {
               the_api.set(api); 

@@ -9,6 +9,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 	
+   * Added "dfuncs" - decontextualized function expressions. These are function expressions isolated
+     from their lexical environment, making them transportable.
+	
    * Added `sjs:nodejs/fs::writev`.
 	
    * The documentation system now supports tag `@service` (similar to `@class`).
@@ -62,6 +65,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * Bug fixes / Behavioral changes:
+   * sjs:bundle: The bundle compiler now omits filenames from precompiled files. Instead module ids will be patched in as the modules are `require`d in the browser.
+	
    * mho:flux/kv::observeQuery now returns a structured 'array.mutations' stream. To facilitate this, the settings 'reverse' and 'limit' have been removed.
 	
    * Documentation system: Using dotted notation for class members (e.g. `@variable Semaphore.permits`) is now deprecated.

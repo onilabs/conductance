@@ -35,7 +35,7 @@ exports.runThreadedTransport = function(req, transportSink, resume, session_f) {
     SocketServer.runWebSocketSession(req) {
       |ws|
       resume();
-      return @runTransportSession(ws, true, inner_session_f);
+      return @runTransportSession(ws, true, 0, inner_session_f);
     }
   }
   try {
@@ -67,7 +67,7 @@ function createTransportHandler(transportSink) {
           // threads yet
           /*
           @thread.withThread {
-            |{eval}|
+            |[{eval}]|
             var runTransport = eval("require('mho:rpc/wst-server').runThreadedTransport");
             runTransport(req, transportSink, resume) {
               ||
