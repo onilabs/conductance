@@ -9,6 +9,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 	
+   * Added 'sjs:big' module, tracking 'big.js' arbitrary precision math library.
+
    * Added "dfuncs" - decontextualized function expressions. These are function expressions isolated
      from their lexical environment, making them transportable.
 	
