@@ -245,7 +245,7 @@ function LevelDB(location, options) {
 
   var itf = @wrap.wrapDB(base);
   itf.close = base.close;
-  itf.db = db;
+  //itf.db = db;
   return itf;
 }
 exports.LevelDB = LevelDB;
