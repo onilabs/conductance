@@ -5,9 +5,7 @@ MAINTAINER alex@onilabs.com
 RUN mkdir -p /usr/src/conductance
 WORKDIR /usr/src/conductance
 COPY . /usr/src/conductance
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python-is-python2
-RUN make && ln -s /usr/src/conductance/conductance /usr/local/bin/conductance
+RUN ./src/build/make-conductance && ln -s /usr/src/conductance/conductance /usr/local/bin/conductance
 # VOLUME [ "/etc/conductance/certs/" ]
 
 FROM node:16.15.0-bullseye-slim
