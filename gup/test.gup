@@ -1,4 +1,0 @@
-#!bash -eu
-touch "$2"
-./conductance test/run -f
-./conductance test/run --karma single-run -f

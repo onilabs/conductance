@@ -1,0 +1,7 @@
+#!/bin/bash
+
+CONDUCTANCE_HOME=`dirname $0`/../..
+pushd $CONDUCTANCE_HOME/ > /dev/null
+npm install
+./conductance ./src/build/buildscript.sjs "$@"
+popd > /dev/null

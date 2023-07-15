@@ -8728,7 +8728,7 @@
     "std": {
       "type": "module",
       "children": {},
-      "summary": "Common functionality for conductance applications"
+      "summary": "Common functionality for Conductance applications"
     },
     "surface/": {
       "type": "lib",

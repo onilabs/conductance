@@ -20,12 +20,12 @@
     "nodemon": "^1.19.4",
     "rocksdb": "^5.2.1",
     "ssh2": "^0.8.9",
-    "stratifiedjs": "github:onilabs/stratifiedjs#fed80535a4f105f42670b868a42d90b615031406",
+    "stratifiedjs": "github:onilabs/stratifiedjs#b52edca9e39b684fc98e17eea04b7c5ac84cbe1c",
     "ws": "^8.13.0"
   },
   "scripts": {
     "test": "./conductance test/run.mho",
-    "build": "./tools/gup all"
+    "build": "./src/build/make-conductance"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.7",

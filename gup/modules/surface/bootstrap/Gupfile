@@ -1,5 +1,0 @@
-copy-js:
-	*.js
-
-copy-font:
-	fonts/*

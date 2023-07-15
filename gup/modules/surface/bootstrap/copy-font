@@ -1,6 +1,0 @@
-#!bash
-set -eu
-cd ../../../src/deps/bootstrap/dist/
-src="$2"
-gup -u "$src"
-cp "$src" "$1"

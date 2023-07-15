@@ -1,7 +1,0 @@
-#!bash
-gup -u \
-	std.sjs \
-	surface.sjs \
-	surface/all \
-	sjs-lib-index.json
-gup -u ../tmp/copyright-header

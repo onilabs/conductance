@@ -1,4 +1,0 @@
-#!bash
-gup -u \
-  bootstrap.sjs \
-  bootstrap/all

@@ -143,6 +143,7 @@ exports.getDOMNode = getDOMNode;
 
 /**
    @function getDOMNodes
+   @return {sjs:sequence::Sequence}
    @param {optional DOMNode|Array} [context] DOM node or Array of DOM nodes (overrides use of the [::DynamicDOMContext])
    @param {optional String} [selector] CSS selector
    @hostenv xbrowser

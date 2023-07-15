@@ -1,27 +1,10 @@
-/* (c) 2013-2019 Oni Labs, http://onilabs.com
- *
- * This file is part of Conductance, http://conductance.io/
- *
- * It is subject to the license terms in the LICENSE file
- * found in the top-level directory of this distribution.
- * No part of Conductance, including this file, may be
- * copied, modified, propagated, or distributed except
- * according to the terms contained in the LICENSE file.
- */
 
-/* ------------------------------------ *
-* NOTE:                                *
-*   This file is auto-generated        *
-*   from ./gup/modules/std.sjs.gup     *
-*   any manual edits will be LOST      *
-* ------------------------------------ */
-
-/* ----------------------------------- *
-* NOTE:                                *
-*   This file is auto-generated        *
-*   any manual edits will be LOST      *
-*   (edit src/build/std.sjs instead)   *
-* ------------------------------------ */
+/* ---------------------------------------- *
+ * NOTE:                                    *
+ * This file is auto-generated.             *
+ * Any manual edits will be LOST            *
+ * (edit src/build/buildscript.sjs instead) *
+ * ---------------------------------------- */
 /**
   // metadata for sjs:bundle:
   @require sjs:object
@@ -93,9 +76,8 @@ if (hostenv === 'nodejs') {
   }
 }
 
-
 /**
-  // metadata for sjs:bundle:
+  // additional metadata for sjs:bundle:
   @require mho:surface
   @require mho:env
 */
@@ -114,12 +96,11 @@ if (hostenv === 'nodejs') {
     'mho:server/generator'
   ]);
 }
-
 module.exports = require(modules);
 
 /**
 @noindex
-@summary Common functionality for conductance applications
+@summary Common functionality for Conductance applications
 @desc
   
   This module combines commonly-used functionality from the
@@ -133,7 +114,6 @@ module.exports = require(modules);
       @ = require('mho:std');
   
   (see also: [sjs:#language/syntax::@altns])
-  
   
   ### Module aliases:
   
