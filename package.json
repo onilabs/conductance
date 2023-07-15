@@ -17,7 +17,7 @@
     "@msgpack/msgpack": "^2.8.0",
     "browserify": "^17.0.0",
     "google-oauth-jwt": "^0.0.7",
-    "nodemon": "^1.19.4",
+    "nodemon": "^3.0.1",
     "rocksdb": "^5.2.1",
     "ssh2": "^0.8.9",
     "stratifiedjs": "github:onilabs/stratifiedjs#b52edca9e39b684fc98e17eea04b7c5ac84cbe1c",
