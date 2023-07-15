@@ -27,6 +27,9 @@
     "test": "./conductance test/run.mho",
     "build": "./src/build/make-conductance"
   },
+  "engines": {
+    "node": ">=16.15.0"
+  },
   "optionalDependencies": {
     "bufferutil": "^4.0.7",
     "utf-8-validate": "^5.0.10"
