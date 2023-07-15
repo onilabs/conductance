@@ -45,7 +45,7 @@ function SOURCE(target) {
 // builder that copies src to target:
 function CP(target, src) {
   BUILD(target, 
-        [ "CP $0 $TARGET" ],
+        [ "cp $0 $TARGET" ],
         [ src ]);
 }
 
