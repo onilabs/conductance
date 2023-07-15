@@ -3,7 +3,7 @@
 var {test, context, assert, isBrowser} = require('sjs:test/suite');
 var helper = @helper = require('../helper');
 var bridge = @bridge = require('mho:rpc/bridge');
-var { isBridgeError } = bridge;
+var { isBridgeError, isTransportError } = bridge;
 var http = require('sjs:http');
 var logging = require('sjs:logging');
 var Url = require('sjs:url');
@@ -79,7 +79,7 @@ context('bridge error handling', function() {
       }
 
       test("throws bridge error", function(s) {
-        assert.raises({filter: e -> e .. isBridgeError()}) {||
+        assert.raises({filter: e -> e .. isTransportError()}) {||
           bridge.connect(apiid, {server: helper.getRoot()}) {|connection|
             s.push(connection.api.ping());
             try {
@@ -298,14 +298,16 @@ context(function() {
         //rv .. Buffer.isBuffer .. @assert.ok(`not a Buffer: $rv`);
         (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
         rv .. @assert.eq(new Uint8Array(buf.buffer, buf.byteOffset, buf.length));
-      }).serverOnly()
+      }).serverOnly().skip("Any Uint8Array (which includes Buffer) will now be become a Buffer on nodejs");
       
       test('Uint8Array', function() {
         var buf = new Uint8Array(@octetsToArrayBuffer(payload .. @utf16ToUtf8));
         var rv = api.identity(new Uint8Array(buf)); // 'new' here, so that we keep buf; bridge might pass ownership otherwise
         (rv instanceof Uint8Array) .. @assert.ok(`not a Uint8Array: $rv`);
         rv .. @arrayBufferToOctets .. @utf8ToUtf16 .. @assert.eq(payload);
-        rv .. @assert.eq(buf);
+        // on nodejs, 'rv' will be a Buffer (supertype of Uint8Array), so
+        // the following won't hold:
+        // rv .. @assert.eq(buf);
       }).skipIf(noTypedArraySupport)
       
       test('ArrayBuffer ends up as ArrayBuffer', function() {
