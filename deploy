@@ -1,4 +1,12 @@
 #!/bin/bash
 
-docker push onilabs/conductance:latest
+PLATFORMS="linux/amd64,linux/arm64"
+BUILDER="mho-builder"
+
+docker buildx inspect $BUILDER &> /dev/null
+if [ $? -ne 0 ]; then
+  docker buildx create --name $BUILDER --driver docker-container
+fi
+docker buildx use $BUILDER
+docker buildx build --platform $PLATFORMS -t onilabs/conductance:latest --push .
 
