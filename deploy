@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 PLATFORMS="linux/amd64,linux/arm64"
 BUILDER="mho-builder"
