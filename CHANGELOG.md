@@ -4,7 +4,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * General
 
-   * nodejs/container dependency updated to node:16.15.0-bullseye-slim
+   * nodejs/container dependency updated to node:18.16-bookworm
 
 
  * New functionality
