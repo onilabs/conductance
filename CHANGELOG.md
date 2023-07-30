@@ -8,6 +8,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * New functionality
+
+   * `mho:flux/kv::Range` now supports 'branch' ranges.
 	
    * Added 'sjs:big' module, tracking 'big.js' arbitrary precision math library.
 
@@ -67,6 +69,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * Bug fixes / Behavioral changes:
+
+   * `mho:flux/kv::set` now returns the inserted value, or the return value of the underlying `ITF_KVSTORE::put` call if it is not `undefined`.
+
+   * Values returned from `mho:flux/kv::ITF_KVSTORE::put` (other than `undefined`) will be passed through as return values from `mho:flux/kv::set`.
+	
    * sjs:bundle: The bundle compiler now omits filenames from precompiled files. Instead module ids will be patched in as the modules are `require`d in the browser.
 	
    * mho:flux/kv::observeQuery now returns a structured 'array.mutations' stream. To facilitate this, the settings 'reverse' and 'limit' have been removed.

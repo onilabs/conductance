@@ -68,7 +68,8 @@ exports.isNotFound = function(e) {
 
          obj[ITF_KVSTORE].get(key) // return value associated with key ('undefined' if not existant)
 
-         obj[ITF_KVSTORE].put(key, encoded_value) // set or delete (if value===undefined) entries in the store
+         obj[ITF_KVSTORE].put(key, value) // set or delete (if value===undefined) entries in the store.
+                                          // potentially return amended value (see notes below)
 
          obj[ITF_KVSTORE].query(range, [options]) // return stream of [key,value] pairs in range
 
@@ -78,9 +79,14 @@ exports.isNotFound = function(e) {
 
          obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
 
-    Keys are automatically normalized before being passed to the `ITF_KVSTORE` functions.
+    - Keys are automatically normalized before being passed to the `ITF_KVSTORE` functions.
     That means that the key `"foo"` is normalized to `["foo"]`, and the key `[["foo"]]`
     is normalized to `["foo"]`.
+
+    - Key ranges passed to `query` or `observeQuery` will always be in the form `{begin:key, end: key}`
+
+    - `put` return values other than `undefined` will be passed through as return values from [::set]. This is to facilitate
+    layers that insert custom structured objects into the db for which they want to return a wrapper different than the value written into the db.
 
 */
 __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
@@ -119,7 +125,7 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
    @summary Structure serving as a range of keys into a [::KVStore].
    @desc
       A `Range` is either a [::Key], an object `{ begin: Key, end: Key }`, 
-      an object `{ after: Key }`,
+      an object `{ after: Key }`, an object `{ branch: Key }`,
       or  [::RANGE_ALL].
 
       ### Single-Key Range
@@ -137,11 +143,15 @@ __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
       in the datastore greater than or equal to `begin` and ends with the last child of the
       subspace spanned by the key `begin.slice(0,begin.length-1)` (where `begin` is assumed to be a flattened array key). E.g. `{begin: ['a', 'b']}` denotes all tuples with the prefix `a`, beginning with `['a', 'b']`. (`X+` denotes one or more tuple elements).
 
-      ### after Range
+      ### 'after' Range
 
       In the third case, the range begins with the first key greater than `[after, X...]` for any `X...`, i.e. `after`'s children. E.g. if the datastore contains `['a', 1]`, `['a', 2, 3]`, `['b', 5, 6]`, then the range 
       `{after: ['a']}` would start with `['b', 5, 6]`.
       The range ends with the last child of the subspace spanned by the key `after.slice(0,after.length-1)`.
+
+      ### 'branch' Range
+
+      This type of range encompasses the given key and all its children. 
 
 */
 
@@ -190,6 +200,7 @@ exports.get = get;
    @param {::KVStore} [kvstore]
    @param {::Key} [key]
    @param {::Value} [value]
+   @return {::Value} Value inserted into the store (in the case of custom structured [::Value]s, this might be different to the value passed in. 
    @summary Sets key to the given value.
    @desc
       Note: `value` must not be `undefined`. To unset a key-value pair, use [::clear] instead.
@@ -197,7 +208,11 @@ exports.get = get;
 __js function set(store, key, value) {
   key = @util.normalizeKey(key);
   if (value === undefined) throw new Error("mho:flux/kv::set: 'undefined' is not a valid value");
-  return store[ITF_KVSTORE].put(key, value);
+  var rv = store[ITF_KVSTORE].put(key, value);
+  if (rv === undefined) 
+    return value;
+  else
+    return rv;
 }
 exports.set = set;
 
@@ -248,8 +263,7 @@ function clearRange(store, range) {
   withTransaction(store, function (store) {
     // TODO this currently has to encode/decode the keys twice
     //      this can be made more efficient by only encoding/decoding them once
-    // TODO this should use `{ values: false }` since we're only interested in the values
-    query(store, range) .. @each([key] -> clear(store, key));
+    query(store, range, {values: false}) .. @each([key] -> clear(store, key));
   });
 }
 exports.clearRange = clearRange;

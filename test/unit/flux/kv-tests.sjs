@@ -252,6 +252,8 @@ function test_range_query(db) {
   db .. @kv.query(@kv.RANGE_ALL) .. @toArray .. @assert.eq(kv_pairs);
 
   db .. @kv.query({begin: 'a'}) .. @toArray .. @assert.eq(kv_pairs);
+  db .. @kv.query({begin: 'b'}) .. @toArray .. @assert.eq(kv_pairs.slice(1));
+  db .. @kv.query({branch: 'b'}) .. @toArray .. @assert.eq(kv_pairs.slice(1,2));
 
   db .. @kv.query({after: 1}) .. @toArray .. @assert.eq(kv_pairs.slice(5,8));
 
@@ -366,6 +368,19 @@ function test_child_query(db) {
   db .. @kv.query(['1']) .. @map([k,v] -> k) .. @assert.eq([]);
   db .. @kv.query([1]) .. @map([k,v] -> k) .. @assert.eq([[1,1,1], [1,2,1], [1,11,1]]);
   db .. @kv.query([1,1]) .. @map([k,v] -> k) .. @assert.eq([[1,1,1]]);
+}
+
+function test_tree_query(db) {
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+  
+  var kv_pairs = [['a'], ['a', 'a1'], ['b'], ['b', 'b1', 'b11'], ['b', 'b1', 'b12'], ['b', 'b2'], ['c'], ['c', 'c1'] ] .. @indexed .. @map([v,k] -> [k,v]);
+  kv_pairs .. @each {
+    |[k,v]|
+    db .. @kv.set(k,v);
+  }
+  db .. @kv.query('b') .. @toArray ..  @assert.eq(kv_pairs.slice(3,6));
+  db .. @kv.query({after:'b'}) .. @toArray ..  @assert.eq(kv_pairs.slice(6,8));
+  db .. @kv.query({branch:'b'}) .. @toArray .. @assert.eq(kv_pairs.slice(2,6));
 }
 
 function test_nested_transactions(db) {
@@ -630,6 +645,7 @@ function test_all(new_db) {
       @test("concurrent_mod_and_query", function(s) { s .. wrap(test_concurrent_mod_and_query) });
       @test("reverse_range_query", function(s) { s .. wrap(test_reverse_range_query) });
       @test("child_query", function(s) { s .. wrap(test_child_query) });
+      @test("tree_query", function(s) { s .. wrap(test_tree_query) });
       @test("nested transactions", function(s) { s .. wrap(test_nested_transactions) }).skip("TODO");
     });
   }

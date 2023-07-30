@@ -48,7 +48,8 @@ __js {
       return {
         begin: range.begin !== undefined ? f(range.begin),
         end: range.end !== undefined ? f(range.end),
-        after: range.after !== undefined ? f(range.after)
+        after: range.after !== undefined ? f(range.after),
+        branch: range.branch !== undefined ? f(range.branch)
       };
     } else {
       return f(range);

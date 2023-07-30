@@ -323,7 +323,7 @@ __js {
           end: (arr.end !== undefined ? encodeKey(backend, arr.end) : encodeEndKey(backend, arr.begin)/*single(backend, 0xff)*/)
         };
       }
-      else {
+      else if (arr.after) {
         // after
         var packed = encodeKey(backend, arr.after);
         return {
@@ -331,6 +331,15 @@ __js {
           end: encodeEndKey(backend, arr.after)
         };
       }
+      else if (arr.branch) {
+        // branch
+        var packed = encodeKey(backend, arr.branch);
+        return {
+          begin: packed,
+          end: backend.concat([packed, single(backend, 0xff)], packed.length + 1)
+        };
+      }
+      else throw new Error("Invalid Key Range");
     }
     else if (arr.length === 0) {
       // RANGE_ALL
