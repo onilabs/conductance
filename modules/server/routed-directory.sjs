@@ -73,7 +73,7 @@
      * `init`: Additional code to execute on initial loading, and before starting
        the  routing process (e.g. code to map hubs) (STRING) 
      * `main`: Additional code to execute after starting the routing process (STRING)
-     * `api`: Id of a backend module whose exported methods will be served as an api (as module '/api') (STRING)
+     * `api`: Id of a backend module whose exported methods will be served as an api (as a builtin module 'backend:api') (STRING)
      * `acceptDFuncs`: If `true`, the frontend will accept [sjs:#language/syntax::dfunc]s from the api. Note that dfuncs grant the server side unlimited code execution capabilities on the client.
      * `bundle`: Modules to parse for bundle dependencies - by default only the conductance 
        standard lib will be bundled (ARRAY OF STRINGS).
