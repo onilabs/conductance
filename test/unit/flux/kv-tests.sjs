@@ -68,10 +68,14 @@ function test_large_key(db) {
 }
 
 function test_clear(db) {
+  db .. @kv.clearRange(@kv.RANGE_ALL);
+  db .. @kv.isEmpty() .. @assert.ok();
   db .. @kv.set('foo', 'bar');
   db .. @kv.get('foo') .. @assert.eq('bar');
+  db .. @kv.isEmpty() .. @assert.notOk();
   db .. @kv.clear('foo');
   db .. @kv.get('foo', undefined) .. @assert.eq(undefined);
+  db .. @kv.isEmpty() .. @assert.ok();
 }
 
 function test_get(db) {

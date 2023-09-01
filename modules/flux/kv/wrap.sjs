@@ -22,6 +22,11 @@
 // TODO move all the @encoding stuff into itf
 function wrapDB(base) {
 
+  /*
+    Even though leveldb allows us to write in atomic batches, we need
+    to sequentialize writing those batches with a mutex to ensure 
+    transaction isolation.
+  */
   var MutationMutex = @Semaphore(1, true);
 
   __js function kv_query(range, options) {
@@ -172,7 +177,10 @@ function wrapDB(base) {
               var reverse = options.reverse;
 
               // query and patches are streams of [k, v] pairs:
-              var query = kv_query(range, options);
+
+              // we have to make sure that the query return values includes keys, 
+              // so that we can correlate with patches.
+              var query = kv_query(range, options .. @override({keys: true}));
               var patches = pendingPuts .. @ownValues .. @sort((a,b) ->
                                                             reverse ?
                                                               @encoding.encodedKeyCompare(b[0],a[0]) :
@@ -277,6 +285,7 @@ function wrapDB(base) {
         or {
           var rv = block(T);
           __js var ops = pendingPuts .. @ownValues .. @map([key,value] -> { type: value === undefined ? 'del' : 'put', key: key, value: value});
+          if (ops.length === 0) return rv; // nothing to do.
           MutationMutex.acquire();
           collapse;
           try {

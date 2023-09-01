@@ -212,6 +212,9 @@
             "get": {
               "type": "function"
             },
+            "isEmpty": {
+              "type": "function"
+            },
             "isNotFound": {
               "type": "function"
             },

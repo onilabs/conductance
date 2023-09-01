@@ -8,7 +8,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * New functionality
-
+   * Added `mho:flux/kv::isEmpty`.
+	
    * `mho:flux/kv::Range` now supports 'branch' ranges.
 	
    * Added 'sjs:big' module, tracking 'big.js' arbitrary precision math library.

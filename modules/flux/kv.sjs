@@ -254,6 +254,16 @@ __js function query(store, range, options) {
 exports.query = query;
 
 /**
+   @function isEmpty
+   @param {::KVStore} [kvstore]
+   @summary Returns `true` if `kvstore` doesn't contain any key-value pairs, `false` otherwise
+*/
+function isEmpty(store) {
+  return store .. query(RANGE_ALL, {keys:false, values:false, limit:1}) .. @first(undefined) === undefined;
+}
+exports.isEmpty = isEmpty;
+
+/**
    @function clearRange
    @param {::KVStore} [kvstore]
    @param {::Range} [range]
@@ -306,7 +316,7 @@ exports.observeQuery = observeQuery;
 
 /**
    @function withTransaction
-   @altsyntax kvstore .. withTransaction { |transaction| ... }
+   @altsyntax kvstore .. withTransaction(function(transaction) {... })
    @param {::KVStore} [kvstore]
    @param {Function} [block] Function that will be passed a transaction object (a [::KVStore]).
    @summary Run code in `block` in a transaction.
@@ -318,20 +328,20 @@ exports.observeQuery = observeQuery;
      During the execution of `block`, withTransaction will check if there are
      any conflicts: If any of the keys read or written to within the
      transaction are being concurrently modified from outside of the 
-     transaction, `block` will be aborted and called again; indefinitely until no
-     conflicts are detected. 
+     transaction, `block` will be immediately aborted and called again; indefinitely 
+     until no conflicts are detected. 
 
      Transactions will be aborted, and `withTransaction` will return immediately, 
      if `block` throws an exception or (if block is
      a blocklambda) exits via a blocklambda return or blocklambda break.
 
      When `block` exits normally (i.e. not
-     by throwing an exception, via a blocklambda return or blocklambda break),
+     by throwing an exception, and not via a blocklambda return or blocklambda break),
      `withTransaction` will again check for conflicts while obtaining a global
      lock on the db. If a conflict is detected, `block` will be rerun. Otherwise
      all mutations performed in `block`
      will be applied to the underlying database and `withTransaction`
-     returns.
+     returns the return value of `block`
 
      After a completed successful `withTransaction` call
      returns, all reads and writes will have been performed atomically,
@@ -348,6 +358,71 @@ exports.observeQuery = observeQuery;
      performed in the transactional context will reflect any prior and
      future mutations applied in the same transaction (before they are
      committed to the database).
+
+
+     ### Caveats of blocklambda controlflow
+
+     In general it is a bad idea to use blocklambdas as `block`. Normal functions 
+     are preferred.
+
+     This is because controlflow such as blocklambda breaks or 
+     returns will prevent any mutations in a transactions from becoming materialized in 
+     the db. E.g. in the following transaction, the new account balances will **NOT** be
+     written to the db, (even though the updated value is returned from the blocklambda 
+     return):
+
+         // INCORRECT BLOCKLAMBDA USAGE
+         // transfer $x from a to b and return balance b:
+         function transfer(x) {
+           db .. withTransaction {
+             |tx|
+             var a = tx .. read('accountA');
+             var b = tx .. read('accountB');
+             // transfer $x from a->b:
+             tx .. write('accountA', a-x);
+             tx .. write('accountB', b+x);
+             return tx .. read('accountB'); // blocklambda return ABORTS THE TRANSACTION!!!
+           }
+         }
+
+     A version that uses a normal function works fine:
+
+         // CORRECT VERSION
+         // transfer $x from a to b and return balance b:
+         function transfer(x) {
+           return db .. withTransaction(function(tx) {
+             var a = tx .. read('accountA');
+             var b = tx .. read('accountB');
+             // transfer $x from a->b:
+             tx .. write('accountA', a-x);
+             tx .. write('accountB', b+x);
+             return tx .. read('accountB');
+           });
+         }
+
+     ### Using transactions solely for consistent reads
+
+     If a transaction is **solely being used to read data**, any relevant concurrent mutations 
+     will cause the block to be aborted immediately and rerun.
+
+     While it is arguably bad form, for these types of transactions it is technically ok to 
+     use blocklambdas & bail early from `block` using blocklambda controlflow. 
+     E.g.:
+
+         db .. withTransaction {
+           |tx| 
+           var a = tx .. read('accountA');
+           var b = tx .. read('accountB');
+           return a+b; // it's ok to bail here, as we're not writing any data
+         }
+
+     If there are concurrent mutations to the db, the block might abort during 
+     either of the reads and re-run.
+     The 'return' line will only be reached once the values of 'a' and 'b' are 
+     consistent with each other (i.e. there aren't any mutations of 'a' between
+     reading 'a' and reading 'b').
+
+ 
 */
 __js function withTransaction(store, options, block) {
   if (arguments.length === 2) {
