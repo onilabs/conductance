@@ -36,7 +36,7 @@ __js function concat_typed_arrays(typed_arrays) {
   var offset = 0;
   typed_arrays .. @each {
     |a|
-    buf.set(a, offset)
+    buf.set(a, offset);
     offset += a.byteLength;
   }
     
@@ -119,9 +119,9 @@ function runTransportSession(ws, is_server, receive_buffer_size, session_f) {
             parts.push(mes[3]);
             var data = concat_typed_arrays(parts);
             console.log("wst-client: reconstitute split message");
-            mes = @msgpack.decode(data);
+            data = @msgpack.decode(data);
             delete ReconstitutionBuffer[mes[2]];
-            RQ.put(unmarshall(mes)); 
+            RQ.put(unmarshall(data));
           }
           else if (mes[1] === 'cancel') {
             console.log("wst-client: rcv split message cancel");
@@ -150,7 +150,7 @@ function runTransportSession(ws, is_server, receive_buffer_size, session_f) {
         var id = ++ReconstitutionIDCounter;
         while (1) {
           var sending = Math.min(remain, MAX_MESSAGE_BYTES);
-          var view = new DataView(data.buffer, offset, sending);
+          var view = data.subarray(offset, sending+offset);
           remain -= sending;
           if (remain > 0) {
             offset += sending;
