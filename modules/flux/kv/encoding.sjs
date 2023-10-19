@@ -106,19 +106,56 @@ __js {
     return nullBytes;
   }
 
-  function single(backend, x) {
-    var out = backend.makeEncodingBuffer(1);
+  var makeEncodingBuffer, encodeString, decodeString, copy, concat;
+  if (@sys.hostenv === 'nodejs') {
+    makeEncodingBuffer = Buffer.allocUnsafe;
+    encodeString = str -> Buffer.from(str, 'utf8');
+    decodeString = (buf, start, end) -> buf.toString('utf8', start, end);
+    copy = function (from, to, to_start, from_start, from_end) {
+      return from.copy(to, to_start, from_start, from_end);
+    };
+    concat = Buffer.concat;
+  }
+  else { // xbrowser or otherwise
+    var UTF8Encoder = new TextEncoder();
+    var UTF8Decoder = new TextDecoder();
+    makeEncodingBuffer = n -> new Uint8Array(n);
+    encodeString = str -> UTF8Encoder.encode(str);
+    decodeString = function(buf, start, end) {
+      if (start !== 0 || end !== buf.length)
+        buf = buf.slice(start, end);
+      return UTF8Decoder.decode(buf);
+    };
+    copy = function (from, to, to_start, from_start, from_end) {
+      return to.set(from.subarray(from_start, from_end), to_start);
+    };
+    concat =  function(outer, len) {
+      var output = new Uint8Array(len);
+      var offset = 0;
+      for (var i=0; i<outer.length; ++i) {
+        output.set(outer[i], offset);
+        offset += outer[i].length;
+      }
+      return output;
+    }
+  }
+  
+  function single(x) {
+    var out = makeEncodingBuffer(1);
     out[0] = x;
     return out;
   }
 
-  function encode(backend, item) {
+  var Byte00 = single(0x00);
+  var ByteFF = single(0xFF);
+
+  function encode(item) {
     var encodedString;
     if(typeof item === 'undefined')
       throw new TypeError('Key component cannot be undefined');
 
     else if(item === null)
-      return single(backend, 0x00);
+      return Byte00;
 
     //byte string or unicode
     // TODO better isArrayLike test
@@ -126,24 +163,24 @@ __js {
       var unicode = typeof item === 'string';
 
       if (unicode) {
-        item = backend.encodeString(item);
+        item = encodeString(item);
       }
 
       var nullBytes = findNullBytes(item, 0);
 
-      encodedString = backend.makeEncodingBuffer(2 + item.length + nullBytes.length);
+      encodedString = makeEncodingBuffer(2 + item.length + nullBytes.length);
       encodedString[0] = unicode ? 2 : 1;
 
       var srcPos = 0;
       var targetPos = 1;
       for(var i = 0; i < nullBytes.length; ++i) {
-        backend.copy(item, encodedString, targetPos, srcPos, nullBytes[i] + 1);
+        copy(item, encodedString, targetPos, srcPos, nullBytes[i] + 1);
         targetPos += nullBytes[i] + 1 - srcPos;
         srcPos = nullBytes[i] + 1;
         encodedString[targetPos++] = 0xff;
       }
 
-      backend.copy(item, encodedString, targetPos, srcPos, item.length);
+      copy(item, encodedString, targetPos, srcPos, item.length);
       encodedString[encodedString.length - 1] = 0x00;
 
       return encodedString;
@@ -165,7 +202,7 @@ __js {
 
       var prefix = negative ? 20 - length : 20 + length;
 
-      var outBuf = backend.makeEncodingBuffer(length+1);
+      var outBuf = makeEncodingBuffer(length+1);
       outBuf[0] = prefix;
       for(var byteIdx = length-1; byteIdx >= 0; --byteIdx) {
         var b = posItem & 0xff;
@@ -189,16 +226,16 @@ __js {
      @function encodeKey
      @summary XXX write me
    */
-  function encodeKey(backend, arr) {
+  function encodeKey(arr) {
     var totalLength = 0;
     if (arr.length === 0) throw new TypeError('Key cannot be empty');
     var outArr = new Array(arr.length);
     for (var i = 0; i < arr.length; ++i) {
-      outArr[i] = encode(backend, arr[i]);
+      outArr[i] = encode(arr[i]);
       totalLength += outArr[i].length;
     }
 
-    return backend.concat(outArr, totalLength);
+    return concat(outArr, totalLength);
   }
   exports.encodeKey = encodeKey;
 
@@ -227,7 +264,7 @@ __js {
     return num;
   }
 
-  function decode(backend, buf, pos) {
+  function decode(buf, pos) {
     var code = buf[pos];
     var value;
 
@@ -242,14 +279,14 @@ __js {
       var end = nullBytes[nullBytes.length-1];
 
       if(code === 2 && nullBytes.length === 1) {
-        value = backend.decodeString(buf, start, end);
+        value = decodeString(buf, start, end);
       }
       else {
-        value = backend.makeEncodingBuffer(end-start-(nullBytes.length-1));
+        value = makeEncodingBuffer(end-start-(nullBytes.length-1));
         var valuePos = 0;
 
         for(var i=0; i < nullBytes.length && start < end; ++i) {
-          backend.copy(buf, value, valuePos, start, nullBytes[i]);
+          copy(buf, value, valuePos, start, nullBytes[i]);
           valuePos += nullBytes[i] - start;
           start = nullBytes[i] + 2;
           if(start <= end) {
@@ -258,7 +295,7 @@ __js {
         }
 
         if(code === 2) {
-          value = backend.decodeString(value, 0, value.length);
+          value = decodeString(value, 0, value.length);
         }
       }
 
@@ -284,12 +321,12 @@ __js {
      @function decodeKey
      @summary XXX write me
    */
-  function decodeKey(backend, key) {
+  function decodeKey(key) {
     var res = { pos: 0 };
     var arr = [];
 
     while(res.pos < key.length) {
-      res = decode(backend, key, res.pos);
+      res = decode(key, res.pos);
       arr.push(res.value);
     }
 
@@ -299,13 +336,13 @@ __js {
 
 
   // helper for encodeKeyRange:
-  function encodeEndKey(backend, key) {
+  function encodeEndKey(key) {
     if (key.length === 1) {
-      return single(backend, 0xff);
+      return ByteFF;
     }
     else {
-      var packed = encodeKey(backend, key.slice(0,key.length-1));
-      return backend.concat([packed, single(backend, 0xff)], packed.length + 1);
+      var packed = encodeKey(key.slice(0,key.length-1));
+      return concat([packed, ByteFF], packed.length + 1);
     }
   }
 
@@ -313,30 +350,30 @@ __js {
      @function encodeKeyRange
      @summary XXX write me
    */
-  function encodeKeyRange(backend, arr) {
+  function encodeKeyRange(arr) {
     // TODO code duplication with util.transformKeyRange
     if (typeof arr === 'object' && !Array.isArray(arr)) {
       if (arr.begin) {
         // [begin,end[
         return {
-          begin: encodeKey(backend, arr.begin),
-          end: (arr.end !== undefined ? encodeKey(backend, arr.end) : encodeEndKey(backend, arr.begin)/*single(backend, 0xff)*/)
+          begin: encodeKey(arr.begin),
+          end: (arr.end !== undefined ? encodeKey(arr.end) : encodeEndKey(arr.begin)/*ByteFF*/)
         };
       }
       else if (arr.after) {
         // after
-        var packed = encodeKey(backend, arr.after);
+        var packed = encodeKey(arr.after);
         return {
-          begin: backend.concat([packed, single(backend, 0xff)], packed.length + 1),
-          end: encodeEndKey(backend, arr.after)
+          begin: concat([packed, ByteFF], packed.length + 1),
+          end: encodeEndKey(arr.after)
         };
       }
       else if (arr.branch) {
         // branch
-        var packed = encodeKey(backend, arr.branch);
+        var packed = encodeKey(arr.branch);
         return {
           begin: packed,
-          end: backend.concat([packed, single(backend, 0xff)], packed.length + 1)
+          end: concat([packed, ByteFF], packed.length + 1)
         };
       }
       else throw new Error("Invalid Key Range");
@@ -344,17 +381,17 @@ __js {
     else if (arr.length === 0) {
       // RANGE_ALL
       return {
-        begin: single(backend, 0x00),
-        end: single(backend, 0xff)
+        begin: Byte00,
+        end: ByteFF
       };
     }
     else {
       // children:
-      var packed = encodeKey(backend, arr);
+      var packed = encodeKey(arr);
       return {
         // TODO a specialized push function can be faster than this
-        begin: backend.concat([packed, single(backend, 0x00)], packed.length + 1),
-        end: backend.concat([packed, single(backend, 0xff)], packed.length + 1)
+        begin: concat([packed, Byte00], packed.length + 1),
+        end: concat([packed, ByteFF], packed.length + 1)
       };
     }
   }
@@ -440,18 +477,19 @@ __js {
 
   var VALUE_TYPE_JSON = 1;
   // ... VALUE_TYPE_BINARY
+  var ByteValueTypeJason = single(VALUE_TYPE_JSON);
 
   /**
      @function encodeValue
      @summary XXX write me
    */
-  function encodeValue(backend, unencoded) {
+  function encodeValue(unencoded) {
     // XXX at the moment we encode everything as JSON.
     // later we should add in at least binary encoding (from Buffer/ArrayBuffer)
 
-    var json = backend.encodeString(JSON.stringify(unencoded));
+    var json = encodeString(JSON.stringify(unencoded));
 
-    return backend.concat([single(backend, VALUE_TYPE_JSON), json], json.length + 1);
+    return concat([ByteValueTypeJason, json], json.length + 1);
   }
   exports.encodeValue = encodeValue;
 
@@ -459,14 +497,14 @@ __js {
      @function decodeValue
      @summary XXX write me
    */
-  function decodeValue(backend, encoded) {
+  function decodeValue(encoded) {
     // The length check is to catch the case where a query to leveldb is being executed with 
     // `values: false`. This returns a value with an empty buffer 
     // (and not `undefined` as per specs, which would be caught by the `== null`):
     if (encoded == null || encoded.length===0) return undefined;
     if (encoded[0] !== VALUE_TYPE_JSON)
       throw new Error("Unknown data type '#{encoded[0]}' in DB value");
-    var decoded = backend.decodeString(encoded, 1, encoded.length);
+    var decoded = decodeString(encoded, 1, encoded.length);
     return JSON.parse(decoded);
   }
   exports.decodeValue = decodeValue;

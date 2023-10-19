@@ -44,18 +44,18 @@ function wrapDB(base) {
 
   // helper to decode a key,val tuple:
   __js function decodeKV([k, v]) {
-    return [ @encoding.decodeKey(base.encoding_backend, k),
+    return [ @encoding.decodeKey(k),
              base.decodeValue(v) ];
   }
 
   var kvstore_interface = {
     get: function(key) {
-      __js key = @encoding.encodeKey(base.encoding_backend, key);
+      __js key = @encoding.encodeKey(key);
       return base.decodeValue(base.get(key));
     },
     // XXX collect multiple temporally adjacent calls
     put: function(key, value) {
-      __js key = @encoding.encodeKey(base.encoding_backend, key);
+      __js key = @encoding.encodeKey(key);
       MutationMutex.synchronize { ||
         if (value === undefined) {
           return base.batch([{ type: 'del', key: key }]);
@@ -66,10 +66,10 @@ function wrapDB(base) {
       }
     },
     query: function(range, options) {
-      return kv_query(@encoding.encodeKeyRange(base.encoding_backend, range), options) ..@transform(decodeKV);
+      return kv_query(@encoding.encodeKeyRange(range), options) ..@transform(decodeKV);
     },
     observe: function(key) {
-      key = @encoding.encodeKey(base.encoding_backend, key);
+      key = @encoding.encodeKey(key);
       return @updatesToObservable(
         (base.changes) ..
           @unpack ..
@@ -83,8 +83,7 @@ function wrapDB(base) {
       // XXX we might want an ObservableQuery that iterates over the data
       // lazily
 
-      var encoded_range = @encoding.encodeKeyRange(base.encoding_backend, 
-                                                   range);
+      var encoded_range = @encoding.encodeKeyRange(range);
 
       return @StructuredStream('array.mutations') :: @Stream :: function(receiver) {
 
@@ -141,7 +140,7 @@ function wrapDB(base) {
       T[@kv.ITF_KVSTORE] = {
         get: function(key) {
           __js {
-            key = @encoding.encodeKey(base.encoding_backend, key);
+            key = @encoding.encodeKey(key);
           
             var string_key = @util.bytesToString(key);
             
@@ -160,7 +159,7 @@ function wrapDB(base) {
           return __js base.decodeValue(val);
         },
         put: __js function(key, value) {
-          key = @encoding.encodeKey(base.encoding_backend, key);
+          key = @encoding.encodeKey(key);
           if (value !== undefined) {
             value = base.encodeValue(value);
           }
@@ -168,7 +167,7 @@ function wrapDB(base) {
         },
         query: function(range, options) {
           __js {
-            range = @encoding.encodeKeyRange(base.encoding_backend, range);
+            range = @encoding.encodeKeyRange(range);
             queries.push([range.begin,range.end]);
           }
           return @transform(decodeKV) ::
@@ -276,7 +275,7 @@ function wrapDB(base) {
                              queries .. @any([b,e] -> key .. @encoding.encodedKeyInRange(b,e));
             }
             if (conflict) {
-              console.log("DB transaction conflict on #{@encoding.decodeKey(base.encoding_backend, key)}");
+              console.log("DB transaction conflict on #{@encoding.decodeKey(key)}");
               break;
             }
           }

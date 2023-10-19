@@ -105,36 +105,15 @@ function LevelDB(location, options) {
    */
   var MutationDispatcher = @Dispatcher();
 
-  __js var encoding_backend = {
-    makeEncodingBuffer: Buffer.allocUnsafe,
-    
-    encodeString: function (str) {
-      return Buffer.from(str, 'utf8');
-    },
-    
-    decodeString: function (buf, start, end) {
-      return buf.toString('utf8', start, end);
-    },
-    
-    copy: function (from, to, to_start, from_start, from_end) {
-      return from.copy(to, to_start, from_start, from_end);
-    },
-    
-    concat: Buffer.concat
-  };
-
   var base = {
     changes: @events(MutationDispatcher),
 
-    encoding_backend : encoding_backend,
-
-
     encodeValue: __js function (value) {
-      return @encoding.encodeValue(encoding_backend, value);
+      return @encoding.encodeValue(value);
     },
 
     decodeValue: __js function (value) {
-      return @encoding.decodeValue(encoding_backend, value);
+      return @encoding.decodeValue(value);
     },
 
 

@@ -276,7 +276,7 @@ var SortedDict = (function () {
   Dict.prototype.serialize = function () {
     var s = iter_tree(this.root) ..@map(function ([key, value]) {
       // TODO inefficient that this decodes the key
-      return "  [" + JSON.stringify(@encoding.decodeKey(encoding_backend, key)) + ", " + JSON.stringify(value) + "]";
+      return "  [" + JSON.stringify(@encoding.decodeKey(key)) + ", " + JSON.stringify(value) + "]";
     });
 
     return "[\n" + s.join(",\n") + "\n]";
@@ -339,57 +339,6 @@ function save_db(dict, options) {
   }
 }
 
-var encoding_backend = {
-  makeEncodingBuffer: Array,
-
-  // TODO this is inefficient
-  encodeString: function (str) {
-    return @stringToUtf8(str) ..@map(x -> x.charCodeAt(0));
-  },
-
-  // TODO this is inefficient
-  decodeString: function (buf, start, end) {
-    if (!(start === 0 && end === buf.length)) {
-      buf = buf.slice(start, end);
-    }
-
-    buf = buf ..@map(x -> String.fromCharCode(x));
-    return @utf8ToString(buf.join(""));
-  },
-
-  // TODO not safe if `from` and `to` are the same
-  // TODO error checking (e.g. for out of bounds)
-  copy: function (from, to, to_start, from_start, from_end) {
-    while (from_start < from_end) {
-      to[to_start] = from[from_start];
-      ++to_start;
-      ++from_start;
-    }
-  },
-
-  concat: function (outer, len) {
-    if (outer.length === 1) {
-      return outer[0];
-
-    } else {
-      // TODO use info.constructor
-      var output = new Array(len);
-      var output_i = 0;
-
-      for (var outer_i = 0; outer_i < outer.length; ++outer_i) {
-        var inner = outer[outer_i];
-
-        for (var inner_i = 0; inner_i < inner.length; ++inner_i) {
-          output[output_i] = inner[inner_i];
-          ++output_i;
-        }
-      }
-
-      return output;
-    }
-  }
-};
-
 function wrap_dict(dict, options) {
   /*
     MutationDispatcher receives all mutations in the form
@@ -398,15 +347,13 @@ function wrap_dict(dict, options) {
   var MutationDispatcher = @Dispatcher();
 
   return {
-    encoding_backend : encoding_backend,
-
     changes: @events(MutationDispatcher),
 
-    encodeValue: function (value) {
+    encodeValue: __js function (value) {
       return value;
     },
 
-    decodeValue: function (value) {
+    decodeValue: __js function (value) {
       return value;
     },
 
@@ -414,10 +361,9 @@ function wrap_dict(dict, options) {
       return dict.get(key, undefined);
     },
 
-    // We use `sequential` to guarantee that `batch` is atomic,
-    // even with asynchronous operations like `@fs.writeFile`
-    batch: @fn.sequential(function (ops) {
-
+    // wrap.sjs guarantees that batch will only ever be accessed sequentially, so no need to
+    // use @fn.sequential here
+    batch: function (ops) {
       if (options.readonly) throw new Error("Attempted mutation on readonly database");
 
       ops ..@each(function (op) {
@@ -443,7 +389,7 @@ function wrap_dict(dict, options) {
       save_db(dict, options);
 
       MutationDispatcher.dispatch(ops);
-    }),
+    },
 
     query: function (info) {
       return @Stream(function (emit) {
@@ -456,7 +402,7 @@ function wrap_dict(dict, options) {
 function load_db1(dict, input) {
   return JSON.parse(input) ..@reduce(dict, function (dict, [key, value]) {
     // TODO inefficient that this encodes the key
-    return dict.set(@encoding.encodeKey(encoding_backend, key), value);
+    return dict.set(@encoding.encodeKey(key), value);
   });
 }
 
