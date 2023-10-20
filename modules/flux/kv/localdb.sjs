@@ -349,14 +349,6 @@ function wrap_dict(dict, options) {
   return {
     changes: @events(MutationDispatcher),
 
-    encodeValue: __js function (value) {
-      return value;
-    },
-
-    decodeValue: __js function (value) {
-      return value;
-    },
-
     get: function (key) {
       return dict.get(key, undefined);
     },

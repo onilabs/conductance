@@ -11,7 +11,7 @@
 
 /**
    @nodoc
-   @summary Helpers for mapping between tuple key and values and ordered binary representation
+   @summary Helpers for mapping between tuple keys and ordered binary representation
 
    // XXX TODO: document; recode so that it works with ArrayBuffers too (for client-side use)
 
@@ -467,46 +467,4 @@ __js {
     return false;
   }
   exports.encodedKeyInRange = encodedKeyInRange;
-} /* __js */
-
-
-//----------------------------------------------------------------------
-// Value encoding
-
-__js {
-
-  var VALUE_TYPE_JSON = 1;
-  // ... VALUE_TYPE_BINARY
-  var ByteValueTypeJason = single(VALUE_TYPE_JSON);
-
-  /**
-     @function encodeValue
-     @summary XXX write me
-   */
-  function encodeValue(unencoded) {
-    // XXX at the moment we encode everything as JSON.
-    // later we should add in at least binary encoding (from Buffer/ArrayBuffer)
-
-    var json = encodeString(JSON.stringify(unencoded));
-
-    return concat([ByteValueTypeJason, json], json.length + 1);
-  }
-  exports.encodeValue = encodeValue;
-
-  /**
-     @function decodeValue
-     @summary XXX write me
-   */
-  function decodeValue(encoded) {
-    // The length check is to catch the case where a query to leveldb is being executed with 
-    // `values: false`. This returns a value with an empty buffer 
-    // (and not `undefined` as per specs, which would be caught by the `== null`):
-    if (encoded == null || encoded.length===0) return undefined;
-    if (encoded[0] !== VALUE_TYPE_JSON)
-      throw new Error("Unknown data type '#{encoded[0]}' in DB value");
-    var decoded = decodeString(encoded, 1, encoded.length);
-    return JSON.parse(decoded);
-  }
-  exports.decodeValue = decodeValue;
-
 } /* __js */

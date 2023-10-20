@@ -44,14 +44,13 @@ function wrapDB(base) {
 
   // helper to decode a key,val tuple:
   __js function decodeKV([k, v]) {
-    return [ @encoding.decodeKey(k),
-             base.decodeValue(v) ];
+    return [ @encoding.decodeKey(k), v];
   }
 
   var kvstore_interface = {
     get: function(key) {
       __js key = @encoding.encodeKey(key);
-      return base.decodeValue(base.get(key));
+      return base.get(key);
     },
     // XXX collect multiple temporally adjacent calls
     put: function(key, value) {
@@ -60,7 +59,6 @@ function wrapDB(base) {
         if (value === undefined) {
           return base.batch([{ type: 'del', key: key }]);
         } else {
-          __js value = base.encodeValue(value);
           return base.batch([{ type: 'put', key: key, value: value }]);
         }
       }
@@ -74,8 +72,8 @@ function wrapDB(base) {
         (base.changes) ..
           @unpack ..
           @filter(kv -> kv.key .. @encoding.encodedKeyEquals(key)) ..
-          @transform({value} -> base.decodeValue(value)),
-        -> base.decodeValue(base.get(key)));
+          @transform({value} -> value),
+        -> base.get(key));
     },
 
     observeQuery: function(range /*, options*/) {
@@ -147,22 +145,19 @@ function wrapDB(base) {
             // check if we've written this key:
             var kv = pendingPuts[string_key];
           }
-          if (kv) return __js base.decodeValue(kv[1]);
+          if (kv) return kv[1];
           
           // else, check if we've already read it:
           __js var v = reads[string_key];
-          if (v) return __js base.decodeValue(v);
+          if (v) return v;
 
           // else read from db:
           var val = base.get(key);
           __js reads[string_key] = val;
-          return __js base.decodeValue(val);
+          return val;
         },
         put: __js function(key, value) {
           key = @encoding.encodeKey(key);
-          if (value !== undefined) {
-            value = base.encodeValue(value);
-          }
           pendingPuts[@util.bytesToString(key)] = [key, value];
         },
         query: function(range, options) {

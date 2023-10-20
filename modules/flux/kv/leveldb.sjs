@@ -21,6 +21,29 @@
              { id: './wrap', name: 'wrap' },
              { id: './encoding', name: 'encoding' }]);
 
+
+// value encoding/decoding
+__js {
+
+  // XXX at the moment we encode everything as JSON.
+  // later we should add in at least binary encoding (from Buffer/ArrayBuffer)
+
+  var VALUE_TYPE_JSON = 1;
+  // .. VALUE_TYPE_BINARY
+
+  function encodeValue(unencoded) {
+    return Buffer.from('\x01'+JSON.stringify(unencoded), 'utf8');
+  }
+
+  function decodeValue(encoded) {
+    if (encoded == null || encoded.length == 0) return undefined;
+    if (encoded[0] !== VALUE_TYPE_JSON)
+      throw new Error("Unknown data type '#{encoded[0]}' in leveldb value");
+    return JSON.parse(encoded.toString('utf8', 1, encoded.length));
+  }
+
+} // __js
+
 // helper to gracefully handle cleanup of a resource when we're
 // retracting during acquisition. 
 // XXX This is useful for many nodejs libs that don't provide a way to
@@ -108,15 +131,6 @@ function LevelDB(location, options) {
   var base = {
     changes: @events(MutationDispatcher),
 
-    encodeValue: __js function (value) {
-      return @encoding.encodeValue(value);
-    },
-
-    decodeValue: __js function (value) {
-      return @encoding.decodeValue(value);
-    },
-
-
     /* ---- not part of interface: use batch
        @function LevelDB.put
        @param {String|Buffer} [key]
@@ -126,7 +140,7 @@ function LevelDB(location, options) {
 
     put: function(key, value, options) {
       waitfor (var err) {
-        db.put(key, value, options || {}, resume);
+        db.put(key, encodeValue(value), options || {}, resume);
       }
       if (err) throw new Error(err) .. annotateError(err);
       MutationDispatcher.dispatch([{type:'put', key:key, value:value}]);
@@ -139,17 +153,17 @@ function LevelDB(location, options) {
        @return {Buffer|undefined}
        @summary  Low-level LevelDB function to fetch an entry.
        @desc
-         Throws an exception if the entry is not found
+         Returns `undefined` if the entry is not found
     */
     get: function(key, options) {
       waitfor (var err, val) {
         __js db.get(key, options || {}, resume);
       }
       if (err) {
-        if (/NotFound/.test(err.message)) return undefined;
+        if (__js /NotFound/.test(err.message)) return undefined;
         throw new Error("Error retrieving '#{key}' from database at #{location}: #{err}") .. annotateError(err);
       }
-      return val;
+      return decodeValue(val);
     },
     /* ---- not part of interface: use batch
        @function LevelDB.del
@@ -173,7 +187,7 @@ function LevelDB(location, options) {
     */
     batch: function(ops, options) {
       waitfor (var err) {
-        __js db.batch(ops, options || {}, resume);
+        __js db.batch(ops .. @map(__js op->{type:op.type, key: op.key, value:op.type === 'put' ? encodeValue(op.value)}), options || {}, resume);
       }
       if (err) throw new Error("Error in batch operation for database at #{location}: #{err}") .. annotateError(err);
       MutationDispatcher.dispatch(ops);
@@ -196,7 +210,7 @@ function LevelDB(location, options) {
             }
             if (err) throw new Error("Error advancing iterator for database at #{location}") .. annotateError(err);
             if (!key) return; // end
-            receiver([key, value]);
+            receiver([key, decodeValue(value)]);
           }
         }
         finally {
