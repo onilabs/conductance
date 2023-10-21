@@ -34,7 +34,7 @@
 
 */
 
-@ = require('sjs:std');
+var { hostenv, isArrayLike } = require('builtin:apollo-sys');
 
 //----------------------------------------------------------------------
 // Key encoding
@@ -107,7 +107,7 @@ __js {
   }
 
   var makeEncodingBuffer, encodeString, decodeString, copy, concat;
-  if (@sys.hostenv === 'nodejs') {
+  if (hostenv === 'nodejs') {
     makeEncodingBuffer = Buffer.allocUnsafe;
     encodeString = str -> Buffer.from(str, 'utf8');
     decodeString = (buf, start, end) -> buf.toString('utf8', start, end);
@@ -159,7 +159,7 @@ __js {
 
     //byte string or unicode
     // TODO better isArrayLike test
-    else if(typeof item === 'string' || @isArrayLike(item)) {
+    else if(typeof item === 'string' || isArrayLike(item)) {
       var unicode = typeof item === 'string';
 
       if (unicode) {
