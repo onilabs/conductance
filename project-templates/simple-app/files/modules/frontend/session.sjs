@@ -1,6 +1,6 @@
 /* (c) 2013-2014 Oni Labs, http://onilabs.com
  *
- * This file is part of Conductance, http://conductance.io/
+ * This file is part of Conductance.
  *
  * It is subject to the license terms in the LICENSE file
  * found in the top-level directory of this distribution.

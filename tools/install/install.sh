@@ -82,7 +82,7 @@ PROTOCOL=https
 if [ "${CONDUCTANCE_FORCE_HTTP:-}" = "1" ]; then
   PROTOCOL=http
 fi
-URL="$PROTOCOL://conductance.io/install/$TARBALL"
+URL="$PROTOCOL://onilabs.com/install/$TARBALL"
 log "Downloading $URL ..."
 curl --progress-bar "$URL" -o "$TMP_TAR"
 

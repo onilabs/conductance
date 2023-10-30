@@ -32,8 +32,8 @@ if (require.main === module) {
 	assert.string(conductanceUrl);
 
 	// we'll prime the proxy with the current workspace' install script and archives
-	var installScript = "http://conductance.io/install.sh"
-	var installArchive = "http://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
+	var installScript = "http://onilabs.com/install.sh"
+	var installArchive = "http://onilabs.com/install/#{system.platform}_#{system.arch}.tar.gz"
 	var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
 
 	childProcess.run('gup', ['-u', conductanceHead, bundle], {'stdio':'inherit'});
@@ -67,8 +67,8 @@ hosts.systems .. each {|system|
 		// we'll prime the proxy with the current workspace' install script and archives
 		// NOTE: these two URLs must be http, because they're access via `curl` and
 		// we can't get curl to use a http proxy for https URLs.
-		var installScript = "http://conductance.io/install.sh"
-		var installArchive = "http://conductance.io/install/#{system.platform}_#{system.arch}.tar.gz"
+		var installScript = "http://onilabs.com/install.sh"
+		var installArchive = "http://onilabs.com/install/#{system.platform}_#{system.arch}.tar.gz"
 		var localInstallScript = url.normalize("../install.sh", module.id) .. url.toPath();
 
 		var hostUtil = util.api(system);

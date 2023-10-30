@@ -1,6 +1,6 @@
 #!/bin/bash
 # copies locally built installer artifacts to the ./install directory ($dest)
-# of conductance.io, for serving as https://conductance.io/install/
+# of onilabs.com, for serving as https://onilabs.com/install/
 
 set -eu
 cd "$(dirname "$0")"

@@ -1,7 +1,7 @@
 { "format": 2
 , "version": 11
-, "manifest_url": "https://conductance.io/install/manifest-v2.json"
-, "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from https://conductance.io/"
+, "manifest_url": "https://onilabs.com/install/manifest-v2.json"
+, "version_error": "Sorry, but this installation is too old to update to the latest conductance.\nYou'll need to download a new version from https://onilabs.com/"
 , "wrappers":
   { "node_sh":
     { "template": "#!/bin/bash\nbindir=\"$(cd \"$(dirname \"$0\")\"; pwd)\"\nself=\"$bindir/$(basename \"$0\")\"\nif [ -L \"$self\" ]; then\n  bindir=\"$(dirname \"$(readlink \"$self\")\")\"\nfi\nexport CONDUCTANCE_ROOT=\"$(dirname \"$bindir\")\"\nexec \"$CONDUCTANCE_ROOT/bin/node\" \"$CONDUCTANCE_ROOT/__REL_PATH__\" \"$@\"\n"

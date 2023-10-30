@@ -345,7 +345,7 @@ exports.bootstrap = function(conn) {
 	//"', {'stdio':'inherit'});
 
 	conn .. @ssh.exec('bash -euxc "
-		curl https://conductance.io/install.sh > /tmp/install.sh
+		curl https://onilabs.com/install.sh > /tmp/install.sh
 		rm -rf "$HOME/.conductance"
 		echo n | env CONDUCTANCE_HEADLESS=1 bash -e /tmp/install.sh
 	"', {'stdio':'inherit'});
