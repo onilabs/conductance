@@ -18,8 +18,8 @@
 */
 
 @ = require(['sjs:std',
-             { id: './wrap', name: 'wrap' },
-             { id: './encoding', name: 'encoding' }]);
+             { id: './wrap', name: 'wrap' }
+            ]);
 
 
 // value encoding/decoding

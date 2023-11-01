@@ -15,7 +15,59 @@
 @ = require(['sjs:std',
              {id: '../kv', name: 'kv'}, // TODO circular dependency
              {id: './util', name: 'util'},
-             {id: './encoding', name: 'encoding'}]);
+             {id: 'sjs:tuple-key-encoding', name: 'encoding'}]);
+
+// helpers:
+
+__js var encodedKeyGreater = (k1, k2) -> @encoding.encodedKeyCompare(k1,k2) > 0;
+__js var encodedKeyLess = (k1, k2) -> @encoding.encodedKeyCompare(k1,k2) < 0;
+__js var encodedKeyInRange = (k1,gte, lt) -> 
+  @encoding.encodedKeyCompare(k1, gte) >= 0 && 
+  @encoding.encodedKeyCompare(k1, lt) < 0;
+
+
+__js function encodeKeyRange(arr) {
+  // TODO code duplication with util.transformKeyRange
+  if (typeof arr === 'object' && !Array.isArray(arr)) {
+    if (arr.begin) {
+      // [begin,end[
+      return {
+        begin: @encoding.encodeKey(arr.begin),
+        end: (arr.end !== undefined ? @encoding.encodeKey(arr.end) : @encoding.encodeKey(arr.begin.slice(0,arr.begin.length-1).concat(@encoding.RangeEnd), true))
+      };
+    }
+    else if (arr.after) {
+      // after
+      return {
+        begin: @encoding.encodeKey([...arr.after, @encoding.RangeEnd], true),
+        end: @encoding.encodeKey(arr.after.slice(0,arr.after.length-1).concat(@encoding.RangeEnd), true)
+      };
+    }
+    else if (arr.branch) {
+      // branch
+      return {
+        begin: @encoding.encodeKey(arr.branch),
+        end: @encoding.encodeKey([...arr.branch, @encoding.RangeEnd], true)
+      };
+    }
+    else throw new Error("Invalid Key Range");
+  }
+  else if (arr.length === 0) {
+    // RANGE_ALL
+    return {
+      begin: @encoding.encodeKey([null]),
+      end: @encoding.encodeKey([@encoding.RangeEnd], true)
+    };
+  }
+  else {
+    // children:
+    return {
+      begin: @encoding.encodeKey([...arr,null]),
+      end: @encoding.encodeKey([...arr, @encoding.RangeEnd], true)
+    };
+  }
+}
+
 
 //----------------------------------------------------------------------
 // high-level ITF_KVSTORE interface implementation
@@ -64,7 +116,7 @@ function wrapDB(base) {
       }
     },
     query: function(range, options) {
-      return kv_query(@encoding.encodeKeyRange(range), options) ..@transform(decodeKV);
+      return kv_query(encodeKeyRange(range), options) ..@transform(decodeKV);
     },
     observe: function(key) {
       key = @encoding.encodeKey(key);
@@ -81,7 +133,7 @@ function wrapDB(base) {
       // XXX we might want an ObservableQuery that iterates over the data
       // lazily
 
-      var encoded_range = @encoding.encodeKeyRange(range);
+      var encoded_range = encodeKeyRange(range);
 
       return @StructuredStream('array.mutations') :: @Stream :: function(receiver) {
 
@@ -102,7 +154,7 @@ function wrapDB(base) {
               // a mutate([actions]) method on ObservableSortedMapVar?
               changes .. 
                 @unpack .. 
-                @filter(__js {key} -> key .. @encoding.encodedKeyInRange(encoded_range.begin, encoded_range.end)) ..
+                @filter(__js {key} -> key .. encodedKeyInRange(encoded_range.begin, encoded_range.end)) ..
                 @each {
                 |{key,value}|
                 if (value === undefined) 
@@ -162,7 +214,7 @@ function wrapDB(base) {
         },
         query: function(range, options) {
           __js {
-            range = @encoding.encodeKeyRange(range);
+            range = encodeKeyRange(range);
             queries.push([range.begin,range.end]);
           }
           return @transform(decodeKV) ::
@@ -180,7 +232,7 @@ function wrapDB(base) {
                                                               @encoding.encodedKeyCompare(b[0],a[0]) :
                                                             @encoding.encodedKeyCompare(a[0],b[0]));
 
-              var preceding = reverse ? @encoding.encodedKeyGreater : @encoding.encodedKeyLess;
+              var preceding = reverse ? encodedKeyGreater : encodedKeyLess;
 
               @consume(patches) {
                 |next_patch|
@@ -189,11 +241,11 @@ function wrapDB(base) {
                 // (reverse case: first patch, where patch[0] < range.end)
 
                 if (reverse) {
-                  while (patch && @encoding.encodedKeyGtEq(patch[0], range.end))
+                  while (patch && @encoding.encodedKeyCompare(patch[0], range.end) >= 0)
                     patch = next_patch();
                 }
                 else {
-                  while (patch && @encoding.encodedKeyLess(patch[0], range.begin))
+                  while (patch && @encoding.encodedKeyCompare(patch[0], range.begin) < 0)
                     patch = next_patch();
                 }
 
@@ -223,7 +275,7 @@ function wrapDB(base) {
 
                 // emit remaining patches
                 if (reverse) {
-                  while (patch && @encoding.encodedKeyGtEq(patch[0], range.begin)) {
+                  while (patch && @encoding.encodedKeyCompare(patch[0], range.begin) >= 0) {
                     if (patch[1] !== undefined) {
                       r(patch);
                       if (--limit === 0) return;
@@ -232,7 +284,7 @@ function wrapDB(base) {
                   }
                 }
                 else {
-                  while (patch && @encoding.encodedKeyLess(patch[0], range.end)) {
+                  while (patch && @encoding.encodedKeyCompare(patch[0], range.end) < 0) {
                     if (patch[1] !== undefined) {
                       r(patch);
                       if (--limit === 0) return;
@@ -267,7 +319,7 @@ function wrapDB(base) {
               var string_key = @util.bytesToString(key);
               var conflict = pendingPuts[string_key] ||
                              reads[string_key] ||
-                             queries .. @any([b,e] -> key .. @encoding.encodedKeyInRange(b,e));
+                             queries .. @any([b,e] -> key .. encodedKeyInRange(b,e));
             }
             if (conflict) {
               console.log("DB transaction conflict on #{@encoding.decodeKey(key)}");

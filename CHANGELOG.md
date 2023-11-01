@@ -8,6 +8,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 
  * New functionality
+	
+   * Added `sjs:tuple-key-encoding` module.
+	
    * Added `mho:flux/kv::isEmpty`.
 	
    * `mho:flux/kv::Range` now supports 'branch' ranges.
