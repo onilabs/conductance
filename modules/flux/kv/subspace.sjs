@@ -19,9 +19,10 @@
 
 function Subspace(input, prefix) {
   __js {
-    prefix = @util.normalizeKey(prefix);
+    if (!Array.isArray(prefix)) throw new Error("Prefix must be an array");
     
     function prefixKey(key) {
+      if (!Array.isArray(key)) throw new Error("Invalid key");
       return prefix.concat(key);
     }
     

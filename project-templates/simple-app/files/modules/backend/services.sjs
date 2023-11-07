@@ -78,7 +78,7 @@ exports.run = function(block) {
   
     // Application Services
     var registry = @services.ServicesRegistry(SERVICE_INSTANCES,
-                                              provisioningDB .. @kv.Subspace('services')
+                                              provisioningDB .. @kv.Subspace(['services'])
                                              );
 
     @services.initGlobalRegistry(registry);

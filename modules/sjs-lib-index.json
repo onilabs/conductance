@@ -157,10 +157,6 @@
               "type": "class",
               "children": {}
             },
-            "Key": {
-              "type": "class",
-              "children": {}
-            },
             "LevelDB": {
               "type": "class",
               "children": {

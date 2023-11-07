@@ -79,9 +79,6 @@ exports.isNotFound = function(e) {
 
          obj[ITF_KVSTORE].withTransaction([options], block) // call block with a transaction [::KVStore] object.
 
-    - Keys are automatically normalized before being passed to the `ITF_KVSTORE` functions.
-    That means that the key `"foo"` is normalized to `["foo"]`, and the key `[["foo"]]`
-    is normalized to `["foo"]`.
 
     - Key ranges passed to `query` or `observeQuery` will always be in the form `{begin:key, end: key}`
 
@@ -91,41 +88,12 @@ exports.isNotFound = function(e) {
 */
 __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
 
-
-/**
-   @class Key
-   @summary Structure serving as a key into a [::KVStore].
-   @desc
-      A `Key` is either `null`, a String, an Integer, or a tuple thereof,
-      represented by an (abitrarily nested) Array.
-
-      Nested Array keys such as `['employee', ['name', 'alex']]` are equivalent
-      to their flattened representations: `['employee', 'name', 'alex']`. Similarly the
-      key `1` is equivalent to `[1]` and `'alex'` is equivalent to `['alex']`.
-      API functions that return keys will always return the canonical flattened
-      array representation.
-
-      Keys are sorted in the following way:
-
-      - `null` < String
-      - String < Integer
-      - Strings sorted according to UTF8 representation
-      - Integers sorted according to magnitude
-      - `x` < `[x, ...]`
-      - `[x, ...]` < `[y]` if `x` < `y`
-
-      Note how the last two rules imply that any tuple `[x,c]` is sorted right after its prefix `x` 
-      and before any `y` > `x`. This property makes it possible to
-      efficiently query [::KVStore]s for all children with a common prefix, and to span [::Subspace]s.
-
-*/
-
 /**
    @class Range
    @summary Structure serving as a range of keys into a [::KVStore].
    @desc
-      A `Range` is either a [::Key], an object `{ begin: Key, end: Key }`, 
-      an object `{ after: Key }`, an object `{ branch: Key }`,
+      A `Range` is either a [sjs:tuple-key-encoding::TupleKey], an object `{ begin: TupleKey, end: TupleKey }`, 
+      an object `{ after: TupleKey }`, an object `{ branch: TupleKey }`,
       or  [::RANGE_ALL].
 
       ### Single-Key Range
@@ -176,7 +144,7 @@ exports.RANGE_ALL = RANGE_ALL;
 /**
    @function get
    @param {::KVStore} [kvstore]
-   @param {::Key} [key]
+   @param {sjs:tuple-key-encoding::TupleKey} [key]
    @param {optional Object} [default]
    @return {::Value|Object} Value stored under key.
    @summary Retrieve value stored under key.
@@ -185,7 +153,6 @@ exports.RANGE_ALL = RANGE_ALL;
       Otherwise, a [::NotFound] error will be thrown.
 */
 function get(store, key, dfl) {
-  __js key = @util.normalizeKey(key);
   var rv = store[ITF_KVSTORE].get(key);
   if(rv === undefined) {
     if(arguments.length > 2) return dfl;
@@ -198,7 +165,7 @@ exports.get = get;
 /**
    @function set
    @param {::KVStore} [kvstore]
-   @param {::Key} [key]
+   @param {sjs:tuple-key-encoding::TupleKey} [key]
    @param {::Value} [value]
    @return {::Value} Value inserted into the store (in the case of custom structured [::Value]s, this might be different to the value passed in. 
    @summary Sets key to the given value.
@@ -206,7 +173,6 @@ exports.get = get;
       Note: `value` must not be `undefined`. To unset a key-value pair, use [::clear] instead.
 */
 __js function set(store, key, value) {
-  key = @util.normalizeKey(key);
   if (value === undefined) throw new Error("mho:flux/kv::set: 'undefined' is not a valid value");
   var rv = store[ITF_KVSTORE].put(key, value);
   if (rv === undefined) 
@@ -219,11 +185,10 @@ exports.set = set;
 /**
    @function clear
    @param {::KVStore} [kvstore]
-   @param {::Key} [key]
+   @param {sjs:tuple-key-encoding::TupleKey} [key]
    @summary Clears any value currently associated with key.
 */
 __js function clear(store, key) {
-  key = @util.normalizeKey(key);
   return store[ITF_KVSTORE].put(key, undefined);
 }
 exports.clear = clear;
@@ -248,7 +213,6 @@ exports.clear = clear;
      from the first element of the reversed sequence.
 */
 __js function query(store, range, options) {
-  range = @util.normalizeKeyRange(range);
   return store[ITF_KVSTORE].query(range, options || {});
 }
 exports.query = query;
@@ -282,7 +246,7 @@ exports.clearRange = clearRange;
 /**
    @function observe
    @param {::KVStore} [kvstore]
-   @param {::Key} [key]
+   @param {sjs:tuple-key-encoding::TupleKey} [key]
    @return {sjs:observable::Observable}
    @summary Return an [sjs:observable::Observable] of the value associated with key.
    @desc
@@ -290,7 +254,6 @@ exports.clearRange = clearRange;
      the value of the observable will be `undefined`.
 */
 __js function observe(store, key) {
-  key = @util.normalizeKey(key);
   return store[ITF_KVSTORE].observe(key);
 }
 exports.observe = observe;
@@ -310,7 +273,7 @@ exports.observe = observe;
 
 */
 __js function observeQuery(store, range, options) {
-  return store[ITF_KVSTORE].observeQuery(@util.normalizeKeyRange(range), options || {});
+  return store[ITF_KVSTORE].observeQuery(range, options || {});
 }
 exports.observeQuery = observeQuery;
 
@@ -607,7 +570,7 @@ exports.Encrypted = Encrypted;
   @function Subspace
   @altsyntax Subspace(db, prefix) { |kvstore| ... }
   @param {::KVStore} [db]
-  @param {::Key} [prefix]
+  @param {sjs:tuple-key-encoding::TupleKey} [prefix]
   @param {optional Function} [block] Lexical block to scope the Subspace object to
   @desc
     This function will return a wrapper for `db` which automatically

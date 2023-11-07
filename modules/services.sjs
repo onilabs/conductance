@@ -156,7 +156,7 @@ function initGlobalRegistry(registry) {
 exports.initGlobalRegistry = initGlobalRegistry;
 
 
-var modulesProvisioningDB = registry -> registry.kvstore ? registry.kvstore .. @kv.Subspace('modules');
+var modulesProvisioningDB = registry -> registry.kvstore ? registry.kvstore .. @kv.Subspace(['modules']);
 
 
 /**
@@ -305,7 +305,7 @@ function withServices(settings, block) {
                   // take provisioning data from registry
                   var provisioning_db = getGlobalRegistry() .. modulesProvisioningDB;
                   if (provisioning_db)
-                    service_provisioning =  provisioning_db .. @kv.get("#{instance_name}@#{instance_info.service}", undefined);
+                    service_provisioning =  provisioning_db .. @kv.get(["#{instance_name}@#{instance_info.service}"], undefined);
                   if (!service_provisioning || !service_provisioning.enabled) {
                     if (required)
                       throw new Error("Required service instance #{instance_name}@#{instance_info.service} not configured or enabled");
@@ -399,7 +399,7 @@ exports.provisioningUI = function(registry, title) {
     // XXX we only really need to write *changed* services here
     Config .. @current .. @ownPropertyPairs .. @each.par {
       |[name,val]|
-      registry .. modulesProvisioningDB .. @kv.set(name, val);
+      registry .. modulesProvisioningDB .. @kv.set([name], val);
     }
     ChangesCommitted.set(true);
   }

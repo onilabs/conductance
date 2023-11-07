@@ -74,6 +74,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `mho:flux/kv`: Keys now have to adhere to the `sjs:tuple-key-encoding::TupleKey` syntax, i.e. they have to be flat arrays. 
+	
    * `mho:flux/kv::set` now returns the inserted value, or the return value of the underlying `ITF_KVSTORE::put` call if it is not `undefined`.
 
    * Values returned from `mho:flux/kv::ITF_KVSTORE::put` (other than `undefined`) will be passed through as return values from `mho:flux/kv::set`.

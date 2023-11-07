@@ -33,16 +33,6 @@ __js {
   }
   exports.bytesToString = bytesToString;
 
-  function normalizeKey(key) {
-    if (Array.isArray(key)) {
-      return key ..@flatten;
-    } else {
-      return [key];
-    }
-  }
-  exports.normalizeKey = normalizeKey;
-
-
   function transformKeyRange(range, f) {
     if (typeof range === 'object' && !Array.isArray(range)) {
       return {
@@ -55,10 +45,5 @@ __js {
       return f(range);
     }
   }
-  exports.transformKeyRange = transformKeyRange;
-  
-  function normalizeKeyRange(range) {
-    return transformKeyRange(range, normalizeKey);
-  };
-  exports.normalizeKeyRange = normalizeKeyRange;
+  exports.transformKeyRange = transformKeyRange;  
 } // __js
