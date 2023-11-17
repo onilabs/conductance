@@ -17,7 +17,8 @@ module.setCanonicalId('mho:flux/kv');
 
 @ = require(['sjs:std',
              { id: 'sjs:type', include: ['Interface'] },
-             { id: './kv/util', name: 'util' }
+             { id: './kv/util', name: 'util' },
+             { id: 'sjs:tuple-key-encoding', name:'encoding'}
             ]);
 
 var NOT_FOUND = 'NotFound';
@@ -89,46 +90,135 @@ exports.isNotFound = function(e) {
 __js var ITF_KVSTORE = exports.ITF_KVSTORE = module .. @Interface('kvstore');
 
 /**
-   @class Range
-   @summary Structure serving as a range of keys into a [::KVStore].
+   @class TupleKeyRange
+   @summary Right-open intervals of [sjs:tuple-key-encoding::TupleKey]s 
    @desc
-      A `Range` is either a [sjs:tuple-key-encoding::TupleKey], an object `{ begin: TupleKey, end: TupleKey }`, 
-      an object `{ after: TupleKey }`, an object `{ branch: TupleKey }`,
-      or  [::RANGE_ALL].
+     A TupleKeyRange is an object `{begin:K1, end:K2}`, where K1 and K2 are [sjs:tuple-key-encoding::TupleKey]s. A TupleKeyRange  represents a right-open interval. I.e. the interval is intended to be used in comparisons such as `K1 <= K < K2`. Often the boundaries of a TupleKeyRange involve out-of-bounds keys - see the discussion under [sjs:tuple-key-encoding::TupleKey].
 
-      ### Single-Key Range
+     The following [sjs:tuple-key-encoding::TupleKey] constructors can be used help create ranges boundaries:
 
-      In the first case, the range denotes all children with the given key as
-      prefix.
+     - [::FIRST_KEY] is the smallest in-bounds key (`[null]`).
+     - [::PAST_LAST_KEY] is an out-of-bounds key that is larger than every other key (`[RangeEnd]`).
+     - [::FirstChildKey] constructs an in-bounds key to the first child of a given key.
+     - [::PastChildrenKey] constructs an out-of-bounds key one-past the last child of a given key..
+     - [::PastSiblingsKey] constructs an out-of-bounds key one-past the last right sibling of a given key.
 
-      ### [begin, end[ Range
+     There are also the following [::TupleKeyRange] constructors to directly construct common ranges:
 
-      In the second case, the range begins with the first key in the
-      datastore greater than or equal to `begin` and ends with the last key
-      less than `end`.
-
-      The `end` property can be omitted, in which case the range begins with the first key
-      in the datastore greater than or equal to `begin` and ends with the last child of the
-      subspace spanned by the key `begin.slice(0,begin.length-1)` (where `begin` is assumed to be a flattened array key). E.g. `{begin: ['a', 'b']}` denotes all tuples with the prefix `a`, beginning with `['a', 'b']`. (`X+` denotes one or more tuple elements).
-
-      ### 'after' Range
-
-      In the third case, the range begins with the first key greater than `[after, X...]` for any `X...`, i.e. `after`'s children. E.g. if the datastore contains `['a', 1]`, `['a', 2, 3]`, `['b', 5, 6]`, then the range 
-      `{after: ['a']}` would start with `['b', 5, 6]`.
-      The range ends with the last child of the subspace spanned by the key `after.slice(0,after.length-1)`.
-
-      ### 'branch' Range
-
-      This type of range encompasses the given key and all its children. 
-
+     - [::RANGE_ALL] is the range encompassing all keys (`{begin:FIRST_KEY, end:PAST_LAST_KEY}`).
+     - [::RightSiblingTreesRange] constructs a range encompassing all of a given key's right siblings including their children (`{begin: PastChildrenKey(K), end: PastSiblingsKey(K)}`).
+     - [::ChildrenRange] constructs a range encompassing all of a given key's children (`{begin: FirstChildKey(K), end: PastChildrenKey(K)}`).
+     - [::TreeRange] constructs a range encompassing a given key and all of its children (`{begin:K, end: PastChildrenKey(K)}`).
 */
 
 /**
-   @variable RANGE_ALL
-   @summary A [::Range] denoting all keys in the data store.
+   @variable FIRST_KEY
+   @summary The smallest possible [sjs:tuple-key-encoding::TupleKey]
+   @desc
+     The in-bounds [sjs:tuple-key-encoding::TupleKey] `[null]`.
 */
-var RANGE_ALL = [];
-exports.RANGE_ALL = RANGE_ALL;
+__js var FIRST_KEY = exports.FIRST_KEY = [null];
+
+/**
+   @variable PAST_LAST_KEY
+   @summary One-past the largest possible [sjs:tuple-key-encoding::TupleKey]
+   @desc
+     The out-of-bounds [sjs:tuple-key-encoding::TupleKey] `[RangeEnd]`. See also [sjs:tuple-key-encoding::RangeEnd].
+*/
+__js var PAST_LAST_KEY = exports.PAST_LAST_KEY = [@encoding.RangeEnd];
+
+/**
+   @variable RANGE_ALL
+   @summary The [::TupleKeyRange] `{begin:[null], end:[RangeEnd]}` encompassing all keys
+  */
+__js var RANGE_ALL = exports.RANGE_ALL = {begin:FIRST_KEY, end:PAST_LAST_KEY};
+
+
+/**
+   @function FirstChildKey
+   @summary Construct a [sjs:tuple-key-encoding::TupleKey] to the first child of `key`.
+   @param {sjs:tuple-key-encoding::TupleKey} [key] An in-bounds key
+   @return {sjs:tuple-key-encoding::TupleKey}
+   @desc
+      - `key` must be an in-bounds key. The returned key will also be in-bounds.
+      - See also the [sjs:tuple-key-encoding::TupleKey] documentation under 'Out-of-bounds tuple keys & key ranges'
+ */
+__js var FirstChildKey = exports.FirstChildKey = function(key) {
+  var rv = [...key,null];
+  return rv;
+};
+
+/**
+   @function PastChildrenKey
+   @summary Construct a [sjs:tuple-key-encoding::TupleKey] one-past the last child of `key`.
+   @param {sjs:tuple-key-encoding::TupleKey} [key] An in-bounds key
+   @return {sjs:tuple-key-encoding::TupleKey}
+   @desc
+      - `key` must be an in-bounds key. The returned key will be out-of-bounds.
+      - `PastChildren(key)` can also be used as a left boundary of `key`'s first right sibling.
+      - See also the [sjs:tuple-key-encoding::TupleKey] documentation under 'Out-of-bounds tuple keys & key ranges'
+ */
+__js var PastChildrenKey = exports.PastChildrenKey = function(key) {
+  var rv = [...key, @encoding.RangeEnd];
+  return rv;
+};
+
+/**
+   @function PastSiblingsKey
+   @summary Construct a [sjs:tuple-key-encoding::TupleKey] one-past the last sibling of `key`.
+   @param {sjs:tuple-key-encoding::TupleKey} [key] An in-bounds key
+   @return {sjs:tuple-key-encoding::TupleKey}
+   @desc
+      - `key` must be an in-bounds key. The returned key will be out-of-bounds.
+      - See also the [sjs:tuple-key-encoding::TupleKey] documentation under 'Out-of-bounds tuple keys & key ranges'
+ */
+__js var PastSiblingsKey = exports.PastSiblingsKey = function(key) {
+  return key.slice(0,key.length-1).concat(@encoding.RangeEnd);;
+};
+
+
+/**
+   @function RightSiblingTreesRange
+   @summary Construct a [::TupleKeyRange] encompassing all `key`'s right siblings including their children
+   @param {sjs:tuple-key-encoding::TupleKey} [key] An in-bounds key
+   @return {::TupleKeyRange}
+   @desc
+      - `key` must be an in-bounds key.
+      - Corresponds to the range `{begin: PastChildrenKey(key), end: PastSiblingsKey(key)}`
+      - See also the [sjs:tuple-key-encoding::TupleKey] documentation under 'Out-of-bounds tuple keys & key ranges'
+*/
+__js exports.RightSiblingTreesRange = function(key) {
+  return {begin: PastChildrenKey(key), end: PastSiblingsKey(key)};
+};
+
+/**
+   @function ChildrenRange
+   @summary Construct a [::TupleKeyRange] encompassing all `key`'s children
+   @param {sjs:tuple-key-encoding::TupleKey} [key] An in-bounds key
+   @return {::TupleKeyRange}
+   @desc
+      - `key` must be an in-bounds key.
+      - Corresponds to the range `{begin: FirstChildKey(key), end: PastChildrenKey(key)}`.
+      - See also the [sjs:tuple-key-encoding::TupleKey] documentation under 'Out-of-bounds tuple keys & key ranges'
+*/
+__js exports.ChildrenRange = function(key) {
+  return {begin: FirstChildKey(key), end: PastChildrenKey(key)};
+};
+
+/**
+   @function TreeRange
+   @summary Construct a [::TupleKeyRange] encompassing `key` and its children
+   @param {sjs:tuple-key-encoding::TupleKey} [key] An in-bounds key
+   @return {::TupleKeyRange}
+   @desc
+      - `key` must be a in-bounds key.
+      - Corresponds to the range `{begin: key, end: PastChildrenKey(key)}`
+      - See also the [sjs:tuple-key-encoding::TupleKey] documentation under 'Out-of-bounds tuple keys & key ranges'
+*/
+__js exports.TreeRange = function(key) {
+  return {begin: key, end: PastChildrenKey(key)};
+};
+
 
 /**
    @class Value
@@ -196,14 +286,14 @@ exports.clear = clear;
 /**
    @function query
    @param {::KVStore} [kvstore]
-   @param {::Range} [range]
+   @param {::TupleKeyRange} [range]
    @param {optional Object} [settings]
    @return {sjs:sequence::Stream}
    @setting {Boolean} [reverse=false] Reverse direction of range
    @setting {Integer} [limit=-1] Limit number of elements returned in range. (-1 == no limit)
    @setting {Boolean} [values=true] If this is `false`, the kv may emit `undefined` instead of the real values (currently only the leveldb backend honors this).
    @setting {Boolean} [keys=true] If this is `false`, the kv may emit `undefined` instead of the real keys (currently only the leveldb backend honors this).
-   @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs in the given [::Range].
+   @summary Return a [sjs:sequence::Stream] of `[key, value]` pairs in the given [::TupleKeyRange].
    @desc
      The returned stream will be based on a stable view of the database content as of the time that iteration starts.
 
@@ -230,7 +320,7 @@ exports.isEmpty = isEmpty;
 /**
    @function clearRange
    @param {::KVStore} [kvstore]
-   @param {::Range} [range]
+   @param {::TupleKeyRange} [range]
    @summary Clears any values associated with keys in given range.
 */
 function clearRange(store, range) {
@@ -262,7 +352,7 @@ exports.observe = observe;
 /**
    @function observeQuery
    @param {::KVStore} [kvstore]
-   @param {::Range} [range]
+   @param {::TupleKeyRange} [range]
    @param {optional Object} [settings] no options yet
    @return {sjs:observable::Observable}
    @summary Return an [sjs:observable::Observable] of the array of `[key, value]` pairs in the given range.

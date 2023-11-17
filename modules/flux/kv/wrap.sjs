@@ -27,45 +27,10 @@ __js var encodedKeyInRange = (k1,gte, lt) ->
 
 
 __js function encodeKeyRange(arr) {
-  // TODO code duplication with util.transformKeyRange
-  if (typeof arr === 'object' && !Array.isArray(arr)) {
-    if (arr.begin) {
-      // [begin,end[
-      return {
-        begin: @encoding.encodeKey(arr.begin),
-        end: (arr.end !== undefined ? @encoding.encodeKey(arr.end) : @encoding.encodeKey(arr.begin.slice(0,arr.begin.length-1).concat(@encoding.RangeEnd), true))
-      };
-    }
-    else if (arr.after) {
-      // after
-      return {
-        begin: @encoding.encodeKey([...arr.after, @encoding.RangeEnd], true),
-        end: @encoding.encodeKey(arr.after.slice(0,arr.after.length-1).concat(@encoding.RangeEnd), true)
-      };
-    }
-    else if (arr.branch) {
-      // branch
-      return {
-        begin: @encoding.encodeKey(arr.branch),
-        end: @encoding.encodeKey([...arr.branch, @encoding.RangeEnd], true)
-      };
-    }
-    else throw new Error("Invalid Key Range");
-  }
-  else if (arr.length === 0) {
-    // RANGE_ALL
-    return {
-      begin: @encoding.encodeKey([null]),
-      end: @encoding.encodeKey([@encoding.RangeEnd], true)
-    };
-  }
-  else {
-    // children:
-    return {
-      begin: @encoding.encodeKey([...arr,null]),
-      end: @encoding.encodeKey([...arr, @encoding.RangeEnd], true)
-    };
-  }
+  return {
+    begin: @encoding.encodeKey(arr.begin, true),
+    end: @encoding.encodeKey(arr.end, true)
+  };
 }
 
 

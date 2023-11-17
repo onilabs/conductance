@@ -9,11 +9,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 	
+   * Added various `mho:flux/kv functions for constructing TupleKeyRanges.
+	
    * Added `sjs:tuple-key-encoding` module.
 	
    * Added `mho:flux/kv::isEmpty`.
-	
-   * `mho:flux/kv::Range` now supports 'branch' ranges.
 	
    * Added 'sjs:big' module, tracking 'big.js' arbitrary precision math library.
 
@@ -74,6 +74,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `mho:flux/kv::Range` has been removed. Ranges now have to adhere to the `mho:flux/kv::TupleKeyRange` syntax, i.e. they have to be objects `{begin:key1, end:key2}`
+	
    * `mho:flux/kv`: Keys now have to adhere to the `sjs:tuple-key-encoding::TupleKey` syntax, i.e. they have to be flat arrays. 
 	
    * `mho:flux/kv::set` now returns the inserted value, or the return value of the underlying `ITF_KVSTORE::put` call if it is not `undefined`.

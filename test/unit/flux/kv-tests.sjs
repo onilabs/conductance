@@ -255,11 +255,11 @@ function test_range_query(db) {
 
   db .. @kv.query(@kv.RANGE_ALL) .. @toArray .. @assert.eq(kv_pairs);
 
-  db .. @kv.query({begin: ['a']}) .. @toArray .. @assert.eq(kv_pairs);
-  db .. @kv.query({begin: ['b']}) .. @toArray .. @assert.eq(kv_pairs.slice(1));
-  db .. @kv.query({branch: ['b']}) .. @toArray .. @assert.eq(kv_pairs.slice(1,2));
+  db .. @kv.query({begin: ['a'], end: @kv.PAST_LAST_KEY}) .. @toArray .. @assert.eq(kv_pairs);
+  db .. @kv.query({begin: ['b'], end: @kv.PAST_LAST_KEY}) .. @toArray .. @assert.eq(kv_pairs.slice(1));
+  db .. @kv.query(@kv.TreeRange(['b'])) .. @toArray .. @assert.eq(kv_pairs.slice(1,2));
 
-  db .. @kv.query({after: [1]}) .. @toArray .. @assert.eq(kv_pairs.slice(5,8));
+  db .. @kv.query(@kv.RightSiblingTreesRange([1])) .. @toArray .. @assert.eq(kv_pairs.slice(5,8));
 
   var EOF = {};
 
@@ -364,14 +364,14 @@ function test_child_query(db) {
     |[k,v]| db .. @kv.set(k,v);
   }
 
-  db .. @kv.query(['a']) .. @map([k,v] -> k) .. @assert.eq([['a', 'a', 1], ['a', 'a', 2], ['a', 'b', 1]]);
-  db .. @kv.query(['a','a']) .. @map([k,v] -> k) .. @assert.eq([['a', 'a', 1], ['a', 'a', 2]]);
-  db .. @kv.query(['a','b']) .. @map([k,v] -> k) .. @assert.eq([['a', 'b', 1]]);
-  db .. @kv.query(['a','a', 1]) .. @map([k,v] -> k) .. @assert.eq([]);
-  db .. @kv.query(['a','a', 3]) .. @map([k,v] -> k) .. @assert.eq([]);
-  db .. @kv.query(['1']) .. @map([k,v] -> k) .. @assert.eq([]);
-  db .. @kv.query([1]) .. @map([k,v] -> k) .. @assert.eq([[1,1,1], [1,2,1], [1,11,1]]);
-  db .. @kv.query([1,1]) .. @map([k,v] -> k) .. @assert.eq([[1,1,1]]);
+  db .. @kv.query(@kv.ChildrenRange(['a'])) .. @map([k,v] -> k) .. @assert.eq([['a', 'a', 1], ['a', 'a', 2], ['a', 'b', 1]]);
+  db .. @kv.query(@kv.ChildrenRange(['a','a'])) .. @map([k,v] -> k) .. @assert.eq([['a', 'a', 1], ['a', 'a', 2]]);
+  db .. @kv.query(@kv.ChildrenRange(['a','b'])) .. @map([k,v] -> k) .. @assert.eq([['a', 'b', 1]]);
+  db .. @kv.query(@kv.ChildrenRange(['a','a', 1])) .. @map([k,v] -> k) .. @assert.eq([]);
+  db .. @kv.query(@kv.ChildrenRange(['a','a', 3])) .. @map([k,v] -> k) .. @assert.eq([]);
+  db .. @kv.query(@kv.ChildrenRange(['1'])) .. @map([k,v] -> k) .. @assert.eq([]);
+  db .. @kv.query(@kv.ChildrenRange([1])) .. @map([k,v] -> k) .. @assert.eq([[1,1,1], [1,2,1], [1,11,1]]);
+  db .. @kv.query(@kv.ChildrenRange([1,1])) .. @map([k,v] -> k) .. @assert.eq([[1,1,1]]);
 }
 
 function test_tree_query(db) {
@@ -382,9 +382,9 @@ function test_tree_query(db) {
     |[k,v]|
     db .. @kv.set(k,v);
   }
-  db .. @kv.query(['b']) .. @toArray ..  @assert.eq(kv_pairs.slice(3,6));
-  db .. @kv.query({after:['b']}) .. @toArray ..  @assert.eq(kv_pairs.slice(6,8));
-  db .. @kv.query({branch:['b']}) .. @toArray .. @assert.eq(kv_pairs.slice(2,6));
+  db .. @kv.query(@kv.ChildrenRange(['b'])) .. @toArray ..  @assert.eq(kv_pairs.slice(3,6));
+  db .. @kv.query(@kv.RightSiblingTreesRange(['b'])) .. @toArray ..  @assert.eq(kv_pairs.slice(6,8));
+  db .. @kv.query(@kv.TreeRange(['b'])) .. @toArray .. @assert.eq(kv_pairs.slice(2,6));
 }
 
 function test_nested_transactions(db) {
@@ -494,9 +494,9 @@ function test_subspace() {
         end: ['foobar', 0, 'qux']
       }) ..@toArray ..@assert.eq([[['foobar', 0, 'foo'], 1], [['foobar', 0, 'foo', 'bar'], 2]]);
 
-      s.db ..@kv.query(['foo']) ..@toArray ..@assert.eq([[['foo', 'bar'], 2]]);
+      s.db ..@kv.query(@kv.ChildrenRange(['foo'])) ..@toArray ..@assert.eq([[['foo', 'bar'], 2]]);
 
-      s.raw ..@kv.query(['foobar']) ..@toArray ..@assert.eq([[['foobar', 0, 'corge'], 4],
+      s.raw ..@kv.query(@kv.ChildrenRange(['foobar'])) ..@toArray ..@assert.eq([[['foobar', 0, 'corge'], 4],
                                                            [['foobar', 0, 'foo'], 1],
                                                            [['foobar', 0, 'foo', 'bar'], 2],
                                                            [['foobar', 0, 'qux'], 3]]);

@@ -56,7 +56,7 @@ function init(db) {
 // Class Scheduling Functions
 
 function available_classes(db) {
-  return db .. @kv.query(course) .. 
+  return db .. @kv.query(@kv.ChildrenRange(course)) .. 
     @filter([k,v] -> v > 0) ..
     @map([k,v] -> k[1]);
 }
@@ -69,7 +69,7 @@ function signup(db, s, c) {
     
     var seats_left = T .. @kv.get([course, c]);
     if (!seats_left) throw "No remaining seats.";
-    var classes = T .. @kv.query([attends, s]);
+    var classes = T .. @kv.query(@kv.ChildrenRange([attends, s]));
     if (classes .. @count() >= 5) throw "Too many classes";
 
     T .. @kv.set([course, c], seats_left -1);
@@ -160,7 +160,7 @@ function main() {
   run(20, 20);
   console.log('final timetable:');
   console.log('----------------');
-  db .. @kv.query([attends]) .. @groupBy([[,student]] -> student) .. @each {
+  db .. @kv.query(@kv.ChildrenRange([attends])) .. @groupBy([[,student]] -> student) .. @each {
     |[student,attending]|
     console.log("*** #{student} ***");
     attending .. @each {

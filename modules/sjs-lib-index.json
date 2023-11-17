@@ -142,6 +142,9 @@
         "kv": {
           "type": "module",
           "children": {
+            "ChildrenRange": {
+              "type": "function"
+            },
             "Encrypted": {
               "type": "class",
               "children": {
@@ -149,6 +152,12 @@
                   "type": "ctor"
                 }
               }
+            },
+            "FIRST_KEY": {
+              "type": "variable"
+            },
+            "FirstChildKey": {
+              "type": "function"
             },
             "ITF_KVSTORE": {
               "type": "variable"
@@ -180,12 +189,20 @@
               "type": "class",
               "children": {}
             },
+            "PAST_LAST_KEY": {
+              "type": "variable"
+            },
+            "PastChildrenKey": {
+              "type": "function"
+            },
+            "PastSiblingsKey": {
+              "type": "function"
+            },
             "RANGE_ALL": {
               "type": "variable"
             },
-            "Range": {
-              "type": "class",
-              "children": {}
+            "RightSiblingTreesRange": {
+              "type": "function"
             },
             "Subspace": {
               "type": "class",
@@ -194,6 +211,13 @@
                   "type": "ctor"
                 }
               }
+            },
+            "TreeRange": {
+              "type": "function"
+            },
+            "TupleKeyRange": {
+              "type": "class",
+              "children": {}
             },
             "Value": {
               "type": "class",

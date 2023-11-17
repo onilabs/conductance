@@ -34,16 +34,10 @@ __js {
   exports.bytesToString = bytesToString;
 
   function transformKeyRange(range, f) {
-    if (typeof range === 'object' && !Array.isArray(range)) {
-      return {
-        begin: range.begin !== undefined ? f(range.begin),
-        end: range.end !== undefined ? f(range.end),
-        after: range.after !== undefined ? f(range.after),
-        branch: range.branch !== undefined ? f(range.branch)
-      };
-    } else {
-      return f(range);
-    }
+    return {
+      begin: f(range.begin),
+      end: f(range.end)
+    };
   }
   exports.transformKeyRange = transformKeyRange;  
 } // __js
