@@ -334,13 +334,13 @@ exports.setServerPrefix = (s) -> SERVER_PREFIX = s;
    @function withWSTClientTransport
    @summary XXX
 */
-exports.withWSTClientTransport = function(server, receive_buffer_size, session_f) {
+exports.withWSTClientTransport = function(server, settings, session_f) {
   server = server || @url.normalize(SERVER_PREFIX, module.id);
   server = server.replace(/^http/, 'ws')  +SERVER_PATH + '/' + WST_VERSION;
   try {
-    @withWebSocketClient(server) {
+    @withWebSocketClient({url:server, rejectUnauthorized:settings.rejectUnauthorized}) {
       |ws|
-      return runTransportSession(ws, false, receive_buffer_size, session_f);
+      return runTransportSession(ws, false, settings.receive_buffer_size, session_f);
     }
   }
   catch (e) {

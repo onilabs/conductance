@@ -87,6 +87,7 @@ exports.resolve = function(api_name, opts) {
   @param {Function} [session_f]
   @setting {String} [server] Server root
   @setting {optional Boolean} [acceptDFuncs=false] Whether our side of the bridge will accept [sjs:#language/syntax::dfunc]s. Note that dfuncs grant the remote side unlimited code execution capabilities
+  @setting {optional Boolean} [rejectUnauthorized=true] If this is false, we allow connecting to servers with self-signed certificates.
   @desc
     Throws a [::TransportError] if the connection attempt fails.
 
@@ -99,7 +100,7 @@ exports.resolve = function(api_name, opts) {
     connection will be closed automatically.
 */
 
-var constructWithThreadedTransport= server -> function(session_f) {
+var constructWithThreadedTransport= (server, transport_settings) -> function(session_f) {
   //  return require('mho:rpc/wst-client').withWSTClientTransport(server, 0, session_f);
   // we're running the transport in a separate thread, so that keepalives keep better timing
   @thread.withThread(@{
@@ -107,19 +108,26 @@ var constructWithThreadedTransport= server -> function(session_f) {
   }) {
     |[withClientTransport]|
     // we need some receive-buffering, because we cannot synchronously receive across the thread
-    // barrier. arbitrarily set to 1000 here. 
-    return withClientTransport(server, 1000, session_f);
+    // barrier. arbitrarily set to 1000 here.
+    var settings = {
+      receive_buffer_size: 1000,
+      rejectUnauthorized: true
+    } .. @override(transport_settings);
+    return withClientTransport(server, transport_settings, session_f);
   }
 };
 
 exports.connect = function(apiinfo, opts, session_f) {
   if (!opts) opts = {};
+  var transport_settings = {
+    rejectUnauthorized: true
+  } .. @override(opts);
   if (@isString(apiinfo)) {
     apiinfo = exports.resolve(apiinfo);
   }
   var server = opts.server || apiinfo.server;
   
-  @withVMBridge({withTransport:constructWithThreadedTransport(server),
+  @withVMBridge({withTransport:constructWithThreadedTransport(server, transport_settings),
                  local_itf: undefined,
                  acceptDFuncs: opts.acceptDFuncs ? true : false
                 }) {
