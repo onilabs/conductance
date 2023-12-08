@@ -172,7 +172,7 @@ function withWebSocketClient(settings, session_f) {
     waitfor {
       try {
         var error = socket .. @wait('error');
-        throw WebSocketError("Undeterminable error");
+        throw WebSocketError(String(error) || "Undeterminable error");
       }
       finally {
         // ignore errors, so that we don't get things like
