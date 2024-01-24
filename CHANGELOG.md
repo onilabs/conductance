@@ -74,6 +74,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `sjs:url::buildQuery`: 'undefined' values will now be omitted.
+
    * `sjs` script: The `SJS_INIT` environment variable is not processed anymore.
 	
    * `mho:flux/kv::Range` has been removed. Ranges now have to adhere to the `mho:flux/kv::TupleKeyRange` syntax, i.e. they have to be objects `{begin:key1, end:key2}`

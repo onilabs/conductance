@@ -20,7 +20,7 @@
     "nodemon": "^3.0.1",
     "rocksdb": "^5.2.1",
     "ssh2": "^1.4.0",
-    "stratifiedjs": "github:onilabs/stratifiedjs#5c675832fbce15624cfdbd1bca275bb19b584b95",
+    "stratifiedjs": "github:onilabs/stratifiedjs#e850025f21f939d2d97fbab011822192d136894d",
     "ws": "^8.13.0"
   },
   "scripts": {
