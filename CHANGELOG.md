@@ -74,6 +74,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `sjs` script: The `SJS_INIT` environment variable is not processed anymore.
+	
    * `mho:flux/kv::Range` has been removed. Ranges now have to adhere to the `mho:flux/kv::TupleKeyRange` syntax, i.e. they have to be objects `{begin:key1, end:key2}`
 	
    * `mho:flux/kv`: Keys now have to adhere to the `sjs:tuple-key-encoding::TupleKey` syntax, i.e. they have to be flat arrays. 

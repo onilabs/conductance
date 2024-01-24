@@ -115,17 +115,13 @@ function wrapDB(base) {
               )(receiver);
             }
             or {
-              // XXX it would be great if we could batch-apply changes to QueryResult, maybe via
-              // a mutate([actions]) method on ObservableSortedMapVar?
-              changes .. 
-                @unpack .. 
-                @filter(__js {key} -> key .. encodedKeyInRange(encoded_range.begin, encoded_range.end)) ..
-                @each {
-                |{key,value}|
-                if (value === undefined) 
-                  QueryResult.delete(key);
-                else
-                  QueryResult.set(key, value);
+              changes .. @each {
+                |change_batch|
+                __js var relevant = change_batch .. 
+                  @filter({key} -> key .. encodedKeyInRange(encoded_range.begin, encoded_range.end)) ..
+                  @map(({key,value}) -> value === undefined ? [key] : [key,value]);
+                if (relevant.length)
+                  QueryResult.batch_update(relevant);
               }
             }
           }
