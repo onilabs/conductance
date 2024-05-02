@@ -74,6 +74,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `sjs:sequence::withOpenStream`: fixed propagation of synchronous exceptions.
+	
    * `sjs:url::buildQuery`: 'undefined' values will now be omitted.
 
    * `sjs` script: The `SJS_INIT` environment variable is not processed anymore.
