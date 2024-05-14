@@ -1049,7 +1049,7 @@ context(function() {
       function foo() {
         require(url).connect() { |api|
           // have the other side call and abort f, but not return itself...
-          // only the 'break' will abort the outer call
+          // only the exception will abort the outer call
           api.callAbortHold { ||
             try { 
               hold();
