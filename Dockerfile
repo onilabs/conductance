@@ -1,4 +1,4 @@
-FROM node:18.16-bookworm
+FROM node:20.13-bookworm
 MAINTAINER alex@onilabs.com
 
 # install certbot (letsencrypt.org support) - see modules/services/https

@@ -16,11 +16,12 @@
   "dependencies": {
     "@msgpack/msgpack": "^2.8.0",
     "browserify": "^17.0.0",
+    "conductance": "^0.5.1",
     "google-oauth-jwt": "^0.0.7",
     "nodemon": "^3.0.1",
     "rocksdb": "^5.2.1",
     "ssh2": "^1.4.0",
-    "stratifiedjs": "github:onilabs/stratifiedjs#336b6d0022e86d820b14108c3a9b1d591d14671c",
+    "stratifiedjs": "github:onilabs/stratifiedjs#726753be49c90c2bf5ca881528f1be2e7352abc4",
     "ws": "^8.13.0"
   },
   "scripts": {

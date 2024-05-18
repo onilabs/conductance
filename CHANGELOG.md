@@ -4,7 +4,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * General
 
-   * nodejs/container dependency updated to node:18.16-bookworm
+   * nodejs/container dependency updated to node:20.13-bookworm
 
 
  * New functionality
@@ -74,6 +74,10 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `sjs:http::request` and related functions: errors thrown by the underlying nodejs request function used to
+     be wrapped with another `new Error()`. This wrapper has now been removed, because in recent nodejs versions
+     (at least >=20.13) it would otherwise cause uninformative 'AggreateError' exceptions.
+	
    * `sjs:sequence::withOpenStream`: fixed propagation of synchronous exceptions.
 	
    * `sjs:url::buildQuery`: 'undefined' values will now be omitted.
