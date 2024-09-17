@@ -230,8 +230,8 @@ __js {
     }
     else if (arguments.length === 3) {
       nodes = [arguments[0]];
-      if (!@dom.isDOMNode(node[0]))
-        throw new Error("Invalid argument to Binding(); DOM node expected, #{node} given");
+      if (!@dom.isDOMNode(nodes[0]))
+        throw new Error("Invalid argument to Binding(); DOM node expected, #{nodes} given");
       name = arguments[1];
       defval = arguments[2];
     }
