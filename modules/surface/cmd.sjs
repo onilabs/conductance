@@ -329,6 +329,8 @@ function stream(/*[dom_root], [commands]*/) {
     if (args.length === 1) {
       if (Array.isArray(args[0]) && typeof(args[0][0]) === 'string')
         bound_commands = args[0];
+      else 
+        root = args[0];
     }
     else if (args.length === 2) {
       root = args[0];

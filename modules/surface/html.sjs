@@ -937,7 +937,7 @@ function Select(settings, attribs) {
     selected: undefined
   } .. @override(settings);
 
-  attribs = attribs ? attribs .. clone : {};
+  attribs = attribs ? attribs .. @clone : {};
 
   if (settings.multiple)
     attribs.multiple = true;

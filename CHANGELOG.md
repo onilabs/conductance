@@ -74,6 +74,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * Bug fixes / Behavioral changes:
 
+   * `mho:surface/cmd::stream`: fix argument handling when only `dom_root` argument provided.
+
+   * `mho:surface/html::Select`: fix handling of attribs argument.
+
+   * `mho:surface/binding::Binding`: fix defval argument logic.
+
    * `sjs:http::request` and related functions: errors thrown by the underlying nodejs request function used to
      be wrapped with another `new Error()`. This wrapper has now been removed, because in recent nodejs versions
      (at least >=20.13) it would otherwise cause uninformative 'AggreateError' exceptions.

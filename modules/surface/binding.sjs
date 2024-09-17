@@ -253,7 +253,7 @@ __js {
         node = node.parentNode;
       }
     }
-    if (BINDING_NO_DEFVAL)
+    if (defval === BINDING_NO_DEFVAL)
       throw new Error("Binding('#{name}') not found");
     else
       return defval;
