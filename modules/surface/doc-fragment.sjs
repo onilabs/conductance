@@ -197,7 +197,7 @@ var mhoColors = staticExports.mhoColors = bootstrapColors .. @merge({
     Providing an alternative `serverRoot` will cause absolute paths to
     be prefixed with this alternative root. This is useful if
     conductance resources are embedded within a virtual path of another
-    web server.
+    web server, or conductance is run behind a web server that does https->http translation
 */
 staticExports.configure = function(opts) {
   var serverRoot = -> opts.serverRoot || env.get('serverRoot', '/');
@@ -293,7 +293,8 @@ staticExports.configure = function(opts) {
     // below we remove sjs's built-in 'sjs' hub (always at the first
     // location in the hubs array) and replace it explicitly. This is to fix an issue with
     // Android's Chrome Data Saver, which sometimes inlines scripts, leading to the inferred
-    // 'sjs' hub not being able to be resolved.
+    // 'sjs' hub not being able to be resolved, because the 'script' tag loading stratified.js cannot
+    // be found.
 
     return [
       @Element('script', null, {src: "#{serverRoot()}__sjs/stratified.js", async:'true'}),
