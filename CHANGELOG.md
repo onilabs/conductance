@@ -9,6 +9,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * New functionality
 	
+   * Added 'peek*' functions to `sjs:bytes::parseBytes`.
+	
    * Added various `mho:flux/kv functions for constructing TupleKeyRanges.
 	
    * Added `sjs:tuple-key-encoding` module.
