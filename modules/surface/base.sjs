@@ -402,7 +402,10 @@ exports.collapseHtmlFragment = collapseHtmlFragment;
      under review, and in future the implementation might throw an
      error in this case instead.
 
-
+     For ElementWrappers that take a function argument, like e.g. [::Mechanism], the
+     function argument MUST NOT be [sjs:syntax::blocklambda]s, as the ElementWrapper call
+     (the blocklambda's "anchor call") will be inactive by the time the blocklambda is 
+     called.
 */
 __js var ElementProto = Object.create(FragmentBase);
 
@@ -930,7 +933,7 @@ exports.GlobalCSS = function(content) {
   @function Mechanism
   @altsyntax element .. Mechanism(mechanism, [settings])
   @param {optional ::Element} [element]
-  @param {Function|String} [mechanism] Function to execute when `element` is added to the DOM
+  @param {Function|String} [mechanism] Function to execute when `element` is added to the DOM.
   @param {optional Object} [settings] Additional settings
   @setting {optional Integer} [priority] Priority value for coordinating mechanism execution order (Default: [::MECH_PRIORITY_NORMAL])
   @setting {optional Boolean} [prepend=false] If `true`, this mechanism will be executed before any other existing mechanisms on `element`. **deprecated**
