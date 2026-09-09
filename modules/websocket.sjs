@@ -98,6 +98,7 @@ __js {
    @setting {String} [url] URL to connect to
    @setting {String|Array} [protocols] List of Subprotocols
    @setting {Boolean} [rejectUnauthorized=true] **nodejs-only** Whether to reject 'wss' connections not authorized as per builtin CAs.
+   @setting {Object} [headers] **nodejs-only** Additional headers (e.g. `{Authorization:...}`) to send out in initial upgrade request.
    @param {Function} [session_f] Function that will be passed a [::IWebSocketSession] interface object.
    @desc
      Establishes a [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) client
@@ -146,7 +147,8 @@ function withWebSocketClient(settings, session_f) {
     var nodejs_opts = {
       rejectUnauthorized: true,
       perMessageDeflate: false,
-      skipUTF8Validation: false
+      skipUTF8Validation: false,
+      headers: {}
     } .. @override(settings);
   }
 
